@@ -246,6 +246,18 @@ function isAuthorized(req) {
 // il modello in una singola risposta, per tenere il costo prevedibile.
 const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 3 };
 
+// v2.2: web_fetch — recupera direttamente il contenuto di un URL preciso, senza passare da un indice
+// di ricerca. Serve perché web_search da solo non trova un sito appena pubblicato/poco indicizzato
+// (mostra solo pagine "vecchie" come il repository GitHub): se l'URL compare nel messaggio dell'utente
+// (o in un risultato di ricerca/fetch precedente), il modello può leggerlo per intero. Nessun costo
+// aggiuntivo oltre ai normali token del contenuto scaricato.
+const WEB_FETCH_TOOL = {
+  type: "web_fetch_20260318",
+  name: "web_fetch",
+  max_uses: 5,
+  max_content_tokens: 15000,
+};
+
 async function callAnthropic(apiKey, agent, messages) {
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -260,7 +272,7 @@ async function callAnthropic(apiKey, agent, messages) {
       temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
       system: agent.system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      tools: [WEB_SEARCH_TOOL],
+      tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL],
     }),
   });
   const data = await upstream.json();
@@ -290,9 +302,23 @@ async function callAnthropic(apiKey, agent, messages) {
         }
       });
     });
+  // web_fetch_tool_result ha una forma diversa da web_search_tool_result: .content è un oggetto
+  // singolo (un URL preciso), non un array di risultati — e su errore (pagina non raggiungibile, ecc.)
+  // .content.type è "web_fetch_tool_result_error" invece di "web_fetch_result", da ignorare.
+  blocks
+    .filter((b) => b.type === "web_fetch_tool_result")
+    .forEach((b) => {
+      const r = b.content;
+      if (r && r.type === "web_fetch_result" && r.url && !seenUrls.has(r.url)) {
+        seenUrls.add(r.url);
+        const title = (r.content && r.content.title) || r.url;
+        sources.push({ url: r.url, title });
+      }
+    });
 
   const usage = data.usage || null;
-  const searched = !!(usage && usage.server_tool_use && usage.server_tool_use.web_search_requests > 0);
+  const stu = usage && usage.server_tool_use;
+  const searched = !!(stu && (stu.web_search_requests > 0 || stu.web_fetch_requests > 0));
   return { text, usage, sources, searched };
 }
 
