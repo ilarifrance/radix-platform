@@ -128,6 +128,10 @@
   .whoami button:hover{ background:rgba(255,255,255,0.1); }
   .msg-author{ font-size:11px; color:#8a958f; margin:-8px 4px 0; align-self:flex-end; }
   .step-by{ font-size:11px; color:#8a958f; margin-top:2px; }
+  .sources-list{ font-size:11.5px; color:#8a958f; align-self:flex-start; max-width:78%; line-height:1.5; }
+  .sources-list .sources-label{ font-weight:600; }
+  .sources-list a{ color:#4a6b5a; text-decoration:underline; text-underline-offset:2px; }
+  .sources-list a:hover{ color:var(--verde-bosco); }
 </style>
 </head>
 <body>
@@ -470,6 +474,29 @@
     } catch (e) { /* download unavailable: the copy button is the fallback */ }
   }
 
+  // --- Web search sources -------------------------------------------------
+  // When an agent's reply used the web-search tool (see api/chat.js), the server sends back the
+  // pages it actually consulted — shown here as a small "Fonti" list so it's clear the answer is
+  // grounded in something real, not just model recall.
+  function buildSourcesEl(sources) {
+    var wrap = document.createElement("div");
+    wrap.className = "sources-list";
+    var label = document.createElement("span");
+    label.className = "sources-label";
+    label.textContent = "Fonti: ";
+    wrap.appendChild(label);
+    sources.forEach(function (s, i) {
+      if (i > 0) wrap.appendChild(document.createTextNode(" · "));
+      var a = document.createElement("a");
+      a.href = s.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = s.title || s.url;
+      wrap.appendChild(a);
+    });
+    return wrap;
+  }
+
   function renderRoster() {
     rosterEl.innerHTML = "";
     AGENTS.forEach(function (a) {
@@ -530,6 +557,9 @@
         author.className = "msg-author";
         author.textContent = m.by;
         messagesEl.appendChild(author);
+      }
+      if (m.role === "assistant" && Array.isArray(m.sources) && m.sources.length) {
+        messagesEl.appendChild(buildSourcesEl(m.sources));
       }
       // Character counter for the Copywriter's finished posts — quick sanity check against
       // LinkedIn/Facebook practices without having to paste the text somewhere else to count it.
@@ -667,6 +697,12 @@
         body.appendChild(byLine);
       }
 
+      if (Array.isArray(step.sources) && step.sources.length) {
+        var stepSources = buildSourcesEl(step.sources);
+        stepSources.style.marginTop = "6px";
+        body.appendChild(stepSources);
+      }
+
       if (step._editing) {
         var textarea = document.createElement("textarea");
         textarea.className = "step-edit-textarea";
@@ -754,7 +790,8 @@
       var userText = PIPELINE[i].prompt(task, outputs);
       var reply = await callAgent(PIPELINE[i].role, userText);
       state.pipeline.steps[i].status = "done";
-      state.pipeline.steps[i].output = reply;
+      state.pipeline.steps[i].output = reply.text;
+      state.pipeline.steps[i].sources = reply.sources;
       state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
       markDownstreamStale(i);
     } catch (err) {
@@ -809,7 +846,7 @@
     if (res.status === 401) { showGate("Sessione scaduta: accedi di nuovo."); throw new Error("Sessione scaduta"); }
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || "Errore imprevisto");
-    return data.reply || "";
+    return { text: data.reply || "", sources: data.sources || [] };
   }
 
   // Shared by a fresh run (startIndex 0) and "Riprova" on a failed step (startIndex = that step):
@@ -829,9 +866,10 @@
       try {
         var userText = step.prompt(task, outputs);
         var reply = await callAgent(step.role, userText);
-        outputs[step.role] = reply;
+        outputs[step.role] = reply.text;
         state.pipeline.steps[i].status = "done";
-        state.pipeline.steps[i].output = reply;
+        state.pipeline.steps[i].output = reply.text;
+        state.pipeline.steps[i].sources = reply.sources;
         state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
       } catch (err) {
         state.pipeline.steps[i].status = "error";
@@ -883,7 +921,7 @@
         if (!res.ok) {
           hist.push({ role: "error", content: data.error || "Errore imprevisto" });
         } else {
-          hist.push({ role: "assistant", content: data.reply || "(risposta vuota)" });
+          hist.push({ role: "assistant", content: data.reply || "(risposta vuota)", sources: data.sources || [] });
         }
       }
     } catch (err) {
