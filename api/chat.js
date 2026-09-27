@@ -238,6 +238,14 @@ function isAuthorized(req) {
   return true;
 }
 
+// v2.1: ogni agente può cercare sul web quando serve (notizie/prezzi recenti, un'azienda o un
+// prodotto specifico, o quando gli viene chiesto esplicitamente di controllare una pagina reale —
+// es. il sito RADIX). È un tool "server-side": Anthropic esegue la ricerca internamente e la
+// risposta arriva già completa, non serve gestire un loop tool_use/tool_result lato nostro.
+// Costo: $10 ogni 1000 ricerche, più i normali token — max_uses limita quante ricerche può fare
+// il modello in una singola risposta, per tenere il costo prevedibile.
+const WEB_SEARCH_TOOL = { type: "web_search_20250305", name: "web_search", max_uses: 3 };
+
 async function callAnthropic(apiKey, agent, messages) {
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -252,6 +260,7 @@ async function callAnthropic(apiKey, agent, messages) {
       temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
       system: agent.system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      tools: [WEB_SEARCH_TOOL],
     }),
   });
   const data = await upstream.json();
@@ -260,9 +269,31 @@ async function callAnthropic(apiKey, agent, messages) {
     err.status = upstream.status;
     throw err;
   }
-  const text = (data.content || []).map((b) => b.text || "").join("\n").trim();
+  const blocks = data.content || [];
+  const text = blocks
+    .filter((b) => b.type === "text")
+    .map((b) => b.text || "")
+    .join("\n")
+    .trim();
+
+  // Raccoglie le fonti citate (se il modello ha davvero cercato) per mostrarle in UI — dedup per URL,
+  // così un sito trovato più volte in ricerche diverse compare una sola volta.
+  const seenUrls = new Set();
+  const sources = [];
+  blocks
+    .filter((b) => b.type === "web_search_tool_result")
+    .forEach((b) => {
+      (Array.isArray(b.content) ? b.content : []).forEach((r) => {
+        if (r && r.type === "web_search_result" && r.url && !seenUrls.has(r.url)) {
+          seenUrls.add(r.url);
+          sources.push({ url: r.url, title: r.title || r.url });
+        }
+      });
+    });
+
   const usage = data.usage || null;
-  return { text, usage };
+  const searched = !!(usage && usage.server_tool_use && usage.server_tool_use.web_search_requests > 0);
+  return { text, usage, sources, searched };
 }
 
 module.exports = async (req, res) => {
@@ -309,7 +340,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage } = await callAnthropic(apiKey, agent, messages);
+    let { text, usage, sources } = await callAnthropic(apiKey, agent, messages);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -330,6 +361,12 @@ module.exports = async (req, res) => {
           const retry = await callAnthropic(apiKey, agent, retryMessages);
           text = retry.text;
           revised = true;
+          if (retry.sources && retry.sources.length) {
+            // La riscrittura ha cercato di nuovo: unisci le fonti (senza duplicati) invece di perdere
+            // quelle trovate nella prima chiamata.
+            const seen = new Set((sources || []).map((s) => s.url));
+            sources = (sources || []).concat(retry.sources.filter((s) => !seen.has(s.url)));
+          }
           if (usage && retry.usage) {
             usage = {
               input_tokens: (usage.input_tokens || 0) + (retry.usage.input_tokens || 0),
@@ -345,7 +382,7 @@ module.exports = async (req, res) => {
       }
     }
 
-    res.status(200).json({ reply: text, agent: agent.name, revised, usage });
+    res.status(200).json({ reply: text, agent: agent.name, revised, usage, sources: sources || [] });
   } catch (err) {
     const status = err && err.status ? err.status : 502;
     res.status(status).json({ error: "Chiamata all'API fallita: " + (err && err.message ? err.message : String(err)) });
