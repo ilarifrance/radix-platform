@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>RADIX Platform — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --verde-bosco:#0F2D24; --verde-salvia:#6B7F72; --sabbia:#EDE6DE; --antracite:#1F1F1F; --avorio:#FAF9F6;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; font-family:'Inter',system-ui,sans-serif; background:var(--avorio); color:var(--antracite); }
+  h1,h2,h3{ font-family:'Montserrat',system-ui,sans-serif; margin:0; }
+
+  .topbar{ display:flex; align-items:center; gap:12px; padding:18px 32px; background:var(--verde-bosco); }
+  .topbar .mark{ width:30px; height:30px; border-radius:8px; background:var(--avorio); color:var(--verde-bosco); display:flex; align-items:center; justify-content:center; font-family:'Montserrat',sans-serif; font-weight:800; }
+  .topbar .name{ color:var(--avorio); font-family:'Montserrat',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.03em; }
+  .topbar .tag{ color:#c7d6cb; font-size:12px; }
+
+  .wrap{ max-width:720px; margin:0 auto; padding:40px 24px 80px; }
+
+  .card{ background:#fff; border:1px solid rgba(15,45,36,0.08); border-radius:14px; padding:26px 26px; margin-bottom:24px; box-shadow:0 2px 10px rgba(15,45,36,0.04); }
+  .card h2{ font-size:16px; color:var(--verde-bosco); margin-bottom:6px; }
+  .card p.hint{ font-size:13px; color:#6a756f; line-height:1.55; margin:0 0 16px; }
+
+  label{ display:block; font-size:12.5px; font-weight:600; color:#5f6b64; margin-bottom:5px; margin-top:12px; }
+  label:first-of-type{ margin-top:0; }
+  input{ width:100%; border:1.5px solid rgba(15,45,36,0.15); border-radius:9px; padding:10px 12px; font-size:14px; font-family:inherit; }
+  input:focus{ outline:2px solid var(--verde-salvia); outline-offset:1px; }
+
+  button{ font-family:'Montserrat',sans-serif; font-weight:700; font-size:13.5px; background:var(--verde-bosco); color:var(--avorio); border:none; border-radius:9px; padding:11px 18px; cursor:pointer; margin-top:16px; }
+  button:hover{ opacity:0.92; }
+  button:disabled{ opacity:0.55; cursor:default; }
+  button.ghost{ background:transparent; color:var(--verde-bosco); border:1.5px solid rgba(15,45,36,0.2); }
+
+  .msg-box{ font-size:13px; margin-top:12px; padding:10px 12px; border-radius:9px; display:none; }
+  .msg-box.ok{ display:block; background:#e5f2e9; color:#1f5b3a; }
+  .msg-box.err{ display:block; background:#f8e4e0; color:#7a2f22; }
+
+  table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:13px; }
+  th, td{ text-align:left; padding:8px 6px; border-bottom:1px solid rgba(15,45,36,0.08); }
+  th{ color:#6a756f; font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; }
+
+  #gateScreen{ position:fixed; inset:0; background:var(--verde-bosco); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .gate-box{ background:#fff; border-radius:16px; padding:32px 28px; max-width:340px; width:100%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.35); }
+  .gate-box .mark{ width:40px; height:40px; border-radius:10px; background:var(--verde-bosco); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; margin:0 auto 14px; font-family:'Montserrat',sans-serif; }
+  .gate-box h2{ font-size:18px; color:var(--verde-bosco); margin-bottom:8px; }
+  .gate-box p{ font-size:13px; color:#6a756f; line-height:1.5; margin-bottom:18px; }
+  .gate-box input{ margin-bottom:10px; }
+  .gate-box button{ width:100%; margin-top:4px; }
+
+  #appScreen{ display:none; }
+</style>
+</head>
+<body>
+
+  <div id="gateScreen">
+    <div class="gate-box">
+      <div class="mark">R</div>
+      <h2>RADIX Platform — Admin</h2>
+      <p>Pagina riservata a Francesco: gestione utenti e inizializzazione del database. Inserisci l'admin secret configurato su Vercel.</p>
+      <input id="adminSecretInput" type="password" placeholder="Admin secret" autocomplete="off" />
+      <button id="gateEnterBtn" type="button">Entra</button>
+      <div id="gateMsg" class="msg-box err"></div>
+    </div>
+  </div>
+
+  <div id="appScreen">
+    <div class="topbar">
+      <div class="mark">R</div>
+      <div>
+        <div class="name">RADIX Platform</div>
+        <div class="tag">Admin — database e utenti</div>
+      </div>
+    </div>
+
+    <div class="wrap">
+
+      <div class="card">
+        <h2>1. Inizializza il database</h2>
+        <p class="hint">
+          Crea (o verifica) le tabelle <code>users</code> e <code>workspace_state</code> su Postgres. Sicura da
+          rieseguire più volte: non tocca mai dati già esistenti, serve solo la prima volta o se in dubbio.
+        </p>
+        <button id="migrateBtn" type="button">Esegui migrazione</button>
+        <div id="migrateMsg" class="msg-box"></div>
+      </div>
+
+      <div class="card">
+        <h2>2. Crea o resetta un account</h2>
+        <p class="hint">
+          Crea un nuovo membro del team con email e password, oppure — inserendo di nuovo un'email già esistente —
+          resetta il suo nome/password (utile se qualcuno dimentica la password).
+        </p>
+        <label for="userEmail">Email</label>
+        <input id="userEmail" type="email" placeholder="nome@radixinnovationstudio.com" autocomplete="off" />
+        <label for="userName">Nome</label>
+        <input id="userName" type="text" placeholder="Nome e cognome" autocomplete="off" />
+        <label for="userPassword">Password</label>
+        <input id="userPassword" type="text" placeholder="Almeno 8 caratteri" autocomplete="off" />
+        <button id="createUserBtn" type="button">Crea / aggiorna account</button>
+        <div id="createUserMsg" class="msg-box"></div>
+      </div>
+
+      <div class="card">
+        <h2>Account esistenti</h2>
+        <button id="refreshUsersBtn" type="button" class="ghost" style="margin-top:0;">Aggiorna elenco</button>
+        <div id="usersMsg" class="msg-box"></div>
+        <table id="usersTable" style="display:none;">
+          <thead><tr><th>Email</th><th>Nome</th><th>Creato il</th></tr></thead>
+          <tbody id="usersTbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var adminSecret = "";
+
+  function showMsg(el, text, ok) {
+    el.textContent = text;
+    el.className = "msg-box " + (ok ? "ok" : "err");
+  }
+  function clearMsg(el) {
+    el.textContent = "";
+    el.className = "msg-box";
+  }
+
+  async function adminFetch(url, options) {
+    options = options || {};
+    options.headers = Object.assign({ "x-admin-secret": adminSecret }, options.headers || {});
+    return fetch(url, options);
+  }
+
+  async function enterAdmin() {
+    var val = document.getElementById("adminSecretInput").value.trim();
+    var gateMsg = document.getElementById("gateMsg");
+    if (!val) return;
+    adminSecret = val;
+    // Verify the secret immediately by trying to list users — cheap way to fail fast on a wrong
+    // secret instead of only discovering it on the first real action.
+    try {
+      var res = await adminFetch("/api/admin/users");
+      if (res.status === 401) {
+        adminSecret = "";
+        showMsg(gateMsg, "Admin secret errato.", false);
+        return;
+      }
+      clearMsg(gateMsg);
+      document.getElementById("gateScreen").style.display = "none";
+      document.getElementById("appScreen").style.display = "block";
+      if (res.ok) {
+        var data = await res.json();
+        renderUsers(data.users || []);
+      }
+    } catch (e) {
+      showMsg(gateMsg, "Impossibile contattare il server: " + e.message, false);
+    }
+  }
+
+  function renderUsers(users) {
+    var tbody = document.getElementById("usersTbody");
+    var table = document.getElementById("usersTable");
+    var msg = document.getElementById("usersMsg");
+    tbody.innerHTML = "";
+    if (!users.length) {
+      table.style.display = "none";
+      showMsg(msg, "Nessun account ancora creato.", true);
+      return;
+    }
+    clearMsg(msg);
+    table.style.display = "";
+    users.forEach(function (u) {
+      var tr = document.createElement("tr");
+      var created = u.created_at ? new Date(u.created_at).toLocaleString("it-IT") : "—";
+      tr.innerHTML = "<td>" + escapeHtml(u.email) + "</td><td>" + escapeHtml(u.name) + "</td><td>" + escapeHtml(created) + "</td>";
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  async function loadUsers() {
+    var msg = document.getElementById("usersMsg");
+    try {
+      var res = await adminFetch("/api/admin/users");
+      var data = await res.json();
+      if (!res.ok) { showMsg(msg, data.error || "Errore imprevisto", false); return; }
+      renderUsers(data.users || []);
+    } catch (e) {
+      showMsg(msg, "Chiamata fallita: " + e.message, false);
+    }
+  }
+
+  async function runMigration() {
+    var btn = document.getElementById("migrateBtn");
+    var msg = document.getElementById("migrateMsg");
+    btn.disabled = true;
+    try {
+      var res = await adminFetch("/api/admin/migrate", { method: "POST" });
+      var data = await res.json();
+      if (!res.ok) { showMsg(msg, data.error || "Errore imprevisto", false); return; }
+      showMsg(msg, data.message || "Fatto.", true);
+    } catch (e) {
+      showMsg(msg, "Chiamata fallita: " + e.message, false);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function createUser() {
+    var btn = document.getElementById("createUserBtn");
+    var msg = document.getElementById("createUserMsg");
+    var email = document.getElementById("userEmail").value.trim();
+    var name = document.getElementById("userName").value.trim();
+    var password = document.getElementById("userPassword").value;
+
+    if (!email || !name || !password) { showMsg(msg, "Compila email, nome e password.", false); return; }
+
+    btn.disabled = true;
+    try {
+      var res = await adminFetch("/api/admin/users", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email, name: name, password: password }),
+      });
+      var data = await res.json();
+      if (!res.ok) { showMsg(msg, data.error || "Errore imprevisto", false); return; }
+      showMsg(msg, "Account salvato: " + data.user.email, true);
+      document.getElementById("userPassword").value = "";
+      loadUsers();
+    } catch (e) {
+      showMsg(msg, "Chiamata fallita: " + e.message, false);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("gateEnterBtn").addEventListener("click", enterAdmin);
+  document.getElementById("adminSecretInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); enterAdmin(); }
+  });
+  document.getElementById("migrateBtn").addEventListener("click", runMigration);
+  document.getElementById("createUserBtn").addEventListener("click", createUser);
+  document.getElementById("refreshUsersBtn").addEventListener("click", loadUsers);
+})();
+</script>
+</body>
+</html>

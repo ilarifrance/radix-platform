@@ -225,14 +225,17 @@ function findCliches(text) {
   return hits;
 }
 
-// Optional access gate: set PLATFORM_PASSPHRASE on Vercel to require a shared passphrase before
-// anyone can spend Anthropic API tokens through this page. Leave it unset and every request goes
-// through exactly as before (v0 behaviour) — this is opt-in, not a breaking change.
+// v2.0: the old shared-passphrase gate (PLATFORM_PASSPHRASE / x-platform-key) is replaced by real
+// per-person accounts. Every request must carry a valid session cookie (set by /api/auth/login);
+// req.user is populated with { uid, email, name } for anything downstream that wants to know who's
+// asking (e.g. author attribution on saved state).
+const { getSessionUser } = require("./_auth");
+
 function isAuthorized(req) {
-  const required = process.env.PLATFORM_PASSPHRASE;
-  if (!required) return true;
-  const provided = req.headers["x-platform-key"];
-  return typeof provided === "string" && provided === required;
+  const user = getSessionUser(req);
+  if (!user) return false;
+  req.user = user;
+  return true;
 }
 
 async function callAnthropic(apiKey, agent, messages) {
@@ -264,7 +267,7 @@ async function callAnthropic(apiKey, agent, messages) {
 
 module.exports = async (req, res) => {
   if (!isAuthorized(req)) {
-    res.status(401).json({ error: "Passphrase mancante o errata." });
+    res.status(401).json({ error: "Sessione mancante o scaduta. Rifai il login." });
     return;
   }
 

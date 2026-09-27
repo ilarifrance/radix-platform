@@ -1,0 +1,9 @@
+{
+  "name": "radix-platform",
+  "version": "2.0.0",
+  "private": true,
+  "description": "RADIX Agentic Platform — team AI pipeline with shared Postgres-backed state and real accounts.",
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4"
+  }
+}

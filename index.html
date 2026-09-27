@@ -118,10 +118,16 @@
   .gate-box .mark{ width:40px; height:40px; border-radius:10px; background:var(--verde-bosco,#0F2D24); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; margin:0 auto 14px; }
   .gate-box h2{ font-size:18px; color:var(--verde-bosco,#0F2D24); margin-bottom:8px; }
   .gate-box p{ font-size:13px; color:#6a756f; line-height:1.5; margin-bottom:18px; }
-  .gate-box input{ width:100%; border:1.5px solid rgba(15,45,36,0.15); border-radius:10px; padding:10px 12px; font-size:14px; margin-bottom:10px; }
+  .gate-box input{ width:100%; border:1.5px solid rgba(15,45,36,0.15); border-radius:10px; padding:10px 12px; font-size:14px; margin-bottom:10px; box-sizing:border-box; }
   .gate-box button{ width:100%; border:none; border-radius:10px; padding:11px; background:var(--verde-bosco,#0F2D24); color:#fff; font-weight:600; cursor:pointer; font-size:14px; }
   .gate-box button:hover{ opacity:0.9; }
+  .gate-box button:disabled{ opacity:0.6; cursor:default; }
   .gate-error{ color:#b3402a; font-size:12px; margin-top:10px; min-height:14px; }
+  .whoami{ font-size:12px; color:#e7efe9; display:flex; align-items:center; gap:10px; }
+  .whoami button{ background:none; border:1px solid rgba(255,255,255,0.35); color:inherit; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:12px; }
+  .whoami button:hover{ background:rgba(255,255,255,0.1); }
+  .msg-author{ font-size:11px; color:#8a958f; margin:-8px 4px 0; align-self:flex-end; }
+  .step-by{ font-size:11px; color:#8a958f; margin-top:2px; }
 </style>
 </head>
 <body>
@@ -130,9 +136,10 @@
     <div class="gate-box">
       <div class="mark" style="margin-bottom:14px;">R</div>
       <h2>RADIX Platform</h2>
-      <p>Accesso riservato al team. Inserisci la passphrase per continuare.</p>
-      <input id="gateInput" type="password" placeholder="Passphrase" autocomplete="off" />
-      <button id="gateSubmit">Entra</button>
+      <p>Accesso riservato al team. Accedi con il tuo account per continuare.</p>
+      <input id="gateEmail" type="email" placeholder="Email" autocomplete="username" />
+      <input id="gatePassword" type="password" placeholder="Password" autocomplete="current-password" />
+      <button id="gateSubmit">Accedi</button>
       <div id="gateError" class="gate-error"></div>
     </div>
   </div>
@@ -142,10 +149,16 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v1.2</div>
+        <div class="tag">Agentic team · v2.0</div>
       </div>
     </div>
-    <div class="status" id="apiStatus">Verifico configurazione…</div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="whoami" id="whoAmI" style="display:none;">
+        <span id="whoAmIName"></span>
+        <button id="logoutBtn" type="button">Esci</button>
+      </div>
+      <div class="status" id="apiStatus">Verifico configurazione…</div>
+    </div>
   </div>
 
   <div class="wrap">
@@ -203,7 +216,9 @@
       Vercel (Settings → Environment Variables) — la chiave si crea su
       <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>.
       Senza quella variabile la pagina si carica comunque, ma l'invio dei messaggi risponde con un errore chiaro invece
-      di un pulsante che sembra rotto.
+      di un pulsante che sembra rotto. L'accesso richiede un account (email + password) creato dalla pagina
+      <code>admin.html</code>, e la cronologia/i task sono condivisi da tutto il team tramite il database Postgres
+      collegato al progetto — non più solo nel browser di chi li ha creati.
     </div>
   </div>
 
@@ -285,50 +300,95 @@
   var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] } }; // history[agentId] = [{role, content}]
   AGENTS.forEach(function (a) { if (!a.pipeline) state.history[a.id] = []; });
 
-  // --- Passphrase gate -------------------------------------------------
-  // Optional: set PLATFORM_PASSPHRASE on Vercel to require this. If it's not set, api/chat.js
-  // lets every request through and the gate never appears — zero friction until Francesco turns it on.
-  var GATE_KEY_STORAGE = "radix_platform_key";
-  function getKey() {
-    try { return localStorage.getItem(GATE_KEY_STORAGE) || ""; } catch (e) { return ""; }
-  }
-  function setKey(k) {
-    try { localStorage.setItem(GATE_KEY_STORAGE, k); } catch (e) { /* private mode / storage disabled: key just won't persist across reloads */ }
-  }
-  function authHeaders(extra) {
-    var h = Object.assign({ "x-platform-key": getKey() }, extra || {});
-    return h;
-  }
+  // --- Account / session --------------------------------------------------
+  // v2.0: real per-person accounts. The server sets an httpOnly session cookie on login
+  // (api/auth/login.js) — the browser sends it automatically on every same-origin fetch, so no
+  // token handling is needed here. currentUser is only kept client-side for the "who's logged in"
+  // label and for tagging who did what (author attribution); the real access check happens on the
+  // server, on every /api/* call, via that cookie.
+  var currentUser = null;
+
   function showGate(message) {
     var gateEl = document.getElementById("gate");
     var errEl = document.getElementById("gateError");
     gateEl.style.display = "flex";
     errEl.textContent = message || "";
-    document.getElementById("gateInput").focus();
+    document.getElementById("gateEmail").focus();
   }
   function hideGate() {
     document.getElementById("gate").style.display = "none";
   }
 
-  // --- Local persistence -------------------------------------------------
-  // Client-side only (no backend DB yet): keeps chat history and the last pipeline run across
-  // reloads/tab-closes on the same browser. Nothing is sent anywhere; it just survives a refresh.
-  var STORE_KEY = "radix_platform_state_v1";
-  function saveState() {
-    try {
-      localStorage.setItem(STORE_KEY, JSON.stringify({
-        history: state.history,
-        pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
-        pipelineSteps: state.pipeline.steps,
-      }));
-    } catch (e) { /* storage unavailable: session just won't be restored on reload */ }
+  function setCurrentUser(user) {
+    currentUser = user || null;
+    var whoEl = document.getElementById("whoAmI");
+    var nameEl = document.getElementById("whoAmIName");
+    if (currentUser) {
+      nameEl.textContent = currentUser.name;
+      whoEl.style.display = "flex";
+    } else {
+      whoEl.style.display = "none";
+    }
   }
-  function loadState() {
-    var raw;
-    try { raw = localStorage.getItem(STORE_KEY); } catch (e) { return; }
-    if (!raw) return;
+
+  async function login(email, password) {
+    var submitBtn = document.getElementById("gateSubmit");
+    submitBtn.disabled = true;
     try {
-      var saved = JSON.parse(raw);
+      var res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: email, password: password }),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) {
+        showGate(data.error || "Email o password errati.");
+        return;
+      }
+      setCurrentUser(data.user);
+      hideGate();
+      await loadRemoteState();
+      renderRoster();
+      selectAgent(state.agent);
+      checkApi();
+    } catch (err) {
+      showGate("Accesso non riuscito: " + (err && err.message ? err.message : String(err)));
+    } finally {
+      submitBtn.disabled = false;
+    }
+  }
+
+  async function logout() {
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch (e) { /* best effort */ }
+    setCurrentUser(null);
+    showGate();
+  }
+
+  // --- Shared team state (Postgres, via /api/state) -----------------------
+  // Replaces the old browser-only localStorage persistence: one shared history/pipeline dataset the
+  // whole team sees (not a private copy per browser), reflecting the current design choice of
+  // shared visibility over per-user private state. Concurrency note: whoever saves last wins — see
+  // README for why that's an accepted limitation of this simple shared-blob approach.
+  function saveState() {
+    fetch("/api/state", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        state: {
+          history: state.history,
+          pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
+          pipelineSteps: state.pipeline.steps,
+        },
+      }),
+    }).catch(function (e) { console.warn("Salvataggio stato non riuscito:", e); });
+  }
+
+  async function loadRemoteState() {
+    try {
+      var res = await fetch("/api/state");
+      if (!res.ok) return;
+      var data = await res.json();
+      var saved = data.state;
       if (saved && saved.history) {
         Object.keys(saved.history).forEach(function (id) {
           if (state.history.hasOwnProperty(id)) state.history[id] = saved.history[id];
@@ -340,7 +400,7 @@
       if (saved && saved.pipelineTask) {
         state._savedPipelineTask = saved.pipelineTask;
       }
-    } catch (e) { /* corrupted/old-format entry: ignore and start fresh */ }
+    } catch (e) { /* offline/error: start from empty shared state client-side, next save resyncs it */ }
   }
 
   var rosterEl = document.getElementById("roster");
@@ -465,6 +525,12 @@
       div.className = "msg " + m.role + (m.pending ? " pending" : "");
       div.textContent = m.content;
       messagesEl.appendChild(div);
+      if (m.role === "user" && m.by) {
+        var author = document.createElement("div");
+        author.className = "msg-author";
+        author.textContent = m.by;
+        messagesEl.appendChild(author);
+      }
       // Character counter for the Copywriter's finished posts — quick sanity check against
       // LinkedIn/Facebook practices without having to paste the text somewhere else to count it.
       if (state.agent === "copywriter" && m.role === "assistant" && !m.pending) {
@@ -594,6 +660,13 @@
       statusLine.textContent = step.status === "stale" ? "Il passo precedente è cambiato — rigenera per aggiornarlo" : STATUS_LABELS[step.status];
       body.appendChild(statusLine);
 
+      if (step.by) {
+        var byLine = document.createElement("div");
+        byLine.className = "step-by";
+        byLine.textContent = "Ultimo aggiornamento di " + step.by;
+        body.appendChild(byLine);
+      }
+
       if (step._editing) {
         var textarea = document.createElement("textarea");
         textarea.className = "step-edit-textarea";
@@ -662,6 +735,7 @@
     state.pipeline.steps[i].output = newText;
     state.pipeline.steps[i].status = "done";
     state.pipeline.steps[i]._editing = false;
+    state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
     markDownstreamStale(i);
     renderPipeline();
     saveState();
@@ -681,6 +755,7 @@
       var reply = await callAgent(PIPELINE[i].role, userText);
       state.pipeline.steps[i].status = "done";
       state.pipeline.steps[i].output = reply;
+      state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
       markDownstreamStale(i);
     } catch (err) {
       state.pipeline.steps[i].status = "error";
@@ -711,7 +786,7 @@
       try {
         var res = await fetch("/api/chat", {
           method: "POST",
-          headers: authHeaders({ "content-type": "application/json" }),
+          headers: { "content-type": "application/json" },
           body: JSON.stringify(body),
         });
         if (res.status >= 500 && attempt === 1) {
@@ -731,7 +806,7 @@
 
   async function callAgent(role, userText) {
     var res = await postChat({ role: role, messages: [{ role: "user", content: userText }] });
-    if (res.status === 401) { showGate("Passphrase errata o scaduta."); throw new Error("Passphrase richiesta"); }
+    if (res.status === 401) { showGate("Sessione scaduta: accedi di nuovo."); throw new Error("Sessione scaduta"); }
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || "Errore imprevisto");
     return data.reply || "";
@@ -757,6 +832,7 @@
         outputs[step.role] = reply;
         state.pipeline.steps[i].status = "done";
         state.pipeline.steps[i].output = reply;
+        state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
       } catch (err) {
         state.pipeline.steps[i].status = "error";
         state.pipeline.steps[i].output = err.message || "Errore imprevisto";
@@ -799,8 +875,8 @@
       });
       if (res.status === 401) {
         hist.pop();
-        hist.push({ role: "error", content: "Sessione scaduta: reinserisci la passphrase." });
-        showGate("Passphrase errata o scaduta.");
+        hist.push({ role: "error", content: "Sessione scaduta: accedi di nuovo." });
+        showGate("Sessione scaduta: accedi di nuovo.");
       } else {
         var data = await res.json();
         hist.pop(); // remove the pending placeholder
@@ -826,7 +902,7 @@
     if (!text) return;
     inputEl.value = "";
     var hist = state.history[state.agent];
-    hist.push({ role: "user", content: text });
+    hist.push({ role: "user", content: text, by: currentUser ? currentUser.name : null });
     await requestReply(hist);
   }
 
@@ -877,12 +953,12 @@
 
   async function checkApi() {
     // GET is a free health check (see api/chat.js) — it only confirms the env var is set, it never
-    // spends a real Anthropic API call just to paint the status pill on page load. If PLATFORM_PASSPHRASE
-    // is configured on Vercel, this same call also validates the stored passphrase (401 = gate needed).
+    // spends a real Anthropic API call just to paint the status pill on page load. It also doubles
+    // as a session check (401 = not logged in / session expired -> show the login gate).
     try {
-      var res = await fetch("/api/chat", { method: "GET", headers: authHeaders() });
+      var res = await fetch("/api/chat", { method: "GET" });
       if (res.status === 401) {
-        showGate(getKey() ? "Passphrase errata." : "");
+        showGate("Sessione scaduta: accedi di nuovo.");
         apiStatusEl.textContent = "Accesso protetto";
         apiStatusEl.className = "status err";
         return;
@@ -903,19 +979,41 @@
   }
 
   document.getElementById("gateSubmit").addEventListener("click", function () {
-    var val = document.getElementById("gateInput").value.trim();
-    if (!val) return;
-    setKey(val);
-    checkApi();
+    var email = document.getElementById("gateEmail").value.trim();
+    var password = document.getElementById("gatePassword").value;
+    if (!email || !password) return;
+    login(email, password);
   });
-  document.getElementById("gateInput").addEventListener("keydown", function (e) {
+  document.getElementById("gateEmail").addEventListener("keydown", function (e) {
     if (e.key === "Enter") { e.preventDefault(); document.getElementById("gateSubmit").click(); }
   });
+  document.getElementById("gatePassword").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); document.getElementById("gateSubmit").click(); }
+  });
+  document.getElementById("logoutBtn").addEventListener("click", logout);
 
-  loadState();
-  renderRoster();
-  selectAgent("strategist");
-  checkApi();
+  async function boot() {
+    renderRoster();
+    selectAgent("strategist");
+    try {
+      var res = await fetch("/api/auth/me");
+      if (res.ok) {
+        var data = await res.json();
+        setCurrentUser(data.user);
+        hideGate();
+        await loadRemoteState();
+        renderRoster();
+        selectAgent(state.agent);
+      } else {
+        showGate();
+      }
+    } catch (e) {
+      showGate("Impossibile contattare il server. Riprova tra poco.");
+    }
+    checkApi();
+  }
+
+  boot();
 })();
 </script>
 </body>

@@ -1,10 +1,11 @@
-# RADIX Platform — v1.2
+# RADIX Platform — v2.0
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
-tutti e cinque in fila su un task condiviso, un **accesso protetto opzionale**, il **salvataggio locale**
-delle conversazioni e gli strumenti per **copiare, modificare, rigenerare e scaricare** il risultato —
-tutto collegato per davvero a un modello Claude (Anthropic), non una demo finta.
+tutti e cinque in fila su un task condiviso, **account personali veri** (email + password), una
+**cronologia condivisa da tutto il team** su un database Postgres (non più solo nel browser di chi la usa),
+e gli strumenti per **copiare, modificare, rigenerare e scaricare** il risultato — tutto collegato per
+davvero a un modello Claude (Anthropic), non una demo finta.
 
 **Cosa fa oggi**:
 - Parli con un agente singolo a scelta, oppure dai un task all'**Orchestratore** ("prepara il post di
@@ -12,103 +13,118 @@ tutto collegato per davvero a un modello Claude (Anthropic), non una demo finta.
   Copywriter → Art Director → AI Specialist → Social Media Manager, ognuno riceve il lavoro di chi lo
   precede (si vede lo stato passo-passo, e se un passo fallisce si ferma lì invece di proseguire con un
   input rotto).
-- I 5 system prompt sono scritti con un framework professionale reale per ruolo (funnel e job-to-be-done
-  per lo Strategist, tecniche di direct-response per il Copywriter, storytelling visivo per l'Art
-  Director, script per avatar parlati per l'AI Specialist, content-format-fit per il Social Media
-  Manager), non semplici descrizioni di ruolo — pensati per uscire da un tono "AI generico". Ogni agente
-  ha anche un esempio concreto input→output, costruito su un tema vero del piano editoriale, così ha un
-  modello a cui ispirarsi e non solo istruzioni astratte.
-- Un controllo automatico di qualità gira su Strategist, Copywriter e AI Specialist: se la prima risposta
-  contiene un'apertura o un'espressione da "AI generica" (es. "Ho imparato che...", "Ti è mai capitato
-  di..."), la piattaforma chiede in automatico una riscrittura una sola volta, prima che il testo arrivi
-  a schermo — non te ne accorgi nemmeno, semplicemente non vedi mai quel tipo di frase.
-- Ogni passo completato ha i pulsanti **Copia**, **Modifica** (correggi il testo a mano prima che vada
-  avanti nella pipeline) e **Rigenera** (richiama di nuovo l'agente su quel passo); un passo fallito ha
-  **Riprova**. Se modifichi o rigeneri un passo, i passi successivi già fatti si segnano come "da
-  aggiornare" invece di restare silenziosamente disallineati — nessuna rigenerazione automatica a
-  cascata non richiesta, per non consumare token a tua insaputa.
-- A run finito, **Copia tutto il risultato** e **Scarica come file** (.txt) mettono insieme i 5 output
-  pronti da incollare o archiviare.
-- Nella chat con un singolo agente, un post del Copywriter mostra il conteggio caratteri, e un pulsante
-  **Rigenera** rifà l'ultima risposta se non ti convince.
-- **Nuova conversazione** (chat singola) e **Nuovo task** (Orchestratore) svuotano la cronologia/il run
-  corrente quando vuoi ripartire da zero.
-- Se imposti `PLATFORM_PASSPHRASE` (vedi sotto), la pagina chiede una passphrase condivisa prima di poter
-  usare gli agenti — così l'URL non è più utilizzabile da chiunque lo trovi, e i token Anthropic restano
-  sotto controllo. Se non la imposti, funziona come prima, nessuna passphrase richiesta.
-- Cronologia chat e ultimo run dell'Orchestratore restano salvati nel browser (localStorage): ricaricando
-  la pagina non si riparte da zero, a meno che tu stesso li abbia svuotati con i pulsanti sopra.
+- I 5 system prompt sono scritti con un framework professionale reale per ruolo, con un esempio concreto
+  input→output ciascuno, e un controllo automatico di qualità che rileva aperture da "AI generica" e chiede
+  una riscrittura prima di mostrare la risposta.
+- Ogni passo completato ha i pulsanti **Copia**, **Modifica** e **Rigenera**; un passo fallito ha
+  **Riprova**. Modificare o rigenerare un passo segna come "da aggiornare" i passi successivi già fatti,
+  invece di ricalcolarli in automatico o lasciarli silenziosamente disallineati.
+- A run finito, **Copia tutto il risultato** e **Scarica come file** (.txt) mettono insieme i 5 output.
+- **Accesso con account reale**: all'apertura della pagina viene chiesto login con email e password (non
+  più una passphrase unica condivisa). Gli account si creano dalla pagina `admin.html` (vedi sotto).
+- **Cronologia condivisa dal team**: chat e run dell'Orchestratore non vivono più nel browser di chi li usa,
+  ma in un database Postgres condiviso — chiunque nel team, da qualunque dispositivo, vede la stessa
+  cronologia. Ogni messaggio/passo mostra chi l'ha scritto o aggiornato ("Ultimo aggiornamento di ...").
+- In alto a destra si vede chi ha fatto login, con un pulsante **Esci** per disconnettersi.
 
-**Cosa NON c'è ancora** (non blocca l'uso, sono estensioni future): un database condiviso — la cronologia
-vive nel browser di chi la usa, non è condivisa tra persone/dispositivi diversi; un login per persona — la
-passphrase è unica e condivisa dal team, non un account individuale.
+## Come funziona l'accesso (account e database)
+
+- **Creare/gestire account**: apri `admin.html` (es. `https://tuo-dominio/admin.html`), inserisci l'**admin
+  secret** (il valore di `ADMIN_SECRET` configurato su Vercel — solo Francesco lo conosce) e da lì:
+  1. **Esegui la migrazione** una volta sola (crea le tabelle nel database — è sicura da rieseguire, non
+     tocca mai dati già esistenti, quindi in caso di dubbio si può rilanciare senza rischio).
+  2. **Crea un account** per ogni persona del team: email, nome, password. Se inserisci di nuovo un'email
+     già esistente, quell'account viene aggiornato (utile per resettare una password dimenticata).
+- **Fare login**: ogni persona apre `index.html` e inserisce la propria email e password. Da lì in avanti
+  resta collegata (sessione salvata in un cookie) finché non preme **Esci** o non passano 30 giorni.
+- **Un'unica cronologia condivisa, non una per persona**: la scelta è stata di visibilità condivisa (tutto
+  il team vede la stessa chat/pipeline) con gli account che servono solo a sapere *chi* ha scritto/aggiornato
+  cosa — non a dare a ciascuno una cronologia privata separata.
+- **Limite noto — "vince l'ultimo che salva"**: se due persone lavorano nello stesso momento sullo stesso
+  agente o sullo stesso run dell'Orchestratore, chi salva per ultimo sovrascrive quello che l'altro aveva
+  appena fatto (non c'è ancora un merge intelligente tra modifiche in conflitto). Per l'uso previsto — un
+  team piccolo che normalmente non lavora in contemporanea sulla stessa identica conversazione — è un
+  compromesso accettabile; se in futuro serve, si può risolvere con una cronologia per persona o con un
+  sistema di versioning più sofisticato.
 
 ## Changelog
 
-**v1.2** — i 5 system prompt condividono ora un unico blocco di contesto RADIX (pilastri editoriali,
-pubblici, descrizione azienda) invece di ripeterlo leggermente diverso in ognuno, per evitare deriva tra
-un agente e l'altro; ogni agente ha un esempio concreto input→output costruito su un tema vero del piano
-editoriale; controllo automatico di qualità (Strategist, Copywriter, AI Specialist) che rileva aperture o
-espressioni da "AI generica" nella prima risposta e chiede una riscrittura in automatico prima di mostrarla,
-invece di affidarsi solo al prompt; la risposta dell'API ora include anche il conteggio token usato (utile
-in futuro per stimare il costo di ogni singolo passo, non solo del run completo).
+**v2.0** — sostituita la passphrase condivisa con **account reali per persona** (email + password, hashing
+scrypt, sessione via cookie firmato); sostituito il salvataggio locale (localStorage) con una **cronologia
+condivisa su Postgres** (Neon, collegato al progetto Vercel), vista identica da tutto il team; aggiunta
+l'**attribuzione d'autore** (chi ha scritto un messaggio o aggiornato un passo della pipeline è visibile in
+UI); nuova pagina `admin.html` per inizializzare il database e creare/resettare gli account, protetta da un
+admin secret separato dagli account utente.
 
-**v1.1** — i 5 system prompt riscritti con un framework professionale reale dietro ogni ruolo (non solo
-più lunghi: pensati per applicare davvero un metodo, restando nei vincoli di brevità dell'output già
-fissati); parametri `max_tokens`/`temperature` calibrati per ruolo invece di un valore unico per tutti;
-modifica manuale di un passo della pipeline prima che prosegua; rigenera/riprova per singolo passo, con
-segnalazione "da aggiornare" sui passi successivi invece di ricalcolarli in automatico; scarica il
-risultato come file oltre a copiarlo; rigenera l'ultima risposta anche nella chat con un singolo agente;
-conteggio caratteri sui post del Copywriter; un ritentativo automatico e silenzioso su un errore di
-rete/server transitorio, prima di mostrare un vero errore all'utente.
+**v1.2** — i 5 system prompt condividono ora un unico blocco di contesto RADIX (pilastri editoriali,
+pubblici, descrizione azienda) invece di ripeterlo leggermente diverso in ognuno; ogni agente ha un esempio
+concreto input→output; controllo automatico di qualità (Strategist, Copywriter, AI Specialist) che rileva
+aperture o espressioni da "AI generica" nella prima risposta e chiede una riscrittura in automatico prima
+di mostrarla; la risposta dell'API include anche il conteggio token usato.
+
+**v1.1** — i 5 system prompt riscritti con un framework professionale reale dietro ogni ruolo; parametri
+`max_tokens`/`temperature` calibrati per ruolo; modifica manuale di un passo della pipeline; rigenera/riprova
+per singolo passo con segnalazione "da aggiornare" sui passi successivi; scarica il risultato come file;
+rigenera l'ultima risposta anche nella chat singola; conteggio caratteri sui post del Copywriter;
+ritentativo automatico su un errore di rete/server transitorio.
 
 **v1** — orchestratore a 5 passi, accesso con passphrase opzionale, salvataggio locale, copia per
 passo/risultato completo, reset di chat e pipeline.
 
 ## Cosa c'è dentro
 
-- `index.html` — l'interfaccia: roster dei 5+1 agenti (cliccabili), chat con pulsante di reset e di
-  rigenerazione dell'ultima risposta, quick-prompt con i temi veri del piano editoriale di Francesco (per
-  l'agente Copywriter), modalità Orchestratore con stepper visivo a 5 passi (copia, modifica, rigenera,
-  riprova per singolo passo; copia e scarica per l'intero risultato), gate di passphrase opzionale,
-  persistenza locale
-- `api/chat.js` — funzione serverless Vercel (Node, zero-config: qualunque file in `api/` diventa un
-  endpoint, non serve Next.js né alcun framework) che riceve il messaggio, verifica la passphrase (se
-  configurata), applica il system prompt del ruolo scelto e chiama l'API Messages di Anthropic
+- `index.html` — l'interfaccia principale: login, roster dei 5+1 agenti, chat, modalità Orchestratore con
+  stepper visivo, indicatore di chi è collegato e attribuzione d'autore sui messaggi/passi.
+- `admin.html` — pagina separata (non collegata dal menu, va aperta direttamente) per inizializzare il
+  database e creare/resettare gli account, protetta dall'admin secret.
+- `api/chat.js` — funzione serverless Vercel che riceve il messaggio, verifica la sessione (cookie), applica
+  il system prompt del ruolo scelto e chiama l'API Messages di Anthropic.
+- `api/state.js` — legge/scrive la cronologia condivisa del team su Postgres (protetto da sessione).
+- `api/auth/login.js`, `logout.js`, `me.js` — login (email+password → cookie di sessione), logout, e "chi
+  sono" per sapere se una sessione è ancora valida.
+- `api/admin/migrate.js` — crea le tabelle del database (idempotente, protetto da admin secret).
+- `api/admin/users.js` — elenca/crea/resetta gli account (protetto da admin secret).
+- `api/_db.js`, `api/_auth.js` — helper condivisi: connessione al database Postgres e logica di hashing
+  password/sessione, usati da tutti gli endpoint sopra.
+- `package.json` — dichiara la dipendenza `@neondatabase/serverless` usata per parlare con il database.
 
-Il contatto tra i due è semplicissimo: `index.html` chiama `fetch("/api/chat", ...)`, `api/chat.js` gira
-lato server e tiene la chiave API al sicuro (non è mai visibile nel browser).
+## Come metterla online (o aggiornarla)
 
-## Come metterla online
+Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggiornare il codice:
 
-1. **Crea un repository GitHub** (es. `radix-platform`) e caricaci il contenuto di questa cartella.
-2. Su **vercel.com** → **Add New → Project** → importa il repository.
-   - Framework preset: "Other" — niente build command, niente output directory da configurare.
-3. **Prima del primo deploy** (o anche subito dopo, poi rifai il deploy): vai su
-   **Project Settings → Environment Variables** e aggiungi:
-   - `ANTHROPIC_API_KEY` = la tua chiave, creata su [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
-   - `PLATFORM_PASSPHRASE` (facoltativa, consigliata) = una parola/frase a scelta. Se la imposti, chiunque
-     apra l'URL deve inserirla una volta prima di poter usare gli agenti (viene ricordata nel browser dopo
-     il primo accesso). Se non la imposti, la pagina resta aperta a chiunque abbia il link.
-4. **Deploy**. In meno di un minuto hai un URL tipo `radix-platform.vercel.app` — apri la pagina, scegli un
-   agente, scrivi un messaggio: se la chiave è configurata, risponde davvero.
-5. Se vuoi un dominio dedicato (es. `platform.radixinnovationstudio.com`) puoi aggiungerlo da
-   **Settings → Domains** come sottodominio, con un record CNAME su Namecheap — così non tocchi il dominio
-   principale già assegnato al sito vetrina.
+1. Carica il contenuto di questa cartella nel repository GitHub collegato a Vercel (sostituendo i file
+   esistenti) — Vercel fa il deploy automaticamente a ogni commit.
+2. Verifica che sul progetto Vercel (**Settings → Environments → Production**) siano presenti queste
+   variabili d'ambiente:
+   - `ANTHROPIC_API_KEY` — la chiave Anthropic, da [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).
+   - `DATABASE_URL` — creata automaticamente collegando il database Neon al progetto.
+   - `JWT_SECRET` — una stringa segreta a caso, usata per firmare le sessioni di login.
+   - `ADMIN_SECRET` — una stringa segreta a caso, diversa da `JWT_SECRET`, usata per proteggere `admin.html`.
+   (Se questa è la primissima installazione: vedi la sezione "Come funziona l'accesso" sopra per creare il
+   primo account dopo il deploy.)
+3. Dopo il primo deploy con questo codice, apri `admin.html`, inserisci l'admin secret ed esegui la
+   **migrazione** una volta sola prima di creare account o usare la piattaforma.
+
+Per mettere online da zero un progetto nuovo, vale ancora la procedura generale: repository GitHub → Vercel
+**Add New → Project** → Import (Framework preset "Other", nessun build command) → **Deploy** → aggiungi le
+4 variabili d'ambiente sopra → collega un database Postgres (Neon, dal marketplace "Storage" di Vercel) →
+rifai il deploy → apri `admin.html` per la migrazione e il primo account.
 
 ## Costi
 
 Ogni messaggio inviato consuma token API a pagamento sul tuo account Anthropic (pochi centesimi a
 conversazione con l'uso normale). L'Orchestratore ne consuma di più a ogni run perché chiama in sequenza 5
-agenti diversi (5 chiamate invece di 1). Il pulsantino di stato in alto a destra fa solo un controllo
-gratuito — non consuma token, quello succede solo quando invii davvero un messaggio o lanci un task.
+agenti diversi. Il database Neon ha un piano gratuito (0.5GB, sufficiente per la cronologia testuale di
+questo utilizzo). Il pulsantino di stato in alto a destra fa solo un controllo gratuito sull'API Anthropic.
 
 ## Prossimi passi possibili (non ancora costruiti)
 
-- Un database condiviso (es. lo stesso MongoDB già usato da Aura, o Vercel KV/Postgres) per una cronologia
-  vista da tutto il team invece che salvata nel browser di ciascuno.
-- Un login per persona (oggi la passphrase è unica e condivisa dal team, non un account individuale con
-  ruoli diversi).
+- Una cronologia privata per persona (oggi è unica e condivisa da tutto il team) o un merge più
+  intelligente per il caso "due persone lavorano insieme nello stesso momento".
+- Ruoli/permessi diversi tra gli account (oggi ogni account può fare tutto tranne le azioni da admin, che
+  restano dietro l'admin secret separato).
+- Un flusso di "password dimenticata" self-service (oggi il reset lo fa solo chi ha l'admin secret, dalla
+  pagina `admin.html`).
 - Invio diretto: oggi "Copia tutto il risultato" prepara il testo pronto, ma pubblicarlo resta un passo
   manuale (incollarlo su LinkedIn/Facebook o passarlo a HeyGen); un'integrazione diretta è un passo
   successivo, non necessario per iniziare a usarla davvero.
