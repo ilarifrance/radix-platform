@@ -1,4 +1,4 @@
-# RADIX Platform — v1.1
+# RADIX Platform — v1.2
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
@@ -15,7 +15,13 @@ tutto collegato per davvero a un modello Claude (Anthropic), non una demo finta.
 - I 5 system prompt sono scritti con un framework professionale reale per ruolo (funnel e job-to-be-done
   per lo Strategist, tecniche di direct-response per il Copywriter, storytelling visivo per l'Art
   Director, script per avatar parlati per l'AI Specialist, content-format-fit per il Social Media
-  Manager), non semplici descrizioni di ruolo — pensati per uscire da un tono "AI generico".
+  Manager), non semplici descrizioni di ruolo — pensati per uscire da un tono "AI generico". Ogni agente
+  ha anche un esempio concreto input→output, costruito su un tema vero del piano editoriale, così ha un
+  modello a cui ispirarsi e non solo istruzioni astratte.
+- Un controllo automatico di qualità gira su Strategist, Copywriter e AI Specialist: se la prima risposta
+  contiene un'apertura o un'espressione da "AI generica" (es. "Ho imparato che...", "Ti è mai capitato
+  di..."), la piattaforma chiede in automatico una riscrittura una sola volta, prima che il testo arrivi
+  a schermo — non te ne accorgi nemmeno, semplicemente non vedi mai quel tipo di frase.
 - Ogni passo completato ha i pulsanti **Copia**, **Modifica** (correggi il testo a mano prima che vada
   avanti nella pipeline) e **Rigenera** (richiama di nuovo l'agente su quel passo); un passo fallito ha
   **Riprova**. Se modifichi o rigeneri un passo, i passi successivi già fatti si segnano come "da
@@ -38,6 +44,14 @@ vive nel browser di chi la usa, non è condivisa tra persone/dispositivi diversi
 passphrase è unica e condivisa dal team, non un account individuale.
 
 ## Changelog
+
+**v1.2** — i 5 system prompt condividono ora un unico blocco di contesto RADIX (pilastri editoriali,
+pubblici, descrizione azienda) invece di ripeterlo leggermente diverso in ognuno, per evitare deriva tra
+un agente e l'altro; ogni agente ha un esempio concreto input→output costruito su un tema vero del piano
+editoriale; controllo automatico di qualità (Strategist, Copywriter, AI Specialist) che rileva aperture o
+espressioni da "AI generica" nella prima risposta e chiede una riscrittura in automatico prima di mostrarla,
+invece di affidarsi solo al prompt; la risposta dell'API ora include anche il conteggio token usato (utile
+in futuro per stimare il costo di ogni singolo passo, non solo del run completo).
 
 **v1.1** — i 5 system prompt riscritti con un framework professionale reale dietro ogni ruolo (non solo
 più lunghi: pensati per applicare davvero un metodo, restando nei vincoli di brevità dell'output già
