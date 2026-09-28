@@ -26,7 +26,7 @@ const RADIX_CONTEXT =
 const AGENTS = {
   strategist: {
     name: "Digital Strategist",
-    maxTokens: 700,
+    maxTokens: 1100,
     temperature: 0.4,
     enforceStyle: true,
     system:
@@ -57,7 +57,11 @@ const AGENTS = {
   },
   copywriter: {
     name: "Copywriter",
-    maxTokens: 900,
+    // v2.2: alzato da 900 — un task che chiede più post insieme (es. "scrivi giovedì e venerdì") sforava
+    // il limite a metà del secondo post, e il testo troncato si propagava rotto ai passi successivi della
+    // pipeline (Art Director/AI Specialist/Social Media Manager, che infatti si accorgevano e chiedevano
+    // il resto). 2400 copre comodamente anche 2-3 post completi in una sola risposta.
+    maxTokens: 2400,
     temperature: 0.75,
     enforceStyle: true,
     system:
@@ -92,7 +96,7 @@ const AGENTS = {
   },
   "art-director": {
     name: "Art Director",
-    maxTokens: 900, // spazio extra per il blocco ---SLIDES--- macchina-leggibile in fondo alla risposta
+    maxTokens: 1800, // spazio extra per il blocco ---SLIDES--- macchina-leggibile in fondo alla risposta, e per più post insieme
     temperature: 0.7,
     enforceStyle: false,
     system:
@@ -144,7 +148,7 @@ const AGENTS = {
   },
   "ai-specialist": {
     name: "AI Specialist",
-    maxTokens: 700,
+    maxTokens: 1300,
     temperature: 0.65,
     enforceStyle: true,
     system:
@@ -180,7 +184,7 @@ const AGENTS = {
   },
   "social-media-manager": {
     name: "Social Media Manager",
-    maxTokens: 700,
+    maxTokens: 1300,
     temperature: 0.5,
     enforceStyle: false,
     system:
@@ -338,7 +342,7 @@ async function callAnthropic(apiKey, agent, messages) {
   const usage = data.usage || null;
   const stu = usage && usage.server_tool_use;
   const searched = !!(stu && (stu.web_search_requests > 0 || stu.web_fetch_requests > 0));
-  return { text, usage, sources, searched };
+  return { text, usage, sources, searched, stopReason: data.stop_reason || null };
 }
 
 module.exports = async (req, res) => {
@@ -385,7 +389,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage, sources } = await callAnthropic(apiKey, agent, messages);
+    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -405,6 +409,7 @@ module.exports = async (req, res) => {
         try {
           const retry = await callAnthropic(apiKey, agent, retryMessages);
           text = retry.text;
+          stopReason = retry.stopReason;
           revised = true;
           if (retry.sources && retry.sources.length) {
             // La riscrittura ha cercato di nuovo: unisci le fonti (senza duplicati) invece di perdere
@@ -427,7 +432,18 @@ module.exports = async (req, res) => {
       }
     }
 
-    res.status(200).json({ reply: text, agent: agent.name, revised, usage, sources: sources || [] });
+    // Se il modello si è fermato per aver esaurito lo spazio (max_tokens) invece di aver finito da solo,
+    // il testo è tagliato a metà frase — capita raramente coi nuovi limiti, ma se succede deve essere
+    // visibile subito in chat/pipeline invece di sembrare una risposta completa e propagarsi rotta ai
+    // passi successivi dell'Orchestratore.
+    const truncated = stopReason === "max_tokens";
+    if (truncated) {
+      text +=
+        "\n\n⚠️ [Risposta troncata: ho esaurito lo spazio disponibile per questa risposta. Prova a dividere " +
+        "la richiesta in parti più piccole, oppure rispondi \"continua\" per farmi finire.]";
+    }
+
+    res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [] });
   } catch (err) {
     const status = err && err.status ? err.status : 502;
     res.status(status).json({ error: "Chiamata all'API fallita: " + (err && err.message ? err.message : String(err)) });
