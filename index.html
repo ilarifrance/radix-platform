@@ -132,6 +132,16 @@
   .sources-list .sources-label{ font-weight:600; }
   .sources-list a{ color:#4a6b5a; text-decoration:underline; text-underline-offset:2px; }
   .sources-list a:hover{ color:var(--verde-bosco); }
+
+  .attach-row{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 20px 10px; }
+  .attach-chip{ display:none; align-items:center; gap:8px; font-size:12px; background:var(--sabbia); color:var(--verde-bosco); padding:5px 6px 5px 12px; border-radius:14px; max-width:100%; }
+  .attach-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+  .attach-chip button{ background:none; border:none; color:#7a857f; cursor:pointer; font-size:13px; line-height:1; padding:4px 6px; }
+  .attach-chip button:hover{ color:#b3402a; }
+  .slide-gallery{ display:flex; flex-direction:column; gap:8px; margin-top:8px; max-width:78%; align-self:flex-start; }
+  .slide-gallery .thumbs{ display:flex; flex-wrap:wrap; gap:10px; }
+  .slide-thumb{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .slide-thumb canvas{ width:96px; height:120px; border-radius:8px; border:1px solid rgba(15,45,36,0.14); }
 </style>
 </head>
 <body>
@@ -190,6 +200,11 @@
       <div id="chatMode">
         <div class="quick-prompts" id="quickPrompts"></div>
         <div class="messages" id="messages"></div>
+        <div class="attach-row" id="attachRowChat">
+          <input type="file" id="fileInputChat" accept=".xlsx,.xls,.csv,.txt,.md" style="display:none">
+          <button id="attachBtnChat" class="ghost-btn" type="button">📎 Allega file</button>
+          <div id="attachChipChat" class="attach-chip"></div>
+        </div>
         <div class="composer">
           <textarea id="input" rows="2" placeholder="Scrivi qui la richiesta per l'agente selezionato…"></textarea>
           <button id="regenerateLast" class="ghost-btn" type="button" style="display:none;" title="Rigenera l'ultima risposta">Rigenera</button>
@@ -201,6 +216,11 @@
         <div class="pipeline-toolbar">
           <div class="quick-prompts" id="pipelinePrompts"></div>
           <button id="resetPipeline" class="ghost-btn" type="button" title="Cancella questo run e ricomincia">Nuovo task</button>
+        </div>
+        <div class="attach-row" id="attachRowPipeline">
+          <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md" style="display:none">
+          <button id="attachBtnPipeline" class="ghost-btn" type="button">📎 Allega file (es. il piano editoriale)</button>
+          <div id="attachChipPipeline" class="attach-chip"></div>
         </div>
         <div class="pipeline-steps" id="pipelineSteps"></div>
         <div id="pipelineCopyAllWrap" style="display:none;">
@@ -222,7 +242,9 @@
       Senza quella variabile la pagina si carica comunque, ma l'invio dei messaggi risponde con un errore chiaro invece
       di un pulsante che sembra rotto. L'accesso richiede un account (email + password) creato dalla pagina
       <code>admin.html</code>, e la cronologia/i task sono condivisi da tutto il team tramite il database Postgres
-      collegato al progetto — non più solo nel browser di chi li ha creati.
+      collegato al progetto — non più solo nel browser di chi li ha creati. Si può allegare un file
+      (.xlsx, .xls, .csv, .txt, .md, max 4MB) a un messaggio o a un task dell'Orchestratore — viene letto
+      da <code>/api/parse-file</code> e il suo contenuto viene incluso nel messaggio inviato all'agente.
     </div>
   </div>
 
@@ -301,7 +323,7 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] } }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] }, attachedFile: null }; // history[agentId] = [{role, content}]
   AGENTS.forEach(function (a) { if (!a.pipeline) state.history[a.id] = []; });
 
   // --- Account / session --------------------------------------------------
@@ -474,6 +496,264 @@
     } catch (e) { /* download unavailable: the copy button is the fallback */ }
   }
 
+  // --- File attachment (upload) --------------------------------------------
+  // One shared attachment for the whole page (chat + Orchestratore): read client-side, sent to
+  // /api/parse-file which turns .xlsx/.xls/.csv/.txt/.md into plain text, then that text rides along
+  // inside the next message(s) sent to an agent. Persists until removed or the conversation/task is
+  // reset — not auto-cleared after one send, so a multi-turn chat or a pipeline regenerate still has it.
+  var attachInputChat = document.getElementById("fileInputChat");
+  var attachBtnChat = document.getElementById("attachBtnChat");
+  var attachChipChat = document.getElementById("attachChipChat");
+  var attachInputPipeline = document.getElementById("fileInputPipeline");
+  var attachBtnPipeline = document.getElementById("attachBtnPipeline");
+  var attachChipPipeline = document.getElementById("attachChipPipeline");
+  var ACCEPTED_ATTACH_EXT = ["xlsx", "xls", "csv", "txt", "md"];
+  var MAX_ATTACH_BYTES = 4 * 1024 * 1024;
+
+  function bufferToBase64(buf) {
+    var binary = "";
+    var bytes = new Uint8Array(buf);
+    var chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function renderAttachChip(chipEl) {
+    if (!chipEl) return;
+    chipEl.innerHTML = "";
+    if (!state.attachedFile) { chipEl.style.display = "none"; return; }
+    chipEl.style.display = "flex";
+    var label = document.createElement("span");
+    label.textContent = "📎 " + state.attachedFile.name;
+    label.title = state.attachedFile.name;
+    chipEl.appendChild(label);
+    var rm = document.createElement("button");
+    rm.type = "button";
+    rm.textContent = "✕";
+    rm.title = "Rimuovi allegato";
+    rm.addEventListener("click", clearAttachment);
+    chipEl.appendChild(rm);
+  }
+
+  function renderAllAttachChips() {
+    renderAttachChip(attachChipChat);
+    renderAttachChip(attachChipPipeline);
+  }
+
+  function clearAttachment() {
+    state.attachedFile = null;
+    renderAllAttachChips();
+  }
+
+  async function handleFileSelected(file, chipEl) {
+    var ext = (file.name.split(".").pop() || "").toLowerCase();
+    if (ACCEPTED_ATTACH_EXT.indexOf(ext) === -1) {
+      alert("Formato non supportato. Usa: " + ACCEPTED_ATTACH_EXT.join(", "));
+      return;
+    }
+    if (file.size > MAX_ATTACH_BYTES) {
+      alert("File troppo grande (max 4MB).");
+      return;
+    }
+    chipEl.style.display = "flex";
+    chipEl.innerHTML = "";
+    var loading = document.createElement("span");
+    loading.textContent = "Leggo " + file.name + "…";
+    chipEl.appendChild(loading);
+    try {
+      var buf = await file.arrayBuffer();
+      var base64 = bufferToBase64(buf);
+      var res = await fetch("/api/parse-file", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ filename: file.name, contentBase64: base64 }),
+      });
+      var data = await res.json().catch(function () { return {}; });
+      if (!res.ok) throw new Error(data.error || "Errore lettura file");
+      state.attachedFile = { name: file.name, text: data.text || "" };
+    } catch (err) {
+      state.attachedFile = null;
+      alert("Non sono riuscito a leggere il file: " + (err && err.message ? err.message : String(err)));
+    }
+    renderAllAttachChips();
+  }
+
+  attachBtnChat.addEventListener("click", function () { attachInputChat.click(); });
+  attachInputChat.addEventListener("change", function () {
+    if (attachInputChat.files && attachInputChat.files[0]) handleFileSelected(attachInputChat.files[0], attachChipChat);
+    attachInputChat.value = "";
+  });
+  attachBtnPipeline.addEventListener("click", function () { attachInputPipeline.click(); });
+  attachInputPipeline.addEventListener("change", function () {
+    if (attachInputPipeline.files && attachInputPipeline.files[0]) handleFileSelected(attachInputPipeline.files[0], attachChipPipeline);
+    attachInputPipeline.value = "";
+  });
+
+  // Appends the attached file's extracted text to a message/task, only when one is actually attached.
+  function withAttachment(text) {
+    if (!state.attachedFile) return text;
+    return text + "\n\n[Contenuto del file allegato \"" + state.attachedFile.name + "\"]\n" + state.attachedFile.text;
+  }
+
+  // --- Art Director carousel images -----------------------------------------
+  // The Art Director's system prompt (api/chat.js) asks it to end every reply with a machine-readable
+  // ---SLIDES---...---FINE--- block (num|bg-hex|fg-hex|text per line) on top of the human-readable
+  // description. Parsed here and rendered to real downloadable PNGs with the RADIX palette — this is
+  // what turns "direzione visiva a parole" into an actual carousel file, without any external API.
+  var RADIX_HEX = ["#0F2D24", "#6B7F72", "#EDE6DE", "#FAF9F6", "#1F1F1F"];
+  function parseSlides(text) {
+    var m = /---SLIDES---([\s\S]*?)---FINE---/.exec(text || "");
+    if (!m) return [];
+    var slides = [];
+    m[1].split("\n").forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var parts = line.split("|");
+      if (parts.length < 4) return;
+      var num = parts[0].trim();
+      var bg = parts[1].trim();
+      var fg = parts[2].trim();
+      var txt = parts.slice(3).join("|").trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(bg) && /^#[0-9a-fA-F]{6}$/.test(fg) && txt) {
+        slides.push({ num: num, bg: bg, fg: fg, text: txt });
+      }
+    });
+    return slides;
+  }
+
+  function stripSlidesBlock(text) {
+    return (text || "").replace(/\n?---SLIDES---[\s\S]*?---FINE---/, "").trim();
+  }
+
+  function wrapCanvasText(ctx, text, cx, cy, maxWidth, lineHeight) {
+    var words = String(text).split(" ");
+    var lines = [];
+    var line = "";
+    words.forEach(function (w) {
+      var test = line ? line + " " + w : w;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = w;
+      } else {
+        line = test;
+      }
+    });
+    if (line) lines.push(line);
+    var startY = cy - ((lines.length - 1) * lineHeight) / 2;
+    var prevAlign = ctx.textAlign;
+    ctx.textAlign = "center";
+    lines.forEach(function (l, i) { ctx.fillText(l, cx, startY + i * lineHeight); });
+    ctx.textAlign = prevAlign;
+  }
+
+  function renderSlideCanvas(slide) {
+    var canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = 1350; // formato 4:5, lo stesso di un carosello LinkedIn/Instagram
+    var ctx = canvas.getContext("2d");
+    ctx.fillStyle = slide.bg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = slide.fg;
+    ctx.globalAlpha = 0.6;
+    ctx.font = "600 28px Montserrat, sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("RADIX", 64, 84);
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = slide.fg;
+    ctx.font = "800 62px Montserrat, sans-serif";
+    ctx.textBaseline = "middle";
+    wrapCanvasText(ctx, slide.text, canvas.width / 2, canvas.height / 2, canvas.width - 160, 74);
+
+    ctx.globalAlpha = 0.55;
+    ctx.font = "600 22px Inter, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(slide.num, canvas.width - 56, canvas.height - 56);
+    ctx.textAlign = "left";
+    ctx.globalAlpha = 1;
+    return canvas;
+  }
+
+  function downloadCanvas(canvas, filename) {
+    canvas.toBlob(function (blob) {
+      if (!blob) return;
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }, "image/png");
+  }
+
+  // Waits for the Montserrat/Inter webfonts (already linked in <head>) to actually be ready before
+  // drawing on canvas — otherwise the first render can silently fall back to a default serif font.
+  async function fontsReady() {
+    try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* best effort */ }
+  }
+
+  async function buildSlideGallery(slides, namePrefix) {
+    await fontsReady();
+    var box = document.createElement("div");
+    box.className = "slide-gallery";
+    var thumbs = document.createElement("div");
+    thumbs.className = "thumbs";
+    var fullCanvases = slides.map(renderSlideCanvas);
+    fullCanvases.forEach(function (canvas, i) {
+      var thumbWrap = document.createElement("div");
+      thumbWrap.className = "slide-thumb";
+      var preview = document.createElement("canvas");
+      preview.width = canvas.width;
+      preview.height = canvas.height;
+      preview.getContext("2d").drawImage(canvas, 0, 0);
+      thumbWrap.appendChild(preview);
+      var dl = document.createElement("button");
+      dl.type = "button";
+      dl.className = "step-copy";
+      dl.textContent = "Scarica " + (i + 1);
+      dl.addEventListener("click", function () { downloadCanvas(canvas, namePrefix + "-slide" + (i + 1) + ".png"); });
+      thumbWrap.appendChild(dl);
+      thumbs.appendChild(thumbWrap);
+    });
+    box.appendChild(thumbs);
+    var dlAll = document.createElement("button");
+    dlAll.type = "button";
+    dlAll.className = "step-copy primary";
+    dlAll.style.alignSelf = "flex-start";
+    dlAll.textContent = "Scarica tutte (" + fullCanvases.length + ")";
+    dlAll.addEventListener("click", function () {
+      fullCanvases.forEach(function (canvas, i) {
+        setTimeout(function () { downloadCanvas(canvas, namePrefix + "-slide" + (i + 1) + ".png"); }, i * 250);
+      });
+    });
+    box.appendChild(dlAll);
+    return box;
+  }
+
+  function buildCarouselButton(sourceText, namePrefix) {
+    var slides = parseSlides(sourceText);
+    if (!slides.length) return null;
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "step-copy primary";
+    btn.textContent = "🎨 Genera immagini carosello (" + slides.length + ")";
+    btn.addEventListener("click", function () {
+      btn.disabled = true;
+      btn.textContent = "Genero…";
+      buildSlideGallery(slides, namePrefix).then(function (gallery) {
+        btn.parentNode.insertBefore(gallery, btn.nextSibling);
+        btn.style.display = "none";
+      });
+    });
+    return btn;
+  }
+
   // --- Web search sources -------------------------------------------------
   // When an agent's reply used the web-search tool (see api/chat.js), the server sends back the
   // pages it actually consulted — shown here as a small "Fonti" list so it's clear the answer is
@@ -527,6 +807,7 @@
       renderQuickPrompts();
       renderMessages();
     }
+    renderAllAttachChips();
   }
 
   function renderQuickPrompts() {
@@ -550,7 +831,10 @@
     hist.forEach(function (m) {
       var div = document.createElement("div");
       div.className = "msg " + m.role + (m.pending ? " pending" : "");
-      div.textContent = m.content;
+      // Assistant text for the Art Director carries a machine-readable ---SLIDES--- block at the end
+      // (see buildCarouselButton below) — hidden from the chat bubble, still used to draw the images.
+      var displayText = m.role === "assistant" && state.agent === "art-director" ? stripSlidesBlock(m.content) : (m.display || m.content);
+      div.textContent = displayText;
       messagesEl.appendChild(div);
       if (m.role === "user" && m.by) {
         var author = document.createElement("div");
@@ -568,6 +852,24 @@
         count.className = "char-count";
         count.textContent = m.content.length + " caratteri";
         messagesEl.appendChild(count);
+      }
+      // Any finished agent reply can be saved as a real .txt file, and the Art Director's reply also
+      // gets a button to turn its slide directions into actual downloadable carousel images.
+      if (m.role === "assistant" && !m.pending) {
+        var dlBtn = document.createElement("button");
+        dlBtn.type = "button";
+        dlBtn.className = "step-copy";
+        dlBtn.style.alignSelf = "flex-start";
+        dlBtn.textContent = "Scarica come file";
+        dlBtn.addEventListener("click", function () {
+          var stamp = new Date().toISOString().slice(0, 10);
+          downloadText(state.agent === "art-director" ? stripSlidesBlock(m.content) : m.content, "radix-" + state.agent + "-" + stamp + ".txt");
+        });
+        messagesEl.appendChild(dlBtn);
+        if (state.agent === "art-director") {
+          var carouselBtn = buildCarouselButton(m.content, "radix-carosello");
+          if (carouselBtn) messagesEl.appendChild(carouselBtn);
+        }
       }
     });
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -652,8 +954,21 @@
           copyBtn.type = "button";
           copyBtn.className = "step-copy";
           copyBtn.textContent = "Copia";
-          copyBtn.addEventListener("click", function () { copyText(step.output, copyBtn); });
+          copyBtn.addEventListener("click", function () {
+            copyText(step.role === "art-director" ? stripSlidesBlock(step.output) : step.output, copyBtn);
+          });
           actions.appendChild(copyBtn);
+
+          var stepDlBtn = document.createElement("button");
+          stepDlBtn.type = "button";
+          stepDlBtn.className = "step-copy";
+          stepDlBtn.textContent = "Scarica";
+          stepDlBtn.addEventListener("click", function () {
+            var stamp = new Date().toISOString().slice(0, 10);
+            var text = step.role === "art-director" ? stripSlidesBlock(step.output) : step.output;
+            downloadText(text, "radix-" + step.role + "-" + stamp + ".txt");
+          });
+          actions.appendChild(stepDlBtn);
 
           var editBtn = document.createElement("button");
           editBtn.type = "button";
@@ -712,8 +1027,12 @@
       } else if (step.output) {
         var out = document.createElement("div");
         out.className = "step-output" + (step.status === "error" ? " error" : "") + (step.status === "stale" ? " stale" : "");
-        out.textContent = step.output;
+        out.textContent = step.role === "art-director" ? stripSlidesBlock(step.output) : step.output;
         body.appendChild(out);
+        if (step.role === "art-director" && (step.status === "done" || step.status === "stale")) {
+          var stepCarouselBtn = buildCarouselButton(step.output, "radix-carosello");
+          if (stepCarouselBtn) { stepCarouselBtn.style.marginTop = "8px"; body.appendChild(stepCarouselBtn); }
+        }
       }
       row.appendChild(body);
       pipelineStepsEl.appendChild(row);
@@ -726,7 +1045,7 @@
   function pipelineFullText() {
     return state.pipeline.steps
       .filter(function (s) { return (s.status === "done" || s.status === "stale") && s.output; })
-      .map(function (s) { return s.label.toUpperCase() + "\n" + s.output; })
+      .map(function (s) { return s.label.toUpperCase() + "\n" + (s.role === "art-director" ? stripSlidesBlock(s.output) : s.output); })
       .join("\n\n");
   }
 
@@ -787,7 +1106,7 @@
     state.pipeline.steps[i].status = "running";
     renderPipeline();
     try {
-      var userText = PIPELINE[i].prompt(task, outputs);
+      var userText = PIPELINE[i].prompt(withAttachment(task), outputs);
       var reply = await callAgent(PIPELINE[i].role, userText);
       state.pipeline.steps[i].status = "done";
       state.pipeline.steps[i].output = reply.text;
@@ -858,13 +1177,14 @@
     resetPipelineBtn.disabled = true;
     renderPipeline();
 
+    var fullTask = withAttachment(task);
     var outputs = outputsBeforeIndex(startIndex);
     for (var i = startIndex; i < PIPELINE.length; i++) {
       var step = PIPELINE[i];
       state.pipeline.steps[i].status = "running";
       renderPipeline();
       try {
-        var userText = step.prompt(task, outputs);
+        var userText = step.prompt(fullTask, outputs);
         var reply = await callAgent(step.role, userText);
         outputs[step.role] = reply.text;
         state.pipeline.steps[i].status = "done";
@@ -939,8 +1259,11 @@
     var text = inputEl.value.trim();
     if (!text) return;
     inputEl.value = "";
+    var displayText = state.attachedFile ? text + "  📎 " + state.attachedFile.name : text;
     var hist = state.history[state.agent];
-    hist.push({ role: "user", content: text, by: currentUser ? currentUser.name : null });
+    // content is what's actually sent to the agent (includes the attached file's text, if any);
+    // display is the short version shown in the chat bubble — see renderMessages().
+    hist.push({ role: "user", content: withAttachment(text), display: displayText, by: currentUser ? currentUser.name : null });
     await requestReply(hist);
   }
 
@@ -965,6 +1288,7 @@
   resetChatBtn.addEventListener("click", function () {
     if (state.pipeline.running) return; // agent id fixed while a pipeline run is in flight, but stay safe
     state.history[state.agent] = [];
+    clearAttachment();
     renderMessages();
     saveState();
   });
@@ -974,6 +1298,7 @@
     state.pipeline.steps = [];
     pipelineInputEl.value = "";
     state._savedPipelineTask = "";
+    clearAttachment();
     renderPipeline();
     saveState();
   });

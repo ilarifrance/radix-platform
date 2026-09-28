@@ -4,6 +4,7 @@
   "private": true,
   "description": "RADIX Agentic Platform — team AI pipeline with shared Postgres-backed state and real accounts.",
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.4"
+    "@neondatabase/serverless": "^0.10.4",
+    "xlsx": "^0.18.5"
   }
 }
