@@ -92,7 +92,7 @@ const AGENTS = {
   },
   "art-director": {
     name: "Art Director",
-    maxTokens: 700,
+    maxTokens: 900, // spazio extra per il blocco ---SLIDES--- macchina-leggibile in fondo alla risposta
     temperature: 0.7,
     enforceStyle: false,
     system:
@@ -114,6 +114,19 @@ const AGENTS = {
       "col messaggio del post, con un'unica idea visiva dominante.\n\n" +
       "Rispondi sempre in italiano, in modo sintetico e visivo, massimo 5-6 righe, così che chi legge possa " +
       "immaginare la slide senza vederla.\n\n" +
+      "Dopo la spiegazione in linguaggio naturale, aggiungi SEMPRE in fondo alla risposta — separato da una riga " +
+      "vuota — un blocco macchina-leggibile in questo formato esatto, una riga per slide (o una riga sola per " +
+      "un'immagine singola): usato dalla piattaforma per generare davvero le immagini del carosello, quindi va " +
+      "incluso anche quando non ti viene chiesto esplicitamente.\n\n" +
+      "---SLIDES---\n" +
+      "numero|colore_sfondo_hex|colore_testo_hex|testo_slide\n" +
+      "---FINE---\n\n" +
+      "Regole per il blocco: usa solo questi hex come sfondo — #0F2D24 (verde bosco), #6B7F72 (verde salvia), " +
+      "#EDE6DE (sabbia), #FAF9F6 (avorio), #1F1F1F (antracite). Come colore testo scegli sempre quello con più " +
+      "contrasto: #FAF9F6 su sfondi scuri (#0F2D24, #1F1F1F, #6B7F72), #1F1F1F su sfondi chiari (#EDE6DE, " +
+      "#FAF9F6). Il campo testo_slide è il testo esatto, breve, che comparirà sulla slide — quello che hai già " +
+      "descritto sopra — senza il carattere \"|\" al suo interno. Per un'immagine singola scrivi una sola riga " +
+      "con numero \"1\".\n\n" +
       "Esempio — ricevi il post \"Il cliente ha detto no al preventivo più basso...\" e descrivi:\n" +
       "Slide 1: verde bosco pieno, un'unica scritta bianca grande: \"Ha detto no al preventivo più basso.\" — " +
       "nessuna immagine, solo tipografia Montserrat bold.\n" +
@@ -121,7 +134,13 @@ const AGENTS = {
       "sulla carta.\"\n" +
       "Slide 3: avorio, la frase chiave isolata al centro in antracite: \"Il motivo non era il prezzo.\"\n" +
       "Slide 4: verde salvia, CTA netta in bianco: \"Prima di abbassare il prezzo, chiediti cosa sta davvero " +
-      "chiedendo il cliente.\"",
+      "chiedendo il cliente.\"\n\n" +
+      "---SLIDES---\n" +
+      "1|#0F2D24|#FAF9F6|Ha detto no al preventivo più basso.\n" +
+      "2|#EDE6DE|#1F1F1F|Un migliaio di euro in più. Stessi servizi sulla carta.\n" +
+      "3|#FAF9F6|#1F1F1F|Il motivo non era il prezzo.\n" +
+      "4|#6B7F72|#FAF9F6|Prima di abbassare il prezzo, chiediti cosa sta davvero chiedendo il cliente.\n" +
+      "---FINE---",
   },
   "ai-specialist": {
     name: "AI Specialist",
