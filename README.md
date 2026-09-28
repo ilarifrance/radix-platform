@@ -1,4 +1,4 @@
-# RADIX Platform — v2.0
+# RADIX Platform — v2.3
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
@@ -49,6 +49,32 @@ davvero a un modello Claude (Anthropic), non una demo finta.
 
 ## Changelog
 
+**v2.3** — a run finito dell'Orchestratore, in fondo compare un riquadro **"Deciso dal Social Media
+Manager — cosa creare ora"**: mostra la sua decisione (canale/formato/orario) e il pulsante di creazione
+giusto già pronto — immagini carosello se ha scelto un carosello, video bozza HeyGen se ha scelto un video
+— senza dover scendere fino al passo dell'Art Director o dell'AI Specialist per trovarlo. Risponde alla
+domanda "chi fa cosa": Digital Strategist decide la direzione, Copywriter scrive, Art Director e AI
+Specialist preparano il materiale (direzione visiva e copione), Social Media Manager decide canale/formato/
+orario — la creazione vera e propria (immagini o video) resta un'azione esplicita di chi usa la piattaforma,
+innescata da un pulsante, non automatica: questo riquadro la rende solo più facile da trovare.
+
+**v2.2** — nell'Orchestratore, ogni passo completato ha ora un campo **"Rispondi a [agente]"**: se un
+agente fa una domanda o segnala che manca qualcosa (es. un post troncato), si può rispondere lì invece di
+dover riscrivere tutto a mano col tasto "Modifica" — la risposta torna a quello stesso agente insieme al
+task e al lavoro già fatto, e marca come "da aggiornare" i passi successivi come una rigenerazione normale.
+Alzato il limite di lunghezza risposta di tutti e 5 gli agenti (in particolare il Copywriter, 900→2400) per
+evitare che un task con più post insieme tagliasse il testo a metà; se dovesse succedere comunque, ora è
+segnalato in modo visibile in coda alla risposta invece di restare un troncamento silenzioso che si
+propaga rotto ai passi successivi.
+
+**v2.1** — si può **allegare un file** (.xlsx, .xls, .csv, .txt, .md) a un messaggio o a un task
+dell'Orchestratore, letto da `api/parse-file.js` e incluso nel contesto inviato all'agente; l'Art Director
+produce anche le **immagini reali del carosello** (PNG, palette RADIX, scaricabili una per una o tutte
+insieme), generate lato browser da una direzione visiva strutturata che il modello ora restituisce assieme
+al testo; l'AI Specialist può generare una **vera bozza di video HeyGen** dal proprio copione (scelta
+avatar/voce, generazione, attesa e anteprima direttamente in pagina) tramite `api/heygen.js` — richiede la
+variabile d'ambiente opzionale `HEYGEN_API_KEY`.
+
 **v2.0** — sostituita la passphrase condivisa con **account reali per persona** (email + password, hashing
 scrypt, sessione via cookie firmato); sostituito il salvataggio locale (localStorage) con una **cronologia
 condivisa su Postgres** (Neon, collegato al progetto Vercel), vista identica da tutto il team; aggiunta
@@ -80,6 +106,10 @@ passo/risultato completo, reset di chat e pipeline.
 - `api/chat.js` — funzione serverless Vercel che riceve il messaggio, verifica la sessione (cookie), applica
   il system prompt del ruolo scelto e chiama l'API Messages di Anthropic.
 - `api/state.js` — legge/scrive la cronologia condivisa del team su Postgres (protetto da sessione).
+- `api/parse-file.js` — riceve un file allegato dal frontend (base64) e lo trasforma in testo semplice
+  (.xlsx/.xls foglio per foglio in CSV, .csv/.txt/.md letti direttamente), protetto da sessione.
+- `api/heygen.js` — collega lo script dell'AI Specialist a una vera bozza di video HeyGen (avatar/voci,
+  avvio generazione, stato); richiede `HEYGEN_API_KEY`, protetto da sessione.
 - `api/auth/login.js`, `logout.js`, `me.js` — login (email+password → cookie di sessione), logout, e "chi
   sono" per sapere se una sessione è ancora valida.
 - `api/admin/migrate.js` — crea le tabelle del database (idempotente, protetto da admin secret).
@@ -100,6 +130,9 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
    - `DATABASE_URL` — creata automaticamente collegando il database Neon al progetto.
    - `JWT_SECRET` — una stringa segreta a caso, usata per firmare le sessioni di login.
    - `ADMIN_SECRET` — una stringa segreta a caso, diversa da `JWT_SECRET`, usata per proteggere `admin.html`.
+   - `HEYGEN_API_KEY` — (opzionale, serve solo per il pulsante "Genera video bozza" dell'AI Specialist) la
+     chiave dal tuo account HeyGen: **app.heygen.com → Settings → API Keys**. Senza questa variabile il
+     resto della piattaforma funziona comunque, quel singolo pulsante risponde con un errore chiaro.
    (Se questa è la primissima installazione: vedi la sezione "Come funziona l'accesso" sopra per creare il
    primo account dopo il deploy.)
 3. Dopo il primo deploy con questo codice, apri `admin.html`, inserisci l'admin secret ed esegui la
@@ -107,8 +140,9 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
 
 Per mettere online da zero un progetto nuovo, vale ancora la procedura generale: repository GitHub → Vercel
 **Add New → Project** → Import (Framework preset "Other", nessun build command) → **Deploy** → aggiungi le
-4 variabili d'ambiente sopra → collega un database Postgres (Neon, dal marketplace "Storage" di Vercel) →
-rifai il deploy → apri `admin.html` per la migrazione e il primo account.
+variabili d'ambiente sopra (le prime 4 sono obbligatorie, `HEYGEN_API_KEY` opzionale) → collega un database
+Postgres (Neon, dal marketplace "Storage" di Vercel) → rifai il deploy → apri `admin.html` per la migrazione
+e il primo account.
 
 ## Costi
 

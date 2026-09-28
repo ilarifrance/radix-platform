@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v2.0</title>
+<title>RADIX Platform — v2.3</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,6 +142,27 @@
   .slide-gallery .thumbs{ display:flex; flex-wrap:wrap; gap:10px; }
   .slide-thumb{ display:flex; flex-direction:column; align-items:center; gap:6px; }
   .slide-thumb canvas{ width:96px; height:120px; border-radius:8px; border:1px solid rgba(15,45,36,0.14); }
+
+  .heygen-panel{ display:flex; flex-direction:column; gap:8px; margin-top:8px; max-width:78%; align-self:flex-start; background:var(--sabbia); border-radius:10px; padding:12px 14px; }
+  .heygen-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .heygen-row label{ font-size:11.5px; font-weight:600; color:#6a756f; }
+  .heygen-row select{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:5px 8px; max-width:200px; }
+  .heygen-status{ font-size:12px; color:#6a756f; }
+  .heygen-status.error{ color:#7a2f22; }
+  .heygen-panel video{ width:100%; max-width:260px; border-radius:10px; align-self:flex-start; }
+
+  .step-reply-row{ display:flex; gap:6px; margin-top:10px; }
+  .step-reply-input{ flex:1; min-width:0; font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:6px 10px; }
+  .step-reply-input:focus{ outline:none; border-color:var(--verde-salvia); }
+  .step-reply-input:disabled{ opacity:0.6; }
+
+  .ready-panel{ margin:0 20px 16px; background:var(--sabbia); border-left:4px solid var(--verde-bosco,#0F2D24); border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; }
+  .ready-panel .ready-label{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:var(--verde-bosco,#0F2D24); }
+  .ready-panel .ready-decision{ font-size:13.5px; line-height:1.5; color:var(--antracite); white-space:pre-wrap; }
+  .ready-panel .ready-hint{ font-size:12px; color:#6a756f; }
+  .ready-panel .ready-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+  .ready-btn{ font-family:inherit; font-size:13px; font-weight:600; background:var(--verde-bosco,#0F2D24); color:#fff; border:none; border-radius:10px; padding:9px 16px; cursor:pointer; }
+  .ready-btn:hover{ opacity:0.9; }
 </style>
 </head>
 <body>
@@ -163,7 +184,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v2.0</div>
+        <div class="tag">Agentic team · v2.3</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -223,6 +244,7 @@
           <div id="attachChipPipeline" class="attach-chip"></div>
         </div>
         <div class="pipeline-steps" id="pipelineSteps"></div>
+        <div id="pipelineReadyPanel" class="ready-panel" style="display:none;"></div>
         <div id="pipelineCopyAllWrap" style="display:none;">
           <button id="pipelineCopyAll" class="ghost-btn" type="button">Copia tutto il risultato</button>
           <button id="pipelineDownloadAll" class="ghost-btn" type="button">Scarica come file</button>
@@ -323,7 +345,7 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] }, attachedFile: null }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] }, attachedFile: null, heygen: { avatarId: null, voiceId: null } }; // history[agentId] = [{role, content}]
   AGENTS.forEach(function (a) { if (!a.pipeline) state.history[a.id] = []; });
 
   // --- Account / session --------------------------------------------------
@@ -404,6 +426,8 @@
           history: state.history,
           pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
           pipelineSteps: state.pipeline.steps,
+          heygenAvatarId: state.heygen.avatarId,
+          heygenVoiceId: state.heygen.voiceId,
         },
       }),
     }).catch(function (e) { console.warn("Salvataggio stato non riuscito:", e); });
@@ -426,6 +450,8 @@
       if (saved && saved.pipelineTask) {
         state._savedPipelineTask = saved.pipelineTask;
       }
+      if (saved && saved.heygenAvatarId) state.heygen.avatarId = saved.heygenAvatarId;
+      if (saved && saved.heygenVoiceId) state.heygen.voiceId = saved.heygenVoiceId;
     } catch (e) { /* offline/error: start from empty shared state client-side, next save resyncs it */ }
   }
 
@@ -445,6 +471,7 @@
   var resetChatBtn = document.getElementById("resetChat");
   var resetPipelineBtn = document.getElementById("resetPipeline");
   var regenerateLastBtn = document.getElementById("regenerateLast");
+  var pipelineReadyPanelEl = document.getElementById("pipelineReadyPanel");
   var pipelineCopyAllWrap = document.getElementById("pipelineCopyAllWrap");
   var pipelineCopyAllBtn = document.getElementById("pipelineCopyAll");
   var pipelineDownloadAllBtn = document.getElementById("pipelineDownloadAll");
@@ -754,6 +781,186 @@
     return btn;
   }
 
+  // --- HeyGen draft video (AI Specialist) ----------------------------------
+  // The AI Specialist writes a video script; this turns it into a real HeyGen draft to watch and
+  // approve before publishing anywhere, via /api/heygen (server-side, never touches the API key
+  // client-side). Avatar/voice pick is shared across the team like the rest of state.heygen.
+  var heygenListsCache = null; // { avatars: [...], voices: [...] } once fetched, reused for the session
+  function fetchHeygenLists() {
+    if (heygenListsCache) return Promise.resolve(heygenListsCache);
+    return Promise.all([
+      fetch("/api/heygen?action=avatars").then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore avatar"); return d; }); }),
+      fetch("/api/heygen?action=voices").then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore voci"); return d; }); }),
+    ]).then(function (res) {
+      heygenListsCache = { avatars: res[0].avatars || [], voices: res[1].voices || [] };
+      return heygenListsCache;
+    });
+  }
+
+  function pollHeygenStatus(videoId, statusEl, onDone, onError, attempt) {
+    attempt = attempt || 0;
+    if (attempt > 100) { // ~10 minuti a 6s di intervallo: oltre, probabilmente qualcosa non va
+      onError("Il video sta impiegando più del previsto. Riprova più tardi da HeyGen direttamente (app.heygen.com).");
+      return;
+    }
+    fetch("/api/heygen?action=status&videoId=" + encodeURIComponent(videoId))
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore stato video"); return d; }); })
+      .then(function (data) {
+        var s = String(data.status || "").toLowerCase();
+        if (s === "completed" || s === "success" || s === "done") {
+          onDone(data.videoUrl);
+        } else if (s === "failed" || s === "error") {
+          onError(data.error ? String(data.error) : "HeyGen ha segnalato un errore nella generazione.");
+        } else {
+          statusEl.textContent = "Genero il video bozza… (" + (attempt * 6) + "s, stato: " + (s || "in corso") + ")";
+          setTimeout(function () { pollHeygenStatus(videoId, statusEl, onDone, onError, attempt + 1); }, 6000);
+        }
+      })
+      .catch(function (err) { onError(err && err.message ? err.message : String(err)); });
+  }
+
+  function buildHeygenButton(sourceText, namePrefix) {
+    var script = (sourceText || "").trim();
+    if (!script) return null;
+    var wrap = document.createElement("div");
+    var openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "step-copy primary";
+    openBtn.textContent = "🎬 Genera video bozza (HeyGen)";
+    wrap.appendChild(openBtn);
+
+    openBtn.addEventListener("click", function () {
+      openBtn.disabled = true;
+      openBtn.textContent = "Carico avatar e voci…";
+      fetchHeygenLists().then(function (lists) {
+        openBtn.style.display = "none";
+        var panel = document.createElement("div");
+        panel.className = "heygen-panel";
+
+        if (!lists.avatars.length || !lists.voices.length) {
+          var noneEl = document.createElement("div");
+          noneEl.className = "heygen-status error";
+          noneEl.textContent = "Nessun avatar o voce trovati sull'account HeyGen collegato.";
+          panel.appendChild(noneEl);
+          wrap.appendChild(panel);
+          return;
+        }
+
+        var avatarRow = document.createElement("div");
+        avatarRow.className = "heygen-row";
+        var avatarLabel = document.createElement("label");
+        avatarLabel.textContent = "Avatar";
+        var avatarSel = document.createElement("select");
+        lists.avatars.forEach(function (a) {
+          var opt = document.createElement("option");
+          opt.value = a.id;
+          opt.textContent = a.name;
+          avatarSel.appendChild(opt);
+        });
+        if (state.heygen.avatarId && lists.avatars.some(function (a) { return a.id === state.heygen.avatarId; })) {
+          avatarSel.value = state.heygen.avatarId;
+        }
+        avatarRow.appendChild(avatarLabel);
+        avatarRow.appendChild(avatarSel);
+        panel.appendChild(avatarRow);
+
+        var voiceRow = document.createElement("div");
+        voiceRow.className = "heygen-row";
+        var voiceLabel = document.createElement("label");
+        voiceLabel.textContent = "Voce";
+        var voiceSel = document.createElement("select");
+        lists.voices.forEach(function (v) {
+          var opt = document.createElement("option");
+          opt.value = v.id;
+          opt.textContent = v.name + (v.language ? " (" + v.language + ")" : "");
+          voiceSel.appendChild(opt);
+        });
+        if (state.heygen.voiceId && lists.voices.some(function (v) { return v.id === state.heygen.voiceId; })) {
+          voiceSel.value = state.heygen.voiceId;
+        }
+        voiceRow.appendChild(voiceLabel);
+        voiceRow.appendChild(voiceSel);
+        panel.appendChild(voiceRow);
+
+        var genBtn = document.createElement("button");
+        genBtn.type = "button";
+        genBtn.className = "step-copy primary";
+        genBtn.style.alignSelf = "flex-start";
+        genBtn.textContent = "Genera bozza";
+        panel.appendChild(genBtn);
+
+        var statusEl = document.createElement("div");
+        statusEl.className = "heygen-status";
+        panel.appendChild(statusEl);
+
+        genBtn.addEventListener("click", function () {
+          genBtn.disabled = true;
+          avatarSel.disabled = true;
+          voiceSel.disabled = true;
+          state.heygen.avatarId = avatarSel.value;
+          state.heygen.voiceId = voiceSel.value;
+          saveState();
+          statusEl.className = "heygen-status";
+          statusEl.textContent = "Avvio la generazione…";
+
+          fetch("/api/heygen", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "generate", script: script, avatarId: avatarSel.value, voiceId: voiceSel.value }),
+          })
+            .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore avvio generazione"); return d; }); })
+            .then(function (data) {
+              statusEl.textContent = "Genero il video bozza… (0s)";
+              pollHeygenStatus(
+                data.videoId,
+                statusEl,
+                function (videoUrl) {
+                  statusEl.textContent = "Bozza pronta — da controllare prima di pubblicare (il link scade dopo 7 giorni).";
+                  var video = document.createElement("video");
+                  video.controls = true;
+                  video.src = videoUrl;
+                  panel.appendChild(video);
+                  var dl = document.createElement("a");
+                  dl.href = videoUrl;
+                  dl.target = "_blank";
+                  dl.rel = "noopener";
+                  dl.className = "step-copy";
+                  dl.style.alignSelf = "flex-start";
+                  dl.textContent = "Apri / scarica video";
+                  panel.appendChild(dl);
+                },
+                function (msg) {
+                  statusEl.className = "heygen-status error";
+                  statusEl.textContent = "Non riuscito: " + msg;
+                  genBtn.disabled = false;
+                  avatarSel.disabled = false;
+                  voiceSel.disabled = false;
+                }
+              );
+            })
+            .catch(function (err) {
+              statusEl.className = "heygen-status error";
+              statusEl.textContent = "Non riuscito: " + (err && err.message ? err.message : String(err));
+              genBtn.disabled = false;
+              avatarSel.disabled = false;
+              voiceSel.disabled = false;
+            });
+        });
+
+        wrap.appendChild(panel);
+      }).catch(function (err) {
+        openBtn.disabled = false;
+        openBtn.textContent = "🎬 Genera video bozza (HeyGen)";
+        var errEl = document.createElement("div");
+        errEl.className = "heygen-status error";
+        errEl.textContent = "Non riuscito: " + (err && err.message ? err.message : String(err));
+        wrap.appendChild(errEl);
+      });
+    });
+
+    return wrap;
+  }
+
   // --- Web search sources -------------------------------------------------
   // When an agent's reply used the web-search tool (see api/chat.js), the server sends back the
   // pages it actually consulted — shown here as a small "Fonti" list so it's clear the answer is
@@ -870,6 +1077,10 @@
           var carouselBtn = buildCarouselButton(m.content, "radix-carosello");
           if (carouselBtn) messagesEl.appendChild(carouselBtn);
         }
+        if (state.agent === "ai-specialist") {
+          var heygenBtn = buildHeygenButton(m.content, "radix-video");
+          if (heygenBtn) messagesEl.appendChild(heygenBtn);
+        }
       }
     });
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -904,6 +1115,7 @@
       empty.textContent = "Descrivi un task qui sotto e premi \"Avvia\": lo vedrai passare da un agente all'altro.";
       pipelineStepsEl.appendChild(empty);
       pipelineCopyAllWrap.style.display = "none";
+      pipelineReadyPanelEl.style.display = "none";
       return;
     }
     state.pipeline.steps.forEach(function (step, i) {
@@ -1012,6 +1224,13 @@
         body.appendChild(byLine);
       }
 
+      if (step.lastNote) {
+        var noteLine = document.createElement("div");
+        noteLine.className = "step-by";
+        noteLine.textContent = "Con la tua risposta: “" + step.lastNote + "”";
+        body.appendChild(noteLine);
+      }
+
       if (Array.isArray(step.sources) && step.sources.length) {
         var stepSources = buildSourcesEl(step.sources);
         stepSources.style.marginTop = "6px";
@@ -1033,6 +1252,37 @@
           var stepCarouselBtn = buildCarouselButton(step.output, "radix-carosello");
           if (stepCarouselBtn) { stepCarouselBtn.style.marginTop = "8px"; body.appendChild(stepCarouselBtn); }
         }
+        if (step.role === "ai-specialist" && (step.status === "done" || step.status === "stale")) {
+          var stepHeygenBtn = buildHeygenButton(step.output, "radix-video");
+          if (stepHeygenBtn) { stepHeygenBtn.style.marginTop = "8px"; body.appendChild(stepHeygenBtn); }
+        }
+      }
+
+      // Rispondi a questo agente (es. ti fa una domanda o segnala che manca qualcosa) senza dover
+      // aprire la chat singola o riscrivere tutto a mano con "Modifica": il testo torna a quello
+      // stesso agente insieme al task e a quanto già fatto, e la sua nuova risposta sostituisce
+      // quella attuale, marcando come "da aggiornare" i passi successivi come una rigenerazione normale.
+      if (!step._editing && step.output && step.status !== "running") {
+        var replyRow = document.createElement("div");
+        replyRow.className = "step-reply-row";
+        var replyInput = document.createElement("input");
+        replyInput.type = "text";
+        replyInput.className = "step-reply-input";
+        replyInput.placeholder = "Rispondi a " + step.label + "…";
+        replyInput.id = "stepReply" + i;
+        replyInput.disabled = state.pipeline.running;
+        var replyBtn = document.createElement("button");
+        replyBtn.type = "button";
+        replyBtn.className = "step-copy primary";
+        replyBtn.textContent = "Invia";
+        replyBtn.disabled = state.pipeline.running;
+        replyBtn.addEventListener("click", function () { replyToStep(i); });
+        replyInput.addEventListener("keydown", function (ev) {
+          if (ev.key === "Enter") { ev.preventDefault(); replyToStep(i); }
+        });
+        replyRow.appendChild(replyInput);
+        replyRow.appendChild(replyBtn);
+        body.appendChild(replyRow);
       }
       row.appendChild(body);
       pipelineStepsEl.appendChild(row);
@@ -1040,6 +1290,82 @@
 
     var allDone = state.pipeline.steps.length > 0 && state.pipeline.steps.every(function (s) { return s.status === "done"; });
     pipelineCopyAllWrap.style.display = allDone ? "" : "none";
+    renderReadyPanel(allDone);
+  }
+
+  // A finished run tells you WHAT to publish (the Social Media Manager's decision: canale, formato,
+  // orario) but doesn't create it by itself — that ambiguity ("chi fa cosa?") is exactly what this
+  // panel resolves: it reads that decision, guesses the format (video vs carosello vs post/immagine
+  // singola) from its text, and surfaces the one "genera" action that matches it front and center,
+  // reusing the same carousel/HeyGen builders already available under the Art Director/AI Specialist
+  // steps — so there's one obvious next click instead of having to go hunt for the right button.
+  function renderReadyPanel(allDone) {
+    pipelineReadyPanelEl.innerHTML = "";
+    if (!allDone) { pipelineReadyPanelEl.style.display = "none"; return; }
+
+    var smmStep = state.pipeline.steps.filter(function (s) { return s.role === "social-media-manager"; })[0];
+    var artStep = state.pipeline.steps.filter(function (s) { return s.role === "art-director"; })[0];
+    var aiStep = state.pipeline.steps.filter(function (s) { return s.role === "ai-specialist"; })[0];
+    if (!smmStep || !smmStep.output) { pipelineReadyPanelEl.style.display = "none"; return; }
+
+    // Legge specificamente la riga "Formato: ..." quando c'è (il Social Media Manager la scrive così)
+    // invece di scandire tutto il testo: il "Motivo" spesso nomina anche il formato scartato (es. "il
+    // video resta in riserva"), e uno scan generico lo scambierebbe per la decisione presa.
+    var formatMatch = /formato:?\**\s*([^\n]+)/i.exec(smmStep.output);
+    var formatText = (formatMatch ? formatMatch[1] : smmStep.output).toLowerCase();
+    var wantsVideo = /video/.test(formatText);
+    var wantsCarousel = /carosell|carousel/.test(formatText);
+
+    pipelineReadyPanelEl.style.display = "";
+
+    var label = document.createElement("div");
+    label.className = "ready-label";
+    label.textContent = "Deciso dal Social Media Manager — cosa creare ora";
+    pipelineReadyPanelEl.appendChild(label);
+
+    var decisionEl = document.createElement("div");
+    decisionEl.className = "ready-decision";
+    decisionEl.textContent = smmStep.output;
+    pipelineReadyPanelEl.appendChild(decisionEl);
+
+    var actions = document.createElement("div");
+    actions.className = "ready-actions";
+    var addedPrimary = false;
+
+    if (wantsVideo && aiStep && aiStep.output) {
+      var videoBtn = buildHeygenButton(aiStep.output, "radix-video");
+      if (videoBtn) {
+        var innerVideoBtn = videoBtn.querySelector("button");
+        if (innerVideoBtn) innerVideoBtn.className = "ready-btn";
+        actions.appendChild(videoBtn);
+        addedPrimary = true;
+      }
+    }
+    if (wantsCarousel && artStep && artStep.output) {
+      var carouselBtn = buildCarouselButton(artStep.output, "radix-carosello");
+      if (carouselBtn) { carouselBtn.className = "ready-btn"; actions.appendChild(carouselBtn); addedPrimary = true; }
+    }
+    if (!addedPrimary) {
+      var hint = document.createElement("div");
+      hint.className = "ready-hint";
+      hint.textContent = wantsVideo || wantsCarousel
+        ? "Il passo indicato non ha (ancora) un output pronto da cui generare il file."
+        : "Post testuale o immagine singola: il copy qui sopra è pronto, non serve una creazione aggiuntiva.";
+      actions.appendChild(hint);
+    }
+
+    // L'alternativa resta sempre a un click, più piccola, senza dover scendere fino ai singoli passi —
+    // utile quando la decisione scritta non è quella che si vuole seguire per davvero.
+    if (!wantsVideo && aiStep && aiStep.output) {
+      var altVideoBtn = buildHeygenButton(aiStep.output, "radix-video");
+      if (altVideoBtn) actions.appendChild(altVideoBtn);
+    }
+    if (!wantsCarousel && artStep && artStep.output) {
+      var altCarouselBtn = buildCarouselButton(artStep.output, "radix-carosello");
+      if (altCarouselBtn) actions.appendChild(altCarouselBtn);
+    }
+
+    pipelineReadyPanelEl.appendChild(actions);
   }
 
   function pipelineFullText() {
@@ -1096,7 +1422,10 @@
     saveState();
   }
 
-  async function regenerateStep(i) {
+  // Shared by "Rigenera" (no note) and "Invia e rigenera" (a free-text reply to that specific
+  // agent's last output, e.g. answering a question it asked back) — same request, the reply just
+  // rides along appended to that step's normal prompt.
+  async function runSingleStep(i, extraNote) {
     if (state.pipeline.running) return;
     var task = pipelineInputEl.value.trim() || state._savedPipelineTask || "";
     state.pipeline.running = true;
@@ -1107,11 +1436,15 @@
     renderPipeline();
     try {
       var userText = PIPELINE[i].prompt(withAttachment(task), outputs);
+      if (extraNote) {
+        userText += "\n\nRisposta di Francesco al tuo messaggio precedente (tienine conto nella tua prossima risposta):\n" + extraNote;
+      }
       var reply = await callAgent(PIPELINE[i].role, userText);
       state.pipeline.steps[i].status = "done";
       state.pipeline.steps[i].output = reply.text;
       state.pipeline.steps[i].sources = reply.sources;
       state.pipeline.steps[i].by = currentUser ? currentUser.name : null;
+      state.pipeline.steps[i].lastNote = extraNote || null;
       markDownstreamStale(i);
     } catch (err) {
       state.pipeline.steps[i].status = "error";
@@ -1122,6 +1455,17 @@
     resetPipelineBtn.disabled = false;
     renderPipeline();
     saveState();
+  }
+
+  async function regenerateStep(i) {
+    await runSingleStep(i);
+  }
+
+  async function replyToStep(i) {
+    var replyInputEl = document.getElementById("stepReply" + i);
+    var note = replyInputEl ? replyInputEl.value.trim() : "";
+    if (!note) return;
+    await runSingleStep(i, note);
   }
 
   // Retrying a failed step behaves like the original run: pick up right there and keep going
