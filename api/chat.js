@@ -23,6 +23,23 @@ const RADIX_CONTEXT =
   "manager di PMI — linguaggio tecnico e diretto sul merito commerciale; su Facebook, piccoli imprenditori " +
   "spesso lontani da LinkedIn — linguaggio concreto, meno gergale.";
 
+// v2.5: non tutti i task sono contenuti "RADIX" — molti sono personal branding di Francesco come
+// professionista, dove nominare "RADIX" nel testo (o marchiarlo visivamente sui caroselli) è fuori
+// posto. Il frontend manda un campo "brand" per ogni task ("radix", default, o "personal"); questo
+// blocco viene accodato al system prompt dell'agente solo quando è "personal", per correggere la rotta
+// senza duplicare ogni prompt.
+const BRAND_CONTEXT_PERSONAL =
+  "\n\nATTENZIONE — brand di questo task specifico: personal branding di Francesco Ilari, non RADIX. " +
+  "Il contenuto promuove Francesco come professionista/consulente, non l'azienda RADIX. Scrivi in prima " +
+  "persona (\"io\", \"nella mia esperienza\", \"il mio metodo\"), non nominare \"RADIX\" nel testo del post e " +
+  "non presentarlo come il brand o il soggetto del contenuto, a meno che il task non lo richieda " +
+  "esplicitamente. Il protagonista è Francesco stesso, non il nome di un'azienda — anche se resta lui a " +
+  "guidare RADIX, qui quel nome non compare.";
+
+function systemPromptFor(agent, brand) {
+  return brand === "personal" ? agent.system + BRAND_CONTEXT_PERSONAL : agent.system;
+}
+
 const AGENTS = {
   strategist: {
     name: "Digital Strategist",
@@ -281,7 +298,7 @@ const WEB_FETCH_TOOL = {
   max_content_tokens: 15000,
 };
 
-async function callAnthropic(apiKey, agent, messages) {
+async function callAnthropic(apiKey, agent, messages, system) {
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -293,7 +310,7 @@ async function callAnthropic(apiKey, agent, messages) {
       model: "claude-sonnet-4-5-20250929",
       max_tokens: agent.maxTokens || 1024,
       temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
-      system: agent.system,
+      system: system || agent.system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL],
     }),
@@ -380,8 +397,9 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { role, messages } = body || {};
+  const { role, messages, brand } = body || {};
   const agent = AGENTS[role] || AGENTS.strategist;
+  const system = systemPromptFor(agent, brand);
 
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: "Manca 'messages' (array di {role, content})" });
@@ -389,7 +407,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages);
+    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages, system);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -403,11 +421,11 @@ module.exports = async (req, res) => {
               "Riscrivi evitando queste espressioni/aperture generiche individuate nella tua risposta: \"" +
               hits.join('", "') +
               "\". Mantieni lo stesso messaggio, la stessa lunghezza e lo stesso formato, ma con un'apertura e " +
-              "un linguaggio più originali e diretti, coerenti con lo stile RADIX.",
+              "un linguaggio più originali e diretti, coerenti con lo stile diretto e sintetico richiesto.",
           },
         ]);
         try {
-          const retry = await callAnthropic(apiKey, agent, retryMessages);
+          const retry = await callAnthropic(apiKey, agent, retryMessages, system);
           text = retry.text;
           stopReason = retry.stopReason;
           revised = true;
