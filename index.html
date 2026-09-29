@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v2.3</title>
+<title>RADIX Platform — v2.4</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -184,7 +184,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v2.3</div>
+        <div class="tag">Agentic team · v2.4</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -675,7 +675,24 @@
     ctx.textAlign = prevAlign;
   }
 
-  function renderSlideCanvas(slide) {
+  // #rrggbb -> rgba(...) string at a given alpha — used to tint the fg color for the glow/accents
+  // below instead of drawing flat blocks, so the same 5-color palette can still produce depth.
+  function hexToRgba(hex, alpha) {
+    var h = hex.replace("#", "");
+    var r = parseInt(h.substring(0, 2), 16);
+    var g = parseInt(h.substring(2, 4), 16);
+    var b = parseInt(h.substring(4, 6), 16);
+    return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+  }
+
+  // v2.4: la versione precedente era un rettangolo di colore pieno con una scritta in mezzo — leggibile,
+  // ma senza nessuna delle cose che fanno sembrare "disegnata" una slide: profondità, gerarchia,
+  // numerazione come elemento grafico, un ritmo che cambia da slide a slide. Qui, restando sempre nei
+  // 5 colori RADIX (nessun colore nuovo, nessuna immagine esterna): un bagliore radiale che alterna
+  // angolo slide per slide, un badge numerato al posto del numero piatto, puntini di avanzamento in
+  // basso (si vede a colpo d'occhio quante slide mancano), e una dimensione del testo che si adatta
+  // alla lunghezza invece di restare fissa (un titolo corto merita di essere grande, uno lungo no).
+  function renderSlideCanvas(slide, index, total) {
     var canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1350; // formato 4:5, lo stesso di un carosello LinkedIn/Instagram
@@ -683,25 +700,93 @@
     ctx.fillStyle = slide.bg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = slide.fg;
-    ctx.globalAlpha = 0.6;
-    ctx.font = "600 28px Montserrat, sans-serif";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("RADIX", 64, 84);
-    ctx.globalAlpha = 1;
+    // Bagliore radiale morbido: alterna angolo in base alla parità dell'indice, così un carosello di
+    // più slide non sembra lo stesso sfondo ripetuto identico.
+    var blobRight = index % 2 === 0;
+    var blobX = blobRight ? canvas.width * 0.88 : canvas.width * 0.1;
+    var blobY = canvas.height * 0.1;
+    var glow = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, canvas.width * 0.62);
+    glow.addColorStop(0, hexToRgba(slide.fg, 0.14));
+    glow.addColorStop(1, hexToRgba(slide.fg, 0));
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Arco sottile nell'angolo opposto: un accento grafico leggero, non decorativo a caso — bilancia
+    // il bagliore e ancora la composizione.
+    ctx.strokeStyle = hexToRgba(slide.fg, 0.16);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if (blobRight) ctx.arc(0, canvas.height, 190, -Math.PI / 2, 0);
+    else ctx.arc(canvas.width, canvas.height, 190, Math.PI, Math.PI * 1.5);
+    ctx.stroke();
+
+    // Kicker "RADIX" + riga sotto, invece della sola scritta semi-trasparente di prima.
     ctx.fillStyle = slide.fg;
-    ctx.font = "800 62px Montserrat, sans-serif";
+    ctx.globalAlpha = 0.75;
+    ctx.font = "700 26px Montserrat, sans-serif";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("RADIX", 64, 80);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = hexToRgba(slide.fg, 0.4);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(64, 96);
+    ctx.lineTo(140, 96);
+    ctx.stroke();
+
+    // Badge numerato (cerchio pieno) al posto del numero piatto in basso a destra di prima — più
+    // leggibile come elemento grafico, e raddoppia come indicatore "slide N" anche da solo.
+    var badgeR = 27;
+    var badgeCx = canvas.width - 64 - badgeR;
+    var badgeCy = 64 + badgeR;
+    ctx.beginPath();
+    ctx.arc(badgeCx, badgeCy, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = hexToRgba(slide.fg, 0.15);
+    ctx.fill();
+    ctx.fillStyle = slide.fg;
+    ctx.font = "700 21px Inter, sans-serif";
+    ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    wrapCanvasText(ctx, slide.text, canvas.width / 2, canvas.height / 2, canvas.width - 160, 74);
-
-    ctx.globalAlpha = 0.55;
-    ctx.font = "600 22px Inter, sans-serif";
-    ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(slide.num, canvas.width - 56, canvas.height - 56);
+    ctx.fillText(String(index + 1), badgeCx, badgeCy + 1);
     ctx.textAlign = "left";
-    ctx.globalAlpha = 1;
+
+    // Testo principale — dimensione in funzione della lunghezza, non più fissa a 62px per tutti: un
+    // hook di poche parole riempie la slide, un paragrafo più lungo resta leggibile senza traboccare.
+    var len = slide.text.length;
+    var fontSize = len < 45 ? 68 : len < 80 ? 58 : len < 130 ? 48 : len < 190 ? 40 : 34;
+    var lineHeight = Math.round(fontSize * 1.2);
+    ctx.fillStyle = slide.fg;
+    ctx.font = "800 " + fontSize + "px Montserrat, sans-serif";
+    ctx.textBaseline = "middle";
+    wrapCanvasText(ctx, slide.text, canvas.width / 2, canvas.height / 2, canvas.width - 176, lineHeight);
+
+    // Puntini di avanzamento in basso: mostrano a colpo d'occhio quante slide compongono il carosello
+    // e a che punto si è, come nei caroselli Instagram/LinkedIn nativi.
+    if (total > 1) {
+      var dotR = 5, gap = 16;
+      var totalW = total * (dotR * 2) + (total - 1) * gap;
+      var startX = canvas.width / 2 - totalW / 2 + dotR;
+      var dotY = canvas.height - 60;
+      for (var d = 0; d < total; d++) {
+        var on = d === index;
+        ctx.beginPath();
+        ctx.arc(startX + d * (dotR * 2 + gap), dotY, on ? dotR + 1.5 : dotR, 0, Math.PI * 2);
+        ctx.fillStyle = hexToRgba(slide.fg, on ? 0.95 : 0.3);
+        ctx.fill();
+      }
+    }
+
+    // Sulla prima slide, un piccolo invito a scorrere: un accento in più solo dove serve davvero.
+    if (index === 0 && total > 1) {
+      ctx.fillStyle = slide.fg;
+      ctx.globalAlpha = 0.55;
+      ctx.font = "600 20px Inter, sans-serif";
+      ctx.textAlign = "right";
+      ctx.fillText("scorri →", canvas.width - 60, canvas.height - 110);
+      ctx.textAlign = "left";
+      ctx.globalAlpha = 1;
+    }
+
     return canvas;
   }
 
@@ -731,7 +816,7 @@
     box.className = "slide-gallery";
     var thumbs = document.createElement("div");
     thumbs.className = "thumbs";
-    var fullCanvases = slides.map(renderSlideCanvas);
+    var fullCanvases = slides.map(function (s, i) { return renderSlideCanvas(s, i, slides.length); });
     fullCanvases.forEach(function (canvas, i) {
       var thumbWrap = document.createElement("div");
       thumbWrap.className = "slide-thumb";

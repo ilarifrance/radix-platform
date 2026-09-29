@@ -1,4 +1,4 @@
-# RADIX Platform — v2.3
+# RADIX Platform — v2.4
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
@@ -48,6 +48,15 @@ davvero a un modello Claude (Anthropic), non una demo finta.
   sistema di versioning più sofisticato.
 
 ## Changelog
+
+**v2.4** — le immagini del carosello non sono più un rettangolo di colore pieno con testo sopra: ora hanno
+un bagliore radiale che alterna angolo slide per slide (profondità senza foto), un badge numerato al posto
+del numero piatto, un accento ad arco nell'angolo opposto, puntini di avanzamento in basso (si vede quante
+slide compongono il carosello e a che punto si è, come nei caroselli nativi di Instagram/LinkedIn), un
+invito "scorri →" sulla prima slide, e la dimensione del testo ora si adatta alla lunghezza invece di
+restare fissa. Tutto ancora nei 5 colori RADIX, nessuna immagine esterna o API aggiuntiva richiesta. Se in
+futuro si vogliono sfondi fotografici/illustrati veri serve una API di generazione immagini (es. OpenAI
+images) collegata allo stesso modo di HeyGen — non ancora fatto, da valutare.
 
 **v2.3** — a run finito dell'Orchestratore, in fondo compare un riquadro **"Deciso dal Social Media
 Manager — cosa creare ora"**: mostra la sua decisione (canale/formato/orario) e il pulsante di creazione
