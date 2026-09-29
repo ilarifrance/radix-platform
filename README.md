@@ -1,4 +1,4 @@
-# RADIX Platform — v2.4
+# RADIX Platform — v2.5
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
@@ -49,14 +49,32 @@ davvero a un modello Claude (Anthropic), non una demo finta.
 
 ## Changelog
 
+**v2.5** — due correzioni segnalate testando la v2.4 dal vivo:
+
+1. **Sfondi fotografici AI per il carosello**: sulla galleria di slide (dopo "Genera immagini carosello")
+   c'è ora un pulsante **"Genera sfondi fotografici AI (beta)"** che chiama `api/openai-image.js` (nuovo —
+   Images API di OpenAI, `gpt-image-1`) una slide alla volta, genera una foto/illustrazione coerente col
+   testo di quella slide e la usa come sfondo (cover-fit + overlay scuro in basso per il contrasto del
+   testo) al posto del bagliore piatto. Richiede `OPENAI_API_KEY` (vedi sotto) — senza quella variabile il
+   resto della pagina funziona comunque, quel pulsante mostra solo un errore chiaro invece di rompersi.
+   **Attenzione**: è una API key a consumo da creare su platform.openai.com con billing attivo, separata
+   dall'abbonamento ChatGPT Plus (che non dà accesso automatico alle API).
+2. **Selettore "Brand del task" (RADIX vs Personal branding)**: sopra il campo dove si scrive il task
+   dell'Orchestratore c'è ora un menu a tendina — di default "RADIX (studio)", oppure "Personal branding
+   (Francesco Ilari)". Prima ogni contenuto generato dava per scontato che il soggetto fosse sempre RADIX
+   come azienda (il testo lo nominava, e ogni slide del carosello aveva la scritta "RADIX" in alto a
+   sinistra) anche quando il task era in realtà personal branding di Francesco come professionista — un
+   post su di lui, non sull'azienda. Scegliendo "Personal branding": gli agenti ricevono un'istruzione in
+   più nel system prompt (non nominare "RADIX", scrivere in prima persona come Francesco) e la scritta
+   sulle slide del carosello diventa "FRANCESCO ILARI" invece di "RADIX". La scelta resta salvata per task
+   (persistita come il resto dello stato condiviso) e non si può cambiare mentre un run è in corso.
+
 **v2.4** — le immagini del carosello non sono più un rettangolo di colore pieno con testo sopra: ora hanno
 un bagliore radiale che alterna angolo slide per slide (profondità senza foto), un badge numerato al posto
 del numero piatto, un accento ad arco nell'angolo opposto, puntini di avanzamento in basso (si vede quante
 slide compongono il carosello e a che punto si è, come nei caroselli nativi di Instagram/LinkedIn), un
 invito "scorri →" sulla prima slide, e la dimensione del testo ora si adatta alla lunghezza invece di
-restare fissa. Tutto ancora nei 5 colori RADIX, nessuna immagine esterna o API aggiuntiva richiesta. Se in
-futuro si vogliono sfondi fotografici/illustrati veri serve una API di generazione immagini (es. OpenAI
-images) collegata allo stesso modo di HeyGen — non ancora fatto, da valutare.
+restare fissa. Tutto ancora nei 5 colori RADIX, nessuna immagine esterna o API aggiuntiva richiesta.
 
 **v2.3** — a run finito dell'Orchestratore, in fondo compare un riquadro **"Deciso dal Social Media
 Manager — cosa creare ora"**: mostra la sua decisione (canale/formato/orario) e il pulsante di creazione
@@ -119,6 +137,8 @@ passo/risultato completo, reset di chat e pipeline.
   (.xlsx/.xls foglio per foglio in CSV, .csv/.txt/.md letti direttamente), protetto da sessione.
 - `api/heygen.js` — collega lo script dell'AI Specialist a una vera bozza di video HeyGen (avatar/voci,
   avvio generazione, stato); richiede `HEYGEN_API_KEY`, protetto da sessione.
+- `api/openai-image.js` — genera uno sfondo fotografico/illustrato per una slide del carosello tramite le
+  Images API di OpenAI (`gpt-image-1`); richiede `OPENAI_API_KEY`, protetto da sessione.
 - `api/auth/login.js`, `logout.js`, `me.js` — login (email+password → cookie di sessione), logout, e "chi
   sono" per sapere se una sessione è ancora valida.
 - `api/admin/migrate.js` — crea le tabelle del database (idempotente, protetto da admin secret).
@@ -142,6 +162,11 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
    - `HEYGEN_API_KEY` — (opzionale, serve solo per il pulsante "Genera video bozza" dell'AI Specialist) la
      chiave dal tuo account HeyGen: **app.heygen.com → Settings → API Keys**. Senza questa variabile il
      resto della piattaforma funziona comunque, quel singolo pulsante risponde con un errore chiaro.
+   - `OPENAI_API_KEY` — (opzionale, serve solo per il pulsante "Genera sfondi fotografici AI" sulle slide
+     del carosello) una chiave API creata su **platform.openai.com → API keys**, con billing attivo su
+     quell'account — **non è lo stesso account/abbonamento di ChatGPT Plus**, va creata/pagata a parte.
+     Senza questa variabile il resto della piattaforma funziona comunque, quel singolo pulsante risponde
+     con un errore chiaro.
    (Se questa è la primissima installazione: vedi la sezione "Come funziona l'accesso" sopra per creare il
    primo account dopo il deploy.)
 3. Dopo il primo deploy con questo codice, apri `admin.html`, inserisci l'admin secret ed esegui la
@@ -149,9 +174,9 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
 
 Per mettere online da zero un progetto nuovo, vale ancora la procedura generale: repository GitHub → Vercel
 **Add New → Project** → Import (Framework preset "Other", nessun build command) → **Deploy** → aggiungi le
-variabili d'ambiente sopra (le prime 4 sono obbligatorie, `HEYGEN_API_KEY` opzionale) → collega un database
-Postgres (Neon, dal marketplace "Storage" di Vercel) → rifai il deploy → apri `admin.html` per la migrazione
-e il primo account.
+variabili d'ambiente sopra (le prime 4 sono obbligatorie, `HEYGEN_API_KEY`/`OPENAI_API_KEY` opzionali) →
+collega un database Postgres (Neon, dal marketplace "Storage" di Vercel) → rifai il deploy → apri
+`admin.html` per la migrazione e il primo account.
 
 ## Costi
 
@@ -159,6 +184,9 @@ Ogni messaggio inviato consuma token API a pagamento sul tuo account Anthropic (
 conversazione con l'uso normale). L'Orchestratore ne consuma di più a ogni run perché chiama in sequenza 5
 agenti diversi. Il database Neon ha un piano gratuito (0.5GB, sufficiente per la cronologia testuale di
 questo utilizzo). Il pulsantino di stato in alto a destra fa solo un controllo gratuito sull'API Anthropic.
+Ogni sfondo fotografico AI generato per una slide del carosello (v2.5, pulsante opzionale) consuma
+un'immagine a pagamento sul tuo account OpenAI — un carosello da 5 slide sono 5 immagini per click su
+"Genera sfondi fotografici AI" (o "Rigenera").
 
 ## Prossimi passi possibili (non ancora costruiti)
 

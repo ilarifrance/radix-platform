@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v2.4</title>
+<title>RADIX Platform — v2.5</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -57,6 +57,11 @@
   .pipeline-toolbar{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:0 20px; }
   .pipeline-toolbar .quick-prompts{ padding:0 0 16px; flex:1; }
   .pipeline-toolbar .ghost-btn{ margin-top:2px; flex:0 0 auto; }
+  .pipeline-toolbar-right{ display:flex; align-items:center; gap:8px; flex:0 0 auto; margin-top:2px; }
+  .brand-select-wrap{ display:flex; flex-direction:column; gap:2px; }
+  .brand-select-wrap label{ font-size:10px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#8a958f; }
+  .brand-select{ font-family:inherit; font-size:12px; font-weight:600; color:var(--verde-bosco); background:#fff; border:1.5px solid rgba(15,45,36,0.18); border-radius:14px; padding:5px 10px; cursor:pointer; }
+  .brand-select:hover{ border-color:var(--verde-salvia); }
   #pipelineCopyAllWrap{ padding:0 20px 16px; display:flex; gap:8px; flex-wrap:wrap; }
 
   .messages{ padding:20px; min-height:280px; max-height:440px; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
@@ -184,7 +189,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v2.4</div>
+        <div class="tag">Agentic team · v2.5</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -236,7 +241,16 @@
       <div id="pipelineMode" style="display:none;">
         <div class="pipeline-toolbar">
           <div class="quick-prompts" id="pipelinePrompts"></div>
-          <button id="resetPipeline" class="ghost-btn" type="button" title="Cancella questo run e ricomincia">Nuovo task</button>
+          <div class="pipeline-toolbar-right">
+            <div class="brand-select-wrap">
+              <label for="pipelineBrand">Brand del task</label>
+              <select id="pipelineBrand" class="brand-select" title="Per chi è questo contenuto: cambia il tono del testo e la scritta sui caroselli">
+                <option value="radix">RADIX (studio)</option>
+                <option value="personal">Personal branding (Francesco Ilari)</option>
+              </select>
+            </div>
+            <button id="resetPipeline" class="ghost-btn" type="button" title="Cancella questo run e ricomincia">Nuovo task</button>
+          </div>
         </div>
         <div class="attach-row" id="attachRowPipeline">
           <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md" style="display:none">
@@ -267,6 +281,10 @@
       collegato al progetto — non più solo nel browser di chi li ha creati. Si può allegare un file
       (.xlsx, .xls, .csv, .txt, .md, max 4MB) a un messaggio o a un task dell'Orchestratore — viene letto
       da <code>/api/parse-file</code> e il suo contenuto viene incluso nel messaggio inviato all'agente.
+      Il pulsante "Genera sfondi fotografici AI" sulle slide del carosello è opzionale e richiede in più
+      <code>OPENAI_API_KEY</code> (una chiave a consumo da <a href="https://platform.openai.com/api-keys"
+      target="_blank" rel="noopener">platform.openai.com</a>, separata dall'abbonamento ChatGPT Plus) —
+      senza quella variabile tutto il resto funziona comunque, quel pulsante mostra solo un errore chiaro.
     </div>
   </div>
 
@@ -345,7 +363,10 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [] }, attachedFile: null, heygen: { avatarId: null, voiceId: null } }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFile: null, heygen: { avatarId: null, voiceId: null } }; // history[agentId] = [{role, content}]
+  // pipeline.brand: "radix" (lo studio/venture) o "personal" (personal branding di Francesco) — cambia
+  // il contesto inviato agli agenti (api/chat.js) e la scritta disegnata sui caroselli, così un task di
+  // personal branding non si ritrova col testo/la grafica intestati "RADIX" come se fosse un post aziendale.
   AGENTS.forEach(function (a) { if (!a.pipeline) state.history[a.id] = []; });
 
   // --- Account / session --------------------------------------------------
@@ -426,6 +447,7 @@
           history: state.history,
           pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
           pipelineSteps: state.pipeline.steps,
+          pipelineBrand: state.pipeline.brand,
           heygenAvatarId: state.heygen.avatarId,
           heygenVoiceId: state.heygen.voiceId,
         },
@@ -450,6 +472,9 @@
       if (saved && saved.pipelineTask) {
         state._savedPipelineTask = saved.pipelineTask;
       }
+      if (saved && (saved.pipelineBrand === "personal" || saved.pipelineBrand === "radix")) {
+        state.pipeline.brand = saved.pipelineBrand;
+      }
       if (saved && saved.heygenAvatarId) state.heygen.avatarId = saved.heygenAvatarId;
       if (saved && saved.heygenVoiceId) state.heygen.voiceId = saved.heygenVoiceId;
     } catch (e) { /* offline/error: start from empty shared state client-side, next save resyncs it */ }
@@ -467,6 +492,7 @@
   var sendBtn = document.getElementById("send");
   var pipelineInputEl = document.getElementById("pipelineInput");
   var pipelineRunBtn = document.getElementById("pipelineRun");
+  var pipelineBrandEl = document.getElementById("pipelineBrand");
   var apiStatusEl = document.getElementById("apiStatus");
   var resetChatBtn = document.getElementById("resetChat");
   var resetPipelineBtn = document.getElementById("resetPipeline");
@@ -692,46 +718,74 @@
   // angolo slide per slide, un badge numerato al posto del numero piatto, puntini di avanzamento in
   // basso (si vede a colpo d'occhio quante slide mancano), e una dimensione del testo che si adatta
   // alla lunghezza invece di restare fissa (un titolo corto merita di essere grande, uno lungo no).
-  function renderSlideCanvas(slide, index, total) {
+  //
+  // v2.5: bgImage (opzionale) è un HTMLImageElement già caricato, generato da /api/openai-image — se
+  // presente, sostituisce lo sfondo piatto+bagliore con la foto (cover-fit) più un overlay scuro in
+  // basso per tenere il testo leggibile; badge/kicker/puntini restano identici, sempre in bianco per
+  // garantire contrasto su qualunque foto invece di dipendere dal colore fg della slide.
+  function renderSlideCanvas(slide, index, total, bgImage) {
     var canvas = document.createElement("canvas");
     canvas.width = 1080;
     canvas.height = 1350; // formato 4:5, lo stesso di un carosello LinkedIn/Instagram
     var ctx = canvas.getContext("2d");
-    ctx.fillStyle = slide.bg;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var fg = bgImage ? "#FFFFFF" : slide.fg;
 
-    // Bagliore radiale morbido: alterna angolo in base alla parità dell'indice, così un carosello di
-    // più slide non sembra lo stesso sfondo ripetuto identico.
-    var blobRight = index % 2 === 0;
-    var blobX = blobRight ? canvas.width * 0.88 : canvas.width * 0.1;
-    var blobY = canvas.height * 0.1;
-    var glow = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, canvas.width * 0.62);
-    glow.addColorStop(0, hexToRgba(slide.fg, 0.14));
-    glow.addColorStop(1, hexToRgba(slide.fg, 0));
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (bgImage) {
+      // Cover-fit: riempie il canvas senza deformare l'immagine, ritagliando l'eccedenza al centro.
+      var scale = Math.max(canvas.width / bgImage.width, canvas.height / bgImage.height);
+      var drawW = bgImage.width * scale, drawH = bgImage.height * scale;
+      var offX = (canvas.width - drawW) / 2, offY = (canvas.height - drawH) / 2;
+      ctx.drawImage(bgImage, offX, offY, drawW, drawH);
+      // Overlay: leggero in alto (kicker/badge), più scuro verso il basso dove sta il testo principale.
+      var overlay = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      overlay.addColorStop(0, "rgba(15,15,15,0.35)");
+      overlay.addColorStop(0.55, "rgba(15,15,15,0.4)");
+      overlay.addColorStop(1, "rgba(15,15,15,0.72)");
+      ctx.fillStyle = overlay;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = slide.bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Arco sottile nell'angolo opposto: un accento grafico leggero, non decorativo a caso — bilancia
-    // il bagliore e ancora la composizione.
-    ctx.strokeStyle = hexToRgba(slide.fg, 0.16);
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (blobRight) ctx.arc(0, canvas.height, 190, -Math.PI / 2, 0);
-    else ctx.arc(canvas.width, canvas.height, 190, Math.PI, Math.PI * 1.5);
-    ctx.stroke();
+      // Bagliore radiale morbido: alterna angolo in base alla parità dell'indice, così un carosello di
+      // più slide non sembra lo stesso sfondo ripetuto identico.
+      var blobRight = index % 2 === 0;
+      var blobX = blobRight ? canvas.width * 0.88 : canvas.width * 0.1;
+      var blobY = canvas.height * 0.1;
+      var glow = ctx.createRadialGradient(blobX, blobY, 0, blobX, blobY, canvas.width * 0.62);
+      glow.addColorStop(0, hexToRgba(slide.fg, 0.14));
+      glow.addColorStop(1, hexToRgba(slide.fg, 0));
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Kicker "RADIX" + riga sotto, invece della sola scritta semi-trasparente di prima.
-    ctx.fillStyle = slide.fg;
+      // Arco sottile nell'angolo opposto: un accento grafico leggero, non decorativo a caso — bilancia
+      // il bagliore e ancora la composizione.
+      ctx.strokeStyle = hexToRgba(slide.fg, 0.16);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (blobRight) ctx.arc(0, canvas.height, 190, -Math.PI / 2, 0);
+      else ctx.arc(canvas.width, canvas.height, 190, Math.PI, Math.PI * 1.5);
+      ctx.stroke();
+    }
+
+    // Kicker + riga sotto, invece della sola scritta semi-trasparente di prima. v2.5: il testo non è
+    // più fisso su "RADIX" — un task di personal branding (state.pipeline.brand === "personal") non
+    // deve marchiare ogni slide col nome dello studio come se fosse un post aziendale, quindi qui usa
+    // il nome di Francesco; la riga sotto si adatta alla larghezza reale del testo invece di restare
+    // fissa a 76px (che sotto "FRANCESCO ILARI" sarebbe troppo corta).
+    var kickerText = (state.pipeline && state.pipeline.brand === "personal") ? "FRANCESCO ILARI" : "RADIX";
+    ctx.fillStyle = fg;
     ctx.globalAlpha = 0.75;
     ctx.font = "700 26px Montserrat, sans-serif";
     ctx.textBaseline = "alphabetic";
-    ctx.fillText("RADIX", 64, 80);
+    ctx.fillText(kickerText, 64, 80);
+    var kickerWidth = ctx.measureText(kickerText).width;
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = hexToRgba(slide.fg, 0.4);
+    ctx.strokeStyle = hexToRgba(fg, 0.4);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(64, 96);
-    ctx.lineTo(140, 96);
+    ctx.lineTo(64 + kickerWidth, 96);
     ctx.stroke();
 
     // Badge numerato (cerchio pieno) al posto del numero piatto in basso a destra di prima — più
@@ -741,9 +795,9 @@
     var badgeCy = 64 + badgeR;
     ctx.beginPath();
     ctx.arc(badgeCx, badgeCy, badgeR, 0, Math.PI * 2);
-    ctx.fillStyle = hexToRgba(slide.fg, 0.15);
+    ctx.fillStyle = hexToRgba(fg, 0.15);
     ctx.fill();
-    ctx.fillStyle = slide.fg;
+    ctx.fillStyle = fg;
     ctx.font = "700 21px Inter, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -755,7 +809,7 @@
     var len = slide.text.length;
     var fontSize = len < 45 ? 68 : len < 80 ? 58 : len < 130 ? 48 : len < 190 ? 40 : 34;
     var lineHeight = Math.round(fontSize * 1.2);
-    ctx.fillStyle = slide.fg;
+    ctx.fillStyle = fg;
     ctx.font = "800 " + fontSize + "px Montserrat, sans-serif";
     ctx.textBaseline = "middle";
     wrapCanvasText(ctx, slide.text, canvas.width / 2, canvas.height / 2, canvas.width - 176, lineHeight);
@@ -771,14 +825,14 @@
         var on = d === index;
         ctx.beginPath();
         ctx.arc(startX + d * (dotR * 2 + gap), dotY, on ? dotR + 1.5 : dotR, 0, Math.PI * 2);
-        ctx.fillStyle = hexToRgba(slide.fg, on ? 0.95 : 0.3);
+        ctx.fillStyle = hexToRgba(fg, on ? 0.95 : 0.3);
         ctx.fill();
       }
     }
 
     // Sulla prima slide, un piccolo invito a scorrere: un accento in più solo dove serve davvero.
     if (index === 0 && total > 1) {
-      ctx.fillStyle = slide.fg;
+      ctx.fillStyle = fg;
       ctx.globalAlpha = 0.55;
       ctx.font = "600 20px Inter, sans-serif";
       ctx.textAlign = "right";
@@ -810,13 +864,16 @@
     try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* best effort */ }
   }
 
-  async function buildSlideGallery(slides, namePrefix) {
+  // v2.5: bgImages (opzionale) è un array parallelo a slides di HTMLImageElement già caricati (o null
+  // per una slide senza foto AI) — vedi generateSlideBackground più sotto. lastError/onGenerateImages
+  // aggiungono il pulsante "sfondi fotografici AI" quando la chiamata è passata (buildCarouselButton).
+  async function buildSlideGallery(slides, namePrefix, bgImages, lastError, onGenerateImages) {
     await fontsReady();
     var box = document.createElement("div");
     box.className = "slide-gallery";
     var thumbs = document.createElement("div");
     thumbs.className = "thumbs";
-    var fullCanvases = slides.map(function (s, i) { return renderSlideCanvas(s, i, slides.length); });
+    var fullCanvases = slides.map(function (s, i) { return renderSlideCanvas(s, i, slides.length, bgImages && bgImages[i]); });
     fullCanvases.forEach(function (canvas, i) {
       var thumbWrap = document.createElement("div");
       thumbWrap.className = "slide-thumb";
@@ -834,34 +891,127 @@
       thumbs.appendChild(thumbWrap);
     });
     box.appendChild(thumbs);
+
+    var actionsRow = document.createElement("div");
+    actionsRow.style.cssText = "display:flex; align-items:center; gap:10px; flex-wrap:wrap;";
+
     var dlAll = document.createElement("button");
     dlAll.type = "button";
     dlAll.className = "step-copy primary";
-    dlAll.style.alignSelf = "flex-start";
     dlAll.textContent = "Scarica tutte (" + fullCanvases.length + ")";
     dlAll.addEventListener("click", function () {
       fullCanvases.forEach(function (canvas, i) {
         setTimeout(function () { downloadCanvas(canvas, namePrefix + "-slide" + (i + 1) + ".png"); }, i * 250);
       });
     });
-    box.appendChild(dlAll);
+    actionsRow.appendChild(dlAll);
+
+    if (onGenerateImages) {
+      var hasImages = bgImages && bgImages.some(function (b) { return b; });
+      var aiBtn = document.createElement("button");
+      aiBtn.type = "button";
+      aiBtn.className = "step-copy";
+      aiBtn.title = "Richiede OPENAI_API_KEY configurata su Vercel (chiave API a consumo, non l'abbonamento ChatGPT Plus)";
+      aiBtn.textContent = hasImages ? "🖼️ Rigenera sfondi AI" : "🖼️ Genera sfondi fotografici AI (beta)";
+      var statusEl = document.createElement("span");
+      statusEl.style.cssText = "font-size:12px; color:#b5451b; max-width:320px;";
+      statusEl.textContent = lastError || "";
+      aiBtn.addEventListener("click", function () { onGenerateImages(aiBtn, statusEl); });
+      actionsRow.appendChild(aiBtn);
+      actionsRow.appendChild(statusEl);
+    }
+
+    box.appendChild(actionsRow);
     return box;
+  }
+
+  function loadImageFromDataUrl(dataUrl) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () { reject(new Error("Immagine ricevuta non valida")); };
+      img.src = dataUrl;
+    });
+  }
+
+  // Un prompt fotografico per slide, ancorato al testo e al brand del task corrente (RADIX vs personal
+  // branding di Francesco — vedi state.pipeline.brand) — così lo sfondo non è generico ma coerente con
+  // chi/cosa sta parlando in quella slide, e resta comunque intonato alla palette RADIX come accento.
+  function slideImagePrompt(slide, brand) {
+    var subject = brand === "personal"
+      ? "un professionista/consulente italiano in un contesto di lavoro moderno (scrivania, incontro, laptop) — non un modello da stock anonimo, un'ambientazione credibile"
+      : "un ambiente business/startup italiano moderno (ufficio, team al lavoro, una presentazione)";
+    return "Fotografia professionale in stile editoriale per un post LinkedIn B2B, non uno scatto da stock photo " +
+      "generico. Soggetto: " + subject + ". Atmosfera e composizione legate a questo concetto: \"" + slide.text +
+      "\". Illuminazione naturale, palette cromatica tenue coerente con questi colori (verde bosco scuro, verde " +
+      "salvia, beige caldo): " + RADIX_HEX.slice(0, 3).join(", ") + ". Nessun testo, nessuna scritta, nessun logo " +
+      "nell'immagine. Composizione con aree di spazio negativo, pensata per avere del testo sovrapposto sopra.";
+  }
+
+  function generateSlideBackground(slide, brand) {
+    return fetch("/api/openai-image", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: slideImagePrompt(slide, brand) }),
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.data.error || "Errore generazione immagine");
+        return loadImageFromDataUrl(res.data.image);
+      });
   }
 
   function buildCarouselButton(sourceText, namePrefix) {
     var slides = parseSlides(sourceText);
     if (!slides.length) return null;
+    var bgImages = new Array(slides.length).fill(null);
+    var lastError = null;
+    var galleryBox = null;
     var btn = document.createElement("button");
     btn.type = "button";
     btn.className = "step-copy primary";
     btn.textContent = "🎨 Genera immagini carosello (" + slides.length + ")";
+
+    function rerenderGallery() {
+      buildSlideGallery(slides, namePrefix, bgImages, lastError, generateAllBackgrounds).then(function (gallery) {
+        if (galleryBox && galleryBox.parentNode) galleryBox.parentNode.replaceChild(gallery, galleryBox);
+        else btn.parentNode.insertBefore(gallery, btn.nextSibling);
+        galleryBox = gallery;
+      });
+    }
+
+    // Genera le foto una alla volta (non in parallelo): più lento ma tiene sotto controllo il carico
+    // sull'API OpenAI e mostra un avanzamento leggibile invece di 5 richieste che finiscono a casaccio.
+    // Se la chiave OpenAI non è configurata il primo errore lo dice chiaramente e si ferma lì, invece
+    // di ripetere lo stesso errore 5 volte.
+    function generateAllBackgrounds(aiBtn, statusEl) {
+      var brand = state.pipeline.brand;
+      lastError = null;
+      aiBtn.disabled = true;
+      statusEl.textContent = "";
+
+      function runOne(i) {
+        if (i >= slides.length) return Promise.resolve();
+        aiBtn.textContent = "Genero " + (i + 1) + "/" + slides.length + "…";
+        return generateSlideBackground(slides[i], brand)
+          .then(function (img) {
+            bgImages[i] = img;
+            return runOne(i + 1);
+          })
+          .catch(function (err) {
+            lastError = (err && err.message) || "Errore generazione sfondo AI";
+            if (/OPENAI_API_KEY/.test(lastError)) return; // config mancante: inutile ritentare sulle altre slide
+            return runOne(i + 1); // errore isolato su una slide: prova comunque le successive
+          });
+      }
+
+      runOne(0).then(rerenderGallery);
+    }
+
     btn.addEventListener("click", function () {
       btn.disabled = true;
-      btn.textContent = "Genero…";
-      buildSlideGallery(slides, namePrefix).then(function (gallery) {
-        btn.parentNode.insertBefore(gallery, btn.nextSibling);
-        btn.style.display = "none";
-      });
+      btn.style.display = "none";
+      rerenderGallery();
     });
     return btn;
   }
@@ -1193,6 +1343,8 @@
   var STATUS_LABELS = { pending: "In attesa", running: "In corso…", done: "Fatto", error: "Errore", stale: "Aggiornamento disponibile" };
 
   function renderPipeline() {
+    if (pipelineBrandEl.value !== state.pipeline.brand) pipelineBrandEl.value = state.pipeline.brand;
+    pipelineBrandEl.disabled = state.pipeline.running; // non cambiare brand a metà di un run in corso
     pipelineStepsEl.innerHTML = "";
     if (!state.pipeline.steps.length) {
       var empty = document.createElement("div");
@@ -1524,7 +1676,7 @@
       if (extraNote) {
         userText += "\n\nRisposta di Francesco al tuo messaggio precedente (tienine conto nella tua prossima risposta):\n" + extraNote;
       }
-      var reply = await callAgent(PIPELINE[i].role, userText);
+      var reply = await callAgent(PIPELINE[i].role, userText, state.pipeline.brand);
       state.pipeline.steps[i].status = "done";
       state.pipeline.steps[i].output = reply.text;
       state.pipeline.steps[i].sources = reply.sources;
@@ -1589,8 +1741,8 @@
     }
   }
 
-  async function callAgent(role, userText) {
-    var res = await postChat({ role: role, messages: [{ role: "user", content: userText }] });
+  async function callAgent(role, userText, brand) {
+    var res = await postChat({ role: role, messages: [{ role: "user", content: userText }], brand: brand });
     if (res.status === 401) { showGate("Sessione scaduta: accedi di nuovo."); throw new Error("Sessione scaduta"); }
     var data = await res.json();
     if (!res.ok) throw new Error(data.error || "Errore imprevisto");
@@ -1614,7 +1766,7 @@
       renderPipeline();
       try {
         var userText = step.prompt(fullTask, outputs);
-        var reply = await callAgent(step.role, userText);
+        var reply = await callAgent(step.role, userText, state.pipeline.brand);
         outputs[step.role] = reply.text;
         state.pipeline.steps[i].status = "done";
         state.pipeline.steps[i].output = reply.text;
@@ -1712,6 +1864,10 @@
   pipelineRunBtn.addEventListener("click", runPipeline);
   pipelineInputEl.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPipeline(); }
+  });
+  pipelineBrandEl.addEventListener("change", function () {
+    state.pipeline.brand = pipelineBrandEl.value === "personal" ? "personal" : "radix";
+    saveState();
   });
 
   resetChatBtn.addEventListener("click", function () {
