@@ -106,6 +106,26 @@
   .step-copy.primary{ border-color:var(--verde-salvia); color:var(--verde-bosco); }
   .char-count{ font-size:11px; color:#9aa39d; margin-top:4px; align-self:flex-end; }
 
+  /* Vista a flusso dell'Orchestratore: mappa d'insieme orizzontale sopra ai passi dettagliati, in stile
+     n8n/Gumloop — puramente visiva, legge lo stesso state.pipeline.steps della vista dettagliata sotto. */
+  .flow-map{ display:flex; align-items:stretch; gap:0; overflow-x:auto; padding:18px 20px 22px; -webkit-overflow-scrolling:touch; }
+  .flow-node{ flex:0 0 auto; width:128px; display:flex; flex-direction:column; align-items:center; gap:6px; padding:14px 10px; border-radius:14px; border:1.5px dashed rgba(15,45,36,0.18); background:var(--sabbia); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+  .flow-node:hover{ transform:translateY(-2px); box-shadow:0 8px 18px rgba(15,45,36,0.10); }
+  .flow-node .flow-icon{ width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; background:rgba(15,45,36,0.08); }
+  .flow-node .flow-label{ font-size:11.5px; font-weight:700; color:var(--verde-bosco); text-align:center; line-height:1.3; }
+  .flow-node .flow-state{ font-size:9.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#8a958f; }
+  .flow-node.running{ border-style:solid; border-color:var(--verde-bosco); background:var(--verde-bosco); animation:pulse 1.2s ease-in-out infinite; }
+  .flow-node.running .flow-icon{ background:rgba(255,255,255,0.16); }
+  .flow-node.running .flow-label, .flow-node.running .flow-state{ color:var(--avorio); }
+  .flow-node.done{ border-style:solid; border-color:var(--verde-salvia); background:#fff; }
+  .flow-node.done .flow-icon{ background:rgba(107,127,114,0.16); }
+  .flow-node.done .flow-state{ color:var(--verde-salvia); }
+  .flow-node.stale{ border-style:solid; border-color:#d8a24a; background:#fff; }
+  .flow-node.stale .flow-state{ color:#a87a26; }
+  .flow-node.error{ border-style:solid; border-color:#c0564a; background:#fff; }
+  .flow-node.error .flow-state{ color:#c0564a; }
+  .flow-arrow{ flex:0 0 auto; width:28px; display:flex; align-items:center; justify-content:center; color:#c7cdc4; font-size:16px; align-self:center; }
+  .flow-arrow.active{ color:var(--verde-salvia); }
   @media (max-width:900px){ .roster{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
   @media (max-width:520px){
     .roster{ grid-template-columns:1fr; }
@@ -239,6 +259,7 @@
       </div>
 
       <div id="pipelineMode" style="display:none;">
+        <div class="flow-map" id="flowMap"></div>
         <div class="pipeline-toolbar">
           <div class="quick-prompts" id="pipelinePrompts"></div>
           <div class="pipeline-toolbar-right">
@@ -488,6 +509,7 @@
   var quickPromptsEl = document.getElementById("quickPrompts");
   var pipelinePromptsEl = document.getElementById("pipelinePrompts");
   var pipelineStepsEl = document.getElementById("pipelineSteps");
+  var flowMapEl = document.getElementById("flowMap");
   var inputEl = document.getElementById("input");
   var sendBtn = document.getElementById("send");
   var pipelineInputEl = document.getElementById("pipelineInput");
@@ -1341,8 +1363,50 @@
   }
 
   var STATUS_LABELS = { pending: "In attesa", running: "In corso…", done: "Fatto", error: "Errore", stale: "Aggiornamento disponibile" };
+  var FLOW_STATE_LABELS = { pending: "In attesa", running: "In corso", done: "Fatto", error: "Errore", stale: "Da aggiornare" };
+
+  // Mappa d'insieme orizzontale sopra ai passi dettagliati: stessi 5 ruoli di PIPELINE, stesso state.pipeline.steps,
+  // solo un'altra vista — un run non ancora avviato mostra i nodi "in attesa" così il task si vede prima di partire.
+  function renderFlowMap() {
+    flowMapEl.innerHTML = "";
+    PIPELINE.forEach(function (step, i) {
+      if (i > 0) {
+        var arrow = document.createElement("div");
+        var prevDone = state.pipeline.steps[i - 1] && (state.pipeline.steps[i - 1].status === "done" || state.pipeline.steps[i - 1].status === "stale");
+        arrow.className = "flow-arrow" + (prevDone ? " active" : "");
+        arrow.textContent = "→";
+        flowMapEl.appendChild(arrow);
+      }
+      var agent = AGENTS.filter(function (a) { return a.id === step.role; })[0];
+      var live = state.pipeline.steps[i];
+      var status = live ? live.status : "pending";
+      var node = document.createElement("div");
+      node.className = "flow-node " + status;
+      node.title = step.label + " — " + FLOW_STATE_LABELS[status];
+      var icon = document.createElement("div");
+      icon.className = "flow-icon";
+      icon.textContent = agent ? agent.icon : "•";
+      var label = document.createElement("div");
+      label.className = "flow-label";
+      label.textContent = step.label;
+      var stateEl = document.createElement("div");
+      stateEl.className = "flow-state";
+      stateEl.textContent = status === "done" ? "✓ Fatto" : FLOW_STATE_LABELS[status];
+      node.appendChild(icon);
+      node.appendChild(label);
+      node.appendChild(stateEl);
+      if (live) {
+        node.addEventListener("click", function () {
+          var target = document.getElementById("pipelineStepRow" + i);
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+      }
+      flowMapEl.appendChild(node);
+    });
+  }
 
   function renderPipeline() {
+    renderFlowMap();
     if (pipelineBrandEl.value !== state.pipeline.brand) pipelineBrandEl.value = state.pipeline.brand;
     pipelineBrandEl.disabled = state.pipeline.running; // non cambiare brand a metà di un run in corso
     pipelineStepsEl.innerHTML = "";
@@ -1358,6 +1422,7 @@
     state.pipeline.steps.forEach(function (step, i) {
       var row = document.createElement("div");
       row.className = "pipeline-step " + step.status;
+      row.id = "pipelineStepRow" + i;
 
       var rail = document.createElement("div");
       rail.className = "rail";
