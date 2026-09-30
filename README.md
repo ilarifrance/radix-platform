@@ -51,7 +51,7 @@ davvero a un modello Claude (Anthropic), non una demo finta.
 
 ## Changelog
 
-**v2.6** — **invio diretto a Buffer**: nel pannello finale dell'Orchestratore ("Deciso dal Social Media Manager") e nella chat singola del Copywriter c'e' ora un pulsante **"Invia a Buffer"** che chiama `api/buffer.js` (nuovo), mostra i canali Buffer collegati, un'anteprima del testo modificabile, e mette il post davvero in coda di pubblicazione su Buffer dopo una conferma esplicita (non e' una bozza innocua: Buffer non offre un vero stato "bozza" nella sua API pubblica, il post va nella prossima posizione libera del calendario e viene pubblicato a quel punto). Richiede `BUFFER_ACCESS_TOKEN` (vedi sotto) — senza quella variabile il resto della piattaforma funziona comunque, quel pulsante mostra solo un errore chiaro. Aggiunta anche una nuova area **"Area Amministrativa e Contabile"** nel roster: 10 agenti (Titolare/Partner, Commercialista Senior, Commercialista Junior, Praticante, Responsabile Team Contabile, Addetto Contabilita' Senior/Junior, Consulente del Lavoro, Addetto Paghe, Segretaria di Studio) che affiancano il team marketing — vedi la sezione dedicata piu' sotto per il perche' restano volutamente solo bozze/pareri da far rivedere a un professionista abilitato, mai invii reali a enti.
+**v2.6** — **invio diretto a Buffer**: nel pannello finale dell'Orchestratore ("Deciso dal Social Media Manager") e nella chat singola del Copywriter c'e' ora un pulsante **"Invia a Buffer"** che chiama `api/buffer.js` (nuovo), mostra i canali Buffer collegati, un'anteprima del testo modificabile, e mette il post davvero in coda di pubblicazione su Buffer dopo una conferma esplicita (non e' una bozza innocua: Buffer non offre un vero stato "bozza" nella sua API pubblica, il post va nella prossima posizione libera del calendario e viene pubblicato a quel punto). Richiede `BUFFER_ACCESS_TOKEN` (vedi sotto) — senza quella variabile il resto della piattaforma funziona comunque, quel pulsante mostra solo un errore chiaro. Aggiunta anche una nuova area **"Area Amministrativa e Contabile"** nel roster: 10 agenti (Titolare/Partner, Commercialista Senior, Commercialista Junior, Praticante, Responsabile Team Contabile, Addetto Contabilita' Senior/Junior, Consulente del Lavoro, Addetto Paghe, Segretaria di Studio) che affiancano il team marketing — vedi la sezione dedicata piu' sotto per il perche' restano volutamente solo bozze/pareri da far rivedere a un professionista abilitato, mai invii reali a enti. Aggiunto anche un agente **Web Developer** (gruppo "Sviluppo" nel roster) che scrive codice vero (pagine HTML/CSS/JS, componenti, script) pronto all'uso — non pubblica/deploya nulla in autonomia, consegna il codice e i passi per metterlo online manualmente.
 
 **v2.5** — due correzioni segnalate testando la v2.4 dal vivo:
 
@@ -136,7 +136,8 @@ passo/risultato completo, reset di chat e pipeline.
 - `admin.html` — pagina separata (non collegata dal menu, va aperta direttamente) per inizializzare il
   database e creare/resettare gli account, protetta dall'admin secret.
 - `api/chat.js` — funzione serverless Vercel che riceve il messaggio, verifica la sessione (cookie), applica
-  il system prompt del ruolo scelto (15 in tutto: 5 marketing + 10 Area Amministrativa e Contabile) e
+  il system prompt del ruolo scelto (16 in tutto: 5 marketing + 10 Area Amministrativa e Contabile + 1
+  Web Developer) e
   chiama l'API Messages di Anthropic. Gli agenti amministrativi condividono un blocco `ADMIN_CONTEXT`
   che li vincola a produrre sempre bozze/pareri/calcoli di supporto, mai l'affermazione di aver
   presentato/depositato qualcosa per davvero presso Agenzia delle Entrate, INPS o Registro Imprese —
@@ -214,8 +215,7 @@ un'immagine a pagamento sul tuo account OpenAI — un carosello da 5 slide sono 
   pagina `admin.html`).
 - Invio diretto ad altri canali oltre Buffer/HeyGen: oggi copre pubblicazione social (Buffer) e bozza
   video avatar (HeyGen); Higgsfield e altri strumenti restano da valutare.
-- Un agente **Web Developer** con vera capacità di generare codice (annunciato ma non ancora costruito:
-  costruire/pubblicare siti o app in autonomia è un progetto multi-sessione, non un singolo task).
+- L'agente **Web Developer** oggi scrive codice pronto (pagine, componenti, script) ma non lo pubblica da solo: costruire/pubblicare un sito o un'app intera in autonomia, passo dopo passo, resta un progetto multi-sessione, non un singolo task.
 - Agenti indipendenti/paralleli (oggi ogni agente lavora un task alla volta, in sequenza nell'Orchestratore).
 - **Deliberatamente non costruito**: integrazione con LinkedIn per verificare target di un'azione
   commerciale (violerebbe i Termini di Servizio di LinkedIn) e ricerca automatica di email pubbliche +
