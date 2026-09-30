@@ -2,7 +2,9 @@
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
-tutti e cinque in fila su un task condiviso, **account personali veri** (email + password), una
+tutti e cinque in fila su un task condiviso, i 10 agenti dell'**Area Amministrativa e Contabile**
+(uno studio commercialista virtuale, solo bozze/pareri da far rivedere a un professionista abilitato —
+vedi sotto), **account personali veri** (email + password), una
 **cronologia condivisa da tutto il team** su un database Postgres (non più solo nel browser di chi la usa),
 e gli strumenti per **copiare, modificare, rigenerare e scaricare** il risultato — tutto collegato per
 davvero a un modello Claude (Anthropic), non una demo finta.
@@ -49,7 +51,7 @@ davvero a un modello Claude (Anthropic), non una demo finta.
 
 ## Changelog
 
-**v2.6** — **invio diretto a Buffer**: nel pannello finale dell'Orchestratore ("Deciso dal Social Media Manager") e nella chat singola del Copywriter c'e' ora un pulsante **"Invia a Buffer"** che chiama `api/buffer.js` (nuovo), mostra i canali Buffer collegati, un'anteprima del testo modificabile, e mette il post davvero in coda di pubblicazione su Buffer dopo una conferma esplicita (non e' una bozza innocua: Buffer non offre un vero stato "bozza" nella sua API pubblica, il post va nella prossima posizione libera del calendario e viene pubblicato a quel punto). Richiede `BUFFER_ACCESS_TOKEN` (vedi sotto) — senza quella variabile il resto della piattaforma funziona comunque, quel pulsante mostra solo un errore chiaro. Aggiunta anche una nuova area **"Area Amministrativa e Contabile"** nel roster: 9 agenti (Titolare/Partner, Commercialista Senior, Commercialista Junior, Praticante, Responsabile Team Contabile, Addetto Contabilita' Senior/Junior, Consulente del Lavoro, Addetto Paghe, Segretaria di Studio) che affiancano il team marketing — vedi la sezione dedicata piu' sotto per il perche' restano volutamente solo bozze/pareri da far rivedere a un professionista abilitato, mai invii reali a enti.
+**v2.6** — **invio diretto a Buffer**: nel pannello finale dell'Orchestratore ("Deciso dal Social Media Manager") e nella chat singola del Copywriter c'e' ora un pulsante **"Invia a Buffer"** che chiama `api/buffer.js` (nuovo), mostra i canali Buffer collegati, un'anteprima del testo modificabile, e mette il post davvero in coda di pubblicazione su Buffer dopo una conferma esplicita (non e' una bozza innocua: Buffer non offre un vero stato "bozza" nella sua API pubblica, il post va nella prossima posizione libera del calendario e viene pubblicato a quel punto). Richiede `BUFFER_ACCESS_TOKEN` (vedi sotto) — senza quella variabile il resto della piattaforma funziona comunque, quel pulsante mostra solo un errore chiaro. Aggiunta anche una nuova area **"Area Amministrativa e Contabile"** nel roster: 10 agenti (Titolare/Partner, Commercialista Senior, Commercialista Junior, Praticante, Responsabile Team Contabile, Addetto Contabilita' Senior/Junior, Consulente del Lavoro, Addetto Paghe, Segretaria di Studio) che affiancano il team marketing — vedi la sezione dedicata piu' sotto per il perche' restano volutamente solo bozze/pareri da far rivedere a un professionista abilitato, mai invii reali a enti.
 
 **v2.5** — due correzioni segnalate testando la v2.4 dal vivo:
 
@@ -128,12 +130,18 @@ passo/risultato completo, reset di chat e pipeline.
 
 ## Cosa c'è dentro
 
-- `index.html` — l'interfaccia principale: login, roster dei 5+1 agenti, chat, modalità Orchestratore con
+- `index.html` — l'interfaccia principale: login, roster dei 5+1 agenti marketing più i 10 dell'Area
+  Amministrativa e Contabile (sezione separata nel roster), chat, modalità Orchestratore con
   stepper visivo, indicatore di chi è collegato e attribuzione d'autore sui messaggi/passi.
 - `admin.html` — pagina separata (non collegata dal menu, va aperta direttamente) per inizializzare il
   database e creare/resettare gli account, protetta dall'admin secret.
 - `api/chat.js` — funzione serverless Vercel che riceve il messaggio, verifica la sessione (cookie), applica
-  il system prompt del ruolo scelto e chiama l'API Messages di Anthropic.
+  il system prompt del ruolo scelto (15 in tutto: 5 marketing + 10 Area Amministrativa e Contabile) e
+  chiama l'API Messages di Anthropic. Gli agenti amministrativi condividono un blocco `ADMIN_CONTEXT`
+  che li vincola a produrre sempre bozze/pareri/calcoli di supporto, mai l'affermazione di aver
+  presentato/depositato qualcosa per davvero presso Agenzia delle Entrate, INPS o Registro Imprese —
+  nessun accesso a sistemi telematici reali (Entratel/Fisconline, Uniemens, ComUnica); ogni output resta
+  da far validare e firmare da un professionista iscritto all'albo prima di un uso reale.
 - `api/state.js` — legge/scrive la cronologia condivisa del team su Postgres (protetto da sessione).
 - `api/parse-file.js` — riceve un file allegato dal frontend (base64) e lo trasforma in testo semplice
   (.xlsx/.xls foglio per foglio in CSV, .csv/.txt/.md letti direttamente), protetto da sessione.
@@ -204,6 +212,12 @@ un'immagine a pagamento sul tuo account OpenAI — un carosello da 5 slide sono 
   restano dietro l'admin secret separato).
 - Un flusso di "password dimenticata" self-service (oggi il reset lo fa solo chi ha l'admin secret, dalla
   pagina `admin.html`).
-- Invio diretto: oggi "Copia tutto il risultato" prepara il testo pronto, ma pubblicarlo resta un passo
-  manuale (incollarlo su LinkedIn/Facebook o passarlo a HeyGen); un'integrazione diretta è un passo
-  successivo, non necessario per iniziare a usarla davvero.
+- Invio diretto ad altri canali oltre Buffer/HeyGen: oggi copre pubblicazione social (Buffer) e bozza
+  video avatar (HeyGen); Higgsfield e altri strumenti restano da valutare.
+- Un agente **Web Developer** con vera capacità di generare codice (annunciato ma non ancora costruito:
+  costruire/pubblicare siti o app in autonomia è un progetto multi-sessione, non un singolo task).
+- Agenti indipendenti/paralleli (oggi ogni agente lavora un task alla volta, in sequenza nell'Orchestratore).
+- **Deliberatamente non costruito**: integrazione con LinkedIn per verificare target di un'azione
+  commerciale (violerebbe i Termini di Servizio di LinkedIn) e ricerca automatica di email pubbliche +
+  invio di outreach via email personalizzata (rischio di non conformità GDPR per un'attività con base in
+  Italia) — la parte commerciale/lead-gen resta affidata a un sistema terzo già individuato separatamente.

@@ -41,6 +41,8 @@
   .agent-card h3{ font-size:14px; margin-top:10px; color:var(--verde-bosco); }
   .agent-card p{ font-size:12px; line-height:1.5; color:#6a756f; margin-top:6px; }
   .roster-note{ font-size:12px; color:#8a958f; margin-bottom:22px; }
+  .roster-section{ grid-column:1 / -1; font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#8a958f; margin:4px 0 -4px; padding-top:10px; border-top:1px solid rgba(15,45,36,0.08); }
+  .roster-section:first-child{ border-top:none; padding-top:0; margin-top:0; }
 
   .chat-shell{ background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:18px; overflow:hidden; }
   .chat-header{ padding:16px 20px; border-bottom:1px solid rgba(15,45,36,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -323,13 +325,25 @@
   "use strict";
 
   var AGENTS = [
-    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Strategia e obiettivi di crescita" },
-    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Post LinkedIn/Facebook nel tuo stile" },
-    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Direzione visiva e concept caroselli" },
-    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Script per avatar/video HeyGen" },
-    { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali" },
-    { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true },
+    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Strategia e obiettivi di crescita", group: "marketing" },
+    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Post LinkedIn/Facebook nel tuo stile", group: "marketing" },
+    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Direzione visiva e concept caroselli", group: "marketing" },
+    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Script per avatar/video HeyGen", group: "marketing" },
+    { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali", group: "marketing" },
+    { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true, group: "marketing" },
+    { id: "partner", icon: "🤝", name: "Titolare dello Studio / Partner", blurb: "Supervisione strategica e decisioni di alto livello", group: "admin" },
+    { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari complessi", group: "admin" },
+    { id: "commercialista-junior", icon: "🧾", name: "Commercialista Junior", blurb: "Bilanci, dichiarazioni, pratiche societarie", group: "admin" },
+    { id: "praticante-commercialista", icon: "📋", name: "Praticante Commercialista", blurb: "Checklist documenti e adempimenti di base", group: "admin" },
+    { id: "responsabile-contabile", icon: "🗓️", name: "Responsabile Contabile", blurb: "Scadenzario e coordinamento contabilità", group: "admin" },
+    { id: "addetto-contabilita-senior", icon: "🧮", name: "Addetto Contabilità Senior", blurb: "Calcoli IVA, F24, liquidazioni", group: "admin" },
+    { id: "addetto-contabilita-junior", icon: "📒", name: "Addetto Contabilità Junior", blurb: "Prima nota e registrazioni contabili", group: "admin" },
+    { id: "consulente-lavoro", icon: "👔", name: "Consulente del Lavoro", blurb: "CCNL, contratti, gestione del personale", group: "admin" },
+    { id: "addetto-paghe", icon: "💶", name: "Addetto Paghe", blurb: "Buste paga, TFR, contributi", group: "admin" },
+    { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti", group: "admin" },
   ];
+
+  var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile" };
 
   // La pipeline vera e propria: un task passa da un agente all'altro, ognuno riceve il lavoro di chi lo
   // precede (non solo il task originale) così il risultato finale è coerente, non 4 risposte scollegate.
@@ -1376,7 +1390,15 @@
 
   function renderRoster() {
     rosterEl.innerHTML = "";
+    var lastGroup = null;
     AGENTS.forEach(function (a) {
+      if (a.group && a.group !== lastGroup) {
+        lastGroup = a.group;
+        var header = document.createElement("div");
+        header.className = "roster-section";
+        header.textContent = GROUP_LABELS[a.group] || a.group;
+        rosterEl.appendChild(header);
+      }
       var card = document.createElement("button");
       card.className = "agent-card" + (a.pipeline ? " pipeline-card" : "") + (a.id === state.agent ? " active" : "");
       card.innerHTML = '<div class="icon">' + a.icon + '</div><h3>' + a.name + '</h3><p>' + a.blurb + '</p>';
