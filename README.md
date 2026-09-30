@@ -1,4 +1,4 @@
-# RADIX Platform — v2.5
+# RADIX Platform — v2.6
 
 La piattaforma multi-agente RADIX: una dashboard con i 5 agenti del team marketing (Digital Strategist,
 Copywriter, Art Director, AI Specialist, Social Media Manager), un **orchestratore** che li fa lavorare
@@ -48,6 +48,8 @@ davvero a un modello Claude (Anthropic), non una demo finta.
   sistema di versioning più sofisticato.
 
 ## Changelog
+
+**v2.6** — **invio diretto a Buffer**: nel pannello finale dell'Orchestratore ("Deciso dal Social Media Manager") e nella chat singola del Copywriter c'e' ora un pulsante **"Invia a Buffer"** che chiama `api/buffer.js` (nuovo), mostra i canali Buffer collegati, un'anteprima del testo modificabile, e mette il post davvero in coda di pubblicazione su Buffer dopo una conferma esplicita (non e' una bozza innocua: Buffer non offre un vero stato "bozza" nella sua API pubblica, il post va nella prossima posizione libera del calendario e viene pubblicato a quel punto). Richiede `BUFFER_ACCESS_TOKEN` (vedi sotto) — senza quella variabile il resto della piattaforma funziona comunque, quel pulsante mostra solo un errore chiaro. Aggiunta anche una nuova area **"Area Amministrativa e Contabile"** nel roster: 9 agenti (Titolare/Partner, Commercialista Senior, Commercialista Junior, Praticante, Responsabile Team Contabile, Addetto Contabilita' Senior/Junior, Consulente del Lavoro, Addetto Paghe, Segretaria di Studio) che affiancano il team marketing — vedi la sezione dedicata piu' sotto per il perche' restano volutamente solo bozze/pareri da far rivedere a un professionista abilitato, mai invii reali a enti.
 
 **v2.5** — due correzioni segnalate testando la v2.4 dal vivo:
 
@@ -139,6 +141,7 @@ passo/risultato completo, reset di chat e pipeline.
   avvio generazione, stato); richiede `HEYGEN_API_KEY`, protetto da sessione.
 - `api/openai-image.js` — genera uno sfondo fotografico/illustrato per una slide del carosello tramite le
   Images API di OpenAI (`gpt-image-1`); richiede `OPENAI_API_KEY`, protetto da sessione.
+- `api/buffer.js` — collega il testo pronto del Copywriter a un vero post in coda su Buffer (elenco canali, creazione post); richiede `BUFFER_ACCESS_TOKEN`, protetto da sessione.
 - `api/auth/login.js`, `logout.js`, `me.js` — login (email+password → cookie di sessione), logout, e "chi
   sono" per sapere se una sessione è ancora valida.
 - `api/admin/migrate.js` — crea le tabelle del database (idempotente, protetto da admin secret).
@@ -167,6 +170,11 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
      quell'account — **non è lo stesso account/abbonamento di ChatGPT Plus**, va creata/pagata a parte.
      Senza questa variabile il resto della piattaforma funziona comunque, quel singolo pulsante risponde
      con un errore chiaro.
+   - `BUFFER_ACCESS_TOKEN` — (opzionale, serve solo per il pulsante "Invia a Buffer") il token dal tuo
+     account Buffer: **Settings → API** su publish.buffer.com. **Attenzione**: una volta configurato, il
+     pulsante mette per davvero un post in coda di pubblicazione su Buffer (non e' una bozza) — fai un
+     primo test con un canale/post non critico prima di usarlo per contenuti veri. Senza questa variabile
+     il resto della piattaforma funziona comunque, quel singolo pulsante risponde con un errore chiaro.
    (Se questa è la primissima installazione: vedi la sezione "Come funziona l'accesso" sopra per creare il
    primo account dopo il deploy.)
 3. Dopo il primo deploy con questo codice, apri `admin.html`, inserisci l'admin secret ed esegui la
@@ -174,7 +182,7 @@ Il progetto Vercel e il database Postgres (Neon) sono già configurati. Per aggi
 
 Per mettere online da zero un progetto nuovo, vale ancora la procedura generale: repository GitHub → Vercel
 **Add New → Project** → Import (Framework preset "Other", nessun build command) → **Deploy** → aggiungi le
-variabili d'ambiente sopra (le prime 4 sono obbligatorie, `HEYGEN_API_KEY`/`OPENAI_API_KEY` opzionali) →
+variabili d'ambiente sopra (le prime 4 sono obbligatorie, `HEYGEN_API_KEY`/`OPENAI_API_KEY`/`BUFFER_ACCESS_TOKEN` opzionali) →
 collega un database Postgres (Neon, dal marketplace "Storage" di Vercel) → rifai il deploy → apri
 `admin.html` per la migrazione e il primo account.
 

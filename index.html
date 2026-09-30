@@ -176,6 +176,15 @@
   .heygen-status.error{ color:#7a2f22; }
   .heygen-panel video{ width:100%; max-width:260px; border-radius:10px; align-self:flex-start; }
 
+  .buffer-panel{ display:flex; flex-direction:column; gap:8px; margin-top:8px; max-width:78%; align-self:flex-start; background:var(--sabbia); border-radius:10px; padding:12px 14px; }
+  .buffer-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .buffer-row label{ font-size:11.5px; font-weight:600; color:#6a756f; }
+  .buffer-row select{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:5px 8px; max-width:220px; }
+  .buffer-preview{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:8px 10px; width:100%; min-height:70px; resize:vertical; box-sizing:border-box; }
+  .buffer-status{ font-size:12px; color:#6a756f; }
+  .buffer-status.error{ color:#7a2f22; }
+  .buffer-status.success{ color:#1f5c3a; }
+
   .step-reply-row{ display:flex; gap:6px; margin-top:10px; }
   .step-reply-input{ flex:1; min-width:0; font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:6px 10px; }
   .step-reply-input:focus{ outline:none; border-color:var(--verde-salvia); }
@@ -384,7 +393,7 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFile: null, heygen: { avatarId: null, voiceId: null } }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFile: null, heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null } }; // history[agentId] = [{role, content}]
   // pipeline.brand: "radix" (lo studio/venture) o "personal" (personal branding di Francesco) — cambia
   // il contesto inviato agli agenti (api/chat.js) e la scritta disegnata sui caroselli, così un task di
   // personal branding non si ritrova col testo/la grafica intestati "RADIX" come se fosse un post aziendale.
@@ -1218,6 +1227,130 @@
     return wrap;
   }
 
+  // --- Buffer: invia un post vero in coda -----------------------------------
+  // Il testo pronto del Copywriter diventa un vero post in coda su Buffer, con un canale a scelta,
+  // un'anteprima modificabile e una conferma esplicita prima di inviare — vedi api/buffer.js per il
+  // perché "addToQueue" è una pubblicazione vera, non una bozza innocua.
+  var bufferChannelsCache = null;
+  function fetchBufferChannels() {
+    if (bufferChannelsCache) return Promise.resolve(bufferChannelsCache);
+    return fetch("/api/buffer?action=channels")
+      .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore canali Buffer"); return d; }); })
+      .then(function (d) {
+        bufferChannelsCache = d.channels || [];
+        return bufferChannelsCache;
+      });
+  }
+
+  function buildBufferButton(sourceText) {
+    var text = (sourceText || "").trim();
+    if (!text) return null;
+    var wrap = document.createElement("div");
+    var openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "step-copy primary";
+    openBtn.textContent = "📤 Invia a Buffer";
+    wrap.appendChild(openBtn);
+
+    openBtn.addEventListener("click", function () {
+      openBtn.disabled = true;
+      openBtn.textContent = "Carico i canali…";
+      fetchBufferChannels().then(function (channels) {
+        openBtn.style.display = "none";
+        var panel = document.createElement("div");
+        panel.className = "buffer-panel";
+
+        if (!channels.length) {
+          var noneEl = document.createElement("div");
+          noneEl.className = "buffer-status error";
+          noneEl.textContent = "Nessun canale trovato sull'account Buffer collegato.";
+          panel.appendChild(noneEl);
+          wrap.appendChild(panel);
+          return;
+        }
+
+        var channelRow = document.createElement("div");
+        channelRow.className = "buffer-row";
+        var channelLabel = document.createElement("label");
+        channelLabel.textContent = "Canale";
+        var channelSel = document.createElement("select");
+        channels.forEach(function (c) {
+          var opt = document.createElement("option");
+          opt.value = c.id;
+          opt.textContent = c.name + (c.service ? " (" + c.service + ")" : "");
+          channelSel.appendChild(opt);
+        });
+        if (state.buffer.channelId && channels.some(function (c) { return c.id === state.buffer.channelId; })) {
+          channelSel.value = state.buffer.channelId;
+        }
+        channelRow.appendChild(channelLabel);
+        channelRow.appendChild(channelSel);
+        panel.appendChild(channelRow);
+
+        var preview = document.createElement("textarea");
+        preview.className = "buffer-preview";
+        preview.value = text;
+        panel.appendChild(preview);
+
+        var sendBtn = document.createElement("button");
+        sendBtn.type = "button";
+        sendBtn.className = "step-copy primary";
+        sendBtn.style.alignSelf = "flex-start";
+        sendBtn.textContent = "Metti in coda su Buffer";
+        panel.appendChild(sendBtn);
+
+        var statusEl = document.createElement("div");
+        statusEl.className = "buffer-status";
+        panel.appendChild(statusEl);
+
+        sendBtn.addEventListener("click", function () {
+          var chosenChannel = channels.filter(function (c) { return c.id === channelSel.value; })[0];
+          var confirmMsg = "Questo mette DAVVERO in coda di pubblicazione su Buffer, canale \"" +
+            (chosenChannel ? chosenChannel.name : channelSel.value) +
+            "\" — verrà pubblicato al prossimo slot libero del calendario, non è una bozza salvata. Confermi l'invio?";
+          if (!window.confirm(confirmMsg)) return;
+
+          sendBtn.disabled = true;
+          channelSel.disabled = true;
+          preview.disabled = true;
+          state.buffer.channelId = channelSel.value;
+          saveState();
+          statusEl.className = "buffer-status";
+          statusEl.textContent = "Invio in corso…";
+
+          fetch("/api/buffer", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ action: "create", channelId: channelSel.value, text: preview.value }),
+          })
+            .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore invio"); return d; }); })
+            .then(function (data) {
+              statusEl.className = "buffer-status success";
+              statusEl.textContent = "Messo in coda su Buffer" + (data.dueAt ? " — uscirà il " + new Date(data.dueAt).toLocaleString("it-IT") : "") + ".";
+            })
+            .catch(function (err) {
+              statusEl.className = "buffer-status error";
+              statusEl.textContent = "Non riuscito: " + (err && err.message ? err.message : String(err));
+              sendBtn.disabled = false;
+              channelSel.disabled = false;
+              preview.disabled = false;
+            });
+        });
+
+        wrap.appendChild(panel);
+      }).catch(function (err) {
+        openBtn.disabled = false;
+        openBtn.textContent = "📤 Invia a Buffer";
+        var errEl = document.createElement("div");
+        errEl.className = "buffer-status error";
+        errEl.textContent = "Non riuscito: " + (err && err.message ? err.message : String(err));
+        wrap.appendChild(errEl);
+      });
+    });
+
+    return wrap;
+  }
+
   // --- Web search sources -------------------------------------------------
   // When an agent's reply used the web-search tool (see api/chat.js), the server sends back the
   // pages it actually consulted — shown here as a small "Fonti" list so it's clear the answer is
@@ -1337,6 +1470,10 @@
         if (state.agent === "ai-specialist") {
           var heygenBtn = buildHeygenButton(m.content, "radix-video");
           if (heygenBtn) messagesEl.appendChild(heygenBtn);
+        }
+        if (state.agent === "copywriter") {
+          var bufferBtnSingle = buildBufferButton(m.content);
+          if (bufferBtnSingle) messagesEl.appendChild(bufferBtnSingle);
         }
       }
     });
@@ -1608,6 +1745,7 @@
     var smmStep = state.pipeline.steps.filter(function (s) { return s.role === "social-media-manager"; })[0];
     var artStep = state.pipeline.steps.filter(function (s) { return s.role === "art-director"; })[0];
     var aiStep = state.pipeline.steps.filter(function (s) { return s.role === "ai-specialist"; })[0];
+    var copyStep = state.pipeline.steps.filter(function (s) { return s.role === "copywriter"; })[0];
     if (!smmStep || !smmStep.output) { pipelineReadyPanelEl.style.display = "none"; return; }
 
     // Legge specificamente la riga "Formato: ..." quando c'è (il Social Media Manager la scrive così)
@@ -1665,6 +1803,14 @@
     if (!wantsCarousel && artStep && artStep.output) {
       var altCarouselBtn = buildCarouselButton(artStep.output, "radix-carosello");
       if (altCarouselBtn) actions.appendChild(altCarouselBtn);
+    }
+
+    // Il post pronto da mettere davvero in pubblicazione resta sempre quello del Copywriter
+    // (il testo del canale), indipendentemente dal formato extra (video o carosello) deciso sopra:
+    // i due non si escludono, un post puo' avere anche un video/carosello allegato a parte.
+    if (copyStep && copyStep.output) {
+      var bufferBtn = buildBufferButton(copyStep.output);
+      if (bufferBtn) actions.appendChild(bufferBtn);
     }
 
     pipelineReadyPanelEl.appendChild(actions);
