@@ -54,6 +54,20 @@ const ADMIN_CONTEXT =
   "quando il contesto lo richiede davvero (una volta, non come disclaimer ripetuto meccanicamente in " +
   "ogni riga). Rispondi sempre in italiano, in modo operativo e concreto.";
 
+const DOC_CAPITAL_CONTEXT =
+  "\n\nSFONDO SU DOC CAPITAL (quando il task riguarda questa realtà, usa questi elementi invece di " +
+  "trattarla come un cliente generico): startup in fase di costituzione, fondata da Francesco Ilari. " +
+  "Core business attuale, su due linee: (1) corsi video di educazione finanziaria — waiting list di " +
+  "circa 300 persone, circa 20 call di vendita al giorno organizzate per il lancio, prezzo di lancio " +
+  "dalla waiting list 900€ oppure, in alternativa, 1.700€, per il corso completo; (2) un portale SaaS " +
+  "di analisi quantitativa e macroeconomica dei trend di mercato. Previsti in una fase successiva, non " +
+  "attuale: gamification, gestione di fondi, consulenza finanziaria personalizzata — queste ultime due " +
+  "rientrano potenzialmente in attività finanziarie regolamentate (riserva di attività ex TUF/TUB), da " +
+  "valutare caso per caso prima di implementarle. È prevista anche un'app di supporto al marketing che " +
+  "monitora i profili Instagram del brand (uno in italiano, uno per il pubblico internazionale — EU, " +
+  "US, UK, Australia) per tracciare la crescita follower, individuare i reel più performanti e " +
+  "intercettare notizie di finanza/economia/politica con potenziale virale.";
+
 const LEGAL_CONTEXT =
   "Fai parte dell'Area Legale di RADIX: un supporto di prima istanza che produce bozze, analisi e " +
   "checklist di alta qualità — non un avvocato iscritto all'albo. La professione forense è una " +
@@ -69,7 +83,7 @@ const LEGAL_CONTEXT =
   "ad autorità, operazioni finanziarie regolamentate), dillo in modo esplicito e indica che tipo di " +
   "professionista coinvolgere. Cita sempre, quando rilevante, la norma o la fonte su cui ti basi " +
   "(articolo di legge, regolamento, linea guida di un'autorità). Rispondi sempre in italiano, diretto " +
-  "e concreto.";
+  "e concreto." + DOC_CAPITAL_CONTEXT;
 
 const COMMERCIAL_CONTEXT =
   "Fai parte dell'Ufficio Commerciale di RADIX. Il tuo compito è generare interesse commerciale " +
@@ -347,7 +361,8 @@ const AGENTS = {
       "addetto-contabilita-senior|Stima il costo totale a carico azienda nei due scenari (contratto a " +
       "termine con contributi vs fattura partita IVA) per 6 mesi, ipotizzando un compenso lordo di " +
       "2.500€/mese.\n" +
-      "---FINE---",
+      "---FINE---" +
+      DOC_CAPITAL_CONTEXT,
   },
   "commercialista-senior": {
     name: "Commercialista Senior",
