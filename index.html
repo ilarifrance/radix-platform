@@ -66,6 +66,11 @@
   @media (max-width:640px){ .hub-row{ flex-direction:column; } .hub-row .agent-card.hub-card{ width:100%; } }
 
   .chat-shell{ background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:18px; overflow:hidden; }
+  .chat-shell{ position:relative; }
+  .chat-shell.drag-over{ outline:2px dashed var(--verde-salvia); outline-offset:-2px; }
+  .chat-shell.drag-over::after{ content:"Rilascia qui il file 📎"; position:absolute; inset:0; z-index:5;
+    display:flex; align-items:center; justify-content:center; background:rgba(237,230,222,0.92);
+    color:var(--verde-bosco); font-weight:700; font-size:15px; border-radius:18px; pointer-events:none; }
   .chat-header{ padding:16px 20px; border-bottom:1px solid rgba(15,45,36,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .chat-header .who{ font-weight:700; color:var(--verde-bosco); font-size:14.5px; }
   .chat-header-right{ display:flex; align-items:center; gap:12px; }
@@ -95,7 +100,7 @@
   .msg.pending{ opacity:0.6; font-style:italic; }
 
   .composer{ display:flex; gap:10px; padding:16px 20px; border-top:1px solid rgba(15,45,36,0.08); }
-  .composer textarea{ flex:1; resize:none; font-family:inherit; font-size:14px; padding:12px 14px; border-radius:10px; border:1px solid rgba(15,45,36,0.16); outline:none; }
+  .composer textarea{ flex:1; resize:vertical; font-family:inherit; font-size:14px; padding:12px 14px; border-radius:10px; border:1px solid rgba(15,45,36,0.16); outline:none; min-height:68px; max-height:280px; line-height:1.5; }
   .composer textarea:focus{ border-color:var(--verde-salvia); }
   .composer button{ font-family:'Montserrat',sans-serif; font-weight:700; font-size:13.5px; background:var(--verde-bosco); color:var(--avorio); border:none; border-radius:10px; padding:0 22px; cursor:pointer; }
   .composer button:disabled{ opacity:0.5; cursor:default; }
@@ -289,12 +294,12 @@
         <div class="quick-prompts" id="quickPrompts"></div>
         <div class="messages" id="messages"></div>
         <div class="attach-row" id="attachRowChat">
-          <input type="file" id="fileInputChat" accept=".xlsx,.xls,.csv,.txt,.md" style="display:none">
+          <input type="file" id="fileInputChat" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" style="display:none">
           <button id="attachBtnChat" class="ghost-btn" type="button">📎 Allega file</button>
           <div id="attachChipChat" class="attach-chip"></div>
         </div>
         <div class="composer">
-          <textarea id="input" rows="2" placeholder="Scrivi qui la richiesta per l'agente selezionato…"></textarea>
+          <textarea id="input" rows="4" placeholder="Scrivi qui la richiesta per l'agente selezionato…"></textarea>
           <button id="regenerateLast" class="ghost-btn" type="button" style="display:none;" title="Rigenera l'ultima risposta">Rigenera</button>
           <button id="send">Invia</button>
         </div>
@@ -316,7 +321,7 @@
           </div>
         </div>
         <div class="attach-row" id="attachRowPipeline">
-          <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md" style="display:none">
+          <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" style="display:none">
           <button id="attachBtnPipeline" class="ghost-btn" type="button">📎 Allega file (es. il piano editoriale)</button>
           <div id="attachChipPipeline" class="attach-chip"></div>
         </div>
@@ -327,7 +332,7 @@
           <button id="pipelineDownloadAll" class="ghost-btn" type="button">Scarica come file</button>
         </div>
         <div class="composer">
-          <textarea id="pipelineInput" rows="2" placeholder="Descrivi il task, es. &quot;prepara il post di lunedì sul tema X&quot;…"></textarea>
+          <textarea id="pipelineInput" rows="4" placeholder="Descrivi il task, es. &quot;prepara il post di lunedì sul tema X&quot;…"></textarea>
           <button id="pipelineRun">Avvia</button>
         </div>
       </div>
@@ -924,7 +929,7 @@
   var attachInputPipeline = document.getElementById("fileInputPipeline");
   var attachBtnPipeline = document.getElementById("attachBtnPipeline");
   var attachChipPipeline = document.getElementById("attachChipPipeline");
-  var ACCEPTED_ATTACH_EXT = ["xlsx", "xls", "csv", "txt", "md"];
+  var ACCEPTED_ATTACH_EXT = ["xlsx", "xls", "csv", "txt", "md", "docx", "pdf"];
   var MAX_ATTACH_BYTES = 4 * 1024 * 1024;
 
   function bufferToBase64(buf) {
@@ -1007,6 +1012,48 @@
     if (attachInputPipeline.files && attachInputPipeline.files[0]) handleFileSelected(attachInputPipeline.files[0], attachChipPipeline);
     attachInputPipeline.value = "";
   });
+
+  // Drag-and-drop: un solo listener sul pannello intero (chat o pipeline, solo uno visibile alla
+  // volta) invece di uno per modalità — basta rilasciare un file ovunque dentro il riquadro, non solo
+  // sul pulsante "Allega file". dragenter/dragleave si contano (fire anche sui figli quando il mouse
+  // ci passa sopra) per evitare che l'evidenziazione sparisca a scatti mentre il file è ancora dentro.
+  function setupDragAndDrop() {
+    var zone = document.querySelector(".chat-shell");
+    if (!zone) return;
+    var depth = 0;
+    zone.addEventListener("dragenter", function (e) {
+      e.preventDefault();
+      depth++;
+      zone.classList.add("drag-over");
+    });
+    zone.addEventListener("dragover", function (e) { e.preventDefault(); }); // obbligatorio per abilitare il drop
+    zone.addEventListener("dragleave", function () {
+      depth = Math.max(0, depth - 1);
+      if (depth === 0) zone.classList.remove("drag-over");
+    });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      depth = 0;
+      zone.classList.remove("drag-over");
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (!files || !files.length) return;
+      var activeAgent = AGENTS.filter(function (a) { return a.id === state.agent; })[0];
+      var chip = activeAgent && activeAgent.pipeline ? attachChipPipeline : attachChipChat;
+      handleFileSelected(files[0], chip);
+    });
+  }
+
+  // Textarea che cresce mentre scrivi (fino a un massimo, oltre il quale scrolla) invece di restare
+  // fissa a 2 righe — si applica sia alla chat singola sia al campo task della pipeline.
+  function autoGrowTextarea(el) {
+    if (!el) return;
+    var grow = function () {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 280) + "px";
+    };
+    el.addEventListener("input", grow);
+    grow();
+  }
 
   // Appends the attached file's extracted text to a message/task, only when one is actually attached.
   function withAttachment(text) {
@@ -2857,6 +2904,10 @@
     if (e.key === "Enter") { e.preventDefault(); document.getElementById("gateSubmit").click(); }
   });
   document.getElementById("logoutBtn").addEventListener("click", logout);
+
+  setupDragAndDrop();
+  autoGrowTextarea(inputEl);
+  autoGrowTextarea(pipelineInputEl);
 
   async function boot() {
     renderRoster();
