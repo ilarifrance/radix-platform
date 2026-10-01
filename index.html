@@ -182,6 +182,13 @@
   .sources-list a:hover{ color:var(--verde-bosco); }
   .routing-list{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; align-self:flex-start; margin-top:2px; }
   .routing-list .routing-label{ font-size:11.5px; color:#8a958f; font-weight:600; width:100%; margin-bottom:2px; }
+  /* Flusso automatico dell'Orchestratore (Studio/Commerciale): stessa visual language della flow-map
+     della pipeline marketing qui sopra, incollata dentro il messaggio in chat invece che in un tab a
+     parte, così si vede chi sta lavorando senza uscire dalla conversazione con l'Orchestratore. */
+  .orch-flow{ margin-top:8px; padding:14px 0 2px; border-top:1px dashed rgba(15,45,36,0.14); align-self:stretch; }
+  .orch-flow-header{ font-size:11px; font-weight:700; color:#8a958f; text-transform:uppercase; letter-spacing:0.04em; padding:0 2px 2px; }
+  .orch-flow .flow-map{ padding:6px 2px 8px; }
+  .orch-flow-detail{ margin:0 2px 10px; cursor:default; }
 
   .attach-row{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 20px 10px; }
   .attach-chip{ display:none; align-items:center; gap:8px; font-size:12px; background:var(--sabbia); color:var(--verde-bosco); padding:5px 6px 5px 12px; border-radius:14px; max-width:100%; }
@@ -1062,6 +1069,25 @@
     return (text || "").replace(/\n?---ROUTING---[\s\S]*?---FINE---/, "").trim();
   }
 
+  // Quante volte l'Orchestratore può ri-smistare dopo aver visto i risultati degli specialisti,
+  // prima che gli si chieda esplicitamente di dare lui la risposta finale -- un tetto per evitare
+  // che un giro di sintesi proponga un altro giro all'infinito (costo/tempo, non un limite tecnico:
+  // qui non c'è nessuna chiamata server-side incatenata, ogni passo è una sua chiamata separata
+  // a /api/chat dal browser, come già fa la pipeline marketing).
+  var MAX_ORCH_ROUNDS = 2;
+
+  function orchFlowAgent(roleId) {
+    return AGENTS.filter(function (a) { return a.id === roleId; })[0];
+  }
+  function orchFlowIcon(roleId) {
+    var a = orchFlowAgent(roleId);
+    return a ? a.icon : "\u2699\uFE0F";
+  }
+  function orchFlowLabel(roleId) {
+    var a = orchFlowAgent(roleId);
+    return a ? a.name : roleId;
+  }
+
   function wrapCanvasText(ctx, text, cx, cy, maxWidth, lineHeight) {
     var words = String(text).split(" ");
     var lines = [];
@@ -1755,6 +1781,70 @@
     return wrap;
   }
 
+  // Flusso automatico: sostituisce i pulsanti manuali di buildRoutingButtons per i messaggi nuovi
+  // dell'Orchestratore (quelli vecchi già salvati restano con i pulsanti, vedi renderMessages) --
+  // mostra lo stato live di ogni specialista coinvolto (in attesa/in corso/fatto/errore) e, se un
+  // nodo ha già una risposta, un click la apre/chiude qui sotto senza dover andare nella sua chat.
+  function buildFlowEl(flow) {
+    var wrap = document.createElement("div");
+    wrap.className = "orch-flow";
+
+    var headerLine = document.createElement("div");
+    headerLine.className = "orch-flow-header";
+    headerLine.textContent = flow.status === "running" ? "Il flusso è in corso\u2026"
+      : flow.status === "error" ? "Flusso interrotto"
+      : "Flusso completato" + (flow.round > 1 ? " \u2014 " + flow.round + "\u00ba giro" : "");
+    wrap.appendChild(headerLine);
+
+    var map = document.createElement("div");
+    map.className = "flow-map";
+    flow.nodes.forEach(function (node, i) {
+      if (i > 0) {
+        var arrow = document.createElement("div");
+        arrow.className = "flow-arrow active";
+        arrow.textContent = "\u2192";
+        map.appendChild(arrow);
+      }
+      var fnode = document.createElement("div");
+      fnode.className = "flow-node " + node.status;
+      fnode.title = node.label + " \u2014 " + (FLOW_STATE_LABELS[node.status] || node.status);
+      var icon = document.createElement("div");
+      icon.className = "flow-icon";
+      icon.textContent = node.icon;
+      var label = document.createElement("div");
+      label.className = "flow-label";
+      label.textContent = node.label;
+      var stateEl = document.createElement("div");
+      stateEl.className = "flow-state";
+      stateEl.textContent = node.status === "done" ? "\u2713 Fatto" : (FLOW_STATE_LABELS[node.status] || node.status);
+      fnode.appendChild(icon);
+      fnode.appendChild(label);
+      fnode.appendChild(stateEl);
+      if (node.output) {
+        fnode.addEventListener("click", function () {
+          node._expanded = !node._expanded;
+          renderMessages();
+        });
+      }
+      map.appendChild(fnode);
+    });
+    wrap.appendChild(map);
+
+    flow.nodes.forEach(function (node) {
+      if (node._expanded && node.output) {
+        var detail = document.createElement("div");
+        detail.className = "step-output orch-flow-detail" + (node.status === "error" ? " error" : "");
+        detail.textContent = node.label + ":\n\n" + node.output;
+        wrap.appendChild(detail);
+        if (Array.isArray(node.sources) && node.sources.length) {
+          wrap.appendChild(buildSourcesEl(node.sources));
+        }
+      }
+    });
+
+    return wrap;
+  }
+
   // Un .agent-card identico a sempre (stessa classe, stesso click -> selectAgent) — cambia solo quale
   // contenitore lo dispone, qui sotto in renderRoster().
   function makeAgentCard(a, extraClass) {
@@ -1974,8 +2064,15 @@
           if (bufferBtnSingle) messagesEl.appendChild(bufferBtnSingle);
         }
         if (state.agent === "partner" || state.agent === "comm-orchestrator") {
-          var routingEl = buildRoutingButtons(m.content);
-          if (routingEl) messagesEl.appendChild(routingEl);
+          // Messaggi nuovi (con m.flow già impostato da requestReply/runOrchestrationFlow) mostrano
+          // la mappa del flusso live; messaggi vecchi salvati prima di questa funzione (m.flow assente)
+          // restano con i pulsanti manuali di prima, così la cronologia condivisa non si rompe.
+          if (m.flow) {
+            messagesEl.appendChild(buildFlowEl(m.flow));
+          } else {
+            var routingEl = buildRoutingButtons(m.content);
+            if (routingEl) messagesEl.appendChild(routingEl);
+          }
         }
         if (state.agent === "comm-email-outreach") {
           var emailBtn = buildEmailSendButton(m.content);
@@ -2466,6 +2563,90 @@
     return { text: data.reply || "", sources: data.sources || [] };
   }
 
+  // Un nodo del flusso = uno specialista chiamato con il compito specifico che l'Orchestratore gli
+  // ha assegnato. Aggiorna il nodo (e ridisegna) man mano che la sua chiamata avanza, così i nodi
+  // chiamati in parallelo si vedono passare a "in corso" e poi a "fatto"/"errore" ognuno per conto
+  // suo, invece di comparire tutti insieme solo alla fine.
+  async function runSpecialistNode(node) {
+    node.status = "running";
+    renderMessages();
+    try {
+      var reply = await callAgent(node.role, node.subtask);
+      node.status = "done";
+      node.output = reply.text;
+      node.sources = reply.sources;
+    } catch (err) {
+      node.status = "error";
+      node.output = (err && err.message) || "Errore imprevisto";
+    }
+    renderMessages();
+    saveState();
+  }
+
+  // Cuore della richiesta di Francesco: l'Orchestratore non si limita a smistare una volta sola.
+  // Dopo aver girato il compito agli specialisti (in parallelo: sono pensati come indipendenti),
+  // raccoglie le loro risposte e torna lui stesso a dare l'aggiornamento finale -- e se serve ancora
+  // lavoro, può riaprire un altro giro (fino a MAX_ORCH_ROUNDS) invece di scaricare tutto su Francesco.
+  async function runOrchestrationFlow(hist, flowMsg, originalTask, round) {
+    flowMsg.flow.status = "running";
+    renderMessages();
+
+    await Promise.all(flowMsg.flow.nodes.map(function (node) { return runSpecialistNode(node); }));
+
+    var successNodes = flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; });
+    if (!successNodes.length) {
+      flowMsg.flow.status = "error";
+      renderMessages();
+      saveState();
+      return;
+    }
+
+    var summary = "Richiesta originale: " + originalTask + "\n\n" +
+      "Hai smistato questo lavoro agli specialisti indicati. Ecco le loro risposte:\n\n" +
+      flowMsg.flow.nodes.map(function (n) {
+        return "--- " + n.label + " ---\n" + (n.status === "done" ? n.output : "(non disponibile: " + n.output + ")");
+      }).join("\n\n") +
+      "\n\nSintetizza per Francesco un aggiornamento operativo chiaro e unico, integrando questi " +
+      "risultati invece di limitarti a incollarli in fila. " +
+      (round >= MAX_ORCH_ROUNDS
+        ? "Dai tu stesso la risposta finale adesso: non proporre un ulteriore smistamento."
+        : "Se dopo questi risultati serve ancora il lavoro di uno o più specialisti per completare " +
+          "la richiesta, puoi emettere un nuovo blocco ---ROUTING---; altrimenti dai la risposta finale.");
+
+    var pending = { role: "assistant", content: "Sto raccogliendo i risultati\u2026", pending: true };
+    hist.push(pending);
+    renderMessages();
+
+    try {
+      var synth = await callAgent(state.agent, summary);
+      hist.pop();
+      var newMsg = { role: "assistant", content: synth.text || "(risposta vuota)", sources: synth.sources || [] };
+      hist.push(newMsg);
+      flowMsg.flow.status = "done";
+
+      var nextItems = round < MAX_ORCH_ROUNDS ? parseRouting(synth.text) : [];
+      if (nextItems.length) {
+        newMsg.flow = {
+          status: "pending",
+          round: round + 1,
+          nodes: nextItems.map(function (item) {
+            return { role: item.role, subtask: item.subtask, label: orchFlowLabel(item.role), icon: orchFlowIcon(item.role), status: "pending", output: null, sources: null };
+          }),
+        };
+        renderMessages();
+        saveState();
+        await runOrchestrationFlow(hist, newMsg, originalTask, round + 1);
+        return;
+      }
+    } catch (err) {
+      hist.pop();
+      hist.push({ role: "error", content: "Sintesi non riuscita: " + ((err && err.message) || "errore imprevisto") });
+      flowMsg.flow.status = "error";
+    }
+    renderMessages();
+    saveState();
+  }
+
   // Shared by a fresh run (startIndex 0) and "Riprova" on a failed step (startIndex = that step):
   // runs PIPELINE[startIndex..end], seeding prior-step text from whatever is currently in state
   // (so an edited earlier step's text is what a retry after it actually uses).
@@ -2539,7 +2720,27 @@
         if (!res.ok) {
           hist.push({ role: "error", content: data.error || "Errore imprevisto" });
         } else {
-          hist.push({ role: "assistant", content: data.reply || "(risposta vuota)", sources: data.sources || [] });
+          var newMsg = { role: "assistant", content: data.reply || "(risposta vuota)", sources: data.sources || [] };
+          hist.push(newMsg);
+          // Orchestratore dello Studio/Commerciale: se ha smistato il compito, il flusso parte da
+          // solo (vedi runOrchestrationFlow) invece di fermarsi ai soli pulsanti "apri con questo
+          // compito" -- resta lui il punto di contatto, Francesco vede solo l'esito finale e, se
+          // vuole, i dettagli di ogni specialista nella mappa del flusso.
+          if (state.agent === "partner" || state.agent === "comm-orchestrator") {
+            var routingItems = parseRouting(newMsg.content);
+            if (routingItems.length) {
+              newMsg.flow = {
+                status: "pending",
+                round: 1,
+                nodes: routingItems.map(function (item) {
+                  return { role: item.role, subtask: item.subtask, label: orchFlowLabel(item.role), icon: orchFlowIcon(item.role), status: "pending", output: null, sources: null };
+                }),
+              };
+              var priorMsg = hist[hist.length - 2];
+              var originalTask = priorMsg ? (priorMsg.display || priorMsg.content || "") : "";
+              await runOrchestrationFlow(hist, newMsg, originalTask, 1);
+            }
+          }
         }
       }
     } catch (err) {
