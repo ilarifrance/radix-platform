@@ -48,6 +48,22 @@
   .roster-section.collapsed .chevron{ transform:rotate(-90deg); }
   .roster-section .count{ font-weight:400; text-transform:none; letter-spacing:0; color:#b7bfb9; }
 
+  /* Spunto dalla canvas "AI Workforce" di Relevance AI: i reparti con una sequenza fissa (marketing)
+     o un instradamento da un punto solo (admin) si vedono come tali, invece di una griglia piatta
+     uguale per tutti. Stessi .agent-card di sempre dentro — click/stato attivo identici, cambia solo
+     il contenitore che li dispone. */
+  .chain-row{ grid-column:1 / -1; display:flex; align-items:stretch; gap:0; overflow-x:auto; padding:2px 2px 8px; }
+  .chain-row .agent-card{ flex:none; width:152px; }
+  .chain-row .agent-card.pipeline-card{ border-style:dashed; background:var(--sabbia); }
+  .chain-arrow{ flex:none; width:26px; display:flex; align-items:center; justify-content:center; color:#b7bfb9; font-size:15px; }
+
+  .hub-row{ grid-column:1 / -1; display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; }
+  .hub-row .agent-card.hub-card{ flex:none; width:176px; border-color:var(--verde-salvia); border-width:2px; background:linear-gradient(180deg,#fff,rgba(107,127,114,0.08)); }
+  .hub-spokes{ flex:1; min-width:260px; }
+  .hub-spokes .spokes-label{ font-size:11px; color:#8a958f; margin:4px 0 10px; }
+  .hub-spokes .spokes-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  @media (max-width:640px){ .hub-row{ flex-direction:column; } .hub-row .agent-card.hub-card{ width:100%; } }
+
   .chat-shell{ background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:18px; overflow:hidden; }
   .chat-header{ padding:16px 20px; border-bottom:1px solid rgba(15,45,36,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
   .chat-header .who{ font-weight:700; color:var(--verde-bosco); font-size:14.5px; }
@@ -337,7 +353,7 @@
     { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Script per avatar/video HeyGen", group: "marketing" },
     { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali", group: "marketing" },
     { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true, group: "marketing" },
-    { id: "partner", icon: "🧠", name: "Orchestratore dello Studio", blurb: "Un task, lo smista agli specialisti giusti", group: "admin" },
+    { id: "partner", icon: "🧠", name: "Orchestratore dello Studio", blurb: "Un task, lo smista agli specialisti giusti", hub: true, group: "admin" },
     { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari complessi", group: "admin" },
     { id: "commercialista-junior", icon: "🧾", name: "Commercialista Junior", blurb: "Bilanci, dichiarazioni, pratiche societarie", group: "admin" },
     { id: "praticante-commercialista", icon: "📋", name: "Praticante Commercialista", blurb: "Checklist documenti e adempimenti di base", group: "admin" },
@@ -1458,32 +1474,89 @@
     return wrap;
   }
 
+  // Un .agent-card identico a sempre (stessa classe, stesso click -> selectAgent) — cambia solo quale
+  // contenitore lo dispone, qui sotto in renderRoster().
+  function makeAgentCard(a, extraClass) {
+    var card = document.createElement("button");
+    card.className = "agent-card" + (a.pipeline ? " pipeline-card" : "") + (extraClass ? " " + extraClass : "") +
+      (a.id === state.agent ? " active" : "");
+    card.innerHTML = '<div class="icon">' + a.icon + '</div><h3>' + a.name + '</h3><p>' + a.blurb + '</p>';
+    card.addEventListener("click", function () { selectAgent(a.id); });
+    return card;
+  }
+
   function renderRoster() {
     rosterEl.innerHTML = "";
-    var lastGroup = null;
+    var groups = []; // ordine di prima comparsa in AGENTS
+    var byGroup = {};
     AGENTS.forEach(function (a) {
-      if (a.group && a.group !== lastGroup) {
-        lastGroup = a.group;
-        var groupId = a.group;
-        var collapsed = !!state.collapsedGroups[groupId];
-        var count = AGENTS.filter(function (x) { return x.group === groupId; }).length;
+      var g = a.group || "__ungrouped__";
+      if (!byGroup[g]) { byGroup[g] = []; groups.push(g); }
+      byGroup[g].push(a);
+    });
+
+    groups.forEach(function (groupId) {
+      var members = byGroup[groupId];
+      var isRealGroup = groupId !== "__ungrouped__";
+      var collapsed = isRealGroup && !!state.collapsedGroups[groupId];
+
+      if (isRealGroup) {
         var header = document.createElement("button");
         header.type = "button";
         header.className = "roster-section" + (collapsed ? " collapsed" : "");
         header.innerHTML = '<span class="chevron">\u25BC</span><span>' + (GROUP_LABELS[groupId] || groupId) +
-          '</span><span class="count">' + count + '</span>';
+          '</span><span class="count">' + members.length + '</span>';
         header.addEventListener("click", function () {
           state.collapsedGroups[groupId] = !state.collapsedGroups[groupId];
           renderRoster();
         });
         rosterEl.appendChild(header);
       }
-      if (state.collapsedGroups[a.group]) return; // reparto chiuso: i suoi agent restano fuori dal DOM
-      var card = document.createElement("button");
-      card.className = "agent-card" + (a.pipeline ? " pipeline-card" : "") + (a.id === state.agent ? " active" : "");
-      card.innerHTML = '<div class="icon">' + a.icon + '</div><h3>' + a.name + '</h3><p>' + a.blurb + '</p>';
-      card.addEventListener("click", function () { selectAgent(a.id); });
-      rosterEl.appendChild(card);
+      if (collapsed) return; // reparto chiuso: i suoi agent restano fuori dal DOM
+
+      // Spunto dalla canvas "AI Workforce" di Relevance AI: un reparto con una sequenza fissa (oggi
+      // marketing, segnalato dall'agente con pipeline:true) si vede come catena; uno con instradamento
+      // da un punto solo (oggi amministrativo, segnalato da hub:true) si vede come nodo + specialisti;
+      // tutto il resto resta la griglia piatta di sempre.
+      var pipelineLead = members.filter(function (a) { return a.pipeline; })[0];
+      var hub = members.filter(function (a) { return a.hub; })[0];
+
+      if (pipelineLead) {
+        var row = document.createElement("div");
+        row.className = "chain-row";
+        row.appendChild(makeAgentCard(pipelineLead));
+        var chainOrder = PIPELINE.map(function (step) { return step.role; });
+        var rest = members.filter(function (a) { return a !== pipelineLead; });
+        rest.sort(function (x, y) { return chainOrder.indexOf(x.id) - chainOrder.indexOf(y.id); });
+        rest.forEach(function (a) {
+          var arrow = document.createElement("div");
+          arrow.className = "chain-arrow";
+          arrow.textContent = "\u2192";
+          row.appendChild(arrow);
+          row.appendChild(makeAgentCard(a));
+        });
+        rosterEl.appendChild(row);
+      } else if (hub) {
+        var hubRow = document.createElement("div");
+        hubRow.className = "hub-row";
+        hubRow.appendChild(makeAgentCard(hub, "hub-card"));
+        var spokesWrap = document.createElement("div");
+        spokesWrap.className = "hub-spokes";
+        var label = document.createElement("div");
+        label.className = "spokes-label";
+        label.textContent = "Smista verso:";
+        spokesWrap.appendChild(label);
+        var grid = document.createElement("div");
+        grid.className = "spokes-grid";
+        members.filter(function (a) { return a !== hub; }).forEach(function (a) {
+          grid.appendChild(makeAgentCard(a));
+        });
+        spokesWrap.appendChild(grid);
+        hubRow.appendChild(spokesWrap);
+        rosterEl.appendChild(hubRow);
+      } else {
+        members.forEach(function (a) { rosterEl.appendChild(makeAgentCard(a)); });
+      }
     });
   }
 
