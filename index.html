@@ -159,6 +159,8 @@
   .sources-list .sources-label{ font-weight:600; }
   .sources-list a{ color:#4a6b5a; text-decoration:underline; text-underline-offset:2px; }
   .sources-list a:hover{ color:var(--verde-bosco); }
+  .routing-list{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; align-self:flex-start; margin-top:2px; }
+  .routing-list .routing-label{ font-size:11.5px; color:#8a958f; font-weight:600; width:100%; margin-bottom:2px; }
 
   .attach-row{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 20px 10px; }
   .attach-chip{ display:none; align-items:center; gap:8px; font-size:12px; background:var(--sabbia); color:var(--verde-bosco); padding:5px 6px 5px 12px; border-radius:14px; max-width:100%; }
@@ -331,7 +333,7 @@
     { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Script per avatar/video HeyGen", group: "marketing" },
     { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali", group: "marketing" },
     { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true, group: "marketing" },
-    { id: "partner", icon: "🤝", name: "Titolare dello Studio / Partner", blurb: "Supervisione strategica e decisioni di alto livello", group: "admin" },
+    { id: "partner", icon: "🧠", name: "Orchestratore dello Studio", blurb: "Un task, lo smista agli specialisti giusti", group: "admin" },
     { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari complessi", group: "admin" },
     { id: "commercialista-junior", icon: "🧾", name: "Commercialista Junior", blurb: "Bilanci, dichiarazioni, pratiche societarie", group: "admin" },
     { id: "praticante-commercialista", icon: "📋", name: "Praticante Commercialista", blurb: "Checklist documenti e adempimenti di base", group: "admin" },
@@ -724,6 +726,31 @@
 
   function stripSlidesBlock(text) {
     return (text || "").replace(/\n?---SLIDES---[\s\S]*?---FINE---/, "").trim();
+  }
+
+  // --- Orchestratore dello Studio: routing agli specialisti ----------------
+  // Stesso pattern machine-readable di parseSlides/stripSlidesBlock sopra, applicato al Titolare/
+  // Orchestratore (api/chat.js): quando il task è operativo, in coda alla risposta umana arriva un
+  // blocco ---ROUTING---\nruolo-id|compito\n---FINE---. Se l'Orchestratore ha risposto lui stesso
+  // (consulenza strategica diretta) il blocco semplicemente non c'è, e parseRouting ritorna [].
+  function parseRouting(text) {
+    var m = /---ROUTING---([\s\S]*?)---FINE---/.exec(text || "");
+    if (!m) return [];
+    var items = [];
+    m[1].split("\n").forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var sep = line.indexOf("|");
+      if (sep < 0) return;
+      var role = line.slice(0, sep).trim();
+      var subtask = line.slice(sep + 1).trim();
+      if (role && subtask) items.push({ role: role, subtask: subtask });
+    });
+    return items;
+  }
+
+  function stripRoutingBlock(text) {
+    return (text || "").replace(/\n?---ROUTING---[\s\S]*?---FINE---/, "").trim();
   }
 
   function wrapCanvasText(ctx, text, cx, cy, maxWidth, lineHeight) {
@@ -1389,6 +1416,36 @@
     return wrap;
   }
 
+  // Un pulsante per ogni riga del routing: porta direttamente alla chat dello specialista indicato,
+  // con il compito già scritto nel campo di input ma NON inviato — resta una proposta dell'Orchestratore,
+  // la conferma di inviarla è sempre di chi è davanti alla tastiera.
+  function buildRoutingButtons(sourceText) {
+    var items = parseRouting(sourceText);
+    if (!items.length) return null;
+    var wrap = document.createElement("div");
+    wrap.className = "routing-list";
+    var label = document.createElement("div");
+    label.className = "routing-label";
+    label.textContent = "Smistato a:";
+    wrap.appendChild(label);
+    items.forEach(function (item) {
+      var agent = AGENTS.filter(function (a) { return a.id === item.role; })[0];
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "step-copy";
+      btn.textContent = (agent ? agent.icon + " " + agent.name : item.role) + " \u2192 apri con questo compito";
+      btn.title = item.subtask;
+      btn.addEventListener("click", function () {
+        if (!agent) return;
+        selectAgent(agent.id);
+        inputEl.value = item.subtask;
+        inputEl.focus();
+      });
+      wrap.appendChild(btn);
+    });
+    return wrap;
+  }
+
   function renderRoster() {
     rosterEl.innerHTML = "";
     var lastGroup = null;
@@ -1453,7 +1510,9 @@
       div.className = "msg " + m.role + (m.pending ? " pending" : "");
       // Assistant text for the Art Director carries a machine-readable ---SLIDES--- block at the end
       // (see buildCarouselButton below) — hidden from the chat bubble, still used to draw the images.
-      var displayText = m.role === "assistant" && state.agent === "art-director" ? stripSlidesBlock(m.content) : (m.display || m.content);
+      var displayText = m.role === "assistant" && state.agent === "art-director" ? stripSlidesBlock(m.content)
+        : m.role === "assistant" && state.agent === "partner" ? stripRoutingBlock(m.content)
+        : (m.display || m.content);
       div.textContent = displayText;
       messagesEl.appendChild(div);
       if (m.role === "user" && m.by) {
@@ -1483,7 +1542,10 @@
         dlBtn.textContent = "Scarica come file";
         dlBtn.addEventListener("click", function () {
           var stamp = new Date().toISOString().slice(0, 10);
-          downloadText(state.agent === "art-director" ? stripSlidesBlock(m.content) : m.content, "radix-" + state.agent + "-" + stamp + ".txt");
+          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
+            : state.agent === "partner" ? stripRoutingBlock(m.content)
+            : m.content;
+          downloadText(toSave, "radix-" + state.agent + "-" + stamp + ".txt");
         });
         messagesEl.appendChild(dlBtn);
         if (state.agent === "art-director") {
@@ -1497,6 +1559,10 @@
         if (state.agent === "copywriter") {
           var bufferBtnSingle = buildBufferButton(m.content);
           if (bufferBtnSingle) messagesEl.appendChild(bufferBtnSingle);
+        }
+        if (state.agent === "partner") {
+          var routingEl = buildRoutingButtons(m.content);
+          if (routingEl) messagesEl.appendChild(routingEl);
         }
       }
     });
