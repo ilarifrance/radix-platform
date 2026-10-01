@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
 <style>
   :root{
     --verde-bosco:#0F2D24; --verde-salvia:#6B7F72; --sabbia:#EDE6DE; --antracite:#1F1F1F; --avorio:#FAF9F6;
@@ -204,6 +205,7 @@
   .buffer-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .buffer-row label{ font-size:11.5px; font-weight:600; color:#6a756f; }
   .buffer-row select{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:5px 8px; max-width:220px; }
+  .buffer-row input{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:5px 8px; flex:1; min-width:160px; }
   .buffer-preview{ font-family:inherit; font-size:12.5px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:8px 10px; width:100%; min-height:70px; resize:vertical; box-sizing:border-box; }
   .buffer-status{ font-size:12px; color:#6a756f; }
   .buffer-status.error{ color:#7a2f22; }
@@ -364,9 +366,19 @@
     { id: "addetto-paghe", icon: "💶", name: "Addetto Paghe", blurb: "Buste paga, TFR, contributi", group: "admin" },
     { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti", group: "admin" },
     { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Codice vero: pagine, componenti, script", group: "dev" },
+    { id: "legal-gdpr", icon: "🔐", name: "Esperto Privacy e GDPR", blurb: "Trattamento dati, informative, DPIA, adempimenti verso il Garante", group: "legale" },
+    { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica", blurb: "Redige e revisiona contratti, individua le clausole che ti proteggono", group: "legale" },
+    { id: "legal-banking", icon: "🏦", name: "Esperto Diritto Bancario e Finanziario", blurb: "Contratti di finanziamento, normativa bancaria, utile su Doc Capital", group: "legale" },
+    { id: "legal-image-rights", icon: "🎬", name: "Esperto Diritto d'Immagine e Creator Economy", blurb: "Diritti immagine, sponsorizzazioni, trasparenza pubblicitaria", group: "legale" },
+    { id: "legal-risk-analyst", icon: "🔎", name: "Analista di Rischio Legale", blurb: "Rilegge contratti e pareri degli altri, isola criticità e limiti di responsabilità", group: "legale" },
+    { id: "comm-orchestrator", icon: "🧭", name: "Orchestratore Commerciale", blurb: "Smista l'obiettivo commerciale agli specialisti giusti", hub: true, group: "commerciale" },
+    { id: "comm-market-analyst", icon: "📈", name: "Analista di Mercato e Strategia", blurb: "Ricerche di mercato, trend, definisce la strategia per ogni mercato target", group: "commerciale" },
+    { id: "comm-contact-finder", icon: "🔍", name: "Ricercatore di Contatti", blurb: "Trova aziende e contatti professionali pubblici in base alla strategia", group: "commerciale" },
+    { id: "comm-email-outreach", icon: "📧", name: "Specialista Email Outreach", blurb: "Scrive e, con la tua conferma, invia le email dalla tua casella", group: "commerciale" },
+    { id: "comm-crm-manager", icon: "📊", name: "Responsabile CRM / Sales Ops", blurb: "Tiene i numeri: stato dei contatti, follow-up dovuti, tasso di risposta", group: "commerciale" },
   ];
 
-  var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo" };
+  var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo", legale: "Area Legale", commerciale: "Ufficio Commerciale" };
 
 
   // La pipeline vera e propria: un task passa da un agente all'altro, ognuno riceve il lavoro di chi lo
@@ -623,6 +635,275 @@
       document.body.removeChild(a);
       setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
     } catch (e) { /* download unavailable: the copy button is the fallback */ }
+  }
+
+  // --- Documenti veri (Word / Excel / PDF), non solo .txt ------------------
+  // Word ed Excel: zero dipendenze esterne, generano un HTML/XML che Word/Excel aprono davvero
+  // (un avviso "formato diverso dall'estensione" alla prima apertura è il solo costo di questa
+  // tecnica, in cambio di zero rischio che una libreria esterna cambi o si rompa). Il PDF usa jsPDF
+  // via CDN (script in <head>) con un fallback automatico alla stampa del browser se non si carica.
+  function escapeXml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  function exportToWord(title, sections, filename) {
+    var bodyHtml = sections.map(function (s) {
+      var heading = s.heading
+        ? '<h2 style="font-family:Calibri,Arial,sans-serif;font-size:14pt;color:#1F2D24;">' +
+          escapeXml(s.heading) + "</h2>"
+        : "";
+      var paras = String(s.body || "")
+        .split(/\n\n+/)
+        .map(function (p) {
+          return '<p style="font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;">' +
+            escapeXml(p).replace(/\n/g, "<br>") + "</p>";
+        })
+        .join("");
+      return heading + paras;
+    }).join("");
+
+    var html =
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+      "<head><meta charset='utf-8'><title>" + escapeXml(title) + "</title></head>" +
+      '<body><h1 style="font-family:Calibri,Arial,sans-serif;font-size:18pt;color:#0F2D24;">' +
+      escapeXml(title) + "</h1>" + bodyHtml + "</body></html>";
+
+    var blob = new Blob(["\ufeff", html], { type: "application/msword" });
+    downloadBlob(blob, (filename || title || "documento") + ".doc");
+  }
+
+  function exportToExcel(sheetName, headers, rows, filename) {
+    function cell(value) {
+      var isNumber = typeof value === "number" && isFinite(value);
+      return '<Cell><Data ss:Type="' + (isNumber ? "Number" : "String") + '">' +
+        escapeXml(value) + "</Data></Cell>";
+    }
+    function row(cells) {
+      return "<Row>" + cells.map(cell).join("") + "</Row>";
+    }
+
+    var xml =
+      '<?xml version="1.0"?>' +
+      '<?mso-application progid="Excel.Sheet"?>' +
+      '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" ' +
+      'xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:x="urn:schemas-microsoft-com:office:excel" ' +
+      'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">' +
+      '<Worksheet ss:Name="' + escapeXml((sheetName || "Foglio1").slice(0, 31)) + '">' +
+      "<Table>" +
+      (headers && headers.length ? row(headers) : "") +
+      rows.map(row).join("") +
+      "</Table></Worksheet></Workbook>";
+
+    var blob = new Blob([xml], { type: "application/vnd.ms-excel" });
+    downloadBlob(blob, (filename || sheetName || "foglio") + ".xls");
+  }
+
+  function exportToPdf(title, sections, filename) {
+    if (window.jspdf && window.jspdf.jsPDF) {
+      var doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+      var marginX = 48;
+      var y = 56;
+      var pageHeight = doc.internal.pageSize.getHeight();
+      var maxWidth = doc.internal.pageSize.getWidth() - marginX * 2;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(title, marginX, y);
+      y += 28;
+
+      sections.forEach(function (s) {
+        if (s.heading) {
+          if (y > pageHeight - 72) { doc.addPage(); y = 56; }
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(12.5);
+          doc.text(s.heading, marginX, y);
+          y += 20;
+        }
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10.5);
+        var lines = doc.splitTextToSize(String(s.body || ""), maxWidth);
+        lines.forEach(function (line) {
+          if (y > pageHeight - 56) { doc.addPage(); y = 56; }
+          doc.text(line, marginX, y);
+          y += 15;
+        });
+        y += 12;
+      });
+
+      doc.save((filename || title || "documento") + ".pdf");
+      return;
+    }
+
+    // Fallback senza libreria: vista stampabile, l'utente sceglie "Salva come PDF" dalla finestra
+    // di stampa del browser -- sempre funzionante, un click in più.
+    var w = window.open("", "_blank");
+    var bodyHtml = sections.map(function (s) {
+      return (s.heading ? "<h2>" + escapeXml(s.heading) + "</h2>" : "") +
+        "<p>" + escapeXml(s.body || "").replace(/\n/g, "<br>") + "</p>";
+    }).join("");
+    w.document.write(
+      "<html><head><title>" + escapeXml(title) + "</title>" +
+      "<style>body{font-family:Arial,sans-serif;max-width:680px;margin:40px auto;line-height:1.5;}" +
+      "h1{font-size:20px;}h2{font-size:15px;margin-top:24px;}</style></head><body>" +
+      "<h1>" + escapeXml(title) + "</h1>" + bodyHtml + "</body></html>"
+    );
+    w.document.close();
+    w.focus();
+    w.print();
+  }
+
+  function parseMarkdownTable(text) {
+    var lines = String(text || "").split("\n").map(function (l) { return l.trim(); }).filter(Boolean);
+    var tableLines = lines.filter(function (l) { return l.indexOf("|") !== -1; });
+    if (!tableLines.length) return null;
+    var rows = tableLines
+      .filter(function (l) { return !/^\|?[\s\-:|]+\|?$/.test(l); })
+      .map(function (l) {
+        var trimmed = l.replace(/^\||\|$/g, "");
+        return trimmed.split("|").map(function (c) { return c.trim(); });
+      });
+    if (rows.length < 1) return null;
+    return { headers: rows[0], rows: rows.slice(1) };
+  }
+
+  function exportAgentReply(format, text, title) {
+    var docTitle = title || "RADIX - Esportazione";
+    if (format === "xlsx") {
+      var table = parseMarkdownTable(text);
+      if (table) {
+        exportToExcel(docTitle, table.headers, table.rows, docTitle);
+      } else {
+        var rows = String(text || "").split("\n").filter(Boolean).map(function (l) { return [l]; });
+        exportToExcel(docTitle, ["Contenuto"], rows, docTitle);
+      }
+    }
+  }
+
+  // --- Invio email reale (Specialista Email Outreach) ----------------------
+  // Stesso pattern di sicurezza di buildBufferButton: anteprima modificabile + window.confirm prima
+  // di ogni singolo invio, mai un invio automatico silenzioso o massivo.
+  function parseEmailDraft(text) {
+    var t = String(text || "");
+    var subjMatch = /Oggetto:\s*(.+)/i.exec(t);
+    var subject = subjMatch ? subjMatch[1].trim() : "";
+    var bodyMatch = /Corpo:\s*([\s\S]*)/i.exec(t);
+    var body = bodyMatch ? bodyMatch[1].trim() : t.trim();
+    return { subject: subject, body: body };
+  }
+
+  function buildEmailSendButton(sourceText) {
+    var text = (sourceText || "").trim();
+    if (!text) return null;
+    var draft = parseEmailDraft(text);
+    var wrap = document.createElement("div");
+    var openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "step-copy primary";
+    openBtn.textContent = "✉️ Invia questa email";
+    wrap.appendChild(openBtn);
+
+    openBtn.addEventListener("click", function () {
+      openBtn.style.display = "none";
+      var panel = document.createElement("div");
+      panel.className = "buffer-panel";
+
+      var toRow = document.createElement("div");
+      toRow.className = "buffer-row";
+      var toLabel = document.createElement("label");
+      toLabel.textContent = "A";
+      var toInput = document.createElement("input");
+      toInput.type = "email";
+      toInput.placeholder = "destinatario@azienda.it";
+      toRow.appendChild(toLabel);
+      toRow.appendChild(toInput);
+      panel.appendChild(toRow);
+
+      var subjRow = document.createElement("div");
+      subjRow.className = "buffer-row";
+      var subjLabel = document.createElement("label");
+      subjLabel.textContent = "Oggetto";
+      var subjInput = document.createElement("input");
+      subjInput.type = "text";
+      subjInput.value = draft.subject;
+      subjRow.appendChild(subjLabel);
+      subjRow.appendChild(subjInput);
+      panel.appendChild(subjRow);
+
+      var preview = document.createElement("textarea");
+      preview.className = "buffer-preview";
+      preview.value = draft.body;
+      panel.appendChild(preview);
+
+      var sendBtn = document.createElement("button");
+      sendBtn.type = "button";
+      sendBtn.className = "step-copy primary";
+      sendBtn.style.alignSelf = "flex-start";
+      sendBtn.textContent = "Invia email";
+      panel.appendChild(sendBtn);
+
+      var statusEl = document.createElement("div");
+      statusEl.className = "buffer-status";
+      panel.appendChild(statusEl);
+
+      sendBtn.addEventListener("click", function () {
+        var to = toInput.value.trim();
+        if (!to) {
+          statusEl.className = "buffer-status error";
+          statusEl.textContent = "Inserisci il destinatario.";
+          return;
+        }
+        var confirmMsg = "Questo invia DAVVERO un'email a \"" + to + "\" dalla tua casella -- non è " +
+          "una bozza salvata. Confermi l'invio?";
+        if (!window.confirm(confirmMsg)) return;
+
+        sendBtn.disabled = true;
+        toInput.disabled = true;
+        subjInput.disabled = true;
+        preview.disabled = true;
+        statusEl.className = "buffer-status";
+        statusEl.textContent = "Invio in corso…";
+
+        fetch("/api/send-email", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ to: to, subject: subjInput.value, body: preview.value, confirm: true }),
+        })
+          .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || "Errore invio"); return d; }); })
+          .then(function () {
+            statusEl.className = "buffer-status success";
+            statusEl.textContent = "Email inviata a " + to + ".";
+          })
+          .catch(function (err) {
+            statusEl.className = "buffer-status error";
+            statusEl.textContent = "Non riuscito: " + (err && err.message ? err.message : String(err));
+            sendBtn.disabled = false;
+            toInput.disabled = false;
+            subjInput.disabled = false;
+            preview.disabled = false;
+          });
+      });
+
+      wrap.appendChild(panel);
+    });
+
+    return wrap;
   }
 
   // --- File attachment (upload) --------------------------------------------
@@ -1607,7 +1888,7 @@
       // Assistant text for the Art Director carries a machine-readable ---SLIDES--- block at the end
       // (see buildCarouselButton below) — hidden from the chat bubble, still used to draw the images.
       var displayText = m.role === "assistant" && state.agent === "art-director" ? stripSlidesBlock(m.content)
-        : m.role === "assistant" && state.agent === "partner" ? stripRoutingBlock(m.content)
+        : m.role === "assistant" && (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
         : (m.display || m.content);
       div.textContent = displayText;
       messagesEl.appendChild(div);
@@ -1639,11 +1920,47 @@
         dlBtn.addEventListener("click", function () {
           var stamp = new Date().toISOString().slice(0, 10);
           var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
-            : state.agent === "partner" ? stripRoutingBlock(m.content)
+            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
             : m.content;
           downloadText(toSave, "radix-" + state.agent + "-" + stamp + ".txt");
         });
         messagesEl.appendChild(dlBtn);
+        var docBtn = document.createElement("button");
+        docBtn.type = "button";
+        docBtn.className = "step-copy";
+        docBtn.style.alignSelf = "flex-start";
+        docBtn.textContent = "Word";
+        docBtn.addEventListener("click", function () {
+          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
+            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
+            : m.content;
+          exportToWord("RADIX - " + state.agent, [{ heading: null, body: toSave }], "radix-" + state.agent);
+        });
+        messagesEl.appendChild(docBtn);
+        var xlsBtn = document.createElement("button");
+        xlsBtn.type = "button";
+        xlsBtn.className = "step-copy";
+        xlsBtn.style.alignSelf = "flex-start";
+        xlsBtn.textContent = "Excel";
+        xlsBtn.addEventListener("click", function () {
+          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
+            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
+            : m.content;
+          exportAgentReply("xlsx", toSave, "radix-" + state.agent);
+        });
+        messagesEl.appendChild(xlsBtn);
+        var pdfBtn = document.createElement("button");
+        pdfBtn.type = "button";
+        pdfBtn.className = "step-copy";
+        pdfBtn.style.alignSelf = "flex-start";
+        pdfBtn.textContent = "PDF";
+        pdfBtn.addEventListener("click", function () {
+          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
+            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
+            : m.content;
+          exportToPdf("RADIX - " + state.agent, [{ heading: null, body: toSave }], "radix-" + state.agent);
+        });
+        messagesEl.appendChild(pdfBtn);
         if (state.agent === "art-director") {
           var carouselBtn = buildCarouselButton(m.content, "radix-carosello");
           if (carouselBtn) messagesEl.appendChild(carouselBtn);
@@ -1656,9 +1973,13 @@
           var bufferBtnSingle = buildBufferButton(m.content);
           if (bufferBtnSingle) messagesEl.appendChild(bufferBtnSingle);
         }
-        if (state.agent === "partner") {
+        if (state.agent === "partner" || state.agent === "comm-orchestrator") {
           var routingEl = buildRoutingButtons(m.content);
           if (routingEl) messagesEl.appendChild(routingEl);
+        }
+        if (state.agent === "comm-email-outreach") {
+          var emailBtn = buildEmailSendButton(m.content);
+          if (emailBtn) messagesEl.appendChild(emailBtn);
         }
       }
     });
