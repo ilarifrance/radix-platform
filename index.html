@@ -41,8 +41,12 @@
   .agent-card h3{ font-size:14px; margin-top:10px; color:var(--verde-bosco); }
   .agent-card p{ font-size:12px; line-height:1.5; color:#6a756f; margin-top:6px; }
   .roster-note{ font-size:12px; color:#8a958f; margin-bottom:22px; }
-  .roster-section{ grid-column:1 / -1; font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#8a958f; margin:4px 0 -4px; padding-top:10px; border-top:1px solid rgba(15,45,36,0.08); }
+  .roster-section{ grid-column:1 / -1; display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#8a958f; margin:4px 0 -4px; padding:10px 2px 8px; border-top:1px solid rgba(15,45,36,0.08); background:none; border-left:none; border-right:none; border-bottom:none; cursor:pointer; text-align:left; width:100%; font-family:inherit; }
   .roster-section:first-child{ border-top:none; padding-top:0; margin-top:0; }
+  .roster-section:hover{ color:var(--verde-bosco); }
+  .roster-section .chevron{ font-size:10px; transition:transform .15s ease; }
+  .roster-section.collapsed .chevron{ transform:rotate(-90deg); }
+  .roster-section .count{ font-weight:400; text-transform:none; letter-spacing:0; color:#b7bfb9; }
 
   .chat-shell{ background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:18px; overflow:hidden; }
   .chat-header{ padding:16px 20px; border-bottom:1px solid rgba(15,45,36,0.08); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -348,6 +352,7 @@
 
   var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo" };
 
+
   // La pipeline vera e propria: un task passa da un agente all'altro, ognuno riceve il lavoro di chi lo
   // precede (non solo il task originale) così il risultato finale è coerente, non 4 risposte scollegate.
   var PIPELINE = [
@@ -411,6 +416,21 @@
   ];
 
   var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFile: null, heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null } }; // history[agentId] = [{role, content}]
+  // Reparti aperti/chiusi nel roster a sinistra: solo preferenza visiva di QUESTO browser, mai
+  // inviata a /api/state (quello resta lo stato condiviso del team: cronologie, pipeline, HeyGen).
+  // Inizializzato subito sotto, appena AGENTS esiste: chiuso tutto tranne il reparto dell'agente attivo.
+  state.collapsedGroups = {};
+  // Default: aperto solo il reparto dell'agente iniziale, gli altri chiusi — "clicco il reparto e si
+  // aprono i suoi agent", come richiesto, invece di un roster lungo sempre tutto visibile.
+  (function initCollapsedGroups() {
+    var activeGroup = (AGENTS.filter(function (a) { return a.id === state.agent; })[0] || {}).group;
+    var seen = {};
+    AGENTS.forEach(function (a) {
+      if (!a.group || seen[a.group]) return;
+      seen[a.group] = true;
+      if (a.group !== activeGroup) state.collapsedGroups[a.group] = true;
+    });
+  })();
   // pipeline.brand: "radix" (lo studio/venture) o "personal" (personal branding di Francesco) — cambia
   // il contesto inviato agli agenti (api/chat.js) e la scritta disegnata sui caroselli, così un task di
   // personal branding non si ritrova col testo/la grafica intestati "RADIX" come se fosse un post aziendale.
@@ -1452,11 +1472,21 @@
     AGENTS.forEach(function (a) {
       if (a.group && a.group !== lastGroup) {
         lastGroup = a.group;
-        var header = document.createElement("div");
-        header.className = "roster-section";
-        header.textContent = GROUP_LABELS[a.group] || a.group;
+        var groupId = a.group;
+        var collapsed = !!state.collapsedGroups[groupId];
+        var count = AGENTS.filter(function (x) { return x.group === groupId; }).length;
+        var header = document.createElement("button");
+        header.type = "button";
+        header.className = "roster-section" + (collapsed ? " collapsed" : "");
+        header.innerHTML = '<span class="chevron">\u25BC</span><span>' + (GROUP_LABELS[groupId] || groupId) +
+          '</span><span class="count">' + count + '</span>';
+        header.addEventListener("click", function () {
+          state.collapsedGroups[groupId] = !state.collapsedGroups[groupId];
+          renderRoster();
+        });
         rosterEl.appendChild(header);
       }
+      if (state.collapsedGroups[a.group]) return; // reparto chiuso: i suoi agent restano fuori dal DOM
       var card = document.createElement("button");
       card.className = "agent-card" + (a.pipeline ? " pipeline-card" : "") + (a.id === state.agent ? " active" : "");
       card.innerHTML = '<div class="icon">' + a.icon + '</div><h3>' + a.name + '</h3><p>' + a.blurb + '</p>';
@@ -1469,6 +1499,7 @@
     state.agent = id;
     var a = AGENTS.find(function (x) { return x.id === id; });
     chatWhoEl.textContent = a.name;
+    if (a.group) delete state.collapsedGroups[a.group]; // selezionare un agente apre sempre il suo reparto
     renderRoster();
     if (a.pipeline) {
       chatModeEl.style.display = "none";
