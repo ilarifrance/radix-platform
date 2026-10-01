@@ -419,18 +419,10 @@
   // Reparti aperti/chiusi nel roster a sinistra: solo preferenza visiva di QUESTO browser, mai
   // inviata a /api/state (quello resta lo stato condiviso del team: cronologie, pipeline, HeyGen).
   // Inizializzato subito sotto, appena AGENTS esiste: chiuso tutto tranne il reparto dell'agente attivo.
+  // Default: tutti i reparti aperti, come prima (il primo test ha mostrato che partire con admin/dev
+  // chiusi sembrava "agenti spariti" invece che "reparto comprimibile") — restano comunque cliccabili
+  // per chiuderli a mano quando vuoi.
   state.collapsedGroups = {};
-  // Default: aperto solo il reparto dell'agente iniziale, gli altri chiusi — "clicco il reparto e si
-  // aprono i suoi agent", come richiesto, invece di un roster lungo sempre tutto visibile.
-  (function initCollapsedGroups() {
-    var activeGroup = (AGENTS.filter(function (a) { return a.id === state.agent; })[0] || {}).group;
-    var seen = {};
-    AGENTS.forEach(function (a) {
-      if (!a.group || seen[a.group]) return;
-      seen[a.group] = true;
-      if (a.group !== activeGroup) state.collapsedGroups[a.group] = true;
-    });
-  })();
   // pipeline.brand: "radix" (lo studio/venture) o "personal" (personal branding di Francesco) — cambia
   // il contesto inviato agli agenti (api/chat.js) e la scritta disegnata sui caroselli, così un task di
   // personal branding non si ritrova col testo/la grafica intestati "RADIX" come se fosse un post aziendale.
