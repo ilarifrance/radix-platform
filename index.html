@@ -236,6 +236,86 @@
   .ready-panel .ready-actions{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
   .ready-btn{ font-family:inherit; font-size:13px; font-weight:600; background:var(--verde-bosco,#0F2D24); color:#fff; border:none; border-radius:10px; padding:9px 16px; cursor:pointer; }
   .ready-btn:hover{ opacity:0.9; }
+
+  /* ===== v3.0 — testo formattato, documenti come schede, flusso di lavoro stile Relevance ===== */
+  .msg.md{ white-space:normal; }
+  .md p{ margin:0 0 10px; }
+  .md p:last-child{ margin-bottom:0; }
+  .md h2,.md h3,.md h4,.md h5{ font-family:'Montserrat',system-ui,sans-serif; color:var(--verde-bosco); margin:14px 0 6px; line-height:1.3; }
+  .md h2{ font-size:16px; } .md h3{ font-size:14.5px; } .md h4,.md h5{ font-size:13.5px; }
+  .md > :first-child{ margin-top:0; }
+  .md ul,.md ol{ margin:0 0 10px; padding-left:22px; }
+  .md li{ margin:3px 0; }
+  .md hr{ border:none; border-top:1px solid rgba(15,45,36,0.14); margin:12px 0; }
+  .md code{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; background:rgba(15,45,36,0.07); padding:1px 5px; border-radius:5px; }
+  .md table{ border-collapse:collapse; margin:8px 0 12px; font-size:13px; max-width:100%; display:block; overflow-x:auto; }
+  .md th,.md td{ border:1px solid rgba(15,45,36,0.16); padding:5px 9px; text-align:left; vertical-align:top; }
+  .md th{ background:rgba(15,45,36,0.06); font-weight:600; }
+  .md a{ color:#2f5a47; }
+  .msg.user.md{ white-space:pre-wrap; }
+
+  .doc-card{ display:flex; align-items:center; gap:14px; background:#fff; border:1.5px solid rgba(15,45,36,0.14); border-left:4px solid var(--verde-bosco); border-radius:12px; padding:12px 14px; max-width:78%; align-self:flex-start; box-shadow:0 4px 14px rgba(15,45,36,0.05); }
+  .doc-card.incomplete{ border-left-color:#d8a24a; }
+  .doc-card .doc-icon{ width:40px; height:40px; border-radius:10px; background:var(--sabbia); display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto; }
+  .doc-card .doc-main{ flex:1; min-width:0; }
+  .doc-card .doc-kicker{ font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#8a958f; }
+  .doc-card .doc-title{ font-family:'Montserrat',sans-serif; font-weight:700; font-size:14px; color:var(--verde-bosco); margin-top:2px; line-height:1.3; }
+  .doc-card .doc-meta{ font-size:11.5px; color:#8a958f; margin-top:3px; }
+  .doc-card .doc-actions{ display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; flex:0 0 auto; }
+  .doc-card .doc-actions .step-copy.primary{ background:var(--verde-bosco); color:#fff; border-color:var(--verde-bosco); }
+  @media (max-width:640px){ .doc-card{ max-width:100%; flex-wrap:wrap; } .doc-card .doc-actions{ width:100%; justify-content:flex-start; } }
+
+  .deliverables{ margin:0 0 6px; padding:12px 14px; background:linear-gradient(180deg,#fff,rgba(107,127,114,0.07)); border:1.5px solid rgba(107,127,114,0.35); border-radius:14px; align-self:stretch; }
+  .deliverables .deliverables-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+  .deliverables .deliverables-title{ font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--verde-bosco); }
+  .deliverables .deliverables-count{ font-size:11px; color:#8a958f; }
+  .deliverables .deliverables-list{ display:flex; flex-direction:column; gap:6px; }
+  .deliverable-row{ display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:10px; padding:7px 10px; }
+  .deliverable-row .d-icon{ font-size:16px; flex:0 0 auto; }
+  .deliverable-row .d-title{ flex:1; min-width:0; font-size:13px; font-weight:600; color:var(--verde-bosco); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .deliverable-row .d-by{ font-size:11px; color:#8a958f; white-space:nowrap; }
+  .deliverable-row .d-actions{ display:flex; gap:4px; flex:0 0 auto; }
+
+  .doc-overlay{ position:fixed; inset:0; background:rgba(15,45,36,0.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .doc-modal{ background:#fff; border-radius:16px; width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,0.35); overflow:hidden; }
+  .doc-modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(15,45,36,0.10); flex-wrap:wrap; }
+  .doc-modal-head .doc-title{ font-family:'Montserrat',sans-serif; font-weight:700; font-size:16px; color:var(--verde-bosco); }
+  .doc-modal-head .doc-meta{ font-size:12px; color:#8a958f; margin-top:2px; }
+  .doc-modal-head .doc-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+  .doc-modal-body{ padding:26px 34px 36px; overflow-y:auto; font-size:14px; line-height:1.65; color:var(--antracite); }
+  .doc-modal-body h1{ font-size:22px; margin:0 0 14px; color:var(--verde-bosco); }
+  .doc-modal-body h2{ font-size:17px; margin:20px 0 8px; } .doc-modal-body h3{ font-size:15px; margin:16px 0 6px; }
+  .doc-modal-body .md p{ margin:0 0 10px; }
+  @media (max-width:640px){ .doc-overlay{ padding:0; } .doc-modal{ border-radius:0; max-height:100vh; height:100vh; } .doc-modal-body{ padding:18px; } }
+
+  .msg.plan{ align-self:stretch; max-width:100%; background:#fff; border:1.5px solid rgba(15,45,36,0.12); border-radius:14px; padding:14px 16px 12px; }
+  .msg.plan .plan-kicker{ font-size:10.5px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--verde-salvia); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+  .orch-stage{ margin-top:12px; }
+  .orch-stage-head{ display:flex; align-items:center; gap:8px; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#8a958f; }
+  .orch-stage-head .stage-num{ width:18px; height:18px; border-radius:50%; background:var(--sabbia); color:var(--verde-bosco); display:flex; align-items:center; justify-content:center; font-size:10px; }
+  .orch-stage-head .stage-live{ margin-left:auto; font-weight:600; text-transform:none; letter-spacing:0; color:var(--verde-salvia); }
+  .orch-flow .flow-map{ flex-wrap:wrap; gap:8px; row-gap:10px; }
+  .orch-flow .flow-node{ width:148px; position:relative; }
+  .orch-flow .flow-node .flow-task{ font-size:10.5px; color:#6a756f; text-align:center; line-height:1.3; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .orch-flow .flow-node.running .flow-task{ color:rgba(250,249,246,0.85); }
+  .orch-flow .flow-node .flow-progress{ font-size:9.5px; font-weight:600; color:var(--avorio); opacity:0.9; }
+  .orch-flow .flow-node .flow-num{ position:absolute; top:6px; left:8px; font-size:9.5px; font-weight:700; color:#b7bfb9; }
+  .orch-flow .flow-node .flow-deps{ position:absolute; top:6px; right:8px; font-size:9px; font-weight:600; color:#b7bfb9; }
+  .orch-flow .flow-node.done .flow-docs{ font-size:9.5px; font-weight:700; color:var(--verde-bosco); }
+  .orch-flow .flow-node.expanded{ box-shadow:0 0 0 2px var(--verde-salvia); }
+  .orch-flow-detail{ margin:0 0 10px; background:#fff; border:1px solid rgba(15,45,36,0.12); border-radius:12px; padding:12px 14px; }
+  .orch-flow-detail .detail-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px; font-weight:700; color:var(--verde-bosco); margin-bottom:8px; flex-wrap:wrap; }
+  .orch-flow-detail .detail-task{ font-size:12px; color:#6a756f; font-weight:400; }
+  .orch-flow-detail .detail-body{ font-size:13.5px; line-height:1.6; }
+  .orch-flow-detail .detail-body.error{ color:#7a2f22; }
+  .orch-flow-detail .doc-card{ max-width:100%; margin:8px 0; }
+  .orch-flow .orch-docs{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .orch-flow .orch-docs .doc-card{ max-width:100%; }
+  .orch-flow-empty{ font-size:12px; color:#8a958f; margin-top:6px; }
+  .messages.tall{ min-height:360px; max-height:66vh; }
+  .hero-steps{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .hero-step{ flex:1; min-width:150px; background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.45; color:#4a5650; }
+  .hero-step b{ display:block; color:var(--verde-bosco); font-size:12px; margin-bottom:2px; }
 </style>
 </head>
 <body>
@@ -272,15 +352,22 @@
   <div class="wrap">
     <div class="intro">
       <div class="eyebrow">Team RADIX</div>
-      <h1>Un team di agenti, con un orchestratore che li fa lavorare insieme.</h1>
-      <p>Scegli un agente per parlarci direttamente, oppure usa l'<strong>Orchestratore</strong>: gli dai un task
-      (es. "prepara il post di lunedì sul tema X") e lui lo fa passare in automatico da Digital Strategist a
-      Copywriter, Art Director, AI Specialist e infine Social Media Manager — ognuno riceve il lavoro di chi lo
-      precede. Tutto collegato a un vero modello AI, non è una demo finta.</p>
+      <h1>Un team di agenti, con orchestratori che pianificano, smistano e consegnano.</h1>
+      <p>Scegli un agente per parlarci direttamente, oppure dai il task a un <strong>Orchestratore</strong>
+      (Marketing, Studio amministrativo-legale, Commerciale): scrive il piano di lavoro, lo distribuisce agli
+      specialisti giusti, passa i risultati da uno all'altro quando serve e chiude con un aggiornamento operativo.
+      I documenti prodotti arrivano come <strong>schede scaricabili</strong> (Word, PDF, Markdown), non come testo
+      da copiare.</p>
+      <div class="hero-steps">
+        <div class="hero-step"><b>1 · Task</b>Descrivi cosa serve, anche un pacchetto di più documenti.</div>
+        <div class="hero-step"><b>2 · Piano</b>L'orchestratore dice chi fa cosa e in che ordine.</div>
+        <div class="hero-step"><b>3 · Agenti al lavoro</b>Vedi ogni specialista passare da "in attesa" a "fatto".</div>
+        <div class="hero-step"><b>4 · Consegna</b>Documenti pronti da aprire e scaricare, più la sintesi finale.</div>
+      </div>
     </div>
 
     <div class="roster" id="roster"></div>
-    <div class="roster-note">L'Orchestratore incatena gli altri cinque agenti su un task condiviso — non è un sesto ruolo indipendente.</div>
+    <div class="roster-note">Gli orchestratori (Marketing, Studio amministrativo-legale, Commerciale) non sono ruoli a sé: pianificano, smistano e consegnano il lavoro degli specialisti del loro reparto.</div>
 
     <div class="chat-shell">
       <div class="chat-header">
@@ -536,24 +623,43 @@
   // --- Shared team state (Postgres, via /api/state) -----------------------
   // Replaces the old browser-only localStorage persistence: one shared history/pipeline dataset the
   // whole team sees (not a private copy per browser), reflecting the current design choice of
-  // shared visibility over per-user private state. Concurrency note: whoever saves last wins — see
-  // README for why that's an accepted limitation of this simple shared-blob approach.
-  function saveState() {
+  // shared visibility over per-user private state.
+  // v3.0: salvataggio PARZIALE. Prima ogni salvataggio rispediva l'intero blob (la cronologia di TUTTI
+  // gli agenti) e "l'ultimo che salva vince": con due schede o due persone aperte insieme, una
+  // sovrascriveva silenziosamente i messaggi dell'altra — visto dal vivo come conversazioni che
+  // tornavano indietro e reset annullati. Ora si mandano solo le cronologie degli agenti toccati
+  // (agentIds) più i campi di primo livello, e il server fa il merge (api/state.js, campo "patch").
+  function saveState(agentIds) {
+    var ids = Array.isArray(agentIds) ? agentIds : (agentIds ? [agentIds] : [state.agent]);
+    var historyPatch = {};
+    ids.forEach(function (id) { if (state.history.hasOwnProperty(id)) historyPatch[id] = state.history[id]; });
+    var patch = {
+      history: historyPatch,
+      pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
+      pipelineSteps: state.pipeline.steps,
+      pipelineBrand: state.pipeline.brand,
+      heygenAvatarId: state.heygen.avatarId,
+      heygenVoiceId: state.heygen.voiceId,
+    };
     fetch("/api/state", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        state: {
-          history: state.history,
-          pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
-          pipelineSteps: state.pipeline.steps,
-          pipelineBrand: state.pipeline.brand,
-          heygenAvatarId: state.heygen.avatarId,
-          heygenVoiceId: state.heygen.voiceId,
-        },
-      }),
+      // Le chiavi che iniziano con "_" sono stato di sola UI (es. nodo del flusso espanso): non si salvano.
+      body: JSON.stringify({ patch: patch }, function (k, v) { return (typeof k === "string" && k.charAt(0) === "_") ? undefined : v; }),
     }).catch(function (e) { console.warn("Salvataggio stato non riuscito:", e); });
   }
+
+  // Quando si torna su questa scheda dopo un po' (altra scheda, altro collega), si ricarica lo stato
+  // condiviso invece di continuare su una copia vecchia — ma mai mentre una chiamata è in corso qui.
+  var busyCalls = 0;
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState !== "visible" || busyCalls > 0 || state.pipeline.running || !currentUser) return;
+    loadRemoteState().then(function () {
+      if (busyCalls > 0) return;
+      var a = AGENTS.find(function (x) { return x.id === state.agent; });
+      if (a && a.pipeline) renderPipeline(); else renderMessages();
+    });
+  });
 
   async function loadRemoteState() {
     try {
@@ -807,6 +913,393 @@
         exportToExcel(docTitle, ["Contenuto"], rows, docTitle);
       }
     }
+  }
+
+  // --- v3.0: Markdown, documenti come schede, esportazioni che rispettano la struttura ----------
+  // Gli agenti scrivono in Markdown (titoli, elenchi, grassetto): prima la chat mostrava asterischi
+  // e cancelletti grezzi. Qui un parser minimale (nessuna libreria, HTML sempre escapato prima) che
+  // produce blocchi riusati sia per il rendering in pagina sia per Word/PDF.
+  function escapeHtml(str) {
+    return String(str == null ? "" : str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function inlineMd(escaped) {
+    return String(escaped)
+      .replace(/`([^`]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/(^|[\s(])_([^_\n]+)_(?=[\s.,;:!?)]|$)/g, "$1<em>$2</em>")
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  }
+
+  function stripInlineMd(text) {
+    return String(text || "")
+      .replace(/\*\*([^*\n]+)\*\*/g, "$1")
+      .replace(/(^|[^*\w])\*([^*\n]+)\*(?!\*)/g, "$1$2")
+      .replace(/(^|[\s(])_([^_\n]+)_(?=[\s.,;:!?)]|$)/g, "$1$2")
+      .replace(/`([^`]+)`/g, "$1")
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, "$1 ($2)");
+  }
+
+  // Blocchi: {type:"h",level,text} | {type:"p",text} | {type:"list",ordered,items[]} | {type:"hr"} | {type:"table",rows[][]}
+  function mdBlocks(md) {
+    var lines = String(md || "").replace(/\r\n?/g, "\n").split("\n");
+    var blocks = [];
+    var para = [];
+    var i = 0;
+    function flush() { if (para.length) { blocks.push({ type: "p", text: para.join("\n") }); para = []; } }
+    while (i < lines.length) {
+      var raw = lines[i];
+      var t = raw.trim();
+      if (!t) { flush(); i++; continue; }
+      var h = /^(#{1,6})\s+(.*)$/.exec(t);
+      if (h) { flush(); blocks.push({ type: "h", level: h[1].length, text: h[2].replace(/\s*#+\s*$/, "") }); i++; continue; }
+      if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flush(); blocks.push({ type: "hr" }); i++; continue; }
+      if (/^\|.*\|\s*$/.test(t) && i + 1 < lines.length && /^\|?\s*:?-{2,}/.test(lines[i + 1].trim())) {
+        flush();
+        var rows = [];
+        while (i < lines.length && /^\|/.test(lines[i].trim())) { rows.push(lines[i].trim()); i++; }
+        var cells = function (r) { return r.replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); }); };
+        var tableRows = [cells(rows[0])].concat(rows.slice(2).map(cells));
+        blocks.push({ type: "table", rows: tableRows });
+        continue;
+      }
+      var ul = /^[-*•]\s+(.*)$/.exec(t);
+      var ol = /^(\d{1,3})[.)]\s+(.*)$/.exec(t);
+      if (ul || ol) {
+        flush();
+        var ordered = !!ol;
+        var items = [];
+        while (i < lines.length) {
+          var tt = lines[i].trim();
+          var mu = /^[-*•]\s+(.*)$/.exec(tt);
+          var mo = /^(\d{1,3})[.)]\s+(.*)$/.exec(tt);
+          if (!ordered && mu) { items.push(mu[1]); i++; }
+          else if (ordered && mo) { items.push(mo[2]); i++; }
+          else if (tt && /^\s{2,}\S/.test(lines[i]) && items.length) { items[items.length - 1] += " " + tt; i++; }
+          else break;
+        }
+        blocks.push({ type: "list", ordered: ordered, items: items });
+        continue;
+      }
+      para.push(t);
+      i++;
+    }
+    flush();
+    return blocks;
+  }
+
+  // headingOffset: 1 dentro le bolle della chat (un "#" dell'agente diventa <h2>, mai un secondo <h1>
+  // in pagina), 0 nel visualizzatore documento e nelle esportazioni.
+  function renderMarkdown(md, headingOffset) {
+    var off = typeof headingOffset === "number" ? headingOffset : 1;
+    return mdBlocks(md).map(function (b) {
+      if (b.type === "h") {
+        var lvl = Math.min(6, Math.max(1, b.level + off));
+        return "<h" + lvl + ">" + inlineMd(escapeHtml(b.text)) + "</h" + lvl + ">";
+      }
+      if (b.type === "hr") return "<hr>";
+      if (b.type === "list") {
+        var tag = b.ordered ? "ol" : "ul";
+        return "<" + tag + ">" + b.items.map(function (it) { return "<li>" + inlineMd(escapeHtml(it)) + "</li>"; }).join("") + "</" + tag + ">";
+      }
+      if (b.type === "table") {
+        var head = b.rows[0] || [];
+        var body = b.rows.slice(1);
+        return "<table><thead><tr>" + head.map(function (c) { return "<th>" + inlineMd(escapeHtml(c)) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" + body.map(function (r) {
+            return "<tr>" + r.map(function (c) { return "<td>" + inlineMd(escapeHtml(c)) + "</td>"; }).join("") + "</tr>";
+          }).join("") + "</tbody></table>";
+      }
+      return "<p>" + inlineMd(escapeHtml(b.text)).replace(/\n/g, "<br>") + "</p>";
+    }).join("");
+  }
+
+  function setMarkdown(el, md, headingOffset) {
+    el.classList.add("md");
+    el.innerHTML = renderMarkdown(md, headingOffset);
+  }
+
+  // Protocollo documenti (api/chat.js, DOCUMENT_PROTOCOL): un deliverable arriva tra
+  // ---DOCUMENTO: titolo--- e ---FINE DOCUMENTO---. Qui si estrae in {title, body, incomplete}.
+  // Un blocco aperto e mai chiuso (continuazione fallita) viene comunque mostrato, marcato incompleto.
+  var DOC_OPEN_RE = /^[ \t]*---\s*DOCUMENTO\s*:\s*(.+?)\s*---[ \t]*$/im;
+  var DOC_CLOSE_RE = /^[ \t]*---\s*FINE\s+DOCUMENTO\s*---[ \t]*$/im;
+
+  function parseDocuments(text) {
+    var docs = [];
+    var rest = String(text || "");
+    var guard = 0;
+    while (guard++ < 30) {
+      var open = DOC_OPEN_RE.exec(rest);
+      if (!open) break;
+      var afterOpen = rest.slice(open.index + open[0].length);
+      var close = DOC_CLOSE_RE.exec(afterOpen);
+      var body = close ? afterOpen.slice(0, close.index) : afterOpen;
+      docs.push({ title: open[1].trim().replace(/^["“]|["”]$/g, ""), body: body.replace(/^\s*\n/, "").replace(/\s+$/, ""), incomplete: !close });
+      if (!close) break;
+      rest = afterOpen.slice(close.index + close[0].length);
+    }
+    return docs;
+  }
+
+  function stripDocuments(text) {
+    var rest = String(text || "");
+    var out = "";
+    var guard = 0;
+    while (guard++ < 30) {
+      var open = DOC_OPEN_RE.exec(rest);
+      if (!open) { out += rest; break; }
+      out += rest.slice(0, open.index);
+      var afterOpen = rest.slice(open.index + open[0].length);
+      var close = DOC_CLOSE_RE.exec(afterOpen);
+      if (!close) break;
+      rest = afterOpen.slice(close.index + close[0].length);
+    }
+    return out.replace(/\n{3,}/g, "\n\n").trim();
+  }
+
+  function wordCount(text) {
+    var m = String(text || "").trim().match(/\S+/g);
+    return m ? m.length : 0;
+  }
+
+  function slugify(title) {
+    return String(title || "documento").toLowerCase()
+      .replace(/[àáâä]/g, "a").replace(/[èéêë]/g, "e").replace(/[ìíîï]/g, "i").replace(/[òóôö]/g, "o").replace(/[ùúûü]/g, "u")
+      .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "documento";
+  }
+
+  // Esportazioni che rispettano la struttura Markdown (prima: un unico paragrafo piatto con gli
+  // asterischi dentro). Word: HTML con stili inline che Word importa; PDF: jsPDF con titoli in
+  // grassetto, elenchi rientrati e tabelle semplificate; Markdown: il testo così com'è.
+  function exportMarkdownToWord(title, md, filename) {
+    var html =
+      '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
+      'xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">' +
+      "<head><meta charset='utf-8'><title>" + escapeXml(title) + "</title>" +
+      "<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;line-height:1.5;color:#1F1F1F;}" +
+      "h1{font-size:18pt;color:#0F2D24;margin:0 0 12pt;} h2{font-size:14pt;color:#0F2D24;margin:16pt 0 6pt;} " +
+      "h3{font-size:12pt;color:#0F2D24;margin:12pt 0 4pt;} h4,h5,h6{font-size:11pt;margin:10pt 0 4pt;} " +
+      "p{margin:0 0 8pt;} li{margin:2pt 0;} table{border-collapse:collapse;margin:6pt 0 10pt;} " +
+      "th,td{border:1px solid #999;padding:3pt 6pt;font-size:10pt;vertical-align:top;} th{background:#EDE6DE;} " +
+      "hr{border:none;border-top:1px solid #bbb;margin:10pt 0;} code{font-family:Consolas,monospace;}</style></head>" +
+      "<body><h1>" + escapeXml(title) + "</h1>" + renderMarkdown(md, 0).replace(/<h1>/g, "<h2>").replace(/<\/h1>/g, "</h2>") + "</body></html>";
+    var blob = new Blob(["﻿", html], { type: "application/msword" });
+    downloadBlob(blob, (filename || slugify(title)) + ".doc");
+  }
+
+  function exportMarkdownToPdf(title, md, filename) {
+    if (!(window.jspdf && window.jspdf.jsPDF)) {
+      exportToPdf(title, [{ heading: null, body: stripInlineMd(md) }], filename);
+      return;
+    }
+    var doc = new window.jspdf.jsPDF({ unit: "pt", format: "a4" });
+    var marginX = 52;
+    var y = 60;
+    var pageH = doc.internal.pageSize.getHeight();
+    var maxW = doc.internal.pageSize.getWidth() - marginX * 2;
+    function ensure(h) { if (y + h > pageH - 56) { doc.addPage(); y = 60; } }
+    function writeLines(text, size, style, indent, lineH) {
+      doc.setFont("helvetica", style || "normal");
+      doc.setFontSize(size);
+      var lines = doc.splitTextToSize(String(text || ""), maxW - (indent || 0));
+      lines.forEach(function (ln) { ensure(lineH); doc.text(ln, marginX + (indent || 0), y); y += lineH; });
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(17);
+    doc.splitTextToSize(title, maxW).forEach(function (ln) { ensure(24); doc.text(ln, marginX, y); y += 22; });
+    y += 8;
+    mdBlocks(md).forEach(function (b) {
+      if (b.type === "h") {
+        var size = b.level <= 1 ? 14.5 : b.level === 2 ? 13 : 11.5;
+        y += b.level <= 2 ? 8 : 4;
+        writeLines(stripInlineMd(b.text), size, "bold", 0, size + 5);
+        y += 2;
+      } else if (b.type === "hr") {
+        ensure(14); doc.setDrawColor(180); doc.line(marginX, y, marginX + maxW, y); y += 12;
+      } else if (b.type === "list") {
+        b.items.forEach(function (it, idx) {
+          var bullet = b.ordered ? (idx + 1) + "." : "•";
+          ensure(15);
+          doc.setFont("helvetica", "normal"); doc.setFontSize(10.5);
+          doc.text(bullet, marginX + 6, y);
+          var startY = y;
+          writeLines(stripInlineMd(it), 10.5, "normal", 22, 14.5);
+          if (y === startY) y += 14.5;
+        });
+        y += 4;
+      } else if (b.type === "table") {
+        var cols = Math.max(1, (b.rows[0] || []).length);
+        var colW = maxW / cols;
+        b.rows.forEach(function (r, ri) {
+          var cellLines = r.map(function (c) { doc.setFontSize(9.5); return doc.splitTextToSize(stripInlineMd(c), colW - 8); });
+          var rowH = Math.max.apply(null, cellLines.map(function (cl) { return cl.length; })) * 12 + 8;
+          ensure(rowH);
+          doc.setDrawColor(170);
+          for (var ci = 0; ci < cols; ci++) {
+            doc.rect(marginX + ci * colW, y - 10, colW, rowH);
+            doc.setFont("helvetica", ri === 0 ? "bold" : "normal");
+            doc.setFontSize(9.5);
+            (cellLines[ci] || []).forEach(function (ln, li) { doc.text(ln, marginX + ci * colW + 4, y + li * 12); });
+          }
+          y += rowH;
+        });
+        y += 8;
+      } else {
+        writeLines(stripInlineMd(b.text).replace(/\n/g, " "), 10.5, "normal", 0, 14.5);
+        y += 6;
+      }
+    });
+    doc.save((filename || slugify(title)) + ".pdf");
+  }
+
+  function exportMarkdownFile(title, md, filename) {
+    var blob = new Blob(["# " + title + "\n\n" + md], { type: "text/markdown;charset=utf-8" });
+    downloadBlob(blob, (filename || slugify(title)) + ".md");
+  }
+
+  // Scheda Documento: come un "artifact" — titolo, autore, dimensione, azioni. Il corpo si apre in
+  // un visualizzatore a tutta pagina (openDocumentViewer), non invade la chat.
+  function docActionButtons(docObj, meta, compact, inViewer) {
+    var wrap = document.createElement("div");
+    wrap.className = compact ? "d-actions" : "doc-actions";
+    var fname = slugify(docObj.title);
+    function mk(label, cls, fn) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-copy" + (cls ? " " + cls : "");
+      b.textContent = label;
+      b.addEventListener("click", function (e) { e.stopPropagation(); fn(b); });
+      wrap.appendChild(b);
+      return b;
+    }
+    if (!inViewer) mk("Apri", "primary", function () { openDocumentViewer(docObj, meta); });
+    mk("Word", "", function () { exportMarkdownToWord(docObj.title, docObj.body, fname); });
+    mk("PDF", "", function () { exportMarkdownToPdf(docObj.title, docObj.body, fname); });
+    if (!compact) {
+      mk("Markdown", "", function () { exportMarkdownFile(docObj.title, docObj.body, fname); });
+      mk("Copia", "", function (b) { copyText(docObj.body, b); });
+    }
+    return wrap;
+  }
+
+  function buildDocCard(docObj, meta) {
+    var card = document.createElement("div");
+    card.className = "doc-card" + (docObj.incomplete ? " incomplete" : "");
+    var icon = document.createElement("div");
+    icon.className = "doc-icon";
+    icon.textContent = "📄";
+    var main = document.createElement("div");
+    main.className = "doc-main";
+    var kicker = document.createElement("div");
+    kicker.className = "doc-kicker";
+    kicker.textContent = docObj.incomplete ? "Documento — incompleto" : "Documento";
+    var title = document.createElement("div");
+    title.className = "doc-title";
+    title.textContent = docObj.title;
+    var metaEl = document.createElement("div");
+    metaEl.className = "doc-meta";
+    var words = wordCount(docObj.body);
+    metaEl.textContent = (meta && meta.by ? meta.by + " · " : "") + words + " parole · ~" + Math.max(1, Math.round(words / 450)) + " pag." +
+      (docObj.incomplete ? " · interrotto: chiedi \"continua\"" : "");
+    main.appendChild(kicker);
+    main.appendChild(title);
+    main.appendChild(metaEl);
+    card.appendChild(icon);
+    card.appendChild(main);
+    card.appendChild(docActionButtons(docObj, meta, false));
+    card.addEventListener("click", function () { openDocumentViewer(docObj, meta); });
+    return card;
+  }
+
+  function openDocumentViewer(docObj, meta) {
+    var overlay = document.createElement("div");
+    overlay.className = "doc-overlay";
+    var modal = document.createElement("div");
+    modal.className = "doc-modal";
+    var head = document.createElement("div");
+    head.className = "doc-modal-head";
+    var left = document.createElement("div");
+    var t = document.createElement("div");
+    t.className = "doc-title";
+    t.textContent = docObj.title;
+    var m = document.createElement("div");
+    m.className = "doc-meta";
+    m.textContent = (meta && meta.by ? meta.by + " · " : "") + wordCount(docObj.body) + " parole" + (docObj.incomplete ? " · documento interrotto" : "");
+    left.appendChild(t);
+    left.appendChild(m);
+    var actions = docActionButtons(docObj, meta, false, true);
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "step-copy";
+    closeBtn.textContent = "Chiudi ✕";
+    closeBtn.addEventListener("click", function (e) { e.stopPropagation(); document.body.removeChild(overlay); });
+    actions.appendChild(closeBtn);
+    head.appendChild(left);
+    head.appendChild(actions);
+    var body = document.createElement("div");
+    body.className = "doc-modal-body";
+    var inner = document.createElement("div");
+    setMarkdown(inner, docObj.body, 0);
+    body.appendChild(inner);
+    modal.appendChild(head);
+    modal.appendChild(body);
+    overlay.appendChild(modal);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) document.body.removeChild(overlay); });
+    function onKey(e) { if (e.key === "Escape" && overlay.parentNode) { document.body.removeChild(overlay); document.removeEventListener("keydown", onKey); } }
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(overlay);
+  }
+
+  // Tutti i documenti della conversazione corrente: dalle risposte dirette dell'agente e dai nodi
+  // del flusso dell'Orchestratore (ognuno con chi l'ha prodotto). Alimenta il pannello "Documenti".
+  function collectDocuments(hist) {
+    var docs = [];
+    (hist || []).forEach(function (m) {
+      if (m.role === "assistant" && !m.pending) {
+        parseDocuments(m.content).forEach(function (d) { docs.push({ doc: d, by: orchFlowLabel(state.agent) }); });
+      }
+      if (m.flow && Array.isArray(m.flow.nodes)) {
+        m.flow.nodes.forEach(function (n) {
+          if (n.status === "done" && n.output) parseDocuments(n.output).forEach(function (d) { docs.push({ doc: d, by: n.label }); });
+        });
+      }
+    });
+    return docs;
+  }
+
+  function buildDeliverablesPanel(docs) {
+    var panel = document.createElement("div");
+    panel.className = "deliverables";
+    var head = document.createElement("div");
+    head.className = "deliverables-head";
+    var title = document.createElement("div");
+    title.className = "deliverables-title";
+    title.textContent = "📁 Documenti prodotti in questa conversazione";
+    var count = document.createElement("div");
+    count.className = "deliverables-count";
+    count.textContent = docs.length + (docs.length === 1 ? " documento" : " documenti");
+    head.appendChild(title);
+    head.appendChild(count);
+    panel.appendChild(head);
+    var list = document.createElement("div");
+    list.className = "deliverables-list";
+    docs.forEach(function (entry) {
+      var row = document.createElement("div");
+      row.className = "deliverable-row";
+      var ic = document.createElement("div"); ic.className = "d-icon"; ic.textContent = "📄";
+      var ti = document.createElement("div"); ti.className = "d-title"; ti.textContent = entry.doc.title + (entry.doc.incomplete ? " (incompleto)" : "");
+      ti.title = entry.doc.title;
+      var by = document.createElement("div"); by.className = "d-by"; by.textContent = entry.by || "";
+      row.appendChild(ic); row.appendChild(ti); row.appendChild(by);
+      row.appendChild(docActionButtons(entry.doc, { by: entry.by }, true));
+      row.addEventListener("click", function () { openDocumentViewer(entry.doc, { by: entry.by }); });
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+    return panel;
   }
 
   // --- Invio email reale (Specialista Email Outreach) ----------------------
@@ -1127,13 +1620,22 @@
     if (!m) return [];
     var items = [];
     m[1].split("\n").forEach(function (raw) {
-      var line = raw.trim();
+      var line = raw.trim().replace(/^\d+[.)]\s*/, ""); // tollera "1. ruolo|compito"
       if (!line) return;
       var sep = line.indexOf("|");
       if (sep < 0) return;
-      var role = line.slice(0, sep).trim();
-      var subtask = line.slice(sep + 1).trim();
-      if (role && subtask) items.push({ role: role, subtask: subtask });
+      var role = line.slice(0, sep).trim().replace(/^[-*•]\s*/, "");
+      var rest = line.slice(sep + 1).trim();
+      // v3.0: terzo campo opzionale "dipende:1,3" — il compito usa il risultato di quelle righe
+      // (numerazione da 1) e parte solo quando sono pronte. Vedi runFlowNodes().
+      var deps = [];
+      var depMatch = /\|\s*dipende\s*:\s*([\d,\s]+)\s*$/i.exec(rest);
+      if (depMatch) {
+        deps = depMatch[1].split(",").map(function (s) { return parseInt(s.trim(), 10); }).filter(function (n) { return n > 0; });
+        rest = rest.slice(0, depMatch.index).trim();
+      }
+      var subtask = rest.replace(/\|\s*$/, "").trim();
+      if (role && subtask) items.push({ role: role, subtask: subtask, deps: deps });
     });
     return items;
   }
@@ -1147,7 +1649,14 @@
   // che un giro di sintesi proponga un altro giro all'infinito (costo/tempo, non un limite tecnico:
   // qui non c'è nessuna chiamata server-side incatenata, ogni passo è una sua chiamata separata
   // a /api/chat dal browser, come già fa la pipeline marketing).
-  var MAX_ORCH_ROUNDS = 2;
+  var MAX_ORCH_ROUNDS = 3;
+  // v3.0: quanti specialisti lavorano insieme nello stesso istante. Un piano da 10-12 documenti non
+  // parte più tutto in una volta (limiti di rate dell'API e un muro di nodi che pulsano): scorre a
+  // gruppi, e si vede chi sta lavorando adesso e chi è in coda — più leggibile, come su Relevance.
+  var FLOW_CONCURRENCY = 2;
+  // Quante volte si continua da sola una risposta interrotta per limite di spazio (prefill del testo
+  // parziale, vedi fetchAgentReply): 4 parti × 8192 token coprono anche un contratto molto lungo.
+  var MAX_CONTINUATIONS = 4;
 
   function orchFlowAgent(roleId) {
     return AGENTS.filter(function (a) { return a.id === roleId; })[0];
@@ -1854,45 +2363,80 @@
     return wrap;
   }
 
-  // Flusso automatico: sostituisce i pulsanti manuali di buildRoutingButtons per i messaggi nuovi
-  // dell'Orchestratore (quelli vecchi già salvati restano con i pulsanti, vedi renderMessages) --
-  // mostra lo stato live di ogni specialista coinvolto (in attesa/in corso/fatto/errore) e, se un
-  // nodo ha già una risposta, un click la apre/chiude qui sotto senza dover andare nella sua chat.
+  // Flusso automatico dell'Orchestratore, dentro la scheda "Piano di lavoro": (2) gli agenti al lavoro,
+  // ognuno con numero, compito, stato live (in attesa / in corso / parte N… / fatto / errore) e quante
+  // schede ha prodotto; un click apre il dettaglio con il testo formattato e le schede Documento;
+  // (3) la consegna: tutti i documenti del flusso con Apri / Word / PDF. Stessa visual language della
+  // flow-map della pipeline marketing, ma a griglia (un piano da 12 compiti non sta in una riga).
   function buildFlowEl(flow) {
     var wrap = document.createElement("div");
     wrap.className = "orch-flow";
 
-    var headerLine = document.createElement("div");
-    headerLine.className = "orch-flow-header";
-    headerLine.textContent = flow.status === "running" ? "Il flusso è in corso\u2026"
+    var nodes = flow.nodes || [];
+    var doneCount = nodes.filter(function (n) { return n.status === "done"; }).length;
+    var runningCount = nodes.filter(function (n) { return n.status === "running"; }).length;
+    var errorCount = nodes.filter(function (n) { return n.status === "error"; }).length;
+
+    var stage2 = document.createElement("div");
+    stage2.className = "orch-stage";
+    var head2 = document.createElement("div");
+    head2.className = "orch-stage-head";
+    head2.innerHTML = '<span class="stage-num">2</span><span>Agenti al lavoro · ' + nodes.length + (nodes.length === 1 ? " compito" : " compiti") + "</span>";
+    var live = document.createElement("span");
+    live.className = "stage-live";
+    live.textContent = flow.status === "running"
+      ? (runningCount ? runningCount + " in corso · " : "") + doneCount + "/" + nodes.length + " completati"
       : flow.status === "error" ? "Flusso interrotto"
-      : "Flusso completato" + (flow.round > 1 ? " \u2014 " + flow.round + "\u00ba giro" : "");
-    wrap.appendChild(headerLine);
+      : doneCount + "/" + nodes.length + " completati" + (errorCount ? " · " + errorCount + " non riusciti" : "");
+    head2.appendChild(live);
+    stage2.appendChild(head2);
 
     var map = document.createElement("div");
     map.className = "flow-map";
-    flow.nodes.forEach(function (node, i) {
-      if (i > 0) {
-        var arrow = document.createElement("div");
-        arrow.className = "flow-arrow active";
-        arrow.textContent = "\u2192";
-        map.appendChild(arrow);
-      }
+    nodes.forEach(function (node, i) {
       var fnode = document.createElement("div");
-      fnode.className = "flow-node " + node.status;
-      fnode.title = node.label + " \u2014 " + (FLOW_STATE_LABELS[node.status] || node.status);
+      fnode.className = "flow-node " + node.status + (node._expanded ? " expanded" : "");
+      fnode.title = node.label + " — " + (FLOW_STATE_LABELS[node.status] || node.status) + "\n" + node.subtask;
+      var num = document.createElement("div");
+      num.className = "flow-num";
+      num.textContent = "#" + (i + 1);
+      fnode.appendChild(num);
+      if (node.deps && node.deps.length) {
+        var deps = document.createElement("div");
+        deps.className = "flow-deps";
+        deps.textContent = "↳ " + node.deps.map(function (d) { return "#" + d; }).join(" ");
+        deps.title = "Usa il risultato dei compiti " + node.deps.join(", ");
+        fnode.appendChild(deps);
+      }
       var icon = document.createElement("div");
       icon.className = "flow-icon";
       icon.textContent = node.icon;
       var label = document.createElement("div");
       label.className = "flow-label";
       label.textContent = node.label;
+      var task = document.createElement("div");
+      task.className = "flow-task";
+      task.textContent = node.subtask;
       var stateEl = document.createElement("div");
       stateEl.className = "flow-state";
-      stateEl.textContent = node.status === "done" ? "\u2713 Fatto" : (FLOW_STATE_LABELS[node.status] || node.status);
+      stateEl.textContent = node.status === "done" ? "✓ Fatto" : (FLOW_STATE_LABELS[node.status] || node.status);
       fnode.appendChild(icon);
       fnode.appendChild(label);
+      fnode.appendChild(task);
       fnode.appendChild(stateEl);
+      if (node.status === "running" && node.progress) {
+        var prog = document.createElement("div");
+        prog.className = "flow-progress";
+        prog.textContent = "continuo a scrivere · " + node.progress;
+        fnode.appendChild(prog);
+      }
+      if (node.status === "done" && node.output) {
+        var nDocs = parseDocuments(node.output).length;
+        var docsEl = document.createElement("div");
+        docsEl.className = "flow-docs";
+        docsEl.textContent = nDocs ? "📄 " + nDocs + (nDocs === 1 ? " documento" : " documenti") : "apri il risultato";
+        fnode.appendChild(docsEl);
+      }
       if (node.output) {
         fnode.addEventListener("click", function () {
           node._expanded = !node._expanded;
@@ -1901,64 +2445,77 @@
       }
       map.appendChild(fnode);
     });
-    wrap.appendChild(map);
+    stage2.appendChild(map);
 
-    flow.nodes.forEach(function (node) {
-      if (node._expanded && node.output) {
-        var detail = document.createElement("div");
-        detail.className = "step-output orch-flow-detail" + (node.status === "error" ? " error" : "");
-        detail.textContent = node.label + ":\n\n" + node.output;
-        wrap.appendChild(detail);
-        if (Array.isArray(node.sources) && node.sources.length) {
-          wrap.appendChild(buildSourcesEl(node.sources));
-        }
-        if (node.status !== "error") {
-          var detailActions = document.createElement("div");
-          detailActions.className = "step-actions";
-          var textForExport = node.role === "art-director" ? stripSlidesBlock(node.output) : node.output;
-          var copyDetailBtn = document.createElement("button");
-          copyDetailBtn.type = "button";
-          copyDetailBtn.className = "step-copy";
-          copyDetailBtn.textContent = "Copia";
-          copyDetailBtn.addEventListener("click", function () { copyText(textForExport, copyDetailBtn); });
-          detailActions.appendChild(copyDetailBtn);
-          var dlDetailBtn = document.createElement("button");
-          dlDetailBtn.type = "button";
-          dlDetailBtn.className = "step-copy";
-          dlDetailBtn.textContent = "Scarica come file";
-          dlDetailBtn.addEventListener("click", function () {
-            var stamp = new Date().toISOString().slice(0, 10);
-            downloadText(textForExport, "radix-" + node.role + "-" + stamp + ".txt");
-          });
-          detailActions.appendChild(dlDetailBtn);
-          var wordDetailBtn = document.createElement("button");
-          wordDetailBtn.type = "button";
-          wordDetailBtn.className = "step-copy";
-          wordDetailBtn.textContent = "Word";
-          wordDetailBtn.addEventListener("click", function () {
-            exportToWord("RADIX - " + node.label, [{ heading: null, body: textForExport }], "radix-" + node.role);
-          });
-          detailActions.appendChild(wordDetailBtn);
-          var xlsDetailBtn = document.createElement("button");
-          xlsDetailBtn.type = "button";
-          xlsDetailBtn.className = "step-copy";
-          xlsDetailBtn.textContent = "Excel";
-          xlsDetailBtn.addEventListener("click", function () {
-            exportAgentReply("xlsx", textForExport, "radix-" + node.role);
-          });
-          detailActions.appendChild(xlsDetailBtn);
-          var pdfDetailBtn = document.createElement("button");
-          pdfDetailBtn.type = "button";
-          pdfDetailBtn.className = "step-copy";
-          pdfDetailBtn.textContent = "PDF";
-          pdfDetailBtn.addEventListener("click", function () {
-            exportToPdf("RADIX - " + node.label, [{ heading: null, body: textForExport }], "radix-" + node.role);
-          });
-          detailActions.appendChild(pdfDetailBtn);
-          wrap.appendChild(detailActions);
-        }
+    nodes.forEach(function (node, i) {
+      if (!(node._expanded && node.output)) return;
+      var detail = document.createElement("div");
+      detail.className = "orch-flow-detail";
+      var dh = document.createElement("div");
+      dh.className = "detail-head";
+      var dhLeft = document.createElement("div");
+      dhLeft.textContent = "#" + (i + 1) + " · " + node.icon + " " + node.label;
+      var dhTask = document.createElement("div");
+      dhTask.className = "detail-task";
+      dhTask.textContent = node.subtask;
+      dhLeft.appendChild(document.createElement("br"));
+      dhLeft.appendChild(dhTask);
+      dh.appendChild(dhLeft);
+      var closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "step-copy";
+      closeBtn.textContent = "Chiudi";
+      closeBtn.addEventListener("click", function () { node._expanded = false; renderMessages(); });
+      dh.appendChild(closeBtn);
+      detail.appendChild(dh);
+
+      var docs = node.status === "error" ? [] : parseDocuments(node.output);
+      var noteText = node.status === "error" ? node.output : stripDocuments(node.role === "art-director" ? stripSlidesBlock(node.output) : node.output);
+      if (noteText) {
+        var body = document.createElement("div");
+        body.className = "detail-body" + (node.status === "error" ? " error" : "");
+        if (node.status === "error") body.textContent = noteText; else setMarkdown(body, noteText, 1);
+        detail.appendChild(body);
       }
+      docs.forEach(function (d) { detail.appendChild(buildDocCard(d, { by: node.label })); });
+      if (Array.isArray(node.sources) && node.sources.length) detail.appendChild(buildSourcesEl(node.sources));
+      if (node.status !== "error" && noteText && !docs.length) {
+        var acts = document.createElement("div");
+        acts.className = "step-actions";
+        addExportButtons(acts, noteText, "radix-" + node.role, "RADIX - " + node.label);
+        detail.appendChild(acts);
+      }
+      stage2.appendChild(detail);
     });
+    wrap.appendChild(stage2);
+
+    // (3) Consegna: i documenti prodotti in questo giro, pronti da aprire e scaricare.
+    var flowDocs = [];
+    nodes.forEach(function (n) {
+      if (n.status === "done" && n.output) parseDocuments(n.output).forEach(function (d) { flowDocs.push({ doc: d, by: n.label }); });
+    });
+    if (flowDocs.length || flow.status !== "running") {
+      var stage3 = document.createElement("div");
+      stage3.className = "orch-stage";
+      var head3 = document.createElement("div");
+      head3.className = "orch-stage-head";
+      head3.innerHTML = '<span class="stage-num">3</span><span>Consegna · ' + flowDocs.length + (flowDocs.length === 1 ? " documento" : " documenti") + "</span>";
+      stage3.appendChild(head3);
+      if (flowDocs.length) {
+        var docsWrap = document.createElement("div");
+        docsWrap.className = "orch-docs";
+        flowDocs.forEach(function (e) { docsWrap.appendChild(buildDocCard(e.doc, { by: e.by })); });
+        stage3.appendChild(docsWrap);
+      } else {
+        var empty = document.createElement("div");
+        empty.className = "orch-flow-empty";
+        empty.textContent = flow.status === "error"
+          ? "Nessun documento: il flusso si è interrotto. Scrivi \"riprova\" o riformula la richiesta."
+          : "Questo giro ha prodotto analisi e note (apri i nodi qui sopra), non documenti separati.";
+        stage3.appendChild(empty);
+      }
+      wrap.appendChild(stage3);
+    }
 
     return wrap;
   }
@@ -1970,7 +2527,12 @@
     card.className = "agent-card" + (a.pipeline ? " pipeline-card" : "") + (extraClass ? " " + extraClass : "") +
       (a.id === state.agent ? " active" : "");
     card.innerHTML = '<div class="icon">' + a.icon + '</div><h3>' + a.name + '</h3><p>' + a.blurb + '</p>';
-    card.addEventListener("click", function () { selectAgent(a.id); });
+    card.addEventListener("click", function () {
+      selectAgent(a.id);
+      // Il roster è lungo: dopo la scelta si porta subito l'area di lavoro in vista.
+      var shell = document.querySelector(".chat-shell");
+      if (shell && shell.scrollIntoView) shell.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
     return card;
   }
 
@@ -2087,24 +2649,80 @@
     });
   }
 
+  // Testo "pulito" di una risposta: senza blocchi macchina (slide, routing) e senza i documenti, che
+  // vengono mostrati a parte come schede. È ciò che finisce nella bolla e nelle esportazioni rapide.
+  function visibleAssistantText(m) {
+    var t = m.content || "";
+    if (state.agent === "art-director") t = stripSlidesBlock(t);
+    if (state.agent === "partner" || state.agent === "comm-orchestrator") t = stripRoutingBlock(t);
+    return stripDocuments(t);
+  }
+
+  function addExportButtons(container, text, baseName, label) {
+    function mk(txt, fn) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-copy";
+      b.style.alignSelf = "flex-start";
+      b.textContent = txt;
+      b.addEventListener("click", fn);
+      container.appendChild(b);
+      return b;
+    }
+    var stamp = new Date().toISOString().slice(0, 10);
+    mk("Scarica come file", function () { downloadText(text, baseName + "-" + stamp + ".txt"); });
+    mk("Word", function () { exportMarkdownToWord(label, text, baseName); });
+    mk("Excel", function () { exportAgentReply("xlsx", text, baseName); });
+    mk("PDF", function () { exportMarkdownToPdf(label, text, baseName); });
+  }
+
   function renderMessages() {
     messagesEl.innerHTML = "";
     var hist = state.history[state.agent] || [];
+    var isHub = state.agent === "partner" || state.agent === "comm-orchestrator";
+    messagesEl.classList.toggle("tall", isHub);
+    var agentLabel = orchFlowLabel(state.agent);
+
+    // Pannello "Documenti prodotti": tutti i deliverable della conversazione, in alto, sempre a portata
+    // di mano — la risposta definitiva a "dove sono i file?".
+    var allDocs = collectDocuments(hist);
+    if (allDocs.length) messagesEl.appendChild(buildDeliverablesPanel(allDocs));
+
     hist.forEach(function (m) {
+      if (m.hidden) return; // note automatiche: contesto per l'agente, non per gli occhi
       var div = document.createElement("div");
-      div.className = "msg " + m.role + (m.pending ? " pending" : "");
-      // Assistant text for the Art Director carries a machine-readable ---SLIDES--- block at the end
-      // (see buildCarouselButton below) — hidden from the chat bubble, still used to draw the images.
-      var displayText = m.role === "assistant" && state.agent === "art-director" ? stripSlidesBlock(m.content)
-        : m.role === "assistant" && (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
-        : (m.display || m.content);
-      div.textContent = displayText;
+      var isPlan = isHub && m.role === "assistant" && !m.pending && !!m.flow;
+      div.className = "msg " + m.role + (m.pending ? " pending" : "") + (isPlan ? " plan" : "");
+
+      if (m.role === "assistant" && !m.pending) {
+        var displayText = visibleAssistantText(m);
+        if (isPlan) {
+          var kicker = document.createElement("div");
+          kicker.className = "plan-kicker";
+          kicker.textContent = "🗂️ Piano di lavoro" + (m.flow.round > 1 ? " — " + m.flow.round + "º giro" : "");
+          div.appendChild(kicker);
+          var planBody = document.createElement("div");
+          setMarkdown(planBody, displayText || "Smisto il lavoro agli specialisti indicati qui sotto.", 1);
+          div.appendChild(planBody);
+        } else {
+          setMarkdown(div, displayText || (parseDocuments(m.content).length ? "Documento pronto qui sotto." : "(risposta vuota)"), 1);
+        }
+      } else {
+        div.textContent = m.display || m.content;
+      }
       messagesEl.appendChild(div);
+
       if (m.role === "user" && m.by) {
         var author = document.createElement("div");
         author.className = "msg-author";
         author.textContent = m.by;
         messagesEl.appendChild(author);
+      }
+      if (m.role === "assistant" && !m.pending) {
+        // Documenti scritti direttamente dall'agente (protocollo ---DOCUMENTO---): una scheda ciascuno.
+        parseDocuments(m.content).forEach(function (d) {
+          messagesEl.appendChild(buildDocCard(d, { by: agentLabel }));
+        });
       }
       if (m.role === "assistant" && Array.isArray(m.sources) && m.sources.length) {
         messagesEl.appendChild(buildSourcesEl(m.sources));
@@ -2117,58 +2735,16 @@
         count.textContent = m.content.length + " caratteri";
         messagesEl.appendChild(count);
       }
-      // Any finished agent reply can be saved as a real .txt file, and the Art Director's reply also
-      // gets a button to turn its slide directions into actual downloadable carousel images.
       if (m.role === "assistant" && !m.pending) {
-        var dlBtn = document.createElement("button");
-        dlBtn.type = "button";
-        dlBtn.className = "step-copy";
-        dlBtn.style.alignSelf = "flex-start";
-        dlBtn.textContent = "Scarica come file";
-        dlBtn.addEventListener("click", function () {
-          var stamp = new Date().toISOString().slice(0, 10);
-          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
-            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
-            : m.content;
-          downloadText(toSave, "radix-" + state.agent + "-" + stamp + ".txt");
-        });
-        messagesEl.appendChild(dlBtn);
-        var docBtn = document.createElement("button");
-        docBtn.type = "button";
-        docBtn.className = "step-copy";
-        docBtn.style.alignSelf = "flex-start";
-        docBtn.textContent = "Word";
-        docBtn.addEventListener("click", function () {
-          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
-            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
-            : m.content;
-          exportToWord("RADIX - " + state.agent, [{ heading: null, body: toSave }], "radix-" + state.agent);
-        });
-        messagesEl.appendChild(docBtn);
-        var xlsBtn = document.createElement("button");
-        xlsBtn.type = "button";
-        xlsBtn.className = "step-copy";
-        xlsBtn.style.alignSelf = "flex-start";
-        xlsBtn.textContent = "Excel";
-        xlsBtn.addEventListener("click", function () {
-          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
-            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
-            : m.content;
-          exportAgentReply("xlsx", toSave, "radix-" + state.agent);
-        });
-        messagesEl.appendChild(xlsBtn);
-        var pdfBtn = document.createElement("button");
-        pdfBtn.type = "button";
-        pdfBtn.className = "step-copy";
-        pdfBtn.style.alignSelf = "flex-start";
-        pdfBtn.textContent = "PDF";
-        pdfBtn.addEventListener("click", function () {
-          var toSave = state.agent === "art-director" ? stripSlidesBlock(m.content)
-            : (state.agent === "partner" || state.agent === "comm-orchestrator") ? stripRoutingBlock(m.content)
-            : m.content;
-          exportToPdf("RADIX - " + state.agent, [{ heading: null, body: toSave }], "radix-" + state.agent);
-        });
-        messagesEl.appendChild(pdfBtn);
+        var plainText = visibleAssistantText(m);
+        // Esportazioni rapide della risposta in chat (i documenti hanno i loro pulsanti sulla scheda);
+        // per il piano di lavoro dell'Orchestratore non servono: il deliverable sono i documenti.
+        if (plainText && !isPlan && !parseDocuments(m.content).length) {
+          var exportRow = document.createElement("div");
+          exportRow.className = "step-actions";
+          addExportButtons(exportRow, plainText, "radix-" + state.agent, "RADIX - " + agentLabel);
+          messagesEl.appendChild(exportRow);
+        }
         if (state.agent === "art-director") {
           var carouselBtn = buildCarouselButton(m.content, "radix-carosello");
           if (carouselBtn) messagesEl.appendChild(carouselBtn);
@@ -2181,12 +2757,12 @@
           var bufferBtnSingle = buildBufferButton(m.content);
           if (bufferBtnSingle) messagesEl.appendChild(bufferBtnSingle);
         }
-        if (state.agent === "partner" || state.agent === "comm-orchestrator") {
+        if (isHub) {
           // Messaggi nuovi (con m.flow già impostato da requestReply/runOrchestrationFlow) mostrano
-          // la mappa del flusso live; messaggi vecchi salvati prima di questa funzione (m.flow assente)
-          // restano con i pulsanti manuali di prima, così la cronologia condivisa non si rompe.
+          // il flusso live dentro la scheda del piano; messaggi vecchi salvati prima di questa funzione
+          // (m.flow assente) restano con i pulsanti manuali di prima, così la cronologia non si rompe.
           if (m.flow) {
-            messagesEl.appendChild(buildFlowEl(m.flow));
+            div.appendChild(buildFlowEl(m.flow));
           } else {
             var routingEl = buildRoutingButtons(m.content);
             if (routingEl) messagesEl.appendChild(routingEl);
@@ -2202,7 +2778,7 @@
 
     // "Rigenera" only makes sense right after a real (non-pending, non-error) reply from the agent.
     var last = hist[hist.length - 1];
-    var canRegenerate = !!last && last.role === "assistant" && !last.pending;
+    var canRegenerate = !!last && last.role === "assistant" && !last.pending && !last.flow;
     regenerateLastBtn.style.display = canRegenerate ? "" : "none";
   }
 
@@ -2673,86 +3249,217 @@
     }
   }
 
-  async function callAgent(role, userText, brand) {
-    var res = await postChat({ role: role, messages: [{ role: "user", content: userText }], brand: brand });
-    if (res.status === 401) { showGate("Sessione scaduta: accedi di nuovo."); throw new Error("Sessione scaduta"); }
-    var data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Errore imprevisto");
-    return { text: data.reply || "", sources: data.sources || [] };
+  // v3.0 — Il cuore della "generazione documenti definitiva": una sola funzione per ogni chiamata a un
+  // agente, che se la risposta si interrompe per limite di spazio (truncated: true dal server) richiama
+  // /api/chat con tutto il testo già scritto come ultimo messaggio "assistant" (prefill): il modello
+  // riprende esattamente dalla parola in cui si era fermato e le parti vengono ricucite. Ogni parte è
+  // una chiamata serverless separata, quindi nessun timeout lato Vercel anche per documenti lunghissimi.
+  // onProgress(partNumber) permette di mostrare "continuo a scrivere (parte 2)…" mentre succede.
+  async function fetchAgentReply(body, onProgress) {
+    var baseMessages = (body.messages || []).slice();
+    var messages = baseMessages;
+    var text = "";
+    var sources = [];
+    var seenUrls = {};
+    var parts = 0;
+    var truncated = false;
+    while (true) {
+      parts++;
+      var res = await postChat({ role: body.role, messages: messages, brand: body.brand });
+      if (res.status === 401) {
+        showGate("Sessione scaduta: accedi di nuovo.");
+        var e401 = new Error("Sessione scaduta: accedi di nuovo.");
+        e401.status = 401;
+        throw e401;
+      }
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore imprevisto");
+      var chunk = data.reply || "";
+      // Il prefill viene inviato senza spazi finali (l'API li rifiuta): se il pezzo precedente finiva
+      // con uno spazio/riga nuova e il nuovo inizia con uno spazio, non raddoppiarlo.
+      if (parts > 1 && /\s$/.test(text) && /^\s/.test(chunk)) chunk = chunk.replace(/^\s+/, "");
+      text += chunk;
+      (data.sources || []).forEach(function (s) {
+        if (s && s.url && !seenUrls[s.url]) { seenUrls[s.url] = true; sources.push(s); }
+      });
+      truncated = !!data.truncated;
+      if (!truncated || parts >= MAX_CONTINUATIONS || !chunk.trim()) break;
+      var partial = text.replace(/\s+$/, "");
+      messages = baseMessages.concat([{ role: "assistant", content: partial }]);
+      if (onProgress) { try { onProgress(parts + 1); } catch (e) { /* solo UI */ } }
+    }
+    if (truncated) {
+      text += "\n\n⚠️ [Risposta interrotta per limite di spazio anche dopo " + parts + " parti: scrivi \"continua\" per farla finire.]";
+    }
+    return { text: text, sources: sources, parts: parts, truncated: truncated };
+  }
+
+  async function callAgent(role, userText, brand, onProgress) {
+    var reply = await fetchAgentReply({ role: role, messages: [{ role: "user", content: userText }], brand: brand }, onProgress);
+    return { text: reply.text, sources: reply.sources, parts: reply.parts };
   }
 
   // Un nodo del flusso = uno specialista chiamato con il compito specifico che l'Orchestratore gli
-  // ha assegnato. Aggiorna il nodo (e ridisegna) man mano che la sua chiamata avanza, così i nodi
-  // chiamati in parallelo si vedono passare a "in corso" e poi a "fatto"/"errore" ognuno per conto
-  // suo, invece di comparire tutti insieme solo alla fine.
-  async function runSpecialistNode(node) {
+  // ha assegnato. Se il nodo dipende da altri (deps), riceve anche il loro risultato: è così che
+  // l'Orchestratore "passa l'informazione" da un agente all'altro, come un project manager.
+  // Aggiorna il nodo (e ridisegna) man mano che la chiamata avanza, parte per parte.
+  async function runSpecialistNode(node, depNodes) {
     node.status = "running";
+    node.progress = "";
     renderMessages();
     try {
-      var reply = await callAgent(node.role, node.subtask);
+      var userText = node.subtask;
+      if (depNodes && depNodes.length) {
+        userText += "\n\nMATERIALE DA USARE — risultato di altri specialisti del team su questo stesso incarico:\n\n" +
+          depNodes.map(function (d) {
+            return "=== " + d.label + " (" + d.subtask + ") ===\n" + (d.output || "");
+          }).join("\n\n") +
+          "\n\nSvolgi il tuo compito basandoti su questo materiale (non riscriverlo: usalo).";
+      }
+      var reply = await callAgent(node.role, userText, undefined, function (partNo) {
+        node.progress = "parte " + partNo + "…";
+        renderMessages();
+      });
       node.status = "done";
       node.output = reply.text;
       node.sources = reply.sources;
+      node.progress = "";
     } catch (err) {
       node.status = "error";
       node.output = (err && err.message) || "Errore imprevisto";
+      node.progress = "";
     }
     renderMessages();
-    saveState();
+    saveState([state.agent]);
+  }
+
+  // Scheduler del flusso: rispetta le dipendenze (dipende:N) e la concorrenza massima. Un nodo parte
+  // quando tutti i nodi da cui dipende sono "done"; se uno di quelli è in errore, il dipendente viene
+  // segnato come non eseguito invece di restare in attesa per sempre.
+  function runFlowNodes(flow) {
+    var nodes = flow.nodes;
+    return new Promise(function (resolve) {
+      var active = 0;
+      var settled = false;
+      function depsOf(n) {
+        return (n.deps || []).map(function (idx) { return nodes[idx - 1]; }).filter(function (d) { return !!d && d !== n; });
+      }
+      function tick() {
+        var progressed = true;
+        while (progressed) {
+          progressed = false;
+          nodes.forEach(function (n) {
+            if (n.status !== "pending") return;
+            var deps = depsOf(n);
+            if (deps.some(function (d) { return d.status === "error"; })) {
+              n.status = "error";
+              n.output = "Non eseguito: un compito da cui dipendeva non è riuscito.";
+              progressed = true;
+              return;
+            }
+            if (active < FLOW_CONCURRENCY && deps.every(function (d) { return d.status === "done"; })) {
+              active++;
+              n.status = "running";
+              progressed = true;
+              runSpecialistNode(n, deps).then(function () { active--; tick(); });
+            }
+          });
+        }
+        if (active === 0 && !settled) {
+          var left = nodes.filter(function (n) { return n.status === "pending"; });
+          if (left.length) {
+            left.forEach(function (n) { n.status = "error"; n.output = "Non eseguito: dipendenza circolare o non valida nel piano."; });
+          }
+          settled = true;
+          renderMessages();
+          resolve();
+        } else if (progressed) {
+          renderMessages();
+        }
+      }
+      tick();
+    });
   }
 
   // Cuore della richiesta di Francesco: l'Orchestratore non si limita a smistare una volta sola.
-  // Dopo aver girato il compito agli specialisti (in parallelo: sono pensati come indipendenti),
-  // raccoglie le loro risposte e torna lui stesso a dare l'aggiornamento finale -- e se serve ancora
+  // Dopo aver fatto lavorare gli specialisti (a gruppi, rispettando le dipendenze), raccoglie i loro
+  // risultati e torna lui a dare l'aggiornamento finale da project manager -- e se serve ancora
   // lavoro, può riaprire un altro giro (fino a MAX_ORCH_ROUNDS) invece di scaricare tutto su Francesco.
+  // I documenti degli specialisti NON vengono riscritti dall'Orchestratore: sono già consegnati come
+  // schede scaricabili sotto il flusso; lui ne fa il punto (cosa c'è, cosa manca, prossimo passo).
   async function runOrchestrationFlow(hist, flowMsg, originalTask, round) {
     flowMsg.flow.status = "running";
     renderMessages();
 
-    await Promise.all(flowMsg.flow.nodes.map(function (node) { return runSpecialistNode(node); }));
+    await runFlowNodes(flowMsg.flow);
 
     var successNodes = flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; });
     if (!successNodes.length) {
       flowMsg.flow.status = "error";
       renderMessages();
-      saveState();
+      saveState([state.agent]);
       return;
     }
 
-    var summary = "Richiesta originale: " + originalTask + "\n\n" +
-      "Hai smistato questo lavoro agli specialisti indicati. Ecco le loro risposte:\n\n" +
-      flowMsg.flow.nodes.map(function (n) {
-        return "--- " + n.label + " ---\n" + (n.status === "done" ? n.output : "(non disponibile: " + n.output + ")");
-      }).join("\n\n") +
-      "\n\nSintetizza per Francesco un aggiornamento operativo chiaro e unico, integrando questi " +
-      "risultati invece di limitarti a incollarli in fila. " +
-      (round >= MAX_ORCH_ROUNDS
-        ? "Dai tu stesso la risposta finale adesso: non proporre un ulteriore smistamento."
-        : "Se dopo questi risultati serve ancora il lavoro di uno o più specialisti per completare " +
-          "la richiesta, puoi emettere un nuovo blocco ---ROUTING---; altrimenti dai la risposta finale.");
+    var producedDocs = [];
+    var resultsText = flowMsg.flow.nodes.map(function (n, i) {
+      var head = "--- Compito " + (i + 1) + " · " + n.label + " (" + n.subtask + ") ---\n";
+      if (n.status !== "done") return head + "(non riuscito: " + n.output + ")";
+      var docs = parseDocuments(n.output);
+      var note = stripDocuments(n.output);
+      if (docs.length) {
+        docs.forEach(function (d) { producedDocs.push({ title: d.title, by: n.label, incomplete: d.incomplete }); });
+        return head + docs.map(function (d) {
+          return "[DOCUMENTO CONSEGNATO: \"" + d.title + "\" — " + wordCount(d.body) + " parole, già scaricabile come scheda Documento" +
+            (d.incomplete ? ", INTERROTTO prima della fine" : "") + "]";
+        }).join("\n") + (note ? "\nNota dello specialista: " + note.slice(0, 700) : "");
+      }
+      return head + n.output.slice(0, 3500) + (n.output.length > 3500 ? "\n[…]" : "");
+    }).join("\n\n");
 
-    var pending = { role: "assistant", content: "Sto raccogliendo i risultati\u2026", pending: true };
+    var summary = "Richiesta originale: " + originalTask + "\n\n" +
+      "Hai pianificato e smistato il lavoro agli specialisti. Esito dei compiti:\n\n" + resultsText +
+      "\n\nScrivi ora per Francesco l'aggiornamento finale da project manager, in massimo 10-12 righe: " +
+      "cosa è stato prodotto (titoli dei documenti e chi li ha fatti), i punti aperti o da personalizzare " +
+      "segnalati dagli specialisti, il prossimo passo. Non riscrivere né riassumere il contenuto dei " +
+      "documenti: sono già consegnati come schede scaricabili (pulsanti Apri / Word / PDF) sotto il flusso " +
+      "di lavoro, e devi dirlo in una riga. " +
+      (round >= MAX_ORCH_ROUNDS
+        ? "Se la richiesta prevedeva altri documenti o compiti non ancora prodotti, elencali come prossimo " +
+          "passo senza emettere un nuovo blocco ---ROUTING---: Francesco scriverà \"continua\"."
+        : "Se la richiesta originale prevedeva altri documenti o compiti non ancora prodotti (o un " +
+          "documento è rimasto interrotto), emetti un nuovo blocco ---ROUTING--- con una riga per ciascuno " +
+          "di quelli mancanti; altrimenti chiudi senza blocco.");
+
+    var pending = { role: "assistant", content: "Sto raccogliendo i risultati degli specialisti…", pending: true };
     hist.push(pending);
     renderMessages();
 
     try {
       var synth = await callAgent(state.agent, summary);
       hist.pop();
+      // Memoria della conversazione: l'Orchestratore, nei turni successivi, deve sapere cosa è stato
+      // davvero consegnato (prima vedeva solo la propria sintesi e non sapeva "dove sono i file").
+      // Messaggio nascosto in chat ma inviato come contesto nelle chiamate successive.
+      if (producedDocs.length) {
+        hist.push({
+          role: "user",
+          hidden: true,
+          content: "[Nota automatica della piattaforma — esito del flusso di lavoro, giro " + round + "] Documenti consegnati come " +
+            "schede scaricabili (Apri / Word / PDF) sotto il flusso: " +
+            producedDocs.map(function (d, i) { return (i + 1) + ") \"" + d.title + "\" di " + d.by + (d.incomplete ? " (interrotto)" : ""); }).join("; ") +
+            ". Se l'utente chiede dove sono i file o se può scaricarli, la risposta è: sono le schede Documento qui sotto, con i pulsanti Word e PDF.",
+        });
+      }
       var newMsg = { role: "assistant", content: synth.text || "(risposta vuota)", sources: synth.sources || [] };
       hist.push(newMsg);
       flowMsg.flow.status = "done";
 
       var nextItems = round < MAX_ORCH_ROUNDS ? parseRouting(synth.text) : [];
       if (nextItems.length) {
-        newMsg.flow = {
-          status: "pending",
-          round: round + 1,
-          nodes: nextItems.map(function (item) {
-            return { role: item.role, subtask: item.subtask, label: orchFlowLabel(item.role), icon: orchFlowIcon(item.role), status: "pending", output: null, sources: null };
-          }),
-        };
+        newMsg.flow = makeFlow(nextItems, round + 1);
         renderMessages();
-        saveState();
+        saveState([state.agent]);
         await runOrchestrationFlow(hist, newMsg, originalTask, round + 1);
         return;
       }
@@ -2762,7 +3469,17 @@
       flowMsg.flow.status = "error";
     }
     renderMessages();
-    saveState();
+    saveState([state.agent]);
+  }
+
+  function makeFlow(items, round) {
+    return {
+      status: "pending",
+      round: round,
+      nodes: items.map(function (item) {
+        return { role: item.role, subtask: item.subtask, deps: item.deps || [], label: orchFlowLabel(item.role), icon: orchFlowIcon(item.role), status: "pending", output: null, sources: null };
+      }),
+    };
   }
 
   // Shared by a fresh run (startIndex 0) and "Riprova" on a failed step (startIndex = that step):
@@ -2776,6 +3493,7 @@
 
     var fullTask = withAttachment(task);
     var outputs = outputsBeforeIndex(startIndex);
+    busyCalls++;
     for (var i = startIndex; i < PIPELINE.length; i++) {
       var step = PIPELINE[i];
       state.pipeline.steps[i].status = "running";
@@ -2797,6 +3515,7 @@
       renderPipeline();
       saveState();
     }
+    busyCalls--;
     state.pipeline.running = false;
     pipelineRunBtn.disabled = false;
     resetPipelineBtn.disabled = false;
@@ -2822,54 +3541,49 @@
     sendBtn.disabled = true;
     resetChatBtn.disabled = true;
     regenerateLastBtn.disabled = true;
+    busyCalls++;
 
     try {
-      var res = await postChat({
+      // I messaggi nascosti (hidden: note automatiche sull'esito dei flussi) non si vedono in chat ma
+      // fanno parte del contesto inviato all'agente; i segnaposto "pending" e gli errori mai.
+      var reply = await fetchAgentReply({
         role: state.agent,
-        messages: hist.filter(function (m) { return !m.pending; }).map(function (m) { return { role: m.role, content: m.content }; }),
+        messages: hist.filter(function (m) { return !m.pending && (m.role === "user" || m.role === "assistant"); })
+          .map(function (m) { return { role: m.role, content: m.content }; }),
+      }, function (partNo) {
+        pending.content = "Il testo è lungo: continuo a scriverlo (parte " + partNo + ")…";
+        renderMessages();
       });
-      if (res.status === 401) {
-        hist.pop();
-        hist.push({ role: "error", content: "Sessione scaduta: accedi di nuovo." });
-        showGate("Sessione scaduta: accedi di nuovo.");
-      } else {
-        var data = await res.json();
-        hist.pop(); // remove the pending placeholder
-        if (!res.ok) {
-          hist.push({ role: "error", content: data.error || "Errore imprevisto" });
-        } else {
-          var newMsg = { role: "assistant", content: data.reply || "(risposta vuota)", sources: data.sources || [] };
-          hist.push(newMsg);
-          // Orchestratore dello Studio/Commerciale: se ha smistato il compito, il flusso parte da
-          // solo (vedi runOrchestrationFlow) invece di fermarsi ai soli pulsanti "apri con questo
-          // compito" -- resta lui il punto di contatto, Francesco vede solo l'esito finale e, se
-          // vuole, i dettagli di ogni specialista nella mappa del flusso.
-          if (state.agent === "partner" || state.agent === "comm-orchestrator") {
-            var routingItems = parseRouting(newMsg.content);
-            if (routingItems.length) {
-              newMsg.flow = {
-                status: "pending",
-                round: 1,
-                nodes: routingItems.map(function (item) {
-                  return { role: item.role, subtask: item.subtask, label: orchFlowLabel(item.role), icon: orchFlowIcon(item.role), status: "pending", output: null, sources: null };
-                }),
-              };
-              var priorMsg = hist[hist.length - 2];
-              var originalTask = priorMsg ? (priorMsg.display || priorMsg.content || "") : "";
-              await runOrchestrationFlow(hist, newMsg, originalTask, 1);
-            }
+      hist.pop(); // remove the pending placeholder
+      var newMsg = { role: "assistant", content: reply.text || "(risposta vuota)", sources: reply.sources || [] };
+      hist.push(newMsg);
+      // Orchestratore dello Studio/Commerciale: se ha smistato il compito, il flusso parte da
+      // solo (vedi runOrchestrationFlow) invece di fermarsi ai soli pulsanti "apri con questo
+      // compito" -- resta lui il punto di contatto, Francesco vede il piano, gli agenti al lavoro,
+      // i documenti consegnati e l'esito finale.
+      if (state.agent === "partner" || state.agent === "comm-orchestrator") {
+        var routingItems = parseRouting(newMsg.content);
+        if (routingItems.length) {
+          newMsg.flow = makeFlow(routingItems, 1);
+          var priorUser = null;
+          for (var k = hist.length - 2; k >= 0; k--) {
+            if (hist[k].role === "user" && !hist[k].hidden) { priorUser = hist[k]; break; }
           }
+          var originalTask = priorUser ? (priorUser.display || priorUser.content || "") : "";
+          await runOrchestrationFlow(hist, newMsg, originalTask, 1);
         }
       }
     } catch (err) {
-      hist.pop();
-      hist.push({ role: "error", content: "Chiamata fallita: " + err.message });
+      if (hist.length && hist[hist.length - 1].pending) hist.pop();
+      if (!(err && err.status === 401)) hist.push({ role: "error", content: "Chiamata fallita: " + err.message });
+      else hist.push({ role: "error", content: "Sessione scaduta: accedi di nuovo." });
     }
+    busyCalls--;
     sendBtn.disabled = false;
     resetChatBtn.disabled = false;
     regenerateLastBtn.disabled = false;
     renderMessages();
-    saveState();
+    saveState([state.agent]);
   }
 
   async function send() {
@@ -2909,11 +3623,21 @@
   });
 
   resetChatBtn.addEventListener("click", function () {
-    if (state.pipeline.running) return; // agent id fixed while a pipeline run is in flight, but stay safe
+    if (state.pipeline.running || busyCalls > 0) return; // agent id fixed while a run is in flight, but stay safe
+    var hist = state.history[state.agent] || [];
+    if (hist.length) {
+      var nDocs = collectDocuments(hist).length;
+      var ok = window.confirm(
+        "Cancellare questa conversazione con " + orchFlowLabel(state.agent) + "?\n\n" +
+        "È condivisa con tutto il team e non si può recuperare" +
+        (nDocs ? " — contiene " + nDocs + (nDocs === 1 ? " documento" : " documenti") + ": scaricali prima, se ti servono." : ".")
+      );
+      if (!ok) return;
+    }
     state.history[state.agent] = [];
     clearAttachment();
     renderMessages();
-    saveState();
+    saveState([state.agent]);
   });
 
   resetPipelineBtn.addEventListener("click", function () {

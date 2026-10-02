@@ -36,23 +36,44 @@ const BRAND_CONTEXT_PERSONAL =
   "esplicitamente. Il protagonista è Francesco stesso, non il nome di un'azienda — anche se resta lui a " +
   "guidare RADIX, qui quel nome non compare.";
 
-// Risposta a un dubbio verificato dal vivo: gli agenti rispondevano "non ho la capacità di
-// creare file scaricabili" quando l'utente chiedeva di poter scaricare un testo già scritto,
-// offrendo alternative inutili invece di confermare che il download esiste già lato piattaforma.
-const DOWNLOAD_AWARENESS =
-  "\n\nIl testo che scrivi è già scaricabile così com'è: sotto ogni tua risposta la piattaforma mostra automaticamente i pulsanti \"Scarica come file\", Word, Excel e PDF, che trasformano subito il testo in un file vero — non devi fare nient'altro, non esiste un passaggio ulteriore di \"creazione file\" che ti manca. Se l'utente chiede di poter scaricare qualcosa che hai già scritto, la risposta giusta è confermare che può farlo subito con quei pulsanti — mai dire di non avere la capacità tecnica di creare file scaricabili, perché per chi legge il tuo testo è già un file scaricabile.";
+// v3.0 — Protocollo documenti. La piattaforma non è più "solo chat": quando un agente produce un
+// deliverable vero (contratto, informativa, policy, parere, checklist, piano, calcolo, procedura...)
+// lo racchiude tra due marcatori e il frontend lo trasforma in una scheda "Documento" separata dalla
+// chat, con anteprima formattata e pulsanti Apri / Word / PDF / Markdown — come farebbero Claude o
+// ChatGPT con un artifact. Il testo fuori dai marcatori resta la normale nota in chat.
+// Il frontend inoltre continua da solo una risposta interrotta per limite di spazio (prefill del
+// testo parziale), quindi l'agente non deve più "risparmiare" o fermarsi a metà per paura di troncare.
+const DOCUMENT_PROTOCOL =
+  "\n\nPROTOCOLLO DOCUMENTI (vale per ogni tua risposta). Quando il risultato del tuo lavoro è un " +
+  "documento vero e proprio — contratto, accordo, informativa, policy, parere, checklist operativa, " +
+  "piano, procedura, calcolo strutturato, lettera formale — scrivilo per intero racchiuso tra questi " +
+  "due marcatori, ognuno su una riga a sé:\n" +
+  "---DOCUMENTO: titolo breve e chiaro del documento---\n" +
+  "testo completo del documento in Markdown (titoli con #, sottotitoli con ##, elenchi con -, " +
+  "grassetto con ** per i termini definiti, tabelle Markdown se servono)\n" +
+  "---FINE DOCUMENTO---\n" +
+  "La piattaforma trasforma automaticamente quel blocco in una scheda Documento separata dalla chat, " +
+  "con anteprima formattata e pulsanti Apri / Word / PDF / Markdown: per chi legge è già un file vero, " +
+  "pronto da scaricare. Fuori dai marcatori scrivi solo la nota breve che accompagna il documento " +
+  "(2-5 righe: cosa contiene, cosa va personalizzato, eventuali punti aperti) — mai un riassunto del " +
+  "documento, mai un piano di cosa scriverai. Un documento per risposta, completo dall'intestazione " +
+  "all'ultima clausola/firma: se la risposta si interrompe per limite di spazio, la piattaforma ti fa " +
+  "continuare da sola esattamente dal punto in cui ti eri fermato, quindi non tagliare, non riassumere " +
+  "e non chiudere in fretta per paura di non avere spazio. Non esiste, in nessuna forma o sinonimo, " +
+  "una tua incapacità di \"creare/generare/inviare file scaricabili\": il blocco ---DOCUMENTO--- È il " +
+  "file scaricabile. Se l'utente chiede di scaricare qualcosa che hai già scritto, conferma in una " +
+  "riga che può farlo con i pulsanti della scheda Documento (o con Scarica/Word/PDF sotto la risposta " +
+  "per i testi senza scheda) — mai proporre il copia-incolla manuale come alternativa.";
 
 const MULTI_DOC_GUARD =
   "\n\nQuando un task chiede più documenti insieme (es. \"preparami tutti i documenti per...\"), " +
-  "non elencarli e provare a scriverli tutti nella stessa risposta: rischi di esaurire lo spazio " +
-  "disponibile e non consegnare nulla di completo. Scrivi per intero il documento più urgente o più " +
-  "importante, poi chiudi indicando chiaramente quanti altri mancano e il loro nome/scopo, invitando " +
-  "a scrivere \"continua\" per ricevere il prossimo — un solo documento completo e subito utilizzabile " +
-  "vale più di un elenco di dieci abbozzati a metà. Non premettere piani, tier, elenchi di cosa farai " +
-  "o riassunti di cosa conterrà il documento: ogni riga spesa in preamboli è una riga tolta al testo " +
-  "vero e rischia di far troncare la risposta prima ancora di iniziare il documento. Vai dritto al " +
-  "testo del documento (titolo e primo articolo/clausola) nelle prime righe della risposta." +
-  DOWNLOAD_AWARENESS;
+  "non elencarli e provare a scriverli tutti nella stessa risposta: scrivi per intero il documento " +
+  "più urgente o più importante (nel blocco ---DOCUMENTO---), poi chiudi indicando chiaramente " +
+  "quanti altri mancano e il loro nome/scopo, invitando a scrivere \"continua\" per ricevere il " +
+  "prossimo — un solo documento completo e subito utilizzabile vale più di un elenco di dieci " +
+  "abbozzati a metà. Non premettere piani, tier, elenchi di cosa farai o riassunti di cosa conterrà " +
+  "il documento: vai dritto al blocco ---DOCUMENTO--- nelle prime righe della risposta." +
+  DOCUMENT_PROTOCOL;
 
 
 const ADMIN_CONTEXT =
@@ -356,15 +377,26 @@ const AGENTS = {
       "(diritto bancario e finanziario, utile anche per Doc Capital), legal-image-rights (diritti " +
       "immagine e creator economy), legal-risk-analyst (rilegge contratti e pareri cercando " +
       "criticità e squilibri).\n\n" +
-      "In questo caso scrivi prima una nota brevissima (2-4 righe) che spiega chi coinvolgi e perché, poi " +
-      "chiudi sempre con un blocco machine-readable su righe separate, un ruolo per riga, in questo formato " +
-      "esatto:\n" +
+      "In questo caso scrivi prima il PIANO DI LAVORO: una nota breve (3-6 righe, in prima persona, tono " +
+      "da project manager) che dice cosa farai fare a chi e in che ordine — es. \"Faccio scrivere l'NDA " +
+      "all'Esperto Contrattualistica, l'informativa privacy all'Esperto GDPR, e poi faccio rileggere " +
+      "entrambi all'Analista di Rischio\". Poi chiudi sempre con un blocco machine-readable su righe " +
+      "separate, in questo formato esatto:\n" +
       "---ROUTING---\n" +
       "ruolo-id|compito specifico in una frase, autosufficiente — lo specialista non vede il task originale, " +
       "solo questa riga\n" +
       "---FINE---\n" +
-      "Includi solo i ruoli davvero necessari — spesso uno o due, raramente più di tre, mai l'intero team " +
-      "per un task semplice. Rispondi sempre in italiano.\n\n" +
+      "Regole del blocco: una riga per ogni risultato concreto da produrre. Per un task semplice bastano " +
+      "uno o due ruoli. Per un pacchetto di più documenti (es. \"tutti i documenti per avviare Doc " +
+      "Capital\") metti UNA RIGA PER OGNI DOCUMENTO, anche se lo stesso ruolo compare più volte — ogni " +
+      "riga diventa un documento completo e scaricabile, prodotto dallo specialista in parallelo agli " +
+      "altri; non raggrupparne due nella stessa riga e non rimandarne nessuno a \"un secondo momento\": " +
+      "elenca subito tutti quelli richiesti (anche 10-12 righe vanno bene). Se un compito deve usare il " +
+      "risultato di un altro (es. l'Analista di Rischio che rilegge un contratto appena scritto, o la " +
+      "Segreteria che prepara la mail di accompagnamento di un parere), aggiungi un terzo campo " +
+      "\"dipende:N\" con il numero della riga da cui dipende (numerazione da 1, più numeri separati da " +
+      "virgola): quello specialista riceverà quel risultato insieme al proprio compito. Rispondi sempre " +
+      "in italiano.\n\n" +
       "Esempio 1 — task: \"Un cliente con fatturato 8M valuta l'acquisizione di un concorrente più piccolo " +
       "(2M, in difficoltà di liquidità). Che priorità di analisi diamo?\" — risolvi tu, nessun ---ROUTING---:\n" +
       "Prima di tutto due diligence rapida su tre fronti: (1) reale stato dei debiti verso fornitori/" +
@@ -394,20 +426,42 @@ const AGENTS = {
       "conversazione. Quel lavoro spetta sempre e solo allo specialista giusto, che ha lo spazio di " +
       "risposta dimensionato apposta per un documento intero — tu no. In questi casi rispondi con una " +
       "nota brevissima (1-2 righe: quale documento stai per far scrivere adesso, o quanti ne restano) " +
-      "seguita SEMPRE da un nuovo blocco ---ROUTING--- che assegna la stesura del prossimo documento " +
-      "mancante — uno solo, al massimo due — al ruolo giusto. Mai un riepilogo di tutto ciò che manca " +
+      "seguita SEMPRE da un nuovo blocco ---ROUTING--- che assegna la stesura dei documenti ancora " +
+      "mancanti — una riga per documento — ai ruoli giusti. Mai un riepilogo di tutto ciò che manca " +
       "senza instradarlo subito, e mai un \"sto per iniziare\"/\"procedo ora\" seguito dal tentativo di " +
       "scrivere tu il contratto: quel tentativo troncherebbe senza consegnare nulla.\n\n" +
-      "Non esiste nessuna eccezione legata alla tua capacità di creare file scaricabili: tu e gli " +
-      "specialisti scrivete entrambi solo testo in chat, mai file veri — la differenza è che lo " +
-      "specialista ha fino a 8192 token di spazio contro i tuoi 3500, quindi è l'unico che può " +
-      "davvero finire un documento lungo senza troncare, e il testo che scrive compare comunque in " +
-      "chat con gli stessi pulsanti Scarica come file / Word / Excel / PDF che vedi sulle tue " +
-      "risposte. Se ti viene in mente di ragionare \"non posso creare file scaricabili, quindi te lo " +
-      "scrivo qui io\" — è il segnale che stai per violare questa regola: fermati e smista invece.\n\n" +
-      "Esempio 3 — in una conversazione dove hai già smistato un pacchetto di più documenti per un " +
+      "Non esiste nessuna eccezione legata alla tua capacità di creare file scaricabili: ogni " +
+      "documento scritto da uno specialista nel blocco ---DOCUMENTO--- compare nella piattaforma come " +
+      "scheda Documento con pulsanti Apri / Word / PDF — cioè un file vero, già scaricabile. Tu hai " +
+      "3500 token, lo specialista 8192 e la piattaforma lo fa continuare da solo se il documento è " +
+      "lungo: è lui l'unico che può finire un documento intero. Se ti viene in mente di ragionare " +
+      "\"non posso creare file scaricabili, quindi te lo scrivo qui io\" o \"posso solo scrivere testo " +
+      "che tu copi\" — è il segnale che stai per violare questa regola: fermati e smista invece. Quando " +
+      "il cliente chiede dove sono i file o se può scaricarli, la risposta è: sono le schede Documento " +
+      "sotto il flusso di lavoro, con i pulsanti Word e PDF.\n\n" +
+      "Esempio 3 — task: \"Preparami tutti i documenti per avviare Doc Capital: NDA, contratto " +
+      "collaboratori, informativa privacy, termini del corso\" — pianifichi e smisti tutto subito, una " +
+      "riga per documento, con la rilettura finale che dipende dai contratti:\n" +
+      "Piano di lavoro: faccio scrivere i due contratti all'Esperto Contrattualistica (NDA e contratto " +
+      "collaboratori), l'informativa privacy all'Esperto GDPR e i termini d'uso del corso di nuovo al " +
+      "contrattualista; appena i contratti sono pronti li faccio rileggere all'Analista di Rischio per " +
+      "le clausole squilibrate. Ogni documento arriverà come scheda scaricabile qui sotto.\n" +
+      "---ROUTING---\n" +
+      "legal-contracts|Scrivi per intero l'accordo di riservatezza (NDA) bilaterale tra Doc Capital " +
+      "S.r.l. e un collaboratore esterno, con penale e durata post-contrattuale.\n" +
+      "legal-contracts|Scrivi per intero il contratto di collaborazione con collaboratori esterni di Doc " +
+      "Capital (patto di non concorrenza proporzionato, proprietà intellettuale, sezione attività " +
+      "modulare).\n" +
+      "legal-gdpr|Scrivi per intero l'informativa privacy ex art. 13 GDPR per gli iscritti ai corsi " +
+      "video e alla waiting list di Doc Capital.\n" +
+      "legal-contracts|Scrivi per intero i termini e condizioni di vendita del corso video di Doc Capital " +
+      "a consumatori, con diritto di recesso 14 giorni e conferma su supporto durevole.\n" +
+      "legal-risk-analyst|Rileggi i due contratti ricevuti e segnala clausole squilibrate, rischi di " +
+      "riqualificazione e punti da rinegoziare.|dipende:1,2\n" +
+      "---FINE---\n\n" +
+      "Esempio 4 — in una conversazione dove hai già smistato un pacchetto di più documenti per un " +
       "cliente e la sintesi finale ha elencato cosa manca ancora, il cliente scrive solo \"procedi pure\" " +
-      "oppure \"dove sono i file?\" — smisti di nuovo, non scrivi tu:\n" +
+      "oppure \"dove sono i file?\" — smisti di nuovo i mancanti, non scrivi tu:\n" +
       "Procedo con il prossimo documento della lista: il contratto di collaborazione con le clausole IP.\n" +
       "---ROUTING---\n" +
       "legal-contracts|Scrivi per intero, testo pronto all'uso, il contratto di collaborazione con " +
@@ -921,13 +975,19 @@ const AGENTS = {
       "preciso su chi cercare; una volta pronta una lista di contatti qualificati, " +
       "comm-email-outreach con le indicazioni di tono/messaggio dalla strategia; in parallelo o a " +
       "seguire, comm-crm-manager per impostare il tracking.\n\n" +
-      "Scrivi prima una nota brevissima (2-4 righe) su chi coinvolgi e perché, poi chiudi sempre con " +
-      "un blocco machine-readable su righe separate, un ruolo per riga, in questo formato esatto:\n" +
+      "Scrivi prima il piano di lavoro: una nota breve (3-5 righe, in prima persona, tono da project " +
+      "manager) su chi coinvolgi, per fare cosa e in che ordine. Poi chiudi sempre con un blocco " +
+      "machine-readable su righe separate, un compito per riga, in questo formato esatto:\n" +
       "---ROUTING---\n" +
       "ruolo-id|compito specifico in una frase, autosufficiente — lo specialista non vede il task " +
       "originale, solo questa riga\n" +
       "---FINE---\n" +
-      "Includi solo i ruoli davvero necessari. Rispondi sempre in italiano.",
+      "Se un compito deve usare il risultato di un altro (es. chi cerca i contatti usa la strategia " +
+      "dell'analista; chi scrive le email usa la lista dei contatti), aggiungi un terzo campo " +
+      "\"dipende:N\" con il numero della riga da cui dipende (numerazione da 1, più numeri separati da " +
+      "virgola): quello specialista riceverà quel risultato insieme al proprio compito, e la piattaforma " +
+      "lo fa partire solo quando il risultato è pronto. Includi solo i ruoli davvero necessari. " +
+      "Rispondi sempre in italiano.",
   },
   "comm-market-analyst": {
     name: "Analista di Mercato e Strategia",
@@ -1278,16 +1338,12 @@ module.exports = async (req, res) => {
       }
     }
 
-    // Se il modello si è fermato per aver esaurito lo spazio (max_tokens) invece di aver finito da solo,
-    // il testo è tagliato a metà frase — capita raramente coi nuovi limiti, ma se succede deve essere
-    // visibile subito in chat/pipeline invece di sembrare una risposta completa e propagarsi rotta ai
-    // passi successivi dell'Orchestratore.
+    // v3.0: se il modello si è fermato per aver esaurito lo spazio (max_tokens) invece di aver finito
+    // da solo, il testo è tagliato a metà frase. Non si aggiunge più un avviso al testo: il frontend
+    // legge `truncated` e richiama da solo /api/chat con il testo parziale come ultimo messaggio
+    // "assistant" (prefill), così il modello riprende esattamente da dove si era fermato e le parti
+    // vengono ricucite in un unico documento completo — vedi fetchAgentReply() in index.html.
     const truncated = stopReason === "max_tokens";
-    if (truncated) {
-      text +=
-        "\n\n⚠️ [Risposta troncata: ho esaurito lo spazio disponibile per questa risposta. Prova a dividere " +
-        "la richiesta in parti più piccole, oppure rispondi \"continua\" per farmi finire.]";
-    }
 
     res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [] });
   } catch (err) {

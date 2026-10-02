@@ -45,19 +45,48 @@ module.exports = async (req, res) => {
         body = {};
       }
     }
-    const { state } = body || {};
-    if (state === undefined) {
-      res.status(400).json({ error: "Manca 'state' nel corpo della richiesta." });
+    const { state, patch } = body || {};
+    if (state === undefined && (patch === undefined || patch === null || typeof patch !== 'object')) {
+      res.status(400).json({ error: "Manca 'state' o 'patch' nel corpo della richiesta." });
       return;
     }
 
     try {
-      const rows = await client`
-        UPDATE workspace_state
-        SET data = ${JSON.stringify(state)}::jsonb, updated_at = now(), updated_by = ${user.name || user.email}
-        WHERE id = 1
-        RETURNING updated_at
-      `;
+      let rows;
+      if (patch !== undefined && patch !== null && typeof patch === 'object') {
+        // v3.0: salvataggio PARZIALE con merge lato server. Prima ogni browser rispediva l'intero
+        // blob (cronologia di tutti gli agenti): con due schede/persone aperte insieme, l'ultima a
+        // salvare sovrascriveva silenziosamente le modifiche dell'altra — visto dal vivo come
+        // conversazioni che "tornavano indietro" o reset annullati. Ora il client manda solo ciò che
+        // ha cambiato: le cronologie dei soli agenti toccati (history: { agentId: [...] }) e i
+        // campi di primo livello modificati; qui si fondono con il dato esistente invece di
+        // sostituirlo. Due browser che scrivono nello STESSO agente nello stesso istante restano
+        // una finestra possibile ma molto più stretta.
+        const historyPatch = patch.history && typeof patch.history === 'object' ? patch.history : {};
+        const topPatch = {};
+        Object.keys(patch).forEach((k) => {
+          if (k !== 'history') topPatch[k] = patch[k];
+        });
+        rows = await client`
+          UPDATE workspace_state
+          SET data = jsonb_set(
+                COALESCE(data, '{}'::jsonb) || ${JSON.stringify(topPatch)}::jsonb,
+                '{history}',
+                COALESCE(data->'history', '{}'::jsonb) || ${JSON.stringify(historyPatch)}::jsonb
+              ),
+              updated_at = now(),
+              updated_by = ${user.name || user.email}
+          WHERE id = 1
+          RETURNING updated_at
+        `;
+      } else {
+        rows = await client`
+          UPDATE workspace_state
+          SET data = ${JSON.stringify(state)}::jsonb, updated_at = now(), updated_by = ${user.name || user.email}
+          WHERE id = 1
+          RETURNING updated_at
+        `;
+      }
       res.status(200).json({ ok: true, updatedAt: rows[0] ? rows[0].updated_at : null });
     } catch (err) {
       res.status(500).json({ error: 'Errore database: ' + (err && err.message ? err.message : String(err)) });
