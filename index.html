@@ -252,6 +252,8 @@
   .md th,.md td{ border:1px solid rgba(15,45,36,0.16); padding:5px 9px; text-align:left; vertical-align:top; }
   .md th{ background:rgba(15,45,36,0.06); font-weight:600; }
   .md a{ color:#2f5a47; }
+  .md pre{ background:#1F1F1F; color:#FAF9F6; border-radius:10px; padding:12px 14px; overflow-x:auto; font-size:12.5px; line-height:1.5; margin:8px 0 12px; }
+  .md pre code{ background:none; color:inherit; padding:0; font-size:inherit; }
   .msg.user.md{ white-space:pre-wrap; }
 
   .doc-card{ display:flex; align-items:center; gap:14px; background:#fff; border:1.5px solid rgba(15,45,36,0.14); border-left:4px solid var(--verde-bosco); border-radius:12px; padding:12px 14px; max-width:78%; align-self:flex-start; box-shadow:0 4px 14px rgba(15,45,36,0.05); }
@@ -956,6 +958,17 @@
       var raw = lines[i];
       var t = raw.trim();
       if (!t) { flush(); i++; continue; }
+      // Blocco di codice recintato (```lang … ```): testo preso così com'è, senza interpretare Markdown dentro.
+      var fence = /^```\s*([\w+-]*)\s*$/.exec(t);
+      if (fence) {
+        flush();
+        var codeLines = [];
+        i++;
+        while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { codeLines.push(lines[i]); i++; }
+        i++; // salta la chiusura (o la fine del testo)
+        blocks.push({ type: "code", lang: fence[1] || "", text: codeLines.join("\n") });
+        continue;
+      }
       var h = /^(#{1,6})\s+(.*)$/.exec(t);
       if (h) { flush(); blocks.push({ type: "h", level: h[1].length, text: h[2].replace(/\s*#+\s*$/, "") }); i++; continue; }
       if (/^(-{3,}|\*{3,}|_{3,})$/.test(t)) { flush(); blocks.push({ type: "hr" }); i++; continue; }
@@ -1003,6 +1016,7 @@
         return "<h" + lvl + ">" + inlineMd(escapeHtml(b.text)) + "</h" + lvl + ">";
       }
       if (b.type === "hr") return "<hr>";
+      if (b.type === "code") return "<pre><code" + (b.lang ? ' class="lang-' + escapeHtml(b.lang) + '"' : "") + ">" + escapeHtml(b.text) + "</code></pre>";
       if (b.type === "list") {
         var tag = b.ordered ? "ol" : "ul";
         return "<" + tag + ">" + b.items.map(function (it) { return "<li>" + inlineMd(escapeHtml(it)) + "</li>"; }).join("") + "</" + tag + ">";
@@ -1122,6 +1136,12 @@
         y += 2;
       } else if (b.type === "hr") {
         ensure(14); doc.setDrawColor(180); doc.line(marginX, y, marginX + maxW, y); y += 12;
+      } else if (b.type === "code") {
+        doc.setFont("courier", "normal"); doc.setFontSize(9);
+        String(b.text).split("\n").forEach(function (ln) {
+          doc.splitTextToSize(ln || " ", maxW - 8).forEach(function (part) { ensure(12); doc.text(part, marginX + 4, y); y += 12; });
+        });
+        y += 6;
       } else if (b.type === "list") {
         b.items.forEach(function (it, idx) {
           var bullet = b.ordered ? (idx + 1) + "." : "•";
