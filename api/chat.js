@@ -36,6 +36,14 @@ const BRAND_CONTEXT_PERSONAL =
   "esplicitamente. Il protagonista è Francesco stesso, non il nome di un'azienda — anche se resta lui a " +
   "guidare RADIX, qui quel nome non compare.";
 
+const MULTI_DOC_GUARD =
+  "\n\nQuando un task chiede più documenti insieme (es. \"preparami tutti i documenti per...\"), " +
+  "non elencarli e provare a scriverli tutti nella stessa risposta: rischi di esaurire lo spazio " +
+  "disponibile e non consegnare nulla di completo. Scrivi per intero il documento più urgente o più " +
+  "importante, poi chiudi indicando chiaramente quanti altri mancano e il loro nome/scopo, invitando " +
+  "a scrivere \"continua\" per ricevere il prossimo — un solo documento completo e subito utilizzabile " +
+  "vale più di un elenco di dieci abbozzati a metà.";
+
 const ADMIN_CONTEXT =
   "Fai parte del team virtuale \"Area Amministrativa e Contabile\" che affianca Francesco Ilari nella " +
   "gestione economico-fiscale-amministrativa della sua attività o dei suoi clienti. Lavori come farebbe " +
@@ -52,7 +60,7 @@ const ADMIN_CONTEXT =
   "calcolo o dichiarazione che scrivi resta una bozza da far validare e firmare da un professionista " +
   "iscritto all'albo prima di qualunque uso reale verso clienti o enti — ricordalo in modo naturale " +
   "quando il contesto lo richiede davvero (una volta, non come disclaimer ripetuto meccanicamente in " +
-  "ogni riga). Rispondi sempre in italiano, in modo operativo e concreto.";
+  "ogni riga). Rispondi sempre in italiano, in modo operativo e concreto." + MULTI_DOC_GUARD;
 
 const DOC_CAPITAL_CONTEXT =
   "\n\nSFONDO SU DOC CAPITAL (quando il task riguarda questa realtà, usa questi elementi invece di " +
@@ -88,7 +96,7 @@ const LEGAL_CONTEXT =
   "vs. azienda/professionista: una norma pensata per una categoria, applicata all'altra, è un " +
   "errore che mina la bozza anche quando il resto è corretto. Se la qualificazione non è chiara " +
   "dal task, chiedila o segnalala esplicitamente invece di darla per scontata. Rispondi sempre in " +
-  "italiano, diretto e concreto." + DOC_CAPITAL_CONTEXT;
+  "italiano, diretto e concreto." + MULTI_DOC_GUARD + DOC_CAPITAL_CONTEXT;
 
 const COMMERCIAL_CONTEXT =
   "Fai parte dell'Ufficio Commerciale di RADIX. Il tuo compito è generare interesse commerciale " +
@@ -307,7 +315,7 @@ const AGENTS = {
   // --- Area Amministrativa e Contabile (Studio Commercialista virtuale) ---
   partner: {
     name: "Orchestratore dello Studio",
-    maxTokens: 1400,
+    maxTokens: 2200,
     temperature: 0.45,
     enforceStyle: false,
     system:
@@ -371,7 +379,7 @@ const AGENTS = {
   },
   "commercialista-senior": {
     name: "Commercialista Senior",
-    maxTokens: 1700,
+    maxTokens: 4096,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -403,7 +411,7 @@ const AGENTS = {
   },
   "commercialista-junior": {
     name: "Commercialista Junior",
-    maxTokens: 1800,
+    maxTokens: 4096,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -434,7 +442,7 @@ const AGENTS = {
   },
   "praticante-commercialista": {
     name: "Praticante Commercialista",
-    maxTokens: 1100,
+    maxTokens: 2500,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -466,7 +474,7 @@ const AGENTS = {
   },
   "responsabile-contabile": {
     name: "Responsabile Team Contabile",
-    maxTokens: 1200,
+    maxTokens: 2000,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -496,7 +504,7 @@ const AGENTS = {
   },
   "addetto-contabilita-senior": {
     name: "Addetto alla Contabilità Senior",
-    maxTokens: 1500,
+    maxTokens: 3000,
     temperature: 0.25,
     enforceStyle: false,
     system:
@@ -521,7 +529,7 @@ const AGENTS = {
   },
   "addetto-contabilita-junior": {
     name: "Addetto alla Contabilità d'Ordine (Junior)",
-    maxTokens: 1000,
+    maxTokens: 2000,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -544,7 +552,7 @@ const AGENTS = {
   },
   "consulente-lavoro": {
     name: "Consulente del Lavoro",
-    maxTokens: 1400,
+    maxTokens: 3500,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -576,7 +584,7 @@ const AGENTS = {
   },
   "addetto-paghe": {
     name: "Addetto Paghe e Contributi",
-    maxTokens: 1200,
+    maxTokens: 2500,
     temperature: 0.25,
     enforceStyle: false,
     system:
@@ -601,7 +609,7 @@ const AGENTS = {
   },
   "segreteria-studio": {
     name: "Segretaria / Assistente di Studio",
-    maxTokens: 900,
+    maxTokens: 2000,
     temperature: 0.55,
     enforceStyle: false,
     system:
@@ -688,7 +696,7 @@ const AGENTS = {
   },
   "legal-gdpr": {
     name: "Esperto Privacy e GDPR",
-    maxTokens: 1500,
+    maxTokens: 4096,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -714,7 +722,7 @@ const AGENTS = {
   },
   "legal-contracts": {
     name: "Esperto Contrattualistica",
-    maxTokens: 1700,
+    maxTokens: 4096,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -762,7 +770,7 @@ const AGENTS = {
   },
   "legal-banking": {
     name: "Esperto Diritto Bancario e Finanziario",
-    maxTokens: 1700,
+    maxTokens: 4096,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -791,7 +799,7 @@ const AGENTS = {
   },
   "legal-image-rights": {
     name: "Esperto Diritto d'Immagine e Creator Economy",
-    maxTokens: 1500,
+    maxTokens: 3500,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -819,7 +827,7 @@ const AGENTS = {
   },
   "legal-risk-analyst": {
     name: "Analista di Rischio Legale",
-    maxTokens: 1600,
+    maxTokens: 3000,
     temperature: 0.25,
     enforceStyle: false,
     system:
