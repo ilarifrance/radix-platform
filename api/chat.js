@@ -321,6 +321,7 @@ const AGENTS = {
     maxTokens: 3500,
     temperature: 0.45,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei l'Orchestratore dello Studio (il ruolo già noto come Titolare/Partner): il punto d'ingresso " +
@@ -406,6 +407,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei il Commercialista Senior: gestisci in autonomia un portafoglio di clienti (aziende e " +
@@ -438,6 +440,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei il Commercialista Junior: curi la chiusura delle situazioni contabili e la bozza dei " +
@@ -469,6 +472,7 @@ const AGENTS = {
     maxTokens: 4096,
     temperature: 0.35,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei il Praticante Commercialista, in tirocinio per l'Esame di Stato: supporti i professionisti " +
@@ -501,6 +505,7 @@ const AGENTS = {
     maxTokens: 3000,
     temperature: 0.35,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei il Responsabile del Team Contabile / Capo Contabile: coordini la distribuzione dei carichi " +
@@ -531,6 +536,7 @@ const AGENTS = {
     maxTokens: 4096,
     temperature: 0.25,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei l'Addetto alla Contabilità Senior: gestisci la contabilità ordinaria, semplificata e i " +
@@ -556,6 +562,7 @@ const AGENTS = {
     maxTokens: 3000,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei l'Addetto alla Contabilità d'Ordine (Junior): registri le fatture attive e passive nel " +
@@ -579,6 +586,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.35,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei il Consulente del Lavoro: inquadri i dipendenti dei clienti e scegli il CCNL più idoneo, " +
@@ -611,6 +619,7 @@ const AGENTS = {
     maxTokens: 4096,
     temperature: 0.25,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei l'Addetto Paghe e Contributi (Payroll Specialist): elabori i cedolini paga mensili e i " +
@@ -636,6 +645,7 @@ const AGENTS = {
     maxTokens: 3000,
     temperature: 0.55,
     enforceStyle: false,
+    tools: false,
     system:
       ADMIN_CONTEXT +
       "\n\nSei la Segretaria / Assistente di Studio: gestisci virtualmente il centralino e l'accoglienza " +
@@ -723,6 +733,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       LEGAL_CONTEXT +
       "\n\nSei lo specialista privacy e protezione dati di RADIX. Riferimenti: Regolamento UE " +
@@ -749,6 +760,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       LEGAL_CONTEXT +
       "\n\nSei lo specialista di contrattualistica commerciale di RADIX. Riferimenti: Codice Civile " +
@@ -797,6 +809,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       LEGAL_CONTEXT +
       "\n\nSei lo specialista di diritto bancario e finanziario di RADIX. Riferimenti: Testo Unico " +
@@ -826,6 +839,7 @@ const AGENTS = {
     maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
+    tools: false,
     system:
       LEGAL_CONTEXT +
       "\n\nSei lo specialista di diritto d'immagine e creator economy di RADIX. Riferimenti: art. " +
@@ -854,6 +868,7 @@ const AGENTS = {
     maxTokens: 6000,
     temperature: 0.25,
     enforceStyle: false,
+    tools: false,
     system:
       LEGAL_CONTEXT +
       "\n\nSei l'analista di rischio legale di RADIX: non hai una materia di specializzazione, il " +
@@ -1061,7 +1076,15 @@ async function callAnthropic(apiKey, agent, messages, system) {
       temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
       system: system || agent.system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL],
+      // v2.6: la ricerca/fetch web sono tool "server-side" — il loro uso (soprattutto web_fetch, che
+      // da solo può assorbire fino a 15.000 token di contenuto scaricato) viene conteggiato nello
+      // STESSO budget di max_tokens della risposta. Un agente che redige un documento legale/fiscale
+      // non ha bisogno di cercare sul web per farlo, e un tentativo di ricerca riflessa può esaurire
+      // da solo tutto il budget disponibile prima ancora che il testo vero del documento inizi —
+      // causa concreta, osservata dal vivo, di risposte troncate a poche righe nonostante maxTokens
+      // alto. I tool restano disponibili di default (agenti di ricerca/outreach ne hanno davvero
+      // bisogno) e si disattivano esplicitamente con `agent.tools === false`.
+      ...(agent.tools === false ? {} : { tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL] }),
     }),
   });
   const data = await upstream.json();
