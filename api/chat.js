@@ -1186,7 +1186,44 @@ module.exports = async (req, res) => {
   }
   const { role, messages, brand } = body || {};
   const agent = AGENTS[role] || AGENTS.strategist;
-  const system = systemPromptFor(agent, brand);
+  let system = systemPromptFor(agent, brand);
+
+  // Un modello che in una conversazione lunga ha già detto (erroneamente) "non posso creare file
+  // scaricabili" tende a restare coerente con quella propria affermazione precedente anche dopo che il
+  // system prompt è stato corretto: il testo del system prompt pesa meno di decine di turni precedenti
+  // nella stessa chat in cui l'assistente stesso ha ripetuto l'errore. Verificato dal vivo il 2/10: la
+  // regola esplicita nel system prompt non bastava a fermare la ripetizione in una conversazione con
+  // precedenti già "inquinati". Soluzione: individuare quei precedenti e avvisare esplicitamente il
+  // modello che erano un errore da ignorare, invece di limitarsi a ripetere la regola corretta.
+  if (Array.isArray(messages)) {
+    const STALE_DOWNLOAD_CLAIM_PATTERNS = [
+      "non posso creare file scaricabili",
+      "non ho questa capacit",
+      "non e' disponibile nel sistema",
+      "non è disponibile nel sistema",
+      "non ho la capacit",
+    ];
+    const hasStaleClaim = messages.some(function (m) {
+      return (
+        m &&
+        m.role === "assistant" &&
+        typeof m.content === "string" &&
+        STALE_DOWNLOAD_CLAIM_PATTERNS.some(function (p) {
+          return m.content.toLowerCase().includes(p);
+        })
+      );
+    });
+    if (hasStaleClaim) {
+      system +=
+        "\n\nAVVISO CORRETTIVO su questa conversazione: più indietro, in questa stessa chat, un tuo " +
+        "messaggio precedente ha affermato di non poter creare file scaricabili o che quella funzione non " +
+        "è disponibile nel sistema. Era un errore del modello in quel momento, non una caratteristica " +
+        "reale della piattaforma, che offre da sempre i pulsanti \"Scarica come file\", Word, Excel e PDF " +
+        "sotto ogni risposta. Ignora completamente quella tua precedente affermazione: non ripeterla, non " +
+        "comportarti in modo coerente con essa, e se l'utente torna sul tema conferma semplicemente che " +
+        "può scaricare tutto subito con quei pulsanti.";
+    }
+  }
 
   if (!Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: "Manca 'messages' (array di {role, content})" });
