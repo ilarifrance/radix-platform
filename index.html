@@ -633,14 +633,14 @@
     var ids = Array.isArray(agentIds) ? agentIds : (agentIds ? [agentIds] : [state.agent]);
     var historyPatch = {};
     ids.forEach(function (id) { if (state.history.hasOwnProperty(id)) historyPatch[id] = state.history[id]; });
-    var patch = {
-      history: historyPatch,
-      pipelineTask: pipelineInputEl ? pipelineInputEl.value : "",
-      pipelineSteps: state.pipeline.steps,
-      pipelineBrand: state.pipeline.brand,
-      heygenAvatarId: state.heygen.avatarId,
-      heygenVoiceId: state.heygen.voiceId,
-    };
+    var patch = { history: historyPatch, heygenAvatarId: state.heygen.avatarId, heygenVoiceId: state.heygen.voiceId };
+    // Lo stato della pipeline marketing viaggia solo quando si sta lavorando lì: un salvataggio della chat
+    // di un altro agente non deve sovrascrivere il run in corso in un'altra scheda.
+    if (state.agent === "orchestrator" || ids.indexOf("orchestrator") !== -1) {
+      patch.pipelineTask = pipelineInputEl ? pipelineInputEl.value : "";
+      patch.pipelineSteps = state.pipeline.steps;
+      patch.pipelineBrand = state.pipeline.brand;
+    }
     fetch("/api/state", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -667,6 +667,9 @@
       if (!res.ok) return;
       var data = await res.json();
       var saved = data.state;
+      // Se mentre la richiesta era in volo è partita una chiamata (busyCalls) o un run, le cronologie in
+      // memoria sono quelle vive: sostituirle ora lascerebbe la risposta in arrivo su un array orfano.
+      if (busyCalls > 0 || state.pipeline.running) return;
       if (saved && saved.history) {
         Object.keys(saved.history).forEach(function (id) {
           if (state.history.hasOwnProperty(id)) state.history[id] = saved.history[id];
@@ -1619,9 +1622,12 @@
     var m = /---ROUTING---([\s\S]*?)---FINE---/.exec(text || "");
     if (!m) return [];
     var items = [];
+    var lineNo = 0; // numerazione delle righe non vuote: è quella a cui "dipende:N" si riferisce
+    var keptByLine = {};
     m[1].split("\n").forEach(function (raw) {
       var line = raw.trim().replace(/^\d+[.)]\s*/, ""); // tollera "1. ruolo|compito"
       if (!line) return;
+      lineNo++;
       var sep = line.indexOf("|");
       if (sep < 0) return;
       var role = line.slice(0, sep).trim().replace(/^[-*•]\s*/, "");
@@ -1635,7 +1641,13 @@
         rest = rest.slice(0, depMatch.index).trim();
       }
       var subtask = rest.replace(/\|\s*$/, "").trim();
-      if (role && subtask) items.push({ role: role, subtask: subtask, deps: deps });
+      if (role && subtask) {
+        items.push({ role: role, subtask: subtask, deps: deps });
+        keptByLine[lineNo] = items.length; // indice 1-based tra gli elementi tenuti
+      }
+    });
+    items.forEach(function (it) {
+      it.deps = it.deps.map(function (n) { return keptByLine[n] || 0; }).filter(function (n) { return n > 0; });
     });
     return items;
   }
@@ -3275,8 +3287,10 @@
       var data = await res.json();
       if (!res.ok) throw new Error(data.error || "Errore imprevisto");
       var chunk = data.reply || "";
-      // Il prefill viene inviato senza spazi finali (l'API li rifiuta): se il pezzo precedente finiva
-      // con uno spazio/riga nuova e il nuovo inizia con uno spazio, non raddoppiarlo.
+      // Il server non ritaglia più nulla (api/chat.js): qui si toglie solo lo spazio iniziale della prima
+      // parte. Il prefill viene inviato senza spazi finali (l'API li rifiuta), quindi se il pezzo precedente
+      // finiva con uno spazio/riga nuova e il nuovo inizia con uno spazio, non raddoppiarlo.
+      if (parts === 1) chunk = chunk.replace(/^\s+/, "");
       if (parts > 1 && /\s$/.test(text) && /^\s/.test(chunk)) chunk = chunk.replace(/^\s+/, "");
       text += chunk;
       (data.sources || []).forEach(function (s) {
@@ -3288,6 +3302,7 @@
       messages = baseMessages.concat([{ role: "assistant", content: partial }]);
       if (onProgress) { try { onProgress(parts + 1); } catch (e) { /* solo UI */ } }
     }
+    text = text.replace(/\s+$/, "");
     if (truncated) {
       text += "\n\n⚠️ [Risposta interrotta per limite di spazio anche dopo " + parts + " parti: scrivi \"continua\" per farla finire.]";
     }
@@ -3303,11 +3318,11 @@
   // ha assegnato. Se il nodo dipende da altri (deps), riceve anche il loro risultato: è così che
   // l'Orchestratore "passa l'informazione" da un agente all'altro, come un project manager.
   // Aggiorna il nodo (e ridisegna) man mano che la chiamata avanza, parte per parte.
-  async function runSpecialistNode(node, depNodes) {
+  async function runSpecialistNode(node, depNodes, agentId) {
     node.status = "running";
     node.progress = "";
-    renderMessages();
     try {
+      renderMessages();
       var userText = node.subtask;
       if (depNodes && depNodes.length) {
         userText += "\n\nMATERIALE DA USARE — risultato di altri specialisti del team su questo stesso incarico:\n\n" +
@@ -3329,14 +3344,16 @@
       node.output = (err && err.message) || "Errore imprevisto";
       node.progress = "";
     }
-    renderMessages();
-    saveState([state.agent]);
+    // Mai lanciare da qui: un'eccezione (anche solo di rendering) lascerebbe lo scheduler con un posto
+    // occupato per sempre e la chat bloccata su "in corso".
+    try { renderMessages(); } catch (e) { /* solo UI */ }
+    try { saveState([agentId || state.agent]); } catch (e) { /* solo persistenza */ }
   }
 
   // Scheduler del flusso: rispetta le dipendenze (dipende:N) e la concorrenza massima. Un nodo parte
   // quando tutti i nodi da cui dipende sono "done"; se uno di quelli è in errore, il dipendente viene
   // segnato come non eseguito invece di restare in attesa per sempre.
-  function runFlowNodes(flow) {
+  function runFlowNodes(flow, agentId) {
     var nodes = flow.nodes;
     return new Promise(function (resolve) {
       var active = 0;
@@ -3361,7 +3378,8 @@
               active++;
               n.status = "running";
               progressed = true;
-              runSpecialistNode(n, deps).then(function () { active--; tick(); });
+              var done = function () { active--; tick(); };
+              runSpecialistNode(n, deps, agentId).then(done, done);
             }
           });
         }
@@ -3387,17 +3405,20 @@
   // lavoro, può riaprire un altro giro (fino a MAX_ORCH_ROUNDS) invece di scaricare tutto su Francesco.
   // I documenti degli specialisti NON vengono riscritti dall'Orchestratore: sono già consegnati come
   // schede scaricabili sotto il flusso; lui ne fa il punto (cosa c'è, cosa manca, prossimo passo).
-  async function runOrchestrationFlow(hist, flowMsg, originalTask, round) {
+  async function runOrchestrationFlow(hist, flowMsg, originalTask, round, agentId) {
+    // agentId: l'orchestratore a cui appartiene questa conversazione, fissato all'inizio — se intanto
+    // l'utente apre un altro agente, sintesi e salvataggi restano su quello giusto.
+    agentId = agentId || state.agent;
     flowMsg.flow.status = "running";
     renderMessages();
 
-    await runFlowNodes(flowMsg.flow);
+    await runFlowNodes(flowMsg.flow, agentId);
 
     var successNodes = flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; });
     if (!successNodes.length) {
       flowMsg.flow.status = "error";
       renderMessages();
-      saveState([state.agent]);
+      saveState([agentId]);
       return;
     }
 
@@ -3436,7 +3457,7 @@
     renderMessages();
 
     try {
-      var synth = await callAgent(state.agent, summary);
+      var synth = await callAgent(agentId, summary);
       hist.pop();
       // Memoria della conversazione: l'Orchestratore, nei turni successivi, deve sapere cosa è stato
       // davvero consegnato (prima vedeva solo la propria sintesi e non sapeva "dove sono i file").
@@ -3459,17 +3480,17 @@
       if (nextItems.length) {
         newMsg.flow = makeFlow(nextItems, round + 1);
         renderMessages();
-        saveState([state.agent]);
-        await runOrchestrationFlow(hist, newMsg, originalTask, round + 1);
+        saveState([agentId]);
+        await runOrchestrationFlow(hist, newMsg, originalTask, round + 1, agentId);
         return;
       }
     } catch (err) {
-      hist.pop();
+      if (hist.length && hist[hist.length - 1].pending) hist.pop();
       hist.push({ role: "error", content: "Sintesi non riuscita: " + ((err && err.message) || "errore imprevisto") });
       flowMsg.flow.status = "error";
     }
     renderMessages();
-    saveState([state.agent]);
+    saveState([agentId]);
   }
 
   function makeFlow(items, round) {
@@ -3535,6 +3556,7 @@
   // calls the agent with everything before it, and replaces the placeholder with the real reply
   // (or an error message) — same request/response handling either way.
   async function requestReply(hist) {
+    var agentId = state.agent;
     var pending = { role: "assistant", content: "Sto scrivendo…", pending: true };
     hist.push(pending);
     renderMessages();
@@ -3547,7 +3569,7 @@
       // I messaggi nascosti (hidden: note automatiche sull'esito dei flussi) non si vedono in chat ma
       // fanno parte del contesto inviato all'agente; i segnaposto "pending" e gli errori mai.
       var reply = await fetchAgentReply({
-        role: state.agent,
+        role: agentId,
         messages: hist.filter(function (m) { return !m.pending && (m.role === "user" || m.role === "assistant"); })
           .map(function (m) { return { role: m.role, content: m.content }; }),
       }, function (partNo) {
@@ -3561,7 +3583,7 @@
       // solo (vedi runOrchestrationFlow) invece di fermarsi ai soli pulsanti "apri con questo
       // compito" -- resta lui il punto di contatto, Francesco vede il piano, gli agenti al lavoro,
       // i documenti consegnati e l'esito finale.
-      if (state.agent === "partner" || state.agent === "comm-orchestrator") {
+      if (agentId === "partner" || agentId === "comm-orchestrator") {
         var routingItems = parseRouting(newMsg.content);
         if (routingItems.length) {
           newMsg.flow = makeFlow(routingItems, 1);
@@ -3570,7 +3592,7 @@
             if (hist[k].role === "user" && !hist[k].hidden) { priorUser = hist[k]; break; }
           }
           var originalTask = priorUser ? (priorUser.display || priorUser.content || "") : "";
-          await runOrchestrationFlow(hist, newMsg, originalTask, 1);
+          await runOrchestrationFlow(hist, newMsg, originalTask, 1, agentId);
         }
       }
     } catch (err) {
@@ -3583,7 +3605,7 @@
     resetChatBtn.disabled = false;
     regenerateLastBtn.disabled = false;
     renderMessages();
-    saveState([state.agent]);
+    saveState([agentId]);
   }
 
   async function send() {

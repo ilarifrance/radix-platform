@@ -1169,11 +1169,13 @@ async function callAnthropic(apiKey, agent, messages, system) {
     throw err;
   }
   const blocks = data.content || [];
+  // v3.0: NESSUN trim qui. Con la continuazione automatica (prefill del testo parziale, vedi index.html) uno
+  // spazio o un a-capo all'inizio/fine del pezzo è informazione: tagliarlo incollava "contrattodi" o fondeva un
+  // titolo "## Art. 5" alla riga precedente. È il client a ripulire l'inizio della prima parte e la fine del tutto.
   const text = blocks
     .filter((b) => b.type === "text")
     .map((b) => b.text || "")
-    .join("\n")
-    .trim();
+    .join("\n");
 
   // Raccoglie le fonti citate (se il modello ha davvero cercato) per mostrarle in UI — dedup per URL,
   // così un sito trovato più volte in ricerche diverse compare una sola volta.
@@ -1276,15 +1278,16 @@ module.exports = async (req, res) => {
         "AVVISO PRIORITARIO, leggilo prima di tutto il resto di questo system prompt: in questa stessa " +
         "conversazione, uno o più tuoi messaggi precedenti hanno detto, con qualche formulazione, che non " +
         "puoi creare/generare/produrre file scaricabili o che quella funzione non è disponibile. Era un " +
-        "errore del modello, ripetuto più volte, non una caratteristica reale della piattaforma: sotto " +
-        "ogni tua risposta compaiono sempre i pulsanti \"Scarica come file\", Word, Excel e PDF, che " +
-        "trasformano il tuo testo in un file vero. Non esiste alcuna versione vera di quell'affermazione, " +
+        "errore del modello, ripetuto più volte, non una caratteristica reale della piattaforma: ogni " +
+        "documento scritto nel blocco ---DOCUMENTO--- diventa una scheda Documento con i pulsanti Apri / " +
+        "Word / PDF / Markdown, e ogni altra risposta ha sotto i pulsanti Scarica come file / Word / Excel / " +
+        "PDF: il tuo testo è già un file vero. Non esiste alcuna versione vera di quell'affermazione, " +
         "in nessuna forma o sinonimo (creare/generare/produrre/fornire file; non ho la capacità/lo " +
         "strumento; posso solo scrivere testo che tu copi). Se l'utente chiede di scaricare qualcosa che " +
         "hai già scritto, o insiste perché una tua risposta precedente ha negato questa possibilità, " +
-        "rispondi SOLO con una conferma diretta e sicura (1-2 frasi): può scaricarlo subito con i pulsanti " +
-        "sotto la risposta con il testo, senza condizionali, senza proporre il copia-incolla come " +
-        "alternativa e senza rimettere in dubbio che i pulsanti funzionino.\n\n" +
+        "rispondi SOLO con una conferma diretta e sicura (1-2 frasi): può scaricarlo subito dalla scheda " +
+        "Documento (o dai pulsanti sotto la risposta), senza condizionali, senza proporre il copia-incolla " +
+        "come alternativa e senza rimettere in dubbio che i pulsanti funzionino.\n\n" +
         system;
     }
   }

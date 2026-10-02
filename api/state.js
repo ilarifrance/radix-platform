@@ -46,14 +46,15 @@ module.exports = async (req, res) => {
       }
     }
     const { state, patch } = body || {};
-    if (state === undefined && (patch === undefined || patch === null || typeof patch !== 'object')) {
-      res.status(400).json({ error: "Manca 'state' o 'patch' nel corpo della richiesta." });
+    const hasPatch = patch !== undefined && patch !== null && typeof patch === 'object';
+    if (!hasPatch && (state === undefined || state === null || typeof state !== 'object')) {
+      res.status(400).json({ error: "Manca 'state' o 'patch' (oggetto) nel corpo della richiesta." });
       return;
     }
 
     try {
       let rows;
-      if (patch !== undefined && patch !== null && typeof patch === 'object') {
+      if (hasPatch) {
         // v3.0: salvataggio PARZIALE con merge lato server. Prima ogni browser rispediva l'intero
         // blob (cronologia di tutti gli agenti): con due schede/persone aperte insieme, l'ultima a
         // salvare sovrascriveva silenziosamente le modifiche dell'altra — visto dal vivo come
