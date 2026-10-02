@@ -1188,40 +1188,44 @@ module.exports = async (req, res) => {
   const agent = AGENTS[role] || AGENTS.strategist;
   let system = systemPromptFor(agent, brand);
 
-  // Un modello che in una conversazione lunga ha già detto (erroneamente) "non posso creare file
-  // scaricabili" tende a restare coerente con quella propria affermazione precedente anche dopo che il
-  // system prompt è stato corretto: il testo del system prompt pesa meno di decine di turni precedenti
-  // nella stessa chat in cui l'assistente stesso ha ripetuto l'errore. Verificato dal vivo il 2/10: la
-  // regola esplicita nel system prompt non bastava a fermare la ripetizione in una conversazione con
-  // precedenti già "inquinati". Soluzione: individuare quei precedenti e avvisare esplicitamente il
-  // modello che erano un errore da ignorare, invece di limitarsi a ripetere la regola corretta.
+  // Un modello che in una conversazione lunga ha già detto (erroneamente, con un verbo qualsiasi:
+  // "creare"/"generare"/"produrre" file scaricabili, "non ho questa/la capacità tecnica", ecc.) tende a
+  // restare coerente con quella propria affermazione precedente anche dopo che il system prompt e' stato
+  // corretto, e anzi puo' riformulare lo stesso errore con parole leggermente diverse per aggirare un
+  // controllo troppo letterale. Verificato dal vivo il 2/10 due volte: (1) la regola esplicita nel system
+  // prompt non bastava a fermare la ripetizione letterale in una conversazione con precedenti gia'
+  // "inquinati"; (2) un primo avviso correttivo aggiunto in coda al system prompt non e' bastato a
+  // impedire che il modello si auto-convincesse di nuovo della stessa cosa con parole diverse
+  // ("generare" invece di "creare"). Soluzione rafforzata: un pattern piu' tollerante (qualsiasi frase
+  // "non posso/ho/c'e'" vicino a "scaricabil"/"scaricare"), un avviso molto piu' diretto e prescrittivo
+  // (dice esattamente cosa rispondere, non solo cosa ignorare), messo in CIMA al system prompt invece
+  // che in coda, cosi' che sia la prima cosa che il modello legge e non l'ultima tra tante altre regole.
   if (Array.isArray(messages)) {
-    const STALE_DOWNLOAD_CLAIM_PATTERNS = [
-      "non posso creare file scaricabili",
-      "non ho questa capacit",
-      "non e' disponibile nel sistema",
-      "non è disponibile nel sistema",
-      "non ho la capacit",
-    ];
+    const STALE_DOWNLOAD_CLAIM_REGEX =
+      /(?:non\s+(?:posso|ho|c'?è|c'?e'|esiste|è possibile|e'\s*possibile)[^.\n]{0,100}(?:scaricabil|scaricare|invia(?:re|rti)?\s+(?:il\s+)?file|mandare|fornire\s+(?:il\s+)?file))|(?:posso\s+solo\s+scrivere)/i;
     const hasStaleClaim = messages.some(function (m) {
       return (
         m &&
         m.role === "assistant" &&
         typeof m.content === "string" &&
-        STALE_DOWNLOAD_CLAIM_PATTERNS.some(function (p) {
-          return m.content.toLowerCase().includes(p);
-        })
+        STALE_DOWNLOAD_CLAIM_REGEX.test(m.content)
       );
     });
     if (hasStaleClaim) {
-      system +=
-        "\n\nAVVISO CORRETTIVO su questa conversazione: più indietro, in questa stessa chat, un tuo " +
-        "messaggio precedente ha affermato di non poter creare file scaricabili o che quella funzione non " +
-        "è disponibile nel sistema. Era un errore del modello in quel momento, non una caratteristica " +
-        "reale della piattaforma, che offre da sempre i pulsanti \"Scarica come file\", Word, Excel e PDF " +
-        "sotto ogni risposta. Ignora completamente quella tua precedente affermazione: non ripeterla, non " +
-        "comportarti in modo coerente con essa, e se l'utente torna sul tema conferma semplicemente che " +
-        "può scaricare tutto subito con quei pulsanti.";
+      system =
+        "AVVISO PRIORITARIO, leggilo prima di tutto il resto di questo system prompt: in questa stessa " +
+        "conversazione, uno o più tuoi messaggi precedenti hanno detto, con qualche formulazione, che non " +
+        "puoi creare/generare/produrre file scaricabili o che quella funzione non è disponibile. Era un " +
+        "errore del modello, ripetuto più volte, non una caratteristica reale della piattaforma: sotto " +
+        "ogni tua risposta compaiono sempre i pulsanti \"Scarica come file\", Word, Excel e PDF, che " +
+        "trasformano il tuo testo in un file vero. Non esiste alcuna versione vera di quell'affermazione, " +
+        "in nessuna forma o sinonimo (creare/generare/produrre/fornire file; non ho la capacità/lo " +
+        "strumento; posso solo scrivere testo che tu copi). Se l'utente chiede di scaricare qualcosa che " +
+        "hai già scritto, o insiste perché una tua risposta precedente ha negato questa possibilità, " +
+        "rispondi SOLO con una conferma diretta e sicura (1-2 frasi): può scaricarlo subito con i pulsanti " +
+        "sotto la risposta con il testo, senza condizionali, senza proporre il copia-incolla come " +
+        "alternativa e senza rimettere in dubbio che i pulsanti funzionino.\n\n" +
+        system;
     }
   }
 
