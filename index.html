@@ -458,20 +458,15 @@
     { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali", group: "marketing" },
     { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true, group: "marketing" },
     { id: "partner", icon: "🧠", name: "Orchestratore dello Studio", blurb: "Un task, lo smista agli specialisti giusti", hub: true, group: "admin" },
-    { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari complessi", group: "admin" },
-    { id: "commercialista-junior", icon: "🧾", name: "Commercialista Junior", blurb: "Bilanci, dichiarazioni, pratiche societarie", group: "admin" },
-    { id: "praticante-commercialista", icon: "📋", name: "Praticante Commercialista", blurb: "Checklist documenti e adempimenti di base", group: "admin" },
-    { id: "responsabile-contabile", icon: "🗓️", name: "Responsabile Contabile", blurb: "Scadenzario e coordinamento contabilità", group: "admin" },
-    { id: "addetto-contabilita-senior", icon: "🧮", name: "Addetto Contabilità Senior", blurb: "Calcoli IVA, F24, liquidazioni", group: "admin" },
-    { id: "addetto-contabilita-junior", icon: "📒", name: "Addetto Contabilità Junior", blurb: "Prima nota e registrazioni contabili", group: "admin" },
-    { id: "consulente-lavoro", icon: "👔", name: "Consulente del Lavoro", blurb: "CCNL, contratti, gestione del personale", group: "admin" },
-    { id: "addetto-paghe", icon: "💶", name: "Addetto Paghe", blurb: "Buste paga, TFR, contributi", group: "admin" },
-    { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti", group: "admin" },
+    { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari, tax planning, contenzioso", group: "admin" },
+    { id: "commercialista-operativo", icon: "🧾", name: "Commercialista Operativo", blurb: "Bilanci, dichiarazioni, pratiche, checklist documenti", group: "admin" },
+    { id: "contabilita", icon: "🧮", name: "Contabilità", blurb: "Scadenzario, liquidazioni IVA e F24, prima nota, riconciliazioni", group: "admin" },
+    { id: "lavoro-paghe", icon: "👔", name: "Lavoro e Paghe", blurb: "CCNL, contratti, costo del lavoro, cedolini e TFR", group: "admin" },
+    { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti, parcelle, solleciti", group: "admin" },
     { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Codice vero: pagine, componenti, script", group: "dev" },
     { id: "legal-gdpr", icon: "🔐", name: "Esperto Privacy e GDPR", blurb: "Trattamento dati, informative, DPIA, adempimenti verso il Garante", group: "legale" },
-    { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica", blurb: "Redige e revisiona contratti, individua le clausole che ti proteggono", group: "legale" },
+    { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica, IP e Creator", blurb: "Contratti B2B/B2C, marchi, diritti d'immagine, accordi con creator", group: "legale" },
     { id: "legal-banking", icon: "🏦", name: "Esperto Diritto Bancario e Finanziario", blurb: "Contratti di finanziamento, normativa bancaria, utile su Doc Capital", group: "legale" },
-    { id: "legal-image-rights", icon: "🎬", name: "Esperto Diritto d'Immagine e Creator Economy", blurb: "Diritti immagine, sponsorizzazioni, trasparenza pubblicitaria", group: "legale" },
     { id: "legal-risk-analyst", icon: "🔎", name: "Analista di Rischio Legale", blurb: "Rilegge contratti e pareri degli altri, isola criticità e limiti di responsabilità", group: "legale" },
     { id: "comm-orchestrator", icon: "🧭", name: "Orchestratore Commerciale", blurb: "Smista l'obiettivo commerciale agli specialisti giusti", hub: true, group: "commerciale" },
     { id: "comm-market-analyst", icon: "📈", name: "Analista di Mercato e Strategia", blurb: "Ricerche di mercato, trend, definisce la strategia per ogni mercato target", group: "commerciale" },
@@ -479,6 +474,19 @@
     { id: "comm-email-outreach", icon: "📧", name: "Specialista Email Outreach", blurb: "Scrive e, con la tua conferma, invia le email dalla tua casella", group: "commerciale" },
     { id: "comm-crm-manager", icon: "📊", name: "Responsabile CRM / Sales Ops", blurb: "Tiene i numeri: stato dei contatti, follow-up dovuti, tasso di risposta", group: "commerciale" },
   ];
+
+  // v3.2 — Roster accorpato (approvato il 2/10): gli identificativi vecchi restano validi come alias, così le
+  // cronologie e i flussi già salvati continuano a trovare il loro agente (vedi loadRemoteState e orchFlowAgent).
+  var AGENT_ALIASES = {
+    "commercialista-junior": "commercialista-operativo",
+    "praticante-commercialista": "commercialista-operativo",
+    "responsabile-contabile": "contabilita",
+    "addetto-contabilita-senior": "contabilita",
+    "addetto-contabilita-junior": "contabilita",
+    "consulente-lavoro": "lavoro-paghe",
+    "addetto-paghe": "lavoro-paghe",
+    "legal-image-rights": "legal-contracts",
+  };
 
   var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo", legale: "Area Legale", commerciale: "Ufficio Commerciale" };
 
@@ -676,6 +684,21 @@
         Object.keys(saved.history).forEach(function (id) {
           if (state.history.hasOwnProperty(id)) state.history[id] = saved.history[id];
         });
+        // Roster accorpato: le conversazioni salvate sotto un identificativo vecchio passano al nuovo agente
+        // (in testa, sono più vecchie) e la chiave vecchia viene svuotata sul server, così non si duplicano
+        // al caricamento successivo.
+        var migrated = [];
+        Object.keys(AGENT_ALIASES).forEach(function (oldId) {
+          var target = AGENT_ALIASES[oldId];
+          var oldHist = saved.history[oldId];
+          if (Array.isArray(oldHist) && oldHist.length && state.history.hasOwnProperty(target)) {
+            state.history[target] = oldHist.concat(state.history[target] || []);
+            state.history[oldId] = [];
+            migrated.push(oldId);
+            if (migrated.indexOf(target) === -1) migrated.push(target);
+          }
+        });
+        if (migrated.length) saveState(migrated);
       }
       if (saved && Array.isArray(saved.pipelineSteps) && saved.pipelineSteps.length) {
         state.pipeline.steps = saved.pipelineSteps;
@@ -1691,7 +1714,8 @@
   var MAX_CONTINUATIONS = 4;
 
   function orchFlowAgent(roleId) {
-    return AGENTS.filter(function (a) { return a.id === roleId; })[0];
+    var id = AGENT_ALIASES[roleId] || roleId;
+    return AGENTS.filter(function (a) { return a.id === id; })[0];
   }
   function orchFlowIcon(roleId) {
     var a = orchFlowAgent(roleId);
