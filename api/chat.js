@@ -42,7 +42,10 @@ const MULTI_DOC_GUARD =
   "disponibile e non consegnare nulla di completo. Scrivi per intero il documento più urgente o più " +
   "importante, poi chiudi indicando chiaramente quanti altri mancano e il loro nome/scopo, invitando " +
   "a scrivere \"continua\" per ricevere il prossimo — un solo documento completo e subito utilizzabile " +
-  "vale più di un elenco di dieci abbozzati a metà.";
+  "vale più di un elenco di dieci abbozzati a metà. Non premettere piani, tier, elenchi di cosa farai " +
+  "o riassunti di cosa conterrà il documento: ogni riga spesa in preamboli è una riga tolta al testo " +
+  "vero e rischia di far troncare la risposta prima ancora di iniziare il documento. Vai dritto al " +
+  "testo del documento (titolo e primo articolo/clausola) nelle prime righe della risposta.";
 
 const ADMIN_CONTEXT =
   "Fai parte del team virtuale \"Area Amministrativa e Contabile\" che affianca Francesco Ilari nella " +
@@ -315,7 +318,7 @@ const AGENTS = {
   // --- Area Amministrativa e Contabile (Studio Commercialista virtuale) ---
   partner: {
     name: "Orchestratore dello Studio",
-    maxTokens: 2200,
+    maxTokens: 3500,
     temperature: 0.45,
     enforceStyle: false,
     system:
@@ -379,7 +382,7 @@ const AGENTS = {
   },
   "commercialista-senior": {
     name: "Commercialista Senior",
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -411,7 +414,7 @@ const AGENTS = {
   },
   "commercialista-junior": {
     name: "Commercialista Junior",
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -442,7 +445,7 @@ const AGENTS = {
   },
   "praticante-commercialista": {
     name: "Praticante Commercialista",
-    maxTokens: 2500,
+    maxTokens: 4096,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -474,7 +477,7 @@ const AGENTS = {
   },
   "responsabile-contabile": {
     name: "Responsabile Team Contabile",
-    maxTokens: 2000,
+    maxTokens: 3000,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -504,7 +507,7 @@ const AGENTS = {
   },
   "addetto-contabilita-senior": {
     name: "Addetto alla Contabilità Senior",
-    maxTokens: 3000,
+    maxTokens: 4096,
     temperature: 0.25,
     enforceStyle: false,
     system:
@@ -529,7 +532,7 @@ const AGENTS = {
   },
   "addetto-contabilita-junior": {
     name: "Addetto alla Contabilità d'Ordine (Junior)",
-    maxTokens: 2000,
+    maxTokens: 3000,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -552,7 +555,7 @@ const AGENTS = {
   },
   "consulente-lavoro": {
     name: "Consulente del Lavoro",
-    maxTokens: 3500,
+    maxTokens: 8192,
     temperature: 0.35,
     enforceStyle: false,
     system:
@@ -584,7 +587,7 @@ const AGENTS = {
   },
   "addetto-paghe": {
     name: "Addetto Paghe e Contributi",
-    maxTokens: 2500,
+    maxTokens: 4096,
     temperature: 0.25,
     enforceStyle: false,
     system:
@@ -609,7 +612,7 @@ const AGENTS = {
   },
   "segreteria-studio": {
     name: "Segretaria / Assistente di Studio",
-    maxTokens: 2000,
+    maxTokens: 3000,
     temperature: 0.55,
     enforceStyle: false,
     system:
@@ -696,7 +699,7 @@ const AGENTS = {
   },
   "legal-gdpr": {
     name: "Esperto Privacy e GDPR",
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -722,7 +725,7 @@ const AGENTS = {
   },
   "legal-contracts": {
     name: "Esperto Contrattualistica",
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -770,7 +773,7 @@ const AGENTS = {
   },
   "legal-banking": {
     name: "Esperto Diritto Bancario e Finanziario",
-    maxTokens: 4096,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -799,7 +802,7 @@ const AGENTS = {
   },
   "legal-image-rights": {
     name: "Esperto Diritto d'Immagine e Creator Economy",
-    maxTokens: 3500,
+    maxTokens: 8192,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -827,7 +830,7 @@ const AGENTS = {
   },
   "legal-risk-analyst": {
     name: "Analista di Rischio Legale",
-    maxTokens: 3000,
+    maxTokens: 6000,
     temperature: 0.25,
     enforceStyle: false,
     system:
