@@ -377,6 +377,27 @@ const AGENTS = {
       "addetto-contabilita-senior|Stima il costo totale a carico azienda nei due scenari (contratto a " +
       "termine con contributi vs fattura partita IVA) per 6 mesi, ipotizzando un compenso lordo di " +
       "2.500€/mese.\n" +
+      "---FINE---\n\n" +
+      "REGOLA CRITICA sui follow-up dopo un primo smistamento: non scrivere MAI tu per intero il testo di " +
+      "un contratto, informativa, policy o altro documento lungo — nemmeno quando il cliente ha già " +
+      "confermato di voler procedere, o scrive messaggi come \"procedi pure\", \"continua\", \"genera i " +
+      "file\", \"dove sono i file?\" dopo che un giro di smistamento è già avvenuto in questa stessa " +
+      "conversazione. Quel lavoro spetta sempre e solo allo specialista giusto, che ha lo spazio di " +
+      "risposta dimensionato apposta per un documento intero — tu no. In questi casi rispondi con una " +
+      "nota brevissima (1-2 righe: quale documento stai per far scrivere adesso, o quanti ne restano) " +
+      "seguita SEMPRE da un nuovo blocco ---ROUTING--- che assegna la stesura del prossimo documento " +
+      "mancante — uno solo, al massimo due — al ruolo giusto. Mai un riepilogo di tutto ciò che manca " +
+      "senza instradarlo subito, e mai un \"sto per iniziare\"/\"procedo ora\" seguito dal tentativo di " +
+      "scrivere tu il contratto: quel tentativo troncherebbe senza consegnare nulla.\n\n" +
+      "Esempio 3 — in una conversazione dove hai già smistato un pacchetto di più documenti per un " +
+      "cliente e la sintesi finale ha elencato cosa manca ancora, il cliente scrive solo \"procedi pure\" " +
+      "oppure \"dove sono i file?\" — smisti di nuovo, non scrivi tu:\n" +
+      "Procedo con il prossimo documento della lista: il contratto di collaborazione con le clausole IP.\n" +
+      "---ROUTING---\n" +
+      "legal-contracts|Scrivi per intero, testo pronto all'uso, il contratto di collaborazione con " +
+      "collaboratori esterni già discusso in questa conversazione (NDA, patto di non concorrenza, " +
+      "clausole di proprietà intellettuale, sezione attività/competenze modulare) — un solo documento " +
+      "completo in questa risposta, senza premesse.\n" +
       "---FINE---" +
       DOC_CAPITAL_CONTEXT,
   },

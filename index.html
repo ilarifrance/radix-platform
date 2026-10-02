@@ -196,10 +196,11 @@
   .orch-flow-detail{ margin:0 2px 10px; cursor:default; }
 
   .attach-row{ display:flex; align-items:center; flex-wrap:wrap; gap:10px; padding:0 20px 10px; }
-  .attach-chip{ display:none; align-items:center; gap:8px; font-size:12px; background:var(--sabbia); color:var(--verde-bosco); padding:5px 6px 5px 12px; border-radius:14px; max-width:100%; }
-  .attach-chip span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
-  .attach-chip button{ background:none; border:none; color:#7a857f; cursor:pointer; font-size:13px; line-height:1; padding:4px 6px; }
-  .attach-chip button:hover{ color:#b3402a; }
+  .attach-chip{ display:none; align-items:center; gap:8px; font-size:12px; flex-wrap:wrap; max-width:100%; }
+  .attach-chip .attach-pill{ display:inline-flex; align-items:center; gap:8px; background:var(--sabbia); color:var(--verde-bosco); padding:5px 6px 5px 12px; border-radius:14px; max-width:100%; }
+  .attach-chip .attach-pill span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:220px; }
+  .attach-chip .attach-pill button{ background:none; border:none; color:#7a857f; cursor:pointer; font-size:13px; line-height:1; padding:4px 6px; }
+  .attach-chip .attach-pill button:hover{ color:#b3402a; }
   .slide-gallery{ display:flex; flex-direction:column; gap:8px; margin-top:8px; max-width:78%; align-self:flex-start; }
   .slide-gallery .thumbs{ display:flex; flex-wrap:wrap; gap:10px; }
   .slide-thumb{ display:flex; flex-direction:column; align-items:center; gap:6px; }
@@ -294,7 +295,7 @@
         <div class="quick-prompts" id="quickPrompts"></div>
         <div class="messages" id="messages"></div>
         <div class="attach-row" id="attachRowChat">
-          <input type="file" id="fileInputChat" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" style="display:none">
+          <input type="file" id="fileInputChat" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" multiple style="display:none">
           <button id="attachBtnChat" class="ghost-btn" type="button">📎 Allega file</button>
           <div id="attachChipChat" class="attach-chip"></div>
         </div>
@@ -321,7 +322,7 @@
           </div>
         </div>
         <div class="attach-row" id="attachRowPipeline">
-          <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" style="display:none">
+          <input type="file" id="fileInputPipeline" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" multiple style="display:none">
           <button id="attachBtnPipeline" class="ghost-btn" type="button">📎 Allega file (es. il piano editoriale)</button>
           <div id="attachChipPipeline" class="attach-chip"></div>
         </div>
@@ -455,7 +456,7 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFile: null, heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null } }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFiles: [], heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null } }; // history[agentId] = [{role, content}]
   // Reparti aperti/chiusi nel roster a sinistra: solo preferenza visiva di QUESTO browser, mai
   // inviata a /api/state (quello resta lo stato condiviso del team: cronologie, pipeline, HeyGen).
   // Inizializzato subito sotto, appena AGENTS esiste: chiuso tutto tranne il reparto dell'agente attivo.
@@ -945,18 +946,23 @@
   function renderAttachChip(chipEl) {
     if (!chipEl) return;
     chipEl.innerHTML = "";
-    if (!state.attachedFile) { chipEl.style.display = "none"; return; }
+    if (!state.attachedFiles || !state.attachedFiles.length) { chipEl.style.display = "none"; return; }
     chipEl.style.display = "flex";
-    var label = document.createElement("span");
-    label.textContent = "📎 " + state.attachedFile.name;
-    label.title = state.attachedFile.name;
-    chipEl.appendChild(label);
-    var rm = document.createElement("button");
-    rm.type = "button";
-    rm.textContent = "✕";
-    rm.title = "Rimuovi allegato";
-    rm.addEventListener("click", clearAttachment);
-    chipEl.appendChild(rm);
+    state.attachedFiles.forEach(function (f, idx) {
+      var pill = document.createElement("span");
+      pill.className = "attach-pill";
+      var label = document.createElement("span");
+      label.textContent = "📎 " + f.name;
+      label.title = f.name;
+      pill.appendChild(label);
+      var rm = document.createElement("button");
+      rm.type = "button";
+      rm.textContent = "✕";
+      rm.title = "Rimuovi " + f.name;
+      rm.addEventListener("click", function () { removeAttachment(idx); });
+      pill.appendChild(rm);
+      chipEl.appendChild(pill);
+    });
   }
 
   function renderAllAttachChips() {
@@ -965,22 +971,33 @@
   }
 
   function clearAttachment() {
-    state.attachedFile = null;
+    state.attachedFiles = [];
     renderAllAttachChips();
   }
 
+  function removeAttachment(idx) {
+    if (!state.attachedFiles) return;
+    state.attachedFiles.splice(idx, 1);
+    renderAllAttachChips();
+  }
+
+  var MAX_ATTACH_COUNT = 5;
+
   async function handleFileSelected(file, chipEl) {
+    if ((state.attachedFiles || []).length >= MAX_ATTACH_COUNT) {
+      alert("Massimo " + MAX_ATTACH_COUNT + " file allegati per messaggio.");
+      return;
+    }
     var ext = (file.name.split(".").pop() || "").toLowerCase();
     if (ACCEPTED_ATTACH_EXT.indexOf(ext) === -1) {
-      alert("Formato non supportato. Usa: " + ACCEPTED_ATTACH_EXT.join(", "));
+      alert("Formato non supportato (" + file.name + "). Usa: " + ACCEPTED_ATTACH_EXT.join(", "));
       return;
     }
     if (file.size > MAX_ATTACH_BYTES) {
-      alert("File troppo grande (max 4MB).");
+      alert("File troppo grande (max 4MB): " + file.name);
       return;
     }
     chipEl.style.display = "flex";
-    chipEl.innerHTML = "";
     var loading = document.createElement("span");
     loading.textContent = "Leggo " + file.name + "…";
     chipEl.appendChild(loading);
@@ -994,22 +1011,29 @@
       });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) throw new Error(data.error || "Errore lettura file");
-      state.attachedFile = { name: file.name, text: data.text || "" };
+      state.attachedFiles = state.attachedFiles || [];
+      state.attachedFiles.push({ name: file.name, text: data.text || "" });
     } catch (err) {
-      state.attachedFile = null;
-      alert("Non sono riuscito a leggere il file: " + (err && err.message ? err.message : String(err)));
+      alert("Non sono riuscito a leggere " + file.name + ": " + (err && err.message ? err.message : String(err)));
     }
     renderAllAttachChips();
   }
 
+  async function handleFilesSelected(fileList, chipEl) {
+    var files = Array.prototype.slice.call(fileList || []);
+    for (var i = 0; i < files.length; i++) {
+      await handleFileSelected(files[i], chipEl);
+    }
+  }
+
   attachBtnChat.addEventListener("click", function () { attachInputChat.click(); });
   attachInputChat.addEventListener("change", function () {
-    if (attachInputChat.files && attachInputChat.files[0]) handleFileSelected(attachInputChat.files[0], attachChipChat);
+    if (attachInputChat.files && attachInputChat.files.length) handleFilesSelected(attachInputChat.files, attachChipChat);
     attachInputChat.value = "";
   });
   attachBtnPipeline.addEventListener("click", function () { attachInputPipeline.click(); });
   attachInputPipeline.addEventListener("change", function () {
-    if (attachInputPipeline.files && attachInputPipeline.files[0]) handleFileSelected(attachInputPipeline.files[0], attachChipPipeline);
+    if (attachInputPipeline.files && attachInputPipeline.files.length) handleFilesSelected(attachInputPipeline.files, attachChipPipeline);
     attachInputPipeline.value = "";
   });
 
@@ -1039,7 +1063,7 @@
       if (!files || !files.length) return;
       var activeAgent = AGENTS.filter(function (a) { return a.id === state.agent; })[0];
       var chip = activeAgent && activeAgent.pipeline ? attachChipPipeline : attachChipChat;
-      handleFileSelected(files[0], chip);
+      handleFilesSelected(files, chip);
     });
   }
 
@@ -1057,8 +1081,10 @@
 
   // Appends the attached file's extracted text to a message/task, only when one is actually attached.
   function withAttachment(text) {
-    if (!state.attachedFile) return text;
-    return text + "\n\n[Contenuto del file allegato \"" + state.attachedFile.name + "\"]\n" + state.attachedFile.text;
+    if (!state.attachedFiles || !state.attachedFiles.length) return text;
+    return state.attachedFiles.reduce(function (acc, f) {
+      return acc + "\n\n[Contenuto del file allegato \"" + f.name + "\"]\n" + f.text;
+    }, text);
   }
 
   // --- Art Director carousel images -----------------------------------------
@@ -1885,6 +1911,51 @@
         wrap.appendChild(detail);
         if (Array.isArray(node.sources) && node.sources.length) {
           wrap.appendChild(buildSourcesEl(node.sources));
+        }
+        if (node.status !== "error") {
+          var detailActions = document.createElement("div");
+          detailActions.className = "step-actions";
+          var textForExport = node.role === "art-director" ? stripSlidesBlock(node.output) : node.output;
+          var copyDetailBtn = document.createElement("button");
+          copyDetailBtn.type = "button";
+          copyDetailBtn.className = "step-copy";
+          copyDetailBtn.textContent = "Copia";
+          copyDetailBtn.addEventListener("click", function () { copyText(textForExport, copyDetailBtn); });
+          detailActions.appendChild(copyDetailBtn);
+          var dlDetailBtn = document.createElement("button");
+          dlDetailBtn.type = "button";
+          dlDetailBtn.className = "step-copy";
+          dlDetailBtn.textContent = "Scarica come file";
+          dlDetailBtn.addEventListener("click", function () {
+            var stamp = new Date().toISOString().slice(0, 10);
+            downloadText(textForExport, "radix-" + node.role + "-" + stamp + ".txt");
+          });
+          detailActions.appendChild(dlDetailBtn);
+          var wordDetailBtn = document.createElement("button");
+          wordDetailBtn.type = "button";
+          wordDetailBtn.className = "step-copy";
+          wordDetailBtn.textContent = "Word";
+          wordDetailBtn.addEventListener("click", function () {
+            exportToWord("RADIX - " + node.label, [{ heading: null, body: textForExport }], "radix-" + node.role);
+          });
+          detailActions.appendChild(wordDetailBtn);
+          var xlsDetailBtn = document.createElement("button");
+          xlsDetailBtn.type = "button";
+          xlsDetailBtn.className = "step-copy";
+          xlsDetailBtn.textContent = "Excel";
+          xlsDetailBtn.addEventListener("click", function () {
+            exportAgentReply("xlsx", textForExport, "radix-" + node.role);
+          });
+          detailActions.appendChild(xlsDetailBtn);
+          var pdfDetailBtn = document.createElement("button");
+          pdfDetailBtn.type = "button";
+          pdfDetailBtn.className = "step-copy";
+          pdfDetailBtn.textContent = "PDF";
+          pdfDetailBtn.addEventListener("click", function () {
+            exportToPdf("RADIX - " + node.label, [{ heading: null, body: textForExport }], "radix-" + node.role);
+          });
+          detailActions.appendChild(pdfDetailBtn);
+          wrap.appendChild(detailActions);
         }
       }
     });
@@ -2805,7 +2876,9 @@
     var text = inputEl.value.trim();
     if (!text) return;
     inputEl.value = "";
-    var displayText = state.attachedFile ? text + "  📎 " + state.attachedFile.name : text;
+    var displayText = (state.attachedFiles && state.attachedFiles.length)
+      ? text + "  " + state.attachedFiles.map(function (f) { return "📎 " + f.name; }).join(" ")
+      : text;
     var hist = state.history[state.agent];
     // content is what's actually sent to the agent (includes the attached file's text, if any);
     // display is the short version shown in the chat bubble — see renderMessages().
