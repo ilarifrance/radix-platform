@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v2.5</title>
+<title>RADIX Platform — v3.3</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -318,6 +318,33 @@
   .hero-steps{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
   .hero-step{ flex:1; min-width:150px; background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:12px; padding:10px 12px; font-size:12.5px; line-height:1.45; color:#4a5650; }
   .hero-step b{ display:block; color:var(--verde-bosco); font-size:12px; margin-bottom:2px; }
+
+  /* ===== v3.3 — Progetti e brand ===== */
+  .projects{ margin:0 0 18px; }
+  .projects-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .projects-head .projects-title{ font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#8a958f; }
+  .projects-head .projects-hint{ font-size:12px; color:#8a958f; flex:1; }
+  .projects-grid{ display:flex; gap:10px; flex-wrap:wrap; }
+  .project-card{ position:relative; background:#fff; border:1.5px solid rgba(15,45,36,0.14); border-radius:12px; padding:10px 36px 10px 12px; min-width:170px; max-width:260px; cursor:pointer; text-align:left; font-family:inherit; }
+  .project-card:hover{ border-color:var(--verde-salvia); }
+  .project-card.active{ border-color:var(--verde-bosco); box-shadow:0 0 0 2px rgba(15,45,36,0.12); background:linear-gradient(180deg,#fff,rgba(107,127,114,0.08)); }
+  .project-card .p-name{ font-family:'Montserrat',sans-serif; font-weight:700; font-size:13px; color:var(--verde-bosco); line-height:1.3; }
+  .project-card .p-kind{ font-size:11px; color:#8a958f; margin-top:2px; }
+  .project-card .p-active{ font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--verde-salvia); margin-top:6px; }
+  .project-card .p-edit{ position:absolute; top:8px; right:8px; background:none; border:none; color:#8a958f; cursor:pointer; font-size:14px; padding:2px 4px; border-radius:6px; }
+  .project-card .p-edit:hover{ background:var(--sabbia); color:var(--verde-bosco); }
+  .project-card.new{ border-style:dashed; color:#6a756f; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; min-height:58px; padding:10px 12px; }
+  .project-pill{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:#6a756f; }
+  .project-pill select{ font-family:inherit; font-size:12.5px; color:var(--verde-bosco); font-weight:600; background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:4px 8px; max-width:240px; }
+  .project-form{ display:flex; flex-direction:column; gap:10px; }
+  .project-form label{ display:flex; flex-direction:column; gap:4px; font-size:11.5px; font-weight:600; color:#6a756f; }
+  .project-form input, .project-form textarea, .project-form select{ font-family:inherit; font-size:13px; color:var(--antracite); background:#fff; border:1px solid rgba(15,45,36,0.18); border-radius:8px; padding:7px 10px; width:100%; box-sizing:border-box; }
+  .project-form textarea{ min-height:64px; resize:vertical; }
+  .project-form .row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .project-form .form-actions{ display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; margin-top:4px; }
+  .project-form .form-actions .danger{ margin-right:auto; color:#b3402a; }
+  .project-form .form-hint{ font-size:11.5px; color:#8a958f; line-height:1.45; }
+  @media (max-width:640px){ .project-form .row2{ grid-template-columns:1fr; } .project-card{ max-width:100%; min-width:0; flex:1 1 100%; } }
 </style>
 </head>
 <body>
@@ -339,7 +366,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v2.5</div>
+        <div class="tag">Agentic team · v3.3</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -355,8 +382,8 @@
     <div class="intro">
       <div class="eyebrow">Team RADIX</div>
       <h1>Un team di agenti, con orchestratori che pianificano, smistano e consegnano.</h1>
-      <p>Scegli un agente per parlarci direttamente, oppure dai il task a un <strong>Orchestratore</strong>
-      (Marketing, Studio amministrativo-legale, Commerciale): scrive il piano di lavoro, lo distribuisce agli
+      <p>Scegli il <strong>progetto o brand</strong> su cui lavorare, poi parla con un agente o dai il task a un <strong>Orchestratore</strong>
+      (Agenzia Marketing, Studio amministrativo-legale, Ufficio Commerciale): scrive il piano di lavoro, lo distribuisce agli
       specialisti giusti, passa i risultati da uno all'altro quando serve e chiude con un aggiornamento operativo.
       I documenti prodotti arrivano come <strong>schede scaricabili</strong> (Word, PDF, Markdown), non come testo
       da copiare.</p>
@@ -368,13 +395,22 @@
       </div>
     </div>
 
+    <div class="projects" id="projects">
+      <div class="projects-head">
+        <span class="projects-title">Progetti e brand</span>
+        <span class="projects-hint">Il profilo attivo viene precaricato in ogni agente e orchestratore: scrivi qui chi è il progetto, poi in chat solo cosa fare.</span>
+      </div>
+      <div class="projects-grid" id="projectsGrid"></div>
+    </div>
+
     <div class="roster" id="roster"></div>
-    <div class="roster-note">Gli orchestratori (Marketing, Studio amministrativo-legale, Commerciale) non sono ruoli a sé: pianificano, smistano e consegnano il lavoro degli specialisti del loro reparto.</div>
+    <div class="roster-note">Gli orchestratori (Agenzia Marketing, Studio amministrativo-legale, Ufficio Commerciale) non sono ruoli a sé: pianificano, smistano e consegnano il lavoro degli specialisti del loro reparto. La "Pipeline post" è la catena fissa per un singolo contenuto social.</div>
 
     <div class="chat-shell">
       <div class="chat-header">
         <div class="who" id="chatWho">Digital Strategist</div>
         <div class="chat-header-right">
+          <span class="project-pill">Progetto <select id="chatProject" title="Profilo progetto/brand precaricato in questa conversazione"></select></span>
           <button id="resetChat" class="ghost-btn" type="button" title="Cancella questa conversazione">Nuova conversazione</button>
           <div style="font-size:12px; color:#8a958f;">Claude (Anthropic)</div>
         </div>
@@ -401,11 +437,8 @@
           <div class="quick-prompts" id="pipelinePrompts"></div>
           <div class="pipeline-toolbar-right">
             <div class="brand-select-wrap">
-              <label for="pipelineBrand">Brand del task</label>
-              <select id="pipelineBrand" class="brand-select" title="Per chi è questo contenuto: cambia il tono del testo e la scritta sui caroselli">
-                <option value="radix">RADIX (studio)</option>
-                <option value="personal">Personal branding (Francesco Ilari)</option>
-              </select>
+              <label for="pipelineProject">Progetto del task</label>
+              <select id="pipelineProject" class="brand-select" title="Profilo progetto/brand: cambia voce, pubblico e la scritta sui caroselli"></select>
             </div>
             <button id="resetPipeline" class="ghost-btn" type="button" title="Cancella questo run e ricomincia">Nuovo task</button>
           </div>
@@ -451,19 +484,26 @@
   "use strict";
 
   var AGENTS = [
-    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Strategia e obiettivi di crescita", group: "marketing" },
-    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Post LinkedIn/Facebook nel tuo stile", group: "marketing" },
-    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Direzione visiva e concept caroselli", group: "marketing" },
-    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Script per avatar/video HeyGen", group: "marketing" },
-    { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Calendario e adattamento canali", group: "marketing" },
-    { id: "orchestrator", icon: "🧩", name: "Orchestratore", blurb: "Un task, 5 agenti in fila", pipeline: true, group: "marketing" },
+    { id: "marketing-orchestrator", icon: "🎯", name: "Orchestratore Marketing", blurb: "Dal post al lancio completo: pianifica e smista agli specialisti", hub: true, group: "marketing" },
+    { id: "brand-strategist", icon: "🧠", name: "Stratega di Marca e Campagne", blurb: "Posizionamento, funnel, canali, KPI, piano a 90 giorni", group: "marketing" },
+    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Direzione strategica del singolo contenuto", group: "marketing" },
+    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Post, caption, newsletter nella voce del progetto", group: "marketing" },
+    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Direzione visiva, caroselli, key visual", group: "marketing" },
+    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Copione breve per video con avatar", group: "marketing" },
+    { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Apertura canali, bio, calendario, formati e orari", group: "marketing" },
+    { id: "seo-geo", icon: "🔍", name: "Specialista SEO e GEO", blurb: "Parole chiave, architettura e SEO tecnica; citazioni nei motori AI", group: "marketing" },
+    { id: "web-content", icon: "📝", name: "Content e UX Writer", blurb: "Struttura e testi di sito, landing e schede store", group: "marketing" },
+    { id: "video-producer", icon: "🎬", name: "Video Producer", blurb: "Sceneggiature, storyboard e shot list, serie e avatar", group: "marketing" },
+    { id: "paid-media", icon: "📣", name: "Paid Media Specialist", blurb: "Campagne Meta, Google, LinkedIn: struttura, pubblici, annunci", group: "marketing" },
+    { id: "analytics", icon: "📈", name: "Analytics e CRO", blurb: "Piano di misurazione, GA4, dashboard, test A/B", group: "marketing" },
+    { id: "orchestrator", icon: "🧩", name: "Pipeline post", blurb: "Un post: 5 agenti in fila, dal brief al calendario", pipeline: true, group: "marketing" },
     { id: "partner", icon: "🧠", name: "Orchestratore dello Studio", blurb: "Un task, lo smista agli specialisti giusti", hub: true, group: "admin" },
     { id: "commercialista-senior", icon: "📊", name: "Commercialista Senior", blurb: "Pareri fiscali e societari, tax planning, contenzioso", group: "admin" },
     { id: "commercialista-operativo", icon: "🧾", name: "Commercialista Operativo", blurb: "Bilanci, dichiarazioni, pratiche, checklist documenti", group: "admin" },
     { id: "contabilita", icon: "🧮", name: "Contabilità", blurb: "Scadenzario, liquidazioni IVA e F24, prima nota, riconciliazioni", group: "admin" },
     { id: "lavoro-paghe", icon: "👔", name: "Lavoro e Paghe", blurb: "CCNL, contratti, costo del lavoro, cedolini e TFR", group: "admin" },
     { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti, parcelle, solleciti", group: "admin" },
-    { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Codice vero: pagine, componenti, script", group: "dev" },
+    { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Siti e app: codice pronto, SEO tecnica, passi di pubblicazione", group: "dev" },
     { id: "legal-gdpr", icon: "🔐", name: "Esperto Privacy e GDPR", blurb: "Trattamento dati, informative, DPIA, adempimenti verso il Garante", group: "legale" },
     { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica, IP e Creator", blurb: "Contratti B2B/B2C, marchi, diritti d'immagine, accordi con creator", group: "legale" },
     { id: "legal-banking", icon: "🏦", name: "Esperto Diritto Bancario e Finanziario", blurb: "Contratti di finanziamento, normativa bancaria, utile su Doc Capital", group: "legale" },
@@ -488,7 +528,7 @@
     "legal-image-rights": "legal-contracts",
   };
 
-  var GROUP_LABELS = { marketing: "Area Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo", legale: "Area Legale", commerciale: "Ufficio Commerciale" };
+  var GROUP_LABELS = { marketing: "Agenzia Marketing", admin: "Area Amministrativa e Contabile", dev: "Sviluppo", legale: "Area Legale", commerciale: "Ufficio Commerciale" };
 
 
   // La pipeline vera e propria: un task passa da un agente all'altro, ognuno riceve il lavoro di chi lo
@@ -553,7 +593,198 @@
     "Le PMI che crescono non hanno più soldi. Hanno più metodo. (Facebook+LinkedIn)",
   ];
 
-  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFiles: [], heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null } }; // history[agentId] = [{role, content}]
+  var state = { agent: "strategist", history: {}, pipeline: { running: false, steps: [], brand: "radix" }, attachedFiles: [], heygen: { avatarId: null, voiceId: null }, buffer: { channelId: null }, projects: [], activeProject: "radix" }; // history[agentId] = [{role, content}]
+  // v3.3 — Profili Progetto/Brand: state.projects è la lista condivisa (seminata dai preset del server alla prima
+  // apertura, poi modificabile qui), state.activeProject l'id del profilo precaricato in ogni chiamata agli agenti.
+  var PROJECT_FIELDS = [
+    ["name", "Nome del progetto o brand", "input", "es. Aura — assistente personale AI"],
+    ["kind", "Tipo", "input", "es. App consumer iOS/Android (B2C) · Studio professionale · E-commerce · Personal brand"],
+    ["summary", "Descrizione: cosa fa, per chi, cosa lo distingue, fase attuale", "textarea", "Scrivi quello che un nuovo collaboratore dovrebbe sapere prima di iniziare"],
+    ["audience", "Pubblico", "textarea", "Segmenti, ruoli, età, dove si informano"],
+    ["positioning", "Posizionamento e promessa", "input", "A chi, cosa, perché credere — in una frase"],
+    ["voice", "Voce e tono", "textarea", "Come parla il brand; cosa evitare"],
+    ["channels", "Canali e abitudini di pubblicazione", "input", "es. LinkedIn 8:00, Instagram, newsletter mensile"],
+    ["visual", "Identità visiva", "input", "Palette (hex), font, elementi ricorrenti"],
+    ["links", "Riferimenti", "input", "Sito, profili social, materiali"],
+    ["notes", "Note operative e vincoli", "textarea", "Compliance, budget, mercati, cosa non dire"],
+  ];
+  var presetProjects = []; // dal server (GET /api/chat), usati per seminare e per migrare il vecchio campo brand
+
+  function activeProjectProfile() {
+    var p = state.projects.filter(function (x) { return x.id === state.activeProject; })[0];
+    return p || state.projects[0] || presetProjects.filter(function (x) { return x.id === "radix"; })[0] || null;
+  }
+  function projectShortLabel(p) {
+    if (!p) return "RADIX";
+    if (p.id === "radix") return "RADIX";
+    if (p.id === "personal") return "FRANCESCO ILARI";
+    return String(p.name || "").split(/\s[—–-]\s/)[0].toUpperCase().slice(0, 28);
+  }
+  function projectPalette(p) {
+    var hexes = p && p.visual ? (String(p.visual).match(/#[0-9a-fA-F]{6}/g) || []) : [];
+    return hexes.length >= 2 ? hexes : RADIX_HEX;
+  }
+  // Semina i preset nello stato condiviso se non c'è ancora nessun profilo; migra il vecchio "brand" della pipeline.
+  function ensureProjects() {
+    if (!presetProjects.length) return;
+    var changed = false;
+    if (!state.projects.length) {
+      state.projects = presetProjects.map(function (p) { return JSON.parse(JSON.stringify(p)); });
+      changed = true;
+    }
+    if (!state.projects.some(function (p) { return p.id === state.activeProject; })) {
+      state.activeProject = (state.pipeline.brand === "personal" && state.projects.some(function (p) { return p.id === "personal"; })) ? "personal" : state.projects[0].id;
+      changed = true;
+    }
+    if (changed) saveState([], { projects: state.projects, activeProject: state.activeProject });
+    renderProjects();
+  }
+  function setActiveProject(id, persist) {
+    if (!state.projects.some(function (p) { return p.id === id; })) return;
+    state.activeProject = id;
+    // Compatibilità con la grafica dei caroselli e con i salvataggi vecchi: brand=personal solo per quel profilo.
+    state.pipeline.brand = id === "personal" ? "personal" : "radix";
+    renderProjects();
+    if (persist !== false) saveState([], { activeProject: id });
+  }
+  function renderProjects() {
+    var grid = document.getElementById("projectsGrid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    state.projects.forEach(function (p) {
+      var card = document.createElement("button");
+      card.type = "button";
+      card.className = "project-card" + (p.id === state.activeProject ? " active" : "");
+      card.setAttribute("data-project", p.id);
+      card.innerHTML = '<div class="p-name"></div><div class="p-kind"></div>' + (p.id === state.activeProject ? '<div class="p-active">Attivo</div>' : "");
+      card.querySelector(".p-name").textContent = p.name || "(senza nome)";
+      card.querySelector(".p-kind").textContent = p.kind || "";
+      card.title = (p.summary || "").slice(0, 300);
+      card.addEventListener("click", function () { setActiveProject(p.id); });
+      var edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "p-edit";
+      edit.title = "Modifica il profilo";
+      edit.textContent = "\u270E";
+      edit.addEventListener("click", function (e) { e.stopPropagation(); openProjectForm(p); });
+      card.appendChild(edit);
+      grid.appendChild(card);
+    });
+    var add = document.createElement("button");
+    add.type = "button";
+    add.className = "project-card new";
+    add.id = "projectNew";
+    add.textContent = "+ Nuovo progetto o brand";
+    add.addEventListener("click", function () { openProjectForm(null); });
+    grid.appendChild(add);
+    ["chatProject", "pipelineProject"].forEach(function (selId) {
+      var sel = document.getElementById(selId);
+      if (!sel) return;
+      sel.innerHTML = "";
+      state.projects.forEach(function (p) {
+        var o = document.createElement("option");
+        o.value = p.id;
+        o.textContent = p.name || "(senza nome)";
+        sel.appendChild(o);
+      });
+      sel.value = state.activeProject;
+      sel.disabled = state.pipeline.running || busyCalls > 0;
+    });
+  }
+  function slugify(name) {
+    return String(name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "progetto";
+  }
+  function openProjectForm(existing) {
+    var isNew = !existing;
+    var p = existing ? JSON.parse(JSON.stringify(existing)) : { id: "", name: "" };
+    var overlay = document.createElement("div");
+    overlay.className = "doc-overlay";
+    overlay.id = "projectOverlay";
+    var modal = document.createElement("div");
+    modal.className = "doc-modal";
+    var head = document.createElement("div");
+    head.className = "doc-modal-head";
+    head.innerHTML = '<div><div class="doc-title"></div><div class="doc-meta">Tutto ciò che scrivi qui viene letto da ogni agente e orchestratore quando questo progetto è attivo.</div></div>';
+    head.querySelector(".doc-title").textContent = isNew ? "Nuovo progetto o brand" : "Modifica: " + (p.name || "");
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = "step-copy";
+    closeBtn.textContent = "Chiudi";
+    closeBtn.addEventListener("click", function () { overlay.remove(); });
+    head.appendChild(closeBtn);
+    modal.appendChild(head);
+    var body = document.createElement("div");
+    body.className = "doc-modal-body";
+    var form = document.createElement("form");
+    form.className = "project-form";
+    form.id = "projectForm";
+    var inputs = {};
+    PROJECT_FIELDS.forEach(function (f) {
+      var label = document.createElement("label");
+      label.textContent = f[1];
+      var el = document.createElement(f[2]);
+      if (f[2] === "input") el.type = "text";
+      el.placeholder = f[3];
+      el.name = f[0];
+      el.value = p[f[0]] || "";
+      inputs[f[0]] = el;
+      label.appendChild(el);
+      form.appendChild(label);
+    });
+    var hint = document.createElement("div");
+    hint.className = "form-hint";
+    hint.textContent = "Consiglio: più il profilo è concreto (numeri, nomi, cosa è già stato fatto, cosa non dire), meno dovrai ripeterlo in chat. I campi vuoti vengono ignorati.";
+    form.appendChild(hint);
+    var actions = document.createElement("div");
+    actions.className = "form-actions";
+    if (!isNew && state.projects.length > 1) {
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "step-copy danger";
+      del.textContent = "Elimina profilo";
+      del.addEventListener("click", function () {
+        if (!window.confirm("Eliminare il profilo \"" + (p.name || "") + "\"? Le conversazioni restano, ma gli agenti non avranno più questo contesto.")) return;
+        state.projects = state.projects.filter(function (x) { return x.id !== p.id; });
+        if (state.activeProject === p.id) state.activeProject = state.projects[0].id;
+        saveState([], { projects: state.projects, activeProject: state.activeProject });
+        renderProjects();
+        overlay.remove();
+      });
+      actions.appendChild(del);
+    }
+    var save = document.createElement("button");
+    save.type = "submit";
+    save.className = "step-copy primary";
+    save.id = "projectSave";
+    save.textContent = isNew ? "Crea e attiva" : "Salva";
+    actions.appendChild(save);
+    form.appendChild(actions);
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var name = inputs.name.value.trim();
+      if (!name) { inputs.name.focus(); return; }
+      PROJECT_FIELDS.forEach(function (f) { p[f[0]] = inputs[f[0]].value.trim(); });
+      if (isNew) {
+        var base = slugify(name), id = base, n = 2;
+        while (state.projects.some(function (x) { return x.id === id; })) { id = base + "-" + (n++); }
+        p.id = id;
+        state.projects.push(p);
+        state.activeProject = id;
+        state.pipeline.brand = "radix";
+      } else {
+        state.projects = state.projects.map(function (x) { return x.id === p.id ? p : x; });
+      }
+      saveState([], { projects: state.projects, activeProject: state.activeProject });
+      renderProjects();
+      overlay.remove();
+    });
+    body.appendChild(form);
+    modal.appendChild(body);
+    overlay.appendChild(modal);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    inputs.name.focus();
+  }
   // Reparti aperti/chiusi nel roster a sinistra: solo preferenza visiva di QUESTO browser, mai
   // inviata a /api/state (quello resta lo stato condiviso del team: cronologie, pipeline, HeyGen).
   // Inizializzato subito sotto, appena AGENTS esiste: chiuso tutto tranne il reparto dell'agente attivo.
@@ -639,7 +870,7 @@
   // sovrascriveva silenziosamente i messaggi dell'altra — visto dal vivo come conversazioni che
   // tornavano indietro e reset annullati. Ora si mandano solo le cronologie degli agenti toccati
   // (agentIds) più i campi di primo livello, e il server fa il merge (api/state.js, campo "patch").
-  function saveState(agentIds) {
+  function saveState(agentIds, extra) {
     var ids = Array.isArray(agentIds) ? agentIds : (agentIds ? [agentIds] : [state.agent]);
     var historyPatch = {};
     ids.forEach(function (id) { if (state.history.hasOwnProperty(id)) historyPatch[id] = state.history[id]; });
@@ -651,6 +882,8 @@
       patch.pipelineSteps = state.pipeline.steps;
       patch.pipelineBrand = state.pipeline.brand;
     }
+    // v3.3: profili progetto e profilo attivo viaggiano solo quando cambiano (extra), come campi di primo livello.
+    if (extra && typeof extra === "object") Object.keys(extra).forEach(function (k) { patch[k] = extra[k]; });
     fetch("/api/state", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -709,6 +942,11 @@
       if (saved && (saved.pipelineBrand === "personal" || saved.pipelineBrand === "radix")) {
         state.pipeline.brand = saved.pipelineBrand;
       }
+      if (saved && Array.isArray(saved.projects)) {
+        state.projects = saved.projects.filter(function (p) { return p && typeof p === "object" && p.id; });
+      }
+      if (saved && typeof saved.activeProject === "string") state.activeProject = saved.activeProject;
+      ensureProjects();
       if (saved && saved.heygenAvatarId) state.heygen.avatarId = saved.heygenAvatarId;
       if (saved && saved.heygenVoiceId) state.heygen.voiceId = saved.heygenVoiceId;
     } catch (e) { /* offline/error: start from empty shared state client-side, next save resyncs it */ }
@@ -727,7 +965,8 @@
   var sendBtn = document.getElementById("send");
   var pipelineInputEl = document.getElementById("pipelineInput");
   var pipelineRunBtn = document.getElementById("pipelineRun");
-  var pipelineBrandEl = document.getElementById("pipelineBrand");
+  var pipelineProjectEl = document.getElementById("pipelineProject");
+  var chatProjectEl = document.getElementById("chatProject");
   var apiStatusEl = document.getElementById("apiStatus");
   var resetChatBtn = document.getElementById("resetChat");
   var resetPipelineBtn = document.getElementById("resetPipeline");
@@ -1713,6 +1952,11 @@
   // parziale, vedi fetchAgentReply): 4 parti × 8192 token coprono anche un contratto molto lungo.
   var MAX_CONTINUATIONS = 4;
 
+  // v3.3: gli orchestratori con smistamento (hub: true nel roster) non sono più elencati a mano nel codice.
+  function isHubAgent(id) {
+    var a = AGENTS.filter(function (x) { return x.id === id; })[0];
+    return !!(a && a.hub);
+  }
   function orchFlowAgent(roleId) {
     var id = AGENT_ALIASES[roleId] || roleId;
     return AGENTS.filter(function (a) { return a.id === id; })[0];
@@ -1819,7 +2063,7 @@
     // deve marchiare ogni slide col nome dello studio come se fosse un post aziendale, quindi qui usa
     // il nome di Francesco; la riga sotto si adatta alla larghezza reale del testo invece di restare
     // fissa a 76px (che sotto "FRANCESCO ILARI" sarebbe troppo corta).
-    var kickerText = (state.pipeline && state.pipeline.brand === "personal") ? "FRANCESCO ILARI" : "RADIX";
+    var kickerText = projectShortLabel(activeProjectProfile());
     ctx.fillStyle = fg;
     ctx.globalAlpha = 0.75;
     ctx.font = "700 26px Montserrat, sans-serif";
@@ -1984,13 +2228,17 @@
   // branding di Francesco — vedi state.pipeline.brand) — così lo sfondo non è generico ma coerente con
   // chi/cosa sta parlando in quella slide, e resta comunque intonato alla palette RADIX come accento.
   function slideImagePrompt(slide, brand) {
+    var proj = activeProjectProfile();
     var subject = brand === "personal"
       ? "un professionista/consulente italiano in un contesto di lavoro moderno (scrivania, incontro, laptop) — non un modello da stock anonimo, un'ambientazione credibile"
-      : "un ambiente business/startup italiano moderno (ufficio, team al lavoro, una presentazione)";
+      : (proj && proj.id !== "radix" && proj.summary
+        ? "un'ambientazione coerente con questo progetto: " + String(proj.summary).slice(0, 220)
+        : "un ambiente business/startup italiano moderno (ufficio, team al lavoro, una presentazione)");
+    var paletteHex = projectPalette(proj);
     return "Fotografia professionale in stile editoriale per un post LinkedIn B2B, non uno scatto da stock photo " +
       "generico. Soggetto: " + subject + ". Atmosfera e composizione legate a questo concetto: \"" + slide.text +
-      "\". Illuminazione naturale, palette cromatica tenue coerente con questi colori (verde bosco scuro, verde " +
-      "salvia, beige caldo): " + RADIX_HEX.slice(0, 3).join(", ") + ". Nessun testo, nessuna scritta, nessun logo " +
+      "\". Illuminazione naturale, palette cromatica tenue coerente con questi colori (la palette " +
+      "del brand): " + paletteHex.slice(0, 3).join(", ") + ". Nessun testo, nessuna scritta, nessun logo " +
       "nell'immagine. Composizione con aree di spazio negativo, pensata per avere del testo sovrapposto sopra.";
   }
 
@@ -2628,7 +2876,7 @@
       var pipelineLead = members.filter(function (a) { return a.pipeline; })[0];
       var hub = members.filter(function (a) { return a.hub; })[0];
 
-      if (pipelineLead) {
+      if (pipelineLead && !hub) {
         var row = document.createElement("div");
         row.className = "chain-row";
         row.appendChild(makeAgentCard(pipelineLead));
@@ -2692,7 +2940,7 @@
 
   function renderQuickPrompts() {
     quickPromptsEl.innerHTML = "";
-    if (state.agent !== "copywriter") return;
+    if (state.agent !== "copywriter" || (state.activeProject !== "personal" && state.activeProject !== "radix")) return;
     PED_TOPICS.forEach(function (topic) {
       var chip = document.createElement("div");
       chip.className = "chip";
@@ -2710,7 +2958,7 @@
   function visibleAssistantText(m) {
     var t = m.content || "";
     if (state.agent === "art-director") t = stripSlidesBlock(t);
-    if (state.agent === "partner" || state.agent === "comm-orchestrator") t = stripRoutingBlock(t);
+    if (isHubAgent(state.agent)) t = stripRoutingBlock(t);
     return stripDocuments(t);
   }
 
@@ -2735,7 +2983,7 @@
   function renderMessages() {
     messagesEl.innerHTML = "";
     var hist = state.history[state.agent] || [];
-    var isHub = state.agent === "partner" || state.agent === "comm-orchestrator";
+    var isHub = isHubAgent(state.agent);
     messagesEl.classList.toggle("tall", isHub);
     var agentLabel = orchFlowLabel(state.agent);
 
@@ -2897,8 +3145,8 @@
 
   function renderPipeline() {
     renderFlowMap();
-    if (pipelineBrandEl.value !== state.pipeline.brand) pipelineBrandEl.value = state.pipeline.brand;
-    pipelineBrandEl.disabled = state.pipeline.running; // non cambiare brand a metà di un run in corso
+    if (pipelineProjectEl.value !== state.activeProject) pipelineProjectEl.value = state.activeProject;
+    pipelineProjectEl.disabled = state.pipeline.running; // non cambiare progetto a metà di un run in corso
     pipelineStepsEl.innerHTML = "";
     if (!state.pipeline.steps.length) {
       var empty = document.createElement("div");
@@ -3281,6 +3529,9 @@
   // a 5xx from the upstream API shouldn't surface as an error to the user if trying again right
   // away would have worked. Doesn't retry 4xx (401/400/etc.): those won't fix themselves.
   async function postChat(body) {
+    // v3.3: il profilo progetto attivo viaggia con OGNI chiamata (chat, pipeline, flussi, sintesi): è il server a
+    // metterlo in testa al system prompt dell'agente. "brand" resta per compatibilità con la grafica dei caroselli.
+    if (!body.project) body.project = activeProjectProfile();
     var attempt = 0;
     while (true) {
       attempt++;
@@ -3627,7 +3878,7 @@
       // solo (vedi runOrchestrationFlow) invece di fermarsi ai soli pulsanti "apri con questo
       // compito" -- resta lui il punto di contatto, Francesco vede il piano, gli agenti al lavoro,
       // i documenti consegnati e l'esito finale.
-      if (agentId === "partner" || agentId === "comm-orchestrator") {
+      if (isHubAgent(agentId)) {
         var routingItems = parseRouting(newMsg.content);
         if (routingItems.length) {
           newMsg.flow = makeFlow(routingItems, 1);
@@ -3683,10 +3934,8 @@
   pipelineInputEl.addEventListener("keydown", function (e) {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPipeline(); }
   });
-  pipelineBrandEl.addEventListener("change", function () {
-    state.pipeline.brand = pipelineBrandEl.value === "personal" ? "personal" : "radix";
-    saveState();
-  });
+  pipelineProjectEl.addEventListener("change", function () { setActiveProject(pipelineProjectEl.value); });
+  chatProjectEl.addEventListener("change", function () { setActiveProject(chatProjectEl.value); });
 
   resetChatBtn.addEventListener("click", function () {
     if (state.pipeline.running || busyCalls > 0) return; // agent id fixed while a run is in flight, but stay safe
@@ -3733,6 +3982,10 @@
     // as a session check (401 = not logged in / session expired -> show the login gate).
     try {
       var res = await fetch("/api/chat", { method: "GET" });
+      try {
+        var info = await res.clone().json();
+        if (info && Array.isArray(info.presets) && info.presets.length) { presetProjects = info.presets; ensureProjects(); }
+      } catch (e) { /* nessun preset: la sezione progetti resta vuota finché il server non risponde */ }
       if (res.status === 401) {
         showGate("Sessione scaduta: accedi di nuovo.");
         apiStatusEl.textContent = "Accesso protetto";
