@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v3.3</title>
+<title>RADIX Platform — v3.6</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -322,6 +322,27 @@
   .orch-flow-detail .detail-body.error{ color:#7a2f22; }
   .orch-flow-detail .doc-card{ max-width:100%; margin:8px 0; }
   .orch-flow .orch-docs{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  /* v3.6 — Registro attività del flusso: una riga per evento, con ora e durata; si vede chi lavora e i passaggi. */
+  .orch-log{ margin:8px 0 4px; background:#fff; border:1px solid rgba(15,45,36,0.10); border-radius:12px; padding:8px 12px; max-height:220px; overflow-y:auto; font-size:12px; line-height:1.5; }
+  .orch-log .log-row{ display:flex; gap:10px; padding:2px 0; border-bottom:1px dashed rgba(15,45,36,0.06); }
+  .orch-log .log-row:last-child{ border-bottom:0; }
+  .orch-log .log-time{ flex:0 0 58px; color:#8a958f; font-variant-numeric:tabular-nums; }
+  .orch-log .log-text{ flex:1; color:var(--antracite); }
+  .orch-log .log-row.start .log-text{ color:var(--verde-bosco); }
+  .orch-log .log-row.done .log-text{ font-weight:600; color:var(--verde-bosco); }
+  .orch-log .log-row.handoff .log-text{ color:#5b6d63; }
+  .orch-log .log-row.error .log-text{ color:#7a2f22; }
+  .orch-log .log-row.plan .log-text{ font-weight:700; }
+  .orch-eta{ font-size:11px; color:#8a958f; margin:4px 2px 0; }
+  /* Modalità presentazione (webinar): nasconde roster, progetti e hero; il flusso prende tutta la pagina. */
+  body.present .intro, body.present .projects, body.present #roster, body.present .roster-note, body.present .roster-section, body.present .quick-prompts{ display:none !important; }
+  body.present .messages.tall{ max-height:none; min-height:70vh; }
+  body.present .present-toggle{ background:var(--verde-bosco); color:#fff; border-color:var(--verde-bosco); }
+  body.present .orch-flow .flow-node{ width:172px; }
+  body.present .orch-flow .flow-node .flow-label{ font-size:13px; }
+  body.present .orch-log{ max-height:340px; font-size:13.5px; }
+  body.present .messages{ font-size:15px; }
+  .present-toggle{ font-size:11.5px; }
   .orch-flow .orch-docs .doc-card{ max-width:100%; }
   .orch-flow-empty{ font-size:12px; color:#8a958f; margin-top:6px; }
   .messages.tall{ min-height:360px; max-height:66vh; }
@@ -376,7 +397,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v3.3</div>
+        <div class="tag">Agentic team · v3.6</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -393,7 +414,7 @@
       <div class="eyebrow">Team RADIX</div>
       <h1>Un team di agenti, con orchestratori che pianificano, smistano e consegnano.</h1>
       <p>Scegli il <strong>progetto o brand</strong> su cui lavorare, poi parla con un agente o dai il task a un <strong>Orchestratore</strong>
-      (Agenzia Marketing, Studio amministrativo-legale, Ufficio Commerciale): scrive il piano di lavoro, lo distribuisce agli
+      (Agenzia Marketing, Studio amministrativo, Area Legale, Ufficio Commerciale): scrive il piano di lavoro, lo distribuisce agli
       specialisti giusti, passa i risultati da uno all'altro quando serve e chiude con un aggiornamento operativo.
       I documenti prodotti arrivano come <strong>schede scaricabili</strong> (Word, PDF, Markdown), non come testo
       da copiare.</p>
@@ -414,13 +435,14 @@
     </div>
 
     <div class="roster" id="roster"></div>
-    <div class="roster-note">Gli orchestratori (Agenzia Marketing, Studio amministrativo-legale, Ufficio Commerciale) non sono ruoli a sé: pianificano, smistano e consegnano il lavoro degli specialisti del loro reparto. La "Pipeline post" è la catena fissa per un singolo contenuto social.</div>
+    <div class="roster-note">Gli orchestratori (Agenzia Marketing, Studio amministrativo, Area Legale, Ufficio Commerciale) non sono ruoli a sé: pianificano, smistano e consegnano il lavoro degli specialisti del loro reparto. La "Pipeline post" è la catena fissa per un singolo contenuto social.</div>
 
     <div class="chat-shell">
       <div class="chat-header">
         <div class="who" id="chatWho">Digital Strategist</div>
         <div class="chat-header-right">
           <span class="project-pill">Progetto <select id="chatProject" title="Profilo progetto/brand precaricato in questa conversazione"></select></span>
+          <button id="presentToggle" class="ghost-btn present-toggle" type="button" title="Nasconde roster e progetti: solo piano, agenti al lavoro e documenti (per presentazioni e webinar)">🎥 Presentazione</button>
           <button id="resetChat" class="ghost-btn" type="button" title="Cancella questa conversazione">Nuova conversazione</button>
           <div style="font-size:12px; color:#8a958f;">Claude (Anthropic)</div>
         </div>
@@ -514,6 +536,7 @@
     { id: "lavoro-paghe", icon: "👔", name: "Lavoro e Paghe", blurb: "CCNL, contratti, costo del lavoro, cedolini e TFR", group: "admin" },
     { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti, parcelle, solleciti", group: "admin" },
     { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Siti e app con anteprima dal vivo, SEO tecnica, pubblicazione", group: "dev" },
+    { id: "legal-orchestrator", icon: "⚖️", name: "Orchestratore Legale", blurb: "Un'esigenza legale, la smista agli specialisti e fa rileggere tutto", hub: true, group: "legale" },
     { id: "legal-gdpr", icon: "🔐", name: "Esperto Privacy e GDPR", blurb: "Trattamento dati, informative, DPIA, adempimenti verso il Garante", group: "legale" },
     { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica, IP e Creator", blurb: "Contratti B2B/B2C, marchi, diritti d'immagine, accordi con creator", group: "legale" },
     { id: "legal-banking", icon: "🏦", name: "Esperto Diritto Bancario e Finanziario", blurb: "Contratti di finanziamento, normativa bancaria, utile su Doc Capital", group: "legale" },
@@ -967,6 +990,16 @@
   var pipelineModeEl = document.getElementById("pipelineMode");
   var messagesEl = document.getElementById("messages");
   var chatWhoEl = document.getElementById("chatWho");
+  // v3.6 — Modalità presentazione (webinar del 6/10): solo conversazione e flusso, a tutta pagina. Preferenza per
+  // browser (localStorage), non condivisa con il team.
+  var presentToggleEl = document.getElementById("presentToggle");
+  function setPresent(on) {
+    document.body.classList.toggle("present", !!on);
+    presentToggleEl.textContent = on ? "🎥 Esci dalla presentazione" : "🎥 Presentazione";
+    try { localStorage.setItem("radix.present", on ? "1" : "0"); } catch (e) { /* storage non disponibile */ }
+  }
+  presentToggleEl.addEventListener("click", function () { setPresent(!document.body.classList.contains("present")); });
+  try { if (localStorage.getItem("radix.present") === "1") setPresent(true); } catch (e) { /* ignora */ }
   var quickPromptsEl = document.getElementById("quickPrompts");
   var pipelinePromptsEl = document.getElementById("pipelinePrompts");
   var pipelineStepsEl = document.getElementById("pipelineSteps");
@@ -1496,7 +1529,8 @@
     "var h=a.getAttribute('href')||'';if(/^(https?:)?\\/\\//i.test(h)||/^(mailto|tel):/i.test(h)){a.target='_blank';return;}" +
     "var f=h.split('#')[0].split('?')[0].replace(/^\\.?\\//,'').toLowerCase();if(!f||f==='.'){return;}" +
     "if(f==='/'||f==='')f='index.html';if(!/\\.html?$/.test(f))f=f.replace(/\\/$/,'')+'.html';" +
-    "if(P.indexOf(f)!==-1){e.preventDefault();parent.postMessage({radixPage:f},'*');}else{e.preventDefault();}},true);})();<\/script>";
+    "if(P.indexOf(f)!==-1){e.preventDefault();parent.postMessage({radixPage:f},'*');}else{e.preventDefault();}},true);" +
+    "document.addEventListener('keydown',function(e){if(e.key==='Escape')parent.postMessage({radixClose:true},'*');});})();<\/script>";
   function sitePreviewSrcdoc(docObj, pageNames) {
     var src = htmlDocSource(docObj);
     var inject = SITE_LINK_SCRIPT.replace("__PAGES__", JSON.stringify(pageNames));
@@ -1505,9 +1539,10 @@
   }
   function openSitePreview(docObj, meta) {
     var pages = collectSitePages();
-    if (!pages.some(function (p) { return p.doc === docObj; })) pages.unshift({ doc: docObj, by: meta && meta.by });
+    var sameDoc = function (p) { return htmlDocFilename(p.doc) === htmlDocFilename(docObj); };
+    if (!pages.some(sameDoc)) pages.unshift({ doc: docObj, by: meta && meta.by });
     var names = pages.map(function (p) { return htmlDocFilename(p.doc); });
-    var current = pages.filter(function (p) { return p.doc === docObj; })[0] || pages[0];
+    var current = pages.filter(sameDoc)[0] || pages[0];
 
     var overlay = document.createElement("div");
     overlay.className = "doc-overlay";
@@ -1577,6 +1612,7 @@
 
     function onMsg(e) {
       var d = e.data;
+      if (d && d.radixClose) { close(); return; }
       if (!d || !d.radixPage) return;
       var page = pages.filter(function (p) { return htmlDocFilename(p.doc) === d.radixPage; })[0];
       if (page) show(page);
@@ -1750,13 +1786,13 @@
     docs.forEach(function (entry) {
       var row = document.createElement("div");
       row.className = "deliverable-row";
-      var ic = document.createElement("div"); ic.className = "d-icon"; ic.textContent = "📄";
+      var ic = document.createElement("div"); ic.className = "d-icon"; ic.textContent = isHtmlDoc(entry.doc) ? "🌐" : "📄";
       var ti = document.createElement("div"); ti.className = "d-title"; ti.textContent = entry.doc.title + (entry.doc.incomplete ? " (incompleto)" : "");
       ti.title = entry.doc.title;
       var by = document.createElement("div"); by.className = "d-by"; by.textContent = entry.by || "";
       row.appendChild(ic); row.appendChild(ti); row.appendChild(by);
       row.appendChild(docActionButtons(entry.doc, { by: entry.by }, true));
-      row.addEventListener("click", function () { openDocumentViewer(entry.doc, { by: entry.by }); });
+      row.addEventListener("click", function () { isHtmlDoc(entry.doc) ? openSitePreview(entry.doc, { by: entry.by }) : openDocumentViewer(entry.doc, { by: entry.by }); });
       list.appendChild(row);
     });
     panel.appendChild(list);
@@ -2114,6 +2150,35 @@
     return (text || "").replace(/\n?---ROUTING---[\s\S]*?---FINE---/, "").trim();
   }
 
+  // v3.6 — Registro attività: ogni flusso tiene una lista di eventi (ora, tipo, testo) che si vede sotto la
+  // mappa degli agenti e racconta chi ha iniziato, chi ha consegnato cosa e a chi è passato il risultato.
+  function flowLog(flow, kind, text) {
+    if (!flow) return;
+    if (!flow.log) flow.log = [];
+    flow.log.push({ t: Date.now(), k: kind, x: text });
+    if (flow.log.length > 200) flow.log.splice(0, flow.log.length - 200);
+  }
+  function fmtClock(ts) {
+    var d = new Date(ts);
+    return [d.getHours(), d.getMinutes(), d.getSeconds()].map(function (n) { return (n < 10 ? "0" : "") + n; }).join(":");
+  }
+  function fmtDur(ms) {
+    var s = Math.max(0, Math.round(ms / 1000));
+    if (s < 60) return s + " s";
+    return Math.floor(s / 60) + " min " + (s % 60 < 10 ? "0" : "") + (s % 60) + " s";
+  }
+  // Stima del tempo che resta: media dei compiti già finiti × compiti rimanenti ÷ parallelismo.
+  function flowEta(flow) {
+    var nodes = flow.nodes || [];
+    var done = nodes.filter(function (n) { return n.status === "done" && n.startedAt && n.endedAt; });
+    var left = nodes.filter(function (n) { return n.status === "pending" || n.status === "running"; }).length;
+    if (!left) return "";
+    if (!done.length) return "stima disponibile dopo il primo compito";
+    var avg = done.reduce(function (a, n) { return a + (n.endedAt - n.startedAt); }, 0) / done.length;
+    var est = (avg * left) / FLOW_CONCURRENCY;
+    return "circa " + fmtDur(est) + " ancora";
+  }
+
   // v3.4 — Guardia sugli orchestratori. Il 3/10 l'Orchestratore dello Studio, incalzato ("li voglio tutti
   // adesso"), ha scritto lui stesso 11 contratti "uno per messaggio, copia e salva", saltando il
   // Contrattualista e l'Analista di Rischio: le regole nel prompt non sono bastate. Qui il controllo nel
@@ -2146,7 +2211,7 @@
   // v3.0: quanti specialisti lavorano insieme nello stesso istante. Un piano da 10-12 documenti non
   // parte più tutto in una volta (limiti di rate dell'API e un muro di nodi che pulsano): scorre a
   // gruppi, e si vede chi sta lavorando adesso e chi è in coda — più leggibile, come su Relevance.
-  var FLOW_CONCURRENCY = 2;
+  var FLOW_CONCURRENCY = 3; // v3.6: 3 per il webinar (2 fino alla v3.5)
   // Quante volte si continua da sola una risposta interrotta per limite di spazio (prefill del testo
   // parziale, vedi fetchAgentReply): 4 parti × 8192 token coprono anche un contratto molto lungo.
   var MAX_CONTINUATIONS = 4;
@@ -2893,6 +2958,17 @@
       : doneCount + "/" + nodes.length + " completati" + (errorCount ? " · " + errorCount + " non riusciti" : "");
     head2.appendChild(live);
     stage2.appendChild(head2);
+    if (flow.status === "running") {
+      var eta = document.createElement("div");
+      eta.className = "orch-eta";
+      eta.textContent = "In corso da " + fmtDur(Date.now() - (flow.startedAt || Date.now())) + " · " + flowEta(flow);
+      stage2.appendChild(eta);
+    } else if (flow.startedAt && flow.endedAt) {
+      var tot = document.createElement("div");
+      tot.className = "orch-eta";
+      tot.textContent = "Durata totale: " + fmtDur(flow.endedAt - flow.startedAt);
+      stage2.appendChild(tot);
+    }
 
     var map = document.createElement("div");
     map.className = "flow-map";
@@ -2956,6 +3032,31 @@
       map.appendChild(fnode);
     });
     stage2.appendChild(map);
+
+    if (flow.log && flow.log.length) {
+      var logHead = document.createElement("div");
+      logHead.className = "orch-flow-header";
+      logHead.style.marginTop = "8px";
+      logHead.textContent = "Registro attività · chi lavora, cosa consegna, a chi passa";
+      stage2.appendChild(logHead);
+      var logEl = document.createElement("div");
+      logEl.className = "orch-log";
+      flow.log.forEach(function (ev) {
+        var row = document.createElement("div");
+        row.className = "log-row " + ev.k;
+        var tm = document.createElement("span");
+        tm.className = "log-time";
+        tm.textContent = fmtClock(ev.t);
+        var tx = document.createElement("span");
+        tx.className = "log-text";
+        tx.textContent = ev.x;
+        row.appendChild(tm);
+        row.appendChild(tx);
+        logEl.appendChild(row);
+      });
+      stage2.appendChild(logEl);
+      setTimeout(function () { logEl.scrollTop = logEl.scrollHeight; }, 0);
+    }
 
     nodes.forEach(function (node, i) {
       if (!(node._expanded && node.output)) return;
@@ -3819,9 +3920,12 @@
   // ha assegnato. Se il nodo dipende da altri (deps), riceve anche il loro risultato: è così che
   // l'Orchestratore "passa l'informazione" da un agente all'altro, come un project manager.
   // Aggiorna il nodo (e ridisegna) man mano che la chiamata avanza, parte per parte.
-  async function runSpecialistNode(node, depNodes, agentId) {
+  async function runSpecialistNode(node, depNodes, agentId, flow) {
     node.status = "running";
     node.progress = "";
+    node.startedAt = Date.now();
+    var num = flow && flow.nodes ? flow.nodes.indexOf(node) + 1 : 0;
+    flowLog(flow, "start", node.label + " inizia #" + num + (depNodes && depNodes.length ? " — riceve il risultato di " + depNodes.map(function (d) { return "#" + (flow.nodes.indexOf(d) + 1); }).join(", ") : "") + ": " + node.subtask.slice(0, 90) + (node.subtask.length > 90 ? "…" : ""));
     try {
       renderMessages();
       var userText = node.subtask;
@@ -3834,16 +3938,27 @@
       }
       var reply = await callAgent(node.role, userText, undefined, function (partNo) {
         node.progress = "parte " + partNo + "…";
+        flowLog(flow, "info", node.label + " continua a scrivere (parte " + partNo + ")");
         renderMessages();
       });
       node.status = "done";
       node.output = reply.text;
       node.sources = reply.sources;
       node.progress = "";
+      node.endedAt = Date.now();
+      var docs = parseDocuments(reply.text || "");
+      var what = docs.length ? docs.map(function (d) { return "\"" + d.title + "\"" + (isHtmlDoc(d) ? " (pagina web)" : " (" + wordCount(d.body) + " parole)"); }).join(", ") : wordCount(reply.text) + " parole di risposta";
+      flowLog(flow, "done", node.label + " consegna #" + num + " in " + fmtDur(node.endedAt - node.startedAt) + ": " + what);
+      if (flow && flow.nodes) {
+        var unlocked = flow.nodes.filter(function (o) { return o.status === "pending" && (o.deps || []).indexOf(num) !== -1; });
+        if (unlocked.length) flowLog(flow, "handoff", "Passaggio: il risultato di #" + num + " va a " + unlocked.map(function (o) { return o.label + " (#" + (flow.nodes.indexOf(o) + 1) + ")"; }).join(", "));
+      }
     } catch (err) {
       node.status = "error";
       node.output = (err && err.message) || "Errore imprevisto";
       node.progress = "";
+      node.endedAt = Date.now();
+      flowLog(flow, "error", node.label + " non è riuscito (#" + num + "): " + node.output.slice(0, 120));
     }
     // Mai lanciare da qui: un'eccezione (anche solo di rendering) lascerebbe lo scheduler con un posto
     // occupato per sempre e la chat bloccata su "in corso".
@@ -3880,7 +3995,7 @@
               n.status = "running";
               progressed = true;
               var done = function () { active--; tick(); };
-              runSpecialistNode(n, deps, agentId).then(done, done);
+              runSpecialistNode(n, deps, agentId, flow).then(done, done);
             }
           });
         }
@@ -3911,9 +4026,12 @@
     // l'utente apre un altro agente, sintesi e salvataggi restano su quello giusto.
     agentId = agentId || state.agent;
     flowMsg.flow.status = "running";
+    flowMsg.flow.startedAt = flowMsg.flow.startedAt || Date.now();
+    flowLog(flowMsg.flow, "plan", orchFlowLabel(agentId) + " ha pianificato " + flowMsg.flow.nodes.length + " compiti (giro " + round + "), " + FLOW_CONCURRENCY + " agenti alla volta");
     renderMessages();
 
     await runFlowNodes(flowMsg.flow, agentId);
+    flowLog(flowMsg.flow, "info", "Compiti finiti: " + flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; }).length + "/" + flowMsg.flow.nodes.length + " in " + fmtDur(Date.now() - flowMsg.flow.startedAt) + " — " + orchFlowLabel(agentId) + " raccoglie i risultati");
 
     var successNodes = flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; });
     if (!successNodes.length) {
@@ -3976,6 +4094,8 @@
       var newMsg = { role: "assistant", content: synth.text || "(risposta vuota)", sources: synth.sources || [] };
       hist.push(newMsg);
       flowMsg.flow.status = "done";
+      flowMsg.flow.endedAt = Date.now();
+      flowLog(flowMsg.flow, "done", "Flusso completato: " + producedDocs.length + (producedDocs.length === 1 ? " documento" : " documenti") + " in " + fmtDur(flowMsg.flow.endedAt - flowMsg.flow.startedAt));
 
       var nextItems = round < MAX_ORCH_ROUNDS ? parseRouting(synth.text) : [];
       if (nextItems.length) {
