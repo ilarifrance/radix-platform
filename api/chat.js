@@ -309,7 +309,10 @@ const COMMERCIAL_CONTEXT =
   "ruolo professionale, contenere sempre un modo semplice per non ricevere altre comunicazioni, e non " +
   "va ripetuta se la persona non risponde o chiede di essere rimossa — se hai dubbi su un mercato/" +
   "target specifico, suggerisci di consultare l'Esperto Privacy e GDPR dell'Area Legale prima di " +
-  "partire. Rispondi sempre in italiano, diretto e concreto.";
+  "partire. Base di lavoro: prospezione B2B su contatti di ruolo pubblicati dalle aziende (legittimo interesse, " +
+  "art. 6.1.f GDPR, con informativa breve e opt-out in ogni email); mai consumatori persone fisiche, mai elenchi " +
+  "comprati o estratti da piattaforme che lo vietano (LinkedIn), mai dati sensibili. Rispondi sempre in italiano, " +
+  "diretto e concreto." + DOCUMENT_PROTOCOL;
 
 // v3.1: il modello non conosce la data: senza, calcola scadenze sull'anno sbagliato e tratta come
 // "futura" una data già passata. Iniettata qui, con il fuso italiano, in testa a ogni system prompt.
@@ -1352,11 +1355,29 @@ const AGENTS = {
       "\"dipende:N\" con il numero della riga da cui dipende (numerazione da 1, più numeri separati da " +
       "virgola): quello specialista riceverà quel risultato insieme al proprio compito, e la piattaforma " +
       "lo fa partire solo quando il risultato è pronto. Includi solo i ruoli davvero necessari. " +
-      "Rispondi sempre in italiano.",
+      "Rispondi sempre in italiano. Non scrivere mai tu analisi, liste di contatti o email per intero: " +
+      "la piattaforma scarta una tua risposta fatta così e te la fa rifare come smistamento.\n\n" +
+      "Esempio — task: \"Trova 20 studi di architettura in Lombardia a cui proporre il nostro servizio di " +
+      "sviluppo commerciale e prepara la prima email\":\n" +
+      "Piano di lavoro: faccio definire all'Analista il profilo dello studio ideale e il messaggio, poi il " +
+      "Ricercatore cerca gli studi e i contatti pubblici, l'Outreach scrive email e follow-up sulla lista, e il " +
+      "CRM imposta il foglio di tracciamento.\n" +
+      "---ROUTING---\n" +
+      "comm-market-analyst|Definisci il profilo dello studio di architettura ideale in Lombardia (dimensione, " +
+      "specializzazione, decisore) e il messaggio di posizionamento per un servizio di sviluppo commerciale in " +
+      "outsourcing; 3 segmenti in ordine di priorità.\n" +
+      "comm-contact-finder|Trova 20 studi di architettura in Lombardia coerenti con il profilo ricevuto, con sito, " +
+      "email di contatto pubblicata, nome del titolare se pubblico e fonte; tabella.|dipende:1\n" +
+      "comm-email-outreach|Scrivi l'email di primo contatto e un follow-up per gli studi della lista ricevuta, " +
+      "con il messaggio della strategia; una versione per segmento.|dipende:1,2\n" +
+      "comm-crm-manager|Imposta la tabella di tracciamento per la lista ricevuta (stato, data invio, follow-up, " +
+      "esito) e i 3 indicatori da seguire.|dipende:2\n" +
+      "---FINE---",
   },
   "comm-market-analyst": {
     name: "Analista di Mercato e Strategia",
-    maxTokens: 3000,
+    maxTokens: 6000,
+    searchUses: 5,
     temperature: 0.4,
     enforceStyle: false,
     system:
@@ -1372,11 +1393,12 @@ const AGENTS = {
       "Output sempre in forma operativa: chi targetizzare, con quale messaggio, con quale urgenza — " +
       "qualcosa che comm-contact-finder e comm-email-outreach possano usare subito senza " +
       "reinterpretare la tua analisi." +
-      "\n\nDISCIPLINA DELLE FONTI: per ogni dato di mercato riporta fonte e data (anno); se un dato è una stima tua, dillo; non mescolare dati di anni diversi senza segnalarlo. Struttura sempre l'output in: contesto e dimensione, segmenti e decisore tipo, problemi che sentono, messaggio di posizionamento, priorità e prossimo passo per il ricercatore di contatti.",
+      "\n\nDISCIPLINA DELLE FONTI: per ogni dato di mercato riporta fonte e data (anno); se un dato è una stima tua, dillo; non mescolare dati di anni diversi senza segnalarlo. Struttura sempre l'output in: contesto e dimensione, segmenti e decisore tipo, problemi che sentono, messaggio di posizionamento, priorità e prossimo passo per il ricercatore di contatti. Un'analisi completa va nel blocco ---DOCUMENTO--- (titolo: \"Strategia commerciale — [mercato]\").",
   },
   "comm-contact-finder": {
     name: "Ricercatore di Contatti",
-    maxTokens: 2500,
+    maxTokens: 6000,
+    searchUses: 10,
     temperature: 0.3,
     enforceStyle: false,
     system:
@@ -1396,7 +1418,7 @@ const AGENTS = {
       "prima di procedere su larga scala.\n\n" +
       "Restituisci sempre l'elenco in formato tabellare (azienda, contatto, ruolo se noto, fonte, " +
       "perché è in target), mai come testo libero sparso." +
-      "\n\nQUALITÀ: prima di restituire l'elenco verifica che ogni riga abbia una fonte URL raggiungibile e che il contatto sia davvero quello pubblicato dall'azienda per essere contattata; marca i dati incerti come \"da verificare\". Se non trovi contatti qualificati, dillo e proponi 2-3 modi alternativi (associazioni di categoria, fiere, LinkedIn aziendale) invece di riempire la tabella.",
+      "\n\nQUALITÀ: prima di restituire l'elenco verifica che ogni riga abbia una fonte URL raggiungibile e che il contatto sia davvero quello pubblicato dall'azienda per essere contattata; marca i dati incerti come \"da verificare\". Se non trovi contatti qualificati, dillo e proponi 2-3 modi alternativi (associazioni di categoria, fiere, LinkedIn aziendale) invece di riempire la tabella. Consegna la lista nel blocco ---DOCUMENTO--- (titolo: \"Lista contatti — [target]\") con la tabella in Markdown (Azienda | Città | Sito | Contatto | Tipo (nominativo/generico) | Ruolo | Fonte | Perché in target | Note), così è scaricabile ed esportabile; dopo la tabella, 3 righe su come è stata costruita e cosa resta da verificare. Metodo: cerca per settore + zona + \"contatti\" o \"chi siamo\", poi per elenchi pubblici (ordini professionali, associazioni di categoria, camere di commercio, fiere); usa fino a 10 ricerche; non inventare mai un indirizzo email: se non è pubblicato, scrivi \"non pubblicato\" e lascia il sito.",
   },
   "comm-email-outreach": {
     name: "Specialista Email Outreach",
@@ -1418,7 +1440,9 @@ const AGENTS = {
       "Corpo:\n" +
       "[testo del corpo email]\n\n" +
       "Non proponi mai un invio massivo: ogni email si conferma singolarmente da chi la invia, non è " +
-      "un compito tuo deciderlo." +
+      "un compito tuo deciderlo. Per le email NON usare il blocco ---DOCUMENTO---: il formato Oggetto/Corpo in " +
+      "chat è quello che l'interfaccia legge per preparare l'invio; se ti chiedono più versioni (per segmento), " +
+      "ripeti il formato Oggetto/Corpo per ciascuna, una sotto l'altra, con una riga di titolo prima." +
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
   },
   "comm-crm-manager": {
@@ -1531,7 +1555,8 @@ async function callAnthropic(apiKey, agent, messages, system) {
       // v3.3: `tools: "search"` = solo web_search (max 3 ricerche, risultati brevi), senza web_fetch: per gli
       // agenti che devono verificare un dato o una tendenza ma scrivono deliverable lunghi, dove un fetch da
       // 15.000 token mangerebbe il budget del documento.
-      ...(agent.tools === false ? {} : agent.tools === "search" ? { tools: [WEB_SEARCH_TOOL] } : { tools: [WEB_SEARCH_TOOL, WEB_FETCH_TOOL] }),
+      // v3.6: `searchUses` per agente (il Ricercatore di Contatti ne ha bisogno di più di 3 per una lista vera).
+      ...(agent.tools === false ? {} : agent.tools === "search" ? { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }] } : { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }, WEB_FETCH_TOOL] }),
     }),
   });
   const data = await upstream.json();
