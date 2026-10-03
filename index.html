@@ -1938,6 +1938,29 @@
     return (text || "").replace(/\n?---ROUTING---[\s\S]*?---FINE---/, "").trim();
   }
 
+  // v3.4 — Guardia sugli orchestratori. Il 3/10 l'Orchestratore dello Studio, incalzato ("li voglio tutti
+  // adesso"), ha scritto lui stesso 11 contratti "uno per messaggio, copia e salva", saltando il
+  // Contrattualista e l'Analista di Rischio: le regole nel prompt non sono bastate. Qui il controllo nel
+  // codice: una risposta di un hub SENZA blocco ---ROUTING--- che ha la forma di un documento (articoli
+  // numerati, protocollo ---DOCUMENTO---, "copia e salva", o semplicemente troppo lunga per una nota da
+  // project manager) viene scartata e l'orchestratore viene richiamato con l'obbligo di smistare.
+  var HUB_MAX_DIRECT_CHARS = 4500;
+  function looksLikeDraftedDocument(text) {
+    var t = text || "";
+    if (/---\s*DOCUMENTO/i.test(t)) return true;
+    if (/copia(?:lo|li)?\s+(?:tutto\s+)?(?:da\s+qui\s+)?e\s+salva|un\s+documento\s+(?:completo\s+)?per\s+messaggio|DOCUMENTO\s+\d+\s*\/\s*\d+/i.test(t)) return true;
+    var articles = t.match(/^\s*(?:#{1,4}\s*|\*\*)?(?:Art\.|Articolo|ARTICOLO|ART\.)\s*\d+/gm);
+    if (articles && articles.length >= 3) return true;
+    return t.length > HUB_MAX_DIRECT_CHARS;
+  }
+  var HUB_REROUTE_NOTE =
+    "[Nota automatica della piattaforma] La tua risposta precedente conteneva il testo di un documento (o era " +
+    "troppo lunga per una nota da project manager) e non aveva il blocco ---ROUTING---: è stata scartata, " +
+    "l'utente non l'ha vista. Gli orchestratori non scrivono mai documenti: li fanno scrivere agli specialisti, " +
+    "che li consegnano come schede scaricabili (Apri / Word / PDF). Rispondi ORA con il piano di lavoro in " +
+    "massimo 3 righe e il blocco ---ROUTING--- con una riga per ogni documento richiesto (ruolo-id|compito " +
+    "autosufficiente), senza scrivere nessun documento tu.";
+
   // Quante volte l'Orchestratore può ri-smistare dopo aver visto i risultati degli specialisti,
   // prima che gli si chieda esplicitamente di dare lui la risposta finale -- un tetto per evitare
   // che un giro di sintesi proponga un altro giro all'infinito (costo/tempo, non un limite tecnico:
@@ -3880,6 +3903,23 @@
       // i documenti consegnati e l'esito finale.
       if (isHubAgent(agentId)) {
         var routingItems = parseRouting(newMsg.content);
+        if (!routingItems.length && looksLikeDraftedDocument(newMsg.content)) {
+          // v3.4: l'orchestratore ha provato a scrivere lui il documento — si rifà smistare (un solo tentativo).
+          hist.pop();
+          var discarded = newMsg.content;
+          var retryPending = { role: "assistant", content: "L'orchestratore stava scrivendo un documento da solo: lo faccio smistare agli specialisti…", pending: true };
+          hist.push(retryPending);
+          renderMessages();
+          var retryMessages = hist.filter(function (m) { return !m.pending && (m.role === "user" || m.role === "assistant"); })
+            .map(function (m) { return { role: m.role, content: m.content }; });
+          retryMessages.push({ role: "assistant", content: discarded.slice(0, 1500) + "\n[…]" });
+          retryMessages.push({ role: "user", content: HUB_REROUTE_NOTE });
+          var retry = await fetchAgentReply({ role: agentId, messages: retryMessages });
+          hist.pop();
+          newMsg = { role: "assistant", content: retry.text || "(risposta vuota)", sources: retry.sources || [] };
+          hist.push(newMsg);
+          routingItems = parseRouting(newMsg.content);
+        }
         if (routingItems.length) {
           newMsg.flow = makeFlow(routingItems, 1);
           var priorUser = null;
