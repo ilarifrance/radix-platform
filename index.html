@@ -278,6 +278,16 @@
   .deliverable-row .d-by{ font-size:11px; color:#8a958f; white-space:nowrap; }
   .deliverable-row .d-actions{ display:flex; gap:4px; flex:0 0 auto; }
 
+  /* v3.5 — Anteprima sito: le pagine HTML del Web Developer si vedono renderizzate dentro la piattaforma. */
+  .site-modal{ width:min(1240px,100%); height:92vh; }
+  .site-modal .site-tabs{ display:flex; gap:4px; flex-wrap:wrap; }
+  .site-modal .site-tab{ font-size:12px; font-weight:600; padding:5px 10px; border-radius:8px; border:1px solid rgba(15,45,36,0.14); background:#fff; color:var(--verde-bosco); cursor:pointer; }
+  .site-modal .site-tab.on{ background:var(--verde-bosco); color:#fff; border-color:var(--verde-bosco); }
+  .site-modal .site-body{ flex:1; background:#e9e6e0; display:flex; justify-content:center; overflow:auto; padding:0; }
+  .site-modal .site-frame{ border:0; background:#fff; width:100%; height:100%; display:block; transition:width .2s ease; }
+  .site-modal .site-body.mobile .site-frame{ width:390px; box-shadow:0 0 0 1px rgba(0,0,0,0.08), 0 20px 50px rgba(0,0,0,0.18); margin:18px 0; height:calc(100% - 36px); border-radius:18px; }
+  .site-modal .site-note{ font-size:11.5px; color:#8a958f; }
+  .doc-card.site{ border-left-color:var(--verde-salvia); }
   .doc-overlay{ position:fixed; inset:0; background:rgba(15,45,36,0.55); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
   .doc-modal{ background:#fff; border-radius:16px; width:min(860px,100%); max-height:92vh; display:flex; flex-direction:column; box-shadow:0 30px 80px rgba(0,0,0,0.35); overflow:hidden; }
   .doc-modal-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px; border-bottom:1px solid rgba(15,45,36,0.10); flex-wrap:wrap; }
@@ -486,10 +496,10 @@
   var AGENTS = [
     { id: "marketing-orchestrator", icon: "🎯", name: "Orchestratore Marketing", blurb: "Dal post al lancio completo: pianifica e smista agli specialisti", hub: true, group: "marketing" },
     { id: "brand-strategist", icon: "🧠", name: "Stratega di Marca e Campagne", blurb: "Posizionamento, funnel, canali, KPI, piano a 90 giorni", group: "marketing" },
-    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Direzione strategica del singolo contenuto", group: "marketing" },
-    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Post, caption, newsletter nella voce del progetto", group: "marketing" },
-    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Direzione visiva, caroselli, key visual", group: "marketing" },
-    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Copione breve per video con avatar", group: "marketing" },
+    { id: "strategist", icon: "🧭", name: "Digital Strategist", blurb: "Pilastri editoriali, piani mensili, direzione di ogni contenuto", group: "marketing" },
+    { id: "copywriter", icon: "✍️", name: "Copywriter", blurb: "Ogni testo: post, email, landing, annunci, script, comunicati", group: "marketing" },
+    { id: "art-director", icon: "🎨", name: "Art Director", blurb: "Identità visiva, caroselli, look di sito, prompt per immagini", group: "marketing" },
+    { id: "ai-specialist", icon: "🤖", name: "AI Specialist", blurb: "Video con avatar, prompt per immagini, automazioni e assistenti", group: "marketing" },
     { id: "social-media-manager", icon: "📅", name: "Social Media Manager", blurb: "Apertura canali, bio, calendario, formati e orari", group: "marketing" },
     { id: "seo-geo", icon: "🔍", name: "Specialista SEO e GEO", blurb: "Parole chiave, architettura e SEO tecnica; citazioni nei motori AI", group: "marketing" },
     { id: "web-content", icon: "📝", name: "Content e UX Writer", blurb: "Struttura e testi di sito, landing e schede store", group: "marketing" },
@@ -503,7 +513,7 @@
     { id: "contabilita", icon: "🧮", name: "Contabilità", blurb: "Scadenzario, liquidazioni IVA e F24, prima nota, riconciliazioni", group: "admin" },
     { id: "lavoro-paghe", icon: "👔", name: "Lavoro e Paghe", blurb: "CCNL, contratti, costo del lavoro, cedolini e TFR", group: "admin" },
     { id: "segreteria-studio", icon: "✉️", name: "Segreteria dello Studio", blurb: "Comunicazioni con clienti ed enti, parcelle, solleciti", group: "admin" },
-    { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Siti e app: codice pronto, SEO tecnica, passi di pubblicazione", group: "dev" },
+    { id: "web-developer", icon: "💻", name: "Web Developer", blurb: "Siti e app con anteprima dal vivo, SEO tecnica, pubblicazione", group: "dev" },
     { id: "legal-gdpr", icon: "🔐", name: "Esperto Privacy e GDPR", blurb: "Trattamento dati, informative, DPIA, adempimenti verso il Garante", group: "legale" },
     { id: "legal-contracts", icon: "📜", name: "Esperto Contrattualistica, IP e Creator", blurb: "Contratti B2B/B2C, marchi, diritti d'immagine, accordi con creator", group: "legale" },
     { id: "legal-banking", icon: "🏦", name: "Esperto Diritto Bancario e Finanziario", blurb: "Contratti di finanziamento, normativa bancaria, utile su Doc Capital", group: "legale" },
@@ -1445,6 +1455,152 @@
     downloadBlob(blob, (filename || slugify(title)) + ".md");
   }
 
+  // --- v3.5 — Pagine web del Web Developer: anteprima renderizzata ----------------------------
+  // Un documento è una "pagina web" se il titolo è un nome di file .html o se il corpo è un documento HTML
+  // completo. Il corpo può arrivare dentro un recinto ```html: lo si toglie. L'anteprima è un iframe in sandbox
+  // (niente allow-same-origin: la pagina generata non può toccare la piattaforma né la sessione), con i link
+  // tra le pagine della stessa conversazione che cambiano scheda via postMessage.
+  function htmlDocSource(docObj) {
+    var b = String(docObj.body || "").trim();
+    var fence = /^```[a-zA-Z]*\s*\n([\s\S]*?)\n```\s*$/.exec(b);
+    if (fence) b = fence[1];
+    return b;
+  }
+  function isHtmlDoc(docObj) {
+    if (/\.html?$/i.test(String(docObj.title || "").trim())) return true;
+    var src = htmlDocSource(docObj);
+    return /^\s*(<!doctype\s+html|<html[\s>])/i.test(src);
+  }
+  function htmlDocFilename(docObj) {
+    var t = String(docObj.title || "").trim();
+    if (/\.html?$/i.test(t)) return t.replace(/\s+/g, "-").toLowerCase();
+    return slugify(t) + ".html";
+  }
+  function exportHtmlFile(docObj) {
+    var blob = new Blob([htmlDocSource(docObj)], { type: "text/html;charset=utf-8" });
+    downloadBlob(blob, htmlDocFilename(docObj));
+  }
+  // Tutte le pagine web della conversazione corrente (schede del flusso e risposte dirette): sono il "sito".
+  function collectSitePages(hist) {
+    var seen = {};
+    return collectDocuments(hist || state.history[state.agent] || []).filter(function (d) {
+      if (!isHtmlDoc(d.doc)) return false;
+      var f = htmlDocFilename(d.doc);
+      if (seen[f]) return false; // un file per nome: vince la prima versione completa
+      seen[f] = true;
+      return true;
+    });
+  }
+  var SITE_LINK_SCRIPT =
+    "<script>(function(){var P=__PAGES__;document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(!a)return;" +
+    "var h=a.getAttribute('href')||'';if(/^(https?:)?\\/\\//i.test(h)||/^(mailto|tel):/i.test(h)){a.target='_blank';return;}" +
+    "var f=h.split('#')[0].split('?')[0].replace(/^\\.?\\//,'').toLowerCase();if(!f||f==='.'){return;}" +
+    "if(f==='/'||f==='')f='index.html';if(!/\\.html?$/.test(f))f=f.replace(/\\/$/,'')+'.html';" +
+    "if(P.indexOf(f)!==-1){e.preventDefault();parent.postMessage({radixPage:f},'*');}else{e.preventDefault();}},true);})();<\/script>";
+  function sitePreviewSrcdoc(docObj, pageNames) {
+    var src = htmlDocSource(docObj);
+    var inject = SITE_LINK_SCRIPT.replace("__PAGES__", JSON.stringify(pageNames));
+    if (/<\/body>/i.test(src)) return src.replace(/<\/body>/i, inject + "</body>");
+    return src + inject;
+  }
+  function openSitePreview(docObj, meta) {
+    var pages = collectSitePages();
+    if (!pages.some(function (p) { return p.doc === docObj; })) pages.unshift({ doc: docObj, by: meta && meta.by });
+    var names = pages.map(function (p) { return htmlDocFilename(p.doc); });
+    var current = pages.filter(function (p) { return p.doc === docObj; })[0] || pages[0];
+
+    var overlay = document.createElement("div");
+    overlay.className = "doc-overlay";
+    var modal = document.createElement("div");
+    modal.className = "doc-modal site-modal";
+    var head = document.createElement("div");
+    head.className = "doc-modal-head";
+    var left = document.createElement("div");
+    var t = document.createElement("div");
+    t.className = "doc-title";
+    var m = document.createElement("div");
+    m.className = "doc-meta";
+    left.appendChild(t);
+    left.appendChild(m);
+    var tabs = document.createElement("div");
+    tabs.className = "site-tabs";
+    var actions = document.createElement("div");
+    actions.className = "doc-actions";
+    var body = document.createElement("div");
+    body.className = "site-body";
+    var frame = document.createElement("iframe");
+    frame.className = "site-frame";
+    frame.setAttribute("sandbox", "allow-scripts allow-forms allow-popups allow-modals");
+    frame.setAttribute("title", "Anteprima del sito");
+    body.appendChild(frame);
+
+    function show(page) {
+      current = page;
+      var fname = htmlDocFilename(page.doc);
+      t.textContent = "Anteprima · " + fname;
+      m.textContent = (page.by ? page.by + " · " : "") + Math.max(1, Math.round(htmlDocSource(page.doc).length / 1024)) + " KB" +
+        (page.doc.incomplete ? " · pagina interrotta: chiedi \"continua\"" : "") +
+        (pages.length > 1 ? " · " + pages.length + " pagine in questa conversazione" : "");
+      frame.srcdoc = sitePreviewSrcdoc(page.doc, names);
+      Array.prototype.forEach.call(tabs.children, function (b) { b.classList.toggle("on", b.dataset.file === fname); });
+    }
+    pages.forEach(function (page) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "site-tab";
+      b.dataset.file = htmlDocFilename(page.doc);
+      b.textContent = b.dataset.file;
+      b.addEventListener("click", function (e) { e.stopPropagation(); show(page); });
+      tabs.appendChild(b);
+    });
+    function mk(label, cls, fn) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-copy" + (cls ? " " + cls : "");
+      b.textContent = label;
+      b.addEventListener("click", function (e) { e.stopPropagation(); fn(b); });
+      actions.appendChild(b);
+      return b;
+    }
+    var mobileBtn = mk("📱 Mobile", "", function (b) {
+      body.classList.toggle("mobile");
+      b.textContent = body.classList.contains("mobile") ? "🖥 Desktop" : "📱 Mobile";
+    });
+    mk("Apri in una scheda", "", function () {
+      var blob = new Blob([htmlDocSource(current.doc)], { type: "text/html;charset=utf-8" });
+      window.open(URL.createObjectURL(blob), "_blank");
+    });
+    mk("Scarica HTML", "", function () { exportHtmlFile(current.doc); });
+    if (pages.length > 1) mk("Scarica tutto il sito", "", function () { pages.forEach(function (p) { exportHtmlFile(p.doc); }); });
+    mk("Codice", "", function () { openDocumentViewer(current.doc, meta, true); });
+    mk("Chiudi ✕", "", function () { close(); });
+
+    function onMsg(e) {
+      var d = e.data;
+      if (!d || !d.radixPage) return;
+      var page = pages.filter(function (p) { return htmlDocFilename(p.doc) === d.radixPage; })[0];
+      if (page) show(page);
+    }
+    function onKey(e) { if (e.key === "Escape") close(); }
+    function close() {
+      if (overlay.parentNode) document.body.removeChild(overlay);
+      window.removeEventListener("message", onMsg);
+      document.removeEventListener("keydown", onKey);
+    }
+    window.addEventListener("message", onMsg);
+    document.addEventListener("keydown", onKey);
+    head.appendChild(left);
+    head.appendChild(tabs);
+    head.appendChild(actions);
+    modal.appendChild(head);
+    modal.appendChild(body);
+    overlay.appendChild(modal);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) close(); });
+    document.body.appendChild(overlay);
+    show(current);
+    void mobileBtn;
+  }
+
   // Scheda Documento: come un "artifact" — titolo, autore, dimensione, azioni. Il corpo si apre in
   // un visualizzatore a tutta pagina (openDocumentViewer), non invade la chat.
   function docActionButtons(docObj, meta, compact, inViewer) {
@@ -1460,6 +1616,15 @@
       wrap.appendChild(b);
       return b;
     }
+    if (isHtmlDoc(docObj)) {
+      if (!inViewer) mk("Anteprima", "primary", function () { openSitePreview(docObj, meta); });
+      mk("HTML", "", function () { exportHtmlFile(docObj); });
+      if (!compact) {
+        mk("Codice", "", function () { openDocumentViewer(docObj, meta, true); });
+        mk("Copia", "", function (b) { copyText(htmlDocSource(docObj), b); });
+      }
+      return wrap;
+    }
     if (!inViewer) mk("Apri", "primary", function () { openDocumentViewer(docObj, meta); });
     mk("Word", "", function () { exportMarkdownToWord(docObj.title, docObj.body, fname); });
     mk("PDF", "", function () { exportMarkdownToPdf(docObj.title, docObj.body, fname); });
@@ -1472,22 +1637,25 @@
 
   function buildDocCard(docObj, meta) {
     var card = document.createElement("div");
-    card.className = "doc-card" + (docObj.incomplete ? " incomplete" : "");
+    var isSite = isHtmlDoc(docObj);
+    card.className = "doc-card" + (docObj.incomplete ? " incomplete" : "") + (isSite ? " site" : "");
     var icon = document.createElement("div");
     icon.className = "doc-icon";
-    icon.textContent = "📄";
+    icon.textContent = isSite ? "🌐" : "📄";
     var main = document.createElement("div");
     main.className = "doc-main";
     var kicker = document.createElement("div");
     kicker.className = "doc-kicker";
-    kicker.textContent = docObj.incomplete ? "Documento — incompleto" : "Documento";
+    kicker.textContent = (isSite ? "Pagina web" : "Documento") + (docObj.incomplete ? " — incompleta" : "");
     var title = document.createElement("div");
     title.className = "doc-title";
     title.textContent = docObj.title;
     var metaEl = document.createElement("div");
     metaEl.className = "doc-meta";
     var words = wordCount(docObj.body);
-    metaEl.textContent = (meta && meta.by ? meta.by + " · " : "") + words + " parole · ~" + Math.max(1, Math.round(words / 450)) + " pag." +
+    metaEl.textContent = (meta && meta.by ? meta.by + " · " : "") +
+      (isSite ? htmlDocFilename(docObj) + " · " + Math.max(1, Math.round(htmlDocSource(docObj).length / 1024)) + " KB · clicca per vederla"
+              : words + " parole · ~" + Math.max(1, Math.round(words / 450)) + " pag.") +
       (docObj.incomplete ? " · interrotto: chiedi \"continua\"" : "");
     main.appendChild(kicker);
     main.appendChild(title);
@@ -1495,11 +1663,12 @@
     card.appendChild(icon);
     card.appendChild(main);
     card.appendChild(docActionButtons(docObj, meta, false));
-    card.addEventListener("click", function () { openDocumentViewer(docObj, meta); });
+    card.addEventListener("click", function () { isSite ? openSitePreview(docObj, meta) : openDocumentViewer(docObj, meta); });
     return card;
   }
 
-  function openDocumentViewer(docObj, meta) {
+  // codeOnly (v3.5): per una pagina web mostra il sorgente in un blocco di codice invece di interpretarlo come Markdown.
+  function openDocumentViewer(docObj, meta, codeOnly) {
     var overlay = document.createElement("div");
     overlay.className = "doc-overlay";
     var modal = document.createElement("div");
@@ -1527,7 +1696,14 @@
     var body = document.createElement("div");
     body.className = "doc-modal-body";
     var inner = document.createElement("div");
-    setMarkdown(inner, docObj.body, 0);
+    if (codeOnly) {
+      var pre = document.createElement("pre");
+      pre.style.cssText = "white-space:pre-wrap; font-size:12px; line-height:1.5; font-family:ui-monospace,Menlo,Consolas,monospace;";
+      pre.textContent = htmlDocSource(docObj);
+      inner.appendChild(pre);
+    } else {
+      setMarkdown(inner, docObj.body, 0);
+    }
     body.appendChild(inner);
     modal.appendChild(head);
     modal.appendChild(body);
@@ -2720,7 +2896,14 @@
 
     var map = document.createElement("div");
     map.className = "flow-map";
+    // v3.5: lo stesso ruolo può comparire più volte (una pagina per compito): si numera "2 di 4" così non
+    // sembra un errore, e il titolo del compito prende il posto del compito troncato.
+    var roleTotals = {};
+    var roleSeen = {};
+    nodes.forEach(function (n) { roleTotals[n.role] = (roleTotals[n.role] || 0) + 1; });
     nodes.forEach(function (node, i) {
+      roleSeen[node.role] = (roleSeen[node.role] || 0) + 1;
+      var instance = roleTotals[node.role] > 1 ? roleSeen[node.role] + " di " + roleTotals[node.role] : "";
       var fnode = document.createElement("div");
       fnode.className = "flow-node " + node.status + (node._expanded ? " expanded" : "");
       fnode.title = node.label + " — " + (FLOW_STATE_LABELS[node.status] || node.status) + "\n" + node.subtask;
@@ -2740,7 +2923,7 @@
       icon.textContent = node.icon;
       var label = document.createElement("div");
       label.className = "flow-label";
-      label.textContent = node.label;
+      label.textContent = node.label + (instance ? " · " + instance : "");
       var task = document.createElement("div");
       task.className = "flow-task";
       task.textContent = node.subtask;
