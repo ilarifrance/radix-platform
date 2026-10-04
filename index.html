@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RADIX Platform — v3.6</title>
+<title>RADIX Platform — v3.7</title>
 <meta name="description" content="RADIX Platform: dashboard del team di agenti AI (Digital Strategist, Copywriter, Art Director, AI Specialist, Social Media Manager) con un orchestratore funzionante.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -334,6 +334,8 @@
   .orch-log .log-row.error .log-text{ color:#7a2f22; }
   .orch-log .log-row.plan .log-text{ font-weight:700; }
   .orch-eta{ font-size:11px; color:#8a958f; margin:4px 2px 0; }
+  .orch-halt{ margin:8px 0 4px; padding:10px 12px; border-radius:12px; background:#fbeeea; border:1px solid rgba(122,47,34,0.25); color:#7a2f22; font-size:12.5px; line-height:1.5; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .orch-halt .step-copy{ margin-left:auto; }
   /* Modalità presentazione (webinar): nasconde roster, progetti e hero; il flusso prende tutta la pagina. */
   body.present .intro, body.present .projects, body.present #roster, body.present .roster-note, body.present .roster-section, body.present .quick-prompts{ display:none !important; }
   body.present .messages.tall{ max-height:none; min-height:70vh; }
@@ -397,7 +399,7 @@
       <div class="mark">R</div>
       <div>
         <div class="name">RADIX Platform</div>
-        <div class="tag">Agentic team · v3.6</div>
+        <div class="tag">Agentic team · v3.7</div>
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
@@ -2202,6 +2204,31 @@
     "massimo 3 righe e il blocco ---ROUTING--- con una riga per ogni documento richiesto (ruolo-id|compito " +
     "autosufficiente), senza scrivere nessun documento tu.";
 
+  // v3.7 — Riprende un flusso fermato o con compiti falliti: i nodi in errore tornano in attesa e si rilancia
+  // lo stesso giro (stessa richiesta, stessi compiti), senza riscrivere nulla.
+  async function retryFlow(flow) {
+    if (busyCalls > 0) return;
+    var agentId = flow.agentId || state.agent;
+    var hist = state.history[agentId] || [];
+    var flowMsg = hist.filter(function (m) { return m.flow === flow; })[0];
+    if (!flowMsg) return;
+    flow.nodes.forEach(function (n) {
+      if (n.status === "error") { n.status = "pending"; n.output = null; n.progress = ""; n.startedAt = null; n.endedAt = null; }
+    });
+    flow.halted = null;
+    flowLog(flow, "plan", "Ripresa del flusso: " + flow.nodes.filter(function (n) { return n.status === "pending"; }).length + " compiti da rifare");
+    busyCalls++;
+    sendBtn.disabled = true;
+    try {
+      await runOrchestrationFlow(hist, flowMsg, flow.task || "", flow.round || 1, agentId);
+    } finally {
+      busyCalls--;
+      sendBtn.disabled = false;
+      renderMessages();
+      saveState([agentId]);
+    }
+  }
+
   // Quante volte l'Orchestratore può ri-smistare dopo aver visto i risultati degli specialisti,
   // prima che gli si chieda esplicitamente di dare lui la risposta finale -- un tetto per evitare
   // che un giro di sintesi proponga un altro giro all'infinito (costo/tempo, non un limite tecnico:
@@ -2955,6 +2982,7 @@
     live.textContent = flow.status === "running"
       ? (runningCount ? runningCount + " in corso · " : "") + doneCount + "/" + nodes.length + " completati"
       : flow.status === "error" ? "Flusso interrotto"
+      : flow.status === "halted" ? "Flusso fermato · " + doneCount + "/" + nodes.length + " completati"
       : doneCount + "/" + nodes.length + " completati" + (errorCount ? " · " + errorCount + " non riusciti" : "");
     head2.appendChild(live);
     stage2.appendChild(head2);
@@ -2968,6 +2996,29 @@
       tot.className = "orch-eta";
       tot.textContent = "Durata totale: " + fmtDur(flow.endedAt - flow.startedAt);
       stage2.appendChild(tot);
+    }
+
+    var failed = nodes.filter(function (n) { return n.status === "error"; }).length;
+    if (flow.status !== "running" && (flow.halted || failed)) {
+      var halt = document.createElement("div");
+      halt.className = "orch-halt";
+      var reason = flow.halted || "";
+      var friendly = /credit balance|billing/i.test(reason) ? "Credito dell'API Anthropic esaurito: ricarica su console.anthropic.com (Plans & Billing), poi riprendi da qui."
+        : /overloaded|529|rate limit|too many/i.test(reason) ? "Servizio Anthropic sovraccarico o troppe richieste: aspetta un minuto e riprendi."
+        : /api key|authentication/i.test(reason) ? "Chiave API non valida o scaduta: controlla ANTHROPIC_API_KEY su Vercel."
+        : failed + (failed === 1 ? " compito non riuscito" : " compiti non riusciti") + ": puoi rifarli senza riscrivere la richiesta.";
+      var txt = document.createElement("span");
+      txt.textContent = "⛔ " + friendly;
+      halt.appendChild(txt);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "step-copy primary";
+      var toRedo = nodes.filter(function (n) { return n.status === "error" || n.status === "pending"; }).length;
+      btn.textContent = "Riprova i compiti non riusciti (" + toRedo + ")";
+      btn.disabled = busyCalls > 0;
+      btn.addEventListener("click", function (e) { e.stopPropagation(); retryFlow(flow); });
+      halt.appendChild(btn);
+      stage2.appendChild(halt);
     }
 
     var map = document.createElement("div");
@@ -3120,8 +3171,8 @@
       } else {
         var empty = document.createElement("div");
         empty.className = "orch-flow-empty";
-        empty.textContent = flow.status === "error"
-          ? "Nessun documento: il flusso si è interrotto. Scrivi \"riprova\" o riformula la richiesta."
+        empty.textContent = flow.status === "error" || flow.status === "halted"
+          ? "Nessun documento: il flusso si è fermato. Usa \"Riprova i compiti non riusciti\" qui sopra."
           : "Questo giro ha prodotto analisi e note (apri i nodi qui sopra), non documenti separati.";
         stage3.appendChild(empty);
       }
@@ -3969,8 +4020,13 @@
   // Scheduler del flusso: rispetta le dipendenze (dipende:N) e la concorrenza massima. Un nodo parte
   // quando tutti i nodi da cui dipende sono "done"; se uno di quelli è in errore, il dipendente viene
   // segnato come non eseguito invece di restare in attesa per sempre.
+  // v3.7 — Un errore "di conto" (credito API esaurito, chiave non valida, servizio sovraccarico) vale per tutti i
+  // compiti: inutile farli fallire uno per uno. Il primo che lo incontra ferma la coda (flow.halted) e il flusso
+  // resta riprendibile con "Riprova i compiti non riusciti" (retryFlow), senza riscrivere la richiesta.
+  var FATAL_API_RE = /credit balance|billing|insufficient.*(credit|quota)|invalid.*api key|authentication|overloaded|rate limit|too many requests|529|quota/i;
   function runFlowNodes(flow, agentId) {
     var nodes = flow.nodes;
+    flow.halted = null;
     return new Promise(function (resolve) {
       var active = 0;
       var settled = false;
@@ -3990,18 +4046,25 @@
               progressed = true;
               return;
             }
-            if (active < FLOW_CONCURRENCY && deps.every(function (d) { return d.status === "done"; })) {
+            if (!flow.halted && active < FLOW_CONCURRENCY && deps.every(function (d) { return d.status === "done"; })) {
               active++;
               n.status = "running";
               progressed = true;
-              var done = function () { active--; tick(); };
+              var done = function () {
+                active--;
+                if (n.status === "error" && FATAL_API_RE.test(n.output || "") && !flow.halted) {
+                  flow.halted = n.output;
+                  flowLog(flow, "error", "Coda fermata: " + n.output.slice(0, 160) + " — i compiti rimasti restano in attesa, riprendibili con \"Riprova\".");
+                }
+                tick();
+              };
               runSpecialistNode(n, deps, agentId, flow).then(done, done);
             }
           });
         }
         if (active === 0 && !settled) {
           var left = nodes.filter(function (n) { return n.status === "pending"; });
-          if (left.length) {
+          if (left.length && !flow.halted) {
             left.forEach(function (n) { n.status = "error"; n.output = "Non eseguito: dipendenza circolare o non valida nel piano."; });
           }
           settled = true;
@@ -4026,11 +4089,20 @@
     // l'utente apre un altro agente, sintesi e salvataggi restano su quello giusto.
     agentId = agentId || state.agent;
     flowMsg.flow.status = "running";
+    flowMsg.flow.agentId = agentId;
+    flowMsg.flow.round = round;
+    if (originalTask) flowMsg.flow.task = originalTask;
     flowMsg.flow.startedAt = flowMsg.flow.startedAt || Date.now();
     flowLog(flowMsg.flow, "plan", orchFlowLabel(agentId) + " ha pianificato " + flowMsg.flow.nodes.length + " compiti (giro " + round + "), " + FLOW_CONCURRENCY + " agenti alla volta");
     renderMessages();
 
     await runFlowNodes(flowMsg.flow, agentId);
+    if (flowMsg.flow.halted) {
+      flowMsg.flow.status = "halted";
+      renderMessages();
+      saveState([agentId]);
+      return;
+    }
     flowLog(flowMsg.flow, "info", "Compiti finiti: " + flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; }).length + "/" + flowMsg.flow.nodes.length + " in " + fmtDur(Date.now() - flowMsg.flow.startedAt) + " — " + orchFlowLabel(agentId) + " raccoglie i risultati");
 
     var successNodes = flowMsg.flow.nodes.filter(function (n) { return n.status === "done"; });
