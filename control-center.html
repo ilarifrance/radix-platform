@@ -25,7 +25,7 @@ const set=(id,value)=>{el(id).textContent=String(value)};
 const formatTime=v=>v?new Date(v).toLocaleString('it-IT'):'Non disponibile';
 async function refresh(){
   try{
-    const response=await fetch('/api/dashboard',{credentials:'same-origin',cache:'no-store'});
+    const response=await fetch('/api/state?view=dashboard',{credentials:'same-origin',cache:'no-store'});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Errore di connessione');
     el('status').classList.remove('error');
