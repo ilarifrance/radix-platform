@@ -193,7 +193,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 @media(max-width:860px){.lower-grid{grid-template-columns:1fr 1fr}.welcome-bar .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:640px){.welcome-bar .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.lower-grid{grid-template-columns:1fr}.command-view-grid{grid-template-columns:1fr}.network-caption{max-width:66%}.legend{display:none}.network-toolbar{gap:3px}.view-tab{padding:6px 7px}}
 @media(max-width:640px){.network-wrap{overflow-x:auto;overflow-y:hidden}.network-stage{position:relative;inset:auto;width:680px;height:394px;min-width:680px}.network-stage svg{width:680px;height:394px}.network-caption{position:sticky;left:8px;bottom:9px;width:max-content;max-width:70%}}
-@media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer{transition:none!important}}
+/* Command Center visual refinement: accessible emerald focus, no layout shifts. */
+.command:focus-within{border-color:rgba(30,242,143,.68);box-shadow:0 0 0 3px rgba(30,242,143,.10),inset 0 0 24px rgba(30,242,143,.045)}
+.nav-item:focus-visible,.view-tab:focus-visible,.tool-btn:focus-visible,.action:focus-visible,.drawer-close:focus-visible,.search-hit:focus-visible,.command-view-card:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.project-hub:focus-visible{outline:none}
+.project-hub:focus-visible .project-ring{stroke-width:3;filter:drop-shadow(0 0 12px rgba(30,242,143,.9))}
+.project-hub:focus-visible .project-inner{stroke-width:2;filter:drop-shadow(0 0 5px rgba(30,242,143,.48))}
+.network-wrap:focus-visible{outline:2px solid var(--green);outline-offset:-3px}
+@media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer,.nav-item,.project-hub,.command{transition:none!important}}
+
 </style>
 </head>
 <body>
