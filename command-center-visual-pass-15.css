@@ -10,3 +10,16 @@
 .network-panel .project-hub:focus-visible .project-ring{stroke:#a8ffd0;stroke-width:3;filter:drop-shadow(0 0 15px rgba(30,242,143,.65))}
 @media(min-width:1181px){.dashboard-grid{grid-template-columns:minmax(0,1.82fr) minmax(305px,.68fr)}.network-panel{min-width:0}}
 @media(prefers-reduced-motion:reduce){.network-panel .project-hub{transition:none}}
+
+
+/* RADIX visual pass 18: nonblocking overlays and responsive controls */
+.network-wrap::after{pointer-events:none}
+@media(max-width:760px){
+  .network-panel .panel-head{height:auto;min-height:48px;flex-wrap:wrap;gap:8px;padding:10px 12px}
+  .network-panel .panel-head>div:first-child{min-width:0}
+  .network-toolbar{width:100%;margin-left:0;justify-content:flex-start;flex-wrap:wrap}
+  .network-panel .panel-meta{line-height:1.45}
+}
+@media(prefers-reduced-motion:reduce){
+  .network-stage,.project-hub,.node{animation:none;transition:none}
+}
