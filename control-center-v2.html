@@ -310,9 +310,9 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     <div class="side-section">
       <div class="side-label">Command</div>
       <div class="nav">
-        <button class="nav-item active"><span class="nav-icon">⌘</span><span>Command Center</span></button>
-        <button class="nav-item" data-future="Projects"><span class="nav-icon">◈</span><span>Projects</span></button>
-        <button class="nav-item" data-future="Workflows"><span class="nav-icon">⟲</span><span>Workflows</span><b class="nav-badge" id="navWorkflowBadge">0</b></button>
+        <button class="nav-item active" data-radix-view="network" aria-current="page"><span class="nav-icon">⌘</span><span>Command Center</span></button>
+        <button class="nav-item" data-radix-view="projects"><span class="nav-icon">◈</span><span>Projects</span></button>
+        <button class="nav-item" data-radix-view="command"><span class="nav-icon">⟲</span><span>Workflows</span><b class="nav-badge" id="navWorkflowBadge">0</b></button>
         <button class="nav-item" data-future="Approvals"><span class="nav-icon">✓</span><span>Approvals</span><b class="nav-badge" id="navApprovalBadge">0</b></button>
       </div>
     </div>
@@ -662,12 +662,18 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('networkCaptionWrap').hidden=!network;
     $('networkLegend').hidden=!network;
     ['zoomIn','zoomOut','zoomReset'].forEach(function(id){$(id).hidden=!network});
+    document.querySelectorAll('[data-radix-view]').forEach(function(button){
+      var active=button.getAttribute('data-radix-view')===currentView;
+      button.classList.toggle('active',active);
+      if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
     [['networkTab','network'],['commandTab','command'],['projectsTab','projects']].forEach(function(entry){
       var active=currentView===entry[1];
       $(entry[0]).classList.toggle('active',active);
       $(entry[0]).setAttribute('aria-pressed',String(active));
     });
   }
+  document.querySelectorAll('[data-radix-view]').forEach(function(button){button.addEventListener('click',function(){setView(button.getAttribute('data-radix-view'))})});
   $('networkTab').addEventListener('click',function(){setView('network')});
   $('commandTab').addEventListener('click',function(){setView('command')});
   $('projectsTab').addEventListener('click',function(){setView('projects')});
