@@ -367,7 +367,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       <section class="dashboard-grid">
         <article class="panel network-panel">
           <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button></div></div>
-          <div class="network-wrap" id="networkWrap">
+          <nav id="networkBreadcrumb" aria-label="Livello della mappa"></nav><div id="projectTools" hidden></div><div class="network-wrap" id="networkWrap">
             <div class="network-stage" id="networkStage">
               <svg id="networkSvg" viewBox="0 0 900 494" role="group" aria-label="Mappa progetti RADIX"></svg>
             </div>
@@ -522,7 +522,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function renderProjects(){
     var projects=data.projects||[];
     $('projectList').innerHTML=projects.slice(0,7).map(function(p){return '<div class="project-mini '+(p.active?'active':'')+'" data-project="'+esc(p.id)+'"><i class="project-dot"></i><span>'+esc(p.name)+'</span></div>'}).join('') || '<div class="project-mini"><i class="project-dot"></i><span>Nessun progetto</span></div>';
-    document.querySelectorAll('[data-project]').forEach(function(el){el.addEventListener('click',function(){var id=el.getAttribute('data-project');var p=projects.find(function(x){return x.id===id});focusedProjectId=focusedProjectId===id?null:id;renderProjects();renderNetwork();toast((p&&p.name||id)+(focusedProjectId?' · progetto evidenziato':' · vista completa'))})})
+    document.querySelectorAll('[data-project]').forEach(function(el){el.addEventListener('click',function(){var id=el.getAttribute('data-project');var p=projects.find(function(x){return x.id===id});enterProject(id);renderProjects()})})
   }
   function activeStatus(id){return data.agentStatus&&data.agentStatus[id]||{status:'idle',task:''}}
   function nodeClass(status){if(status==='running')return 'running';if(status==='error')return 'error';if(status==='pending'||status==='stale')return 'pending';if(status==='done')return 'done';return 'idle'}
@@ -536,49 +536,49 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     ps.sort(function(a,b){var ia=preferred.indexOf(String(a.name||'').toLowerCase()),ib=preferred.indexOf(String(b.name||'').toLowerCase());return (ia<0?100:ia)-(ib<0?100:ib)});
     return ps;
   }
+  var pan={x:0,y:0}, networkDetail=null;
+  function projectItems(id){
+    // Only explicit attribution is accepted. Legacy flows have no project ownership.
+    return (data.workflows||[]).filter(function(w){return w.projectId!=null&&String(w.projectId)===String(id)}).flatMap(function(w){
+      return [{id:w.id,label:w.orchestrator||'Workflow',status:w.status,workflow:w}].concat((w.nodes||[]).map(function(n){return {id:n.id,label:n.label||n.agentId||'Attività',status:n.status,node:n,workflow:w}}));
+    });
+  }
+  function enterProject(id){focusedProjectId=id;networkDetail=null;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
   function renderNetwork(){
-    var svg=$('networkSvg'),projects=orderedProjects().slice(0,4),slots=projectSlots(projects.length);
-    var defs='<defs><radialGradient id="coreGradient"><stop offset="0%" stop-color="#177b4e"/><stop offset="70%" stop-color="#082b1a"/><stop offset="100%" stop-color="#04120b"/></radialGradient><filter id="coreGlow"><feGaussianBlur stdDeviation="8"/></filter></defs>';
-    var stars='';for(var i=0;i<110;i++){var sx=(i*233+71)%900,sy=(i*167+47)%494;stars+='<circle cx="'+sx+'" cy="'+sy+'" r="'+(i%5===0?1.2:.55)+'" fill="'+(i%3===0?'#1bf49b':'#0e9360')+'" opacity="'+(.2+(i%7)*.085)+'"/>'}
-    var edges='',orbits='',hubs='',caps='';
-    var labels=[['Research','UX','Dev','QA'],['Content','Research','Analytics','Strategy'],['Research','Content','Video','Publish'],['Admin','Finance','Legal','Operations']];
-    projects.forEach(function(p,i){
-      var c=slots[i],color=projectPalette(i),active=p.id===(data.workspace&&data.workspace.activeProjectId),dim=focusedProjectId&&focusedProjectId!==p.id;
-      var curve='M450 245 Q'+(c.x<450?350:550)+' '+(c.y<245?180:310)+' '+c.x+' '+c.y;
-      edges+='<path d="'+curve+'" fill="none" stroke="'+color+'" stroke-width="1.25" opacity="'+(dim?.14:.75)+'" stroke-dasharray="4 5"/>';
-      orbits+='<ellipse class="orbit" cx="'+c.x+'" cy="'+c.y+'" rx="156" ry="87" stroke="'+color+'" opacity="'+(dim?.1:.42)+'"/>';
-      var name=String(p.name||p.id);if(name.length>23)name=name.slice(0,22)+'…';
-      hubs+='<g class="project-hub '+(dim?'dimmed ':'')+(focusedProjectId===p.id?'selected':'')+(active?' is-active':'')+'" data-project-node="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Apri progetto '+esc(name)+'"><title>Apri progetto '+esc(name)+'</title><circle class="project-ring" cx="'+c.x+'" cy="'+c.y+'" r="43" stroke="'+color+'"/><circle class="project-inner" cx="'+c.x+'" cy="'+c.y+'" r="33" stroke="'+color+'" opacity=".95"/><circle cx="'+c.x+'" cy="'+(c.y-14)+'" r="6" fill="'+color+'" opacity=".88"/><text class="project-name" x="'+c.x+'" y="'+(c.y+8)+'" text-anchor="middle">'+esc(name)+'</text><text class="project-type" x="'+c.x+'" y="'+(c.y+22)+'" text-anchor="middle">'+(active?'ACTIVE PROJECT':'PROJECT PROFILE')+'</text></g>';
-      var angles=[-150,-55,32,140];
-      labels[i].forEach(function(role,j){var rad=angles[j]*Math.PI/180,ax=c.x+Math.cos(rad)*120,ay=c.y+Math.sin(rad)*68;
-        caps+='<g class="cap-group '+(dim?'dimmed':'')+'" data-cap-project="'+esc(p.id)+'"><line x1="'+c.x+'" y1="'+c.y+'" x2="'+ax+'" y2="'+ay+'" stroke="'+color+'" opacity=".22"/><circle class="cap-dot" cx="'+ax+'" cy="'+ay+'" r="11" stroke="'+color+'"/><circle cx="'+ax+'" cy="'+ay+'" r="3.4" fill="'+color+'"/><text class="cap-label" x="'+ax+'" y="'+(ay+22)+'" text-anchor="middle">'+role+'</text></g>';
-      });
+    var svg=$('networkSvg'),projects=orderedProjects(),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
+    if(!focused){focusedProjectId=null;networkDetail=null}
+    var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#177b4e"/><stop offset="1" stop-color="#04120b"/></radialGradient></defs>';
+    var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
+    var edges='',hubs='',orbits='',entries=[];
+    function hub(x,y,label,color,key,type){return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+'" aria-label="'+esc(label)+'"><circle class="project-ring" cx="'+x+'" cy="'+y+'" r="34" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+y+'" r="24" stroke="'+color+'"/><text class="project-name" x="'+x+'" y="'+(y+51)+'" text-anchor="middle">'+esc(label.length>25?label.slice(0,24)+'…':label)+'</text></g>'}
+    var visible=focused?projectItems(focused.id):projects;
+    if(networkDetail)visible=[networkDetail];
+    var extra=Math.max(0,Math.ceil(visible.length/12)-1);svg.setAttribute('viewBox',(-extra*100)+' '+(-extra*75)+' '+(900+extra*200)+' '+(494+extra*150));
+    visible.forEach(function(item,i){
+      var c;if(!focused&&projects.length<=4)c=projectSlots(projects.length)[i];
+      else {var ring=Math.floor(i/12),size=Math.min(12,visible.length-ring*12),angle=2*Math.PI*(i%12)/size-Math.PI/2;c={x:450+Math.cos(angle)*(170+ring*100),y:245+Math.sin(angle)*(125+ring*75)};}
+      var color=projectPalette(focused?projects.indexOf(focused):i),label=String(focused?item.label:item.name||item.id);
+      edges+='<path class="network-flow" d="M450 245 Q'+c.x+' 245 '+c.x+' '+c.y+'" fill="none" stroke="'+color+'" opacity=".55"/>';
+      if(!focused)orbits+='<ellipse class="orbit" cx="'+c.x+'" cy="'+c.y+'" rx="140" ry="83" stroke="'+color+'" opacity=".35"/>';
+      hubs+=hub(c.x,c.y,label,color,String(i),focused?'item':'project');entries.push(item);
     });
-    var core='<g><circle cx="450" cy="245" r="76" fill="#19e68b" opacity=".18" filter="url(#coreGlow)"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="48"/><circle cx="450" cy="245" r="67" fill="none" stroke="#1af68e" stroke-width=".7" opacity=".5" stroke-dasharray="2 6"/><text class="core-title" x="450" y="244" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="260" text-anchor="middle">CORE</text></g>';
-    if(!projects.length)hubs='<text x="450" y="360" text-anchor="middle" fill="#78a38c" font-size="12">Nessun progetto registrato nel workspace</text>';
-    svg.innerHTML=defs+stars+edges+orbits+caps+hubs+core;
-    var keyboardHubs=Array.from(svg.querySelectorAll('[data-project-node]'));
-    keyboardHubs.forEach(function(el,index){
-      el.addEventListener('click',function(){openProject(el.getAttribute('data-project-node'))});
-      el.addEventListener('focus',function(){
-        el.classList.add('keyboard-focus');
-        var id=el.getAttribute('data-project-node'),p=projects.find(function(x){return String(x.id)===String(id)});
-        $('networkCaption').textContent=(p?p.name:'Progetto')+' · Invio per dettagli · frecce per navigare · ruoli illustrativi';
-      });
-      el.addEventListener('blur',function(){el.classList.remove('keyboard-focus')});
-      el.addEventListener('keydown',function(e){
-        if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(el.getAttribute('data-project-node'));return}
-        if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(e.key)){
-          e.preventDefault();
-          var next=e.key==='Home'?0:e.key==='End'?keyboardHubs.length-1:
-            (index+((e.key==='ArrowRight'||e.key==='ArrowDown')?1:-1)+keyboardHubs.length)%keyboardHubs.length;
-          if(keyboardHubs[next])keyboardHubs[next].focus();
-        }
-      });
+    var core=hub(450,245,focused?focused.name:'RADIX','#1ef28f','root','root');
+    svg.innerHTML=defs+stars+edges+orbits+hubs+core;
+    svg.querySelectorAll('[data-network-type]').forEach(function(el){
+      function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
+        if(type==='root'){focusedProjectId=null;networkDetail=null;renderNetwork();return}
+        if(type==='project'){enterProject(item.id);return}
+        networkDetail=item;renderNetwork();openWorkflow(item.workflow.id);
+        if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}
+      }
+      el.addEventListener('click',activate);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}});
     });
-    svg.querySelectorAll('[data-cap-project]').forEach(function(el){el.addEventListener('click',function(){openProject(el.getAttribute('data-cap-project'))})});
-    $('networkCaption').textContent=projects.length+' progetti visualizzati'+((data.projects||[]).length>4?' su '+data.projects.length:'')+' · ruoli illustrativi, non assegnazioni'+(window.innerWidth<640?' · scorri orizzontalmente':'');
-    if(window.innerWidth<640&&!renderNetwork._centered){renderNetwork._centered=true;requestAnimationFrame(function(){var w=$('networkWrap');w.scrollLeft=(w.scrollWidth-w.clientWidth)/2})}
+    $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'');
+    $('networkBreadcrumb').querySelectorAll('button').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root')focusedProjectId=null;networkDetail=null;pan={x:0,y:0};zoom=1;renderNetwork();applyZoom()}});
+    $('networkCaption').textContent=focused?(visible.length?visible.length+' elementi attribuiti · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
+    $('projectTools').hidden=!focused;
+    if(focused)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
+    $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
   }
 
   // Accessible all-projects alternative. Never claims decorative roles are real agents.
@@ -594,7 +594,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(!projects.length)html+='<div class="empty-state"><b>Nessun progetto registrato</b>I progetti del workspace appariranno qui.</div>';
     $('projectView').innerHTML=html+'</div>';
     $('projectView').querySelectorAll('[data-project-list]').forEach(function(el){
-      el.addEventListener('click',function(){openProject(el.getAttribute('data-project-list'))});
+      el.addEventListener('click',function(){enterProject(el.getAttribute('data-project-list'))});
     });
     // Preserve keyboard focus when the project list refreshes during polling.
     if(renderProjectView._focusId){
@@ -663,7 +663,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Workflow status</div><div class="detail-status"><i></i>'+esc(w.status)+'</div></div><div class="detail-section"><div class="detail-label">Objective</div><div class="detail-value">'+esc(w.task)+'</div></div><div class="detail-section"><div class="detail-label">Progress</div><div class="detail-value">'+esc((w.progress.done||0)+' of '+(w.progress.total||0)+' tasks completed')+'</div></div><div class="detail-section"><div class="detail-label">Agents</div>'+nodes+'</div>';
     $('drawer').classList.add('open')
   }
-  function applyZoom(){zoom=Math.min(1.45,Math.max(.72,zoom));$('networkStage').style.transform='scale('+zoom+')'}
+  function applyZoom(){zoom=Math.min(3,Math.max(.35,zoom));$('networkStage').style.transform='translate('+pan.x+'px,'+pan.y+'px) scale('+zoom+')';$('zoomReset').textContent=Math.round(zoom*100)+'%'}
+  var drag=null,moved=false,wrap=$('networkWrap');
+  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false;wrap.setPointerCapture(e.pointerId)});
+  wrap.addEventListener('pointermove',function(e){if(!drag)return;pan.x=drag.px+e.clientX-drag.x;pan.y=drag.py+e.clientY-drag.y;applyZoom()});
+  function stopDrag(){drag=null}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
+  wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();zoom*=Math.exp(-e.deltaY*.001);applyZoom()},{passive:false});
+  var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),frame=null;
+  wrap.addEventListener('mousemove',function(e){if(drag||reduced.matches||frame)return;frame=requestAnimationFrame(function(){var r=wrap.getBoundingClientRect();$('networkSvg').style.transform='translate('+((e.clientX-r.left-r.width/2)*.008)+'px,'+((e.clientY-r.top-r.height/2)*.008)+'px)';frame=null})});
+  wrap.addEventListener('mouseleave',function(){$('networkSvg').style.transform='';stopDrag()});
   function setView(view){
     currentView=['network','command','projects'].includes(view)?view:'network';
     var network=currentView==='network';
@@ -688,7 +696,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('networkTab').addEventListener('click',function(){setView('network')});
   $('commandTab').addEventListener('click',function(){setView('command')});
   $('projectsTab').addEventListener('click',function(){setView('projects')});
-  $('zoomIn').addEventListener('click',function(){zoom+=.1;applyZoom()});$('zoomOut').addEventListener('click',function(){zoom-=.1;applyZoom()});$('zoomReset').addEventListener('click',function(){zoom=1;applyZoom()});
+  $('zoomIn').addEventListener('click',function(){zoom+=.1;applyZoom()});$('zoomOut').addEventListener('click',function(){zoom-=.1;applyZoom()});$('zoomReset').addEventListener('click',function(){zoom=1;pan={x:0,y:0};applyZoom()});
   /* RADIX drawer keyboard accessibility pass 10 */
   var drawerLastFocus=null;
   var drawerElement=$('drawer');

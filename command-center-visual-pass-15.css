@@ -83,3 +83,20 @@
   .network-panel .panel-meta{font-size:10px}
   .network-panel .panel-head{padding-inline:10px}
 }
+
+/* Network 2: navigation and decorative energy do not imply live execution. */
+#networkBreadcrumb,#projectTools{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:11px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+#networkBreadcrumb button,#projectTools button{background:#092219;border:1px solid #225a42;color:#b6efd2;border-radius:7px;padding:6px 10px;cursor:pointer}
+.network-wrap{touch-action:none;cursor:grab;overflow:hidden!important}
+.network-wrap:active{cursor:grabbing}
+.network-stage{transition:none;min-width:0!important;will-change:transform}
+.network-flow{stroke-width:1.3;stroke-dasharray:3 10;animation:networkEnergy 5s linear infinite;pointer-events:none}
+.network-target{cursor:pointer}
+.network-target .project-ring{filter:drop-shadow(0 0 9px var(--node-color));animation:networkPulse 5s ease-in-out infinite}
+.network-target:hover .project-ring,.network-target:focus-visible .project-ring{stroke-width:3;filter:drop-shadow(0 0 17px var(--node-color))}
+.network-target:focus-visible{outline:none}
+#networkSvg{transition:transform .15s ease-out}
+@keyframes networkEnergy{to{stroke-dashoffset:-104}}
+@keyframes networkPulse{50%{stroke-opacity:.55}}
+@media(prefers-reduced-motion:reduce){.network-flow,.network-target .project-ring{animation:none}#networkSvg{transition:none}.network-stage{will-change:auto}}
+@media(max-width:640px){.network-stage{position:absolute;inset:0;width:100%;height:100%}.network-stage svg{width:100%;height:100%}.network-caption{position:absolute}}
