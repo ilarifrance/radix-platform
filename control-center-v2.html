@@ -299,6 +299,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 @media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer{transition:none!important}}
 </style>
 <link rel="stylesheet" href="./command-center-visual-pass-15.css">
+<link rel="stylesheet" href="./command-center-network-refinement.css">
 </head>
 <body>
 <div class="app loading" id="app">
@@ -426,26 +427,36 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 (function(){
   'use strict';
   var AGENTS=[
-    {id:'marketing-orchestrator',name:'Marketing',group:'Marketing',x:265,y:132,hub:true},
-    {id:'brand-strategist',name:'Brand',group:'Marketing',x:130,y:90},
-    {id:'copywriter',name:'Copy',group:'Marketing',x:115,y:175},
-    {id:'art-director',name:'Art',group:'Marketing',x:178,y:246},
-    {id:'analytics',name:'Analytics',group:'Marketing',x:305,y:65},
-    {id:'seo-geo',name:'SEO/GEO',group:'Marketing',x:365,y:118},
-    {id:'video-producer',name:'Video',group:'Marketing',x:318,y:225},
-    {id:'partner',name:'Studio',group:'Operations',x:647,y:133,hub:true},
-    {id:'commercialista-senior',name:'Tax',group:'Operations',x:775,y:84},
-    {id:'contabilita',name:'Accounting',group:'Operations',x:810,y:164},
-    {id:'lavoro-paghe',name:'Payroll',group:'Operations',x:748,y:240},
-    {id:'legal-orchestrator',name:'Legal',group:'Legal',x:632,y:340,hub:true},
-    {id:'legal-contracts',name:'Contracts',group:'Legal',x:757,y:318},
-    {id:'legal-privacy',name:'Privacy',group:'Legal',x:780,y:395},
-    {id:'legal-risk-analyst',name:'Risk',group:'Legal',x:665,y:434},
-    {id:'sales-orchestrator',name:'Sales',group:'Sales',x:263,y:353,hub:true},
-    {id:'market-analyst',name:'Market',group:'Sales',x:134,y:323},
-    {id:'contact-researcher',name:'Leads',group:'Sales',x:154,y:407},
-    {id:'web-developer',name:'Dev',group:'Product',x:446,y:411},
-    {id:'ai-specialist',name:'AI',group:'Product',x:482,y:92}
+    { id: "marketing-orchestrator", name: "Orchestratore Marketing", hub: true, group: "Marketing" },
+    { id: "brand-strategist", name: "Stratega di Marca e Campagne", group: "Marketing" },
+    { id: "strategist", name: "Digital Strategist", group: "Marketing" },
+    { id: "copywriter", name: "Copywriter", group: "Marketing" },
+    { id: "art-director", name: "Art Director", group: "Marketing" },
+    { id: "ai-specialist", name: "AI Specialist", group: "Marketing" },
+    { id: "social-media-manager", name: "Social Media Manager", group: "Marketing" },
+    { id: "seo-geo", name: "Specialista SEO e GEO", group: "Marketing" },
+    { id: "web-content", name: "Content e UX Writer", group: "Marketing" },
+    { id: "video-producer", name: "Video Producer", group: "Marketing" },
+    { id: "paid-media", name: "Paid Media Specialist", group: "Marketing" },
+    { id: "analytics", name: "Analytics e CRO", group: "Marketing" },
+    { id: "orchestrator", name: "Pipeline post", pipeline: true, group: "Marketing" },
+    { id: "partner", name: "Orchestratore dello Studio", hub: true, group: "Operations" },
+    { id: "commercialista-senior", name: "Commercialista Senior", group: "Operations" },
+    { id: "commercialista-operativo", name: "Commercialista Operativo", group: "Operations" },
+    { id: "contabilita", name: "Contabilità", group: "Operations" },
+    { id: "lavoro-paghe", name: "Lavoro e Paghe", group: "Operations" },
+    { id: "segreteria-studio", name: "Segreteria dello Studio", group: "Operations" },
+    { id: "web-developer", name: "Web Developer", group: "Product" },
+    { id: "legal-orchestrator", name: "Orchestratore Legale", hub: true, group: "Legal" },
+    { id: "legal-gdpr", name: "Esperto Privacy e GDPR", group: "Legal" },
+    { id: "legal-contracts", name: "Esperto Contrattualistica, IP e Creator", group: "Legal" },
+    { id: "legal-banking", name: "Esperto Diritto Bancario e Finanziario", group: "Legal" },
+    { id: "legal-risk-analyst", name: "Analista di Rischio Legale", group: "Legal" },
+    { id: "comm-orchestrator", name: "Orchestratore Commerciale", hub: true, group: "Sales" },
+    { id: "comm-market-analyst", name: "Analista di Mercato e Strategia", group: "Sales" },
+    { id: "comm-contact-finder", name: "Ricercatore di Contatti", group: "Sales" },
+    { id: "comm-email-outreach", name: "Specialista Email Outreach", group: "Sales" },
+    { id: "comm-crm-manager", name: "Responsabile CRM / Sales Ops", group: "Sales" },
   ];
   var LINKS=[
     ['marketing-orchestrator','brand-strategist'],['marketing-orchestrator','copywriter'],['marketing-orchestrator','art-director'],['marketing-orchestrator','analytics'],['marketing-orchestrator','seo-geo'],['marketing-orchestrator','video-producer'],['marketing-orchestrator','ai-specialist'],
@@ -474,7 +485,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         var id=agentId+':'+i,done=nodes.filter(function(n){return n.status==='done'}).length;
         flows.push({id:id,orchestrator:agentId,task:String(f.task||'Workflow orchestrato').slice(0,220),status:status,recordedStatus:recorded,source:'legacy-browser-snapshot',projectId:typeof f.projectId==='string'?f.projectId:null,
           progress:{total:nodes.length,done:done},nodes:nodes.map(function(n,j){return {id:id+':'+j,label:n.label||n.role||'Task',agentId:n.role||null,status:n.status||'pending',subtask:String(n.subtask||'').slice(0,220)}}),sortAt:last});
-        nodes.forEach(function(n){if(n.role)agentStatus[n.role]={status:n.status||'pending',task:String(n.subtask||'').slice(0,180),workflowId:id}});
+        nodes.forEach(function(n){if(n.role&&(!agentStatus[n.role]||last>=agentStatus[n.role].at))agentStatus[n.role]={status:status==='stale'&&n.status==='running'?'stale':n.status||'pending',task:String(n.subtask||'').slice(0,180),workflowId:id,at:last}});
         log.forEach(function(e,j){if(e&&e.x)activity.push({id:id+':'+j,at:e.t||null,text:String(e.x).slice(0,260),orchestrator:agentId})});
       });
     });
@@ -513,7 +524,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('updatedText').textContent='Ultimo stato salvato · '+fmtDate(data.workspace&&data.workspace.updatedAt)+(data.workspace&&data.workspace.updatedBy?' · '+data.workspace.updatedBy:'')+' · snapshot, non monitoraggio in tempo reale';
     $('metricProjects').textContent=data.metrics.projects;
     $('metricWorkflows').textContent=data.metrics.activeWorkflows;
-    $('metricAgents').textContent=data.metrics.activeAgents;
+    var counts=executionCounts();$('metricAgents').textContent=counts.verified===null?'—':counts.verified; $('metricAgents').parentElement.querySelector('.metric-note').textContent=counts.verified===null?'esecuzione non verificata':'in esecuzione verificata';
     $('metricApprovals').textContent=data.approvalsSupported?data.metrics.approvals:'—';
     $('navWorkflowBadge').textContent=data.metrics.activeWorkflows;
     $('navApprovalBadge').textContent=data.metrics.approvals;
@@ -527,16 +538,22 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function activeStatus(id){return data.agentStatus&&data.agentStatus[id]||{status:'idle',task:''}}
   function nodeClass(status){if(status==='running')return 'running';if(status==='error')return 'error';if(status==='pending'||status==='stale')return 'pending';if(status==='done')return 'done';return 'idle'}
   function projectPalette(index){return ['#23e69b','#4da6ff','#ae81f1','#e9b86c'][index%4]}
+  function projectColor(p,index){var n=String(p.name||'').toLowerCase();return /aura/.test(n)?'#23e69b':/doc capital/.test(n)?'#4da6ff':/personal brand/.test(n)?'#ae81f1':/gcp/.test(n)?'#e9b86c':projectPalette(index)}
+  function projectRank(p){var n=String(p.name||'').toLowerCase();return /aura/.test(n)?0:/doc capital/.test(n)?1:/personal brand/.test(n)?2:/gcp/.test(n)?3:4}
+  function executionCounts(){
+    var states=data.agentStatus||{},recorded=Object.values(states).filter(function(a){return a.status==='running'}).length;
+    return {configured:AGENTS.length,recorded:recorded,verified:data.dataQuality&&data.dataQuality.realtimeExecutionVerified===true?recorded:null};
+  }
   function projectSlots(count){
     var layouts={1:[{x:450,y:130}],2:[{x:250,y:245},{x:650,y:245}],3:[{x:240,y:130},{x:660,y:130},{x:450,y:380}],4:[{x:236,y:135},{x:668,y:135},{x:236,y:360},{x:668,y:360}]};
     return layouts[Math.max(1,Math.min(4,count))];
   }
   function orderedProjects(){
-    var ps=(data.projects||[]).slice();var preferred=['aura','doc capital','personal brand','gcp'];
-    ps.sort(function(a,b){var ia=preferred.indexOf(String(a.name||'').toLowerCase()),ib=preferred.indexOf(String(b.name||'').toLowerCase());return (ia<0?100:ia)-(ib<0?100:ib)});
+    var ps=(data.projects||[]).slice();ps.sort(function(a,b){return projectRank(a)-projectRank(b)});
     return ps;
   }
-  var pan={x:0,y:0}, networkDetail=null;
+  var pan={x:0,y:0}, networkDetail=null,networkPage=0;
+  var UNASSIGNED='__unassigned_workflows__';
   function resetNetworkCamera(){pan={x:0,y:0};zoom=1;applyZoom()}
   function setNetworkExpanded(expanded){
     $('networkPanel').classList.toggle('network-expanded',expanded);
@@ -548,18 +565,18 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('expandNetwork').addEventListener('click',function(){setNetworkExpanded(!$('networkPanel').classList.contains('network-expanded'))});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('networkPanel').classList.contains('network-expanded')){setNetworkExpanded(false);$('expandNetwork').focus()}});
   function projectItems(id){
-    // Only explicit attribution is accepted. Legacy flows have no project ownership.
-    return (data.workflows||[]).filter(function(w){return w.projectId!=null&&String(w.projectId)===String(id)}).flatMap(function(w){
-      return [{id:w.id,label:w.orchestrator||'Workflow',status:w.status,workflow:w}].concat((w.nodes||[]).map(function(n){return {id:n.id,label:n.label||n.agentId||'Attività',status:n.status,node:n,workflow:w}}));
-    });
+    return (data.workflows||[]).filter(function(w){return id===UNASSIGNED?w.projectId==null:w.projectId!=null&&String(w.projectId)===String(id)}).map(function(w){return {id:w.id,label:w.orchestrator||'Workflow',status:w.status,workflow:w}});
   }
+  function workflowTasks(w){return (w.nodes||[]).map(function(n){return {id:n.id,label:n.label||n.agentId||'Attività',status:n.status,node:n,workflow:w}})}
+
   function networkPosition(index,count){
     var ring=Math.floor(index/10),size=Math.min(10,count-ring*10),angle=2*Math.PI*(index%10)/size-Math.PI/2;
     return {x:450+Math.cos(angle)*(230+ring*160),y:245+Math.sin(angle)*(155+ring*110)};
   }
-  function enterProject(id){focusedProjectId=id;networkDetail=null;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
+  function enterProject(id){focusedProjectId=id;networkDetail=null;networkPage=0;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
   function renderNetwork(){
-    var svg=$('networkSvg'),projects=orderedProjects(),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
+    var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
+    if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:'Attività senza progetto'};
     if(!focused){focusedProjectId=null;networkDetail=null}
     var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#177b4e"/><stop offset="1" stop-color="#04120b"/></radialGradient></defs>';
     var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
@@ -567,20 +584,21 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     function hub(x,y,label,color,key,type,status){
       var cy=y-15,r=type==='project'?15:18;
       var subtitle=type==='project'?'PROJECT PROFILE':String(status||'stato salvato');
-      return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+'" aria-label="'+esc(label+' · '+subtitle)+'"><title>'+esc(label+' · '+subtitle)+'</title><circle class="node-aura" cx="'+x+'" cy="'+cy+'" r="'+(r+12)+'" fill="'+color+'" opacity=".10"/><circle class="project-ring" cx="'+x+'" cy="'+cy+'" r="'+r+'" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+cy+'" r="'+(r-5)+'" stroke="'+color+'"/><path d="M'+(x-6)+' '+(cy+5)+' L'+x+' '+(cy-6)+' L'+(x+6)+' '+(cy+5)+' M'+(x-4)+' '+cy+' L'+(x+4)+' '+cy+'" fill="none" stroke="'+color+'" stroke-width="1.4"/><text class="project-name" x="'+x+'" y="'+(y+23)+'" text-anchor="middle">'+esc(label.length>25?label.slice(0,24)+'…':label)+'</text><text class="project-type" x="'+x+'" y="'+(y+40)+'" text-anchor="middle">'+esc(subtitle)+'</text></g>';
+      return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+';--node-delay:'+(-Number(key)*.6)+'s" aria-label="'+esc(label+' · '+subtitle)+'"><title>'+esc(label+' · '+subtitle)+'</title><circle class="node-aura" cx="'+x+'" cy="'+cy+'" r="'+(r+12)+'" fill="'+color+'" opacity=".10"/><circle class="project-ring" cx="'+x+'" cy="'+cy+'" r="'+r+'" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+cy+'" r="'+(r-5)+'" stroke="'+color+'"/><path d="M'+(x-6)+' '+(cy+5)+' L'+x+' '+(cy-6)+' L'+(x+6)+' '+(cy+5)+' M'+(x-4)+' '+cy+' L'+(x+4)+' '+cy+'" fill="none" stroke="'+color+'" stroke-width="1.4"/><foreignObject x="'+(x-112)+'" y="'+(y+10)+'" width="224" height="110"><div xmlns="http://www.w3.org/1999/xhtml" class="network-label"><strong>'+esc(label)+'</strong><small>'+esc(subtitle)+'</small></div></foreignObject></g>';
     }
     var visible=focused?projectItems(focused.id):projects;
-    if(networkDetail){networkDetail=visible.find(function(item){return item.id===networkDetail.id})||null;if(networkDetail)visible=[networkDetail]}
+    if(networkDetail){var current=(data.workflows||[]).find(function(w){return w.id===networkDetail.workflow.id});if(current){networkDetail.workflow=current;visible=networkDetail.node?[networkDetail]:workflowTasks(current)}else networkDetail=null}
+    var allVisible=visible.slice(),pages=Math.max(1,Math.ceil(visible.length/8));networkPage=Math.min(networkPage,pages-1);visible=visible.slice(networkPage*8,networkPage*8+8);
     var extra=Math.max(0,Math.ceil(visible.length/10)-1);svg.setAttribute('viewBox',(-extra*160-30)+' '+(-extra*110-30)+' '+(960+extra*320)+' '+(554+extra*220));
     visible.forEach(function(item,i){
       var c;if(!focused&&projects.length<=4)c=projectSlots(projects.length)[i];
       else c=networkPosition(i,visible.length);
-      var color=projectPalette(focused?projects.indexOf(focused):i),label=String(focused?item.label:item.name||item.id);
+      var color=focused?projectColor(focused,projects.indexOf(focused)):projectColor(item,i),label=String(focused?item.label:item.name||item.id);
       edges+='<path class="network-flow" d="M450 245 Q'+c.x+' 245 '+c.x+' '+c.y+'" fill="none" stroke="'+color+'" opacity=".55"/>';
       if(!focused){
         orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate(-14 '+c.x+' '+c.y+')"/>';
         var items=projectItems(item.id);
-        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length,ax=c.x+Math.cos(angle)*110,ay=c.y+Math.sin(angle)*64,key=entries.length;entries.push(child);
+        items.slice(0,12).forEach(function(child,j){var angle=2*Math.PI*j/items.length,ax=c.x+Math.cos(angle)*110,ay=c.y+Math.sin(angle)*64,key=entries.length;entries.push(child);
           orbits+='<path class="satellite-link" d="M'+c.x+' '+(c.y-15)+' L'+ax+' '+ay+'" stroke="'+color+'"/><g class="network-target satellite" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="'+ax+'" cy="'+ay+'" r="6" fill="#082019" stroke="'+color+'"/><circle cx="'+ax+'" cy="'+ay+'" r="2" fill="'+color+'"/></g>';
         });
         orbits+='</g>';
@@ -589,23 +607,29 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     });
     var core='<g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
     if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
-    svg.innerHTML=defs+stars+edges+orbits+hubs+core;
+    if(!focused&&unassigned.length){var globalKey=entries.length;entries.push({id:UNASSIGNED,name:'Attività senza progetto'});hubs+='<g class="network-target unassigned-node" role="button" tabindex="0" data-network-type="project" data-network-key="'+globalKey+'" aria-label="Attività senza progetto · '+unassigned.length+' workflow"><rect x="320" y="475" width="260" height="35" rx="12"/><text x="450" y="497" text-anchor="middle">Attività senza progetto · '+unassigned.length+' workflow ↗</text></g>'}
+    svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core;
+    var mobile=$('networkMobileList');if(!mobile){mobile=document.createElement('div');mobile.id='networkMobileList';$('networkWrap').appendChild(mobile)}
+    mobile.innerHTML=allVisible.map(function(item,i){return '<button data-mobile-index="'+i+'">'+esc(focused?item.label:item.name)+'<small>'+(focused?esc(item.status):'Profilo progetto')+'</small></button>'}).join('');
+    mobile.querySelectorAll('button').forEach(function(button){button.onclick=function(){var item=allVisible[Number(button.dataset.mobileIndex)];if(!focused)enterProject(item.id);else activateItem(item)}});
+    function activateItem(item){networkDetail=item;networkPage=0;resetNetworkCamera();renderNetwork();openWorkflow(item.workflow.id);if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}}
+
     svg.querySelectorAll('.network-cluster').forEach(function(cluster){cluster.addEventListener('pointerenter',function(){cluster.classList.add('cluster-hover')});cluster.addEventListener('pointerleave',function(){cluster.classList.remove('cluster-hover')})});
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
       function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
         if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
         if(type==='project'){enterProject(item.id);return}
         if(type==='satellite'){focusedProjectId=el.getAttribute('data-network-project');resetNetworkCamera()}
-        networkDetail=item;renderNetwork();openWorkflow(item.workflow.id);
-        if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}
+        activateItem(item);
       }
       el.addEventListener('click',activate);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();return}var targets=Array.from(svg.querySelectorAll('[data-network-type]')),index=targets.indexOf(el),step=['ArrowRight','ArrowDown'].includes(e.key)?1:['ArrowLeft','ArrowUp'].includes(e.key)?-1:0;if(step){e.preventDefault();targets[(index+step+targets.length)%targets.length].focus()}});
     });
-    $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'');
-    $('networkBreadcrumb').querySelectorAll('button').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root')focusedProjectId=null;networkDetail=null;pan={x:0,y:0};zoom=1;renderNetwork();applyZoom()}});
-    $('networkCaption').textContent=focused?(visible.length?visible.length+' elementi attribuiti · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
-    $('projectTools').hidden=!focused||currentView!=='network';
-    if(focused)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
+    $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <button data-level="workflow">'+esc(networkDetail.workflow.orchestrator)+'</button>':'')+(networkDetail&&networkDetail.node?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'')+(pages>1?'<span class="network-pagination"><button data-page="-1" '+(networkPage===0?'disabled':'')+'>Precedente</button><span>'+(networkPage+1)+' / '+pages+'</span><button data-page="1" '+(networkPage===pages-1?'disabled':'')+'>Successiva</button></span>':'');
+    $('networkBreadcrumb').querySelectorAll('button[data-level]').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root'){focusedProjectId=null;networkDetail=null}else if(el.dataset.level==='project')networkDetail=null;else networkDetail={id:networkDetail.workflow.id,label:networkDetail.workflow.orchestrator,workflow:networkDetail.workflow};networkPage=0;resetNetworkCamera();renderNetwork()}});
+    $('networkBreadcrumb').querySelectorAll('button[data-page]').forEach(function(el){el.onclick=function(){networkPage+=Number(el.dataset.page);resetNetworkCamera();renderNetwork()}});
+    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
+    $('projectTools').hidden=!focused||focused.id===UNASSIGNED||currentView!=='network';
+    if(focused&&focused.id!==UNASSIGNED)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
     $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
   }
 
@@ -664,9 +688,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     document.querySelectorAll('[data-workflow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-workflow'))})})
   }
   function renderTeams(){
-    var counts={};AGENTS.forEach(function(a){counts[a.group]=(counts[a.group]||0)+1});
-    var active={};AGENTS.forEach(function(a){var s=activeStatus(a.id).status;if(['running','pending','stale','error'].includes(s))active[a.group]=(active[a.group]||0)+1});
-    $('teamGrid').innerHTML=Object.keys(counts).slice(0,6).map(function(g){return '<div class="team-card"><div class="team-title">'+esc(g)+'</div><div class="team-count">'+(active[g]||0)+'</div><div class="team-sub">active / '+counts[g]+' mapped agents</div></div>'}).join('')
+    var groups={};AGENTS.forEach(function(a){var g=groups[a.group]||(groups[a.group]={configured:0,running:0,pending:0,error:0,stale:0});g.configured++;var status=activeStatus(a.id).status;if(Object.prototype.hasOwnProperty.call(g,status))g[status]++});
+    $('teamGrid').innerHTML=Object.keys(groups).map(function(name){var g=groups[name];return '<div class="team-card"><div class="team-title">'+esc(name)+'</div><div class="team-count">'+g.configured+'</div><div class="team-sub">agenti configurati</div><div class="team-status">'+g.running+' in corso nello snapshot · '+g.pending+' in attesa<br>'+g.error+' errori · '+g.stale+' da aggiornare</div></div>'}).join('')+'<p class="team-disclaimer">'+(executionCounts().verified===null?'Esecuzione reale non verificata. Gli stati salvati non sono attività live.':'Esecuzione verificata dalla sorgente operativa.')+'</p>';
   }
   function renderKnowledge(){
     var active=(data.projects||[]).find(function(p){return p.active});
@@ -697,9 +720,9 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     pan.x=x-(x-pan.x)*after/before;pan.y=y-(y-pan.y)*after/before;zoom=after;applyZoom();
   }
   var drag=null,wrap=$('networkWrap');
-  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};wrap.setPointerCapture(e.pointerId)});
+  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};wrap.classList.add('is-dragging');wrap.setPointerCapture(e.pointerId)});
   wrap.addEventListener('pointermove',function(e){if(!drag)return;pan.x=drag.px+e.clientX-drag.x;pan.y=drag.py+e.clientY-drag.y;applyZoom()});
-  function stopDrag(){drag=null}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
+  function stopDrag(){drag=null;wrap.classList.remove('is-dragging')}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
   wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();var r=wrap.getBoundingClientRect();zoomAt(zoom*Math.exp(-e.deltaY*.001),e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2)},{passive:false});
   var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),frame=null;
   wrap.addEventListener('mousemove',function(e){if(drag||reduced.matches||frame)return;frame=requestAnimationFrame(function(){var r=wrap.getBoundingClientRect();$('networkSvg').style.transform='translate('+((e.clientX-r.left-r.width/2)*.008)+'px,'+((e.clientY-r.top-r.height/2)*.008)+'px)';frame=null})});
@@ -713,7 +736,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
     $('networkCaptionWrap').hidden=!network;
-    $('networkLegend').hidden=!network;
+    $('networkLegend').hidden=!network;if($('networkMobileList'))$('networkMobileList').hidden=!network;
     ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
     document.querySelectorAll('[data-radix-view]').forEach(function(button){
       var active=button.getAttribute('data-radix-view')===currentView;
