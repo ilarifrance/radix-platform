@@ -69,3 +69,17 @@
 .side-stack .panel-title{color:#c2e5d0}
 .lower-grid .panel{border-color:#1c4834}
 @media(max-width:640px){.topbar{gap:8px}.command{min-width:0}.command-kbd{display:none}}
+
+
+/* Visual pass 23 — keep the primary network canvas legible on narrower laptops. */
+@media(min-width:861px) and (max-width:1180px){
+  .dashboard-grid{grid-template-columns:minmax(0,1.5fr) minmax(270px,.75fr)}
+  .network-panel{min-width:0}
+  .network-panel .panel-head{height:auto;min-height:50px;flex-wrap:wrap;gap:8px;padding-block:9px}
+  .network-toolbar{margin-left:auto;flex-wrap:wrap}
+}
+@media(max-width:480px){
+  .network-panel .panel-title{letter-spacing:.09em}
+  .network-panel .panel-meta{font-size:10px}
+  .network-panel .panel-head{padding-inline:10px}
+}
