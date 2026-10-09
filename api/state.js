@@ -8,10 +8,22 @@ const { sql } = require('./_db');
 const { getSessionUser } = require('./_auth');
 
 module.exports = async (req, res) => {
+  const isDashboard = req.method === 'GET' && req.query && req.query.view === 'dashboard';
+  if (isDashboard) res.setHeader('Cache-Control', 'no-store');
   const user = getSessionUser(req);
   if (!user) {
     res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
     return;
+  }
+
+  if (isDashboard) {
+    try {
+      const client = sql();
+      const rows = await client`SELECT data, updated_at, updated_by FROM workspace_state WHERE id = 1`;
+      return res.status(200).json(require('./_dashboard').dashboard(rows[0], user));
+    } catch (_) {
+      return res.status(500).json({ error: 'Riepilogo temporaneamente non disponibile.' });
+    }
   }
 
   const client = sql();

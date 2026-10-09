@@ -1,0 +1,4 @@
+'use strict';
+const test=require('node:test'),fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+for(const file of ['control-center-v2.html','marketing-agency.html','radix-crm-concept.html','radix-pm-concept.html'])test('inline JavaScript syntax: '+file,()=>{const html=fs.readFileSync(file,'utf8');for(const part of html.split('<script').slice(1)){const body=part.slice(part.indexOf('>')+1).split('</script>')[0];new vm.Script(body,{filename:file})}});
+test('dashboard uses only summary endpoint and abortable single flight',()=>{const s=fs.readFileSync('control-center-v2.html','utf8');assert.ok(s.includes('state?view=dashboard'));assert.ok(!s.includes('/api/dashboard')&&!s.includes('legacyProjection'));assert.ok(s.includes('if(inFlight||authStopped)return'));assert.ok(s.includes('controller.abort'));assert.ok(s.includes('clearPrivate()'))});
