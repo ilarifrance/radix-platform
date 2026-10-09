@@ -404,7 +404,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   </main>
 </div>
 
-<aside class="drawer" id="drawer"><div class="drawer-head"><div class="drawer-title" id="drawerTitle">Agent</div><button class="drawer-close" id="drawerClose">×</button></div><div class="drawer-body" id="drawerBody"></div></aside>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" aria-hidden="true"><div class="drawer-head"><div class="drawer-title" id="drawerTitle">Agent</div><button class="drawer-close" id="drawerClose" type="button" aria-label="Chiudi pannello dettagli">×</button></div><div class="drawer-body" id="drawerBody"></div></aside>
 <div class="toast" id="toast"></div>
 <div class="fatal" id="fatal"><div class="fatal-card"><h2>Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><a href="/index.html">Vai al login / workspace</a></div></div>
 
@@ -658,7 +658,28 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('commandTab').addEventListener('click',function(){setView('command')});
   $('projectsTab').addEventListener('click',function(){setView('projects')});
   $('zoomIn').addEventListener('click',function(){zoom+=.1;applyZoom()});$('zoomOut').addEventListener('click',function(){zoom-=.1;applyZoom()});$('zoomReset').addEventListener('click',function(){zoom=1;applyZoom()});
-  $('drawerClose').addEventListener('click',function(){$('drawer').classList.remove('open');selectedAgent=null});
+  /* RADIX drawer keyboard accessibility pass 10 */
+  var drawerLastFocus=null;
+  var drawerElement=$('drawer');
+  function closeDetailDrawer(){
+    if(!drawerElement.classList.contains('open'))return;
+    drawerElement.classList.remove('open');
+    drawerElement.setAttribute('aria-hidden','true');
+    selectedAgent=null;
+    if(drawerLastFocus&&drawerLastFocus.isConnected&&typeof drawerLastFocus.focus==='function')drawerLastFocus.focus();
+  }
+  new MutationObserver(function(){
+    var opened=drawerElement.classList.contains('open');
+    drawerElement.setAttribute('aria-hidden',opened?'false':'true');
+    if(opened){
+      drawerLastFocus=document.activeElement=== $('drawerClose')?drawerLastFocus:document.activeElement;
+      $('drawerClose').focus();
+    }
+  }).observe(drawerElement,{attributes:true,attributeFilter:['class']});
+  drawerElement.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeDetailDrawer();}
+  });
+  $('drawerClose').addEventListener('click',closeDetailDrawer);
   document.querySelectorAll('[data-future]').forEach(function(el){el.addEventListener('click',function(){toast(el.getAttribute('data-future')+' · funzione in preparazione')})});
   document.querySelectorAll('[data-open]').forEach(function(el){el.addEventListener('click',function(){location.href=el.getAttribute('data-open')})});
   function doSearch(q){
