@@ -110,3 +110,20 @@ body.network-expanded-active{overflow:hidden}
 #expandNetwork[aria-pressed="true"]{color:#b7ffe2;border-color:#29ca8d}
 .network-target:focus-visible .core-ring{stroke:#e3fff2;stroke-width:3}
 @media(max-width:640px){.network-panel.network-expanded{inset:6px}.network-caption{font-size:9px}}
+/* Master composition: small luminous hubs within layered project orbits. */
+.cluster-orbit{fill:none;stroke-width:.65;opacity:.30;pointer-events:all;transition:opacity .18s ease,stroke-width .18s ease}
+.cluster-orbit.inner{stroke-dasharray:2 9;opacity:.45}
+.cluster-orbit.tilted{opacity:.14}
+.cluster-hover .cluster-orbit{opacity:.7;stroke-width:1.1}
+.satellite-link{stroke-width:.65;opacity:.23;pointer-events:none}
+.satellite{cursor:pointer}
+.satellite:hover circle,.satellite:focus-visible circle{stroke:#effff7;stroke-width:2}
+.satellite:focus-visible{outline:none}
+.network-target .project-inner{fill:#092b22;stroke-width:.8}
+.network-target .project-ring{fill:#0b3025;stroke-width:1.1}
+.node-aura{pointer-events:none}
+.network-target .project-name{font-size:16px;letter-spacing:-.02em}
+.network-target .project-type{font-size:8px;letter-spacing:.05em;fill:#81b49b}
+.core-ring{filter:drop-shadow(0 0 18px #0aac78);stroke:#69ffda;stroke-width:1.4}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,rgba(0,237,179,.10),transparent 37%),#020b09}
+@media(prefers-reduced-motion:reduce){.cluster-orbit{transition:none}}

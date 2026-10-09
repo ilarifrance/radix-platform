@@ -373,8 +373,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
             </div>
             <div class="command-view" id="commandView" hidden></div>
             <div class="project-view" id="projectView" hidden aria-label="Elenco completo dei progetti"></div>
-            <div class="network-caption" id="networkCaptionWrap"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · ruoli illustrativi, non assegnazioni</span></div>
-            <div class="legend" id="networkLegend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>capability</span></div>
+            <div class="network-caption" id="networkCaptionWrap"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · attività attribuite</span></div>
+            <div class="legend" id="networkLegend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>stato salvato</span></div>
           </div>
         </article>
 
@@ -472,8 +472,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         var recorded=f.halted?'blocked':f.status==='error'?'error':f.status==='done'?'done':f.status==='running'?'running':'pending';
         var status=recorded==='running'&&(!last||Date.now()-last>600000)?'stale':recorded;
         var id=agentId+':'+i,done=nodes.filter(function(n){return n.status==='done'}).length;
-        flows.push({id:id,orchestrator:agentId,task:String(f.task||'Workflow orchestrato').slice(0,220),status:status,recordedStatus:recorded,source:'legacy-browser-snapshot',
-          progress:{total:nodes.length,done:done},nodes:nodes.map(function(n,j){return {id:id+':'+j,label:n.label||n.role||'Task',status:n.status||'pending',subtask:String(n.subtask||'').slice(0,220)}}),sortAt:last});
+        flows.push({id:id,orchestrator:agentId,task:String(f.task||'Workflow orchestrato').slice(0,220),status:status,recordedStatus:recorded,source:'legacy-browser-snapshot',projectId:typeof f.projectId==='string'?f.projectId:null,
+          progress:{total:nodes.length,done:done},nodes:nodes.map(function(n,j){return {id:id+':'+j,label:n.label||n.role||'Task',agentId:n.role||null,status:n.status||'pending',subtask:String(n.subtask||'').slice(0,220)}}),sortAt:last});
         nodes.forEach(function(n){if(n.role)agentStatus[n.role]={status:n.status||'pending',task:String(n.subtask||'').slice(0,180),workflowId:id}});
         log.forEach(function(e,j){if(e&&e.x)activity.push({id:id+':'+j,at:e.t||null,text:String(e.x).slice(0,260),orchestrator:agentId})});
       });
@@ -482,7 +482,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var projects=Array.isArray(state.projects)?state.projects:[],blocked=flows.filter(function(f){return f.status==='blocked'||f.status==='error'});
     return {user:identity.user||{},workspace:{activeProjectId:state.activeProject||null,updatedAt:payload.updatedAt||null,updatedBy:payload.updatedBy||null},
       projects:projects.filter(function(p){return p&&p.id}).map(function(p){return {id:p.id,name:p.name||p.id,kind:p.kind||'',summary:p.summary||'',active:p.id===state.activeProject}}),
-      workflows:flows.slice(0,12),activity:activity.slice(0,24),agentStatus:agentStatus,approvals:[],approvalsSupported:false,
+      workflows:flows,activity:activity.slice(0,24),agentStatus:agentStatus,approvals:[],approvalsSupported:false,
       attention:blocked.slice(0,6).map(function(f){return {id:f.id,title:f.task,reason:f.status,workflowId:f.id}}),
       metrics:{projects:projects.length,activeWorkflows:flows.filter(function(f){return f.status==='running'}).length,
         activeAgents:Object.values(agentStatus).filter(function(a){return a.status==='running'}).length,approvals:0},
@@ -553,6 +553,10 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       return [{id:w.id,label:w.orchestrator||'Workflow',status:w.status,workflow:w}].concat((w.nodes||[]).map(function(n){return {id:n.id,label:n.label||n.agentId||'Attività',status:n.status,node:n,workflow:w}}));
     });
   }
+  function networkPosition(index,count){
+    var ring=Math.floor(index/10),size=Math.min(10,count-ring*10),angle=2*Math.PI*(index%10)/size-Math.PI/2;
+    return {x:450+Math.cos(angle)*(230+ring*160),y:245+Math.sin(angle)*(155+ring*110)};
+  }
   function enterProject(id){focusedProjectId=id;networkDetail=null;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
   function renderNetwork(){
     var svg=$('networkSvg'),projects=orderedProjects(),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
@@ -560,25 +564,38 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#177b4e"/><stop offset="1" stop-color="#04120b"/></radialGradient></defs>';
     var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
     var edges='',hubs='',orbits='',entries=[];
-    function hub(x,y,label,color,key,type){return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+'" aria-label="'+esc(label)+'"><circle class="project-ring" cx="'+x+'" cy="'+y+'" r="34" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+y+'" r="24" stroke="'+color+'"/><text class="project-name" x="'+x+'" y="'+(y+51)+'" text-anchor="middle">'+esc(label.length>25?label.slice(0,24)+'…':label)+'</text></g>'}
+    function hub(x,y,label,color,key,type,status){
+      var cy=y-15,r=type==='project'?15:18;
+      var subtitle=type==='project'?'PROJECT PROFILE':String(status||'stato salvato');
+      return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+'" aria-label="'+esc(label+' · '+subtitle)+'"><title>'+esc(label+' · '+subtitle)+'</title><circle class="node-aura" cx="'+x+'" cy="'+cy+'" r="'+(r+12)+'" fill="'+color+'" opacity=".10"/><circle class="project-ring" cx="'+x+'" cy="'+cy+'" r="'+r+'" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+cy+'" r="'+(r-5)+'" stroke="'+color+'"/><path d="M'+(x-6)+' '+(cy+5)+' L'+x+' '+(cy-6)+' L'+(x+6)+' '+(cy+5)+' M'+(x-4)+' '+cy+' L'+(x+4)+' '+cy+'" fill="none" stroke="'+color+'" stroke-width="1.4"/><text class="project-name" x="'+x+'" y="'+(y+23)+'" text-anchor="middle">'+esc(label.length>25?label.slice(0,24)+'…':label)+'</text><text class="project-type" x="'+x+'" y="'+(y+40)+'" text-anchor="middle">'+esc(subtitle)+'</text></g>';
+    }
     var visible=focused?projectItems(focused.id):projects;
     if(networkDetail){networkDetail=visible.find(function(item){return item.id===networkDetail.id})||null;if(networkDetail)visible=[networkDetail]}
-    var extra=Math.max(0,Math.ceil(visible.length/12)-1);svg.setAttribute('viewBox',(-extra*100)+' '+(-extra*75)+' '+(900+extra*200)+' '+(494+extra*150));
+    var extra=Math.max(0,Math.ceil(visible.length/10)-1);svg.setAttribute('viewBox',(-extra*160-30)+' '+(-extra*110-30)+' '+(960+extra*320)+' '+(554+extra*220));
     visible.forEach(function(item,i){
       var c;if(!focused&&projects.length<=4)c=projectSlots(projects.length)[i];
-      else {var ring=Math.floor(i/12),size=Math.min(12,visible.length-ring*12),angle=2*Math.PI*(i%12)/size-Math.PI/2;c={x:450+Math.cos(angle)*(170+ring*100),y:245+Math.sin(angle)*(125+ring*75)};}
+      else c=networkPosition(i,visible.length);
       var color=projectPalette(focused?projects.indexOf(focused):i),label=String(focused?item.label:item.name||item.id);
       edges+='<path class="network-flow" d="M450 245 Q'+c.x+' 245 '+c.x+' '+c.y+'" fill="none" stroke="'+color+'" opacity=".55"/>';
-      if(!focused)orbits+='<ellipse class="orbit" cx="'+c.x+'" cy="'+c.y+'" rx="140" ry="83" stroke="'+color+'" opacity=".35"/>';
-      hubs+=hub(c.x,c.y,label,color,String(i),focused?'item':'project');entries.push(item);
+      if(!focused){
+        orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate(-14 '+c.x+' '+c.y+')"/>';
+        var items=projectItems(item.id);
+        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length,ax=c.x+Math.cos(angle)*110,ay=c.y+Math.sin(angle)*64,key=entries.length;entries.push(child);
+          orbits+='<path class="satellite-link" d="M'+c.x+' '+(c.y-15)+' L'+ax+' '+ay+'" stroke="'+color+'"/><g class="network-target satellite" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="'+ax+'" cy="'+ay+'" r="6" fill="#082019" stroke="'+color+'"/><circle cx="'+ax+'" cy="'+ay+'" r="2" fill="'+color+'"/></g>';
+        });
+        orbits+='</g>';
+      }
+      var key=entries.length;hubs+=hub(c.x,c.y,label,color,String(key),focused?'item':'project',item.status);entries.push(item);
     });
     var core='<g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
     if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
     svg.innerHTML=defs+stars+edges+orbits+hubs+core;
+    svg.querySelectorAll('.network-cluster').forEach(function(cluster){cluster.addEventListener('pointerenter',function(){cluster.classList.add('cluster-hover')});cluster.addEventListener('pointerleave',function(){cluster.classList.remove('cluster-hover')})});
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
       function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
         if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
         if(type==='project'){enterProject(item.id);return}
+        if(type==='satellite'){focusedProjectId=el.getAttribute('data-network-project');resetNetworkCamera()}
         networkDetail=item;renderNetwork();openWorkflow(item.workflow.id);
         if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}
       }
@@ -587,7 +604,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'');
     $('networkBreadcrumb').querySelectorAll('button').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root')focusedProjectId=null;networkDetail=null;pan={x:0,y:0};zoom=1;renderNetwork();applyZoom()}});
     $('networkCaption').textContent=focused?(visible.length?visible.length+' elementi attribuiti · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
-    $('projectTools').hidden=!focused;
+    $('projectTools').hidden=!focused||currentView!=='network';
     if(focused)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
     $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
   }
@@ -675,11 +692,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('drawer').classList.add('open')
   }
   function applyZoom(){zoom=Math.min(3,Math.max(.35,zoom));$('networkStage').style.transform='translate('+pan.x+'px,'+pan.y+'px) scale('+zoom+')';$('zoomReset').textContent=Math.round(zoom*100)+'%'}
-  var drag=null,moved=false,wrap=$('networkWrap');
-  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false;wrap.setPointerCapture(e.pointerId)});
+  function zoomAt(next,x,y){
+    var before=zoom,after=Math.min(3,Math.max(.35,next));
+    pan.x=x-(x-pan.x)*after/before;pan.y=y-(y-pan.y)*after/before;zoom=after;applyZoom();
+  }
+  var drag=null,wrap=$('networkWrap');
+  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};wrap.setPointerCapture(e.pointerId)});
   wrap.addEventListener('pointermove',function(e){if(!drag)return;pan.x=drag.px+e.clientX-drag.x;pan.y=drag.py+e.clientY-drag.y;applyZoom()});
   function stopDrag(){drag=null}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
-  wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();zoom*=Math.exp(-e.deltaY*.001);applyZoom()},{passive:false});
+  wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();var r=wrap.getBoundingClientRect();zoomAt(zoom*Math.exp(-e.deltaY*.001),e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2)},{passive:false});
   var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),frame=null;
   wrap.addEventListener('mousemove',function(e){if(drag||reduced.matches||frame)return;frame=requestAnimationFrame(function(){var r=wrap.getBoundingClientRect();$('networkSvg').style.transform='translate('+((e.clientX-r.left-r.width/2)*.008)+'px,'+((e.clientY-r.top-r.height/2)*.008)+'px)';frame=null})});
   wrap.addEventListener('mouseleave',function(){$('networkSvg').style.transform='';stopDrag()});
@@ -693,7 +714,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('projectView').hidden=currentView!=='projects';
     $('networkCaptionWrap').hidden=!network;
     $('networkLegend').hidden=!network;
-    ['zoomIn','zoomOut','zoomReset'].forEach(function(id){$(id).hidden=!network});
+    ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
     document.querySelectorAll('[data-radix-view]').forEach(function(button){
       var active=button.getAttribute('data-radix-view')===currentView;
       button.classList.toggle('active',active);
