@@ -100,3 +100,13 @@
 @keyframes networkPulse{50%{stroke-opacity:.55}}
 @media(prefers-reduced-motion:reduce){.network-flow,.network-target .project-ring{animation:none}#networkSvg{transition:none}.network-stage{will-change:auto}}
 @media(max-width:640px){.network-stage{position:absolute;inset:0;width:100%;height:100%}.network-stage svg{width:100%;height:100%}.network-caption{position:absolute}}
+/* Expanded project exploration remains in the Command Center. */
+body.network-expanded-active{overflow:hidden}
+.network-panel.network-expanded{position:fixed;inset:12px;z-index:45;display:flex;flex-direction:column;background:#020b08;box-shadow:0 0 0 20px rgba(0,0,0,.88)}
+.network-expanded .panel-head,.network-expanded #networkBreadcrumb,.network-expanded #projectTools{flex-shrink:0}
+.network-expanded .network-wrap{flex:1;height:auto;min-height:0}
+.network-expanded .network-stage{position:absolute;width:100%;height:100%;inset:0}
+.network-expanded .network-stage svg{width:100%;height:100%}
+#expandNetwork[aria-pressed="true"]{color:#b7ffe2;border-color:#29ca8d}
+.network-target:focus-visible .core-ring{stroke:#e3fff2;stroke-width:3}
+@media(max-width:640px){.network-panel.network-expanded{inset:6px}.network-caption{font-size:9px}}

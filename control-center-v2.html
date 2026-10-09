@@ -365,8 +365,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       </section>
 
       <section class="dashboard-grid">
-        <article class="panel network-panel">
-          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button></div></div>
+        <article class="panel network-panel" id="networkPanel">
+          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button><button class="tool-btn" id="expandNetwork" aria-label="Espandi la mappa" aria-pressed="false">⛶</button></div></div>
           <nav id="networkBreadcrumb" aria-label="Livello della mappa"></nav><div id="projectTools" hidden></div><div class="network-wrap" id="networkWrap">
             <div class="network-stage" id="networkStage">
               <svg id="networkSvg" viewBox="0 0 900 494" role="group" aria-label="Mappa progetti RADIX"></svg>
@@ -537,6 +537,16 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     return ps;
   }
   var pan={x:0,y:0}, networkDetail=null;
+  function resetNetworkCamera(){pan={x:0,y:0};zoom=1;applyZoom()}
+  function setNetworkExpanded(expanded){
+    $('networkPanel').classList.toggle('network-expanded',expanded);
+    $('expandNetwork').setAttribute('aria-pressed',String(expanded));
+    $('expandNetwork').setAttribute('aria-label',expanded?'Riduci la mappa':'Espandi la mappa');
+    document.body.classList.toggle('network-expanded-active',expanded);
+    resetNetworkCamera();
+  }
+  $('expandNetwork').addEventListener('click',function(){setNetworkExpanded(!$('networkPanel').classList.contains('network-expanded'))});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('networkPanel').classList.contains('network-expanded')){setNetworkExpanded(false);$('expandNetwork').focus()}});
   function projectItems(id){
     // Only explicit attribution is accepted. Legacy flows have no project ownership.
     return (data.workflows||[]).filter(function(w){return w.projectId!=null&&String(w.projectId)===String(id)}).flatMap(function(w){
@@ -552,7 +562,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var edges='',hubs='',orbits='',entries=[];
     function hub(x,y,label,color,key,type){return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+'" aria-label="'+esc(label)+'"><circle class="project-ring" cx="'+x+'" cy="'+y+'" r="34" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+y+'" r="24" stroke="'+color+'"/><text class="project-name" x="'+x+'" y="'+(y+51)+'" text-anchor="middle">'+esc(label.length>25?label.slice(0,24)+'…':label)+'</text></g>'}
     var visible=focused?projectItems(focused.id):projects;
-    if(networkDetail)visible=[networkDetail];
+    if(networkDetail){networkDetail=visible.find(function(item){return item.id===networkDetail.id})||null;if(networkDetail)visible=[networkDetail]}
     var extra=Math.max(0,Math.ceil(visible.length/12)-1);svg.setAttribute('viewBox',(-extra*100)+' '+(-extra*75)+' '+(900+extra*200)+' '+(494+extra*150));
     visible.forEach(function(item,i){
       var c;if(!focused&&projects.length<=4)c=projectSlots(projects.length)[i];
@@ -562,16 +572,17 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       if(!focused)orbits+='<ellipse class="orbit" cx="'+c.x+'" cy="'+c.y+'" rx="140" ry="83" stroke="'+color+'" opacity=".35"/>';
       hubs+=hub(c.x,c.y,label,color,String(i),focused?'item':'project');entries.push(item);
     });
-    var core=hub(450,245,focused?focused.name:'RADIX','#1ef28f','root','root');
+    var core='<g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
+    if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
     svg.innerHTML=defs+stars+edges+orbits+hubs+core;
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
       function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
-        if(type==='root'){focusedProjectId=null;networkDetail=null;renderNetwork();return}
+        if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
         if(type==='project'){enterProject(item.id);return}
         networkDetail=item;renderNetwork();openWorkflow(item.workflow.id);
         if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}
       }
-      el.addEventListener('click',activate);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate()}});
+      el.addEventListener('click',activate);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();return}var targets=Array.from(svg.querySelectorAll('[data-network-type]')),index=targets.indexOf(el),step=['ArrowRight','ArrowDown'].includes(e.key)?1:['ArrowLeft','ArrowUp'].includes(e.key)?-1:0;if(step){e.preventDefault();targets[(index+step+targets.length)%targets.length].focus()}});
     });
     $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'');
     $('networkBreadcrumb').querySelectorAll('button').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root')focusedProjectId=null;networkDetail=null;pan={x:0,y:0};zoom=1;renderNetwork();applyZoom()}});
@@ -613,7 +624,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function openProject(id){
     var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;
     $('drawerTitle').textContent=p.name;
-    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">I nodi orbitanti rappresentano possibili competenze. RADIX non registra ancora assegnazioni agente → progetto; non sono attività effettive.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
     $('drawer').classList.add('open');
   }
   function renderApprovals(){
@@ -675,6 +686,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function setView(view){
     currentView=['network','command','projects'].includes(view)?view:'network';
     var network=currentView==='network';
+    $('networkBreadcrumb').hidden=!network;$('projectTools').hidden=!network||!focusedProjectId;
+    if(!network)setNetworkExpanded(false);
     $('networkStage').hidden=!network;
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
