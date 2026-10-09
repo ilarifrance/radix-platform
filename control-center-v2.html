@@ -583,6 +583,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
   // Accessible all-projects alternative. Never claims decorative roles are real agents.
   function renderProjectView(){
+    var focused=document.activeElement;
+    renderProjectView._focusId=focused&&focused.closest&&focused.closest('#projectView')&&focused.hasAttribute('data-project-list')?focused.getAttribute('data-project-list'):null;
     var projects=orderedProjects();
     var html='<div class="project-view-head"><div><strong>Tutti i progetti</strong><span>Profili registrati nel workspace · non attività live</span></div><b>'+projects.length+' progetti</b></div><div class="project-view-grid">';
     html+=projects.map(function(p,i){
@@ -594,6 +596,12 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('projectView').querySelectorAll('[data-project-list]').forEach(function(el){
       el.addEventListener('click',function(){openProject(el.getAttribute('data-project-list'))});
     });
+    // Preserve keyboard focus when the project list refreshes during polling.
+    if(renderProjectView._focusId){
+      var match=Array.from($('projectView').querySelectorAll('[data-project-list]')).find(function(el){return el.getAttribute('data-project-list')===renderProjectView._focusId});
+      if(match)match.focus({preventScroll:true});
+      renderProjectView._focusId=null;
+    }
   }
   function renderCommandView(){
     var ws=(data.workflows||[]).slice(0,8),html='<div class="command-view-title">Workflow registrati · ultimo stato salvato (non esecuzione verificata)</div><div class="command-view-grid">';
