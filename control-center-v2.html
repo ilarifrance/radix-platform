@@ -222,6 +222,28 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 @media(max-width:640px){.network-toolbar{flex-wrap:wrap;justify-content:flex-end}.network-panel .panel-head{height:auto;min-height:48px;padding-block:7px}.project-view-head{align-items:flex-start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){.project-view-card{transition:none}.project-view-card:hover{transform:none}}
 
+
+/* RADIX cockpit visual pass 04: dimensional network depth. */
+[hidden]{display:none!important}
+.network-panel{border-color:rgba(38,113,79,.67);box-shadow:0 22px 70px rgba(0,0,0,.42),inset 0 1px 0 rgba(72,211,141,.07),0 0 36px rgba(13,110,68,.055)}
+.network-panel .panel-head{background:linear-gradient(90deg,rgba(15,49,32,.45),rgba(5,18,12,.38) 65%)}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,rgba(29,215,124,.14) 0%,rgba(10,95,56,.07) 22%,transparent 58%),linear-gradient(rgba(30,242,143,.032) 1px,transparent 1px),linear-gradient(90deg,rgba(30,242,143,.032) 1px,transparent 1px),#020a07;background-size:auto,32px 32px,32px 32px,auto}
+.network-wrap::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:repeating-radial-gradient(circle at 50% 49%,transparent 0 87px,rgba(48,204,127,.085) 88px,transparent 89px,transparent 132px);opacity:.65}
+.network-panel .core-ring{stroke-width:1.8;filter:drop-shadow(0 0 16px rgba(30,242,143,.45))}
+.network-panel .core-inner{stroke:#8cffc3;stroke-width:1.1}
+.project-hub.is-active .project-ring{stroke:#1ef28f;stroke-width:2.5;filter:drop-shadow(0 0 12px rgba(30,242,143,.42))}
+.project-hub.is-active .project-inner{stroke:#75ffb7;stroke-width:1.4}
+.project-hub.is-active .project-type{fill:#74ffb7;font-weight:700}
+.project-hub:hover .project-inner{filter:drop-shadow(0 0 7px rgba(30,242,143,.22))}
+.side-stack .panel-head{position:relative}
+.side-stack .panel-head::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--green);opacity:.8}
+.attention .panel-head::before{background:var(--red)}
+.attention .panel-title span{color:var(--red)}
+.activity .panel-head::before{background:var(--blue)}
+.activity .panel-title span{color:var(--blue)}
+.workflows .panel-head{background:linear-gradient(90deg,rgba(22,66,42,.26),transparent 70%)}
+@media(prefers-reduced-motion:reduce){.project-hub,.project-inner,.core-ring{animation:none!important;transition:none!important}}
+
 </style>
 </head>
 <body>
@@ -293,7 +315,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
           <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button></div></div>
           <div class="network-wrap" id="networkWrap">
             <div class="network-stage" id="networkStage">
-              <svg id="networkSvg" viewBox="0 0 900 494" role="img" aria-label="Mappa progetti RADIX"></svg>
+              <svg id="networkSvg" viewBox="0 0 900 494" role="group" aria-label="Mappa progetti RADIX"></svg>
             </div>
             <div class="command-view" id="commandView" hidden></div>
             <div class="project-view" id="projectView" hidden aria-label="Elenco completo dei progetti"></div>
@@ -468,7 +490,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       edges+='<path d="'+curve+'" fill="none" stroke="'+color+'" stroke-width="1.25" opacity="'+(dim?.14:.75)+'" stroke-dasharray="4 5"/>';
       orbits+='<ellipse class="orbit" cx="'+c.x+'" cy="'+c.y+'" rx="156" ry="87" stroke="'+color+'" opacity="'+(dim?.1:.42)+'"/>';
       var name=String(p.name||p.id);if(name.length>23)name=name.slice(0,22)+'…';
-      hubs+='<g class="project-hub '+(dim?'dimmed ':'')+(focusedProjectId===p.id?'selected':'')+'" data-project-node="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Apri progetto '+esc(name)+'"><title>Apri progetto '+esc(name)+'</title><circle class="project-ring" cx="'+c.x+'" cy="'+c.y+'" r="43" stroke="'+color+'"/><circle class="project-inner" cx="'+c.x+'" cy="'+c.y+'" r="33" stroke="'+color+'" opacity=".95"/><circle cx="'+c.x+'" cy="'+(c.y-14)+'" r="6" fill="'+color+'" opacity=".88"/><text class="project-name" x="'+c.x+'" y="'+(c.y+8)+'" text-anchor="middle">'+esc(name)+'</text><text class="project-type" x="'+c.x+'" y="'+(c.y+22)+'" text-anchor="middle">'+(active?'ACTIVE PROJECT':'PROJECT PROFILE')+'</text></g>';
+      hubs+='<g class="project-hub '+(dim?'dimmed ':'')+(focusedProjectId===p.id?'selected':'')+(active?' is-active':'')+'" data-project-node="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Apri progetto '+esc(name)+'"><title>Apri progetto '+esc(name)+'</title><circle class="project-ring" cx="'+c.x+'" cy="'+c.y+'" r="43" stroke="'+color+'"/><circle class="project-inner" cx="'+c.x+'" cy="'+c.y+'" r="33" stroke="'+color+'" opacity=".95"/><circle cx="'+c.x+'" cy="'+(c.y-14)+'" r="6" fill="'+color+'" opacity=".88"/><text class="project-name" x="'+c.x+'" y="'+(c.y+8)+'" text-anchor="middle">'+esc(name)+'</text><text class="project-type" x="'+c.x+'" y="'+(c.y+22)+'" text-anchor="middle">'+(active?'ACTIVE PROJECT':'PROJECT PROFILE')+'</text></g>';
       var angles=[-150,-55,32,140];
       labels[i].forEach(function(role,j){var rad=angles[j]*Math.PI/180,ax=c.x+Math.cos(rad)*120,ay=c.y+Math.sin(rad)*68;
         caps+='<g class="cap-group '+(dim?'dimmed':'')+'" data-cap-project="'+esc(p.id)+'"><line x1="'+c.x+'" y1="'+c.y+'" x2="'+ax+'" y2="'+ay+'" stroke="'+color+'" opacity=".22"/><circle class="cap-dot" cx="'+ax+'" cy="'+ay+'" r="11" stroke="'+color+'"/><circle cx="'+ax+'" cy="'+ay+'" r="3.4" fill="'+color+'"/><text class="cap-label" x="'+ax+'" y="'+(ay+22)+'" text-anchor="middle">'+role+'</text></g>';
