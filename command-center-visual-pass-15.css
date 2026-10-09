@@ -38,3 +38,22 @@
   .network-toolbar{justify-content:flex-start}
   .network-caption{max-width:76%;line-height:1.5}
 }
+
+/* Visual pass 22 — master cockpit hierarchy: central network, contextual right rail. */
+.topbar{border-bottom-color:rgba(40,114,78,.48);box-shadow:0 10px 36px rgba(0,0,0,.18)}
+.network-panel{background:linear-gradient(180deg,#081910 0%,#030b07 100%)}
+.network-panel .panel-title{color:#b9f4d3;letter-spacing:.15em}
+.network-panel .panel-meta{color:#80ae95}
+.side-stack .panel{border-color:#1b4632;background:linear-gradient(165deg,rgba(10,30,20,.98),rgba(3,13,9,.99))}
+.side-stack .panel-head{background:linear-gradient(90deg,rgba(19,59,39,.23),transparent)}
+.attention .panel-title span{color:#edbc76}
+.network-caption .status-led{background:#6e9683;box-shadow:none} /* Saved snapshot is not live telemetry. */
+.network-caption{color:#a0c5b1;border-color:#28573f;background:rgba(3,12,8,.88)}
+.network-pages{display:inline-flex;align-items:center;gap:5px;padding:2px 5px;border:1px solid #215b3d;border-radius:9px;background:#06180f}
+.network-pages[hidden]{display:none}
+.network-pages span{min-width:35px;text-align:center;color:#a7d9bd;font-size:10px;font-variant-numeric:tabular-nums}
+.network-pages .tool-btn{width:25px;height:25px;border-color:transparent;color:#b3f0cf;font-size:16px}
+.network-pages .tool-btn:disabled{opacity:.3;cursor:not-allowed}
+.network-pages .tool-btn:focus-visible{outline:2px solid #90ffc1;outline-offset:2px}
+@media(max-width:640px){.network-toolbar{gap:5px}.network-pages{order:2}.network-panel .panel-head{align-items:flex-start}.network-caption{max-width:76%}}
+@media(prefers-contrast:more){.network-panel,.side-stack .panel{border-color:#5cba8c}.network-caption{color:#e1ffef}.network-pages span{color:#effff5}}
