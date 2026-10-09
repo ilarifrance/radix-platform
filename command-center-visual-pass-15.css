@@ -23,3 +23,18 @@
 @media(prefers-reduced-motion:reduce){
   .network-stage,.project-hub,.node{animation:none;transition:none}
 }
+
+/* Visual pass 19 — compact cockpit navigation remains screen-reader accessible. */
+@media(max-width:860px){
+  .sidebar .nav-item>span:not(.nav-icon):not(.nav-badge){
+    display:block;position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+  .sidebar .nav-item:focus-visible{outline:2px solid #8dffbd;outline-offset:2px}
+  .network-toolbar .view-tab,.network-toolbar .tool-btn{min-height:36px}
+}
+@media(max-width:480px){
+  .network-panel .panel-head{gap:10px}
+  .network-toolbar{justify-content:flex-start}
+  .network-caption{max-width:76%;line-height:1.5}
+}
