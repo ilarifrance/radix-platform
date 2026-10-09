@@ -57,3 +57,6 @@
 .network-pages .tool-btn:focus-visible{outline:2px solid #90ffc1;outline-offset:2px}
 @media(max-width:640px){.network-toolbar{gap:5px}.network-pages{order:2}.network-panel .panel-head{align-items:flex-start}.network-caption{max-width:76%}}
 @media(prefers-contrast:more){.network-panel,.side-stack .panel{border-color:#5cba8c}.network-caption{color:#e1ffef}.network-pages span{color:#effff5}}
+
+/* Contrast refinement for project names against network edges. */
+.network-panel .project-name{paint-order:stroke fill;stroke:#06150d;stroke-width:2px;stroke-linejoin:round}
