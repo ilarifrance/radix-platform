@@ -352,7 +352,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       <section class="welcome-bar">
         <div class="welcome-message">
           <div class="eyebrow">RADIX / AI OPERATING SYSTEM</div>
-          <h1>Buongiorno, <span id="welcomeName">Francesco</span></h1>
+          <h1>Buongiorno, <span id="welcomeName">RADIX</span></h1>
           <div class="hero-copy">Panoramica degli ultimi stati salvati nei tuoi progetti.</div>
           <div class="updated" id="updatedText">Caricamento stato salvato…</div>
         </div>
@@ -508,7 +508,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   }
   function render(){
     $('userName').textContent=data.user&&data.user.name||data.user&&data.user.email||'RADIX';
-    $('welcomeName').textContent=String(data.user&&data.user.name||'Francesco').trim().split(/\s+/)[0]||'Francesco';
+    $('welcomeName').textContent=String(data.user&&data.user.name||'RADIX').trim().split(/\s+/)[0]||'RADIX';
     $('avatar').textContent=initials(data.user&&data.user.name||data.user&&data.user.email);
     $('updatedText').textContent='Ultimo stato salvato · '+fmtDate(data.workspace&&data.workspace.updatedAt)+(data.workspace&&data.workspace.updatedBy?' · '+data.workspace.updatedBy:'')+' · snapshot, non monitoraggio in tempo reale';
     $('metricProjects').textContent=data.metrics.projects;
