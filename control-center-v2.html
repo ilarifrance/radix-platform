@@ -202,6 +202,26 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 .network-wrap:focus-visible{outline:2px solid var(--green);outline-offset:-3px}
 @media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer,.nav-item,.project-hub,.command{transition:none!important}}
 
+/* Accessible list alternative: preserves the approved Network cockpit as default. */
+.project-view{position:absolute;inset:0;z-index:4;overflow-y:auto;padding:18px 20px 24px;background:radial-gradient(circle at 50% 0%,rgba(30,242,143,.07),transparent 52%),#030b07}
+.project-view-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.project-view-head strong{display:block;font:700 15px 'Space Grotesk',sans-serif;color:#e4fff1}
+.project-view-head span{display:block;margin-top:5px;font-size:10px;color:#86a998}
+.project-view-head b{font-size:10px;white-space:nowrap;color:var(--green2);font-weight:600}
+.project-view-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.project-view-card{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:115px;text-align:left;cursor:pointer;padding:15px 13px;border:1px solid #204332;border-left:3px solid var(--project-accent);border-radius:12px;color:var(--text);background:linear-gradient(135deg,rgba(12,36,25,.95),rgba(4,16,10,.97));transition:border-color .16s,transform .16s,box-shadow .16s}
+.project-view-card:hover{border-color:var(--project-accent);box-shadow:0 0 22px rgba(30,242,143,.065);transform:translateY(-1px)}
+.project-view-card:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.project-view-mark{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border:1px solid var(--project-accent);border-radius:9px;color:var(--project-accent);background:rgba(30,242,143,.035)}
+.project-view-info{display:block;min-width:0;flex:1}.project-view-info strong{display:block;color:#e8fff2;font:700 13px 'Space Grotesk',sans-serif;overflow-wrap:anywhere}
+.project-view-info small{display:block;color:#8bb3a0;font-size:9px;margin-top:5px}
+.project-view-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:10px;color:#759784;font-size:10px;line-height:1.5}
+.project-view-arrow{color:var(--project-accent);font-size:14px}
+.network-toolbar .tool-btn[hidden]{display:none}
+@media(max-width:720px){.project-view-grid{grid-template-columns:1fr}.project-view{padding:14px}.project-view-card{min-height:94px}}
+@media(max-width:640px){.network-toolbar{flex-wrap:wrap;justify-content:flex-end}.network-panel .panel-head{height:auto;min-height:48px;padding-block:7px}.project-view-head{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.project-view-card{transition:none}.project-view-card:hover{transform:none}}
+
 </style>
 </head>
 <body>
@@ -270,14 +290,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
       <section class="dashboard-grid">
         <article class="panel network-panel">
-          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button></div></div>
+          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button></div></div>
           <div class="network-wrap" id="networkWrap">
             <div class="network-stage" id="networkStage">
               <svg id="networkSvg" viewBox="0 0 900 494" role="img" aria-label="Mappa progetti RADIX"></svg>
             </div>
             <div class="command-view" id="commandView" hidden></div>
-            <div class="network-caption"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · ruoli illustrativi, non assegnazioni</span></div>
-            <div class="legend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>capability</span></div>
+            <div class="project-view" id="projectView" hidden aria-label="Elenco completo dei progetti"></div>
+            <div class="network-caption" id="networkCaptionWrap"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · ruoli illustrativi, non assegnazioni</span></div>
+            <div class="legend" id="networkLegend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>capability</span></div>
           </div>
         </article>
 
@@ -419,7 +440,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('metricApprovals').textContent=data.approvalsSupported?data.metrics.approvals:'—';
     $('navWorkflowBadge').textContent=data.metrics.activeWorkflows;
     $('navApprovalBadge').textContent=data.metrics.approvals;
-    renderProjects();renderNetwork();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();
+    renderProjects();renderNetwork();renderProjectView();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();
   }
   function renderProjects(){
     var projects=data.projects||[];
@@ -460,6 +481,21 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     svg.querySelectorAll('[data-cap-project]').forEach(function(el){el.addEventListener('click',function(){openProject(el.getAttribute('data-cap-project'))})});
     $('networkCaption').textContent=projects.length+' progetti visualizzati'+((data.projects||[]).length>4?' su '+data.projects.length:'')+' · ruoli illustrativi, non assegnazioni'+(window.innerWidth<640?' · scorri orizzontalmente':'');
     if(window.innerWidth<640&&!renderNetwork._centered){renderNetwork._centered=true;requestAnimationFrame(function(){var w=$('networkWrap');w.scrollLeft=(w.scrollWidth-w.clientWidth)/2})}
+  }
+
+  // Accessible all-projects alternative. Never claims decorative roles are real agents.
+  function renderProjectView(){
+    var projects=orderedProjects();
+    var html='<div class="project-view-head"><div><strong>Tutti i progetti</strong><span>Profili registrati nel workspace · non attività live</span></div><b>'+projects.length+' progetti</b></div><div class="project-view-grid">';
+    html+=projects.map(function(p,i){
+      var name=String(p.name||p.id),summary=String(p.summary||'Nessuna descrizione disponibile.');
+      return '<button type="button" class="project-view-card" data-project-list="'+esc(p.id)+'" style="--project-accent:'+projectPalette(i)+'"><span class="project-view-mark" aria-hidden="true">◈</span><span class="project-view-info"><strong>'+esc(name)+'</strong><small>'+esc(p.kind||'Progetto')+' · '+(p.active?'progetto selezionato':'profilo registrato')+'</small><span class="project-view-summary">'+esc(summary)+'</span></span><span class="project-view-arrow" aria-hidden="true">↗</span></button>';
+    }).join('');
+    if(!projects.length)html+='<div class="empty-state"><b>Nessun progetto registrato</b>I progetti del workspace appariranno qui.</div>';
+    $('projectView').innerHTML=html+'</div>';
+    $('projectView').querySelectorAll('[data-project-list]').forEach(function(el){
+      el.addEventListener('click',function(){openProject(el.getAttribute('data-project-list'))});
+    });
   }
   function renderCommandView(){
     var ws=(data.workflows||[]).slice(0,8),html='<div class="command-view-title">Workflow registrati · ultimo stato salvato (non esecuzione verificata)</div><div class="command-view-grid">';
@@ -522,8 +558,24 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('drawer').classList.add('open')
   }
   function applyZoom(){zoom=Math.min(1.45,Math.max(.72,zoom));$('networkStage').style.transform='scale('+zoom+')'}
-  function setView(view){currentView=view;var cmd=view==='command';$('commandView').hidden=!cmd;$('networkStage').hidden=cmd;$('networkTab').classList.toggle('active',!cmd);$('commandTab').classList.toggle('active',cmd);$('networkTab').setAttribute('aria-pressed',String(!cmd));$('commandTab').setAttribute('aria-pressed',String(cmd));}
-  $('networkTab').addEventListener('click',function(){setView('network')});$('commandTab').addEventListener('click',function(){setView('command')});
+  function setView(view){
+    currentView=['network','command','projects'].includes(view)?view:'network';
+    var network=currentView==='network';
+    $('networkStage').hidden=!network;
+    $('commandView').hidden=currentView!=='command';
+    $('projectView').hidden=currentView!=='projects';
+    $('networkCaptionWrap').hidden=!network;
+    $('networkLegend').hidden=!network;
+    ['zoomIn','zoomOut','zoomReset'].forEach(function(id){$(id).hidden=!network});
+    [['networkTab','network'],['commandTab','command'],['projectsTab','projects']].forEach(function(entry){
+      var active=currentView===entry[1];
+      $(entry[0]).classList.toggle('active',active);
+      $(entry[0]).setAttribute('aria-pressed',String(active));
+    });
+  }
+  $('networkTab').addEventListener('click',function(){setView('network')});
+  $('commandTab').addEventListener('click',function(){setView('command')});
+  $('projectsTab').addEventListener('click',function(){setView('projects')});
   $('zoomIn').addEventListener('click',function(){zoom+=.1;applyZoom()});$('zoomOut').addEventListener('click',function(){zoom-=.1;applyZoom()});$('zoomReset').addEventListener('click',function(){zoom=1;applyZoom()});
   $('drawerClose').addEventListener('click',function(){$('drawer').classList.remove('open');selectedAgent=null});
   document.querySelectorAll('[data-future]').forEach(function(el){el.addEventListener('click',function(){toast(el.getAttribute('data-future')+' · funzione in preparazione')})});
