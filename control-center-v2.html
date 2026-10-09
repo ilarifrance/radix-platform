@@ -223,6 +223,18 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 @media(prefers-reduced-motion:reduce){.project-view-card{transition:none}.project-view-card:hover{transform:none}}
 
 
+/* RADIX cockpit interaction pass 05: focus telemetry and discoverable network controls. */
+.network-panel .project-hub{cursor:pointer;transition:opacity .2s ease,filter .2s ease}
+.network-panel .project-hub.keyboard-focus .project-ring,
+.network-panel .project-hub:focus-visible .project-ring{
+  stroke:#74ffb7;stroke-width:3;filter:drop-shadow(0 0 15px rgba(30,242,143,.72))
+}
+.network-panel .project-hub.keyboard-focus .project-inner,
+.network-panel .project-hub:focus-visible .project-inner{stroke:#d0ffe6;stroke-width:2}
+.network-panel .project-hub.keyboard-focus .project-name,
+.network-panel .project-hub:focus-visible .project-name{fill:#ffffff}
+@media(prefers-reduced-motion:reduce){.network-panel .project-hub{transition:none}}
+
 /* RADIX cockpit visual pass 04: dimensional network depth. */
 [hidden]{display:none!important}
 .network-panel{border-color:rgba(38,113,79,.67);box-shadow:0 22px 70px rgba(0,0,0,.42),inset 0 1px 0 rgba(72,211,141,.07),0 0 36px rgba(13,110,68,.055)}
@@ -499,7 +511,25 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var core='<g><circle cx="450" cy="245" r="76" fill="#19e68b" opacity=".18" filter="url(#coreGlow)"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="48"/><circle cx="450" cy="245" r="67" fill="none" stroke="#1af68e" stroke-width=".7" opacity=".5" stroke-dasharray="2 6"/><text class="core-title" x="450" y="244" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="260" text-anchor="middle">CORE</text></g>';
     if(!projects.length)hubs='<text x="450" y="360" text-anchor="middle" fill="#78a38c" font-size="12">Nessun progetto registrato nel workspace</text>';
     svg.innerHTML=defs+stars+edges+orbits+caps+hubs+core;
-    svg.querySelectorAll('[data-project-node]').forEach(function(el){el.addEventListener('click',function(){openProject(el.getAttribute('data-project-node'))});el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(el.getAttribute('data-project-node'))}})});
+    var keyboardHubs=Array.from(svg.querySelectorAll('[data-project-node]'));
+    keyboardHubs.forEach(function(el,index){
+      el.addEventListener('click',function(){openProject(el.getAttribute('data-project-node'))});
+      el.addEventListener('focus',function(){
+        el.classList.add('keyboard-focus');
+        var id=el.getAttribute('data-project-node'),p=projects.find(function(x){return String(x.id)===String(id)});
+        $('networkCaption').textContent=(p?p.name:'Progetto')+' · Invio per dettagli · frecce per navigare · ruoli illustrativi';
+      });
+      el.addEventListener('blur',function(){el.classList.remove('keyboard-focus')});
+      el.addEventListener('keydown',function(e){
+        if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(el.getAttribute('data-project-node'));return}
+        if(['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'].includes(e.key)){
+          e.preventDefault();
+          var next=e.key==='Home'?0:e.key==='End'?keyboardHubs.length-1:
+            (index+((e.key==='ArrowRight'||e.key==='ArrowDown')?1:-1)+keyboardHubs.length)%keyboardHubs.length;
+          if(keyboardHubs[next])keyboardHubs[next].focus();
+        }
+      });
+    });
     svg.querySelectorAll('[data-cap-project]').forEach(function(el){el.addEventListener('click',function(){openProject(el.getAttribute('data-cap-project'))})});
     $('networkCaption').textContent=projects.length+' progetti visualizzati'+((data.projects||[]).length>4?' su '+data.projects.length:'')+' · ruoli illustrativi, non assegnazioni'+(window.innerWidth<640?' · scorri orizzontalmente':'');
     if(window.innerWidth<640&&!renderNetwork._centered){renderNetwork._centered=true;requestAnimationFrame(function(){var w=$('networkWrap');w.scrollLeft=(w.scrollWidth-w.clientWidth)/2})}
