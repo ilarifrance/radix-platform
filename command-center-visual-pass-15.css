@@ -60,3 +60,12 @@
 
 /* Contrast refinement for project names against network edges. */
 .network-panel .project-name{paint-order:stroke fill;stroke:#06150d;stroke-width:2px;stroke-linejoin:round}
+
+/* Stronger visual hierarchy across the approved cockpit. */
+.welcome-bar{border-color:#23543d;box-shadow:inset 0 1px 0 rgba(142,255,191,.07),0 16px 40px rgba(0,0,0,.2)}
+.network-panel .panel-head{border-bottom-color:rgba(52,128,86,.44)}
+.network-panel .project-type{fill:#a2cdb4}
+.network-panel .cap-label{fill:#a0c1ac;paint-order:stroke fill;stroke:#04110a;stroke-width:1.8px}
+.side-stack .panel-title{color:#c2e5d0}
+.lower-grid .panel{border-color:#1c4834}
+@media(max-width:640px){.topbar{gap:8px}.command{min-width:0}.command-kbd{display:none}}
