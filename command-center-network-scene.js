@@ -23,7 +23,7 @@
     function collect(){
       nodes=Array.from(svg.querySelectorAll('[data-orbit-x]')).map(function(el){
         function n(key){return Number(el.getAttribute('data-orbit-'+key))}
-        return {el:el,x:n('x'),y:n('y'),rx:n('rx'),ry:n('ry'),phase:n('phase'),tilt:n('tilt'),speed:n('speed'),time:time};
+        return {el:el,tether:svg.querySelector('[data-tether="'+el.getAttribute('data-orbit-tether')+'"]'),x:n('x'),y:n('y'),rx:n('rx'),ry:n('ry'),phase:n('phase'),tilt:n('tilt'),speed:n('speed'),time:time};
       });
       beams=Array.from(svg.querySelectorAll('[data-beam-x]')).map(function(el){return {el:el,x:Number(el.getAttribute('data-beam-x')),y:Number(el.getAttribute('data-beam-y')),r:Number(el.getAttribute('data-beam-radius')),bend:Number(el.getAttribute('data-beam-bend'))}});
       drawn.x=drawn.y=NaN;draw();schedule();
@@ -34,8 +34,8 @@
         var p=orbitPoint(o,reduced.matches?0:o.time);
         o.el.setAttribute('transform','translate('+p.x+' '+p.y+') scale('+p.scale+')');
         o.el.style.opacity=p.opacity;
-        var tether=o.el.querySelector('.satellite-tether');
-        if(tether){var dx=(o.x-p.x)/p.scale,dy=(o.y-p.y)/p.scale;tether.setAttribute('d','M0 0 Q'+(dx*.5-dy*.12)+' '+(dy*.5+dx*.12)+' '+dx+' '+dy)}
+        var tether=o.tether;
+        if(tether){var dx=o.x-p.x,dy=o.y-p.y;tether.setAttribute('d','M'+p.x+' '+p.y+' Q'+(p.x+dx*.5-dy*.12)+' '+(p.y+dy*.5+dx*.12)+' '+o.x+' '+o.y)}
       });
       if(!Number.isFinite(drawn.x)||Math.abs(pointer.x-drawn.x)+Math.abs(pointer.y-drawn.y)>.0002){
         beams.forEach(function(b){b.el.setAttribute('d',beamPath(b.x,b.y,b.r,b.bend,pointer.x,pointer.y))});
