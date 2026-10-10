@@ -1,0 +1,812 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RADIX — Command Center v2</title>
+<meta name="description" content="RADIX AI operating system command center.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#030906;
+  --bg2:#06110c;
+  --panel:#08140f;
+  --panel2:#0b1913;
+  --panel3:#0f2119;
+  --line:#163429;
+  --line2:#214b3b;
+  --text:#f1fff8;
+  --muted:#78a18f;
+  --muted2:#496b5d;
+  --green:#1ef28f;
+  --green2:#74ffb7;
+  --green3:#0dbb68;
+  --amber:#f4bd5f;
+  --red:#ff6b70;
+  --blue:#65b8ff;
+  --violet:#b68cff;
+  --shadow:0 24px 80px rgba(0,0,0,.34);
+  --radius:16px;
+  --sidebar:236px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;overflow-x:hidden;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+body{overflow-x:hidden;background:
+  radial-gradient(circle at 52% 8%,rgba(30,242,143,.08),transparent 26%),
+  linear-gradient(180deg,#020705 0%,#04100b 46%,#020705 100%)}
+button,input{font:inherit}
+button{color:inherit}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(30,242,143,.24)}
+.app{display:grid;grid-template-columns:var(--sidebar) minmax(0,1fr);min-height:100vh}
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);background:rgba(3,10,7,.96);border-right:1px solid var(--line);padding:20px 14px;z-index:30;backdrop-filter:blur(16px)}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 8px 20px}
+.brand-mark{width:36px;height:36px;border:1px solid rgba(30,242,143,.55);border-radius:10px;display:grid;place-items:center;background:radial-gradient(circle,rgba(30,242,143,.16),rgba(30,242,143,.03));box-shadow:inset 0 0 22px rgba(30,242,143,.08),0 0 22px rgba(30,242,143,.06);font-family:'Space Grotesk';font-weight:700;color:var(--green)}
+.brand-name{font-family:'Space Grotesk';font-size:19px;font-weight:700;letter-spacing:.16em}
+.brand-sub{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.side-section{margin-top:12px}
+.side-label{padding:0 10px 7px;color:var(--muted2);font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+.nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{display:flex;align-items:center;gap:11px;min-height:42px;padding:0 11px;border:1px solid transparent;border-radius:10px;color:#97b3a7;font-size:13px;cursor:pointer;transition:.16s ease;background:transparent;width:100%;text-align:left}
+.nav-item:hover{background:rgba(30,242,143,.05);color:#d8f9e9;border-color:rgba(30,242,143,.08)}
+.nav-item.active{color:var(--green2);border-color:rgba(30,242,143,.22);background:linear-gradient(90deg,rgba(30,242,143,.12),rgba(30,242,143,.025));box-shadow:inset 2px 0 0 var(--green)}
+.nav-icon{width:18px;text-align:center;color:inherit;opacity:.95}
+.nav-badge{margin-left:auto;min-width:18px;height:18px;border-radius:9px;display:grid;place-items:center;padding:0 5px;font-size:9px;color:#04100b;background:var(--green);font-weight:800}
+.project-mini{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:9px;color:#86a697;font-size:12px;cursor:pointer}
+.project-mini:hover,.project-mini.active{background:rgba(30,242,143,.05);color:#d7f5e6}
+.project-dot{width:8px;height:8px;border-radius:50%;background:#356553;box-shadow:0 0 0 3px rgba(53,101,83,.12)}
+.project-mini.active .project-dot{background:var(--green);box-shadow:0 0 10px rgba(30,242,143,.8)}
+.side-foot{position:absolute;left:14px;right:14px;bottom:18px;border-top:1px solid var(--line);padding-top:14px}
+.workspace-link{display:flex;align-items:center;justify-content:space-between;padding:10px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:11px;color:#a7c1b5}
+.workspace-link b{color:var(--green2);font-weight:600}
+.main{grid-column:2;min-width:0}
+.topbar{height:74px;position:sticky;top:0;z-index:20;display:grid;grid-template-columns:minmax(360px,760px) auto;gap:18px;align-items:center;padding:12px 24px;border-bottom:1px solid var(--line);background:rgba(3,9,6,.84);backdrop-filter:blur(18px)}
+.command{height:46px;border:1px solid rgba(30,242,143,.2);border-radius:12px;background:linear-gradient(180deg,rgba(10,26,19,.9),rgba(5,16,11,.9));display:flex;align-items:center;gap:10px;padding:0 13px;box-shadow:inset 0 0 24px rgba(30,242,143,.02)}
+.command .spark{color:var(--green);font-size:16px}
+.command input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font-size:13px}
+.command input::placeholder{color:#537365}
+.command-kbd{font-size:9px;color:#5f7e71;border:1px solid #214737;padding:4px 6px;border-radius:6px}
+.command button{border:0;background:transparent;color:var(--green2);cursor:pointer;font-size:14px;padding:6px}
+.top-status{display:flex;align-items:center;justify-content:flex-end;gap:9px;white-space:nowrap}
+.sys-pill,.user-pill{height:34px;display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:10px;background:rgba(8,20,15,.8);padding:0 10px;color:#91af9f;font-size:10px}
+.status-led{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px rgba(30,242,143,.8)}
+.avatar{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#0c3424,#1ac77a);display:grid;place-items:center;font-size:9px;color:#dffff0;font-weight:700}
+.content{padding:22px 24px 32px;max-width:1700px;margin:0 auto}
+.hero-row{display:flex;align-items:end;justify-content:space-between;gap:20px;margin-bottom:16px}
+.eyebrow{font-size:9px;letter-spacing:.18em;color:var(--green);text-transform:uppercase;font-weight:800}
+h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;letter-spacing:-.02em}
+.hero-copy{color:#719384;font-size:11px;line-height:1.5;margin-top:5px}
+.updated{font-size:10px;color:#557366;text-align:right}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.metric{min-height:74px;border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,rgba(10,24,18,.93),rgba(6,16,12,.96));padding:12px 14px;position:relative;overflow:hidden}
+.metric:after{content:"";position:absolute;inset:auto -20px -34px auto;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle,rgba(30,242,143,.08),transparent 65%)}
+.metric-label{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#527363;font-weight:700}
+.metric-main{display:flex;align-items:baseline;gap:8px;margin-top:8px}
+.metric-value{font-family:'Space Grotesk';font-size:24px;font-weight:700;color:#eafff4}
+.metric-note{font-size:9px;color:#5f806f}
+.metric.good .metric-value{color:var(--green2)}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.72fr);gap:12px;align-items:stretch}
+.panel{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(180deg,rgba(8,20,15,.96),rgba(4,13,9,.98));box-shadow:var(--shadow);overflow:hidden;position:relative}
+.panel-head{height:45px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 14px;border-bottom:1px solid rgba(23,55,43,.8)}
+.panel-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#98b8a9}
+.panel-title span{color:var(--green);margin-right:6px}
+.panel-meta{font-size:9px;color:#547565}
+.network-panel{min-height:540px}
+.network-toolbar{display:flex;align-items:center;gap:6px}
+.tool-btn{width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#08150f;color:#6d927f;cursor:pointer;display:grid;place-items:center;font-size:12px}
+.tool-btn:hover{border-color:#2f6a50;color:var(--green2)}
+.network-wrap{position:relative;height:494px;overflow:hidden;background:
+  linear-gradient(rgba(30,242,143,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(30,242,143,.025) 1px,transparent 1px),
+  radial-gradient(circle at 50% 46%,rgba(30,242,143,.07),transparent 33%),
+  #030b07;background-size:28px 28px,28px 28px,auto,auto}
+.network-wrap:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 48%,transparent 0 35%,rgba(0,0,0,.1) 62%,rgba(0,0,0,.46) 100%);pointer-events:none;z-index:3}
+.network-stage{position:absolute;inset:0;transform-origin:50% 50%;transition:transform .2s ease}
+.network-stage svg{width:100%;height:100%;overflow:visible}
+.edge{stroke:#1b5038;stroke-width:1.1;opacity:.72;filter:drop-shadow(0 0 4px rgba(30,242,143,.08))}
+.edge.hot{stroke:#27d985;opacity:.95;stroke-dasharray:4 7;animation:dash 1.5s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-22}}
+.node{cursor:pointer;transform-box:fill-box;transform-origin:center;animation:float 4s ease-in-out infinite}
+.node:nth-of-type(3n){animation-delay:-1.2s}.node:nth-of-type(4n){animation-delay:-2.3s}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.node-ring{fill:#071810;stroke:#285641;stroke-width:1.2}
+.node-core{fill:#0d2d20;stroke:#4a8369;stroke-width:1}
+.node-label{fill:#91b9a6;font-size:9px;font-weight:600;pointer-events:none}
+.node-status{fill:#5d806f;font-size:7px;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.node.running .node-ring{stroke:var(--green);filter:drop-shadow(0 0 8px rgba(30,242,143,.8))}
+.node.running .node-core{fill:#0d6b43}.node.running .node-label{fill:#dffff0}.node.running .node-status{fill:var(--green2)}
+.node.error .node-ring{stroke:var(--red);filter:drop-shadow(0 0 7px rgba(255,107,112,.55))}.node.error .node-core{fill:#4b181b}.node.error .node-status{fill:#ff9ba0}
+.node.pending .node-ring{stroke:var(--amber)}.node.pending .node-status{fill:#ffd590}
+.node.done .node-ring{stroke:#287853}.node.done .node-status{fill:#58c78b}
+.node.selected .node-ring{stroke:#fff;stroke-width:1.8}
+.core-ring{fill:#04110a;stroke:#19d77d;stroke-width:1.4;filter:drop-shadow(0 0 18px rgba(30,242,143,.33))}
+.core-inner{fill:url(#coreGradient);stroke:#57f6a9;stroke-width:.8}
+.core-title{fill:#f1fff8;font-family:'Space Grotesk';font-size:13px;font-weight:700;letter-spacing:.13em}
+.core-sub{fill:#54d58f;font-size:6.5px;letter-spacing:.13em}
+.network-caption{position:absolute;left:14px;bottom:12px;z-index:5;display:flex;align-items:center;gap:8px;font-size:9px;color:#5c7d6e;background:rgba(3,11,7,.68);border:1px solid rgba(27,71,52,.8);padding:7px 9px;border-radius:9px;backdrop-filter:blur(8px)}
+.legend{position:absolute;right:12px;bottom:12px;z-index:5;display:flex;gap:10px;padding:7px 9px;border-radius:9px;background:rgba(3,11,7,.68);border:1px solid rgba(27,71,52,.8);font-size:8px;color:#668778}
+.legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.side-stack{display:grid;grid-template-rows:minmax(0,.82fr) minmax(0,1.18fr);gap:12px;min-height:540px}
+.attention-list,.activity-list{padding:10px;overflow:auto}
+.empty-state{border:1px dashed #1b4332;border-radius:11px;padding:18px 14px;text-align:center;color:#5c7c6e;font-size:10px;line-height:1.5;background:rgba(30,242,143,.015)}
+.empty-state b{display:block;color:#91b6a4;font-size:11px;margin-bottom:4px}
+.activity-list{max-height:300px}
+.activity-item{display:grid;grid-template-columns:50px 1fr;gap:8px;padding:9px 7px;border-bottom:1px solid rgba(25,57,45,.65)}
+.activity-item:last-child{border-bottom:0}
+.activity-time{font-size:8px;color:#4e7061;font-variant-numeric:tabular-nums}
+.activity-text{font-size:9px;color:#90ad9f;line-height:1.42}
+.activity-text b{color:#c9eadb;font-weight:600}
+.lower-grid{display:grid;grid-template-columns:1.25fr .88fr .88fr;gap:12px;margin-top:12px}
+.workflows{min-height:250px}
+.workflow-list{padding:10px 11px 12px;display:flex;flex-direction:column;gap:8px}
+.workflow-card{border:1px solid #16372a;border-radius:11px;background:#06110c;padding:10px 11px;cursor:pointer;transition:.15s ease}
+.workflow-card:hover{border-color:#2a634a;background:#08170f}
+.workflow-top{display:flex;align-items:center;gap:8px}
+.workflow-name{font-size:10px;font-weight:700;color:#c8e7d8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.workflow-state{margin-left:auto;font-size:7px;letter-spacing:.08em;text-transform:uppercase;border:1px solid #24533f;border-radius:20px;padding:3px 6px;color:#6b9481}
+.workflow-state.running{color:var(--green2);border-color:#1e7f53}.workflow-state.error,.workflow-state.blocked{color:#ff9a9f;border-color:#75353a}.workflow-state.done{color:#6ac493;border-color:#285b43}.workflow-state.pending{color:#f4d18c;border-color:#6c5a30}
+.workflow-task{font-size:8.5px;color:#5c7a6d;margin-top:5px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.progress{height:4px;background:#0f271c;border-radius:4px;margin-top:8px;overflow:hidden}.progress span{display:block;height:100%;background:linear-gradient(90deg,#0f9d59,var(--green));box-shadow:0 0 8px rgba(30,242,143,.5)}
+.workflow-foot{display:flex;justify-content:space-between;margin-top:6px;font-size:7.5px;color:#506e61}
+.team-grid{padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.team-card{border:1px solid #17382b;border-radius:10px;padding:11px;background:#06120d;min-height:74px}
+.team-title{font-size:9px;color:#b6d6c7;font-weight:700}.team-count{font-size:19px;font-family:'Space Grotesk';font-weight:700;color:var(--green2);margin-top:7px}.team-sub{font-size:7.5px;color:#527263;margin-top:2px}
+.knowledge-list{padding:10px;display:flex;flex-direction:column;gap:8px}
+.resource{display:flex;gap:9px;align-items:center;border:1px solid #16372a;border-radius:10px;padding:10px;background:#06110c}
+.resource-icon{width:28px;height:28px;border:1px solid #24513d;border-radius:8px;display:grid;place-items:center;color:var(--green);font-size:13px}.resource-main{min-width:0}.resource-name{font-size:9px;font-weight:700;color:#bad9ca}.resource-meta{font-size:7.5px;color:#547364;margin-top:3px}
+.quick-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:0}
+.action{height:70px;border:1px solid #173a2c;border-radius:12px;background:linear-gradient(180deg,#08150f,#05100b);padding:11px 12px;cursor:pointer;transition:.15s ease;text-align:left}
+.action:hover{border-color:#2b704f;transform:translateY(-1px)}.action-icon{color:var(--green);font-size:14px}.action-title{font-size:9px;font-weight:700;margin-top:7px;color:#c6e7d7}.action-sub{font-size:7.5px;color:#506f61;margin-top:2px}
+.drawer{position:fixed;top:74px;right:0;bottom:0;width:min(390px,92vw);z-index:50;background:rgba(5,15,10,.98);border-left:1px solid #24523e;box-shadow:-30px 0 80px rgba(0,0,0,.34);transform:translateX(100%);transition:transform .22s ease;backdrop-filter:blur(18px)}
+.drawer.open{transform:translateX(0)}
+.drawer-head{height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 15px}.drawer-title{font-family:'Space Grotesk';font-size:14px;font-weight:700}.drawer-close{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:#07140e;color:#86a997;cursor:pointer}
+.drawer-body{padding:15px;overflow:auto;height:calc(100% - 54px)}
+.detail-section{margin-bottom:16px}.detail-label{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#4e7061;font-weight:800;margin-bottom:6px}.detail-value{font-size:11px;color:#c6e5d6;line-height:1.55}.detail-status{display:inline-flex;align-items:center;gap:6px;border:1px solid #275d45;border-radius:20px;padding:5px 8px;color:#83cda8;font-size:9px}.detail-status i{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.drawer-link{display:inline-flex;padding:10px 12px;border:1px solid #297f53;border-radius:9px;color:#a1f4c5;font-size:11px}.toast{position:fixed;left:50%;bottom:20px;z-index:80;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#0b1d15;border:1px solid #2a634a;border-radius:10px;padding:9px 13px;font-size:10px;color:#bfe4d3;box-shadow:0 15px 45px rgba(0,0,0,.4);transition:.18s ease}.toast.show{opacity:1;transform:translate(-50%,0)}
+.loading{opacity:.62;pointer-events:none}.fatal{position:fixed;inset:0;z-index:100;background:#030906;display:none;place-items:center;padding:24px}.fatal.show{display:grid}.fatal-card{width:min(480px,100%);border:1px solid #214b39;border-radius:16px;background:#07150f;padding:24px;text-align:center}.fatal-card h2{font-family:'Space Grotesk';font-size:20px}.fatal-card p{color:#6e9080;font-size:11px;line-height:1.55}.fatal-card a{display:inline-flex;margin-top:8px;padding:9px 13px;border-radius:9px;background:var(--green);color:#052014;font-size:11px;font-weight:800}
+@media(max-width:1180px){.metrics{grid-template-columns:1fr 1fr}.dashboard-grid{grid-template-columns:1fr}.side-stack{grid-template-columns:1fr 1fr;grid-template-rows:auto;min-height:0}.lower-grid{grid-template-columns:1fr 1fr}.knowledge{grid-column:1/-1}}
+@media(max-width:860px){:root{--sidebar:78px}.brand-copy,.side-label,.nav-item span:not(.nav-icon):not(.nav-badge),.project-mini span,.workspace-link span{display:none}.brand{justify-content:center;padding-inline:0}.brand-mark{width:38px;height:38px}.nav-item{justify-content:center;padding:0}.nav-icon{font-size:15px}.nav-badge{position:absolute;margin:0 0 18px 18px}.project-mini{justify-content:center}.side-foot{left:10px;right:10px}.workspace-link{justify-content:center}.topbar{grid-template-columns:1fr auto}.sys-pill{display:none}.lower-grid{grid-template-columns:1fr}.team,.knowledge{grid-column:auto}.quick-actions{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.topbar{padding:10px 12px}.user-pill span{display:none}.content{padding:16px 12px 28px}.metrics{grid-template-columns:1fr 1fr}.side-stack{grid-template-columns:1fr}.network-panel{min-height:440px}.network-wrap{height:394px}.quick-actions{grid-template-columns:1fr}.hero-row{align-items:flex-start;flex-direction:column}.updated{text-align:left}}
+
+/* V2 approved master composition — projects orbit around RADIX core. */
+[hidden]{display:none!important}
+.welcome-bar{display:grid;grid-template-columns:minmax(280px,1.45fr) minmax(0,2.5fr);align-items:center;gap:12px;padding:15px 16px;margin-bottom:13px;border:1px solid #174333;border-radius:14px;background:linear-gradient(110deg,rgba(7,25,17,.96),rgba(4,17,12,.97));box-shadow:inset 0 0 30px rgba(20,160,95,.025)}
+.welcome-message h1{font-size:25px;margin-top:5px}.welcome-message .hero-copy{font-size:12px;color:#8aafa0}.welcome-message .updated{text-align:left;margin-top:8px;font-size:9px}
+.welcome-bar .metrics{margin:0;gap:9px}.welcome-bar .metric{min-height:72px;padding:10px 11px}.welcome-bar .metric-value{font-size:25px}
+.network-panel .panel-head{height:48px}.network-panel .panel-meta{margin-top:3px}
+.network-toolbar{margin-left:auto}.view-tab{font-size:9px;color:#93b4a4;border:1px solid #173e2c;background:#08160f;border-radius:7px;padding:7px 11px;cursor:pointer}.view-tab.active{color:#37f0a0;background:#0d3927;border-color:#1d7b52}
+.network-wrap{background:radial-gradient(circle at 50% 48%,rgba(20,175,101,.09),transparent 30%),radial-gradient(circle at 28% 24%,rgba(8,117,70,.04),transparent 24%),#020a07}
+.network-stage{z-index:2}.project-edge{fill:none;stroke:#20d889;stroke-width:1;opacity:.6}.project-edge.alt{stroke:#1a80cc;opacity:.5}.project-edge.purple{stroke:#a678ee;opacity:.52}.project-edge.amber{stroke:#e9b25d;opacity:.56}
+.orbit{fill:none;stroke-width:.75;stroke-dasharray:2 7;opacity:.7}.project-hub{cursor:pointer}.project-hub:hover .project-ring{stroke-width:2.2;filter:drop-shadow(0 0 10px currentColor)}
+.project-ring{fill:#07150e;stroke-width:1.5}.project-inner{fill:#0b2418;stroke-width:1}.project-name{font-family:'Space Grotesk';font-size:14px;fill:#e4fff1;font-weight:700;pointer-events:none}.project-type{font-size:8px;fill:#81b49b;pointer-events:none}.cap-dot{fill:#0c2b1d;stroke-width:1}.cap-label{fill:#8aafa0;font-size:7.5px;pointer-events:none}
+.project-hub:focus .project-ring{stroke-width:2.6}.project-hub.selected .project-ring{stroke-width:2.4;filter:drop-shadow(0 0 9px rgba(255,255,255,.5))}.project-hub.dimmed,.cap-group.dimmed{opacity:.22}
+.network-caption{max-width:60%;font-size:8px;line-height:1.3}.legend{font-size:8px}
+.command-view{position:absolute;inset:0 0 0 0;z-index:4;padding:18px 22px 46px;overflow:auto;background:radial-gradient(circle at 50% 30%,rgba(30,242,143,.055),transparent 48%),#030b07}
+.command-view-title{font-size:12px;font-weight:700;color:#d6f6e6;margin-bottom:12px}.command-view-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.command-view-card{border:1px solid #1c4b35;background:#081810;border-radius:11px;padding:13px;cursor:pointer;text-align:left;min-height:94px}.command-view-card:hover{border-color:#2c9660}.command-view-card b{display:block;font-size:11px;margin-bottom:6px}.command-view-card span{display:block;color:#7ba592;font-size:9px;line-height:1.45}
+.lower-grid{grid-template-columns:1.42fr 1fr 1fr .8fr}.quick-panel{grid-column:auto}.quick-actions{display:flex;flex-direction:column;gap:7px;padding:10px}.action{height:39px;display:flex;align-items:center;gap:10px;padding:8px 10px}.action-icon{font-size:13px}.action-title{margin:0;font-size:9px}.action-sub{display:none}
+.search-results{position:absolute;top:49px;left:0;right:0;background:#071710;border:1px solid #2b6a4d;border-radius:11px;padding:7px;z-index:90;box-shadow:0 20px 55px rgba(0,0,0,.65);max-height:360px;overflow:auto}.command{position:relative}.search-hit{display:flex;width:100%;text-align:left;align-items:center;justify-content:space-between;padding:10px;border:0;border-radius:7px;background:transparent;cursor:pointer;color:#d2eddd;font-size:11px}.search-hit:hover,.search-hit:focus{background:#103021}.search-hit small{font-size:9px;color:#6d9981}.search-empty{padding:10px;font-size:10px;color:#6d9981}
+.attention-list .workflow-card{cursor:pointer}.attention-list .workflow-card .workflow-task{white-space:normal}
+@media(max-width:1250px){.welcome-bar{grid-template-columns:1fr}.lower-grid{grid-template-columns:1.2fr 1fr}.quick-panel{grid-column:auto}.knowledge{grid-column:auto}}
+@media(max-width:860px){.lower-grid{grid-template-columns:1fr 1fr}.welcome-bar .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:640px){.welcome-bar .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.lower-grid{grid-template-columns:1fr}.command-view-grid{grid-template-columns:1fr}.network-caption{max-width:66%}.legend{display:none}.network-toolbar{gap:3px}.view-tab{padding:6px 7px}}
+@media(max-width:640px){.network-wrap{overflow-x:auto;overflow-y:hidden}.network-stage{position:relative;inset:auto;width:680px;height:394px;min-width:680px}.network-stage svg{width:680px;height:394px}.network-caption{position:sticky;left:8px;bottom:9px;width:max-content;max-width:70%}}
+/* Command Center visual refinement: accessible emerald focus, no layout shifts. */
+.command:focus-within{border-color:rgba(30,242,143,.68);box-shadow:0 0 0 3px rgba(30,242,143,.10),inset 0 0 24px rgba(30,242,143,.045)}
+.nav-item:focus-visible,.view-tab:focus-visible,.tool-btn:focus-visible,.action:focus-visible,.drawer-close:focus-visible,.search-hit:focus-visible,.command-view-card:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.project-hub:focus-visible{outline:none}
+.project-hub:focus-visible .project-ring{stroke-width:3;filter:drop-shadow(0 0 12px rgba(30,242,143,.9))}
+.project-hub:focus-visible .project-inner{stroke-width:2;filter:drop-shadow(0 0 5px rgba(30,242,143,.48))}
+.network-wrap:focus-visible{outline:2px solid var(--green);outline-offset:-3px}
+@media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer,.nav-item,.project-hub,.command{transition:none!important}}
+
+/* Accessible list alternative: preserves the approved Network cockpit as default. */
+.project-view{position:absolute;inset:0;z-index:4;overflow-y:auto;padding:18px 20px 24px;background:radial-gradient(circle at 50% 0%,rgba(30,242,143,.07),transparent 52%),#030b07}
+.project-view-head{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.project-view-head strong{display:block;font:700 15px 'Space Grotesk',sans-serif;color:#e4fff1}
+.project-view-head span{display:block;margin-top:5px;font-size:10px;color:#86a998}
+.project-view-head b{font-size:10px;white-space:nowrap;color:var(--green2);font-weight:600}
+.project-view-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.project-view-card{display:flex;align-items:flex-start;gap:12px;min-width:0;min-height:115px;text-align:left;cursor:pointer;padding:15px 13px;border:1px solid #204332;border-left:3px solid var(--project-accent);border-radius:12px;color:var(--text);background:linear-gradient(135deg,rgba(12,36,25,.95),rgba(4,16,10,.97));transition:border-color .16s,transform .16s,box-shadow .16s}
+.project-view-card:hover{border-color:var(--project-accent);box-shadow:0 0 22px rgba(30,242,143,.065);transform:translateY(-1px)}
+.project-view-card:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.project-view-mark{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border:1px solid var(--project-accent);border-radius:9px;color:var(--project-accent);background:rgba(30,242,143,.035)}
+.project-view-info{display:block;min-width:0;flex:1}.project-view-info strong{display:block;color:#e8fff2;font:700 13px 'Space Grotesk',sans-serif;overflow-wrap:anywhere}
+.project-view-info small{display:block;color:#8bb3a0;font-size:9px;margin-top:5px}
+.project-view-summary{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;margin-top:10px;color:#759784;font-size:10px;line-height:1.5}
+.project-view-arrow{color:var(--project-accent);font-size:14px}
+.network-toolbar .tool-btn[hidden]{display:none}
+@media(max-width:720px){.project-view-grid{grid-template-columns:1fr}.project-view{padding:14px}.project-view-card{min-height:94px}}
+@media(max-width:640px){.network-toolbar{flex-wrap:wrap;justify-content:flex-end}.network-panel .panel-head{height:auto;min-height:48px;padding-block:7px}.project-view-head{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.project-view-card{transition:none}.project-view-card:hover{transform:none}}
+
+
+/* RADIX cockpit interaction pass 05: focus telemetry and discoverable network controls. */
+.network-panel .project-hub{cursor:pointer;transition:opacity .2s ease,filter .2s ease}
+.network-panel .project-hub.keyboard-focus .project-ring,
+.network-panel .project-hub:focus-visible .project-ring{
+  stroke:#74ffb7;stroke-width:3;filter:drop-shadow(0 0 15px rgba(30,242,143,.72))
+}
+.network-panel .project-hub.keyboard-focus .project-inner,
+.network-panel .project-hub:focus-visible .project-inner{stroke:#d0ffe6;stroke-width:2}
+.network-panel .project-hub.keyboard-focus .project-name,
+.network-panel .project-hub:focus-visible .project-name{fill:#ffffff}
+@media(prefers-reduced-motion:reduce){.network-panel .project-hub{transition:none}}
+
+/* RADIX cockpit visual pass 04: dimensional network depth. */
+[hidden]{display:none!important}
+.network-panel{border-color:rgba(38,113,79,.67);box-shadow:0 22px 70px rgba(0,0,0,.42),inset 0 1px 0 rgba(72,211,141,.07),0 0 36px rgba(13,110,68,.055)}
+.network-panel .panel-head{background:linear-gradient(90deg,rgba(15,49,32,.45),rgba(5,18,12,.38) 65%)}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,rgba(29,215,124,.14) 0%,rgba(10,95,56,.07) 22%,transparent 58%),linear-gradient(rgba(30,242,143,.032) 1px,transparent 1px),linear-gradient(90deg,rgba(30,242,143,.032) 1px,transparent 1px),#020a07;background-size:auto,32px 32px,32px 32px,auto}
+.network-wrap::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:repeating-radial-gradient(circle at 50% 49%,transparent 0 87px,rgba(48,204,127,.085) 88px,transparent 89px,transparent 132px);opacity:.65}
+.network-panel .core-ring{stroke-width:1.8;filter:drop-shadow(0 0 16px rgba(30,242,143,.45))}
+.network-panel .core-inner{stroke:#8cffc3;stroke-width:1.1}
+.project-hub.is-active .project-ring{stroke:#1ef28f;stroke-width:2.5;filter:drop-shadow(0 0 12px rgba(30,242,143,.42))}
+.project-hub.is-active .project-inner{stroke:#75ffb7;stroke-width:1.4}
+.project-hub.is-active .project-type{fill:#74ffb7;font-weight:700}
+.project-hub:hover .project-inner{filter:drop-shadow(0 0 7px rgba(30,242,143,.22))}
+.side-stack .panel-head{position:relative}
+.side-stack .panel-head::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--green);opacity:.8}
+.attention .panel-head::before{background:var(--red)}
+.attention .panel-title span{color:var(--red)}
+.activity .panel-head::before{background:var(--blue)}
+.activity .panel-title span{color:var(--blue)}
+.workflows .panel-head{background:linear-gradient(90deg,rgba(22,66,42,.26),transparent 70%)}
+@media(prefers-reduced-motion:reduce){.project-hub,.project-inner,.core-ring{animation:none!important;transition:none!important}}
+
+
+/* RADIX cockpit readability and compact viewport pass 05 */
+/* Preserve approved cockpit structure, contrast and emerald identity. */
+.panel-title{font-size:11px;letter-spacing:.095em;color:#b9dcc9}
+.panel-meta{font-size:10px;color:#8caf9b}
+.metric-label{font-size:10px;color:#87ac98}
+.metric-note{font-size:10px;color:#91b5a2}
+.activity-time{font-size:10px;color:#89ae9b}
+.activity-text{font-size:11px;color:#b0d1bf;line-height:1.5}
+.workflow-name{font-size:12px}
+.workflow-task{font-size:10px;color:#91b39f;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.workflow-state{font-size:9px}
+.workflow-foot{font-size:10px;color:#89aa98}
+.team-title,.resource-name{font-size:11px}
+.team-sub,.resource-meta{font-size:10px;color:#86a997}
+.action-title{font-size:11px}
+.network-caption,.legend{font-size:10px;color:#96b8a5}
+.network-caption{max-width:56%}
+.legend{max-width:42%}
+/* On phones, the full toolbar gets a dedicated row instead of squeezing the heading. */
+@media(max-width:640px){
+  .network-panel .panel-head{flex-wrap:wrap;align-items:center;gap:9px;padding:10px 12px}
+  .network-toolbar{width:100%;margin-left:0;justify-content:flex-start;gap:6px}
+  .network-toolbar .view-tab{min-height:34px}
+  .network-toolbar .tool-btn{min-width:30px;min-height:30px}
+  .network-caption{max-width:70%;font-size:9px}
+}
+
+
+/* RADIX visual pass 11: focus and small-screen network */
+.network-wrap:focus-within{outline:1px solid rgba(30,242,143,.24);outline-offset:-1px}
+.view-tab:focus-visible,.tool-btn:focus-visible,.drawer-close:focus-visible,.node:focus-visible{outline:2px solid #1ef28f;outline-offset:3px}
+.node:focus-visible .node-ring{stroke:#a6ffd0;stroke-width:2.5;filter:drop-shadow(0 0 9px rgba(30,242,143,.5))}
+@media(max-width:600px){
+  .network-wrap{min-height:330px}
+  .network-stage svg{min-width:0;max-width:100%}
+  .drawer{top:0;width:min(100vw,390px);max-width:100vw}
+  .drawer-head{min-height:56px;height:auto}
+  .drawer-close{min-width:44px;min-height:44px;font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){.node,.edge.hot{animation:none!important}.network-stage,.drawer{transition:none!important}}
+</style>
+<link rel="stylesheet" href="./command-center-visual-pass-15.css">
+<link rel="stylesheet" href="./command-center-network-refinement.css">
+<link rel="stylesheet" href="./command-center-master.css">
+</head>
+<body>
+<div class="app loading" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div class="brand-copy"><div class="brand-name">RADIX</div><div class="brand-sub">AI Operating System</div></div>
+    </div>
+    <div class="side-section">
+      <div class="side-label">Command</div>
+      <div class="nav">
+        <button class="nav-item active" data-radix-view="network" aria-current="page"><span class="nav-icon">⌘</span><span>Command Center</span></button>
+        <button class="nav-item" data-radix-view="projects"><span class="nav-icon">◈</span><span>Projects</span></button>
+        <button class="nav-item" data-radix-view="command"><span class="nav-icon">⟲</span><span>Workflows</span><b class="nav-badge" id="navWorkflowBadge">0</b></button>
+        <button class="nav-item" data-future="Approvals"><span class="nav-icon">✓</span><span>Approvals</span><b class="nav-badge" id="navApprovalBadge">0</b></button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-label">Intelligence</div>
+      <div class="nav">
+        <button class="nav-item" data-future="Agents"><span class="nav-icon">✣</span><span>Agents</span></button>
+        <button class="nav-item" data-future="Knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
+        <button class="nav-item" data-future="Analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
+        <button class="nav-item" data-future="Integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-label">Projects</div>
+      <div id="projectList"></div>
+    </div>
+    <div class="side-foot">
+      <a class="workspace-link" href="/index.html"><span><b>Open Workspace</b><br>chat & orchestrators</span><b>↗</b></a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="command">
+        <span class="spark">✦</span>
+        <input id="commandInput" placeholder="Cerca progetti, workflow, agenti…" aria-label="Ricerca RADIX" autocomplete="off">
+        <span class="command-kbd">⌘ K</span><div class="search-results" id="searchResults" hidden></div>
+        <button id="voiceBtn" title="Voice input">◉</button>
+      </div>
+      <div class="top-status">
+        <div class="sys-pill"><i class="status-led"></i><span id="systemStatus">CARICAMENTO STATO…</span></div>
+        <div class="user-pill"><div class="avatar" id="avatar" aria-hidden="true">R</div><span id="userName">RADIX</span></div>
+      </div>
+    </header>
+
+    <div class="content">
+      <section class="welcome-bar">
+        <div class="welcome-message">
+          <div class="eyebrow">RADIX / AI OPERATING SYSTEM</div>
+          <h1>Buongiorno, <span id="welcomeName">RADIX</span></h1>
+          <div class="hero-copy">Panoramica degli ultimi stati salvati nei tuoi progetti.</div>
+          <div class="updated" id="updatedText">Caricamento stato salvato…</div>
+        </div>
+        <div class="metrics">
+          <article class="metric good"><div class="metric-label">Progetti</div><div class="metric-main"><div class="metric-value" id="metricProjects">—</div><div class="metric-note">registrati</div></div></article>
+          <article class="metric"><div class="metric-label">Workflow</div><div class="metric-main"><div class="metric-value" id="metricWorkflows">—</div><div class="metric-note">stato recente</div></div></article>
+          <article class="metric"><div class="metric-label">Approvazioni</div><div class="metric-main"><div class="metric-value" id="metricApprovals">—</div><div class="metric-note">modulo futuro</div></div></article>
+          <article class="metric"><div class="metric-label">Agenti</div><div class="metric-main"><div class="metric-value" id="metricAgents">—</div><div class="metric-note">attività registrata</div></div></article>
+        </div>
+      </section>
+
+      <section class="dashboard-grid">
+        <article class="panel network-panel" id="networkPanel">
+          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button><button class="tool-btn" id="expandNetwork" aria-label="Espandi la mappa" aria-pressed="false">⛶</button></div></div>
+          <nav id="networkBreadcrumb" aria-label="Livello della mappa"></nav><div id="projectTools" hidden></div><div class="network-wrap" id="networkWrap">
+            <div class="network-stage" id="networkStage">
+              <svg id="networkSvg" viewBox="0 0 900 494" role="group" aria-label="Mappa progetti RADIX"></svg>
+            </div>
+            <div class="command-view" id="commandView" hidden></div>
+            <div class="project-view" id="projectView" hidden aria-label="Elenco completo dei progetti"></div>
+            <div class="network-caption" id="networkCaptionWrap"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · attività attribuite</span></div>
+            <div class="legend" id="networkLegend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>stato salvato</span></div>
+          </div>
+        </article>
+
+        <div class="side-stack">
+          <article class="panel attention">
+            <div class="panel-head"><div class="panel-title"><span>!</span>Needs your attention</div><div class="panel-meta" id="approvalMeta">0 approvals</div></div>
+            <div class="attention-list" id="attentionList"></div>
+          </article>
+          <article class="panel activity">
+            <div class="panel-head"><div class="panel-title"><span>↯</span>Recent activity</div><div class="panel-meta">eventi salvati</div></div>
+            <div class="activity-list" id="activityList"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="lower-grid">
+        <article class="panel workflows">
+          <div class="panel-head"><div class="panel-title"><span>⟲</span>Workflow snapshots</div><div class="panel-meta" id="workflowMeta">latest runs</div></div>
+          <div class="workflow-list" id="workflowList"></div>
+        </article>
+        <article class="panel team">
+          <div class="panel-head"><div class="panel-title"><span>✣</span>Digital team</div><div class="panel-meta">by function</div></div>
+          <div class="team-grid" id="teamGrid"></div>
+        </article>
+        <article class="panel knowledge">
+          <div class="panel-head"><div class="panel-title"><span>◇</span>Knowledge & Resources</div><div class="panel-meta">project context</div></div>
+          <div class="knowledge-list" id="knowledgeList"></div>
+        </article>
+        <article class="panel quick-panel">
+          <div class="panel-head"><div class="panel-title"><span>✦</span>Quick Actions</div></div>
+          <div class="quick-actions">
+            <button class="action" data-open="/index.html" title="Apri il workspace per gestire i progetti"><span class="action-icon">＋</span><span class="action-title">Nuovo progetto</span></button>
+            <button class="action" data-open="/index.html"><span class="action-icon">✎</span><span class="action-title">Crea contenuto</span></button>
+            <button class="action" data-open="/index.html"><span class="action-icon">◫</span><span class="action-title">Apri orchestratori</span></button>
+            <button class="action" id="quickSearch"><span class="action-icon">⌕</span><span class="action-title">Cerca in RADIX</span></button>
+            <button class="action" id="quickReport"><span class="action-icon">▤</span><span class="action-title">Riepilogo attività</span></button>
+          </div>
+        </article>
+      </section>
+    </div>
+  </main>
+</div>
+
+<aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" aria-hidden="true"><div class="drawer-head"><div class="drawer-title" id="drawerTitle">Agent</div><button class="drawer-close" id="drawerClose" type="button" aria-label="Chiudi pannello dettagli">×</button></div><div class="drawer-body" id="drawerBody"></div></aside>
+<div class="toast" id="toast"></div>
+<div class="fatal" id="fatal"><div class="fatal-card"><h2>Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><a href="/index.html">Vai al login / workspace</a></div></div>
+
+<script>
+(function(){
+  'use strict';
+  var AGENTS=[
+    { id: "marketing-orchestrator", name: "Orchestratore Marketing", hub: true, group: "Marketing" },
+    { id: "brand-strategist", name: "Stratega di Marca e Campagne", group: "Marketing" },
+    { id: "strategist", name: "Digital Strategist", group: "Marketing" },
+    { id: "copywriter", name: "Copywriter", group: "Marketing" },
+    { id: "art-director", name: "Art Director", group: "Marketing" },
+    { id: "ai-specialist", name: "AI Specialist", group: "Marketing" },
+    { id: "social-media-manager", name: "Social Media Manager", group: "Marketing" },
+    { id: "seo-geo", name: "Specialista SEO e GEO", group: "Marketing" },
+    { id: "web-content", name: "Content e UX Writer", group: "Marketing" },
+    { id: "video-producer", name: "Video Producer", group: "Marketing" },
+    { id: "paid-media", name: "Paid Media Specialist", group: "Marketing" },
+    { id: "analytics", name: "Analytics e CRO", group: "Marketing" },
+    { id: "orchestrator", name: "Pipeline post", pipeline: true, group: "Marketing" },
+    { id: "partner", name: "Orchestratore dello Studio", hub: true, group: "Operations" },
+    { id: "commercialista-senior", name: "Commercialista Senior", group: "Operations" },
+    { id: "commercialista-operativo", name: "Commercialista Operativo", group: "Operations" },
+    { id: "contabilita", name: "Contabilità", group: "Operations" },
+    { id: "lavoro-paghe", name: "Lavoro e Paghe", group: "Operations" },
+    { id: "segreteria-studio", name: "Segreteria dello Studio", group: "Operations" },
+    { id: "web-developer", name: "Web Developer", group: "Product" },
+    { id: "legal-orchestrator", name: "Orchestratore Legale", hub: true, group: "Legal" },
+    { id: "legal-gdpr", name: "Esperto Privacy e GDPR", group: "Legal" },
+    { id: "legal-contracts", name: "Esperto Contrattualistica, IP e Creator", group: "Legal" },
+    { id: "legal-banking", name: "Esperto Diritto Bancario e Finanziario", group: "Legal" },
+    { id: "legal-risk-analyst", name: "Analista di Rischio Legale", group: "Legal" },
+    { id: "comm-orchestrator", name: "Orchestratore Commerciale", hub: true, group: "Sales" },
+    { id: "comm-market-analyst", name: "Analista di Mercato e Strategia", group: "Sales" },
+    { id: "comm-contact-finder", name: "Ricercatore di Contatti", group: "Sales" },
+    { id: "comm-email-outreach", name: "Specialista Email Outreach", group: "Sales" },
+    { id: "comm-crm-manager", name: "Responsabile CRM / Sales Ops", group: "Sales" },
+  ];
+  var LINKS=[
+    ['marketing-orchestrator','brand-strategist'],['marketing-orchestrator','copywriter'],['marketing-orchestrator','art-director'],['marketing-orchestrator','analytics'],['marketing-orchestrator','seo-geo'],['marketing-orchestrator','video-producer'],['marketing-orchestrator','ai-specialist'],
+    ['partner','commercialista-senior'],['partner','contabilita'],['partner','lavoro-paghe'],
+    ['legal-orchestrator','legal-contracts'],['legal-orchestrator','legal-privacy'],['legal-orchestrator','legal-risk-analyst'],
+    ['sales-orchestrator','market-analyst'],['sales-orchestrator','contact-researcher'],
+    ['ai-specialist','web-developer'],['marketing-orchestrator','sales-orchestrator'],['partner','legal-orchestrator']
+  ];
+  var data=null,zoom=1,selectedAgent=null,focusedProjectId=null,currentView='network',searchItems=[];
+  var $=function(id){return document.getElementById(id)};
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+  function fmtTime(value){if(!value)return '—';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
+  function fmtDate(value){if(!value)return 'mai';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+  function initials(name){return String(name||'R').split(/\s+/).slice(0,2).map(function(x){return x[0]||''}).join('').toUpperCase()}
+  function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){$('toast').classList.remove('show')},2200)}
+  function legacyProjection(payload,identity){
+    var state=payload&&payload.state||{},hist=state.history||{},flows=[],activity=[],agentStatus={};
+    var toTime=function(v){var n=typeof v==='number'?v:new Date(v||0).getTime();return Number.isFinite(n)&&n>0?n:0};
+    Object.keys(hist).forEach(function(agentId){
+      (Array.isArray(hist[agentId])?hist[agentId]:[]).forEach(function(msg,i){
+        if(!msg||!msg.flow)return;
+        var f=msg.flow,nodes=Array.isArray(f.nodes)?f.nodes:[],log=Array.isArray(f.log)?f.log:[],last=toTime(f.startedAt);
+        log.forEach(function(e){last=Math.max(last,toTime(e&&e.t))});
+        var recorded=f.halted?'blocked':f.status==='error'?'error':f.status==='done'?'done':f.status==='running'?'running':'pending';
+        var status=recorded==='running'&&(!last||Date.now()-last>600000)?'stale':recorded;
+        var id=agentId+':'+i,done=nodes.filter(function(n){return n.status==='done'}).length;
+        flows.push({id:id,orchestrator:agentId,task:String(f.task||'Workflow orchestrato').slice(0,220),status:status,recordedStatus:recorded,source:'legacy-browser-snapshot',projectId:typeof f.projectId==='string'?f.projectId:null,
+          progress:{total:nodes.length,done:done},nodes:nodes.map(function(n,j){return {id:id+':'+j,label:n.label||n.role||'Task',agentId:n.role||null,status:n.status||'pending',subtask:String(n.subtask||'').slice(0,220)}}),sortAt:last});
+        nodes.forEach(function(n){if(n.role&&(!agentStatus[n.role]||last>=agentStatus[n.role].at))agentStatus[n.role]={status:status==='stale'&&n.status==='running'?'stale':n.status||'pending',task:String(n.subtask||'').slice(0,180),workflowId:id,at:last}});
+        log.forEach(function(e,j){if(e&&e.x)activity.push({id:id+':'+j,at:e.t||null,text:String(e.x).slice(0,260),orchestrator:agentId})});
+      });
+    });
+    flows.sort(function(a,b){return b.sortAt-a.sortAt});activity.sort(function(a,b){return toTime(b.at)-toTime(a.at)});
+    var projects=Array.isArray(state.projects)?state.projects:[],blocked=flows.filter(function(f){return f.status==='blocked'||f.status==='error'});
+    return {user:identity.user||{},workspace:{activeProjectId:state.activeProject||null,updatedAt:payload.updatedAt||null,updatedBy:payload.updatedBy||null},
+      projects:projects.filter(function(p){return p&&p.id}).map(function(p){return {id:p.id,name:p.name||p.id,kind:p.kind||'',summary:p.summary||'',active:p.id===state.activeProject}}),
+      workflows:flows,activity:activity.slice(0,24),agentStatus:agentStatus,approvals:[],approvalsSupported:false,
+      attention:blocked.slice(0,6).map(function(f){return {id:f.id,title:f.task,reason:f.status,workflowId:f.id}}),
+      metrics:{projects:projects.length,activeWorkflows:flows.filter(function(f){return f.status==='running'}).length,
+        activeAgents:Object.values(agentStatus).filter(function(a){return a.status==='running'}).length,approvals:0},
+      dataQuality:{source:'authenticated-legacy-state',realtimeExecutionVerified:false,integrationsVerified:false,projectAgentAssignmentsVerified:false}};
+  }
+  async function load(){
+    try{
+      var me=await fetch('/api/auth/me');
+      if(!me.ok){$('fatal').classList.add('show');$('systemStatus').textContent='LOGIN REQUIRED';return}
+      var response=await fetch('/api/dashboard',{cache:'no-store'});
+      if(response.status===404){
+        var legacy=await fetch('/api/state',{cache:'no-store'});
+        if(!legacy.ok)throw new Error('Impossibile leggere lo stato RADIX');
+        data=legacyProjection(await legacy.json(),await me.json());
+      }else{
+        if(!response.ok)throw new Error((await response.json().catch(function(){return {}})).error||'Dashboard non disponibile');
+        data=await response.json();
+      }
+      $('systemStatus').textContent='SNAPSHOT CARICATO';
+      render();
+      $('app').classList.remove('loading');
+    }catch(err){$('fatalText').textContent=err.message||String(err);$('fatal').classList.add('show');$('systemStatus').textContent='SYNC UNAVAILABLE'}
+  }
+  function render(){
+    $('userName').textContent=data.user&&data.user.name||data.user&&data.user.email||'RADIX';
+    $('welcomeName').textContent=String(data.user&&data.user.name||'RADIX').trim().split(/\s+/)[0]||'RADIX';
+    $('avatar').textContent=initials(data.user&&data.user.name||data.user&&data.user.email);
+    $('updatedText').textContent='Ultimo stato salvato · '+fmtDate(data.workspace&&data.workspace.updatedAt)+(data.workspace&&data.workspace.updatedBy?' · '+data.workspace.updatedBy:'')+' · snapshot, non monitoraggio in tempo reale';
+    $('metricProjects').textContent=data.metrics.projects;
+    $('metricWorkflows').textContent=data.metrics.activeWorkflows;
+    var counts=executionCounts();$('metricAgents').textContent=counts.verified===null?'—':counts.verified; $('metricAgents').parentElement.querySelector('.metric-note').textContent=counts.verified===null?'esecuzione non verificata':'in esecuzione verificata';
+    $('metricApprovals').textContent=data.approvalsSupported?data.metrics.approvals:'—';
+    $('navWorkflowBadge').textContent=data.metrics.activeWorkflows;
+    $('navApprovalBadge').textContent=data.metrics.approvals;
+    renderProjects();renderNetwork();renderProjectView();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();
+  }
+  function renderProjects(){
+    var projects=data.projects||[];
+    $('projectList').innerHTML=projects.slice(0,7).map(function(p){return '<div class="project-mini '+(p.active?'active':'')+'" data-project="'+esc(p.id)+'"><i class="project-dot"></i><span>'+esc(p.name)+'</span></div>'}).join('') || '<div class="project-mini"><i class="project-dot"></i><span>Nessun progetto</span></div>';
+    document.querySelectorAll('[data-project]').forEach(function(el){el.addEventListener('click',function(){var id=el.getAttribute('data-project');var p=projects.find(function(x){return x.id===id});enterProject(id);renderProjects()})})
+  }
+  function activeStatus(id){return data.agentStatus&&data.agentStatus[id]||{status:'idle',task:''}}
+  function nodeClass(status){if(status==='running')return 'running';if(status==='error')return 'error';if(status==='pending'||status==='stale')return 'pending';if(status==='done')return 'done';return 'idle'}
+  function projectPalette(index){return ['#23e69b','#4da6ff','#ae81f1','#e9b86c'][index%4]}
+  function projectColor(p,index){var n=String(p.name||'').toLowerCase();return /aura/.test(n)?'#23e69b':/doc capital/.test(n)?'#4da6ff':/personal brand/.test(n)?'#ae81f1':/gcp/.test(n)?'#e9b86c':projectPalette(index)}
+  function projectRank(p){var n=String(p.name||'').toLowerCase();return /aura/.test(n)?0:/doc capital/.test(n)?1:/personal brand/.test(n)?2:/gcp/.test(n)?3:4}
+  function executionCounts(){
+    var states=data.agentStatus||{},recorded=Object.values(states).filter(function(a){return a.status==='running'}).length;
+    return {configured:AGENTS.length,recorded:recorded,verified:data.dataQuality&&data.dataQuality.realtimeExecutionVerified===true?recorded:null};
+  }
+  function projectSlots(count){
+    var layouts={1:[{x:450,y:130}],2:[{x:250,y:245},{x:650,y:245}],3:[{x:240,y:130},{x:660,y:130},{x:450,y:380}],4:[{x:236,y:135},{x:668,y:135},{x:236,y:360},{x:668,y:360}]};
+    return layouts[Math.max(1,Math.min(4,count))];
+  }
+  function orderedProjects(){
+    var ps=(data.projects||[]).slice();ps.sort(function(a,b){return projectRank(a)-projectRank(b)});
+    return ps;
+  }
+  var pan={x:0,y:0}, networkDetail=null,networkPage=0;
+  var UNASSIGNED='__unassigned_workflows__';
+  function resetNetworkCamera(){pan={x:0,y:0};zoom=1;applyZoom()}
+  function setNetworkExpanded(expanded){
+    $('networkPanel').classList.toggle('network-expanded',expanded);
+    $('expandNetwork').setAttribute('aria-pressed',String(expanded));
+    $('expandNetwork').setAttribute('aria-label',expanded?'Riduci la mappa':'Espandi la mappa');
+    document.body.classList.toggle('network-expanded-active',expanded);
+    resetNetworkCamera();networkPage=0;renderNetwork();
+  }
+  $('expandNetwork').addEventListener('click',function(){setNetworkExpanded(!$('networkPanel').classList.contains('network-expanded'))});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('networkPanel').classList.contains('network-expanded')){setNetworkExpanded(false);$('expandNetwork').focus()}});
+  function projectItems(id){
+    return (data.workflows||[]).filter(function(w){return id===UNASSIGNED?w.projectId==null:w.projectId!=null&&String(w.projectId)===String(id)}).map(function(w){return {id:w.id,label:w.orchestrator||'Workflow',status:w.status,workflow:w}});
+  }
+  function workflowTasks(w){return (w.nodes||[]).map(function(n){return {id:n.id,label:n.label||n.agentId||'Attività',status:n.status,node:n,workflow:w}})}
+
+  function networkPosition(index,count){
+    var ring=Math.floor(index/10),size=Math.min(10,count-ring*10),angle=2*Math.PI*(index%10)/size-Math.PI/2;
+    return {x:450+Math.cos(angle)*(230+ring*160),y:245+Math.sin(angle)*(155+ring*110)};
+  }
+  function enterProject(id){focusedProjectId=id;networkDetail=null;networkPage=0;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
+  function renderNetwork(){
+    var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
+    if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:'Attività senza progetto'};
+    if(!focused){focusedProjectId=null;networkDetail=null}
+    var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#123e39"/><stop offset=".7" stop-color="#021915"/><stop offset="1" stop-color="#1ef4c0"/></radialGradient></defs>';
+    var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
+    var edges='',hubs='',orbits='',entries=[];
+    function hub(x,y,label,color,key,type,status){
+      var cy=y-15,r=type==='project'?(/aura/i.test(label)?24:18):18;
+      var subtitle=type==='project'?'PROJECT PROFILE':String(status||'stato salvato');
+      return '<g class="project-hub network-target" role="button" tabindex="0" data-network-type="'+type+'" data-network-key="'+esc(key)+'" style="--node-color:'+color+';--node-delay:'+(-Number(key)*.6)+'s" aria-label="'+esc(label+' · '+subtitle)+'"><title>'+esc(label+' · '+subtitle)+'</title><circle class="node-aura" cx="'+x+'" cy="'+cy+'" r="'+(r+12)+'" fill="'+color+'" opacity=".10"/><circle class="project-ring" cx="'+x+'" cy="'+cy+'" r="'+r+'" stroke="'+color+'"/><circle class="project-inner" cx="'+x+'" cy="'+cy+'" r="'+(r-5)+'" stroke="'+color+'"/><path d="M'+(x-6)+' '+(cy+5)+' L'+x+' '+(cy-6)+' L'+(x+6)+' '+(cy+5)+' M'+(x-4)+' '+cy+' L'+(x+4)+' '+cy+'" fill="none" stroke="'+color+'" stroke-width="1.4"/><foreignObject x="'+(x-112)+'" y="'+(y+10)+'" width="224" height="110"><div xmlns="http://www.w3.org/1999/xhtml" class="network-label"><strong>'+esc(label)+'</strong><small>'+esc(subtitle)+'</small></div></foreignObject></g>';
+    }
+    var visible=focused?projectItems(focused.id):projects;
+    if(networkDetail){var current=(data.workflows||[]).find(function(w){return w.id===networkDetail.workflow.id});if(current){networkDetail.workflow=current;visible=networkDetail.node?[networkDetail]:workflowTasks(current)}else networkDetail=null}
+    var allVisible=visible.slice(),pageSize=$('networkPanel').classList.contains('network-expanded')?Math.max(1,visible.length):8,pages=Math.max(1,Math.ceil(visible.length/pageSize));networkPage=Math.min(networkPage,pages-1);visible=visible.slice(networkPage*pageSize,networkPage*pageSize+pageSize);
+    var extra=Math.max(0,Math.ceil(visible.length/10)-1);svg.setAttribute('viewBox',(-extra*160-30)+' '+(-extra*110-30)+' '+(960+extra*320)+' '+(554+extra*220));
+    visible.forEach(function(item,i){
+      var c;if(!focused&&visible.length<=5)c=i<4?projectSlots(4)[i]:{x:450,y:48};
+      else c=networkPosition(i,visible.length);
+      var color=focused?projectColor(focused,projects.indexOf(focused)):projectColor(item,i),label=String(focused?item.label:item.name||item.id);
+      var beam='M450 245 Q'+c.x+' 245 '+c.x+' '+c.y;
+      edges+='<path class="network-beam-halo" data-beam-x="'+c.x+'" data-beam-y="'+c.y+'" d="'+beam+'" stroke="'+color+'"/><path class="network-flow" data-beam-x="'+c.x+'" data-beam-y="'+c.y+'" d="'+beam+'" fill="none" stroke="'+color+'" opacity=".55"/>';
+      if(!focused){
+        orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate('+(i%2===0?-19:16)+' '+c.x+' '+c.y+')"/>';
+        var items=projectItems(item.id);
+        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length+.28*(j%3),ax=c.x+Math.cos(angle)*(100+(j%3)*9),ay=c.y+Math.sin(angle)*(58+(j%2)*9),key=entries.length;entries.push(child);
+          orbits+='<g class="network-target satellite orbital-satellite" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="0" cy="0" r="6" fill="#082019" stroke="'+color+'"/><circle cx="0" cy="0" r="2" fill="'+color+'"/></g>';
+        });
+        orbits+='</g>';
+      }
+      var key=entries.length;hubs+=hub(c.x,c.y,label,color,String(key),focused?'item':'project',item.status);entries.push(item);
+    });
+    var rays='';for(var k=0;k<48;k++){var theta=k*Math.PI/24,radius=104+(k%7)*12,bend=theta+.22;rays+='<path d="M'+(450+Math.cos(theta)*60)+' '+(245+Math.sin(theta)*60)+' Q'+(450+Math.cos(bend)*90)+' '+(245+Math.sin(bend)*90)+' '+(450+Math.cos(theta)*radius)+' '+(245+Math.sin(theta)*radius)+'"/>'}
+    var core='<g class="core-rays" aria-hidden="true">'+rays+'</g><g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-globe" cx="450" cy="245" r="59" fill="url(#coreGradient)"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
+    if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
+    if(!focused&&unassigned.length){var globalKey=entries.length;entries.push({id:UNASSIGNED,name:'Attività senza progetto'});hubs+='<g class="network-target unassigned-node" role="button" tabindex="0" data-network-type="project" data-network-key="'+globalKey+'" aria-label="Attività senza progetto · '+unassigned.length+' workflow"><rect x="320" y="475" width="260" height="35" rx="12"/><text x="450" y="497" text-anchor="middle">Attività senza progetto · '+unassigned.length+' workflow ↗</text></g>'}
+    var configuredSatellites='';
+    if(!focused)AGENTS.forEach(function(agent,i){
+      var angle=i*2*Math.PI/AGENTS.length,rx=103+(i%3)*16,ry=76+(i%3)*12,x=450+Math.cos(angle)*rx,y=245+Math.sin(angle)*ry;
+      configuredSatellites+='<g class="network-target configured-satellite" role="button" tabindex="0" data-network-type="configured-agent" data-agent-id="'+esc(agent.id)+'" aria-label="'+esc(agent.name+' · agent configurato · non assegnato al progetto')+'"><title>'+esc(agent.name+' · '+agent.group+' · configurato, assegnazione non registrata')+'</title><circle cx="'+x+'" cy="'+y+'" r="'+(i%4===0?4.5:3)+'"/><circle class="satellite-hit" cx="'+x+'" cy="'+y+'" r="10"/></g>';
+    });
+    svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core+configuredSatellites;
+    var mobile=$('networkMobileList');if(!mobile){mobile=document.createElement('div');mobile.id='networkMobileList';$('networkWrap').appendChild(mobile)}
+    mobile.innerHTML=allVisible.map(function(item,i){return '<button data-mobile-index="'+i+'">'+esc(focused?item.label:item.name)+'<small>'+(focused?esc(item.status):'Profilo progetto')+'</small></button>'}).join('');
+    mobile.querySelectorAll('button').forEach(function(button){button.onclick=function(){var item=allVisible[Number(button.dataset.mobileIndex)];if(!focused)enterProject(item.id);else activateItem(item)}});
+    function activateItem(item){networkDetail=item;networkPage=0;resetNetworkCamera();renderNetwork();openWorkflow(item.workflow.id);if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}}
+
+    svg.querySelectorAll('.network-cluster').forEach(function(cluster){cluster.addEventListener('pointerenter',function(){cluster.classList.add('cluster-hover')});cluster.addEventListener('pointerleave',function(){cluster.classList.remove('cluster-hover')})});
+    svg.querySelectorAll('[data-network-type]').forEach(function(el){
+      function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
+        if(type==='configured-agent'){openAgent(el.getAttribute('data-agent-id'));return}
+        if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
+        if(type==='project'){enterProject(item.id);return}
+        if(type==='satellite'){focusedProjectId=el.getAttribute('data-network-project');resetNetworkCamera()}
+        activateItem(item);
+      }
+      el.addEventListener('click',activate);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();return}var targets=Array.from(svg.querySelectorAll('[data-network-type]')),index=targets.indexOf(el),step=['ArrowRight','ArrowDown'].includes(e.key)?1:['ArrowLeft','ArrowUp'].includes(e.key)?-1:0;if(step){e.preventDefault();targets[(index+step+targets.length)%targets.length].focus()}});
+    });
+    $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <button data-level="workflow">'+esc(networkDetail.workflow.orchestrator)+'</button>':'')+(networkDetail&&networkDetail.node?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'')+(pages>1?'<span class="network-pagination"><button data-page="-1" '+(networkPage===0?'disabled':'')+'>Precedente</button><span>'+(networkPage+1)+' / '+pages+'</span><button data-page="1" '+(networkPage===pages-1?'disabled':'')+'>Successiva</button></span>':'');
+    $('networkBreadcrumb').querySelectorAll('button[data-level]').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root'){focusedProjectId=null;networkDetail=null}else if(el.dataset.level==='project')networkDetail=null;else networkDetail={id:networkDetail.workflow.id,label:networkDetail.workflow.orchestrator,workflow:networkDetail.workflow};networkPage=0;resetNetworkCamera();renderNetwork()}});
+    $('networkBreadcrumb').querySelectorAll('button[data-page]').forEach(function(el){el.onclick=function(){networkPage+=Number(el.dataset.page);resetNetworkCamera();renderNetwork()}});
+    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
+    $('projectTools').hidden=!focused||focused.id===UNASSIGNED||currentView!=='network';
+    if(focused&&focused.id!==UNASSIGNED)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
+    $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
+  }
+
+  // Accessible all-projects alternative. Never claims decorative roles are real agents.
+  function renderProjectView(){
+    var focused=document.activeElement;
+    renderProjectView._focusId=focused&&focused.closest&&focused.closest('#projectView')&&focused.hasAttribute('data-project-list')?focused.getAttribute('data-project-list'):null;
+    var projects=orderedProjects();
+    var html='<div class="project-view-head"><div><strong>Tutti i progetti</strong><span>Profili registrati nel workspace · non attività live</span></div><b>'+projects.length+' progetti</b></div><div class="project-view-grid">';
+    html+=projects.map(function(p,i){
+      var name=String(p.name||p.id),summary=String(p.summary||'Nessuna descrizione disponibile.');
+      return '<button type="button" class="project-view-card" data-project-list="'+esc(p.id)+'" style="--project-accent:'+projectPalette(i)+'"><span class="project-view-mark" aria-hidden="true">◈</span><span class="project-view-info"><strong>'+esc(name)+'</strong><small>'+esc(p.kind||'Progetto')+' · '+(p.active?'progetto selezionato':'profilo registrato')+'</small><span class="project-view-summary">'+esc(summary)+'</span></span><span class="project-view-arrow" aria-hidden="true">↗</span></button>';
+    }).join('');
+    if(!projects.length)html+='<div class="empty-state"><b>Nessun progetto registrato</b>I progetti del workspace appariranno qui.</div>';
+    $('projectView').innerHTML=html+'</div>';
+    $('projectView').querySelectorAll('[data-project-list]').forEach(function(el){
+      el.addEventListener('click',function(){enterProject(el.getAttribute('data-project-list'))});
+    });
+    // Preserve keyboard focus when the project list refreshes during polling.
+    if(renderProjectView._focusId){
+      var match=Array.from($('projectView').querySelectorAll('[data-project-list]')).find(function(el){return el.getAttribute('data-project-list')===renderProjectView._focusId});
+      if(match)match.focus({preventScroll:true});
+      renderProjectView._focusId=null;
+    }
+  }
+  function renderCommandView(){
+    var ws=(data.workflows||[]).slice(0,8),html='<div class="command-view-title">Workflow registrati · ultimo stato salvato (non esecuzione verificata)</div><div class="command-view-grid">';
+    html+=ws.map(function(w){return '<button class="command-view-card" data-command-flow="'+esc(w.id)+'"><b>'+esc(w.orchestrator)+' · '+esc(w.status)+'</b><span>'+esc(w.task)+'</span></button>'}).join('');
+    if(!ws.length)html+='<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un orchestratore dal workspace operativo.</div>';
+    html+='</div>';$('commandView').innerHTML=html;
+    document.querySelectorAll('[data-command-flow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-command-flow'))})});
+  }
+  function openProject(id){
+    var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;
+    $('drawerTitle').textContent=p.name;
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
+    $('drawer').classList.add('open');
+  }
+  function renderApprovals(){
+    var blocked=data.attention||[];
+    $('approvalMeta').textContent=data.approvalsSupported?(data.approvals||[]).length+' approvals':'approvazioni non attive';
+    if(!data.approvalsSupported){
+      $('attentionList').innerHTML=blocked.map(function(b){return '<div class="workflow-card" data-blocked="'+esc(b.workflowId)+'"><div class="workflow-name">⚠ '+esc(b.title||'Workflow bloccato')+'</div><div class="workflow-task">'+esc(b.reason||'Verificare nel workspace')+'</div></div>'}).join('')+'<div class="empty-state"><b>Approval Inbox · non ancora disponibile</b>Non sono presenti approvazioni centralizzate. I blocchi sopra sono workflow salvati, non richieste di approvazione.</div>';
+      document.querySelectorAll('[data-blocked]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-blocked'))})});return;
+    }
+    $('attentionList').innerHTML=(data.approvals||[]).map(function(a){return '<div class="workflow-card"><div class="workflow-name">'+esc(a.title)+'</div></div>'}).join('')||'<div class="empty-state"><b>Niente da approvare</b>Nessuna richiesta aperta.</div>';
+  }
+  function renderActivity(){
+    var list=(data.activity||[]).slice(0,10);
+    $('activityList').innerHTML=list.map(function(a){return '<div class="activity-item"><div class="activity-time">'+fmtTime(a.at)+'</div><div class="activity-text"><b>'+esc(a.orchestrator||'RADIX')+'</b><br>'+esc(a.text)+'</div></div>'}).join('')||'<div class="empty-state"><b>Nessuna attività recente</b>Gli eventi reali dei workflow appariranno qui.</div>'
+  }
+  function pct(w){var p=w.progress||{},total=p.total||0;return total?Math.round(((p.done||0)/total)*100):0}
+  function renderWorkflows(){
+    var list=(data.workflows||[]).slice(0,6);$('workflowMeta').textContent=list.length+' registrati';
+    $('workflowList').innerHTML=list.map(function(w){return '<div class="workflow-card" data-workflow="'+esc(w.id)+'"><div class="workflow-top"><div class="workflow-name">'+esc(w.orchestrator)+'</div><div class="workflow-state '+esc(w.status)+'">'+esc(w.status)+'</div></div><div class="workflow-task">'+esc(w.task)+'</div><div class="progress"><span style="width:'+pct(w)+'%"></span></div><div class="workflow-foot"><span>'+((w.progress&&w.progress.done)||0)+' / '+((w.progress&&w.progress.total)||0)+' tasks</span><span>'+pct(w)+'%</span></div></div>'}).join('')||'<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un orchestratore dal workspace per alimentare questa vista.</div>';
+    document.querySelectorAll('[data-workflow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-workflow'))})})
+  }
+  function renderTeams(){
+    var groups={};AGENTS.forEach(function(a){var g=groups[a.group]||(groups[a.group]={configured:0,running:0,pending:0,error:0,stale:0});g.configured++;var status=activeStatus(a.id).status;if(Object.prototype.hasOwnProperty.call(g,status))g[status]++});
+    $('teamGrid').innerHTML=Object.keys(groups).map(function(name){var g=groups[name];return '<div class="team-card"><div class="team-title">'+esc(name)+'</div><div class="team-count">'+g.configured+'</div><div class="team-sub">agenti configurati</div><div class="team-status">'+g.running+' in corso nello snapshot · '+g.pending+' in attesa<br>'+g.error+' errori · '+g.stale+' da aggiornare</div></div>'}).join('')+'<p class="team-disclaimer">'+(executionCounts().verified===null?'Esecuzione reale non verificata. Gli stati salvati non sono attività live.':'Esecuzione verificata dalla sorgente operativa.')+'</p>';
+  }
+  function renderKnowledge(){
+    var active=(data.projects||[]).find(function(p){return p.active});
+    var resources=[
+      {i:'◈',n:active?active.name:'Project Memory',m:active?(active.kind||'progetto attivo'):'Nessun progetto attivo'},
+      {i:'⌁',n:'Shared workspace state',m:data.workspace.updatedAt?'stato salvato '+fmtDate(data.workspace.updatedAt):'not yet synced'},
+      {i:'◇',n:'Knowledge layer',m:'memoria strutturata: prossimo sviluppo'}
+    ];
+    $('knowledgeList').innerHTML=resources.map(function(r){return '<div class="resource"><div class="resource-icon">'+r.i+'</div><div class="resource-main"><div class="resource-name">'+esc(r.n)+'</div><div class="resource-meta">'+esc(r.m)+'</div></div></div>'}).join('')
+  }
+  function openAgent(id){
+    selectedAgent=id;
+    var agent=AGENTS.find(function(a){return a.id===id})||{id:id,name:id,group:'Agent'};var st=activeStatus(id);
+    $('drawerTitle').textContent=agent.name;
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Status</div><div class="detail-status"><i></i>'+esc(st.status||'idle')+'</div></div><div class="detail-section"><div class="detail-label">Team</div><div class="detail-value">'+esc(agent.group)+'</div></div><div class="detail-section"><div class="detail-label">Current task</div><div class="detail-value">'+esc(st.task||'Nessun task attivo registrato.')+'</div></div><div class="detail-section"><div class="detail-label">Workflow</div><div class="detail-value">'+esc(st.workflowId||'—')+'</div></div><div class="detail-section"><div class="detail-label">Operational note</div><div class="detail-value">Questa scheda legge lo stato reale dei workflow salvati. Output completi e conversazioni restano nel Workspace operativo.</div></div>';
+    $('drawer').classList.add('open')
+  }
+  function openWorkflow(id){
+    var w=(data.workflows||[]).find(function(x){return x.id===id});if(!w)return;
+    $('drawerTitle').textContent=w.orchestrator;
+    var nodes=(w.nodes||[]).map(function(n){return '<div class="resource" style="margin-bottom:7px"><div class="resource-icon">'+(n.status==='done'?'✓':n.status==='error'?'!':'•')+'</div><div class="resource-main"><div class="resource-name">'+esc(n.label)+'</div><div class="resource-meta">'+esc(n.status)+' · '+esc(n.subtask||'task')+'</div></div></div>'}).join('');
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Workflow status</div><div class="detail-status"><i></i>'+esc(w.status)+'</div></div><div class="detail-section"><div class="detail-label">Objective</div><div class="detail-value">'+esc(w.task)+'</div></div><div class="detail-section"><div class="detail-label">Progress</div><div class="detail-value">'+esc((w.progress.done||0)+' of '+(w.progress.total||0)+' tasks completed')+'</div></div><div class="detail-section"><div class="detail-label">Agents</div>'+nodes+'</div>';
+    $('drawer').classList.add('open')
+  }
+  function applyZoom(){zoom=Math.min(3,Math.max(.35,zoom));$('networkStage').style.transform='translate('+pan.x+'px,'+pan.y+'px) scale('+zoom+')';$('zoomReset').textContent=Math.round(zoom*100)+'%'}
+  function zoomAt(next,x,y){
+    var before=zoom,after=Math.min(3,Math.max(.35,next));
+    pan.x=x-(x-pan.x)*after/before;pan.y=y-(y-pan.y)*after/before;zoom=after;applyZoom();
+  }
+  var drag=null,wrap=$('networkWrap');
+  wrap.addEventListener('pointerdown',function(e){if(currentView!=='network'||e.target.closest('button, [role="button"]'))return;drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};wrap.classList.add('is-dragging');wrap.setPointerCapture(e.pointerId)});
+  wrap.addEventListener('pointermove',function(e){if(!drag)return;pan.x=drag.px+e.clientX-drag.x;pan.y=drag.py+e.clientY-drag.y;applyZoom()});
+  function stopDrag(){drag=null;wrap.classList.remove('is-dragging')}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
+  wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();var r=wrap.getBoundingClientRect();zoomAt(zoom*Math.exp(-e.deltaY*.001),e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2)},{passive:false});
+  var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),frame=null;
+  wrap.addEventListener('mousemove',function(e){if(drag||reduced.matches||frame)return;frame=requestAnimationFrame(function(){var r=wrap.getBoundingClientRect();var dx=(e.clientX-r.left-r.width/2)/r.width,dy=(e.clientY-r.top-r.height/2)/r.height;var svg=$('networkSvg');svg.style.transform='translate('+(dx*8)+'px,'+(dy*8)+'px)';svg.querySelectorAll('[data-beam-x]').forEach(function(path){var x=Number(path.getAttribute('data-beam-x')),y=Number(path.getAttribute('data-beam-y'));path.setAttribute('d','M450 245 Q'+(x+dx*65)+' '+(245+dy*85)+' '+x+' '+y)});frame=null})});
+  wrap.addEventListener('mouseleave',function(){$('networkSvg').style.transform='';$('networkSvg').querySelectorAll('[data-beam-x]').forEach(function(path){var x=path.getAttribute('data-beam-x'),y=path.getAttribute('data-beam-y');path.setAttribute('d','M450 245 Q'+x+' 245 '+x+' '+y)});stopDrag()});
+  function setView(view){
+    currentView=['network','command','projects'].includes(view)?view:'network';
+    var network=currentView==='network';
+    $('networkBreadcrumb').hidden=!network;$('projectTools').hidden=!network||!focusedProjectId;
+    if(!network)setNetworkExpanded(false);
+    $('networkStage').hidden=!network;
+    $('commandView').hidden=currentView!=='command';
+    $('projectView').hidden=currentView!=='projects';
+    $('networkCaptionWrap').hidden=!network;
+    $('networkLegend').hidden=!network;if($('networkMobileList'))$('networkMobileList').hidden=!network;
+    ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
+    document.querySelectorAll('[data-radix-view]').forEach(function(button){
+      var active=button.getAttribute('data-radix-view')===currentView;
+      button.classList.toggle('active',active);
+      if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
+    [['networkTab','network'],['commandTab','command'],['projectsTab','projects']].forEach(function(entry){
+      var active=currentView===entry[1];
+      $(entry[0]).classList.toggle('active',active);
+      $(entry[0]).setAttribute('aria-pressed',String(active));
+    });
+  }
+  document.querySelectorAll('[data-radix-view]').forEach(function(button){button.addEventListener('click',function(){setView(button.getAttribute('data-radix-view'))})});
+  $('networkTab').addEventListener('click',function(){setView('network')});
+  $('commandTab').addEventListener('click',function(){setView('command')});
+  $('projectsTab').addEventListener('click',function(){setView('projects')});
+  $('zoomIn').addEventListener('click',function(){zoom+=.1;applyZoom()});$('zoomOut').addEventListener('click',function(){zoom-=.1;applyZoom()});$('zoomReset').addEventListener('click',function(){zoom=1;pan={x:0,y:0};applyZoom()});
+  /* RADIX drawer keyboard accessibility pass 10 */
+  var drawerLastFocus=null;
+  var drawerElement=$('drawer');
+  function closeDetailDrawer(){
+    if(!drawerElement.classList.contains('open'))return;
+    drawerElement.classList.remove('open');
+    drawerElement.setAttribute('aria-hidden','true');
+    selectedAgent=null;
+    if(drawerLastFocus&&drawerLastFocus.isConnected&&typeof drawerLastFocus.focus==='function')drawerLastFocus.focus();
+  }
+  new MutationObserver(function(){
+    var opened=drawerElement.classList.contains('open');
+    drawerElement.setAttribute('aria-hidden',opened?'false':'true');
+    if(opened){
+      drawerLastFocus=document.activeElement=== $('drawerClose')?drawerLastFocus:document.activeElement;
+      $('drawerClose').focus();
+    }
+  }).observe(drawerElement,{attributes:true,attributeFilter:['class']});
+  drawerElement.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){e.preventDefault();e.stopPropagation();closeDetailDrawer();}
+  });
+  $('drawerClose').addEventListener('click',closeDetailDrawer);
+  document.querySelectorAll('[data-future]').forEach(function(el){el.addEventListener('click',function(){toast(el.getAttribute('data-future')+' · funzione in preparazione')})});
+  document.querySelectorAll('[data-open]').forEach(function(el){el.addEventListener('click',function(){location.href=el.getAttribute('data-open')})});
+  function doSearch(q){
+    q=String(q||'').trim().toLowerCase();if(!q){$('searchResults').hidden=true;searchItems=[];return}
+    var results=[];
+    (data.projects||[]).forEach(function(p){if((p.name+' '+p.summary).toLowerCase().includes(q))results.push({type:'project',id:p.id,name:p.name})});
+    (data.workflows||[]).forEach(function(w){if((w.orchestrator+' '+w.task).toLowerCase().includes(q))results.push({type:'workflow',id:w.id,name:w.orchestrator+' · '+w.task})});
+    AGENTS.forEach(function(a){if((a.name+' '+a.group).toLowerCase().includes(q))results.push({type:'agent',id:a.id,name:a.name})});
+    searchItems=results.slice(0,8);$('searchResults').hidden=false;
+    $('searchResults').innerHTML=searchItems.map(function(x,i){return '<button class="search-hit" data-search-index="'+i+'">'+esc(x.name.slice(0,115))+'<small>'+esc(x.type)+'</small></button>'}).join('')||'<div class="search-empty">Nessun risultato nel riepilogo RADIX</div>';
+    document.querySelectorAll('[data-search-index]').forEach(function(el){el.addEventListener('click',function(){openSearchResult(searchItems[Number(el.getAttribute('data-search-index'))])})});
+  }
+  function openSearchResult(item){if(!item)return;$('searchResults').hidden=true;if(item.type==='project')openProject(item.id);else if(item.type==='workflow')openWorkflow(item.id);else openAgent(item.id)}
+  $('commandInput').addEventListener('input',function(e){if(data)doSearch(e.target.value)});
+  $('commandInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openSearchResult(searchItems[0])}if(e.key==='Escape'){$('searchResults').hidden=true;e.target.blur()}});
+  $('quickSearch').addEventListener('click',function(){$('commandInput').focus()});
+  $('quickReport').addEventListener('click',function(){setView('command');toast('Riepilogo workflow registrati')});
+  document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('commandInput').focus()}if(e.key==='Escape'){$('drawer').classList.remove('open');$('searchResults').hidden=true}});
+  $('voiceBtn').addEventListener('click',function(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Dettatura non disponibile in questo browser');return}var rec=new SR();rec.lang='it-IT';rec.interimResults=false;rec.onresult=function(ev){$('commandInput').value=ev.results[0][0].transcript;$('commandInput').focus();if(data)doSearch($('commandInput').value)};rec.onerror=function(){toast('Dettatura non riuscita')};rec.start();toast('RADIX sta ascoltando…')});
+  load();
+  setInterval(function(){if(document.visibilityState==='visible')load()},30000);
+})();
+</script>
+</body>
+</html>

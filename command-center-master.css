@@ -1,0 +1,80 @@
+/* Approved master: neutral black glass, emerald energy, readable hierarchy. */
+:root{--bg:#02090b;--bg2:#041014;--panel:#041115;--panel2:#07191e;--line:#133c3d;--line2:#1b5654;--text:#f1fafb;--muted:#9bb4bd;--muted2:#718c96;--green:#00eab5;--green2:#77ffe0}
+body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#02090b;color:var(--text)}
+.sidebar{background:linear-gradient(160deg,#020b0e,#020809);border-right-color:#103738}
+.brand-name{font-size:30px;letter-spacing:.12em;color:#f3ffff}
+.brand-name::first-letter{color:#76ffe2}
+.brand-sub{color:#76a7b1;letter-spacing:.18em}
+.brand-mark{border-color:#157c69;color:#00edbd;background:#04231e}
+.nav-item{font-size:13px;color:#a8bdc6;min-height:44px}
+.nav-item.active{color:#f0fffb;background:linear-gradient(90deg,#06342c,#031b19);border-color:#095449;box-shadow:inset 2px 0 #00eabd,0 0 20px #00eabd08}
+.topbar{background:#020c0ee8;border-bottom-color:#123436;box-shadow:none}
+.command{background:linear-gradient(120deg,#031615,#020b10);border-color:#0b6257;border-radius:12px}
+.command input{color:#e4f5f7;font-size:13px}
+.welcome-bar{background:linear-gradient(105deg,#031115,#031012);border-color:#10534d;border-radius:12px;box-shadow:none}
+.welcome-message h1{font-size:27px;letter-spacing:-.035em;color:#fff}
+.welcome-message p{color:#a4bdc5;font-size:13px}
+.metric{background:linear-gradient(135deg,#03171b,#041015);border-color:#164247;border-radius:10px}
+.metric-label{color:#b4ced3;letter-spacing:.07em}
+.metric-value{color:#ecffff;text-shadow:0 0 18px #00eab533}
+.panel,.side-stack .panel,.network-panel{background:linear-gradient(145deg,#031215,#020b0e);border:1px solid #10534e;border-radius:13px;box-shadow:inset 0 1px #8effd808,0 12px 40px #0003}
+.panel-head,.network-panel .panel-head,.side-stack .panel-head{background:transparent;border-bottom-color:#13413b66}
+.panel-title,.network-panel .panel-title,.side-stack .panel-title{font-size:13px;font-weight:600;letter-spacing:.015em;color:#eefbfc}
+.panel-meta{color:#91aab4}
+.network-panel .panel-meta{color:#9ab6bd}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,#00eabd0d,transparent 42%),#020c0f}
+.network-wrap::after{opacity:.18}
+.cluster-orbit{opacity:.62;stroke-width:.7;filter:none}
+.cluster-orbit.tilted{opacity:.28}
+.network-flow{stroke-width:.8;opacity:.75}
+.network-label strong{color:#f5feff;font-size:17px;line-height:1.25}
+.network-label small{color:#adced5;font-size:9px}
+.project-ring{filter:drop-shadow(0 0 7px var(--node-color))}
+.core-globe{filter:drop-shadow(0 0 20px #00eab5)}
+.core-ring{stroke:#86ffe2;stroke-width:1.7;filter:drop-shadow(0 0 12px #00ffd2)}
+.core-inner{stroke:#b7fff4;stroke-opacity:.12}
+.core-title{fill:#fff;font-weight:700;letter-spacing:.13em}
+.core-rays{fill:none;stroke:#00eab5;stroke-width:.65;opacity:.3;pointer-events:none}
+.network-caption,.legend{background:#021315dd;border-color:#15594e;color:#a3c8c8}
+#networkBreadcrumb,#projectTools{border-bottom-color:#13413b66;background:#031214}
+.team-grid{grid-template-columns:1fr;gap:6px}
+.team-card{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:10px 12px;min-height:0;background:linear-gradient(90deg,#07232a,#031216);border-color:#16444a}
+.team-title{font-size:12px;color:#f1faff}.team-count{grid-column:2;grid-row:1/3;font-size:22px;align-self:center;color:#70f6d4}
+.team-sub{font-size:10px;color:#a4c0c7}.team-status{grid-column:1/-1;font-size:9px;margin-top:4px;color:#8db4be}
+.workflow-card,.resource,.action,.attention-item{background:linear-gradient(110deg,#041b20,#031115);border-color:#15434a;border-radius:10px}
+.resource-name,.workflow-name,.action-title{color:#ecf9fb;font-size:12px}
+.resource-icon,.action-icon{color:#46e6d2;background:#07302e;border-color:#126557}
+.activity-text{color:#c6d9df}.activity-time{color:#88a9b4}
+@media(min-width:1181px){.dashboard-grid{grid-template-columns:minmax(0,2.3fr) minmax(300px,1fr)}.network-wrap{height:490px}.lower-grid{grid-template-columns:1.5fr 1.05fr 1.05fr .8fr}}
+@media(max-width:640px){.welcome-message h1{font-size:23px}.network-label strong{font-size:16px}.panel-title{font-size:12px}.team-card{padding:12px}}
+@media(prefers-contrast:more){.panel,.metric,.team-card{border-color:#5aaa9d}.panel-meta,.team-sub,.team-status{color:#d4e8ed}}
+/* Corrections verified in the first authenticated master pass. */
+.core-globe{fill:#031b18}
+.lower-grid{align-items:start}
+.lower-grid .panel{min-height:300px}
+.workflow-list{max-height:300px;overflow-y:auto}
+.team-grid{max-height:300px;overflow-y:auto}
+@media(min-width:1181px){.welcome-bar{min-height:100px;padding:14px 18px}.network-wrap{height:450px}}
+@media(max-width:640px){.workflow-list,.team-grid{max-height:none}.lower-grid .panel{min-height:0}}
+/* Close-up references: thin globe rim and individually responsive light beams. */
+.network-beam-halo{fill:none;stroke-width:3;opacity:.15;filter:blur(2px);pointer-events:none}
+.network-flow{stroke-dasharray:2 14;stroke-width:1;filter:drop-shadow(0 0 3px currentColor)}
+.core-globe{fill:#021713;filter:drop-shadow(0 0 16px #00eab5)}
+.core-ring{stroke-width:1;filter:drop-shadow(0 0 8px #00ffd2)}
+.core-rays{opacity:.17}
+.core-inner{stroke-opacity:.07}
+.network-panel .core-ring{fill:none;stroke-width:1;filter:drop-shadow(0 0 6px #00ffd2)}
+.network-panel .core-inner{fill:none;stroke-width:.6;stroke-opacity:.07}
+.network-target[data-network-type="root"]>circle:first-child{fill:none;stroke:#00eab5;stroke-width:.6;opacity:.12}
+.node-aura{opacity:.18;filter:blur(3px)}
+.network-target .project-ring{fill:var(--node-color);fill-opacity:.25;stroke-width:1.3}
+.network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
+.cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
+.network-label{padding-top:5px}
+@media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
+
+/* Configured roster satellites belong to the central RADIX team, not to a project. */
+.configured-satellite>circle:first-child{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
+.configured-satellite .satellite-hit{fill:transparent;stroke:none}
+.configured-satellite:hover>circle:first-child,.configured-satellite:focus>circle:first-child{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
+.network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
