@@ -521,7 +521,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   }
   function renderProjects(){
     var projects=data.projects||[];
-    $('projectList').innerHTML=projects.slice(0,7).map(function(p){return '<div class="project-mini '+(p.active?'active':'')+'" data-project="'+esc(p.id)+'"><i class="project-dot"></i><span>'+esc(p.name)+'</span></div>'}).join('') || '<div class="project-mini"><i class="project-dot"></i><span>Nessun progetto</span></div>';
+    $('projectList').innerHTML=projects.slice(0,7).map(function(p){return '<div class="project-mini '+(p.active?'active':'')+'" data-project="'+esc(p.id)+'"><i class="project-dot"></i><span>'+esc(p.name)+'</span></div>'}).join('')+'<a class="project-mini" href="./agency/index.html" style="text-decoration:none;color:inherit" aria-label="Apri RADIX Agency"><i class="project-dot"></i><span>RADIX Agency ↗</span></a>';
     document.querySelectorAll('[data-project]').forEach(function(el){el.addEventListener('click',function(){var id=el.getAttribute('data-project');var p=projects.find(function(x){return x.id===id});enterProject(id);renderProjects()})})
   }
   function activeStatus(id){return data.agentStatus&&data.agentStatus[id]||{status:'idle',task:''}}
@@ -532,7 +532,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     return layouts[Math.max(1,Math.min(4,count))];
   }
   function orderedProjects(){
-    var ps=(data.projects||[]).slice();var preferred=['aura','doc capital','personal brand','gcp'];
+    var ps=(data.projects||[]).slice();
+    if(!ps.some(function(p){return String(p.id)==='radix-agency'}))ps.push({id:'radix-agency',name:'RADIX Agency',kind:'Design preview',summary:'Marketing Agency · 13 divisioni · workspace di progettazione',agencyPreview:true});var preferred=['aura','doc capital','personal brand','gcp'];
     ps.sort(function(a,b){var ia=preferred.indexOf(String(a.name||'').toLowerCase()),ib=preferred.indexOf(String(b.name||'').toLowerCase());return (ia<0?100:ia)-(ib<0?100:ib)});
     return ps;
   }
@@ -594,7 +595,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
       function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
         if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
-        if(type==='project'){enterProject(item.id);return}
+        if(type==='project'){if(item&&item.agencyPreview){location.href='./agency/index.html';return}enterProject(item.id);return}
         if(type==='satellite'){focusedProjectId=el.getAttribute('data-network-project');resetNetworkCamera()}
         networkDetail=item;renderNetwork();openWorkflow(item.workflow.id);
         if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'}
@@ -622,7 +623,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(!projects.length)html+='<div class="empty-state"><b>Nessun progetto registrato</b>I progetti del workspace appariranno qui.</div>';
     $('projectView').innerHTML=html+'</div>';
     $('projectView').querySelectorAll('[data-project-list]').forEach(function(el){
-      el.addEventListener('click',function(){enterProject(el.getAttribute('data-project-list'))});
+      el.addEventListener('click',function(){var id=el.getAttribute('data-project-list');if(id==='radix-agency'){location.href='./agency/index.html';return}enterProject(id)});
     });
     // Preserve keyboard focus when the project list refreshes during polling.
     if(renderProjectView._focusId){
@@ -639,6 +640,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     document.querySelectorAll('[data-command-flow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-command-flow'))})});
   }
   function openProject(id){
+    if(String(id)==='radix-agency'){location.href='./agency/index.html';return}
     var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;
     $('drawerTitle').textContent=p.name;
     $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
