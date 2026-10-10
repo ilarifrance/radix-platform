@@ -105,3 +105,6 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .satellite-tether{stroke-width:.65;opacity:.38;pointer-events:none;filter:drop-shadow(0 0 2px var(--node-color))}
 .scene-satellite:hover .satellite-tether,.scene-satellite:focus-visible .satellite-tether{opacity:.85;stroke-width:1}
 @media(max-width:640px){.network-panel:not(.network-expanded) .network-wrap{height:300px}}
+
+/* Saved workflow groups: counts are tasks, never a claim of active agents. */
+.satellite-count{font:600 10px Inter,system-ui,sans-serif;fill:#e0f9ed;paint-order:stroke;stroke:#020b08;stroke-width:3px;stroke-linejoin:round;pointer-events:none}

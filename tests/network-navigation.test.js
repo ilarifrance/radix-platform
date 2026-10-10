@@ -59,7 +59,7 @@ test('attributed satellite opens its actual task and project with safe SVG label
  const {context,svg,elements}=networkHarness([{id:'a',name:'<img onerror=alert(1)>'}],[{id:'w',projectId:'a',orchestrator:'Workflow',nodes:[{id:'task',label:'<script>bad</script>',status:'pending',subtask:'Actual task'}]}]);
  context.renderNetwork();assert.ok(!svg.innerHTML.includes('<img'));assert.ok(!svg.innerHTML.includes('<script>'));
  const workflow=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite');
- workflow.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.networkDetail.id,'task');assert.equal(context.openedWorkflow,'w');
+ workflow.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.networkDetail.id,'w');assert.equal(context.openedWorkflow,'w');
  const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'task');assert.ok(elements.drawerBody.innerHTML.includes('Actual task'));
 });
 test('focused map includes over one hundred tasks and shows truthful empty state',()=>{
@@ -85,10 +85,13 @@ test('satellites orbit only their owning project and never show unassigned catal
  const {context,svg}=networkHarness([{id:'a',name:'Aura'},{id:'b',name:'Doc'}],[{id:'w',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:'t'+i,label:'Actual task '+i,status:'pending'}))},{id:'unowned',nodes:[{id:'wrong',label:'Unassigned task'}]}]);
  context.AGENTS=[{id:'copywriter',name:'Copywriter',group:'Marketing'}];context.renderNetwork();
  assert.equal((svg.innerHTML.match(/data-network-type="configured-agent"/g)||[]).length,0);
- assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,100);
- assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,100);
+ assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,1);
+ assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,1);
  assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,0);
  assert.ok(!svg.innerHTML.includes('Unassigned task'));
+ assert.ok(svg.innerHTML.includes('100 attività'));
+ svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite').click();
+ assert.equal(context.workflowTasks(context.networkDetail.workflow).length,100);
 });
 
 test('confirmed shared workflows appear around every project without changing stored ownership or status',()=>{
@@ -97,10 +100,11 @@ test('confirmed shared workflows appear around every project without changing st
  context.data.workspace={sharedWorkflowCatalog:true};context.renderNetwork();
  assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,2);
  assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,1);
- assert.ok(svg.innerHTML.includes('Actual task · condivisa'));
+ assert.ok(svg.innerHTML.includes('Team workflow · condiviso · 1 attività'));
  assert.equal(context.projectItems('b')[0].workflow,original);
  assert.equal(original.projectId,undefined);assert.equal(original.status,'done');
  assert.equal(context.projectItems('unknown').length,0);
  const node=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite'&&el.getAttribute('data-network-project')==='b');
- node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'real-task');
+ node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'shared');
+ const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'real-task');assert.equal(context.networkDetail.node,original.nodes[0]);
 });
