@@ -300,6 +300,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 </style>
 <link rel="stylesheet" href="./command-center-visual-pass-15.css">
 <link rel="stylesheet" href="./command-center-network-refinement.css">
+<link rel="stylesheet" href="./command-center-master.css">
 </head>
 <body>
 <div class="app loading" id="app">
@@ -560,7 +561,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('expandNetwork').setAttribute('aria-pressed',String(expanded));
     $('expandNetwork').setAttribute('aria-label',expanded?'Riduci la mappa':'Espandi la mappa');
     document.body.classList.toggle('network-expanded-active',expanded);
-    resetNetworkCamera();
+    resetNetworkCamera();networkPage=0;renderNetwork();
   }
   $('expandNetwork').addEventListener('click',function(){setNetworkExpanded(!$('networkPanel').classList.contains('network-expanded'))});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('networkPanel').classList.contains('network-expanded')){setNetworkExpanded(false);$('expandNetwork').focus()}});
@@ -578,7 +579,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
     if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:'Attività senza progetto'};
     if(!focused){focusedProjectId=null;networkDetail=null}
-    var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#177b4e"/><stop offset="1" stop-color="#04120b"/></radialGradient></defs>';
+    var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#123e39"/><stop offset=".7" stop-color="#021915"/><stop offset="1" stop-color="#1ef4c0"/></radialGradient></defs>';
     var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
     var edges='',hubs='',orbits='',entries=[];
     function hub(x,y,label,color,key,type,status){
@@ -588,7 +589,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }
     var visible=focused?projectItems(focused.id):projects;
     if(networkDetail){var current=(data.workflows||[]).find(function(w){return w.id===networkDetail.workflow.id});if(current){networkDetail.workflow=current;visible=networkDetail.node?[networkDetail]:workflowTasks(current)}else networkDetail=null}
-    var allVisible=visible.slice(),pages=Math.max(1,Math.ceil(visible.length/8));networkPage=Math.min(networkPage,pages-1);visible=visible.slice(networkPage*8,networkPage*8+8);
+    var allVisible=visible.slice(),pageSize=$('networkPanel').classList.contains('network-expanded')?Math.max(1,visible.length):8,pages=Math.max(1,Math.ceil(visible.length/pageSize));networkPage=Math.min(networkPage,pages-1);visible=visible.slice(networkPage*pageSize,networkPage*pageSize+pageSize);
     var extra=Math.max(0,Math.ceil(visible.length/10)-1);svg.setAttribute('viewBox',(-extra*160-30)+' '+(-extra*110-30)+' '+(960+extra*320)+' '+(554+extra*220));
     visible.forEach(function(item,i){
       var c;if(!focused&&projects.length<=4)c=projectSlots(projects.length)[i];
@@ -605,7 +606,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       }
       var key=entries.length;hubs+=hub(c.x,c.y,label,color,String(key),focused?'item':'project',item.status);entries.push(item);
     });
-    var core='<g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
+    var rays='';for(var k=0;k<32;k++){var theta=k*Math.PI/16,radius=95+(k%5)*13;rays+='<path d="M'+(450+Math.cos(theta)*63)+' '+(245+Math.sin(theta)*63)+' L'+(450+Math.cos(theta)*radius)+' '+(245+Math.sin(theta)*radius)+'"/>'}
+    var core='<g class="core-rays" aria-hidden="true">'+rays+'</g><g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-globe" cx="450" cy="245" r="59" fill="url(#coreGradient)"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
     if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
     if(!focused&&unassigned.length){var globalKey=entries.length;entries.push({id:UNASSIGNED,name:'Attività senza progetto'});hubs+='<g class="network-target unassigned-node" role="button" tabindex="0" data-network-type="project" data-network-key="'+globalKey+'" aria-label="Attività senza progetto · '+unassigned.length+' workflow"><rect x="320" y="475" width="260" height="35" rx="12"/><text x="450" y="497" text-anchor="middle">Attività senza progetto · '+unassigned.length+' workflow ↗</text></g>'}
     svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core;

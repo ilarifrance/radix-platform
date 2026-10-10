@@ -25,7 +25,7 @@ test('expanded network updates accessible state and resets camera',()=>{
  const toggle=(set,key,on)=>on?set.add(key):set.delete(key);
  const elements={networkPanel:{classList:{toggle:(key,on)=>toggle(classSet,key,on)}},expandNetwork:{setAttribute:(key,value)=>attributes[key]=value}};
  let resets=0;
- const context={$:id=>elements[id],document:{body:{classList:{toggle:(key,on)=>toggle(bodySet,key,on)}}},resetNetworkCamera:()=>resets++};
+ const context={$:id=>elements[id],document:{body:{classList:{toggle:(key,on)=>toggle(bodySet,key,on)}}},resetNetworkCamera:()=>resets++,renderNetwork(){},networkPage:0};
  vm.createContext(context);
  const start=script.indexOf('  function setNetworkExpanded('),end=script.indexOf('\n  }',start)+4;
  vm.runInContext(script.slice(start,end),context);
@@ -35,7 +35,7 @@ test('expanded network updates accessible state and resets camera',()=>{
 function networkHarness(projects,workflows){
  const elements={};
  const get=id=>elements[id]||(elements[id]={innerHTML:'',textContent:'',hidden:false,querySelectorAll:()=>[]});
- const svg=get('networkSvg');get('networkMobileList');svg.setAttribute=(k,v)=>{svg[k]=v};
+ get('networkPanel').classList={contains:()=>false};const svg=get('networkSvg');get('networkMobileList');svg.setAttribute=(k,v)=>{svg[k]=v};
  let cachedMarkup=null,cachedTargets=[];
  svg.querySelectorAll=selector=>{
   if(selector!== '[data-network-type]')return [];
@@ -72,4 +72,11 @@ test('pointer-centred zoom keeps the world point under the pointer',()=>{
  const start=script.indexOf('  function zoomAt('),end=script.indexOf('\n  }',start)+4;vm.runInContext(script.slice(start,end),context);
  const worldX=(150-context.pan.x)/context.zoom,worldY=(70-context.pan.y)/context.zoom;
  context.zoomAt(2,150,70);assert.equal((150-context.pan.x)/context.zoom,worldX);assert.equal((70-context.pan.y)/context.zoom,worldY);
+});
+test('expanded map renders every workflow task without pagination',()=>{
+ const {context,svg,elements}=networkHarness([{id:'a',name:'A'}],[{id:'w',projectId:'a',nodes:Array.from({length:120},(_,i)=>({id:'n'+i,label:'Task '+i,status:'done'}))}]);
+ elements.networkPanel.classList.contains=()=>true;
+ context.focusedProjectId='a';context.networkDetail={id:'w',workflow:context.data.workflows[0]};context.renderNetwork();
+ assert.equal((svg.innerHTML.match(/data-network-type="item"/g)||[]).length,120);
+ assert.ok(!elements.networkBreadcrumb.innerHTML.includes('data-page'));
 });
