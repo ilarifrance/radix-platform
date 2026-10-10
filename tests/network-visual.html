@@ -17,6 +17,13 @@
     const data={user:{name:'QA visivo'},workspace:{updatedAt:'2026-01-01T00:00:00Z',updatedBy:'fixture'},projects,workflows,agentStatus:{},attention:[],activity:[],approvals:[],approvalsSupported:false,metrics:{projects:4,activeWorkflows:0,approvals:0},dataQuality:{realtimeExecutionVerified:false}};
     script.textContent=script.textContent.replace(startup,"  data="+JSON.stringify(data)+"; render(); $('systemStatus').textContent='QA · DATI SINTETICI'; $('app').classList.remove('loading');");
     const base=doc.createElement('base');base.href=new URL('../',location.href).href;doc.head.prepend(base);
+    // Inline the production CSS for reliable srcdoc rendering; no styles are duplicated here.
+    for(const link of doc.querySelectorAll('link[rel="stylesheet"]')){
+      const url=new URL(link.getAttribute('href'),base.href);
+      if(url.origin!==location.origin){link.remove();continue}
+      const css=await fetch(url);if(!css.ok)throw new Error('CSS di test non disponibile');
+      const style=doc.createElement('style');style.textContent=await css.text();link.replaceWith(style);
+    }
     document.getElementById('fixture').srcdoc='<!doctype html>'+doc.documentElement.outerHTML;
   }catch(e){const box=document.getElementById('error');box.hidden=false;box.textContent=e.message}
 })();
