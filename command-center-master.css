@@ -91,3 +91,5 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-wrap::after{display:none}
 @media(min-width:1181px){.network-wrap{height:510px}}
 @media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite{animation:none!important;transition:none!important}}
+.mobile-agent-roster summary{padding:12px;color:#bef5e4;cursor:pointer;min-height:44px;box-sizing:border-box}
+.mobile-agent-roster button{width:100%;margin-bottom:6px}
