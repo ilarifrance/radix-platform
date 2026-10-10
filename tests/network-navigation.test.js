@@ -59,7 +59,7 @@ test('attributed satellite opens its actual task and project with safe SVG label
  const {context,svg,elements}=networkHarness([{id:'a',name:'<img onerror=alert(1)>'}],[{id:'w',projectId:'a',orchestrator:'Workflow',nodes:[{id:'task',label:'<script>bad</script>',status:'pending',subtask:'Actual task'}]}]);
  context.renderNetwork();assert.ok(!svg.innerHTML.includes('<img'));assert.ok(!svg.innerHTML.includes('<script>'));
  const workflow=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite');
- workflow.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.networkDetail.id,'w');assert.equal(context.openedWorkflow,'w');
+ workflow.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.networkDetail.id,'task');assert.equal(context.openedWorkflow,'w');
  const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'task');assert.ok(elements.drawerBody.innerHTML.includes('Actual task'));
 });
 test('focused map includes over one hundred tasks and shows truthful empty state',()=>{
@@ -81,12 +81,12 @@ test('expanded map renders every workflow task without pagination',()=>{
  assert.ok(!elements.networkBreadcrumb.innerHTML.includes('data-page'));
 });
 
-test('configured roster satellites remain central and open actual agent details',()=>{
- const {context,svg}=networkHarness([{id:'a',name:'Aura'}],[]);
- context.AGENTS=[{id:'copywriter',name:'Copywriter',group:'Marketing'},{id:'legal',name:'Legal',group:'Legal'}];
- context.openAgent=id=>{context.openedAgent=id};context.renderNetwork();
- assert.equal((svg.innerHTML.match(/data-network-type="configured-agent"/g)||[]).length,2);
- assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,0);
- svg.querySelectorAll('[data-network-type]').find(x=>x.getAttribute('data-agent-id')==='copywriter').click();
- assert.equal(context.openedAgent,'copywriter');assert.equal(context.focusedProjectId,null);
+test('satellites orbit only their owning project and never show unassigned catalog agents',()=>{
+ const {context,svg}=networkHarness([{id:'a',name:'Aura'},{id:'b',name:'Doc'}],[{id:'w',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:'t'+i,label:'Actual task '+i,status:'pending'}))},{id:'unowned',nodes:[{id:'wrong',label:'Unassigned task'}]}]);
+ context.AGENTS=[{id:'copywriter',name:'Copywriter',group:'Marketing'}];context.renderNetwork();
+ assert.equal((svg.innerHTML.match(/data-network-type="configured-agent"/g)||[]).length,0);
+ assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,100);
+ assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,100);
+ assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,0);
+ assert.ok(!svg.innerHTML.includes('Unassigned task'));
 });
