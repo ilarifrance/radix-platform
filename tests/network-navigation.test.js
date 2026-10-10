@@ -7,7 +7,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 test('cockpit JavaScript parses',()=>assert.doesNotThrow(()=>new vm.Script(script)));
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 test('project map requires explicit workflow ownership and includes every task',()=>{
- const context={UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};
+ const context={AGENTS:[],UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};
  vm.createContext(context);vm.runInContext(functionSource('projectItems')+functionSource('workflowTasks'),context);
  assert.equal(context.projectItems('a').length,1);
  assert.equal(context.workflowTasks(context.projectItems('a')[0].workflow).length,100);
@@ -45,7 +45,7 @@ function networkHarness(projects,workflows){
    return {getAttribute:key=>attributes[key],addEventListener(key,fn){this[key]=fn},focus(){}};
   });
  };
- const context={UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id}};
+ const context={AGENTS:[],UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id}};
  vm.createContext(context);
  for(const name of ['esc','projectPalette','projectColor','projectRank','projectSlots','orderedProjects','projectItems','workflowTasks','networkPosition','renderNetwork'])vm.runInContext(functionSource(name),context);
  return {context,svg,elements};
@@ -79,4 +79,14 @@ test('expanded map renders every workflow task without pagination',()=>{
  context.focusedProjectId='a';context.networkDetail={id:'w',workflow:context.data.workflows[0]};context.renderNetwork();
  assert.equal((svg.innerHTML.match(/data-network-type="item"/g)||[]).length,120);
  assert.ok(!elements.networkBreadcrumb.innerHTML.includes('data-page'));
+});
+
+test('configured roster satellites remain central and open actual agent details',()=>{
+ const {context,svg}=networkHarness([{id:'a',name:'Aura'}],[]);
+ context.AGENTS=[{id:'copywriter',name:'Copywriter',group:'Marketing'},{id:'legal',name:'Legal',group:'Legal'}];
+ context.openAgent=id=>{context.openedAgent=id};context.renderNetwork();
+ assert.equal((svg.innerHTML.match(/data-network-type="configured-agent"/g)||[]).length,2);
+ assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,0);
+ svg.querySelectorAll('[data-network-type]').find(x=>x.getAttribute('data-agent-id')==='copywriter').click();
+ assert.equal(context.openedAgent,'copywriter');assert.equal(context.focusedProjectId,null);
 });

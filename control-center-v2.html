@@ -607,11 +607,16 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       }
       var key=entries.length;hubs+=hub(c.x,c.y,label,color,String(key),focused?'item':'project',item.status);entries.push(item);
     });
-    var rays='';for(var k=0;k<32;k++){var theta=k*Math.PI/16,radius=95+(k%5)*13;rays+='<path d="M'+(450+Math.cos(theta)*63)+' '+(245+Math.sin(theta)*63)+' L'+(450+Math.cos(theta)*radius)+' '+(245+Math.sin(theta)*radius)+'"/>'}
+    var rays='';for(var k=0;k<48;k++){var theta=k*Math.PI/24,radius=104+(k%7)*12,bend=theta+.22;rays+='<path d="M'+(450+Math.cos(theta)*60)+' '+(245+Math.sin(theta)*60)+' Q'+(450+Math.cos(bend)*90)+' '+(245+Math.sin(bend)*90)+' '+(450+Math.cos(theta)*radius)+' '+(245+Math.sin(theta)*radius)+'"/>'}
     var core='<g class="core-rays" aria-hidden="true">'+rays+'</g><g class="network-target" role="button" tabindex="0" data-network-type="root" aria-label="Torna alla mappa RADIX"><circle cx="450" cy="245" r="76" fill="url(#coreGradient)" opacity=".35"/><circle class="core-globe" cx="450" cy="245" r="59" fill="url(#coreGradient)"/><circle class="core-ring" cx="450" cy="245" r="59"/><circle class="core-inner" cx="450" cy="245" r="49"/><text class="core-title" x="450" y="245" text-anchor="middle" style="font-size:19px">RADIX</text><text class="core-sub" x="450" y="264" text-anchor="middle">'+(focused?'PROJECT VIEW':'CORE')+'</text></g>';
     if(focused&&!visible.length)hubs='<text x="450" y="355" text-anchor="middle" fill="#b3d6c4" font-size="13">Nessuna assegnazione registrata</text><text x="450" y="378" text-anchor="middle" fill="#739887" font-size="11">I workflow privi di progetto restano nella vista Command.</text>';
     if(!focused&&unassigned.length){var globalKey=entries.length;entries.push({id:UNASSIGNED,name:'Attività senza progetto'});hubs+='<g class="network-target unassigned-node" role="button" tabindex="0" data-network-type="project" data-network-key="'+globalKey+'" aria-label="Attività senza progetto · '+unassigned.length+' workflow"><rect x="320" y="475" width="260" height="35" rx="12"/><text x="450" y="497" text-anchor="middle">Attività senza progetto · '+unassigned.length+' workflow ↗</text></g>'}
-    svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core;
+    var configuredSatellites='';
+    if(!focused)AGENTS.forEach(function(agent,i){
+      var angle=i*2*Math.PI/AGENTS.length,rx=103+(i%3)*16,ry=76+(i%3)*12,x=450+Math.cos(angle)*rx,y=245+Math.sin(angle)*ry;
+      configuredSatellites+='<g class="network-target configured-satellite" role="button" tabindex="0" data-network-type="configured-agent" data-agent-id="'+esc(agent.id)+'" aria-label="'+esc(agent.name+' · agent configurato · non assegnato al progetto')+'"><title>'+esc(agent.name+' · '+agent.group+' · configurato, assegnazione non registrata')+'</title><circle cx="'+x+'" cy="'+y+'" r="'+(i%4===0?4.5:3)+'"/><circle class="satellite-hit" cx="'+x+'" cy="'+y+'" r="10"/></g>';
+    });
+    svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core+configuredSatellites;
     var mobile=$('networkMobileList');if(!mobile){mobile=document.createElement('div');mobile.id='networkMobileList';$('networkWrap').appendChild(mobile)}
     mobile.innerHTML=allVisible.map(function(item,i){return '<button data-mobile-index="'+i+'">'+esc(focused?item.label:item.name)+'<small>'+(focused?esc(item.status):'Profilo progetto')+'</small></button>'}).join('');
     mobile.querySelectorAll('button').forEach(function(button){button.onclick=function(){var item=allVisible[Number(button.dataset.mobileIndex)];if(!focused)enterProject(item.id);else activateItem(item)}});
@@ -620,6 +625,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     svg.querySelectorAll('.network-cluster').forEach(function(cluster){cluster.addEventListener('pointerenter',function(){cluster.classList.add('cluster-hover')});cluster.addEventListener('pointerleave',function(){cluster.classList.remove('cluster-hover')})});
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
       function activate(){var type=el.getAttribute('data-network-type'),item=entries[Number(el.getAttribute('data-network-key'))];
+        if(type==='configured-agent'){openAgent(el.getAttribute('data-agent-id'));return}
         if(type==='root'){focusedProjectId=null;networkDetail=null;resetNetworkCamera();renderNetwork();return}
         if(type==='project'){enterProject(item.id);return}
         if(type==='satellite'){focusedProjectId=el.getAttribute('data-network-project');resetNetworkCamera()}

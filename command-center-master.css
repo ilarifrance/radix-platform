@@ -72,3 +72,9 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
 .network-label{padding-top:5px}
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
+
+/* Configured roster satellites belong to the central RADIX team, not to a project. */
+.configured-satellite>circle:first-child{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
+.configured-satellite .satellite-hit{fill:transparent;stroke:none}
+.configured-satellite:hover>circle:first-child,.configured-satellite:focus>circle:first-child{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
+.network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
