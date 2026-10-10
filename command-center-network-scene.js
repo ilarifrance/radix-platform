@@ -34,6 +34,8 @@
         var p=orbitPoint(o,reduced.matches?0:o.time);
         o.el.setAttribute('transform','translate('+p.x+' '+p.y+') scale('+p.scale+')');
         o.el.style.opacity=p.opacity;
+        var tether=o.el.querySelector('.satellite-tether');
+        if(tether){var dx=(o.x-p.x)/p.scale,dy=(o.y-p.y)/p.scale;tether.setAttribute('d','M0 0 Q'+(dx*.5-dy*.12)+' '+(dy*.5+dx*.12)+' '+dx+' '+dy)}
       });
       if(!Number.isFinite(drawn.x)||Math.abs(pointer.x-drawn.x)+Math.abs(pointer.y-drawn.y)>.0002){
         beams.forEach(function(b){b.el.setAttribute('d',beamPath(b.x,b.y,b.r,b.bend,pointer.x,pointer.y))});

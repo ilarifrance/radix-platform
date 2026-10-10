@@ -101,3 +101,7 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 
 /* Keep the geometric identity when hosted font loading is unavailable. */
 .brand-mark,.brand-name,h1,.metric-value,.core-title,.team-count,.drawer-title,.fatal-card h2,.project-name{font-family:"Space Grotesk",Inter,system-ui,sans-serif}
+
+.satellite-tether{stroke-width:.65;opacity:.38;pointer-events:none;filter:drop-shadow(0 0 2px var(--node-color))}
+.scene-satellite:hover .satellite-tether,.scene-satellite:focus-visible .satellite-tether{opacity:.85;stroke-width:1}
+@media(max-width:640px){.network-panel:not(.network-expanded) .network-wrap{height:300px}}

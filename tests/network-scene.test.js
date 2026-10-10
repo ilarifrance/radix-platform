@@ -26,11 +26,17 @@ test('different project bundles retain distinct curves without invalid coordinat
 test('reduced motion creates a static scene without scheduling animation frames',()=>{
   const source=require('node:fs').readFileSync('command-center-network-scene.js','utf8');
   const vm=require('node:vm');let scheduled=0;
+  const tether={setAttribute(k,v){this[k]=v}};
   const media={matches:true,addEventListener(){},removeEventListener(){}};
-  const node={getAttribute:k=>({'data-orbit-x':450,'data-orbit-y':245,'data-orbit-rx':110,'data-orbit-ry':64,'data-orbit-phase':1,'data-orbit-tilt':-19,'data-orbit-speed':.1}[k]),matches:()=>false,closest:()=>null,style:{},setAttribute(k,v){this[k]=v}};
+  const node={getAttribute:k=>({'data-orbit-x':450,'data-orbit-y':245,'data-orbit-rx':110,'data-orbit-ry':64,'data-orbit-phase':1,'data-orbit-tilt':-19,'data-orbit-speed':.1}[k]),matches:()=>false,closest:()=>null,querySelector:()=>tether,style:{},setAttribute(k,v){this[k]=v}};
   const svg={style:{},closest:()=>null,querySelectorAll:s=>s==='[data-orbit-x]'?[node]:[]};
   const wrap={addEventListener(){},removeEventListener(){}};
   const ctx={window:{matchMedia:()=>media},document:{hidden:false,addEventListener(){},removeEventListener(){}},MutationObserver:class{observe(){}disconnect(){}},requestAnimationFrame(){scheduled++;return 1},cancelAnimationFrame(){}};
   vm.createContext(ctx);vm.runInContext(source,ctx);const controller=ctx.window.RadixNetworkScene.attach(svg,wrap);
-  assert.equal(scheduled,0);assert.ok(node.transform.startsWith('translate('));assert.equal(svg.style.transform,'');controller.destroy();
+  assert.equal(scheduled,0);assert.ok(node.transform.startsWith('translate('));assert.equal(svg.style.transform,'');
+  const point=scene.orbitPoint({x:450,y:245,rx:110,ry:64,phase:1,tilt:-19,speed:.1},0);
+  const coords=tether.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+  assert.ok(Math.abs(point.x+coords.at(-2)*point.scale-450)<1e-9);
+  assert.ok(Math.abs(point.y+coords.at(-1)*point.scale-245)<1e-9);
+  controller.destroy();
 });
