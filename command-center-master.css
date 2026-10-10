@@ -56,3 +56,16 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .team-grid{max-height:300px;overflow-y:auto}
 @media(min-width:1181px){.welcome-bar{min-height:100px;padding:14px 18px}.network-wrap{height:450px}}
 @media(max-width:640px){.workflow-list,.team-grid{max-height:none}.lower-grid .panel{min-height:0}}
+/* Close-up references: thin globe rim and individually responsive light beams. */
+.network-beam-halo{fill:none;stroke-width:3;opacity:.15;filter:blur(2px);pointer-events:none}
+.network-flow{stroke-dasharray:2 14;stroke-width:1;filter:drop-shadow(0 0 3px currentColor)}
+.core-globe{fill:#021713;filter:drop-shadow(0 0 16px #00eab5)}
+.core-ring{stroke-width:1;filter:drop-shadow(0 0 8px #00ffd2)}
+.core-rays{opacity:.17}
+.core-inner{stroke-opacity:.07}
+.node-aura{opacity:.18;filter:blur(3px)}
+.network-target .project-ring{fill:var(--node-color);fill-opacity:.25;stroke-width:1.3}
+.network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
+.cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
+.network-label{padding-top:5px}
+@media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
