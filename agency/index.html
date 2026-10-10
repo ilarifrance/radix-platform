@@ -38,7 +38,8 @@
   function showOverview(){location.hash='';render()}
   function render(){
     if(!catalog)return;
-    var id=decodeURIComponent(location.hash.slice(1)),d=catalog.divisions.find(function(x){return x.id===id});
+    var id='';try{id=decodeURIComponent(location.hash.slice(1))}catch(err){id=''}
+    var d=catalog.divisions.find(function(x){return x.id===id});
     overview.hidden=!!d;detail.classList.toggle('open',!!d);$('crumb').textContent=d?d.label:'Overview';$('sectionHeading').textContent=d?'Divisione / '+d.label:'Divisioni operative';$('sectionHint').textContent=d?'Workflow e competenze pianificate, senza azioni esterne.':'Seleziona una divisione per esplorare workflow, deliverable e ruoli AI.';
     if(d){$('detailTitle').textContent=d.label;$('detailDescription').textContent=d.description;$('detailType').textContent='Agency / '+d.id;
       $('stages').replaceChildren();d.stages.forEach(function(s,i){var n=el('div','step');n.append(el('strong','',String(i+1).padStart(2,'0')+' / STEP'),el('span','',s));$('stages').append(n)});
