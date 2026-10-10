@@ -7,7 +7,7 @@ const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 test('cockpit JavaScript parses',()=>assert.doesNotThrow(()=>new vm.Script(script)));
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 test('project map requires explicit workflow ownership and includes every task',()=>{
- const context={AGENTS:[],UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};
+ const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};
  vm.createContext(context);vm.runInContext(functionSource('projectItems')+functionSource('workflowTasks'),context);
  assert.equal(context.projectItems('a').length,1);
  assert.equal(context.workflowTasks(context.projectItems('a')[0].workflow).length,100);
@@ -45,7 +45,7 @@ function networkHarness(projects,workflows){
    return {getAttribute:key=>attributes[key],addEventListener(key,fn){this[key]=fn},focus(){}};
   });
  };
- const context={AGENTS:[],UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id}};
+ const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id}};
  vm.createContext(context);
  for(const name of ['esc','projectPalette','projectColor','projectRank','projectSlots','orderedProjects','projectItems','workflowTasks','networkPosition','renderNetwork'])vm.runInContext(functionSource(name),context);
  return {context,svg,elements};

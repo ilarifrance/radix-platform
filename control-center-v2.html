@@ -424,6 +424,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 <div class="toast" id="toast"></div>
 <div class="fatal" id="fatal"><div class="fatal-card"><h2>Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><a href="/index.html">Vai al login / workspace</a></div></div>
 
+<script src="command-center-network-scene.js"></script>
 <script>
 (function(){
   'use strict';
@@ -579,7 +580,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
     if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:'Attività senza progetto'};
     if(!focused){focusedProjectId=null;networkDetail=null}
-    var defs='<defs><radialGradient id="coreGradient"><stop stop-color="#123e39"/><stop offset=".7" stop-color="#021915"/><stop offset="1" stop-color="#1ef4c0"/></radialGradient></defs>';
+    var defs='<defs><radialGradient id="coreGradient" cx="35%" cy="28%" r="75%"><stop stop-color="#0b4c3e"/><stop offset=".38" stop-color="#05251e"/><stop offset=".85" stop-color="#010e0c"/><stop offset="1" stop-color="#0a5946"/></radialGradient><radialGradient id="sphereLight" cx="30%" cy="24%"><stop stop-color="#ffffff" stop-opacity=".72"/><stop offset=".35" stop-color="#ffffff" stop-opacity=".09"/><stop offset="1" stop-color="#020b10"/></radialGradient></defs>';
     var stars='';for(var i=0;i<110;i++)stars+='<circle cx="'+((i*233+71)%900)+'" cy="'+((i*167+47)%494)+'" r=".8" fill="#1bf49b" opacity=".35"/>';
     var edges='',hubs='',orbits='',entries=[];
     function hub(x,y,label,color,key,type,status){
@@ -595,13 +596,18 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       var c;if(!focused&&visible.length<=5)c=i<4?projectSlots(4)[i]:{x:450,y:48};
       else c=networkPosition(i,visible.length);
       var color=focused?projectColor(focused,projects.indexOf(focused)):projectColor(item,i),label=String(focused?item.label:item.name||item.id);
-      var beam='M450 245 Q'+c.x+' 245 '+c.x+' '+c.y;
-      edges+='<path class="network-beam-halo" data-beam-x="'+c.x+'" data-beam-y="'+c.y+'" d="'+beam+'" stroke="'+color+'"/><path class="network-flow" data-beam-x="'+c.x+'" data-beam-y="'+c.y+'" d="'+beam+'" fill="none" stroke="'+color+'" opacity=".55"/>';
+      var nodeRadius=!focused&&/aura/i.test(label)?24:18;
+      [-26,-13,0,13,26].forEach(function(bend,j){
+        var beam=RadixNetworkScene.beamPath(c.x,c.y-15,nodeRadius,bend,0,0);
+        var attrs=' data-beam-x="'+c.x+'" data-beam-y="'+(c.y-15)+'" data-beam-radius="'+nodeRadius+'" data-beam-bend="'+bend+'"';
+        edges+='<path class="network-beam-filament"'+attrs+' d="'+beam+'" stroke="'+color+'" style="--beam-delay:'+(-j*.7)+'s"/>';
+        if(j===2)edges+='<path class="network-beam-halo"'+attrs+' d="'+beam+'" stroke="'+color+'"/><path class="network-flow"'+attrs+' d="'+beam+'" stroke="'+color+'"/>';
+      });
       if(!focused){
         orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate('+(i%2===0?-19:16)+' '+c.x+' '+c.y+')"/>';
         var items=projectItems(item.id);
         items.forEach(function(child,j){var angle=2*Math.PI*j/items.length+.28*(j%3),ax=c.x+Math.cos(angle)*(100+(j%3)*9),ay=c.y+Math.sin(angle)*(58+(j%2)*9),key=entries.length;entries.push(child);
-          orbits+='<g class="network-target satellite orbital-satellite" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="0" cy="0" r="6" fill="#082019" stroke="'+color+'"/><circle cx="0" cy="0" r="2" fill="'+color+'"/></g>';
+          orbits+='<g class="network-target satellite scene-satellite" data-orbit-x="'+c.x+'" data-orbit-y="'+(c.y-15)+'" data-orbit-rx="'+(100+(j%3)*9)+'" data-orbit-ry="'+(58+(j%2)*9)+'" data-orbit-phase="'+angle+'" data-orbit-tilt="'+(i%2===0?-19:16)+'" data-orbit-speed="0.18" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="0" cy="0" r="6" fill="#082019" stroke="'+color+'"/><circle cx="0" cy="0" r="2" fill="'+color+'"/></g>';
         });
         orbits+='</g>';
       }
@@ -613,8 +619,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(!focused&&unassigned.length){var globalKey=entries.length;entries.push({id:UNASSIGNED,name:'Attività senza progetto'});hubs+='<g class="network-target unassigned-node" role="button" tabindex="0" data-network-type="project" data-network-key="'+globalKey+'" aria-label="Attività senza progetto · '+unassigned.length+' workflow"><rect x="320" y="475" width="260" height="35" rx="12"/><text x="450" y="497" text-anchor="middle">Attività senza progetto · '+unassigned.length+' workflow ↗</text></g>'}
     var configuredSatellites='';
     if(!focused)AGENTS.forEach(function(agent,i){
-      var angle=i*2*Math.PI/AGENTS.length,rx=103+(i%3)*16,ry=76+(i%3)*12,x=450+Math.cos(angle)*rx,y=245+Math.sin(angle)*ry;
-      configuredSatellites+='<g class="network-target configured-satellite" role="button" tabindex="0" data-network-type="configured-agent" data-agent-id="'+esc(agent.id)+'" aria-label="'+esc(agent.name+' · agent configurato · non assegnato al progetto')+'"><title>'+esc(agent.name+' · '+agent.group+' · configurato, assegnazione non registrata')+'</title><circle cx="'+x+'" cy="'+y+'" r="'+(i%4===0?4.5:3)+'"/><circle class="satellite-hit" cx="'+x+'" cy="'+y+'" r="10"/></g>';
+      var angle=i*2*Math.PI/AGENTS.length,rx=112+(i%3)*19,ry=82+(i%3)*12;
+      configuredSatellites+='<g class="network-target configured-satellite scene-satellite" role="button" tabindex="0" data-network-type="configured-agent" data-agent-id="'+esc(agent.id)+'" data-orbit-x="450" data-orbit-y="245" data-orbit-rx="'+rx+'" data-orbit-ry="'+ry+'" data-orbit-phase="'+angle+'" data-orbit-tilt="-18" data-orbit-speed="'+(.055+(i%3)*.014)+'" aria-label="'+esc(agent.name+' · agente configurato · assegnazione non registrata')+'"><title>'+esc(agent.name+' · '+agent.group+' · configurato, assegnazione non registrata')+'</title><circle cx="0" cy="0" r="'+(i%4===0?5:3.5)+'"/><circle class="satellite-hit" cx="0" cy="0" r="11"/></g>';
     });
     svg.innerHTML=defs+'<g class="network-stars">'+stars+'</g>'+edges+orbits+hubs+core+configuredSatellites;
     var mobile=$('networkMobileList');if(!mobile){mobile=document.createElement('div');mobile.id='networkMobileList';$('networkWrap').appendChild(mobile)}
@@ -636,7 +642,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <button data-level="workflow">'+esc(networkDetail.workflow.orchestrator)+'</button>':'')+(networkDetail&&networkDetail.node?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'')+(pages>1?'<span class="network-pagination"><button data-page="-1" '+(networkPage===0?'disabled':'')+'>Precedente</button><span>'+(networkPage+1)+' / '+pages+'</span><button data-page="1" '+(networkPage===pages-1?'disabled':'')+'>Successiva</button></span>':'');
     $('networkBreadcrumb').querySelectorAll('button[data-level]').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root'){focusedProjectId=null;networkDetail=null}else if(el.dataset.level==='project')networkDetail=null;else networkDetail={id:networkDetail.workflow.id,label:networkDetail.workflow.orchestrator,workflow:networkDetail.workflow};networkPage=0;resetNetworkCamera();renderNetwork()}});
     $('networkBreadcrumb').querySelectorAll('button[data-page]').forEach(function(el){el.onclick=function(){networkPage+=Number(el.dataset.page);resetNetworkCamera();renderNetwork()}});
-    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · clic per esplorare · trascina per navigare';
+    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · '+AGENTS.length+' agenti configurati nel team RADIX';
     $('projectTools').hidden=!focused||focused.id===UNASSIGNED||currentView!=='network';
     if(focused&&focused.id!==UNASSIGNED)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
     $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
@@ -733,15 +739,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   wrap.addEventListener('pointermove',function(e){if(!drag)return;pan.x=drag.px+e.clientX-drag.x;pan.y=drag.py+e.clientY-drag.y;applyZoom()});
   function stopDrag(){drag=null;wrap.classList.remove('is-dragging')}wrap.addEventListener('pointerup',stopDrag);wrap.addEventListener('pointercancel',stopDrag);
   wrap.addEventListener('wheel',function(e){if(currentView!=='network')return;e.preventDefault();var r=wrap.getBoundingClientRect();zoomAt(zoom*Math.exp(-e.deltaY*.001),e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2)},{passive:false});
-  var reduced=window.matchMedia('(prefers-reduced-motion: reduce)'),frame=null;
-  wrap.addEventListener('mousemove',function(e){if(drag||reduced.matches||frame)return;frame=requestAnimationFrame(function(){var r=wrap.getBoundingClientRect();var dx=(e.clientX-r.left-r.width/2)/r.width,dy=(e.clientY-r.top-r.height/2)/r.height;var svg=$('networkSvg');svg.style.transform='translate('+(dx*8)+'px,'+(dy*8)+'px)';svg.querySelectorAll('[data-beam-x]').forEach(function(path){var x=Number(path.getAttribute('data-beam-x')),y=Number(path.getAttribute('data-beam-y'));path.setAttribute('d','M450 245 Q'+(x+dx*65)+' '+(245+dy*85)+' '+x+' '+y)});frame=null})});
-  wrap.addEventListener('mouseleave',function(){$('networkSvg').style.transform='';$('networkSvg').querySelectorAll('[data-beam-x]').forEach(function(path){var x=path.getAttribute('data-beam-x'),y=path.getAttribute('data-beam-y');path.setAttribute('d','M450 245 Q'+x+' 245 '+x+' '+y)});stopDrag()});
+  var networkScene=RadixNetworkScene.attach($('networkSvg'),wrap);
+  wrap.addEventListener('mouseleave',stopDrag);
   function setView(view){
     currentView=['network','command','projects'].includes(view)?view:'network';
     var network=currentView==='network';
     $('networkBreadcrumb').hidden=!network;$('projectTools').hidden=!network||!focusedProjectId;
     if(!network)setNetworkExpanded(false);
     $('networkStage').hidden=!network;
+    if(networkScene)networkScene.refresh();
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
     $('networkCaptionWrap').hidden=!network;

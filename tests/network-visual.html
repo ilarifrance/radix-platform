@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RADIX · test visivo isolato</title>
+<style>html,body{margin:0;height:100%;background:#02090b;color:#fff;font:13px system-ui}header{height:46px;box-sizing:border-box;padding:12px 18px;border-bottom:1px solid #8b641b;background:#2a210f}iframe{display:block;width:100%;height:calc(100% - 46px);border:0}#error{padding:24px}</style>
+<header>TEST VISIVO ISOLATO · dati sintetici · nessuna attività reale, nessuna chiamata AI o scrittura al database</header>
+<iframe id="fixture" title="Command Center con fixture di test"></iframe><div id="error" hidden></div>
+<script>
+(async function(){
+  try{
+    const response=await fetch('../control-center-v2.html');if(!response.ok)throw new Error('Template non disponibile');
+    const doc=new DOMParser().parseFromString(await response.text(),'text/html');
+    const script=Array.from(doc.querySelectorAll('script')).find(s=>!s.src&&s.textContent.includes('function renderNetwork()'));
+    const startup="  load();\n  setInterval(function(){if(document.visibilityState==='visible')load()},30000);";
+    if(!script||!script.textContent.includes(startup))throw new Error('Bootstrap di test non compatibile con il cockpit');
+    const projects=['Aura · TEST','Doc Capital · TEST','Personal Brand · TEST','GCP · TEST'].map((name,i)=>({id:'qa-project-'+i,name,kind:'Fixture di test',summary:'Dati sintetici per verificare layout e interazioni.',active:i===0}));
+    const workflows=projects.flatMap(p=>Array.from({length:6},(_,i)=>({id:p.id+'-workflow-'+i,projectId:p.id,orchestrator:'Workflow di test '+(i+1),task:'Fixture sintetica; nessuna esecuzione reale.',status:'pending',progress:{done:0,total:3},nodes:Array.from({length:3},(_,j)=>({id:p.id+'-task-'+i+'-'+j,label:'Task di test '+(j+1),status:'pending',subtask:'Fixture per aprire il dettaglio multilivello.'}))})));
+    const data={user:{name:'QA visivo'},workspace:{updatedAt:'2026-01-01T00:00:00Z',updatedBy:'fixture'},projects,workflows,agentStatus:{},attention:[],activity:[],approvals:[],approvalsSupported:false,metrics:{projects:4,activeWorkflows:0,approvals:0},dataQuality:{realtimeExecutionVerified:false}};
+    script.textContent=script.textContent.replace(startup,"  data="+JSON.stringify(data)+"; render(); $('systemStatus').textContent='QA · DATI SINTETICI'; $('app').classList.remove('loading');");
+    const base=doc.createElement('base');base.href=new URL('../',location.href).href;doc.head.prepend(base);
+    document.getElementById('fixture').srcdoc='<!doctype html>'+doc.documentElement.outerHTML;
+  }catch(e){const box=document.getElementById('error');box.hidden=false;box.textContent=e.message}
+})();
+</script>
+</html>

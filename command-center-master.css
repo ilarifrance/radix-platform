@@ -78,3 +78,16 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .configured-satellite .satellite-hit{fill:transparent;stroke:none}
 .configured-satellite:hover>circle:first-child,.configured-satellite:focus>circle:first-child{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
 .network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
+/* Dimensional spheres and fine energy filaments, matching the approved close-ups. */
+.network-panel .core-globe{fill:url(#coreGradient);filter:drop-shadow(0 0 10px #00d9a780)}
+.network-panel .core-ring{stroke:#8ffff0;stroke-width:1.05;animation:none;filter:drop-shadow(0 0 4px #00ffce)}
+.network-target .project-ring{fill:url(#sphereLight);fill-opacity:.85;stroke:var(--node-color);stroke-width:1}
+.network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-width:.5;stroke-opacity:.55}
+.network-beam-filament{fill:none;stroke-width:.55;opacity:.34;pointer-events:none}
+.network-beam-halo{stroke-width:5;opacity:.13;filter:blur(4px)}
+.network-flow{fill:none;stroke-width:1.15;stroke-dasharray:1 27;opacity:.9;animation-duration:14s}
+.scene-satellite{animation:none!important;transform-origin:0 0;cursor:pointer}
+.configured-satellite>circle:first-child{fill:url(#sphereLight);stroke:#77e9c8;filter:drop-shadow(0 0 3px #00dba8)}
+.network-wrap::after{display:none}
+@media(min-width:1181px){.network-wrap{height:510px}}
+@media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite{animation:none!important;transition:none!important}}
