@@ -65,3 +65,14 @@ test('Approval, spend, send and production releases are explicitly gated', () =>
   assert.match(agencyHtml, /heartbeat verificato/);
   assert.match(agencyHtml, /Nessun dato reale collegato/);
 });
+
+test('Agency offers an explicit PED workbench link while keeping other divisions in preview-only navigation', () => {
+  assert.match(agencyHtml, /id="divisionActions"/);
+  assert.match(agencyHtml, /if\(d\.id==='ped'\)/);
+  assert.match(agencyHtml, /link\.href='\.\/ped\.html'/);
+  assert.match(agencyHtml, /division-link secondary/);
+  assert.match(agencyHtml, /detailTitle'\)\.focus\(\)/);
+  const ped = read('agency/ped.html');
+  assert.match(ped, /DESIGN PREVIEW/);
+  assert.match(ped, /disabled[^>]*>Genera proposta/);
+});
