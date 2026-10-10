@@ -48,3 +48,11 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 @media(min-width:1181px){.dashboard-grid{grid-template-columns:minmax(0,2.3fr) minmax(300px,1fr)}.network-wrap{height:490px}.lower-grid{grid-template-columns:1.5fr 1.05fr 1.05fr .8fr}}
 @media(max-width:640px){.welcome-message h1{font-size:23px}.network-label strong{font-size:16px}.panel-title{font-size:12px}.team-card{padding:12px}}
 @media(prefers-contrast:more){.panel,.metric,.team-card{border-color:#5aaa9d}.panel-meta,.team-sub,.team-status{color:#d4e8ed}}
+/* Corrections verified in the first authenticated master pass. */
+.core-globe{fill:#031b18}
+.lower-grid{align-items:start}
+.lower-grid .panel{min-height:300px}
+.workflow-list{max-height:300px;overflow-y:auto}
+.team-grid{max-height:300px;overflow-y:auto}
+@media(min-width:1181px){.welcome-bar{min-height:100px;padding:14px 18px}.network-wrap{height:450px}}
+@media(max-width:640px){.workflow-list,.team-grid{max-height:none}.lower-grid .panel{min-height:0}}
