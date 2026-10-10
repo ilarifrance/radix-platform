@@ -598,8 +598,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       if(!focused){
         orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate(-14 '+c.x+' '+c.y+')"/>';
         var items=projectItems(item.id);
-        items.slice(0,12).forEach(function(child,j){var angle=2*Math.PI*j/items.length,ax=c.x+Math.cos(angle)*110,ay=c.y+Math.sin(angle)*64,key=entries.length;entries.push(child);
-          orbits+='<path class="satellite-link" d="M'+c.x+' '+(c.y-15)+' L'+ax+' '+ay+'" stroke="'+color+'"/><g class="network-target satellite" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="'+ax+'" cy="'+ay+'" r="6" fill="#082019" stroke="'+color+'"/><circle cx="'+ax+'" cy="'+ay+'" r="2" fill="'+color+'"/></g>';
+        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length,ax=c.x+Math.cos(angle)*110,ay=c.y+Math.sin(angle)*64,key=entries.length;entries.push(child);
+          orbits+='<g class="network-target satellite orbital-satellite" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(child.label+' · '+child.status)+'"><title>'+esc(child.label+' · stato salvato: '+child.status)+'</title><circle cx="0" cy="0" r="6" fill="#082019" stroke="'+color+'"/><circle cx="0" cy="0" r="2" fill="'+color+'"/></g>';
         });
         orbits+='</g>';
       }

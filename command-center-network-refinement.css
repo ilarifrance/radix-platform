@@ -60,3 +60,20 @@
   .cluster-orbit,.node-aura,.network-stars,.network-flow,.network-target .project-ring,.network-target .core-ring,#networkSvg{animation:none!important}
   .network-stage,#networkSvg,.satellite circle{transition:none!important}
 }
+
+/* Depth projection: far arc shrinks and dims; near arc grows and brightens.
+   Only explicitly attributed workflow satellites use this decorative motion. */
+.orbital-satellite{transform:translate(calc(var(--orbit-x) + 110px),var(--orbit-y));animation:orbitalDepth 28s linear infinite;animation-delay:var(--orbit-delay);will-change:transform;transform-origin:0 0}
+.orbital-satellite:hover,.orbital-satellite:focus-visible{animation-play-state:paused}
+.network-cluster:has(.orbital-satellite:hover) .orbital-satellite,.network-cluster:has(.orbital-satellite:focus-visible) .orbital-satellite{animation-play-state:paused}
+@keyframes orbitalDepth{
+  0%,100%{transform:translate(calc(var(--orbit-x) + 110px),var(--orbit-y)) scale(1);opacity:.85}
+  12.5%{transform:translate(calc(var(--orbit-x) + 78px),calc(var(--orbit-y) + 45px)) scale(1.18);opacity:1}
+  25%{transform:translate(var(--orbit-x),calc(var(--orbit-y) + 64px)) scale(1.28);opacity:1}
+  37.5%{transform:translate(calc(var(--orbit-x) - 78px),calc(var(--orbit-y) + 45px)) scale(1.18);opacity:1}
+  50%{transform:translate(calc(var(--orbit-x) - 110px),var(--orbit-y)) scale(1);opacity:.85}
+  62.5%{transform:translate(calc(var(--orbit-x) - 78px),calc(var(--orbit-y) - 45px)) scale(.8);opacity:.55}
+  75%{transform:translate(var(--orbit-x),calc(var(--orbit-y) - 64px)) scale(.7);opacity:.4}
+  87.5%{transform:translate(calc(var(--orbit-x) + 78px),calc(var(--orbit-y) - 45px)) scale(.8);opacity:.55}
+}
+@media(prefers-reduced-motion:reduce){.orbital-satellite{animation:none!important;will-change:auto;transform:translate(var(--static-x),var(--static-y))}}
