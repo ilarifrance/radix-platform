@@ -90,3 +90,17 @@ test('satellites orbit only their owning project and never show unassigned catal
  assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,0);
  assert.ok(!svg.innerHTML.includes('Unassigned task'));
 });
+
+test('confirmed shared workflows appear around every project without changing stored ownership or status',()=>{
+ const original={id:'shared',orchestrator:'Team workflow',status:'done',nodes:[{id:'real-task',label:'Actual task',status:'done'}]};
+ const {context,svg}=networkHarness([{id:'a',name:'Aura'},{id:'b',name:'Doc'}],[original,{id:'private',projectId:'a',nodes:[{id:'private-task',status:'pending'}]}]);
+ context.data.workspace={sharedWorkflowCatalog:true};context.renderNetwork();
+ assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,2);
+ assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,1);
+ assert.ok(svg.innerHTML.includes('Actual task · condivisa'));
+ assert.equal(context.projectItems('b')[0].workflow,original);
+ assert.equal(original.projectId,undefined);assert.equal(original.status,'done');
+ assert.equal(context.projectItems('unknown').length,0);
+ const node=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite'&&el.getAttribute('data-network-project')==='b');
+ node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'real-task');
+});

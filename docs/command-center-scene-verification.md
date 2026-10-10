@@ -47,3 +47,9 @@ git diff --check
 2. Complete a real-device touch and keyboard accessibility pass; reduced-motion scheduling is covered by automated tests, not yet an OS preference test.
 3. Resolve selected-project handoff to v3.7. The workspace reads active project from shared saved state and does not read URL project parameters. A solution must respect the restriction on `index.html` and database changes.
 4. Current real workflow records lack project assignment. No agents or tasks are arbitrarily attached to projects; empty project clusters are intentional.
+
+## Shared workflow scope confirmed by Francesco
+
+Francesco confirmed on 10 October that the existing unassigned workflows belong to all projects. The legacy projection now enables an explicit shared-workflow view flag. Their tasks appear in each real project cluster labelled “condivisa”; the same workflow and task IDs and saved states are retained. No database ownership field is changed, no workflow is duplicated or executed. Explicit project ownership still restricts a workflow to its original project. The isolated fixture has an optional `?shared` mode to verify this behavior.
+
+Automated suite: 25 tests pass, including shared ownership, unchanged task identities and statuses, and exclusion from unknown project IDs. Earlier notes about empty real project clusters describe the state before this user-confirmed shared scope.
