@@ -98,3 +98,6 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-beam-filament{stroke-width:.75;opacity:.58}
 .network-beam-halo{opacity:.22}
 .network-panel .core-rays{opacity:.42}
+
+/* Keep the geometric identity when hosted font loading is unavailable. */
+.brand-mark,.brand-name,h1,.metric-value,.core-title,.team-count,.drawer-title,.fatal-card h2,.project-name{font-family:"Space Grotesk",Inter,system-ui,sans-serif}

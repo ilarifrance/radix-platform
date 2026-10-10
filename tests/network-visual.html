@@ -1,10 +1,11 @@
 <!doctype html>
 <html lang="it"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RADIX · test visivo isolato</title>
-<style>html,body{margin:0;height:100%;background:#02090b;color:#fff;font:13px system-ui}header{height:46px;box-sizing:border-box;padding:12px 18px;border-bottom:1px solid #8b641b;background:#2a210f}iframe{display:block;width:100%;height:calc(100% - 46px);border:0}#error{padding:24px}</style>
-<header>TEST VISIVO ISOLATO · dati sintetici · nessuna attività reale, nessuna chiamata AI o scrittura al database</header>
+<style>html,body{margin:0;height:100%;background:#02090b;color:#fff;font:13px system-ui}header{height:46px;box-sizing:border-box;padding:12px 18px;border-bottom:1px solid #8b641b;background:#2a210f}iframe{display:block;margin:auto;width:100%;height:calc(100% - 46px);border:0}#error{padding:24px}</style>
+<header>TEST VISIVO ISOLATO · dati sintetici · nessuna attività reale, nessuna chiamata AI o scrittura al database <label>Viewport <select id="viewport" aria-label="Larghezza viewport"><option value="100%">Desktop</option><option value="768px">Tablet 768</option><option value="390px">Mobile 390</option></select></label></header>
 <iframe id="fixture" title="Command Center con fixture di test"></iframe><div id="error" hidden></div>
 <script>
+document.getElementById("viewport").addEventListener("change",function(){document.getElementById("fixture").style.width=this.value});
 (async function(){
   try{
     const response=await fetch('../control-center-v2.html');if(!response.ok)throw new Error('Template non disponibile');
