@@ -1,0 +1,7 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');const route=require('../agency/orchestration-core.js');
+const allowed=['strategist','copywriter','seo-geo','paid-media','web-developer','marketing-orchestrator'];
+test('RADIX v3.7 ROUTING is parsed with dependencies',()=>{const x=route.parseRouting('Piano\n---ROUTING---\n1. strategist|Strategia\n2. copywriter|Copy|dipende:1\n---FINE---',allowed);assert.equal(x.length,2);assert.deepEqual(x[1].dependsOn,['step-1']);assert.deepEqual(route.nextReady(x).map(t=>t.id),['step-1']);x[0].status='done';assert.deepEqual(route.nextReady(x).map(t=>t.id),['step-2'])});
+test('blocks unknown roles, hubs and forward dependencies',()=>{assert.throws(()=>route.parseRouting('---ROUTING---\nunknown|task\n---FINE---',allowed));assert.throws(()=>route.parseRouting('---ROUTING---\nmarketing-orchestrator|task\n---FINE---',allowed));assert.throws(()=>route.parseRouting('---ROUTING---\nstrategist|task|dipende:2\n---FINE---',allowed))});
+test('limits size and refuses malformed routing',()=>{assert.throws(()=>route.parseRouting('---ROUTING---\n'+Array.from({length:13},()=> 'strategist|task').join('\n')+'\n---FINE---',allowed));assert.deepEqual(route.parseRouting('No tasks',allowed),[])});
+test('does not unblock a failed prerequisite',()=>{const t=route.parseRouting('---ROUTING---\nstrategist|A\ncopywriter|B|dipende:1\n---FINE---',allowed);t[0].status='error';assert.equal(route.nextReady(t).length,0);assert.equal(route.hasBlockedDependencies(t),true)});
