@@ -74,9 +74,9 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
 
 /* Configured roster satellites belong to the central RADIX team, not to a project. */
-.configured-satellite>circle:first-child{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
+.configured-satellite>circle:first-of-type{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
 .configured-satellite .satellite-hit{fill:transparent;stroke:none}
-.configured-satellite:hover>circle:first-child,.configured-satellite:focus>circle:first-child{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
+.configured-satellite:hover>circle:first-of-type,.configured-satellite:focus>circle:first-of-type{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
 .network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
 /* Dimensional spheres and fine energy filaments, matching the approved close-ups. */
 .network-panel .core-globe{fill:url(#coreGradient);filter:drop-shadow(0 0 10px #00d9a780)}
@@ -87,9 +87,14 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-beam-halo{stroke-width:5;opacity:.13;filter:blur(4px)}
 .network-flow{fill:none;stroke-width:1.15;stroke-dasharray:1 27;opacity:.9;animation-duration:14s}
 .scene-satellite{animation:none!important;transform-origin:0 0;cursor:pointer}
-.configured-satellite>circle:first-child{fill:url(#sphereLight);stroke:#77e9c8;filter:drop-shadow(0 0 3px #00dba8)}
+.configured-satellite>circle:first-of-type{fill:url(#sphereLight);stroke:#77e9c8;filter:drop-shadow(0 0 3px #00dba8)}
 .network-wrap::after{display:none}
 @media(min-width:1181px){.network-wrap{height:510px}}
 @media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite{animation:none!important;transition:none!important}}
 .mobile-agent-roster summary{padding:12px;color:#bef5e4;cursor:pointer;min-height:44px;box-sizing:border-box}
 .mobile-agent-roster button{width:100%;margin-bottom:6px}
+
+/* Brighter curved bundles remain readable against the black glass. */
+.network-beam-filament{stroke-width:.75;opacity:.58}
+.network-beam-halo{opacity:.22}
+.network-panel .core-rays{opacity:.42}
