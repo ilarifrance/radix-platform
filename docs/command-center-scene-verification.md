@@ -91,3 +91,18 @@ Authenticated Preview verification confirmed:
 - Integrations: snapshot and v3.7 workspace availability are shown; external-system connection state remains explicitly unavailable.
 
 The browser screenshot `/workspace/scratch/radix-agents-section-78136a9.jpg` contains authenticated operational data. The suite is now 26/26 passing and `git diff --check` passes. The sections are useful read-only surfaces; they do not start workflows or agents. Dedicated full-page modules, richer filtering and responsive interaction checks remain open.
+
+## Saved workflow and live snapshot distinction
+
+Commit `43c9cb245bae42899d1cbc57fae6d52943fe081a` removes the remaining ambiguity between configured data and current execution state. The sidebar badge now reports the six saved workflow records, with an accessible label that also states that zero are in progress in the snapshot. The header KPI continues to report zero because it intentionally represents in-progress work only.
+
+The central panel now changes title and explanatory metadata for Network, Workflows, Projects, Agents, Knowledge, Approvals, Analytics and Integrations. Map-specific controls are hidden in data-backed operational views and restored in the map/workflow/project views.
+
+Authenticated browser verification on the stable Preview reached `SNAPSHOT CARICATO` and confirmed:
+
+- sidebar badge `6` with `6 workflow salvati; 0 in corso nello snapshot`;
+- Workflows header and map toolbar visible;
+- Agents header with the operational view visible and map toolbar hidden;
+- Analytics header, toolbar hidden, and the real saved counts 5 projects, 6 workflows and 61 activities.
+
+Screenshot: `/workspace/scratch/radix-analytics-43c9cb2.jpg` (authenticated operational data, not a fixture). Automated suite remains 26/26 passing and `git diff --check` passes. Vercel deployment `dpl_DcbNgmCBLE47He1p8oV524PkjGtW` for the exact commit reached `READY`; no production deployment was created.
