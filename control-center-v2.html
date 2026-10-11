@@ -351,6 +351,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     </header>
 
     <div class="content">
+      <div id="syncNotice" class="sync-notice" role="status" hidden><span id="syncNoticeText"></span><button type="button" id="syncRetry">Riprova aggiornamento</button></div>
       <section class="welcome-bar">
         <div class="welcome-message">
           <div class="eyebrow">RADIX / AI OPERATING SYSTEM</div>
@@ -423,7 +424,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
 <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" aria-hidden="true"><div class="drawer-head"><div class="drawer-title" id="drawerTitle">Agent</div><button class="drawer-close" id="drawerClose" type="button" aria-label="Chiudi pannello dettagli">×</button></div><div class="drawer-body" id="drawerBody"></div></aside>
 <div class="toast" id="toast"></div>
-<div class="fatal" id="fatal"><div class="fatal-card"><h2>Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><a href="/index.html">Vai al login / workspace</a></div></div>
+<div class="fatal" id="fatal"><div class="fatal-card"><h2 id="fatalTitle">Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><button type="button" class="drawer-link" id="fatalRetry">Riprova caricamento</button><a href="/index.html">Vai al login / workspace</a></div></div>
 
 <script src="command-center-network-scene.js"></script>
 <script>
@@ -471,6 +472,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   var data=null,zoom=1,selectedAgent=null,focusedProjectId=null,currentView='network',searchItems=[];
   var workflowFilters={project:'all',status:'all',taskStatus:'all'};
   var knowledgeQuery='';
+  var loadInFlight=false;
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmtTime(value){if(!value)return '—';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
@@ -505,23 +507,44 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         activeAgents:Object.values(agentStatus).filter(function(a){return a.status==='running'}).length,approvals:0},
       dataQuality:{source:'authenticated-legacy-state',realtimeExecutionVerified:false,integrationsVerified:false,projectAgentAssignmentsVerified:false}};
   }
-  async function load(){
+  async function readSnapshotResponse(url){
+    var controller=new AbortController(),timer;
     try{
-      var me=await fetch('/api/auth/me');
-      if(!me.ok){$('fatal').classList.add('show');$('systemStatus').textContent='LOGIN REQUIRED';return}
-      var response=await fetch('/api/dashboard',{cache:'no-store'});
+      return await Promise.race([
+        (async function(){var response=await fetch(url,{cache:'no-store',signal:controller.signal});var body=await response.json().catch(function(){return null});return {status:response.status,ok:response.ok,body:body}})(),
+        new Promise(function(resolve,reject){timer=setTimeout(function(){controller.abort();reject(new Error('Tempo di attesa scaduto. Riprova il caricamento.'))},15000)})
+      ]);
+    }finally{clearTimeout(timer)}
+  }
+  function snapshotResponseError(response,message){
+    var error=new Error(response.status===401||response.status===403?'Sessione scaduta o accesso non disponibile. Accedi dal workspace.':message);
+    error.auth=response.status===401||response.status===403;return error;
+  }
+  async function load(){
+    if(loadInFlight)return;loadInFlight=true;
+    $('syncRetry').disabled=true;$('fatalRetry').disabled=true;
+    try{
+      var me=await readSnapshotResponse('/api/auth/me');
+      if(!me.ok)throw snapshotResponseError(me,'Verifica della sessione non disponibile. Riprova.');
+      var response=await readSnapshotResponse('/api/dashboard'),next;
       if(response.status===404){
-        var legacy=await fetch('/api/state',{cache:'no-store'});
-        if(!legacy.ok)throw new Error('Impossibile leggere lo stato RADIX');
-        data=legacyProjection(await legacy.json(),await me.json());
+        var legacy=await readSnapshotResponse('/api/state');
+        if(!legacy.ok)throw snapshotResponseError(legacy,'Impossibile leggere lo stato RADIX. Riprova.');
+        if(!legacy.body||!legacy.body.state)throw new Error('Stato RADIX non valido. Riprova.');
+        next=legacyProjection(legacy.body,me.body||{});
       }else{
-        if(!response.ok)throw new Error((await response.json().catch(function(){return {}})).error||'Dashboard non disponibile');
-        data=await response.json();
+        if(!response.ok)throw snapshotResponseError(response,'Dashboard non disponibile. Riprova.');
+        next=response.body;
       }
-      $('systemStatus').textContent='SNAPSHOT CARICATO';
-      render();
+      if(!next||!Array.isArray(next.projects)||!Array.isArray(next.workflows)||!next.metrics)throw new Error('Snapshot RADIX non valido. Riprova.');
+      data=next;render();
+      $('systemStatus').textContent='SNAPSHOT CARICATO';$('syncNotice').hidden=true;$('fatal').classList.remove('show');
       $('app').classList.remove('loading');
-    }catch(err){$('fatalText').textContent=err.message||String(err);$('fatal').classList.add('show');$('systemStatus').textContent='SYNC UNAVAILABLE'}
+    }catch(err){
+      $('systemStatus').textContent=err.auth?'LOGIN REQUIRED':'AGGIORNAMENTO NON DISPONIBILE';
+      if(data&&!err.auth){$('syncNoticeText').textContent='Ultimo snapshot mantenuto · '+(err.message||'Aggiornamento non disponibile');$('syncNotice').hidden=false}
+      else{$('fatalTitle').textContent=err.auth?'Accesso RADIX richiesto':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.message||String(err);$('fatal').classList.add('show')}
+    }finally{loadInFlight=false;$('syncRetry').disabled=false;$('fatalRetry').disabled=false}
   }
   function render(){
     $('userName').textContent=data.user&&data.user.name||data.user&&data.user.email||'RADIX';
@@ -919,6 +942,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('quickReport').addEventListener('click',function(){setView('command');toast('Riepilogo workflow registrati')});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('commandInput').focus()}if(e.key==='Escape'){$('drawer').classList.remove('open');$('searchResults').hidden=true}});
   $('voiceBtn').addEventListener('click',function(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Dettatura non disponibile in questo browser');return}var rec=new SR();rec.lang='it-IT';rec.interimResults=false;rec.onresult=function(ev){$('commandInput').value=ev.results[0][0].transcript;$('commandInput').focus();if(data)doSearch($('commandInput').value)};rec.onerror=function(){toast('Dettatura non riuscita')};rec.start();toast('RADIX sta ascoltando…')});
+  $('syncRetry').addEventListener('click',load);$('fatalRetry').addEventListener('click',load);
   load();
   setInterval(function(){if(document.visibilityState==='visible')load()},30000);
 })();

@@ -77,6 +77,10 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
 
 /* Data-backed workflow filters */
+.sync-notice{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;padding:12px 16px;border:1px solid #786033;border-radius:10px;background:#211b0c;color:#e5cb8a;font-size:12px}
+.sync-notice[hidden]{display:none}.sync-notice button{flex-shrink:0;min-height:44px;padding:8px 12px;border:1px solid #786033;border-radius:8px;background:#30270e;color:#ffe9b6;cursor:pointer}
+.sync-notice button:disabled{opacity:.5}.sync-notice button:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+@media(max-width:760px){.sync-notice{align-items:stretch;flex-direction:column}}
 .knowledge-resource{width:100%;border:0;border-bottom:1px solid #173c2c;background:transparent;color:inherit;text-align:left;cursor:pointer;min-height:44px}
 .knowledge-resource:hover{background:#0a2117}.knowledge-resource:focus-visible{outline:2px solid #1ef28f;outline-offset:-2px}
 .knowledge-search{display:flex;align-items:center;gap:12px;margin:0 0 16px;color:#93bca8;font-size:11px}
