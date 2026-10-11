@@ -126,3 +126,13 @@ The change is visual only and does not affect workflow state, project ownership 
 Authenticated browser verification on the stable Preview confirmed one core surface layer, one specular layer, 16 emitters, five real projects and 30 saved-workflow satellites after `SNAPSHOT CARICATO`. No application-origin console error was observed; the sole browser log error came from the browser extension metadata channel. Screenshot: `/workspace/scratch/radix-core-surface-0643fe2.jpg` (authenticated real snapshot, not fixture data).
 
 Next priority: responsive/touch verification of the data-backed operational views and any fixes discovered there. Full selected-project handoff to v3.7 remains blocked by the explicit `index.html` and database-write restrictions.
+
+## Responsive operational-view hardening
+
+Commit `606dc058a55b965c3c4b21d999f12f4fae0f1497` corrects the responsive structure of Agents, Knowledge, Approvals, Analytics and Integrations. Operational cards move from three columns to two below 1000 px and one below 760 px. On small screens the operational view leaves the fixed-height network canvas, uses document scrolling instead of nested scrolling, stacks its header action, and gives the return button and cards minimum 44 px touch targets. Coarse-pointer rules also enlarge navigation, map controls and breadcrumb actions without changing desktop density.
+
+Automated verification is 29/29 passing, including responsive structure and touch-target assertions; `git diff --check` passes. Deployment `dpl_4XngzTBDE6JgSsxUdsPg63RM5eBv` for the exact commit reached `READY`.
+
+Authenticated desktop regression verification confirmed `SNAPSHOT CARICATO`, the Agents view with 30 real configured records, a three-column desktop grid, the map toolbar hidden and the central container preserved at 510 px. Screenshot: `/workspace/scratch/radix-responsive-agents-606dc05.jpg` (real authenticated snapshot).
+
+Limit: this environment did not expose a browser viewport-resize control, so the small-width behavior is verified by CSS/test assertions rather than claimed as a physical-device touch test. A real phone or emulated-device interaction pass remains open.
