@@ -1,3 +1,5 @@
+> **Aggiornamento 2026-10-10:** il rapporto corrente è [RADIX_SALES_ACTIVITIES_PHASE.md](RADIX_SALES_ACTIVITIES_PHASE.md). Le sezioni foundation qui sotto sono storico della fase precedente; i limiti superati sono precisati nel nuovo rapporto.
+
 # RADIX Sales V1 — foundation (2026-10-09)
 
 ## Stato reale
@@ -21,7 +23,7 @@ Importi interi in centesimi, stessa valuta operativa concordata per workspace (v
 ## Setup MANUALE, non eseguito
 1. Review schema/funzione e test indipendenti prima di ogni applicazione. Le migrazioni sono versionate e una tantum, NON idempotenti; nessun runner automatico o endpoint di migrazione.
 2. Ottenere ambiente PostgreSQL/Neon isolato autorizzato con schema users compatibile (id integer), dipendenza Neon già prevista dal package.json e configurazione esistente gestita dall'operatore. Nessun valore di ambiente va nel repository. Dipendenza locale @neondatabase/serverless attualmente ASSENTE.
-3. Applicare 001, poi 002 una volta, tracciando versione con processo operativo del DB. Non usare DB produzione. Non cambiare auth o workspace_state.
+3. Applicare 001, poi 002, poi 003 una volta (preflight obbligatorio descritto nel rapporto attività), tracciando versione con processo operativo del DB. Non usare DB produzione. Non cambiare auth o workspace_state.
 4. Provisionare manualmente un workspace UUID e membership per utente esistente, dopo scelta esplicita amministrativa; nessuna auto-enrollment, nessun seed. Creare processi/stadi tramite API/UI con ruolo admin/owner.
 5. Verificare login esistente sullo stesso origin e aprire radix-sales.html in ambiente isolato. Non configurare CORS permissivo: gate custom-header presuppone same-origin.
 

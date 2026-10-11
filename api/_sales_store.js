@@ -1,12 +1,34 @@
 'use strict';
 const {fields}=require('./_sales');
-function createStore(sql){
+// PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
+function normalize(value,key=''){
+ if(value===null||value===undefined)return value;
+ if(['due_at','occurred_at','created_at','updated_at'].includes(key)){
+  const date=new Date(value);if(!Number.isFinite(date.getTime()))throw new Error('invalid stored timestamp');return date.toISOString();
+ }
+ if(Array.isArray(value))return value.map(v=>normalize(v));
+ if(typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,normalize(v,k)]));
+ return value;
+}
+function createStore(rawSql){
+ const sql=async(...args)=>normalize(await rawSql(...args));
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
  membership,
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2)';
+   if(c.entity==='members')return sql('SELECT m.user_id AS id,u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND '+guard+' ORDER BY m.user_id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   if(c.entity==='customer360'){
+     if(!['companies','contacts','opportunities'].includes(c.subject))throw new Error('invalid subject');
+     // Root scope is checked inside this statement. Related lists do not depend on client-loaded pages.
+     return sql(`WITH root AS (SELECT to_jsonb(t) AS r FROM sales_${c.subject} t WHERE t.workspace_id=$1 AND t.id=$3::uuid AND ${guard}),
+ contacts AS (SELECT t.* FROM sales_contacts t,root WHERE t.workspace_id=$1 AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.id=$3::uuid) OR ($4='opportunities' AND t.id=(r->>'contact_id')::uuid))),
+ opportunities AS (SELECT t.* FROM sales_opportunities t,root WHERE t.workspace_id=$1 AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR ($4='opportunities' AND t.id=$3::uuid))),
+ companies AS (SELECT t.* FROM sales_companies t,root WHERE t.workspace_id=$1 AND (($4='companies' AND t.id=$3::uuid) OR ($4<>'companies' AND t.id=(r->>'company_id')::uuid))),
+ related AS (SELECT 'companies' AS entity,to_jsonb(t) AS record FROM companies t UNION ALL SELECT 'contacts',to_jsonb(t) FROM contacts t UNION ALL SELECT 'opportunities',to_jsonb(t) FROM opportunities t UNION ALL SELECT 'tasks',to_jsonb(t) FROM sales_tasks t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities)) UNION ALL SELECT 'interactions',to_jsonb(t) FROM sales_interactions t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities))) SELECT entity,record FROM related ORDER BY entity,record->>'id' LIMIT 100 OFFSET $5`,[c.workspace,u,c.id,c.subject,c.offset]);
+
+   }
    if(c.entity==='dashboard')return sql('SELECT (SELECT count(*) FROM sales_companies WHERE workspace_id=$1) AS companies, (SELECT count(*) FROM sales_contacts WHERE workspace_id=$1) AS contacts, (SELECT count(*) FROM sales_leads WHERE workspace_id=$1) AS leads, (SELECT count(*) FROM sales_opportunities WHERE workspace_id=$1) AS opportunities, (SELECT count(*) FROM sales_tasks WHERE workspace_id=$1) AS tasks, (SELECT COALESCE(sum(amount_cents),0)::text FROM sales_opportunities WHERE workspace_id=$1) AS open_amount_cents WHERE '+guard,[c.workspace,u]);
    if(!Object.hasOwn(fields,c.entity))throw new Error('invalid entity');
    // Identifier is from a frozen server allowlist; all user values remain parameters.
@@ -19,4 +41,4 @@ function createStore(sql){
  }
  };
 }
-module.exports={createStore};
+module.exports={createStore,normalize};
