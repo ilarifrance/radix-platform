@@ -360,7 +360,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         </div>
         <div class="metrics">
           <article class="metric good"><div class="metric-label">Progetti</div><div class="metric-main"><div class="metric-value" id="metricProjects">—</div><div class="metric-note">registrati</div></div></article>
-          <article class="metric"><div class="metric-label">Workflow</div><div class="metric-main"><div class="metric-value" id="metricWorkflows">—</div><div class="metric-note">stato recente</div></div></article>
+          <article class="metric"><div class="metric-label">Workflow</div><div class="metric-main"><div class="metric-value" id="metricWorkflows">—</div><div class="metric-note">in corso nello snapshot</div></div></article>
           <article class="metric"><div class="metric-label">Approvazioni</div><div class="metric-main"><div class="metric-value" id="metricApprovals">—</div><div class="metric-note">modulo futuro</div></div></article>
           <article class="metric"><div class="metric-label">Agenti</div><div class="metric-main"><div class="metric-value" id="metricAgents">—</div><div class="metric-note">attività registrata</div></div></article>
         </div>
@@ -368,7 +368,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
       <section class="dashboard-grid">
         <article class="panel network-panel" id="networkPanel">
-          <div class="panel-head"><div><div class="panel-title"><span>◉</span>NETWORK VIEW</div><div class="panel-meta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button><button class="tool-btn" id="expandNetwork" aria-label="Espandi la mappa" aria-pressed="false">⛶</button></div></div>
+          <div class="panel-head"><div><div class="panel-title" id="networkPanelTitle"><span>◉</span>NETWORK VIEW</div><div class="panel-meta" id="networkPanelMeta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar" id="networkToolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button><button class="tool-btn" id="expandNetwork" aria-label="Espandi la mappa" aria-pressed="false">⛶</button></div></div>
           <nav id="networkBreadcrumb" aria-label="Livello della mappa"></nav><div id="projectTools" hidden></div><div class="network-wrap" id="networkWrap">
             <div class="network-stage" id="networkStage">
               <svg id="networkSvg" viewBox="0 0 900 494" role="group" aria-label="Mappa progetti RADIX"></svg>
@@ -530,7 +530,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('metricWorkflows').textContent=data.metrics.activeWorkflows;
     var counts=executionCounts();$('metricAgents').textContent=counts.verified===null?'—':counts.verified; $('metricAgents').parentElement.querySelector('.metric-note').textContent=counts.verified===null?'esecuzione non verificata':'in esecuzione verificata';
     $('metricApprovals').textContent=data.approvalsSupported?data.metrics.approvals:'—';
-    $('navWorkflowBadge').textContent=data.metrics.activeWorkflows;
+    $('navWorkflowBadge').textContent=(data.workflows||[]).length;
+    $('navWorkflowBadge').setAttribute('aria-label',(data.workflows||[]).length+' workflow salvati; '+data.metrics.activeWorkflows+' in corso nello snapshot');
     $('navApprovalBadge').textContent=data.metrics.approvals;
     renderProjects();renderNetwork();renderProjectView();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();
   }
@@ -765,6 +766,9 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function setView(view){
     currentView=['network','command','projects','agents','knowledge','approvals','analytics','integrations'].includes(view)?view:'network';
     var network=currentView==='network';
+    var viewCopy={network:['◉','NETWORK VIEW','La tua organizzazione AI · progetti reali'],command:['⟲','WORKFLOWS','Workflow e attività salvate'],projects:['◈','PROJECTS','Profili reali del workspace'],agents:['✣','AGENTS','Team configurato e stati salvati'],knowledge:['◇','KNOWLEDGE','Contesto e risorse disponibili'],approvals:['✓','APPROVALS','Richieste centralizzate'],analytics:['⌁','ANALYTICS','Metriche derivate dallo snapshot'],integrations:['⛓','INTEGRATIONS','Connessioni verificabili']},copy=viewCopy[currentView];
+    $('networkPanelTitle').innerHTML='<span>'+copy[0]+'</span>'+copy[1];$('networkPanelMeta').textContent=copy[2];
+    $('networkToolbar').hidden=['agents','knowledge','approvals','analytics','integrations'].includes(currentView);
     $('networkBreadcrumb').hidden=!network;$('projectTools').hidden=!network||!focusedProjectId;
     if(!network)setNetworkExpanded(false);
     $('networkStage').hidden=!network;

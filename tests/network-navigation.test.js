@@ -11,6 +11,8 @@ test('primary navigation exposes data-backed operational sections',()=>{
  assert.ok(script.includes("Metriche derivate dallo snapshot · non telemetria live"));
  assert.ok(script.includes("Nessuna connessione viene dichiarata senza dati verificabili"));
  assert.ok(!html.includes('data-future="Agents"'));
+ assert.ok(script.includes("workflow salvati; "));
+ assert.ok(script.includes("ANALYTICS','Metriche derivate dallo snapshot"));
 });
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 test('project map requires explicit workflow ownership and includes every task',()=>{

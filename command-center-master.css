@@ -128,3 +128,4 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .operational-card strong,.operational-card span,.operational-card small{display:block;overflow-wrap:anywhere}
 .operational-card strong{font-size:13px;color:#f3fff9}.operational-card span{margin-top:3px;color:#76d6b2;font-size:10px}.operational-card small{margin-top:8px;color:#8eaea1;font-size:10px;line-height:1.35}.operational-card b{color:#4fe8b0}
 @media(max-width:760px){.operational-grid{grid-template-columns:1fr}.operational-head{align-items:flex-start}.operational-head strong{font-size:18px}}
+#networkToolbar[hidden]{display:none}
