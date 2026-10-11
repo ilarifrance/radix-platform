@@ -4,7 +4,7 @@ const { getSessionUser } = require('../_auth');
 
 module.exports = async (req, res) => {
   // Dedicated Agency memory action shares an existing function to respect Vercel Hobby's 12-function limit.
-  if (req.query && req.query.agencyMemory === '1') return require('../agency-memory-handler')(req, res);
+  if (req.query && req.query.agencyMemory === '1') return require('../_agency-memory-handler')(req, res);
   const user = getSessionUser(req);
   if (!user) {
     res.status(401).json({ error: 'Non autenticato' });
