@@ -62,6 +62,6 @@ t.output=data.reply;t.status='done';t.completedAt=new Date().toISOString();$('me
 $('export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='radix-agency-'+(state.brief.name||'progetto').toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,40)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 $('clear').addEventListener('click',()=>{if(!confirm('Eliminare la copia locale di questo progetto, compresi gli output? Esporta prima un backup se necessario.'))return;localStorage.removeItem(storageKey);location.href='./new-project.html'});
 if(!key||!/^[a-z0-9-]{10,60}$/i.test(key)||!(state=load())){$('message').textContent='Nessun progetto disponibile per questa scheda.';$('tasks').innerHTML='<p class="empty">Apri il progetto dalla pagina Nuovo progetto dopo aver chiesto il piano AI. I vecchi piani non sono recuperabili automaticamente.</p>';$('detail').textContent='Nessun incarico da mostrare.';$('planText').textContent='Progetto non trovato';$('export').disabled=true;$('clear').disabled=true;return}
-state.tasks.forEach(t=>{if(t.status==='running')t.status='error'});save();render();
+state.tasks.forEach(t=>{if(t.status==='running')t.status='error'});const target=new URLSearchParams(location.search).get('task');const position=state.tasks.findIndex(t=>t.id===target);if(position>=0)selected=position;save();render();
 })();
 </script></body></html>
