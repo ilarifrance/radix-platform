@@ -53,3 +53,19 @@ git diff --check
 Francesco confirmed on 10 October that the existing unassigned workflows belong to all projects. The legacy projection now enables an explicit shared-workflow view flag. Their tasks appear in each real project cluster labelled “condivisa”; the same workflow and task IDs and saved states are retained. No database ownership field is changed, no workflow is duplicated or executed. Explicit project ownership still restricts a workflow to its original project. The isolated fixture has an optional `?shared` mode to verify this behavior.
 
 Automated suite: 25 tests pass, including shared ownership, unchanged task identities and statuses, and exclusion from unknown project IDs. Earlier notes about empty real project clusters describe the state before this user-confirmed shared scope.
+
+## Workflow grouping and authenticated verification — 11 October 2026
+
+Implementation commit: `e3a1db4a0c9c33fd669720796eeeb32b3bbe0e5f` on the authorized branch only.
+Changed implementation files: `control-center-v2.html`, `command-center-master.css`, `tests/network-navigation.test.js`.
+
+- Root satellites now represent saved workflows, with their actual task counts. No execution, ownership, node identity or stored state is changed.
+- Browser verified 30 satellites (6 workflows across 5 real projects), replacing 305 task satellites. Counts per shared cluster are 3, 21, 12, 13, 1 and 11: 61 tasks remain accessible, not 305 unique tasks or agents.
+- Verified authenticated operational Preview: https://radix-platform-git-codex-radix-c-f9dc2f-radix-innovation-studio.vercel.app/control-center-v2.html . Session showed Francesco Ilari and SNAPSHOT CARICATO.
+- Keyboard activation of an Aura satellite opened marketing-orchestrator with 3 tasks; activating its first task opened Copywriter, saved status done, the actual Fogher landing-page description and explicit shared scope. Breadcrumb showed RADIX → Aura → marketing-orchestrator → Copywriter.
+- Closed detail, returned to RADIX through breadcrumb, changed zoom to 110% and reset to 100% in the browser.
+- All 25 tests pass again; git diff --check passes. Tests retain 120-task expansion, ownership isolation, shared identity, zoom anchoring and reduced-motion coverage.
+- Actual-data screenshots: `/workspace/scratch/radix-workflow-groups-before.jpg` and `/workspace/scratch/radix-workflow-groups-after.jpg`. These are operational data, not fixture screenshots. Screenshot files are session artifacts, not repository assets.
+- A prior reload hit browser credential-observation restrictions. Opening a fresh document through the browser's prescribed recovery restored observation. No authentication protection was modified.
+
+Remaining work: master fidelity is NOT complete. Orbiting spheres can still cross long project labels; root composition with five projects is tighter than the four-project master. Improve label clearance, distinct cluster arrangements and globe highlights next. Recheck responsive layout and pointer targeting after those changes. Sidebar Workflows currently shows running snapshot count (0), although six saved workflows exist: clarify this distinction. Full dedicated sections and agent execution remain unverified. The v3.7 selected-project handoff remains blocked by the restrictions on index.html and database writes. No workflow was executed, no production deployment or merge performed.
