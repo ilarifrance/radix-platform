@@ -71,6 +71,7 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
 .cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
 .network-label{padding-top:5px;display:flex;flex-direction:column;align-items:center}
+.network-label-layer,.network-label-overlay{pointer-events:none}
 .network-label strong{max-width:205px;padding:3px 9px;border-radius:8px;background:linear-gradient(90deg,transparent,#020c0bd9 16%,#020c0be8 84%,transparent);text-shadow:0 1px 2px #000,0 0 8px var(--node-color)}
 .network-label small{padding:1px 6px;border-radius:5px;background:#020b09c7}
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}

@@ -64,6 +64,13 @@ test('root paginates projects without inventing agent satellites',()=>{
  context.renderNetwork();assert.equal((svg.innerHTML.match(/data-network-type="project"/g)||[]).length,9);
  assert.equal((svg.innerHTML.match(/data-network-type="satellite"/g)||[]).length,0);
 });
+test('project labels render above moving satellites in a non-interactive readability layer',()=>{
+ const {context,svg}=networkHarness([{id:'a',name:'A very long project name'}],[{id:'w',projectId:'a',nodes:[{id:'task'}]}]);
+ context.renderNetwork();
+ assert.ok(svg.innerHTML.includes('class="network-label-layer" aria-hidden="true"'));
+ assert.ok(svg.innerHTML.indexOf('class="network-label-layer"')>svg.innerHTML.lastIndexOf('data-network-type="satellite"'));
+ assert.equal((svg.innerHTML.match(/class="network-label-overlay"/g)||[]).length,1);
+});
 test('attributed satellite opens its actual task and project with safe SVG labels',()=>{
  const {context,svg,elements}=networkHarness([{id:'a',name:'<img onerror=alert(1)>'}],[{id:'w',projectId:'a',orchestrator:'Workflow',nodes:[{id:'task',label:'<script>bad</script>',status:'pending',subtask:'Actual task'}]}]);
  context.renderNetwork();assert.ok(!svg.innerHTML.includes('<img'));assert.ok(!svg.innerHTML.includes('<script>'));
