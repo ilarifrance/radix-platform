@@ -32,7 +32,7 @@ $('requestChanges').addEventListener('click',()=>{const feedback=$('feedback').v
 function createOperationalTask(t){
  if(t.status!=='approved'||busy)return;
  const owner=state.ownerId;if(!owner){$('message').textContent='Questo piano non è ancora associato a un account RADIX. Crea un nuovo progetto autenticato per passare alla produzione.';return}
- const store='radix-agency-operations:'+key;let data;try{data=JSON.parse(localStorage.getItem(store)||'null')}catch(e){data=null}
+ const store='radix-agency-operations:'+encodeURIComponent(owner)+':'+key;let data;try{data=JSON.parse(localStorage.getItem(store)||'null');if(!data){const legacy=JSON.parse(localStorage.getItem('radix-agency-operations:'+key)||'null');if(legacy&&legacy.ownerId===owner&&legacy.schemaVersion===1&&Array.isArray(legacy.records))data=legacy}}catch(e){$('message').textContent='Archivio Operations non leggibile: '+e.message;return}
  if(data&&(data.ownerId!==owner||data.schemaVersion!==1)){ $('message').textContent='Archivio Operations incompatibile: nessuna modifica eseguita.';return}
  const records=data&&Array.isArray(data.records)?data.records:[];
  const existing=records.find(x=>x.sourceId===t.id);
