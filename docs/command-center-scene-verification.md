@@ -116,3 +116,13 @@ The automated suite is 27/27 passing, including a new markup-order assertion for
 Authenticated stable-Preview verification confirmed 5 protected project labels, 30 workflow satellites, `pointer-events: none` on label overlays and the label layer after every satellite in SVG paint order. Clicking the first moving satellite still opened `RADIX → Aura — assistente personale AI → marketing-orchestrator`, demonstrating that the readability layer does not break drill-down. Screenshot: `/workspace/scratch/radix-label-clearance-verified-2d102f8.jpg` (authenticated real snapshot; not fixture data).
 
 Remaining visual priority: improve globe surface detail and light emitters against the approved master, then repeat the mobile/touch pass on the operational sections. The selected-project handoff to v3.7 remains constrained by the prohibition on `index.html` and database changes.
+
+## RADIX globe and emitter pass
+
+Commit `0643fe29446cef0a123871f2001aa95249477ee9` adds layered depth to the central RADIX globe: a stronger directional gradient, clipped latitude/longitude and contour lines, specular highlight, upper sweep, broad halo and 16 light emitters aligned with the origins of the energy rays. The emitters use a restrained staggered pulse and are static under `prefers-reduced-motion`.
+
+The change is visual only and does not affect workflow state, project ownership or navigation. Automated verification is 28/28 passing, including the new surface/emitter markup checks; `git diff --check` passes. Vercel deployment `dpl_2gh1xNeyV1ZZnztFuufqfvJRtP8P` for the exact commit reached `READY`.
+
+Authenticated browser verification on the stable Preview confirmed one core surface layer, one specular layer, 16 emitters, five real projects and 30 saved-workflow satellites after `SNAPSHOT CARICATO`. No application-origin console error was observed; the sole browser log error came from the browser extension metadata channel. Screenshot: `/workspace/scratch/radix-core-surface-0643fe2.jpg` (authenticated real snapshot, not fixture data).
+
+Next priority: responsive/touch verification of the data-backed operational views and any fixes discovered there. Full selected-project handoff to v3.7 remains blocked by the explicit `index.html` and database-write restrictions.
