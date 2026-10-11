@@ -106,3 +106,13 @@ Authenticated browser verification on the stable Preview reached `SNAPSHOT CARIC
 - Analytics header, toolbar hidden, and the real saved counts 5 projects, 6 workflows and 61 activities.
 
 Screenshot: `/workspace/scratch/radix-analytics-43c9cb2.jpg` (authenticated operational data, not a fixture). Automated suite remains 26/26 passing and `git diff --check` passes. Vercel deployment `dpl_DcbNgmCBLE47He1p8oV524PkjGtW` for the exact commit reached `READY`; no production deployment was created.
+
+## Protected project-label layer
+
+Commit `2d102f87ca094ab58d2b907868896030d0839665` separates the project labels from their interactive hubs and renders them in a final, non-interactive SVG layer above the moving workflow satellites. The three-dimensional orbits and tethers remain unchanged, but spheres now pass visually behind the dark label plate instead of covering project names or intercepting clicks over the text area.
+
+The automated suite is 27/27 passing, including a new markup-order assertion for the protected label layer; `git diff --check` passes. Deployment `dpl_BeqerqWdqPgUtfBjbQpcQxvLW8EX` for the exact commit reached `READY`.
+
+Authenticated stable-Preview verification confirmed 5 protected project labels, 30 workflow satellites, `pointer-events: none` on label overlays and the label layer after every satellite in SVG paint order. Clicking the first moving satellite still opened `RADIX → Aura — assistente personale AI → marketing-orchestrator`, demonstrating that the readability layer does not break drill-down. Screenshot: `/workspace/scratch/radix-label-clearance-verified-2d102f8.jpg` (authenticated real snapshot; not fixture data).
+
+Remaining visual priority: improve globe surface detail and light emitters against the approved master, then repeat the mobile/touch pass on the operational sections. The selected-project handoff to v3.7 remains constrained by the prohibition on `index.html` and database changes.
