@@ -76,6 +76,25 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-label small{padding:1px 6px;border-radius:5px;background:#020b09c7}
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
 
+/* Data-backed workflow filters */
+.workflow-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:9px;align-items:end;margin:0 0 13px;padding:11px;border:1px solid #173c2c;border-radius:12px;background:rgba(7,24,16,.88)}
+.workflow-filters label{display:grid;gap:5px;color:#789b89;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.workflow-filters select{min-width:0;height:36px;border:1px solid #285641;border-radius:8px;background:#07150e;color:#d8f8e8;padding:0 30px 0 10px;font-size:10px;font-weight:600;color-scheme:dark}
+.workflow-filters select:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+.workflow-filter-count{align-self:center;max-width:150px;color:#9cc8b1;font-size:10px;line-height:1.4;text-align:right}
+.command-view-card{padding:0;overflow:hidden;cursor:default}
+.command-flow-main{display:block;width:100%;min-height:94px;padding:13px;border:0;background:transparent;color:#d8f8e8;text-align:left;cursor:pointer}
+.command-flow-main:hover{background:rgba(30,242,143,.045)}
+.command-flow-main:focus-visible,.command-task-links button:focus-visible{outline:2px solid #1ef28f;outline-offset:-3px}
+.command-flow-main b,.command-flow-main span,.command-flow-main small{display:block}
+.command-flow-main b{font-size:11px;margin-bottom:6px}.command-flow-main span{color:#8fb5a2;font-size:9px;line-height:1.45}.command-flow-main small{margin-top:9px;color:#62a584;font-size:8px}
+.command-task-links{display:grid;gap:1px;padding:0 8px 8px}
+.command-task-links button{display:flex;justify-content:space-between;gap:8px;min-height:38px;padding:8px 9px;border:1px solid #183c2b;border-radius:7px;background:#06120c;color:#aed7c2;font-size:9px;text-align:left;cursor:pointer}
+.command-task-links button:hover{border-color:#2c9660;background:#092017}.command-task-links small{color:#63b88f}
+.workflow-filter-empty{grid-column:1/-1;min-height:120px}
+@media(max-width:800px){.workflow-filters{grid-template-columns:1fr 1fr}.workflow-filter-count{max-width:none;text-align:left}}
+@media(max-width:560px){.workflow-filters{grid-template-columns:1fr}.workflow-filters select{min-height:44px}.workflow-filter-count{text-align:left}}
+
 /* Configured roster satellites belong to the central RADIX team, not to a project. */
 .configured-satellite>circle:first-of-type{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
 .configured-satellite .satellite-hit{fill:transparent;stroke:none}

@@ -469,6 +469,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     ['ai-specialist','web-developer'],['marketing-orchestrator','sales-orchestrator'],['partner','legal-orchestrator']
   ];
   var data=null,zoom=1,selectedAgent=null,focusedProjectId=null,currentView='network',searchItems=[];
+  var workflowFilters={project:'all',status:'all',taskStatus:'all'};
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmtTime(value){if(!value)return '—';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
@@ -674,12 +675,45 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       renderProjectView._focusId=null;
     }
   }
+  function workflowMatchesStatus(value,filter){
+    value=String(value||'pending');
+    if(filter==='all')return true;
+    if(filter==='problem')return value==='error'||value==='blocked';
+    if(filter==='active')return value==='running'||value==='stale';
+    return value===filter;
+  }
+  function workflowMatchesProject(workflow,projectId,projects,sharedCatalog){
+    if(projectId==='all')return true;
+    if(projectId==='shared')return workflow.projectId==null&&sharedCatalog;
+    var known=(projects||[]).some(function(project){return String(project.id)===String(projectId)});
+    return workflow.projectId!=null?String(workflow.projectId)===String(projectId):known&&sharedCatalog;
+  }
+  function filterWorkflowSnapshot(workflows,projects,filters,sharedCatalog){
+    return (workflows||[]).filter(function(workflow){
+      return workflowMatchesStatus(workflow.status,filters.status)&&workflowMatchesProject(workflow,filters.project,projects,sharedCatalog)&&
+        (filters.taskStatus==='all'||(workflow.nodes||[]).some(function(task){return workflowMatchesStatus(task.status,filters.taskStatus)}));
+    }).map(function(workflow){
+      var tasks=filters.taskStatus==='all'?(workflow.nodes||[]):(workflow.nodes||[]).filter(function(task){return workflowMatchesStatus(task.status,filters.taskStatus)});
+      return {workflow:workflow,tasks:tasks};
+    });
+  }
   function renderCommandView(){
-    var ws=(data.workflows||[]).slice(0,8),html='<div class="command-view-title">Workflow registrati · ultimo stato salvato (non esecuzione verificata)</div><div class="command-view-grid">';
-    html+=ws.map(function(w){return '<button class="command-view-card" data-command-flow="'+esc(w.id)+'"><b>'+esc(w.orchestrator)+' · '+esc(w.status)+'</b><span>'+esc(w.task)+'</span></button>'}).join('');
-    if(!ws.length)html+='<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un orchestratore dal workspace operativo.</div>';
+    var projects=data.projects||[],shared=!!(data.workspace&&data.workspace.sharedWorkflowCatalog);
+    var rows=filterWorkflowSnapshot(data.workflows||[],projects,workflowFilters,shared),taskCount=rows.reduce(function(total,row){return total+row.tasks.length},0);
+    var projectOptions='<option value="all">Tutti i progetti</option>'+(shared?'<option value="shared">Catalogo condiviso</option>':'')+projects.map(function(project){return '<option value="'+esc(project.id)+'">'+esc(project.name)+(shared?' + condivisi':'')+'</option>'}).join('');
+    var html='<div class="command-view-title">Workflow registrati · ultimo stato salvato (non esecuzione verificata)</div>'+
+      '<div class="workflow-filters" role="group" aria-label="Filtri workflow">'+
+      '<label>Ambito<select id="workflowProjectFilter">'+projectOptions+'</select></label>'+
+      '<label>Stato workflow<select id="workflowStatusFilter"><option value="all">Tutti gli stati</option><option value="done">Completati</option><option value="problem">Errori o blocchi</option><option value="active">In corso o da aggiornare</option><option value="pending">In attesa</option></select></label>'+
+      '<label>Stato attività<select id="workflowTaskStatusFilter"><option value="all">Tutte le attività</option><option value="done">Completate</option><option value="problem">Errori o blocchi</option><option value="active">In corso o da aggiornare</option><option value="pending">In attesa</option></select></label>'+
+      '<output class="workflow-filter-count" aria-live="polite">'+rows.length+' di '+(data.workflows||[]).length+' workflow · '+taskCount+' attività</output></div><div class="command-view-grid">';
+    html+=rows.map(function(row){var w=row.workflow,scope=w.projectId!=null?'progetto assegnato':shared?'catalogo condiviso':'senza progetto';return '<article class="command-view-card"><button type="button" class="command-flow-main" data-command-flow="'+esc(w.id)+'"><b>'+esc(w.orchestrator)+' · '+esc(w.status)+'</b><span>'+esc(w.task)+'</span><small>'+row.tasks.length+' attività filtrate · '+esc(scope)+'</small></button>'+(workflowFilters.taskStatus!=='all'?'<div class="command-task-links">'+row.tasks.map(function(task){return '<button type="button" data-command-task="'+esc(task.id)+'" data-command-task-workflow="'+esc(w.id)+'">'+esc(task.label||task.id)+' <small>'+esc(task.status||'pending')+'</small></button>'}).join('')+'</div>':'')+'</article>'}).join('');
+    if(!rows.length)html+='<div class="empty-state workflow-filter-empty"><b>Nessun risultato per questi filtri</b>I dati salvati non vengono modificati. Prova un altro ambito o stato.</div>';
     html+='</div>';$('commandView').innerHTML=html;
-    document.querySelectorAll('[data-command-flow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-command-flow'))})});
+    $('workflowProjectFilter').value=workflowFilters.project;$('workflowStatusFilter').value=workflowFilters.status;$('workflowTaskStatusFilter').value=workflowFilters.taskStatus;
+    [['workflowProjectFilter','project'],['workflowStatusFilter','status'],['workflowTaskStatusFilter','taskStatus']].forEach(function(pair){$(pair[0]).addEventListener('change',function(event){workflowFilters[pair[1]]=event.target.value;renderCommandView()})});
+    $('commandView').querySelectorAll('[data-command-flow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-command-flow'))})});
+    $('commandView').querySelectorAll('[data-command-task]').forEach(function(el){el.addEventListener('click',function(){openTask(el.getAttribute('data-command-task-workflow'),el.getAttribute('data-command-task'))})});
   }
   function openProject(id){
     var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;

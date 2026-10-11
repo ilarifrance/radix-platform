@@ -149,6 +149,25 @@ test('global search finds real saved tasks and opens the selected task identity'
  context.doSearch('non-esiste');assert.equal(context.searchItems.length,0);assert.ok(elements.searchResults.innerHTML.includes('Nessun risultato'));
 });
 
+test('workflow filters preserve shared identity and expose matching task statuses',()=>{
+ const shared={id:'shared',status:'done',nodes:[{id:'done',status:'done'},{id:'failed',status:'error'}]};
+ const privateAura={id:'a-private',projectId:'a',status:'error',nodes:[{id:'blocked',status:'blocked'}]};
+ const privateDoc={id:'b-private',projectId:'b',status:'running',nodes:[{id:'running',status:'running'}]};
+ const projects=[{id:'a'},{id:'b'}],workflows=[shared,privateAura,privateDoc];
+ const context={};vm.createContext(context);
+ for(const name of ['workflowMatchesStatus','workflowMatchesProject','filterWorkflowSnapshot'])vm.runInContext(functionSource(name),context);
+ let rows=context.filterWorkflowSnapshot(workflows,projects,{project:'a',status:'all',taskStatus:'all'},true);
+ assert.deepEqual(Array.from(rows,row=>row.workflow.id),['shared','a-private']);
+ assert.equal(rows[0].workflow,shared);assert.equal(workflows.length,3);assert.equal(shared.projectId,undefined);
+ rows=context.filterWorkflowSnapshot(workflows,projects,{project:'shared',status:'all',taskStatus:'problem'},true);
+ assert.equal(rows.length,1);assert.equal(rows[0].workflow,shared);assert.deepEqual(Array.from(rows[0].tasks,task=>task.id),['failed']);
+ rows=context.filterWorkflowSnapshot(workflows,projects,{project:'all',status:'problem',taskStatus:'all'},true);
+ assert.deepEqual(Array.from(rows,row=>row.workflow.id),['a-private']);
+ rows=context.filterWorkflowSnapshot(workflows,projects,{project:'b',status:'active',taskStatus:'active'},true);
+ assert.equal(rows.length,1);assert.equal(rows[0].workflow,privateDoc);assert.equal(rows[0].tasks[0].id,'running');
+ assert.equal(context.workflowMatchesProject(shared,'unknown',projects,true),false);
+});
+
 test('workflow drawer reaches all saved tasks and task detail returns to its original workflow',()=>{
  const tasks=Array.from({length:61},(_,i)=>({id:'w:'+i,label:'Task '+i,status:i===60?'error':'done',agentId:'copy',subtask:'Description '+i}));
  tasks[60].subtask='<script>unsafe</script>';
