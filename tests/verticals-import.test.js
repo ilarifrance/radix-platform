@@ -21,7 +21,7 @@ test('workbench scripts parse and require authentication and per-call approval',
  assert.match(js,/fetch\('\/api\/auth\/me'/);
  assert.match(js,/if\(!window\.confirm\(/);
  assert.match(js,/fetch\('\/api\/chat'/);
- assert.match(js,/if\(!authenticated\)/);
+ assert.ok(js.includes('busy||!authenticated||!selected'));
  assert.doesNotMatch(js,/localStorage|sessionStorage/);
 });
 test('both vertical pages link to shared catalog and JS with no cloned backend',()=>{
