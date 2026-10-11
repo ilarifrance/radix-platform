@@ -138,3 +138,24 @@ test('confirmed shared workflows appear around every project without changing st
  node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'shared');
  const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'real-task');assert.equal(context.networkDetail.node,original.nodes[0]);
 });
+
+test('workflow drawer reaches all saved tasks and task detail returns to its original workflow',()=>{
+ const tasks=Array.from({length:61},(_,i)=>({id:'w:'+i,label:'Task '+i,status:i===60?'error':'done',agentId:'copy',subtask:'Description '+i}));
+ tasks[60].subtask='<script>unsafe</script>';
+ const buttons=tasks.map((_,i)=>({getAttribute:()=>String(i)}));const elements={};
+ const get=id=>elements[id]||(elements[id]={innerHTML:'',textContent:'',classList:{add(){}},querySelectorAll:()=>buttons});
+ const context={data:{workflows:[{id:'w',orchestrator:'Marketing',task:'Goal',status:'error',progress:{done:60,total:61},nodes:tasks}]},$:get,openAgent(id){context.agent=id}};
+ vm.createContext(context);for(const name of ['esc','openWorkflow','openTask'])vm.runInContext(functionSource(name),context);
+ context.openWorkflow('w');assert.equal((get('drawerBody').innerHTML.match(/data-workflow-task=/g)||[]).length,61);
+ buttons[60].onclick();assert.equal(get('drawerTitle').textContent,'Task 60');assert.ok(get('drawerBody').innerHTML.includes('w:60'));assert.ok(get('drawerBody').innerHTML.includes('error'));assert.ok(!get('drawerBody').innerHTML.includes('<script>'));assert.ok(get('drawerBody').innerHTML.includes('Lo snapshot non contiene gli output completi'));
+ get('taskOpenAgent').onclick();assert.equal(context.agent,'copy');
+ get('taskBackWorkflow').onclick();assert.equal(get('drawerTitle').textContent,'Marketing');
+ const before=get('drawerBody').innerHTML;context.openTask('missing','w:60');assert.equal(get('drawerBody').innerHTML,before);
+});
+test('agent drawer links only to a workflow actually present in the snapshot',()=>{
+ const elements={};const get=id=>elements[id]||(elements[id]={innerHTML:'',classList:{add(){}}});
+ const context={$:get,AGENTS:[{id:'a',name:'Agent',group:'Team'}],data:{workflows:[{id:'real'}]},activeStatus:()=>({status:'done',workflowId:'real'}),openWorkflow(id){context.opened=id}};
+ vm.createContext(context);for(const name of ['esc','openAgent'])vm.runInContext(functionSource(name),context);
+ context.openAgent('a');get('agentOpenWorkflow').onclick();assert.equal(context.opened,'real');
+ context.activeStatus=()=>({status:'idle',workflowId:'missing'});context.openAgent('a');assert.ok(!get('drawerBody').innerHTML.includes('agentOpenWorkflow'));
+});

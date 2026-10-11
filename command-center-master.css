@@ -151,3 +151,8 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
   .operational-card>button:hover{outline:none;background:none}
 }
 #networkToolbar[hidden]{display:none}
+
+/* Saved workflow task navigation */
+.workflow-task-link{width:100%;text-align:left;color:inherit;background:transparent;border:1px solid #24523e;border-radius:9px;margin-bottom:7px;cursor:pointer;min-height:44px}
+.workflow-task-link:hover{background:#102b1e}
+.workflow-task-link:focus-visible,.drawer-link:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}

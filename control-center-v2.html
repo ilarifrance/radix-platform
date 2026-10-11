@@ -744,14 +744,28 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var agent=AGENTS.find(function(a){return a.id===id})||{id:id,name:id,group:'Agent'};var st=activeStatus(id);
     $('drawerTitle').textContent=agent.name;
     $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Status</div><div class="detail-status"><i></i>'+esc(st.status||'idle')+'</div></div><div class="detail-section"><div class="detail-label">Team</div><div class="detail-value">'+esc(agent.group)+'</div></div><div class="detail-section"><div class="detail-label">Current task</div><div class="detail-value">'+esc(st.task||'Nessun task attivo registrato.')+'</div></div><div class="detail-section"><div class="detail-label">Workflow</div><div class="detail-value">'+esc(st.workflowId||'—')+'</div></div><div class="detail-section"><div class="detail-label">Operational note</div><div class="detail-value">Questa scheda legge lo stato reale dei workflow salvati. Output completi e conversazioni restano nel Workspace operativo.</div></div>';
+    if(st.workflowId&&(data.workflows||[]).some(function(w){return w.id===st.workflowId})){
+      $('drawerBody').innerHTML+='<button type="button" class="drawer-link" id="agentOpenWorkflow">Apri workflow collegato</button>';
+      $('agentOpenWorkflow').onclick=function(){openWorkflow(st.workflowId)};
+    }
     $('drawer').classList.add('open')
   }
   function openWorkflow(id){
     var w=(data.workflows||[]).find(function(x){return x.id===id});if(!w)return;
     $('drawerTitle').textContent=w.orchestrator;
-    var nodes=(w.nodes||[]).map(function(n){return '<div class="resource" style="margin-bottom:7px"><div class="resource-icon">'+(n.status==='done'?'✓':n.status==='error'?'!':'•')+'</div><div class="resource-main"><div class="resource-name">'+esc(n.label)+'</div><div class="resource-meta">'+esc(n.status)+' · '+esc(n.subtask||'task')+'</div></div></div>'}).join('');
+    var nodes=(w.nodes||[]).map(function(n,i){return '<button type="button" class="resource workflow-task-link" data-workflow-task="'+i+'" aria-label="Apri attività '+esc(n.label||n.id)+'"><div class="resource-icon">'+(n.status==='done'?'✓':n.status==='error'?'!':'•')+'</div><div class="resource-main"><div class="resource-name">'+esc(n.label)+'</div><div class="resource-meta">'+esc(n.status)+' · '+esc(n.subtask||'task')+'</div></div></button>'}).join('');
     $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Workflow status</div><div class="detail-status"><i></i>'+esc(w.status)+'</div></div><div class="detail-section"><div class="detail-label">Objective</div><div class="detail-value">'+esc(w.task)+'</div></div><div class="detail-section"><div class="detail-label">Progress</div><div class="detail-value">'+esc((w.progress.done||0)+' of '+(w.progress.total||0)+' tasks completed')+'</div></div><div class="detail-section"><div class="detail-label">Agents</div>'+nodes+'</div>';
-    $('drawer').classList.add('open')
+    $('drawer').classList.add('open');
+    $('drawerBody').querySelectorAll('[data-workflow-task]').forEach(function(button){button.onclick=function(){openTask(w.id,(w.nodes||[])[Number(button.getAttribute('data-workflow-task'))].id)}});
+  }
+  function openTask(workflowId,taskId){
+    var w=(data.workflows||[]).find(function(x){return x.id===workflowId});
+    var n=w&&(w.nodes||[]).find(function(x){return x.id===taskId});if(!n)return;
+    $('drawerTitle').textContent=n.label||n.id;
+    $('drawerBody').innerHTML='<button type="button" class="drawer-link" id="taskBackWorkflow">← Torna al workflow</button><div class="detail-section"><div class="detail-label">Workflow</div><div class="detail-value">'+esc(w.orchestrator)+' · '+esc(w.id)+'</div></div><div class="detail-section"><div class="detail-label">Attività · identità salvata</div><div class="detail-value">'+esc(n.id)+'</div></div><div class="detail-section"><div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(n.status||'pending')+'</div></div><div class="detail-section"><div class="detail-label">Descrizione</div><div class="detail-value">'+esc(n.subtask||'Nessuna descrizione registrata')+'</div></div><div class="detail-section"><div class="detail-label">Output</div><div class="detail-value">Lo snapshot non contiene gli output completi. Consulta il workspace operativo per i risultati salvati.</div></div>'+(n.agentId?'<button type="button" class="drawer-link" id="taskOpenAgent">Apri agente</button>':'');
+    $('taskBackWorkflow').onclick=function(){openWorkflow(w.id)};
+    if(n.agentId)$('taskOpenAgent').onclick=function(){openAgent(n.agentId)};
+    $('drawer').classList.add('open');
   }
   function applyZoom(){zoom=Math.min(3,Math.max(.35,zoom));$('networkStage').style.transform='translate('+pan.x+'px,'+pan.y+'px) scale('+zoom+')';$('zoomReset').textContent=Math.round(zoom*100)+'%'}
   function zoomAt(next,x,y){
