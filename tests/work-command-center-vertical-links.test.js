@@ -24,3 +24,12 @@ test('deployment root opens Work Command Center and old workspace offers a retur
  assert.ok(config.rewrites.some(x=>x.source==='/'&&x.destination==='/control-center-v2.html'));
  assert.ok(workspace.includes('href="/control-center-v2.html" aria-label="Torna al Command Center RADIX"'));
 });
+
+test('Marketing Agency is available in Work cockpit and its local files are present',()=>{
+ assert.match(cockpit,/href="\/agency\/index\.html"/);
+ for(const file of ['agency/index.html','agency/projects.html','agency/project-workspace.html','agency/ped.html','agency/catalog.json'])assert.ok(fs.existsSync(file),file);
+});
+test('fixed left sidebar is scrollable and workspace button remains reachable',()=>{
+ assert.match(cockpit,/\.sidebar\{display:flex;flex-direction:column;overflow-y:auto;/);
+ assert.match(cockpit,/\.sidebar>\.side-foot\{position:sticky;/);
+});
