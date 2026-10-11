@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-11",
+  "repository": "ilarifrance/radix-platform",
+  "coordinationIssue": "https://github.com/ilarifrance/radix-platform/issues/2",
+  "mode": "verified_snapshot_not_live",
+  "policy": {
+    "production": "main",
+    "integration": "review_required",
+    "automaticMerge": false,
+    "automaticDeployToProduction": false,
+    "sharedDbMigration": false,
+    "workflow": "branch → test → review → integration preview → acceptance → production approval"
+  },
+  "areas": [
+    {
+      "id": "command",
+      "name": "Command Center",
+      "owner": "ChatGPT Work",
+      "branch": "codex/radix-command-center-v1",
+      "status": "preview_ready",
+      "paths": [
+        "control-center-v2.html",
+        "command-center-master.css",
+        "command-center-network-refinement.css",
+        "command-center-network-scene.js"
+      ],
+      "preview": "https://radix-platform-git-codex-radix-c-f9dc2f-radix-innovation-studio.vercel.app/control-center-v2.html",
+      "route": "/control-center-v2.html",
+      "notes": "Cockpit, Network View, orbite, workflow e PED di progetto; autenticazione verificata da Work nei test documentati"
+    },
+    {
+      "id": "editorial",
+      "name": "PED di Work",
+      "owner": "ChatGPT Work",
+      "branch": "codex/radix-command-center-v1",
+      "status": "prototype_local",
+      "paths": [
+        "project-editorial.html",
+        "editorial-core.js",
+        "editorial-workspace.js"
+      ],
+      "route": "/project-editorial.html",
+      "notes": "Brief → conferma → piano editoriale → revisione; persistenza locale nel browser, non condivisa"
+    },
+    {
+      "id": "agency",
+      "name": "Marketing Agency",
+      "owner": "ChatGPT Agency",
+      "branch": "design/radix-marketing-agency-v2",
+      "status": "preview_ready",
+      "paths": [
+        "agency/",
+        "lib/agency-project-planner.js"
+      ],
+      "preview": "https://radix-platform-52nx175jh-radix-innovation-studio.vercel.app/agency/index.html",
+      "route": "/agency/index.html",
+      "notes": "Clienti, progetti, operazioni, orchestrazione e PED concorrente: scegliere un PED unico"
+    },
+    {
+      "id": "memory",
+      "name": "Memory Engine",
+      "owner": "ChatGPT Agency",
+      "branch": "design/radix-marketing-agency-v2",
+      "status": "blocked",
+      "paths": [
+        "api/_agency-memory-core.js",
+        "api/_agency-memory-handler.js",
+        "api/_agency-memory-migration.js",
+        "agency/memory.html"
+      ],
+      "route": "/agency/memory.html",
+      "notes": "Cinque livelli implementati; migrazione non eseguita: verificare database Preview isolato"
+    },
+    {
+      "id": "sales",
+      "name": "CRM & Sales",
+      "owner": "OpenClaw / Nexus",
+      "branch": "nexus/radix-sales-v1",
+      "status": "code_review",
+      "paths": [
+        "api/sales.js",
+        "api/_sales.js",
+        "api/_sales_store.js",
+        "sales/",
+        "radix-sales.html",
+        "migrations/sales/"
+      ],
+      "route": "/radix-sales.html",
+      "notes": "Backend e UI CRM, permessi e migrazioni; nessun collaudo DB live confermato"
+    },
+    {
+      "id": "intelligence",
+      "name": "Sales Intelligence",
+      "owner": "Qwen + revisione",
+      "branch": "review/qwen-nexus-integration-20261011",
+      "status": "advisory_only",
+      "paths": [
+        "lib/sales-intelligence/qualification.js",
+        "lib/sales-intelligence/forecast.js",
+        "tests/sales-intelligence-qualification.test.js",
+        "tests/sales-intelligence-forecast.test.js"
+      ],
+      "notes": "Prototipi corretti in review; nessuna connessione ai lead o stage reali"
+    },
+    {
+      "id": "legal",
+      "name": "Legale",
+      "owner": "RADIX workspace / da assegnare",
+      "branch": "design/radix-marketing-agency-v2",
+      "status": "agents_existing",
+      "paths": [
+        "index.html",
+        "api/chat.js"
+      ],
+      "route": "/index.html?area=legale",
+      "notes": "Agenti e orchestratore già nel roster, ma manca verticale operativo autonomo"
+    },
+    {
+      "id": "development",
+      "name": "Sviluppo",
+      "owner": "RADIX workspace / da assegnare",
+      "branch": "design/radix-marketing-agency-v2",
+      "status": "agents_existing",
+      "paths": [
+        "index.html",
+        "api/chat.js"
+      ],
+      "route": "/index.html?area=dev",
+      "notes": "Web Developer esistente, manca verticale operativo autonomo"
+    },
+    {
+      "id": "accounting",
+      "name": "Contabilità",
+      "owner": "RADIX workspace / da assegnare",
+      "branch": "design/radix-marketing-agency-v2",
+      "status": "agents_existing",
+      "paths": [
+        "index.html",
+        "api/chat.js"
+      ],
+      "route": "/index.html?area=admin",
+      "notes": "Agenti amministrativi esistenti, manca verticale operativo autonomo"
+    }
+  ],
+  "agents": {
+    "source": "index.html AGENTS v3.7",
+    "total": 30,
+    "groups": {
+      "marketing": 13,
+      "admin": 6,
+      "dev": 1,
+      "legale": 5,
+      "commerciale": 5
+    }
+  },
+  "decisions": [
+    {
+      "id": "D-01",
+      "status": "decided",
+      "title": "Work è owner esclusivo del Command Center",
+      "impact": "Agency non modifica control-center-v2.html"
+    },
+    {
+      "id": "D-02",
+      "status": "decided",
+      "title": "Non integrare branch divergenti con merge indiscriminato",
+      "impact": "Usare PR o cherry-pick verificati per file/componenti"
+    },
+    {
+      "id": "D-03",
+      "status": "pending",
+      "title": "Selezionare un solo PED",
+      "impact": "Confronto tra project-editorial.html e agency/ped.html"
+    },
+    {
+      "id": "D-04",
+      "status": "blocked",
+      "title": "Attivare Memory Engine",
+      "impact": "Richiede database Preview isolato e migrazione autorizzata"
+    },
+    {
+      "id": "D-05",
+      "status": "pending",
+      "title": "Contratto comune progetti/agenti/approvazioni",
+      "impact": "Stabilizzare ID e permessi prima di integrare i verticali"
+    }
+  ],
+  "handoff": {
+    "required": [
+      "owner",
+      "branch",
+      "commit",
+      "filesChanged",
+      "tests",
+      "preview",
+      "risks",
+      "dependencies"
+    ],
+    "policy": "No merge to main; no cross-owner edits without coordination"
+  }
+}
