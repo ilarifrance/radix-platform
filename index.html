@@ -882,6 +882,7 @@
       await loadRemoteState();
       renderRoster();
       selectAgent(state.agent);
+      applyAreaNavigation();
       checkApi();
     } catch (err) {
       showGate("Accesso non riuscito: " + (err && err.message ? err.message : String(err)));
@@ -3273,6 +3274,16 @@
     });
   }
 
+  // Command Center deep links: select only agents present in the existing roster.
+  // This does not trigger an AI request or change saved project data.
+  function applyAreaNavigation() {
+    var area = new URLSearchParams(window.location.search).get('area');
+    var defaultAgent = {commerciale:'comm-orchestrator',dev:'web-developer'}[area];
+    if (!defaultAgent) return;
+    var match = AGENTS.find(function(agent){return agent.id === defaultAgent && agent.group === area});
+    if (match) selectAgent(match.id);
+  }
+
   function selectAgent(id) {
     state.agent = id;
     var a = AGENTS.find(function (x) { return x.id === id; });
@@ -4452,6 +4463,7 @@
         await loadRemoteState();
         renderRoster();
         selectAgent(state.agent);
+        applyAreaNavigation();
       } else {
         showGate();
       }
