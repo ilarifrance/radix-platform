@@ -56,7 +56,7 @@ const p=state.brief;const profile={id:'agency-workspace',name:p.name,kind:p.indu
 let memoryContext='',memoryAvailable=true;
 try{
  const q=new URLSearchParams({projectId:key,clientId:String(p.clientId||''),agentId:String(t.role||'')});
- const response=await fetch('/api/agency-memory?'+q.toString()+'&mode=context',{credentials:'same-origin',cache:'no-store'});
+ const response=await fetch('/api/auth/me?agencyMemory=1&'+q.toString()+'&mode=context',{credentials:'same-origin',cache:'no-store'});
  if(!response.ok)throw Error('memoria non configurata');
  const payload=await response.json();memoryContext=String(payload.context||'').slice(0,6500);
 }catch(e){memoryAvailable=false}
