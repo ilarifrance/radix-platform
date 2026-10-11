@@ -62,6 +62,16 @@ test('Integrations reports only snapshot-supported states and links to existing 
  assert.equal(verified[3].meta,'Connessioni verificate');assert.ok(verified[1].detail.includes('esecuzione live verificata'));
  assert.ok(script.includes("parts[0]==='view')setView"));
 });
+test('Agents filters the configured roster by real saved state without implying live execution',()=>{
+ const roster=[{id:'copy',name:'Copywriter',group:'Marketing'},{id:'legal',name:'Legal Analyst',group:'Legal'},{id:'idle',name:'Idle Agent',group:'Legal'}];
+ const states={copy:{status:'done',task:'Landing fotovoltaico'},legal:{status:'error',task:'NDA review'}};
+ const context={};vm.createContext(context);vm.runInContext(functionSource('filterAgentRoster'),context);
+ assert.deepEqual(Array.from(context.filterAgentRoster(roster,states,{query:'fotovoltaico',group:'all',status:'all'})),[roster[0]]);
+ assert.deepEqual(Array.from(context.filterAgentRoster(roster,states,{query:'',group:'Legal',status:'problem'})),[roster[1]]);
+ assert.deepEqual(Array.from(context.filterAgentRoster(roster,states,{query:'',group:'Legal',status:'idle'})),[roster[2]]);
+ assert.equal(context.filterAgentRoster(roster,states,{query:'missing',group:'all',status:'all'}).length,0);
+ assert.equal(states.copy.status,'done');assert.equal(roster.length,3);
+});
 test('Knowledge searches actual context and project handoff resets workflow filters without mutations',()=>{
  const projects=[{id:'a',name:'Aura',kind:'Assistant',summary:'Benessere personale'},{id:'b',name:'Doc Capital',summary:'Educazione finanziaria'}];
  const context={data:{projects},workflowFilters:{project:'all',status:'problem',taskStatus:'pending'},renderCommandView(){context.rendered=true},setView(view){context.view=view}};
