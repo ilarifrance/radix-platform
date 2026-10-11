@@ -1,5 +1,15 @@
 # Command Center: orbital scene verification
 
+## Snapshot loading resilience — 11 October 2026
+
+Implementation `568b92cf78065056efd10b94e6ded725a5a96b65` changes `control-center-v2.html`, `command-center-master.css` and `tests/network-navigation.test.js`. Snapshot requests now have a 15-second deadline including JSON parsing, abort stalled network operations, reject invalid snapshot shape, and suppress overlapping loads. Transient refresh errors preserve the previously loaded snapshot with a visible notice and retry button. Initial failure and 401/403 use a clearly labelled blocking panel with retry and workspace access; successful recovery dismisses failure UI.
+
+36/36 tests pass and `git diff --check` passes. New isolated behavioral tests verify transient-error preservation, authentication-error distinction, successful recovery, overlap prevention and body-parsing timeout/abort. These failures were simulated in tests, not injected into the authenticated browser session.
+
+Deployment `dpl_CmoEes1xNB5rZsJcLbRfyfHdi2bo` reached READY for the exact implementation SHA. Authenticated stable Preview loaded Francesco Ilari with 5 projects, no error notice and SNAPSHOT CARICATO. Browser regression verified workflow problem filter (1 of 6 workflows/21 tasks) and Knowledge Aura search (1 of 5 contexts). Only browser-extension metadata errors appeared in captured logs. Verified URL: https://radix-platform-git-codex-radix-c-f9dc2f-radix-innovation-studio.vercel.app/control-center-v2.html . Screenshot `/workspace/scratch/radix-session-regression-568b92c.jpg` contains real saved snapshot data, not a fixture; it shows successful-loading regression, not a simulated failure screen.
+
+Remaining work: failure/retry UI is behaviorally tested but not browser-tested under forced network/authentication faults. Mobile/touch remains unverified. Approvals/external integrations are consultation or unsupported states, and full outputs/AI execution remain unverified. No database, credentials, protections, index.html or production changes. Next priority: validate operational views during snapshot refresh and complete supported detail navigation without inventing external capabilities.
+
 Scope: `codex/radix-command-center-v1`. No production deployment or merge. No changes to `index.html`, database, credentials, or environment configuration.
 
 ## Implemented
