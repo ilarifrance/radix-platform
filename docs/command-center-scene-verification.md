@@ -77,3 +77,17 @@ Commit `2aa8738738494414767a1084715885afb02c1853` adds a dedicated five-project 
 The authenticated stable Preview reached `SNAPSHOT CARICATO` with 5 projects and 30 workflow satellites. Visual inspection confirmed more separation and readable project names. Keyboard verification still opened RADIX → Aura → marketing-orchestrator, then the real Art Director task detail. Screenshot: `/workspace/scratch/radix-cluster-spacing-2aa8738.jpg` (actual authenticated Preview data; session artifact only). Automated suite remained 25/25 passing and `git diff --check` passed.
 
 Residual visual issue: moving satellites can still temporarily approach the lower edge of very long two-line labels, especially Personal Brand and RADIX. The dark plate keeps the name readable, but a later pass should reserve a true exclusion zone in the orbital projection. The fifth real project also necessarily differs from the four-cluster master composition.
+
+## Data-backed operational sections
+
+Commit `78136a9be2ab0c8242da8cd7a0a7e2af0bd32976` activates Agents, Knowledge, Approvals, Analytics and Integrations in the left navigation. The views reuse the central cockpit panel and only render information present in the loaded snapshot. Unsupported capabilities have explicit empty or unavailable states; they do not become simulated features.
+
+Authenticated Preview verification confirmed:
+
+- Agents: 30 configured records, saved idle/done/error states and tasks; “live execution not verified” remains visible. Opening Stratega di Marca e Campagne showed its saved done status, Marketing team, real task and `marketing-orchestrator:5` workflow ID.
+- Knowledge: five real project context cards with recorded summaries.
+- Approvals: truthful empty state because the centralized module is unavailable; workflow errors are not presented as approvals.
+- Analytics: 5 projects, 6 saved workflows, 61 saved tasks, 5 completed workflows and 1 error/block, labelled as snapshot-derived rather than live telemetry.
+- Integrations: snapshot and v3.7 workspace availability are shown; external-system connection state remains explicitly unavailable.
+
+The browser screenshot `/workspace/scratch/radix-agents-section-78136a9.jpg` contains authenticated operational data. The suite is now 26/26 passing and `git diff --check` passes. The sections are useful read-only surfaces; they do not start workflows or agents. Dedicated full-page modules, richer filtering and responsive interaction checks remain open.
