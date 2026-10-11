@@ -106,15 +106,17 @@
     {
       "id": "legal",
       "name": "Legale",
-      "owner": "RADIX workspace / da assegnare",
+      "owner": "ChatGPT Agency (UI verticale) / RADIX Platform (prompt AI)",
       "branch": "design/radix-marketing-agency-v2",
-      "status": "agents_existing",
+      "status": "preview_ready",
       "paths": [
-        "index.html",
-        "api/chat.js"
+        "legal/index.html",
+        "verticals/studio.js",
+        "verticals/studio.css",
+        "verticals/agent-catalog.json"
       ],
-      "route": "/index.html?area=legale",
-      "notes": "Agenti e orchestratore già nel roster, ma manca verticale operativo autonomo"
+      "route": "/legal/index.html",
+      "notes": "Cinque agenti importati dal roster RADIX Platform v3.7, workflow a fasi e chiamate AI confermate manualmente; bozze non persistite"
     },
     {
       "id": "development",
@@ -132,15 +134,17 @@
     {
       "id": "accounting",
       "name": "Contabilità",
-      "owner": "RADIX workspace / da assegnare",
+      "owner": "ChatGPT Agency (UI verticale) / RADIX Platform (prompt AI)",
       "branch": "design/radix-marketing-agency-v2",
-      "status": "agents_existing",
+      "status": "preview_ready",
       "paths": [
-        "index.html",
-        "api/chat.js"
+        "accounting/index.html",
+        "verticals/studio.js",
+        "verticals/studio.css",
+        "verticals/agent-catalog.json"
       ],
-      "route": "/index.html?area=admin",
-      "notes": "Agenti amministrativi esistenti, manca verticale operativo autonomo"
+      "route": "/accounting/index.html",
+      "notes": "Sei agenti contabili/amministrativi importati da RADIX Platform v3.7, workflow a fasi e chiamate AI confermate manualmente; bozze non persistite"
     }
   ],
   "agents": {
@@ -184,6 +188,12 @@
       "status": "pending",
       "title": "Contratto comune progetti/agenti/approvazioni",
       "impact": "Stabilizzare ID e permessi prima di integrare i verticali"
+    },
+    {
+      "id": "D-06",
+      "status": "decided",
+      "title": "Riutilizzare gli 11 agenti Legale e Contabilità esistenti",
+      "impact": "Identificativi e prompt in api/chat.js, catalogo di presentazione in verticals/agent-catalog.json; nessuna duplicazione backend"
     }
   ],
   "handoff": {
