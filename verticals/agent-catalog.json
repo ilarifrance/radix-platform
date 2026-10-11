@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "repository": "ilarifrance/radix-platform",
+    "branch": "design/radix-marketing-agency-v2",
+    "roster": "index.html AGENTS v3.7",
+    "backend": "api/chat.js",
+    "mode": "reuse_existing_role_ids"
+  },
+  "verticals": {
+    "legal": {
+      "name": "RADIX Legal",
+      "subtitle": "Studio legale AI · Analisi, contratti, privacy e rischi",
+      "description": "Gli agenti sono riutilizzati da RADIX Platform: stessi identificativi, stessi prompt server, nessun clone. Ogni risultato è una bozza da verificare professionalmente.",
+      "accent": "#70baff",
+      "roles": [
+        {
+          "id": "legal-orchestrator",
+          "name": "Orchestratore Legale",
+          "description": "Analizza il mandato, suddivide il lavoro e indica le verifiche specialistiche",
+          "tasks": [
+            "Imposta la strategia legale per un nuovo incarico",
+            "Coordina revisione contratto e rischi"
+          ]
+        },
+        {
+          "id": "legal-gdpr",
+          "name": "Esperto Privacy e GDPR",
+          "description": "Privacy, informativa, consensi, responsabilità del trattamento",
+          "tasks": [
+            "Verifica i requisiti privacy di un progetto digitale",
+            "Prepara una checklist GDPR"
+          ]
+        },
+        {
+          "id": "legal-contracts",
+          "name": "Esperto Contrattualistica, IP e Creator",
+          "description": "NDA, contratti commerciali, proprietà intellettuale, accordi",
+          "tasks": [
+            "Prepara una bozza di NDA bilaterale",
+            "Individua clausole da negoziare"
+          ]
+        },
+        {
+          "id": "legal-banking",
+          "name": "Esperto Diritto Bancario e Finanziario",
+          "description": "Contratti bancari, TUB/TUF, comunicazione finanziaria",
+          "tasks": [
+            "Analizza rischi di un accordo finanziario",
+            "Verifica il perimetro di un servizio finanziario"
+          ]
+        },
+        {
+          "id": "legal-risk-analyst",
+          "name": "Analista di Rischio Legale",
+          "description": "Controllo incrociato, criticità, lacune e raccomandazioni",
+          "tasks": [
+            "Rileggi un contratto e identifica criticità",
+            "Verifica un parere e segnala incertezze"
+          ]
+        }
+      ],
+      "workflows": [
+        {
+          "id": "contract",
+          "title": "Revisione contrattuale",
+          "steps": [
+            "legal-orchestrator",
+            "legal-contracts",
+            "legal-risk-analyst"
+          ]
+        },
+        {
+          "id": "privacy",
+          "title": "Privacy e conformità",
+          "steps": [
+            "legal-orchestrator",
+            "legal-gdpr",
+            "legal-risk-analyst"
+          ]
+        },
+        {
+          "id": "banking",
+          "title": "Diritto bancario",
+          "steps": [
+            "legal-orchestrator",
+            "legal-banking",
+            "legal-risk-analyst"
+          ]
+        }
+      ]
+    },
+    "accounting": {
+      "name": "RADIX Accounting",
+      "subtitle": "Studio contabile AI · Fisco, amministrazione e lavoro",
+      "description": "I sei agenti dello Studio RADIX originale, con prompt e API già presenti. Nessun invio fiscale o registrazione contabile automatica.",
+      "accent": "#a8e2b5",
+      "roles": [
+        {
+          "id": "partner",
+          "name": "Orchestratore dello Studio",
+          "description": "Coordina il mandato e assegna il lavoro agli specialisti",
+          "tasks": [
+            "Organizza le attività dello studio",
+            "Definisci le verifiche per una pratica complessa"
+          ]
+        },
+        {
+          "id": "commercialista-senior",
+          "name": "Commercialista Senior",
+          "description": "Analisi fiscale e societaria complessa, revisione e decisioni",
+          "tasks": [
+            "Analizza il trattamento fiscale di un'operazione",
+            "Verifica una bozza di parere fiscale"
+          ]
+        },
+        {
+          "id": "commercialista-operativo",
+          "name": "Commercialista Operativo",
+          "description": "Operatività tributaria, dichiarazioni e adempimenti",
+          "tasks": [
+            "Prepara una checklist di adempimenti",
+            "Imposta il controllo delle scadenze fiscali"
+          ]
+        },
+        {
+          "id": "contabilita",
+          "name": "Contabilità",
+          "description": "Prima nota, riconciliazioni, liquidazioni IVA e documentazione",
+          "tasks": [
+            "Prepara uno schema di riconciliazione",
+            "Analizza una classificazione contabile"
+          ]
+        },
+        {
+          "id": "lavoro-paghe",
+          "name": "Lavoro e Paghe",
+          "description": "Inquadramenti, costo del lavoro, CCNL e gestione paghe",
+          "tasks": [
+            "Confronta due ipotesi contrattuali",
+            "Prepara una checklist per l'assunzione"
+          ]
+        },
+        {
+          "id": "segreteria-studio",
+          "name": "Segreteria dello Studio",
+          "description": "Comunicazioni, organizzazione pratiche e scadenziario",
+          "tasks": [
+            "Prepara una comunicazione al cliente",
+            "Organizza le attività aperte dello studio"
+          ]
+        }
+      ],
+      "workflows": [
+        {
+          "id": "tax",
+          "title": "Parere fiscale",
+          "steps": [
+            "partner",
+            "commercialista-senior",
+            "commercialista-operativo"
+          ]
+        },
+        {
+          "id": "bookkeeping",
+          "title": "Riconciliazione contabile",
+          "steps": [
+            "partner",
+            "contabilita",
+            "commercialista-senior"
+          ]
+        },
+        {
+          "id": "employment",
+          "title": "Valutazione del lavoro",
+          "steps": [
+            "partner",
+            "lavoro-paghe",
+            "commercialista-senior"
+          ]
+        }
+      ]
+    }
+  }
+}
