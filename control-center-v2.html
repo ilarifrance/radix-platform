@@ -548,8 +548,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     return {configured:AGENTS.length,recorded:recorded,verified:data.dataQuality&&data.dataQuality.realtimeExecutionVerified===true?recorded:null};
   }
   function projectSlots(count){
-    var layouts={1:[{x:450,y:130}],2:[{x:250,y:245},{x:650,y:245}],3:[{x:240,y:130},{x:660,y:130},{x:450,y:380}],4:[{x:236,y:135},{x:668,y:135},{x:236,y:360},{x:668,y:360}]};
-    return layouts[Math.max(1,Math.min(4,count))];
+    var layouts={1:[{x:450,y:130}],2:[{x:250,y:245},{x:650,y:245}],3:[{x:240,y:130},{x:660,y:130},{x:450,y:380}],4:[{x:226,y:145},{x:674,y:145},{x:226,y:365},{x:674,y:365}],5:[{x:220,y:155},{x:680,y:155},{x:220,y:370},{x:680,y:370},{x:450,y:72}]};
+    return layouts[Math.max(1,Math.min(5,count))];
   }
   function orderedProjects(){
     var ps=(data.projects||[]).slice();ps.sort(function(a,b){return projectRank(a)-projectRank(b)});
@@ -595,7 +595,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var allVisible=visible.slice(),pageSize=$('networkPanel').classList.contains('network-expanded')?Math.max(1,visible.length):8,pages=Math.max(1,Math.ceil(visible.length/pageSize));networkPage=Math.min(networkPage,pages-1);visible=visible.slice(networkPage*pageSize,networkPage*pageSize+pageSize);
     var extra=Math.max(0,Math.ceil(visible.length/10)-1);svg.setAttribute('viewBox',(-extra*160-30)+' '+(-extra*110-30)+' '+(960+extra*320)+' '+(554+extra*220));
     visible.forEach(function(item,i){
-      var c;if(!focused&&visible.length<=5)c=i<4?projectSlots(4)[i]:{x:450,y:48};
+      var c;if(!focused&&visible.length<=5)c=projectSlots(visible.length)[i];
       else c=networkPosition(i,visible.length);
       var color=focused?projectColor(focused,projects.indexOf(focused)):projectColor(item,i),label=String(focused?item.label:item.name||item.id);
       var nodeRadius=!focused&&/aura/i.test(label)?24:18;
@@ -606,11 +606,12 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         if(j===2)edges+='<path class="network-beam-halo"'+attrs+' d="'+beam+'" stroke="'+color+'"/><path class="network-flow"'+attrs+' d="'+beam+'" stroke="'+color+'"/>';
       });
       if(!focused){
-        orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="164" ry="92" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="110" ry="64" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="148" ry="58" stroke="'+color+'" transform="rotate('+(i%2===0?-19:16)+' '+c.x+' '+c.y+')"/>';
+        var aura=/aura/i.test(label),clusterRx=aura?178:[151,160,146,156,138][i%5],clusterRy=aura?96:[82,88,78,84,66][i%5],orbitRx=aura?122:[104,113,98,108,92][i%5],orbitRy=aura?68:[54,61,52,58,45][i%5],tilt=[-21,17,14,-16,5][i%5];
+        orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="'+clusterRx+'" ry="'+clusterRy+'" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="'+Math.round(clusterRx*.68)+'" ry="'+Math.round(clusterRy*.7)+'" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="'+Math.round(clusterRx*.9)+'" ry="'+Math.round(clusterRy*.62)+'" stroke="'+color+'" transform="rotate('+tilt+' '+c.x+' '+c.y+')"/>';
         // One satellite per saved workflow: tasks remain available through drill-down.
         var items=projectItems(item.id);
-        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length+.28*(j%3),ax=c.x+Math.cos(angle)*(100+(j%3)*9),ay=c.y+Math.sin(angle)*(58+(j%2)*9),key=entries.length;entries.push(child);var taskCount=(child.workflow.nodes||[]).length,satelliteLabel=child.label+' · '+taskCount+' attività · stato salvato: '+(child.status||'non disponibile');
-          orbits+='<path class="satellite-tether" data-tether="'+key+'" fill="none" stroke="'+color+'"/><g class="network-target satellite scene-satellite" data-orbit-tether="'+key+'" data-orbit-x="'+c.x+'" data-orbit-y="'+(c.y-15)+'" data-orbit-rx="'+(100+(j%3)*9)+'" data-orbit-ry="'+(58+(j%2)*9)+'" data-orbit-phase="'+angle+'" data-orbit-tilt="'+(i%2===0?-19:16)+'" data-orbit-speed="0.18" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(satelliteLabel)+'"><title>'+esc(satelliteLabel)+'</title><circle cx="0" cy="0" r="10" fill="url(#sphereLight)" stroke="'+color+'"/><circle cx="0" cy="0" r="3" fill="'+color+'"/><text class="satellite-count" x="14" y="4">'+taskCount+'</text><circle class="satellite-hit" cx="0" cy="0" r="12" fill="transparent" stroke="none"/></g>';
+        items.forEach(function(child,j){var angle=2*Math.PI*j/items.length+.31*i+.17*(j%2),rx=orbitRx+(j%3)*5,ry=orbitRy+(j%2)*5,ax=c.x+Math.cos(angle)*rx,ay=c.y+Math.sin(angle)*ry,key=entries.length;entries.push(child);var taskCount=(child.workflow.nodes||[]).length,satelliteLabel=child.label+' · '+taskCount+' attività · stato salvato: '+(child.status||'non disponibile');
+          orbits+='<path class="satellite-tether" data-tether="'+key+'" fill="none" stroke="'+color+'"/><g class="network-target satellite scene-satellite" data-orbit-tether="'+key+'" data-orbit-x="'+c.x+'" data-orbit-y="'+(c.y-15)+'" data-orbit-rx="'+rx+'" data-orbit-ry="'+ry+'" data-orbit-phase="'+angle+'" data-orbit-tilt="'+tilt+'" data-orbit-speed="'+(aura?.2:.16+(i%3)*.012)+'" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(satelliteLabel)+'"><title>'+esc(satelliteLabel)+'</title><circle cx="0" cy="0" r="10" fill="url(#sphereLight)" stroke="'+color+'"/><circle cx="0" cy="0" r="3" fill="'+color+'"/><text class="satellite-count" x="14" y="4">'+taskCount+'</text><circle class="satellite-hit" cx="0" cy="0" r="12" fill="transparent" stroke="none"/></g>';
         });
         orbits+='</g>';
       }

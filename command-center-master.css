@@ -70,7 +70,9 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .network-target .project-ring{fill:var(--node-color);fill-opacity:.25;stroke-width:1.3}
 .network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
 .cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
-.network-label{padding-top:5px}
+.network-label{padding-top:5px;display:flex;flex-direction:column;align-items:center}
+.network-label strong{max-width:205px;padding:3px 9px;border-radius:8px;background:linear-gradient(90deg,transparent,#020c0bd9 16%,#020c0be8 84%,transparent);text-shadow:0 1px 2px #000,0 0 8px var(--node-color)}
+.network-label small{padding:1px 6px;border-radius:5px;background:#020b09c7}
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
 
 /* Configured roster satellites belong to the central RADIX team, not to a project. */
@@ -108,3 +110,5 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 
 /* Saved workflow groups: counts are tasks, never a claim of active agents. */
 .satellite-count{font:600 10px Inter,system-ui,sans-serif;fill:#e0f9ed;paint-order:stroke;stroke:#020b08;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.scene-satellite>circle:first-of-type{filter:drop-shadow(0 0 5px var(--node-color))}
+.network-cluster.cluster-hover .satellite-tether{opacity:.72;stroke-width:.9}
