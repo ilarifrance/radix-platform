@@ -18,3 +18,9 @@ test('legal and accounting are self-contained UI files that reuse shared origina
  for(const area of ['legal','accounting'])assert.ok(fs.readFileSync(area+'/index.html','utf8').includes('../verticals/studio.js'));
  assert.doesNotThrow(()=>new vm.Script(fs.readFileSync('verticals/studio.js','utf8')));
 });
+
+test('deployment root opens Work Command Center and old workspace offers a return button',()=>{
+ const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+ assert.ok(config.rewrites.some(x=>x.source==='/'&&x.destination==='/control-center-v2.html'));
+ assert.ok(workspace.includes('href="/control-center-v2.html" aria-label="Torna al Command Center RADIX"'));
+});
