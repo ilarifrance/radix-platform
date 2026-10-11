@@ -10,7 +10,7 @@ test('primary navigation exposes data-backed operational sections',()=>{
  for(const view of ['approvals','agents','knowledge','analytics','integrations'])assert.ok(html.includes(`data-radix-view="${view}"`));
  assert.ok(html.includes('id="operationalView"'));
  assert.ok(script.includes("Metriche derivate dallo snapshot · non telemetria live"));
- assert.ok(script.includes("Nessuna connessione viene dichiarata senza dati verificabili"));
+ assert.ok(script.includes("Nessuna connessione esterna viene dichiarata senza dati verificabili"));
  assert.ok(!html.includes('data-future="Agents"'));
  assert.ok(script.includes("workflow salvati; "));
  assert.ok(script.includes("ANALYTICS','Metriche derivate dallo snapshot"));
@@ -49,6 +49,18 @@ test('Approvals keeps real workflow blocks distinct and refreshes the visible op
  context.rendered=null;host.hidden=true;context.refreshOperationalView();assert.equal(context.rendered,null);
  assert.ok(script.includes("parts[0]==='workflow')openWorkflow"));
  assert.ok(script.includes('Blocchi workflow · distinti dalle approvazioni'));
+});
+test('Integrations reports only snapshot-supported states and links to existing orchestrators',()=>{
+ const snapshot={user:{name:'Francesco'},workflows:[{id:'w1'},{id:'w2'}],dataQuality:{source:'authenticated-legacy-state',realtimeExecutionVerified:false,integrationsVerified:false}};
+ const context={};vm.createContext(context);vm.runInContext(functionSource('integrationStatusItems'),context);
+ const items=context.integrationStatusItems(snapshot,30);
+ assert.equal(items[0].meta,'Connesso');assert.ok(items[0].detail.includes('authenticated-legacy-state'));
+ assert.equal(items[1].meta,'2 workflow salvati');assert.ok(items[1].detail.includes('30 agenti configurati'));assert.equal(items[1].action,'view:command');
+ assert.ok(items[2].detail.includes('progetto selezionato non viene trasferito'));assert.equal(items[2].action,'workspace');
+ assert.equal(items[3].meta,'Stato non disponibile');assert.equal(items[3].action,'');
+ const verified=context.integrationStatusItems({...snapshot,dataQuality:{source:'dashboard',realtimeExecutionVerified:true,integrationsVerified:true}},30);
+ assert.equal(verified[3].meta,'Connessioni verificate');assert.ok(verified[1].detail.includes('esecuzione live verificata'));
+ assert.ok(script.includes("parts[0]==='view')setView"));
 });
 test('Knowledge searches actual context and project handoff resets workflow filters without mutations',()=>{
  const projects=[{id:'a',name:'Aura',kind:'Assistant',summary:'Benessere personale'},{id:'b',name:'Doc Capital',summary:'Educazione finanziaria'}];

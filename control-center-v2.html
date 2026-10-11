@@ -815,6 +815,15 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var host=$('operationalView');
     if(host&&!host.hidden&&['agents','knowledge','approvals','analytics','integrations'].includes(currentView))renderOperationalView(currentView);
   }
+  function integrationStatusItems(snapshot,agentCount){
+    var quality=snapshot.dataQuality||{},workflows=snapshot.workflows||[],user=snapshot.user||{};
+    return [
+      {icon:'●',name:'Sessione e snapshot RADIX',meta:user.name||user.email?'Connesso':'Identità non disponibile',detail:(quality.source||'sorgente non dichiarata')+' · dati caricati in sola lettura',action:''},
+      {icon:'⟲',name:'Orchestratori v3.7',meta:workflows.length+' workflow salvati',detail:agentCount+' agenti configurati · esecuzione live '+(quality.realtimeExecutionVerified===true?'verificata':'non verificata'),action:'view:command'},
+      {icon:'↗',name:'Workspace v3.7',meta:'Disponibile',detail:'Chat e orchestratori esistenti · il progetto selezionato non viene trasferito',action:'workspace'},
+      {icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}
+    ];
+  }
 
   function renderOperationalView(view){
     if(view==='knowledge'){renderKnowledgeView();return}
@@ -833,11 +842,12 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }else if(view==='analytics'){
       title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
     }else{
-      title='Integrations';html=shell(title,'Stato tecnico verificabile',card('●','Snapshot RADIX','Connesso','Dati del workspace caricati in sola lettura','')+card('↗','Workspace v3.7','Disponibile','Chat e orchestratori si aprono nel workspace esistente','workspace')+card('⛓','Sistemi esterni','Stato non disponibile','Nessuna connessione viene dichiarata senza dati verificabili',''));
+      title='Integrations';var integrations=integrationStatusItems(data,AGENTS.length);
+      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',integrations.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action)}).join(''));
     }
     host.innerHTML=html;host.setAttribute('aria-label',title);
     var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};
-    host.querySelectorAll('[data-operational-action]').forEach(function(button){button.onclick=function(){var action=button.getAttribute('data-operational-action'),parts=action.split(':');if(parts[0]==='agent')openAgent(parts.slice(1).join(':'));else if(parts[0]==='project')enterProject(parts.slice(1).join(':'));else if(parts[0]==='workflow')openWorkflow(parts.slice(1).join(':'));else if(action==='workspace')location.href='/index.html'}});
+    host.querySelectorAll('[data-operational-action]').forEach(function(button){button.onclick=function(){var action=button.getAttribute('data-operational-action'),parts=action.split(':');if(parts[0]==='agent')openAgent(parts.slice(1).join(':'));else if(parts[0]==='project')enterProject(parts.slice(1).join(':'));else if(parts[0]==='workflow')openWorkflow(parts.slice(1).join(':'));else if(parts[0]==='view')setView(parts.slice(1).join(':'));else if(action==='workspace')location.href='/index.html'}});
   }
   function openAgent(id){
     selectedAgent=id;
