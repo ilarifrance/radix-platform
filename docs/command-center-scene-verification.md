@@ -220,3 +220,13 @@ The complete suite passes 38/38 tests and `git diff --check` passes. Behavioral 
 Authenticated browser verification on https://radix-platform-git-codex-radix-c-f9dc2f-radix-innovation-studio.vercel.app/control-center-v2.html confirmed Francesco Ilari's snapshot, the four diagnostic states and navigation from Integrations to Workflows showing 6 of 6 workflows and 61 activities. Screenshot: `/workspace/scratch/radix-integrations-c1573f7.jpg` (authenticated real snapshot, not fixture data).
 
 Limits: external integration status remains unavailable because the snapshot has no connection inventory. The page therefore remains diagnostic rather than a connection-management application. Mobile/touch interaction and selected-project transfer to v3.7 remain open; the latter cannot be completed without changing the prohibited workspace entry path or persisted state.
+
+## Agent roster search and filters — 11 October 2026
+
+Implementation `3e5dcb6e18db27a7050cc45e87cdae9e8d0973c2` changes `control-center-v2.html`, `command-center-master.css` and `tests/network-navigation.test.js`. Agents now supports search across configured name, stable agent ID, team and saved task, plus team and saved-status filters. Result counts and truthful empty states update without changing the roster or snapshot. Error/blocked and running/pending/stale groupings remain distinct, and an agent without a saved record remains `idle`; configured agents are not presented as live executions.
+
+The complete suite passes 39/39 tests and `git diff --check` passes. Behavioral coverage verifies name/task search, team filtering, problem and idle state selection, empty results and preservation of the original roster/state objects.
+
+At the time of this record the GitHub commit is on the authorized branch, but Vercel has not registered an automatic deployment for the SHA after repeated checks. The stable branch Preview therefore still serves `35e542ea2964f9118eda8407ef417f0d0a3f4fc7`; browser verification of the new Agents controls is intentionally not claimed yet. No manual or production deployment was started.
+
+Remaining priorities: verify the exact Agents commit when the automatic Preview appears, then perform a real mobile/touch pass. Selected-project transfer to v3.7 remains constrained by the prohibition on `index.html` and database writes.
