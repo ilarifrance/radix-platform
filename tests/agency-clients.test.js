@@ -1,0 +1,10 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const c=require('../agency/clients-core');
+test('owner-scoped storage key is normalized',()=>{assert.equal(c.ownerKey(' U-42 '),c.ownerKey('u-42'));assert.throws(()=>c.ownerKey(''))});
+test('client validation rejects invalid records and statuses',()=>{assert.throws(()=>c.normalizeInput({name:'a'}));assert.throws(()=>c.normalizeInput({name:'Cliente',status:'admin'}));assert.equal(c.normalizeInput({name:'  Brand  ',status:'active'}).name,'Brand')});
+test('owner isolation rejects mismatched or malformed storage',()=>{assert.deepEqual(c.readStore(null,'u'),[]);assert.throws(()=>c.readStore({schemaVersion:1,ownerId:'other',clients:[]},'u'));assert.throws(()=>c.readStore({schemaVersion:1,ownerId:'u',clients:[{id:'cl-123456',name:'Azienda'},{id:'cl-123456',name:'Duplicato'}]},'u'))});
+test('search and status filtering are deterministic',()=>{const rows=[{name:'Beta',status:'active',sector:'B2B',manager:'Team 2'},{name:'Alfa',status:'prospect',sector:'Retail',manager:'Team 1'}];assert.deepEqual(c.filterClients(rows,'','all').map(x=>x.name),['Alfa','Beta']);assert.deepEqual(c.filterClients(rows,'B2B','active').map(x=>x.name),['Beta'])});
+test('linked project discovery requires matching owner',()=>{const data=[['radix-agency-workspace:agency-1',JSON.stringify({schemaVersion:1,ownerId:'u',brief:{clientId:'cl-123456',name:'Campagna'}})],['radix-agency-workspace:agency-2',JSON.stringify({schemaVersion:1,ownerId:'other',brief:{clientId:'cl-123456',name:'Privato'}})],['misc','ignored']];const store={length:data.length,key:i=>data[i][0],getItem:k=>data.find(x=>x[0]===k)?.[1]||null};assert.equal(c.projectLinks(store,'u').length,1);assert.equal(c.projectLinks(store,'u')[0].name,'Campagna')});
+test('client deletion blocked while project is linked',()=>{assert.equal(c.mayDelete('cl-123456',[{clientId:'cl-123456'}]),false);assert.equal(c.mayDelete('cl-123456',[{clientId:'cl-other'}]),true)});
