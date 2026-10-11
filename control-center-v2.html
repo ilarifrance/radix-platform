@@ -326,11 +326,21 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       </div>
     </div>
     <div class="side-section">
+      <div class="side-label">Aree operative</div>
+      <div class="nav" aria-label="Aree RADIX">
+        <a class="nav-item" href="./agency/index.html" title="Marketing Agency"><span class="nav-icon">✦</span><span>Marketing Agency</span></a>
+        <a class="nav-item" href="./index.html?area=commerciale" title="CRM e commerciale"><span class="nav-icon">▤</span><span>CRM &amp; Commerciale</span></a>
+        <a class="nav-item" href="./index.html?area=legale" title="Area legale"><span class="nav-icon">⚖</span><span>Legale</span></a>
+        <a class="nav-item" href="./index.html?area=dev" title="Sviluppo"><span class="nav-icon">⌘</span><span>Sviluppo</span></a>
+        <a class="nav-item" href="./index.html?area=admin" title="Amministrazione e contabilità"><span class="nav-icon">▥</span><span>Contabilità</span></a>
+      </div>
+    </div>
+    <div class="side-section">
       <div class="side-label">Projects</div>
       <div id="projectList"></div>
     </div>
     <div class="side-foot">
-      <a class="workspace-link" href="/index.html"><span><b>Open Workspace</b><br>chat & orchestrators</span><b>↗</b></a>
+      <a class="workspace-link" href="/index.html"><span><b>Workspace agenti</b><br>chat & orchestrators</span><b>↗</b></a>
     </div>
   </aside>
 
@@ -643,7 +653,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(String(id)==='radix-agency'){location.href='./agency/index.html';return}
     var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;
     $('drawerTitle').textContent=p.name;
-    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html?project='+encodeURIComponent(p.id)+'" class="drawer-link">Apri il progetto nel workspace ↗</a></div>';
     $('drawer').classList.add('open');
   }
   function renderApprovals(){
