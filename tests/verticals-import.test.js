@@ -12,7 +12,7 @@ test('Legal and Accounting reuse exactly existing RADIX Platform agent identifie
   const v=data.verticals[area];assert.equal(v.roles.length,n);
   const ids=v.roles.map(x=>x.id);
   assert.equal(new Set(ids).size,n);
-  for(const id of ids){assert.ok(source.includes('id: "'+id+'"'),id+' missing in original UI');assert.ok(backend.includes('"'+id+'": {'),id+' missing in original backend prompt');}
+  for(const id of ids){assert.ok(source.includes('id: "'+id+'"'),id+' missing in original UI');assert.ok(backend.includes('"'+id+'": {')||backend.includes(id+': {'),id+' missing in original backend prompt');}
   for(const flow of v.workflows)for(const id of flow.steps)assert.ok(ids.includes(id),'unknown workflow role '+id);
  }
 });
