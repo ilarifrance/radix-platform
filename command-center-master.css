@@ -112,3 +112,19 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .satellite-count{font:600 10px Inter,system-ui,sans-serif;fill:#e0f9ed;paint-order:stroke;stroke:#020b08;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
 .scene-satellite>circle:first-of-type{filter:drop-shadow(0 0 5px var(--node-color))}
 .network-cluster.cluster-hover .satellite-tether{opacity:.72;stroke-width:.9}
+
+/* Data-backed section views share the cockpit without pretending unsupported modules exist. */
+.operational-view{height:100%;overflow:auto;padding:16px;box-sizing:border-box;background:radial-gradient(circle at 50% 0,#06352824,transparent 42%)}
+.operational-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.operational-head strong{display:block;color:#effff8;font:650 22px/1.2 "Space Grotesk",Inter,sans-serif}
+.operational-head span{display:block;color:#78a594;font-size:11px;margin-top:4px}
+.operational-head button{border:1px solid #135a46;background:#06231b;color:#9af4d1;border-radius:9px;padding:8px 12px;cursor:pointer}
+.operational-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.operational-card{min-width:0;min-height:92px;border:1px solid #123d32;background:linear-gradient(145deg,#061a16e8,#020b09e8);border-radius:12px;padding:0;color:#dffbef;box-shadow:inset 0 1px #36dca414}
+.operational-card>button,.operational-card:not(:has(>button)){width:100%;height:100%;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;gap:10px;align-items:start;text-align:left;border:0;background:none;color:inherit;padding:13px;box-sizing:border-box}
+.operational-card>button{cursor:pointer;border-radius:12px}
+.operational-card>button:hover,.operational-card>button:focus-visible{outline:1px solid #24d99a;background:#0b3528a8}
+.operational-card i{width:30px;height:30px;display:grid;place-items:center;border:1px solid #147355;border-radius:9px;background:#0a3125;color:#45ecaf;font-style:normal}
+.operational-card strong,.operational-card span,.operational-card small{display:block;overflow-wrap:anywhere}
+.operational-card strong{font-size:13px;color:#f3fff9}.operational-card span{margin-top:3px;color:#76d6b2;font-size:10px}.operational-card small{margin-top:8px;color:#8eaea1;font-size:10px;line-height:1.35}.operational-card b{color:#4fe8b0}
+@media(max-width:760px){.operational-grid{grid-template-columns:1fr}.operational-head{align-items:flex-start}.operational-head strong{font-size:18px}}

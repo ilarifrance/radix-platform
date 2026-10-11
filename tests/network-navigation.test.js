@@ -5,6 +5,13 @@ const vm=require('node:vm');
 const html=fs.readFileSync('control-center-v2.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
 test('cockpit JavaScript parses',()=>assert.doesNotThrow(()=>new vm.Script(script)));
+test('primary navigation exposes data-backed operational sections',()=>{
+ for(const view of ['approvals','agents','knowledge','analytics','integrations'])assert.ok(html.includes(`data-radix-view="${view}"`));
+ assert.ok(html.includes('id="operationalView"'));
+ assert.ok(script.includes("Metriche derivate dallo snapshot · non telemetria live"));
+ assert.ok(script.includes("Nessuna connessione viene dichiarata senza dati verificabili"));
+ assert.ok(!html.includes('data-future="Agents"'));
+});
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 test('project map requires explicit workflow ownership and includes every task',()=>{
  const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};

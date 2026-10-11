@@ -315,16 +315,16 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         <button class="nav-item active" data-radix-view="network" aria-current="page"><span class="nav-icon">⌘</span><span>Command Center</span></button>
         <button class="nav-item" data-radix-view="projects"><span class="nav-icon">◈</span><span>Projects</span></button>
         <button class="nav-item" data-radix-view="command"><span class="nav-icon">⟲</span><span>Workflows</span><b class="nav-badge" id="navWorkflowBadge">0</b></button>
-        <button class="nav-item" data-future="Approvals"><span class="nav-icon">✓</span><span>Approvals</span><b class="nav-badge" id="navApprovalBadge">0</b></button>
+        <button class="nav-item" data-radix-view="approvals"><span class="nav-icon">✓</span><span>Approvals</span><b class="nav-badge" id="navApprovalBadge">0</b></button>
       </div>
     </div>
     <div class="side-section">
       <div class="side-label">Intelligence</div>
       <div class="nav">
-        <button class="nav-item" data-future="Agents"><span class="nav-icon">✣</span><span>Agents</span></button>
-        <button class="nav-item" data-future="Knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
-        <button class="nav-item" data-future="Analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
-        <button class="nav-item" data-future="Integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
+        <button class="nav-item" data-radix-view="agents"><span class="nav-icon">✣</span><span>Agents</span></button>
+        <button class="nav-item" data-radix-view="knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
+        <button class="nav-item" data-radix-view="analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
+        <button class="nav-item" data-radix-view="integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
       </div>
     </div>
     <div class="side-section">
@@ -375,6 +375,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
             </div>
             <div class="command-view" id="commandView" hidden></div>
             <div class="project-view" id="projectView" hidden aria-label="Elenco completo dei progetti"></div>
+            <div class="operational-view" id="operationalView" hidden></div>
             <div class="network-caption" id="networkCaptionWrap"><i class="status-led"></i><span id="networkCaption">Mappa dei progetti · attività attribuite</span></div>
             <div class="legend" id="networkLegend"><span><i style="background:#1ef28f"></i>progetto attivo</span><span><i style="background:#65b8ff"></i>progetto</span><span><i style="background:#f4bd5f"></i>stato salvato</span></div>
           </div>
@@ -715,6 +716,26 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     ];
     $('knowledgeList').innerHTML=resources.map(function(r){return '<div class="resource"><div class="resource-icon">'+r.i+'</div><div class="resource-main"><div class="resource-name">'+esc(r.n)+'</div><div class="resource-meta">'+esc(r.m)+'</div></div></div>'}).join('')
   }
+
+  function renderOperationalView(view){
+    var host=$('operationalView'),workflows=data.workflows||[],projects=data.projects||[],states=data.agentStatus||{},html='',title='';
+    function shell(name,meta,body){return '<div class="operational-head"><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="operational-grid">'+body+'</div>'}
+    function card(icon,name,meta,detail,action){return '<article class="operational-card">'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}
+    if(view==='agents'){
+      title='Agenti';html=shell(title,AGENTS.length+' configurati · esecuzione live non verificata',AGENTS.map(function(a){var state=states[a.id]||{status:'idle',task:''};return card('✣',a.name,a.group+' · '+(state.status||'idle'),state.task||'Nessuna attività salvata recente','agent:'+a.id)}).join(''));
+    }else if(view==='knowledge'){
+      title='Knowledge';html=shell(title,'Contesto disponibile nello snapshot',projects.map(function(p){return card('◇',p.name,p.kind||'Progetto',p.summary||'Nessuna descrizione disponibile','project:'+p.id)}).join('')||card('◇','Nessuna risorsa','Stato vuoto','Non risultano progetti nello snapshot',''));
+    }else if(view==='approvals'){
+      title='Approvals';var approvals=data.approvals||[];html=shell(title,data.approvalsSupported?'Richieste registrate':'Modulo centralizzato non disponibile',approvals.map(function(a){return card('✓',a.title||a.id,a.status||'salvata',a.reason||'Nessun dettaglio','')}).join('')||card('✓','Nessuna approvazione centralizzata','Stato vuoto veritiero','Gli errori dei workflow restano in Needs Your Attention e non diventano approvazioni.',''));
+    }else if(view==='analytics'){
+      title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
+    }else{
+      title='Integrations';html=shell(title,'Stato tecnico verificabile',card('●','Snapshot RADIX','Connesso','Dati del workspace caricati in sola lettura','')+card('↗','Workspace v3.7','Disponibile','Chat e orchestratori si aprono nel workspace esistente','workspace')+card('⛓','Sistemi esterni','Stato non disponibile','Nessuna connessione viene dichiarata senza dati verificabili',''));
+    }
+    host.innerHTML=html;host.setAttribute('aria-label',title);
+    var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};
+    host.querySelectorAll('[data-operational-action]').forEach(function(button){button.onclick=function(){var action=button.getAttribute('data-operational-action'),parts=action.split(':');if(parts[0]==='agent')openAgent(parts.slice(1).join(':'));else if(parts[0]==='project')enterProject(parts.slice(1).join(':'));else if(action==='workspace')location.href='/index.html'}});
+  }
   function openAgent(id){
     selectedAgent=id;
     var agent=AGENTS.find(function(a){return a.id===id})||{id:id,name:id,group:'Agent'};var st=activeStatus(id);
@@ -742,7 +763,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   var networkScene=RadixNetworkScene.attach($('networkSvg'),wrap);
   wrap.addEventListener('mouseleave',stopDrag);
   function setView(view){
-    currentView=['network','command','projects'].includes(view)?view:'network';
+    currentView=['network','command','projects','agents','knowledge','approvals','analytics','integrations'].includes(view)?view:'network';
     var network=currentView==='network';
     $('networkBreadcrumb').hidden=!network;$('projectTools').hidden=!network||!focusedProjectId;
     if(!network)setNetworkExpanded(false);
@@ -750,6 +771,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(networkScene)networkScene.refresh();
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
+    $('operationalView').hidden=!['agents','knowledge','approvals','analytics','integrations'].includes(currentView);
+    if(!$('operationalView').hidden)renderOperationalView(currentView);
     $('networkCaptionWrap').hidden=!network;
     $('networkLegend').hidden=!network;if($('networkMobileList'))$('networkMobileList').hidden=!network;
     ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
