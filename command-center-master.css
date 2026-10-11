@@ -65,7 +65,7 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .core-inner{stroke-opacity:.07}
 .network-panel .core-ring{fill:none;stroke-width:1;filter:drop-shadow(0 0 6px #00ffd2)}
 .network-panel .core-inner{fill:none;stroke-width:.6;stroke-opacity:.07}
-.network-target[data-network-type="root"]>circle:first-child{fill:none;stroke:#00eab5;stroke-width:.6;opacity:.12}
+.network-panel .core-halo{fill:url(#coreHalo);stroke:#00eab5;stroke-width:.55;opacity:.85;filter:blur(.25px) drop-shadow(0 0 13px #00eab566)}
 .node-aura{opacity:.18;filter:blur(3px)}
 .network-target .project-ring{fill:var(--node-color);fill-opacity:.25;stroke-width:1.3}
 .network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
@@ -81,6 +81,12 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .configured-satellite .satellite-hit{fill:transparent;stroke:none}
 .configured-satellite:hover>circle:first-of-type,.configured-satellite:focus>circle:first-of-type{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
 .network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
+.core-surface{fill:none;stroke:url(#coreSweep);stroke-width:.45;opacity:.28;pointer-events:none}
+.core-surface .core-contour{stroke:#8fffe1;stroke-width:.65;stroke-dasharray:2 4;opacity:.4}
+.core-sheen{mix-blend-mode:screen;pointer-events:none}
+.core-sweep{fill:none;stroke:#c8fff0;stroke-width:1;stroke-linecap:round;opacity:.28;filter:drop-shadow(0 0 4px #70ffda);pointer-events:none}
+.core-emitter{fill:#dffff6;stroke:#13ffc1;stroke-width:.55;filter:drop-shadow(0 0 4px #00ffc3);animation:coreEmitter 3.6s ease-in-out infinite;animation-delay:var(--emitter-delay)}
+@keyframes coreEmitter{0%,100%{opacity:.45}45%{opacity:1}70%{opacity:.62}}
 /* Dimensional spheres and fine energy filaments, matching the approved close-ups. */
 .network-panel .core-globe{fill:url(#coreGradient);filter:drop-shadow(0 0 10px #00d9a780)}
 .network-panel .core-ring{stroke:#8ffff0;stroke-width:1.05;animation:none;filter:drop-shadow(0 0 4px #00ffce)}
@@ -93,7 +99,7 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .configured-satellite>circle:first-of-type{fill:url(#sphereLight);stroke:#77e9c8;filter:drop-shadow(0 0 3px #00dba8)}
 .network-wrap::after{display:none}
 @media(min-width:1181px){.network-wrap{height:510px}}
-@media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite{animation:none!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite,.core-emitter{animation:none!important;transition:none!important}}
 .mobile-agent-roster summary{padding:12px;color:#bef5e4;cursor:pointer;min-height:44px;box-sizing:border-box}
 .mobile-agent-roster button{width:100%;margin-bottom:6px}
 

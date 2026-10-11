@@ -71,6 +71,13 @@ test('project labels render above moving satellites in a non-interactive readabi
  assert.ok(svg.innerHTML.indexOf('class="network-label-layer"')>svg.innerHTML.lastIndexOf('data-network-type="satellite"'));
  assert.equal((svg.innerHTML.match(/class="network-label-overlay"/g)||[]).length,1);
 });
+test('RADIX core exposes layered surface detail and beam emitters',()=>{
+ const {context,svg}=networkHarness([{id:'a',name:'Aura'}],[]);context.renderNetwork();
+ assert.ok(svg.innerHTML.includes('class="core-surface"'));
+ assert.ok(svg.innerHTML.includes('class="core-sheen"'));
+ assert.equal((svg.innerHTML.match(/class="core-emitter"/g)||[]).length,16);
+ assert.ok(svg.innerHTML.includes('id="coreClip"'));
+});
 test('attributed satellite opens its actual task and project with safe SVG labels',()=>{
  const {context,svg,elements}=networkHarness([{id:'a',name:'<img onerror=alert(1)>'}],[{id:'w',projectId:'a',orchestrator:'Workflow',nodes:[{id:'task',label:'<script>bad</script>',status:'pending',subtask:'Actual task'}]}]);
  context.renderNetwork();assert.ok(!svg.innerHTML.includes('<img'));assert.ok(!svg.innerHTML.includes('<script>'));
