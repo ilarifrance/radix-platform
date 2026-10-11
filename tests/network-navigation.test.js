@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const html=fs.readFileSync('control-center-v2.html','utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const masterCss=fs.readFileSync('command-center-master.css','utf8');
 test('cockpit JavaScript parses',()=>assert.doesNotThrow(()=>new vm.Script(script)));
 test('primary navigation exposes data-backed operational sections',()=>{
  for(const view of ['approvals','agents','knowledge','analytics','integrations'])assert.ok(html.includes(`data-radix-view="${view}"`));
@@ -13,6 +14,12 @@ test('primary navigation exposes data-backed operational sections',()=>{
  assert.ok(!html.includes('data-future="Agents"'));
  assert.ok(script.includes("workflow salvati; "));
  assert.ok(script.includes("ANALYTICS','Metriche derivate dallo snapshot"));
+});
+test('operational sections collapse without nested scrolling and expose coarse-pointer targets',()=>{
+ assert.ok(masterCss.includes('.network-wrap:has(.operational-view:not([hidden]))'));
+ assert.ok(masterCss.includes('.operational-grid{grid-template-columns:1fr}'));
+ assert.ok(masterCss.includes('@media(pointer:coarse)'));
+ assert.ok(masterCss.includes('.operational-head button{width:100%;min-height:44px}'));
 });
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 test('project map requires explicit workflow ownership and includes every task',()=>{

@@ -134,5 +134,20 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .operational-card i{width:30px;height:30px;display:grid;place-items:center;border:1px solid #147355;border-radius:9px;background:#0a3125;color:#45ecaf;font-style:normal}
 .operational-card strong,.operational-card span,.operational-card small{display:block;overflow-wrap:anywhere}
 .operational-card strong{font-size:13px;color:#f3fff9}.operational-card span{margin-top:3px;color:#76d6b2;font-size:10px}.operational-card small{margin-top:8px;color:#8eaea1;font-size:10px;line-height:1.35}.operational-card b{color:#4fe8b0}
-@media(max-width:760px){.operational-grid{grid-template-columns:1fr}.operational-head{align-items:flex-start}.operational-head strong{font-size:18px}}
+@media(max-width:1000px){.operational-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+  .network-wrap:has(.operational-view:not([hidden])){height:auto!important;min-height:0;overflow:visible!important;touch-action:pan-y}
+  .operational-view{height:auto;overflow:visible;padding:12px}
+  .operational-grid{grid-template-columns:1fr}
+  .operational-head{align-items:stretch;flex-direction:column;gap:10px}
+  .operational-head strong{font-size:18px}
+  .operational-head button{width:100%;min-height:44px}
+  .operational-card{min-height:104px}
+  .operational-card>button{min-height:104px}
+}
+@media(pointer:coarse){
+  .nav-item,.view-tab,.tool-btn,.operational-card>button,#networkBreadcrumb button,#projectTools button{min-height:44px}
+  .tool-btn{min-width:44px}
+  .operational-card>button:hover{outline:none;background:none}
+}
 #networkToolbar[hidden]{display:none}
