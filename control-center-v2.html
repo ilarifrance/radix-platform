@@ -558,7 +558,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('navWorkflowBadge').textContent=(data.workflows||[]).length;
     $('navWorkflowBadge').setAttribute('aria-label',(data.workflows||[]).length+' workflow salvati; '+data.metrics.activeWorkflows+' in corso nello snapshot');
     $('navApprovalBadge').textContent=data.metrics.approvals;
-    renderProjects();renderNetwork();renderProjectView();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();
+    renderProjects();renderNetwork();renderProjectView();renderCommandView();renderApprovals();renderActivity();renderWorkflows();renderTeams();renderKnowledge();refreshOperationalView();
   }
   function renderProjects(){
     var projects=data.projects||[];
@@ -803,6 +803,19 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     host.querySelectorAll('[data-knowledge-project]').forEach(function(button){button.onclick=function(){openProject(button.getAttribute('data-knowledge-project'))}});
   }
 
+  function approvalWorkflowItems(snapshot){
+    var workflows=snapshot.workflows||[],seen={};
+    return (snapshot.attention||[]).map(function(item){
+      var workflow=workflows.find(function(candidate){return candidate.id===item.workflowId});
+      if(!workflow||seen[workflow.id]||(workflow.status!=='error'&&workflow.status!=='blocked'))return null;
+      seen[workflow.id]=true;return {attention:item,workflow:workflow};
+    }).filter(Boolean);
+  }
+  function refreshOperationalView(){
+    var host=$('operationalView');
+    if(host&&!host.hidden&&['agents','knowledge','approvals','analytics','integrations'].includes(currentView))renderOperationalView(currentView);
+  }
+
   function renderOperationalView(view){
     if(view==='knowledge'){renderKnowledgeView();return}
     var host=$('operationalView'),workflows=data.workflows||[],projects=data.projects||[],states=data.agentStatus||{},html='',title='';
@@ -813,7 +826,10 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }else if(view==='knowledge'){
       title='Knowledge';html=shell(title,'Contesto disponibile nello snapshot',projects.map(function(p){return card('◇',p.name,p.kind||'Progetto',p.summary||'Nessuna descrizione disponibile','project:'+p.id)}).join('')||card('◇','Nessuna risorsa','Stato vuoto','Non risultano progetti nello snapshot',''));
     }else if(view==='approvals'){
-      title='Approvals';var approvals=data.approvals||[];html=shell(title,data.approvalsSupported?'Richieste registrate':'Modulo centralizzato non disponibile',approvals.map(function(a){return card('✓',a.title||a.id,a.status||'salvata',a.reason||'Nessun dettaglio','')}).join('')||card('✓','Nessuna approvazione centralizzata','Stato vuoto veritiero','Gli errori dei workflow restano in Needs Your Attention e non diventano approvazioni.',''));
+      title='Approvals';var approvals=data.approvals||[],blocked=approvalWorkflowItems(data);
+      var approvalCards=approvals.map(function(a){return card('✓',a.title||a.id,a.status||'salvata',a.reason||'Nessun dettaglio','')}).join('')||card('✓','Nessuna approvazione centralizzata','Stato vuoto veritiero',data.approvalsSupported?'Non risultano richieste aperte nello snapshot.':'Il modulo non è disponibile nella sorgente corrente.','');
+      var blockedCards=blocked.map(function(item){var workflow=item.workflow;return card('⚠',workflow.orchestrator||workflow.id,'Blocco workflow · non approvazione',(workflow.task||item.attention.title||'Nessun dettaglio')+' · stato salvato: '+workflow.status,'workflow:'+workflow.id)}).join('')||card('○','Nessun workflow bloccato','Snapshot corrente','Non risultano workflow con stato error o blocked.','');
+      html=shell(title,data.approvalsSupported?'Richieste registrate':'Modulo centralizzato non disponibile',approvalCards+'<div class="operational-section-label">Blocchi workflow · distinti dalle approvazioni</div>'+blockedCards);
     }else if(view==='analytics'){
       title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
     }else{
@@ -821,7 +837,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }
     host.innerHTML=html;host.setAttribute('aria-label',title);
     var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};
-    host.querySelectorAll('[data-operational-action]').forEach(function(button){button.onclick=function(){var action=button.getAttribute('data-operational-action'),parts=action.split(':');if(parts[0]==='agent')openAgent(parts.slice(1).join(':'));else if(parts[0]==='project')enterProject(parts.slice(1).join(':'));else if(action==='workspace')location.href='/index.html'}});
+    host.querySelectorAll('[data-operational-action]').forEach(function(button){button.onclick=function(){var action=button.getAttribute('data-operational-action'),parts=action.split(':');if(parts[0]==='agent')openAgent(parts.slice(1).join(':'));else if(parts[0]==='project')enterProject(parts.slice(1).join(':'));else if(parts[0]==='workflow')openWorkflow(parts.slice(1).join(':'));else if(action==='workspace')location.href='/index.html'}});
   }
   function openAgent(id){
     selectedAgent=id;

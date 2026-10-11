@@ -39,6 +39,17 @@ test('snapshot request timeout includes body parsing and aborts stalled requests
  vm.createContext(context);vm.runInContext(asyncFunctionSource('readSnapshotResponse'),context);
  const pending=context.readSnapshotResponse('/api/state');await Promise.resolve();callback();await assert.rejects(pending,/Tempo di attesa scaduto/);assert.equal(aborted,true);assert.equal(cleared,true);
 });
+test('Approvals keeps real workflow blocks distinct and refreshes the visible operational section',()=>{
+ const valid={id:'legal:1',orchestrator:'Legal',status:'error',task:'Review NDA'};
+ const context={data:{workflows:[valid,{id:'done:1',status:'done'}],attention:[{workflowId:'legal:1',title:'Review NDA'},{workflowId:'legal:1',title:'Duplicate'},{workflowId:'done:1'},{workflowId:'missing'}]},currentView:'approvals',renderOperationalView(view){context.rendered=view}};
+ vm.createContext(context);vm.runInContext(functionSource('approvalWorkflowItems'),context);
+ const items=context.approvalWorkflowItems(context.data);assert.equal(items.length,1);assert.equal(items[0].workflow,valid);assert.equal(items[0].attention.title,'Review NDA');
+ const host={hidden:false};context.$=id=>id==='operationalView'?host:null;vm.runInContext(functionSource('refreshOperationalView'),context);
+ context.refreshOperationalView();assert.equal(context.rendered,'approvals');
+ context.rendered=null;host.hidden=true;context.refreshOperationalView();assert.equal(context.rendered,null);
+ assert.ok(script.includes("parts[0]==='workflow')openWorkflow"));
+ assert.ok(script.includes('Blocchi workflow · distinti dalle approvazioni'));
+});
 test('Knowledge searches actual context and project handoff resets workflow filters without mutations',()=>{
  const projects=[{id:'a',name:'Aura',kind:'Assistant',summary:'Benessere personale'},{id:'b',name:'Doc Capital',summary:'Educazione finanziaria'}];
  const context={data:{projects},workflowFilters:{project:'all',status:'problem',taskStatus:'pending'},renderCommandView(){context.rendered=true},setView(view){context.view=view}};

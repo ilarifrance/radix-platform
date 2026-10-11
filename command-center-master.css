@@ -156,6 +156,7 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .operational-head span{display:block;color:#78a594;font-size:11px;margin-top:4px}
 .operational-head button{border:1px solid #135a46;background:#06231b;color:#9af4d1;border-radius:9px;padding:8px 12px;cursor:pointer}
 .operational-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.operational-section-label{grid-column:1/-1;margin:8px 2px 0;padding-top:12px;border-top:1px solid #123d32;color:#78a594;font-size:10px;letter-spacing:.09em;text-transform:uppercase}
 .operational-card{min-width:0;min-height:92px;border:1px solid #123d32;background:linear-gradient(145deg,#061a16e8,#020b09e8);border-radius:12px;padding:0;color:#dffbef;box-shadow:inset 0 1px #36dca414}
 .operational-card>button,.operational-card:not(:has(>button)){width:100%;height:100%;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;gap:10px;align-items:start;text-align:left;border:0;background:none;color:inherit;padding:13px;box-sizing:border-box}
 .operational-card>button{cursor:pointer;border-radius:12px}
