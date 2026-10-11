@@ -29,7 +29,7 @@ module.exports=async(req,res)=>{
  }
  const data=bodyOf(req);
  if(req.method==='POST'){
-  const item=core.validate(data);
+  const item=core.validate({...data,status:'proposed'});
   // Every record is owner-scoped; shared means shared across agents of this owner/project, not across users.
   const count=await db`SELECT count(*)::int AS n FROM agency_memory WHERE owner_id=${owner}`;
   if(Number(count[0].n)>=1000)return send(res,409,{error:'Limite memoria account raggiunto'});
