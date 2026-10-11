@@ -69,3 +69,11 @@ Changed implementation files: `control-center-v2.html`, `command-center-master.c
 - A prior reload hit browser credential-observation restrictions. Opening a fresh document through the browser's prescribed recovery restored observation. No authentication protection was modified.
 
 Remaining work: master fidelity is NOT complete. Orbiting spheres can still cross long project labels; root composition with five projects is tighter than the four-project master. Improve label clearance, distinct cluster arrangements and globe highlights next. Recheck responsive layout and pointer targeting after those changes. Sidebar Workflows currently shows running snapshot count (0), although six saved workflows exist: clarify this distinction. Full dedicated sections and agent execution remain unverified. The v3.7 selected-project handoff remains blocked by the restrictions on index.html and database writes. No workflow was executed, no production deployment or merge performed.
+
+### Distinct cluster geometry pass
+
+Commit `2aa8738738494414767a1084715885afb02c1853` adds a dedicated five-project layout, gives Aura the largest orbit, and assigns distinct radii, tilt, phase and speed to the remaining clusters. Project labels now have a restrained dark readability plate; workflow spheres have stronger local highlights. This does not change workflow data or imply live execution.
+
+The authenticated stable Preview reached `SNAPSHOT CARICATO` with 5 projects and 30 workflow satellites. Visual inspection confirmed more separation and readable project names. Keyboard verification still opened RADIX → Aura → marketing-orchestrator, then the real Art Director task detail. Screenshot: `/workspace/scratch/radix-cluster-spacing-2aa8738.jpg` (actual authenticated Preview data; session artifact only). Automated suite remained 25/25 passing and `git diff --check` passed.
+
+Residual visual issue: moving satellites can still temporarily approach the lower edge of very long two-line labels, especially Personal Brand and RADIX. The dark plate keeps the name readable, but a later pass should reserve a true exclusion zone in the orbital projection. The fifth real project also necessarily differs from the four-cluster master composition.
