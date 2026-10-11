@@ -631,7 +631,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
     mobile.querySelectorAll('button[data-mobile-index]').forEach(function(button){button.onclick=function(){var item=allVisible[Number(button.dataset.mobileIndex)];if(!focused)enterProject(item.id);else activateItem(item)}});
     mobile.querySelectorAll('button[data-mobile-agent]').forEach(function(button){button.onclick=function(){openAgent(button.dataset.mobileAgent)}});
-    function activateItem(item){networkDetail=item;networkPage=0;resetNetworkCamera();renderNetwork();openWorkflow(item.workflow.id);if(item.node){$('drawerTitle').textContent=item.label;$('drawerBody').innerHTML='<div class="detail-label">Stato salvato</div><div class="detail-value">'+esc(item.status)+'</div><div class="detail-label">Attività</div><div class="detail-value">'+esc(item.node.subtask||'Nessuna descrizione registrata')+'</div>'+(item.shared?'<div class="detail-label">Ambito</div><div class="detail-value">Attività condivisa fra tutti i progetti · stesso workflow e stato salvato.</div>':'')}}
+    function activateItem(item){networkDetail=item;networkPage=0;resetNetworkCamera();renderNetwork();if(item.node)openTask(item.workflow.id,item.node.id);else openWorkflow(item.workflow.id)}
 
     svg.querySelectorAll('.network-cluster').forEach(function(cluster){cluster.addEventListener('pointerenter',function(){cluster.classList.add('cluster-hover')});cluster.addEventListener('pointerleave',function(){cluster.classList.remove('cluster-hover')})});
     svg.querySelectorAll('[data-network-type]').forEach(function(el){
@@ -840,13 +840,18 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     q=String(q||'').trim().toLowerCase();if(!q){$('searchResults').hidden=true;searchItems=[];return}
     var results=[];
     (data.projects||[]).forEach(function(p){if((p.name+' '+p.summary).toLowerCase().includes(q))results.push({type:'project',id:p.id,name:p.name})});
-    (data.workflows||[]).forEach(function(w){if((w.orchestrator+' '+w.task).toLowerCase().includes(q))results.push({type:'workflow',id:w.id,name:w.orchestrator+' · '+w.task})});
+    (data.workflows||[]).forEach(function(w){
+      if((w.orchestrator+' '+w.task).toLowerCase().includes(q))results.push({type:'workflow',id:w.id,name:w.orchestrator+' · '+w.task});
+      (w.nodes||[]).forEach(function(n){
+        if(((n.label||'')+' '+(n.agentId||'')+' '+(n.subtask||'')+' '+(n.status||'')).toLowerCase().includes(q))results.push({type:'task',workflowId:w.id,taskId:n.id,name:(n.label||n.id)+' · '+(n.subtask||'Nessuna descrizione registrata')});
+      });
+    });
     AGENTS.forEach(function(a){if((a.name+' '+a.group).toLowerCase().includes(q))results.push({type:'agent',id:a.id,name:a.name})});
     searchItems=results.slice(0,8);$('searchResults').hidden=false;
-    $('searchResults').innerHTML=searchItems.map(function(x,i){return '<button class="search-hit" data-search-index="'+i+'">'+esc(x.name.slice(0,115))+'<small>'+esc(x.type)+'</small></button>'}).join('')||'<div class="search-empty">Nessun risultato nel riepilogo RADIX</div>';
+    $('searchResults').innerHTML=searchItems.map(function(x,i){return '<button class="search-hit" data-search-index="'+i+'">'+esc(x.name.slice(0,115))+'<small>'+esc(x.type==='task'?'attività':x.type)+'</small></button>'}).join('')||'<div class="search-empty">Nessun risultato nel riepilogo RADIX</div>';
     document.querySelectorAll('[data-search-index]').forEach(function(el){el.addEventListener('click',function(){openSearchResult(searchItems[Number(el.getAttribute('data-search-index'))])})});
   }
-  function openSearchResult(item){if(!item)return;$('searchResults').hidden=true;if(item.type==='project')openProject(item.id);else if(item.type==='workflow')openWorkflow(item.id);else openAgent(item.id)}
+  function openSearchResult(item){if(!item)return;$('searchResults').hidden=true;if(item.type==='project')openProject(item.id);else if(item.type==='workflow')openWorkflow(item.id);else if(item.type==='task')openTask(item.workflowId,item.taskId);else openAgent(item.id)}
   $('commandInput').addEventListener('input',function(e){if(data)doSearch(e.target.value)});
   $('commandInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openSearchResult(searchItems[0])}if(e.key==='Escape'){$('searchResults').hidden=true;e.target.blur()}});
   $('quickSearch').addEventListener('click',function(){$('commandInput').focus()});

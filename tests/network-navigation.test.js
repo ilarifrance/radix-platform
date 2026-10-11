@@ -61,7 +61,7 @@ function networkHarness(projects,workflows){
    return {getAttribute:key=>attributes[key],addEventListener(key,fn){this[key]=fn},focus(){}};
   });
  };
- const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id}};
+ const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',networkPage:0,currentView:"network",data:{projects,workflows},focusedProjectId:null,networkDetail:null,pan:{x:0,y:0},zoom:1,$:get,setView(){},applyZoom(){},resetNetworkCamera(){},openProject(){},toast(){},openWorkflow(id){context.openedWorkflow=id},openTask(workflowId,taskId){context.openedTask={workflowId,taskId}}};
  vm.createContext(context);
  for(const name of ['esc','projectPalette','projectColor','projectRank','projectSlots','orderedProjects','projectItems','workflowTasks','networkPosition','renderNetwork'])vm.runInContext(functionSource(name),context);
  return {context,svg,elements};
@@ -90,7 +90,7 @@ test('attributed satellite opens its actual task and project with safe SVG label
  context.renderNetwork();assert.ok(!svg.innerHTML.includes('<img'));assert.ok(!svg.innerHTML.includes('<script>'));
  const workflow=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite');
  workflow.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.networkDetail.id,'w');assert.equal(context.openedWorkflow,'w');
- const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'task');assert.ok(elements.drawerBody.innerHTML.includes('Actual task'));
+ const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'task');assert.deepEqual(context.openedTask,{workflowId:'w',taskId:'task'});
 });
 test('focused map includes over one hundred tasks and shows truthful empty state',()=>{
  const {context,svg,elements}=networkHarness([{id:'a',name:'A'},{id:'empty',name:'Empty'}],[{id:'w',projectId:'a',nodes:Array.from({length:120},(_,i)=>({id:'n'+i,label:'Task '+i,status:'done'}))}]);
@@ -136,7 +136,17 @@ test('confirmed shared workflows appear around every project without changing st
  assert.equal(context.projectItems('unknown').length,0);
  const node=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite'&&el.getAttribute('data-network-project')==='b');
  node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'shared');
- const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'real-task');assert.equal(context.networkDetail.node,original.nodes[0]);
+ const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'real-task');assert.equal(context.networkDetail.node,original.nodes[0]);assert.deepEqual(context.openedTask,{workflowId:'shared',taskId:'real-task'});
+});
+
+test('global search finds real saved tasks and opens the selected task identity',()=>{
+ const elements={searchResults:{hidden:true,innerHTML:''}};
+ const context={data:{projects:[],workflows:[{id:'workflow:1',orchestrator:'Marketing',task:'Campaign',nodes:[{id:'workflow:1:7',label:'Art Director',agentId:'art-director',status:'done',subtask:'Carosello fotovoltaico industriale'}]}]},AGENTS:[],searchItems:[],$:id=>elements[id],document:{querySelectorAll:()=>[]},openTask(workflowId,taskId){context.opened={workflowId,taskId}},openProject(){},openWorkflow(){},openAgent(){}};
+ vm.createContext(context);for(const name of ['esc','doSearch'])vm.runInContext(functionSource(name),context);
+ vm.runInContext(script.match(/  function openSearchResult\(item\)\{[^\n]+/)[0],context);
+ context.doSearch('fotovoltaico');assert.equal(context.searchItems.length,1);assert.equal(context.searchItems[0].type,'task');assert.ok(elements.searchResults.innerHTML.includes('<small>attività</small>'));
+ context.openSearchResult(context.searchItems[0]);assert.deepEqual(context.opened,{workflowId:'workflow:1',taskId:'workflow:1:7'});assert.equal(elements.searchResults.hidden,true);
+ context.doSearch('non-esiste');assert.equal(context.searchItems.length,0);assert.ok(elements.searchResults.innerHTML.includes('Nessun risultato'));
 });
 
 test('workflow drawer reaches all saved tasks and task detail returns to its original workflow',()=>{
