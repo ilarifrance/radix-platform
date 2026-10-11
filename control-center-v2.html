@@ -470,6 +470,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   ];
   var data=null,zoom=1,selectedAgent=null,focusedProjectId=null,currentView='network',searchItems=[];
   var workflowFilters={project:'all',status:'all',taskStatus:'all'};
+  var knowledgeQuery='';
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmtTime(value){if(!value)return '—';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
@@ -718,8 +719,16 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function openProject(id){
     var p=(data.projects||[]).find(function(x){return String(x.id)===String(id)});if(!p)return;
     $('drawerTitle').textContent=p.name;
-    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Project profile</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Network</div><div class="detail-value">La mappa mostra solo workflow e attività con un progetto attribuito esplicitamente. Gli altri workflow restano consultabili nella vista Command.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a></div>';
+    var shared=!!(data.workspace&&data.workspace.sharedWorkflowCatalog),items=projectItems(p.id),sharedCount=items.filter(function(item){return item.shared}).length;
+    $('drawerBody').innerHTML='<div class="detail-section"><div class="detail-label">Contesto progetto salvato</div><div class="detail-value">'+esc(p.summary||'Descrizione non presente nel workspace.')+'</div></div><div class="detail-section"><div class="detail-label">Tipo</div><div class="detail-value">'+esc(p.kind||'Non specificato')+'</div></div><div class="detail-section"><div class="detail-label">Workflow disponibili</div><div class="detail-value">'+items.length+' workflow · '+sharedCount+' condivisi. '+(shared?'Il catalogo condiviso è disponibile per tutti i progetti, senza modificare proprietà o esecuzioni.':'I workflow senza progetto non vengono attribuiti a questo progetto.')+'</div></div><button type="button" class="drawer-link" id="projectOpenNetwork">Apri nella Network View</button><button type="button" class="drawer-link" id="projectOpenWorkflows">Consulta workflow del progetto</button><div class="detail-section"><div class="detail-label">Documenti e memoria</div><div class="detail-value">Lo snapshot espone il contesto del progetto, non un archivio di documenti né una memoria AI completa.</div></div><div class="detail-section"><a href="/index.html" class="drawer-link">Apri il workspace operativo ↗</a><div class="detail-value">Il passaggio non imposta il progetto attivo nel workspace v3.7.</div></div>';
+    $('projectOpenNetwork').onclick=function(){closeDetailDrawer();enterProject(p.id)};
+    $('projectOpenWorkflows').onclick=function(){closeDetailDrawer();openProjectWorkflows(p.id)};
     $('drawer').classList.add('open');
+  }
+  function openProjectWorkflows(id){
+    if(!(data.projects||[]).some(function(project){return String(project.id)===String(id)}))return;
+    workflowFilters={project:String(id),status:'all',taskStatus:'all'};
+    renderCommandView();setView('command');
   }
   function renderApprovals(){
     var blocked=data.attention||[];
@@ -751,10 +760,25 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       {i:'⌁',n:'Shared workspace state',m:data.workspace.updatedAt?'stato salvato '+fmtDate(data.workspace.updatedAt):'not yet synced'},
       {i:'◇',n:'Knowledge layer',m:'memoria strutturata: prossimo sviluppo'}
     ];
-    $('knowledgeList').innerHTML=resources.map(function(r){return '<div class="resource"><div class="resource-icon">'+r.i+'</div><div class="resource-main"><div class="resource-name">'+esc(r.n)+'</div><div class="resource-meta">'+esc(r.m)+'</div></div></div>'}).join('')
+    $('knowledgeList').innerHTML=resources.map(function(r,i){return '<button type="button" class="resource knowledge-resource" data-knowledge-resource="'+i+'"><div class="resource-icon">'+r.i+'</div><div class="resource-main"><div class="resource-name">'+esc(r.n)+'</div><div class="resource-meta">'+esc(r.m)+'</div></div></button>'}).join('');
+    $('knowledgeList').querySelectorAll('[data-knowledge-resource]').forEach(function(button){button.onclick=function(){if(button.getAttribute('data-knowledge-resource')==='0'&&active)openProject(active.id);else setView('knowledge')}});
+  }
+  function filterKnowledgeProjects(projects,query){
+    query=String(query||'').trim().toLocaleLowerCase('it-IT');
+    return (projects||[]).filter(function(project){return !query||[project.name,project.kind,project.summary].join(' ').toLocaleLowerCase('it-IT').includes(query)});
+  }
+  function renderKnowledgeView(){
+    var host=$('operationalView'),projects=data.projects||[],matches=filterKnowledgeProjects(projects,knowledgeQuery);
+    host.setAttribute('aria-label','Knowledge');
+    host.innerHTML='<div class="operational-head"><div><strong>Knowledge</strong><span>Contesti salvati dei progetti · documenti e memoria AI non disponibili nello snapshot</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="knowledge-search"><label for="knowledgeSearch">Cerca nei contesti</label><input id="knowledgeSearch" type="search" placeholder="Nome, tipo o contenuto del progetto" autocomplete="off"><output aria-live="polite">'+matches.length+' di '+projects.length+' contesti</output></div><div class="operational-grid">'+matches.map(function(project){return '<article class="operational-card"><button type="button" data-knowledge-project="'+esc(project.id)+'" aria-label="Leggi contesto '+esc(project.name)+'"><i>◇</i><div><strong>'+esc(project.name)+'</strong><span>'+esc(project.kind||'Progetto')+'</span><small>'+esc(project.summary||'Nessun contesto registrato')+'</small></div><b>↗</b></button></article>'}).join('')+(matches.length?'':'<div class="empty-state"><b>Nessun contesto trovato</b>'+(projects.length?'Prova un altro termine.':'Non risultano progetti nello snapshot.')+'</div>')+'</div>';
+    $('knowledgeSearch').value=knowledgeQuery;
+    $('knowledgeSearch').oninput=function(event){var position=event.target.selectionStart;knowledgeQuery=event.target.value;renderKnowledgeView();$('knowledgeSearch').focus();if($('knowledgeSearch').setSelectionRange)$('knowledgeSearch').setSelectionRange(position,position)};
+    host.querySelector('[data-return-network]').onclick=function(){setView('network')};
+    host.querySelectorAll('[data-knowledge-project]').forEach(function(button){button.onclick=function(){openProject(button.getAttribute('data-knowledge-project'))}});
   }
 
   function renderOperationalView(view){
+    if(view==='knowledge'){renderKnowledgeView();return}
     var host=$('operationalView'),workflows=data.workflows||[],projects=data.projects||[],states=data.agentStatus||{},html='',title='';
     function shell(name,meta,body){return '<div class="operational-head"><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="operational-grid">'+body+'</div>'}
     function card(icon,name,meta,detail,action){return '<article class="operational-card">'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}

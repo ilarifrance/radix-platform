@@ -22,6 +22,16 @@ test('operational sections collapse without nested scrolling and expose coarse-p
  assert.ok(masterCss.includes('.operational-head button{width:100%;min-height:44px}'));
 });
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
+test('Knowledge searches actual context and project handoff resets workflow filters without mutations',()=>{
+ const projects=[{id:'a',name:'Aura',kind:'Assistant',summary:'Benessere personale'},{id:'b',name:'Doc Capital',summary:'Educazione finanziaria'}];
+ const context={data:{projects},workflowFilters:{project:'all',status:'problem',taskStatus:'pending'},renderCommandView(){context.rendered=true},setView(view){context.view=view}};
+ vm.createContext(context);for(const name of ['filterKnowledgeProjects','openProjectWorkflows'])vm.runInContext(functionSource(name),context);
+ assert.equal(context.filterKnowledgeProjects(projects,' FINANZIARIA ')[0],projects[1]);
+ assert.equal(context.filterKnowledgeProjects(projects,'assistant')[0],projects[0]);
+ assert.equal(context.filterKnowledgeProjects(projects,'missing').length,0);
+ context.openProjectWorkflows('a');assert.equal(context.workflowFilters.project,'a');assert.equal(context.workflowFilters.status,'all');assert.equal(context.workflowFilters.taskStatus,'all');assert.equal(context.view,'command');
+ const before=context.workflowFilters;context.openProjectWorkflows('unknown');assert.equal(context.workflowFilters,before);assert.equal(projects[0].active,undefined);
+});
 test('project map requires explicit workflow ownership and includes every task',()=>{
  const context={RadixNetworkScene:require('../command-center-network-scene.js'),AGENTS:[],UNASSIGNED:'__unassigned',data:{workflows:[{id:'unowned',nodes:[{id:'wrong'}]},{id:'owned',projectId:'a',nodes:Array.from({length:100},(_,i)=>({id:String(i),label:'Task '+i}))},{id:'other',projectId:'b',nodes:[]}]}};
  vm.createContext(context);vm.runInContext(functionSource('projectItems')+functionSource('workflowTasks'),context);

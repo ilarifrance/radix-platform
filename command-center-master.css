@@ -77,6 +77,12 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 @media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
 
 /* Data-backed workflow filters */
+.knowledge-resource{width:100%;border:0;border-bottom:1px solid #173c2c;background:transparent;color:inherit;text-align:left;cursor:pointer;min-height:44px}
+.knowledge-resource:hover{background:#0a2117}.knowledge-resource:focus-visible{outline:2px solid #1ef28f;outline-offset:-2px}
+.knowledge-search{display:flex;align-items:center;gap:12px;margin:0 0 16px;color:#93bca8;font-size:11px}
+.knowledge-search input{flex:1;min-width:0;min-height:44px;border:1px solid #285641;border-radius:9px;padding:10px 12px;background:#07150e;color:#d8f8e8}
+.knowledge-search input:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+@media(max-width:760px){.knowledge-search{flex-wrap:wrap}.knowledge-search input{flex-basis:100%;order:3}}
 .workflow-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:9px;align-items:end;margin:0 0 13px;padding:11px;border:1px solid #173c2c;border-radius:12px;background:rgba(7,24,16,.88)}
 .workflow-filters label{display:grid;gap:5px;color:#789b89;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
 .workflow-filters select{min-width:0;height:36px;border:1px solid #285641;border-radius:8px;background:#07150e;color:#d8f8e8;padding:0 30px 0 10px;font-size:10px;font-weight:600;color-scheme:dark}
