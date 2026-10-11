@@ -403,6 +403,7 @@
       </div>
     </div>
     <div style="display:flex; align-items:center; gap:16px;">
+      <a href="./control-center-v2.html" style="color:#fff;border:1px solid #91b8a4;border-radius:8px;padding:8px 11px;font-size:12px;text-decoration:none">⌘ Command Center</a>
       <div class="whoami" id="whoAmI" style="display:none;">
         <span id="whoAmIName"></span>
         <button id="logoutBtn" type="button">Esci</button>
@@ -882,6 +883,7 @@
       await loadRemoteState();
       renderRoster();
       selectAgent(state.agent);
+      applyNavigationContext();
       checkApi();
     } catch (err) {
       showGate("Accesso non riuscito: " + (err && err.message ? err.message : String(err)));
@@ -3273,6 +3275,24 @@
     });
   }
 
+  // Explicit Command Center deep links. Only known groups/agents and existing project IDs.
+  // Navigation never triggers an AI run or modifies the shared active-project selection.
+  function applyNavigationContext() {
+    var query = new URLSearchParams(window.location.search);
+    var area = query.get("area");
+    var defaults = {marketing:"marketing-orchestrator",commerciale:"comm-orchestrator",legale:"legal-orchestrator",dev:"web-developer",admin:"partner"};
+    if (Object.prototype.hasOwnProperty.call(defaults,area)) {
+      Object.keys(GROUP_LABELS).forEach(function (group) { state.collapsedGroups[group] = group !== area; });
+      var agent = query.get("agent");
+      var allowed = AGENTS.find(function (a) { return a.id === agent && a.group === area; });
+      selectAgent(allowed ? allowed.id : defaults[area]);
+    }
+    var project = query.get("project");
+    if (project && state.projects.some(function (p) { return p.id === project; })) {
+      setActiveProject(project,false);
+    }
+  }
+
   function selectAgent(id) {
     state.agent = id;
     var a = AGENTS.find(function (x) { return x.id === id; });
@@ -4452,6 +4472,7 @@
         await loadRemoteState();
         renderRoster();
         selectAgent(state.agent);
+        applyNavigationContext();
       } else {
         showGate();
       }
