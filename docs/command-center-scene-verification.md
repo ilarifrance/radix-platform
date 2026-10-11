@@ -162,3 +162,19 @@ Vercel deployment `dpl_Ai9GQtmQFF57Fmdw8NxN8ZNJL5Cs` for the exact implementatio
 Screenshots: `/workspace/scratch/radix-task-search-7daa67b.jpg` shows the authenticated search result detail; `/workspace/scratch/radix-unified-task-detail-7daa67b.jpg` shows the same task reached through the Network View. These are real snapshot data, not fixture data.
 
 Remaining limits: the cockpit snapshot still stores 220-character task excerpts rather than complete outputs. Project handoff to v3.7 remains blocked by the restrictions on `index.html` and database writes. Mobile/touch interaction remains unverified. Approvals and external integrations are honest consultation/empty states; they are not operational applications yet. Next functional priority is adding useful status/project filters to workflows and tasks, then improving Knowledge navigation without fabricating unavailable records.
+
+## Operational workflow filters — 11 October 2026
+
+Implementation `87814401100430b2625ce455270967792f83f184` adds data-backed filtering to the Workflows view without changing stored records. Users can filter by project scope, workflow status and task status. Project scope includes shared unassigned workflows only when `sharedWorkflowCatalog` is enabled; explicit owners remain isolated, and a shared workflow keeps one original identity rather than becoming duplicated executions. Selecting a task status exposes direct task buttons that open the unified detail by original workflow/task IDs.
+
+Changed files: `control-center-v2.html`, `command-center-master.css`, `tests/network-navigation.test.js`. The suite is 33/33 passing and `git diff --check` passes. Behavioral coverage verifies shared/private scope, unknown-project exclusion, problem and active status groups, matching task subsets and preservation of original objects.
+
+Vercel deployment `dpl_CMdsKcrur5MXzxrva1YxKMqWip3V` reached `READY` for the exact implementation SHA. Authenticated browser verification on the stable Preview loaded Francesco Ilari's snapshot and confirmed:
+
+- default result: 6 of 6 workflows and 61 activities;
+- workflow problem filter: only `legal-orchestrator`, 1 of 6 workflows and 21 activities;
+- Aura project scope: six shared workflows shown once each, not duplicated records;
+- problem-task filter: 21 direct task buttons;
+- opening the first result reached `legal-orchestrator:1:0`, saved status `error`, with its actual saved NDA description and truthful output-unavailable message.
+
+Screenshot: `/workspace/scratch/radix-workflow-filters-8781440.jpg` (authenticated real snapshot, not a fixture). No application-origin console error was captured; logged errors came from the browser metadata extension. The project selector visually truncates long names at this desktop width but preserves the complete native option text. Mobile/touch interaction remains unverified. Next functional priority: connect Knowledge project cards to useful project/detail navigation, then improve supported Approvals and Integrations states without representing unavailable mutations as operational.
