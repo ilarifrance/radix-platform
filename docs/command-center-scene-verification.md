@@ -276,3 +276,14 @@ Post-correction browser verification for 75ea109599b2ddbe4a2cbfe44cb431cf334858e
 Added a data-driven editorial calendar with Day, Week, Month and Year views, previous/next/today navigation, Europe/Rome planning label, real empty states and clickable content cards that reopen the existing editor. Content now supports an optional validated HH:MM time; time is preserved in revision history and included in the exact planning approval fingerprint, so rescheduling invalidates approval. No sample events, collaborators or live agents are generated.
 
 Files: editorial-core.js, editorial-workspace.js, editorial-workspace.css, project-editorial.html, tests/editorial-flow.test.js and this report. Baseline 72c9a3ec2496fab8cf8f2252b5addac350993260. 52/52 tests pass, including deterministic calendar ranges, invalid dates/views, time validation/history and planning invalidation; both JavaScript files parse and diff checks pass. Browser/deployment verification pending. This is a functional calendar composition but further visual tuning against the approved reference remains expected; drag-and-drop and server collaboration are not implemented.
+
+
+### Browser verification — commit 81b3c72
+
+GitHub reported a successful deployment for the exact implementation commit `81b3c72f6abc9108106c7d89e21cc6d0e9a3429c`. Authenticated browser verification on the stable Preview completed the project strategy → exact strategy approval → PED path using only explicitly labelled `VERIFICA UI` browser-local synthetic data.
+
+Verified interactions: empty PED state; creation of a dated LinkedIn draft with time 09:30; Month rendering on 4 November 2026; clickable calendar card reopening the same content/version; Day, Week, Month and Year view switching; previous/next/today navigation; Europe/Rome label; and separate planning approval. The visible final state was “Pianificazione approvata localmente · nessuna pubblicazione autorizzata”. No publishing, AI generation, database write, external workflow or production deployment occurred.
+
+Verified URL: https://radix-platform-git-codex-radix-c-f9dc2f-radix-innovation-studio.vercel.app/project-editorial.html?project=prova#ped . Screenshot: `/workspace/scratch/radix-ped-calendar-81b3c72.jpg` (real authenticated project context plus clearly marked synthetic local test content).
+
+Automated verification remains 52/52 passing; both JavaScript files parse and `git diff --check` passes. Residual work: closer visual tuning to the approved PED reference, drag-and-drop/rescheduling, mobile/touch verification, shared/server persistence, Agency output handoff and orchestrator integration. Current approvals remain local records and never authorize publication.
