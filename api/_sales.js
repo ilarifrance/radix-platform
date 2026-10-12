@@ -54,7 +54,7 @@ function createHandler({getSessionUser,getStore}){
  try{
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}
    let user;try{user=getSessionUser(req);}catch{user=null;}
-   if(!user||!Number.isInteger(user.uid)||user.uid<1)fail(401,'Accedi con il tuo account RADIX.');
+   if(!user||!Number.isInteger(user.uid)||user.uid<1||user.uid>2147483647)fail(401,'Accedi con il tuo account RADIX.');
    if(req.method==='POST'){
      if(req.headers['x-radix-sales']!=='1'||!/^application\/json(?:;|$)/i.test(req.headers['content-type']||'')||req.headers['sec-fetch-site']==='cross-site')fail(403,'Richiesta non consentita.');
    }

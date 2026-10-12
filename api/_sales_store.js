@@ -12,12 +12,13 @@ function normalize(value,key=''){
 }
 function createStore(rawSql){
  const sql=async(...args)=>normalize(await rawSql(...args));
+ const allowedRoles="m.role IN ('owner','admin','member','viewer')";
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
  membership,
- workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 ORDER BY w.name,w.id',[u]),
+ workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
-   const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2)';
+   const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';
    if(c.entity==='members')return sql('SELECT m.user_id AS id,u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND '+guard+' ORDER BY m.user_id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    if(c.entity==='customer360'){
      if(!['companies','contacts','opportunities'].includes(c.subject))throw new Error('invalid subject');
