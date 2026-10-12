@@ -47,3 +47,43 @@ test('Customer360 stale success after invalidation cannot restore data',async()=
 
 // Regression: a stage can reference a process outside the currently loaded page.
 test('stage editor preserves unloaded current process as a selectable option',()=>{const c=client();c.app.state.workspaces[0].role='admin';c.app.openEditor('stages',{id:S,version:2,title:'Intake',process_id:ID,position:0,task_title:null});const control=c.fields().process_id;assert.equal(control.value,ID);assert.ok(control.children.some(option=>option.value===ID),'current process must remain an actual option in a real browser');});
+
+const searchSection=(c,entity='companies')=>c.ids.content.children.find(n=>n.id===entity);
+async function searchUI(c,value,entity='companies'){
+ c.app.render();const form=searchSection(c,entity).querySelector('form');form.querySelector('input').value=value;
+ await form.listeners.submit({preventDefault(){}});
+}
+test('search UI queries server not loaded subset, paginates same filter and resets offset',async()=>{
+ const calls=[];const page=Array.from({length:100},(_,i)=>({id:String(i),name:'Server '+i}));
+ const c=client(async url=>{const q=new URL(url,'https://example.test').searchParams;calls.push(Object.fromEntries(q));return response(200,q.get('search')==='Nexus'?(q.get('offset')==='100'?[{id:'next',name:'Server next'}]:page):[]);});
+ c.app.state.rows.companies=[{id:'old',name:'Old unrelated'}];c.app.state.offset.companies=300;
+ await searchUI(c,' Nexus ');assert.equal(calls[0].search,'Nexus');assert.equal(calls[0].offset,'0');assert.equal(calls[0].workspace,W);assert.equal(c.app.state.rows.companies.length,100);assert.doesNotMatch(contents(searchSection(c)),/Old unrelated/);
+ await searchSection(c).querySelectorAll('button').find(n=>n.textContent.startsWith('Carica altri')).listeners.click();assert.equal(calls[1].search,'Nexus');assert.equal(calls[1].offset,'100');assert.equal(c.app.state.rows.companies.length,101);
+ await searchSection(c).querySelectorAll('button').find(n=>n.textContent==='Azzera ricerca').listeners.click();assert.equal(calls[2].search,'');assert.equal(calls[2].offset,'0');assert.equal(c.app.state.rows.companies.length,0);
+});
+test('viewer can search contacts, empty state is explicit and filters independent',async()=>{
+ const c=client(async()=>response());c.app.state.workspaces[0].role='viewer';c.app.state.search.companies='Company';
+ await searchUI(c,'No match','contacts');assert.match(contents(searchSection(c,'contacts')),/Nessun risultato/);assert.equal(c.app.state.search.companies,'Company');assert.equal(searchSection(c,'contacts').querySelector('input').disabled,false);
+});
+test('search failure clears stale results, shows error not false empty and permits retry',async()=>{
+ let calls=0;const c=client(async()=>++calls===1?response(503):response(200,[{id:ID,name:'Recovered'}]));c.app.state.rows.companies=[{id:'old',name:'Old'}];
+ await searchUI(c,'Target');assert.equal(c.app.state.rows.companies.length,0);assert.match(contents(searchSection(c)),/Dati non disponibili/);assert.doesNotMatch(contents(searchSection(c)),/Nessun risultato/);assert.equal(c.app.state.busy,false);
+ await searchUI(c,'Target');assert.match(contents(searchSection(c)),/Recovered/);assert.equal(c.app.state.errors.companies,undefined);
+});
+test('search validates length and controls locally and locks pending controls',async()=>{
+ let resolve,calls=0;const c=client(()=>{calls++;return new Promise(r=>resolve=r);});
+ for(const value of ['x'.repeat(201),'A\nB','A\0B'])await searchUI(c,value);assert.equal(calls,0);
+ const pending=searchUI(c,'valid');assert.equal(calls,1);assert.equal(searchSection(c).querySelector('input').disabled,true);assert.equal(c.app.state.busy,true);
+ resolve(response());await pending;assert.equal(searchSection(c).querySelector('input').disabled,false);assert.equal(c.app.state.busy,false);
+});
+for(const status of [401,403])test('search auth '+status+' removes filter and private results',async()=>{
+ const c=client(async()=>response(status));await searchUI(c,'Private');assert.equal(c.app.state.workspace,null);assert.deepEqual(plain(c.app.state.search),{});assert.equal(c.ids.content.children.length,0);
+});
+test('late search success after invalidation does not restore data or filters',async()=>{
+ let resolve;const c=client(()=>new Promise(r=>resolve=r));const pending=searchUI(c,'Private');c.app.invalidateAccess();resolve(response(200,[{id:ID,name:'Late'}]));await pending;assert.deepEqual(plain(c.app.state.search),{});assert.deepEqual(plain(c.app.state.rows),{});assert.equal(c.ids.content.children.length,0);
+});
+test('workspace switch clears search while reload in same workspace retains it',async()=>{
+ const calls=[];const c=client(async url=>{calls.push(Object.fromEntries(new URL(url,'https://example.test').searchParams));return response();});
+ c.app.state.search.companies='Remember';await c.app.reload();assert.equal(calls.find(q=>q.entity==='companies').search,'Remember');
+ c.ids.workspace.value=P;c.ids.workspace.listeners.change();await tick();assert.deepEqual(plain(c.app.state.search),{});assert.equal(calls.filter(q=>q.entity==='companies').at(-1).search,undefined);
+});

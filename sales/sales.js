@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
-const state = {workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},busy:false,ready:false,generation:0};
+const state = {workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},busy:false,ready:false,generation:0};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
@@ -19,7 +19,7 @@ function error(message){$('error').textContent=message || ''; $('error').hidden=
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
 class ApiError extends Error { constructor(message,status=0){super(message);this.status=status;} }
 function invalidateAccess(){
- state.generation++;state.ready=false;state.workspace=null;state.workspaces=[];state.rows={};state.more={};state.offset={};state.errors={};editing=null;customer=null;transitionKeys.clear();
+ state.generation++;state.ready=false;state.workspace=null;state.workspaces=[];state.rows={};state.more={};state.offset={};state.errors={};state.search={};editing=null;customer=null;transitionKeys.clear();
  $('editor').close();$('editor-form').reset();$('editor-fields').replaceChildren();$('editor-title').textContent='';$('content').replaceChildren();renderWorkspace();
 }
 function current(generation){return generation===state.generation;}
@@ -28,6 +28,7 @@ async function api(entity, options={}) {
  const query=new URLSearchParams({entity,offset:String(options.offset || 0)});
  if(options.subject)query.set('subject',options.subject);
  if(options.id)query.set('id',options.id);
+ if(options.search!==undefined)query.set('search',options.search);
  if(state.workspace && entity!=='workspaces')query.set('workspace',state.workspace);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
  try{
@@ -40,7 +41,7 @@ async function api(entity, options={}) {
 }
 async function load(entity, append=false){
  const generation=state.generation;const offset=append?state.offset[entity]:0;
- try{const data=await api(entity,{offset});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
+ try{const data=await api(entity,{offset,...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
  catch(e){if(!current(generation))throw e;state.errors[entity]=e.message;if(!append){state.rows[entity]=[];state.more[entity]=false;}throw e;}
 }
 async function reload(){
@@ -94,12 +95,30 @@ function card(entity,row,readonly=false){
  if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.'),'danger'));c.append(a);}
  return c;
 }
+async function searchRecords(entity,value){
+ if(state.busy || !state.workspace || !['companies','contacts'].includes(entity))return;
+ if(value.length>200 || /[\u0000-\u001f\u007f]/.test(value)){error('Ricerca non valida: massimo 200 caratteri, senza caratteri di controllo.');return;}
+ const generation=state.generation;state.search[entity]=value.trim();lock(true);error('');notice('Ricerca sul server…');
+ try{await load(entity);if(current(generation))notice('Ricerca completata.');}
+ catch(e){if(current(generation))error(e.message);}
+ finally{if(current(generation))render();lock(false);if(current(generation))document.getElementById('search-'+entity)?.focus();}
+}
+function searchControl(entity){
+ const form=el('form');const label=el('label','Cerca per nome · '+names[entity]);const input=el('input');
+ input.id='search-'+entity;input.type='search';input.maxLength=200;input.value=state.search[entity] || '';label.append(input);
+ const submit=el('button','Cerca');submit.type='submit';
+ form.addEventListener('submit',event=>{event.preventDefault();return searchRecords(entity,input.value);});
+ form.append(label,submit,button('Azzera ricerca',()=>searchRecords(entity,'')));
+ return form;
+}
 function render(){
  const root=$('content');root.replaceChildren();if(!state.workspace)return;
  if(customer)root.append(customerPanel());
  for(const [entity,label] of Object.entries(names)){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
   if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
+  if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
+  if(state.search[entity])section.append(el('p','Filtro nome attivo: '+state.search[entity]+' · ricerca su tutte le anagrafiche del workspace, prima della paginazione.','muted'));
   if(state.errors[entity])section.append(el('p',state.errors[entity],'notice'));
   if(entity==='dashboard'){
    const stats=rows(entity)[0];if(stats){const metrics=el('div',undefined,'metrics');for(const key of ['companies','contacts','leads','opportunities','tasks','open_amount_cents']){const box=el('div',undefined,'metric');box.append(el('span',names[key] || 'Valore pipeline · valuta workspace'),el('strong',key==='open_amount_cents'?new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(stats[key] || 0)/100):stats[key] ?? '—'));metrics.append(box);}section.append(metrics);}else section.append(el('p','Indicatori server non disponibili.','muted'));
@@ -114,13 +133,13 @@ function render(){
     groups.push({name:'Fase non assegnata / non caricata',matches:r=>!configured.some(g=>g.matches(r)) && !(entity==='tasks' && !r.process_id && !r.stage_id)});
     groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
    }else rows(entity).forEach(r=>section.append(card(entity,r)));
-   if(!rows(entity).length)section.append(el('p','Nessun record caricato. Nessun dato dimostrativo.','muted'));
+   if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
    if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
   root.append(section);
  }
  // New controls created while a request is pending must remain locked until completion.
- if(state.busy)document.querySelectorAll('#content button,#content select').forEach(n=>{n.dataset.preDisabled=String(n.disabled);n.disabled=true;});
+ if(state.busy)document.querySelectorAll('#content button,#content select,#content input').forEach(n=>{n.dataset.preDisabled=String(n.disabled);n.disabled=true;});
 }
 function validUTC(value){
  const match=/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})(?:\.\d{1,3})?Z$/.exec(value);
@@ -230,7 +249,7 @@ $('editor-form').addEventListener('submit',event=>{
 });
 $('editor-cancel').addEventListener('click',()=>{if(!state.busy)$('editor').close();});
 $('editor').addEventListener('cancel',event=>{if(state.busy)event.preventDefault();});
-$('workspace').addEventListener('change',()=>{if(state.busy)return;state.workspace=$('workspace').value;$('editor').close();refresh(false);});
+$('workspace').addEventListener('change',()=>{if(state.busy)return;state.search={};state.workspace=$('workspace').value;$('editor').close();refresh(false);});
 $('refresh').addEventListener('click',()=>refresh(true));
 for(const [entity,label] of Object.entries(names)){const a=el('a',label);a.href='#'+entity;$('navigation').append(a);}
 refresh(true);
