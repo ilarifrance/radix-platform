@@ -1,0 +1,129 @@
+/* RADIX Command Center — visual refinement candidate (not active until linked). */
+/* Scoped to the existing cockpit; no data or activity state is synthesized. */
+:root{--radix-emerald:#1ef28f;--radix-deep:#030906}
+.network-panel{border-color:#1c6747;box-shadow:0 18px 64px rgba(0,0,0,.46),0 0 34px rgba(12,122,72,.08),inset 0 1px 0 rgba(110,255,178,.08)}
+.network-panel .panel-head{background:linear-gradient(100deg,rgba(9,41,27,.8),rgba(3,16,11,.96) 70%)}
+.network-wrap{isolation:isolate;background:radial-gradient(ellipse at 50% 49%,rgba(17,184,104,.15),rgba(9,72,45,.06) 30%,transparent 58%),linear-gradient(rgba(23,142,89,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(23,142,89,.035) 1px,transparent 1px),#020b08;background-size:auto,32px 32px,32px 32px}
+.network-wrap::after{background:repeating-radial-gradient(circle at 50% 49%,transparent 0 88px,rgba(41,208,127,.095) 89px,transparent 90px,transparent 135px);opacity:.78}
+.network-panel .project-hub:hover .project-ring{stroke-width:2.4;filter:drop-shadow(0 0 12px rgba(45,228,139,.45))}
+.network-panel .project-hub:focus-visible{outline:none}
+.network-panel .project-hub:focus-visible .project-ring{stroke:#a8ffd0;stroke-width:3;filter:drop-shadow(0 0 15px rgba(30,242,143,.65))}
+@media(min-width:1181px){.dashboard-grid{grid-template-columns:minmax(0,1.82fr) minmax(305px,.68fr)}.network-panel{min-width:0}}
+@media(prefers-reduced-motion:reduce){.network-panel .project-hub{transition:none}}
+
+
+/* RADIX visual pass 18: nonblocking overlays and responsive controls */
+.network-wrap::after{pointer-events:none}
+@media(max-width:760px){
+  .network-panel .panel-head{height:auto;min-height:48px;flex-wrap:wrap;gap:8px;padding:10px 12px}
+  .network-panel .panel-head>div:first-child{min-width:0}
+  .network-toolbar{width:100%;margin-left:0;justify-content:flex-start;flex-wrap:wrap}
+  .network-panel .panel-meta{line-height:1.45}
+}
+@media(prefers-reduced-motion:reduce){
+  .network-stage,.project-hub,.node{animation:none;transition:none}
+}
+
+/* Visual pass 19 — compact cockpit navigation remains screen-reader accessible. */
+@media(max-width:860px){
+  .sidebar .nav-item>span:not(.nav-icon):not(.nav-badge){
+    display:block;position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+  .sidebar .nav-item:focus-visible{outline:2px solid #8dffbd;outline-offset:2px}
+  .network-toolbar .view-tab,.network-toolbar .tool-btn{min-height:36px}
+}
+@media(max-width:480px){
+  .network-panel .panel-head{gap:10px}
+  .network-toolbar{justify-content:flex-start}
+  .network-caption{max-width:76%;line-height:1.5}
+}
+
+/* Visual pass 22 — master cockpit hierarchy: central network, contextual right rail. */
+.topbar{border-bottom-color:rgba(40,114,78,.48);box-shadow:0 10px 36px rgba(0,0,0,.18)}
+.network-panel{background:linear-gradient(180deg,#081910 0%,#030b07 100%)}
+.network-panel .panel-title{color:#b9f4d3;letter-spacing:.15em}
+.network-panel .panel-meta{color:#80ae95}
+.side-stack .panel{border-color:#1b4632;background:linear-gradient(165deg,rgba(10,30,20,.98),rgba(3,13,9,.99))}
+.side-stack .panel-head{background:linear-gradient(90deg,rgba(19,59,39,.23),transparent)}
+.attention .panel-title span{color:#edbc76}
+.network-caption .status-led{background:#6e9683;box-shadow:none} /* Saved snapshot is not live telemetry. */
+.network-caption{color:#a0c5b1;border-color:#28573f;background:rgba(3,12,8,.88)}
+.network-pages{display:inline-flex;align-items:center;gap:5px;padding:2px 5px;border:1px solid #215b3d;border-radius:9px;background:#06180f}
+.network-pages[hidden]{display:none}
+.network-pages span{min-width:35px;text-align:center;color:#a7d9bd;font-size:10px;font-variant-numeric:tabular-nums}
+.network-pages .tool-btn{width:25px;height:25px;border-color:transparent;color:#b3f0cf;font-size:16px}
+.network-pages .tool-btn:disabled{opacity:.3;cursor:not-allowed}
+.network-pages .tool-btn:focus-visible{outline:2px solid #90ffc1;outline-offset:2px}
+@media(max-width:640px){.network-toolbar{gap:5px}.network-pages{order:2}.network-panel .panel-head{align-items:flex-start}.network-caption{max-width:76%}}
+@media(prefers-contrast:more){.network-panel,.side-stack .panel{border-color:#5cba8c}.network-caption{color:#e1ffef}.network-pages span{color:#effff5}}
+
+/* Contrast refinement for project names against network edges. */
+.network-panel .project-name{paint-order:stroke fill;stroke:#06150d;stroke-width:2px;stroke-linejoin:round}
+
+/* Stronger visual hierarchy across the approved cockpit. */
+.welcome-bar{border-color:#23543d;box-shadow:inset 0 1px 0 rgba(142,255,191,.07),0 16px 40px rgba(0,0,0,.2)}
+.network-panel .panel-head{border-bottom-color:rgba(52,128,86,.44)}
+.network-panel .project-type{fill:#a2cdb4}
+.network-panel .cap-label{fill:#a0c1ac;paint-order:stroke fill;stroke:#04110a;stroke-width:1.8px}
+.side-stack .panel-title{color:#c2e5d0}
+.lower-grid .panel{border-color:#1c4834}
+@media(max-width:640px){.topbar{gap:8px}.command{min-width:0}.command-kbd{display:none}}
+
+
+/* Visual pass 23 — keep the primary network canvas legible on narrower laptops. */
+@media(min-width:861px) and (max-width:1180px){
+  .dashboard-grid{grid-template-columns:minmax(0,1.5fr) minmax(270px,.75fr)}
+  .network-panel{min-width:0}
+  .network-panel .panel-head{height:auto;min-height:50px;flex-wrap:wrap;gap:8px;padding-block:9px}
+  .network-toolbar{margin-left:auto;flex-wrap:wrap}
+}
+@media(max-width:480px){
+  .network-panel .panel-title{letter-spacing:.09em}
+  .network-panel .panel-meta{font-size:10px}
+  .network-panel .panel-head{padding-inline:10px}
+}
+
+/* Network 2: navigation and decorative energy do not imply live execution. */
+#networkBreadcrumb,#projectTools{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:11px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+#networkBreadcrumb button,#projectTools button{background:#092219;border:1px solid #225a42;color:#b6efd2;border-radius:7px;padding:6px 10px;cursor:pointer}
+.network-wrap{touch-action:none;cursor:grab;overflow:hidden!important}
+.network-wrap:active{cursor:grabbing}
+.network-stage{transition:none;min-width:0!important;will-change:transform}
+.network-flow{stroke-width:1.3;stroke-dasharray:3 10;animation:networkEnergy 5s linear infinite;pointer-events:none}
+.network-target{cursor:pointer}
+.network-target .project-ring{filter:drop-shadow(0 0 9px var(--node-color));animation:networkPulse 5s ease-in-out infinite}
+.network-target:hover .project-ring,.network-target:focus-visible .project-ring{stroke-width:3;filter:drop-shadow(0 0 17px var(--node-color))}
+.network-target:focus-visible{outline:none}
+#networkSvg{transition:transform .15s ease-out}
+@keyframes networkEnergy{to{stroke-dashoffset:-104}}
+@keyframes networkPulse{50%{stroke-opacity:.55}}
+@media(prefers-reduced-motion:reduce){.network-flow,.network-target .project-ring{animation:none}#networkSvg{transition:none}.network-stage{will-change:auto}}
+@media(max-width:640px){.network-stage{position:absolute;inset:0;width:100%;height:100%}.network-stage svg{width:100%;height:100%}.network-caption{position:absolute}}
+/* Expanded project exploration remains in the Command Center. */
+body.network-expanded-active{overflow:hidden}
+.network-panel.network-expanded{position:fixed;inset:12px;z-index:45;display:flex;flex-direction:column;background:#020b08;box-shadow:0 0 0 20px rgba(0,0,0,.88)}
+.network-expanded .panel-head,.network-expanded #networkBreadcrumb,.network-expanded #projectTools{flex-shrink:0}
+.network-expanded .network-wrap{flex:1;height:auto;min-height:0}
+.network-expanded .network-stage{position:absolute;width:100%;height:100%;inset:0}
+.network-expanded .network-stage svg{width:100%;height:100%}
+#expandNetwork[aria-pressed="true"]{color:#b7ffe2;border-color:#29ca8d}
+.network-target:focus-visible .core-ring{stroke:#e3fff2;stroke-width:3}
+@media(max-width:640px){.network-panel.network-expanded{inset:6px}.network-caption{font-size:9px}}
+/* Master composition: small luminous hubs within layered project orbits. */
+.cluster-orbit{fill:none;stroke-width:.65;opacity:.30;pointer-events:all;transition:opacity .18s ease,stroke-width .18s ease}
+.cluster-orbit.inner{stroke-dasharray:2 9;opacity:.45}
+.cluster-orbit.tilted{opacity:.14}
+.cluster-hover .cluster-orbit{opacity:.7;stroke-width:1.1}
+.satellite-link{stroke-width:.65;opacity:.23;pointer-events:none}
+.satellite{cursor:pointer}
+.satellite:hover circle,.satellite:focus-visible circle{stroke:#effff7;stroke-width:2}
+.satellite:focus-visible{outline:none}
+.network-target .project-inner{fill:#092b22;stroke-width:.8}
+.network-target .project-ring{fill:#0b3025;stroke-width:1.1}
+.node-aura{pointer-events:none}
+.network-target .project-name{font-size:16px;letter-spacing:-.02em}
+.network-target .project-type{font-size:8px;letter-spacing:.05em;fill:#81b49b}
+.core-ring{filter:drop-shadow(0 0 18px #0aac78);stroke:#69ffda;stroke-width:1.4}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,rgba(0,237,179,.10),transparent 37%),#020b09}
+@media(prefers-reduced-motion:reduce){.cluster-orbit{transition:none}}
