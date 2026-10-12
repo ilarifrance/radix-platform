@@ -43,3 +43,14 @@
 - **File modificati:** nei tre commit api/_sales.js, api/_sales_store.js, sales/sales.js; migrations/sales/004_opportunity_owner_close.sql; tests/sales-opportunities.test.js, sales-task-filters.test.js, sales-intelligence-contract.test.js, sales-client.test.js; docs/CRM_OPPORTUNITY_METADATA.md, CRM_TASK_FILTERS.md, CRM_SALES_INTELLIGENCE_CONTRACT.md, CRM_SALES_INTELLIGENCE_CONTRACT.schema.json e questo registro. tests/marketing-demo.test.js preesistente preservato/escluso; soli log aggiuntivi non versionati.
 - **PR/Preview:** PR3 intoccata, nessuna PR consegna aperta senza branch integrazione concordato. Preview non contattata. Push esclusivamente nexus/radix-sales-v1; verifica remota dopo commit checkpoint.
 - **Decisioni richieste:** DB isolato e autorizzazione migrazioni 001→004, account/membership e Preview; branch integrazione; conferma mapping organization/client e rappresentazione futura valuta/probabilità/next action. Nessuna dichiarazione CRM pronto.
+
+## Checkpoint recupero runtime — 2026-10-12 14:15 UTC+1
+- **Data/ora:** 2026-10-12 14:15 UTC+1.
+- **Branch e SHA:** nexus/radix-sales-v1 / e2a66c558f780cf104514ba85c3f67acf05f1889, percorso/branch/SHA verificati LIVE prima delle scritture.
+- **DONE verificato:** mandato e documenti richiesti letti integralmente; recuperati senza riscrittura runtime/proiezione e test del worker precedente. Review commit e2a66c5: UID limitato a integer PostgreSQL e allowlist ruoli verificata nello statement di lettura; nessun problema rilevato nella review offline. Runtime interno non cablato, nessuna autorizzazione inferita dal parametro workspace.
+- **Test eseguiti con risultati:** node --test tests/sales*.test.js 92/92 PASS, 0 FAIL, exit 0; log sales-sprint-runtime-sales-results.txt non versionato. Suite completa e syntax/diff checks NEXT, nessun DB/E2E provato.
+- **NEXT:** review casi limite runtime, suite completa offline, commit selettivo runtime + contratto + test; push ramo e verifica remoto.
+- **BLOCKED:** DB TEST isolato e permesso migrazioni, login/membership, Preview non comprovati: E2E persistente e gate reale restano BLOCKED. Nessun .env, URL app, DB o file Qwen toccato.
+- **File modificati:** api/_sales_intelligence.js e tests/sales-intelligence-runtime.test.js recuperati; docs/CRM_SALES_INTELLIGENCE_CONTRACT.md recuperato; questo registro. Marketing e log preesistenti preservati/esclusi.
+- **PR/Preview:** PR3 intoccata; PR consegna bloccata sul branch integrazione non concordato; Preview non contattata. Issue2 non disponibile nel catalogo corrente.
+- **Decisioni richieste:** ambiente isolato, autorizzazione migrazioni, account/membership, Preview e target integrazione. Sprint aperto.
