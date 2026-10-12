@@ -301,6 +301,14 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 <link rel="stylesheet" href="./command-center-visual-pass-15.css">
 <link rel="stylesheet" href="./command-center-network-refinement.css">
 <link rel="stylesheet" href="./command-center-master.css">
+<style>
+/* Integration-only fix: fixed sidebar must be independently scrollable. */
+.sidebar{display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#285e47 transparent}
+.sidebar>.brand,.sidebar>.side-section{flex-shrink:0}
+.sidebar>.side-foot{position:sticky;left:auto;right:auto;bottom:0;margin-top:auto;padding:14px 0 0;background:linear-gradient(180deg,rgba(3,10,7,.05),rgba(3,10,7,.99) 20%);flex-shrink:0;z-index:2}
+.sidebar .nav-item{flex-shrink:0}
+@media(max-width:860px){.sidebar{overflow-y:auto;scrollbar-width:thin}.sidebar>.side-foot{padding-bottom:5px}}
+</style>
 </head>
 <body>
 <div class="app loading" id="app">
@@ -326,6 +334,16 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         <button class="nav-item" data-radix-view="analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
         <button class="nav-item" data-radix-view="integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
       </div>
+    </div>
+    <div class="side-section" aria-label="Aree operative RADIX">
+      <div class="side-label">Aree operative</div>
+      <nav class="nav" aria-label="Apri le aree RADIX">
+        <a class="nav-item" href="/agency/index.html"><span class="nav-icon" aria-hidden="true">✦</span><span>Marketing Agency</span></a>
+        <a class="nav-item" href="/legal/index.html"><span class="nav-icon" aria-hidden="true">⚖</span><span>Legale</span></a>
+        <a class="nav-item" href="/accounting/index.html"><span class="nav-icon" aria-hidden="true">▥</span><span>Contabilità</span></a>
+        <a class="nav-item" href="/index.html?area=commerciale"><span class="nav-icon" aria-hidden="true">▤</span><span>CRM &amp; Sales</span></a>
+        <a class="nav-item" href="/index.html?area=dev"><span class="nav-icon" aria-hidden="true">⌘</span><span>Sviluppo</span></a>
+      </nav>
     </div>
     <div class="side-section">
       <div class="side-label">Projects</div>

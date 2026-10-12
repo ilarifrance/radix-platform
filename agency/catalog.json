@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "product": "RADIX Marketing Agency",
+  "mode": "design_preview",
+  "lastReviewed": "2026-10-10",
+  "agentSource": "index.html / AGENTS v3.7",
+  "roles": {
+    "marketing-orchestrator": "Orchestratore Marketing",
+    "brand-strategist": "Stratega di Marca e Campagne",
+    "strategist": "Digital Strategist",
+    "copywriter": "Copywriter",
+    "art-director": "Art Director",
+    "ai-specialist": "AI Specialist",
+    "social-media-manager": "Social Media Manager",
+    "seo-geo": "Specialista SEO e GEO",
+    "web-content": "Content e UX Writer",
+    "video-producer": "Video Producer",
+    "paid-media": "Paid Media Specialist",
+    "analytics": "Analytics e CRO",
+    "orchestrator": "Pipeline post",
+    "web-developer": "Web Developer"
+  },
+  "divisions": [
+    {
+      "id": "strategy",
+      "label": "Strategia & Brand",
+      "description": "Posizionamento, analisi di mercato, obiettivi e direzione creativa.",
+      "accent": "blue",
+      "agentIds": [
+        "marketing-orchestrator",
+        "brand-strategist",
+        "strategist"
+      ],
+      "stages": [
+        "Brief e obiettivi",
+        "Analisi e posizionamento",
+        "Strategia revisionata"
+      ],
+      "deliverables": [
+        "Brand strategy",
+        "Buyer personas",
+        "Piano marketing"
+      ]
+    },
+    {
+      "id": "campaigns",
+      "label": "Campaign Control",
+      "description": "Un’unica regia per coordinare canali, budget e deliverable.",
+      "accent": "emerald",
+      "agentIds": [
+        "marketing-orchestrator",
+        "brand-strategist",
+        "paid-media"
+      ],
+      "stages": [
+        "Brief approvato",
+        "Piano multicanale",
+        "Esecuzione controllata"
+      ],
+      "deliverables": [
+        "Roadmap campagne",
+        "Dipendenze",
+        "Piano budget"
+      ]
+    },
+    {
+      "id": "ped",
+      "label": "PED & Social",
+      "description": "Calendario editoriale, contenuti, revisioni e approvazioni puntuali.",
+      "accent": "emerald",
+      "agentIds": [
+        "strategist",
+        "copywriter",
+        "social-media-manager",
+        "orchestrator"
+      ],
+      "stages": [
+        "Strategia editoriale",
+        "Bozze e revisioni",
+        "Approvazione per post"
+      ],
+      "deliverables": [
+        "Calendario PED",
+        "Post e caroselli",
+        "Piano distribuzione"
+      ]
+    },
+    {
+      "id": "creative",
+      "label": "Creative Studio",
+      "description": "Brand kit, asset grafici e varianti coerenti con l’identità.",
+      "accent": "violet",
+      "agentIds": [
+        "art-director",
+        "ai-specialist",
+        "copywriter"
+      ],
+      "stages": [
+        "Brief creativo",
+        "Produzione varianti",
+        "Revisione asset"
+      ],
+      "deliverables": [
+        "Brand kit",
+        "Creatività adv",
+        "Caroselli e brochure"
+      ]
+    },
+    {
+      "id": "web",
+      "label": "Web Studio",
+      "description": "Siti, landing page ed e-commerce: dalla struttura alla preview.",
+      "accent": "blue",
+      "agentIds": [
+        "web-developer",
+        "web-content",
+        "seo-geo",
+        "art-director"
+      ],
+      "stages": [
+        "Architettura sito",
+        "Preview e QA",
+        "Release autorizzata"
+      ],
+      "deliverables": [
+        "Sitemap",
+        "Landing page",
+        "Siti ed e-commerce"
+      ]
+    },
+    {
+      "id": "seo-geo",
+      "label": "SEO & GEO",
+      "description": "Audit, contenuti e reperibilità su ricerca tradizionale e AI.",
+      "accent": "cyan",
+      "agentIds": [
+        "seo-geo",
+        "web-content",
+        "web-developer"
+      ],
+      "stages": [
+        "Audit con evidenze",
+        "Correzioni in preview",
+        "Misurazione risultati"
+      ],
+      "deliverables": [
+        "Audit tecnico",
+        "Topic map",
+        "Dati strutturati"
+      ]
+    },
+    {
+      "id": "paid",
+      "label": "Paid Media / PPC",
+      "description": "Pianificazione pubblicitaria con limiti di spesa e autorizzazioni.",
+      "accent": "amber",
+      "agentIds": [
+        "paid-media",
+        "copywriter",
+        "art-director",
+        "analytics"
+      ],
+      "stages": [
+        "Piano campagne",
+        "Creatività e targeting",
+        "Spesa autorizzata"
+      ],
+      "deliverables": [
+        "Campagne Google/Meta/LinkedIn",
+        "Annunci",
+        "Piano conversioni"
+      ]
+    },
+    {
+      "id": "email",
+      "label": "Email & Newsletter",
+      "description": "Newsletter, segmenti e automazioni con controllo dei consensi.",
+      "accent": "violet",
+      "agentIds": [
+        "copywriter",
+        "web-content",
+        "ai-specialist",
+        "analytics"
+      ],
+      "stages": [
+        "Audience e consensi",
+        "Template e test",
+        "Invio autorizzato"
+      ],
+      "deliverables": [
+        "Newsletter",
+        "Sequenze nurture",
+        "Template email"
+      ]
+    },
+    {
+      "id": "video",
+      "label": "Video Studio",
+      "description": "Script, storyboard, asset, render e versioni multicanale.",
+      "accent": "violet",
+      "agentIds": [
+        "video-producer",
+        "art-director",
+        "ai-specialist",
+        "copywriter"
+      ],
+      "stages": [
+        "Script e storyboard",
+        "Produzione controllata",
+        "Revisione ed export"
+      ],
+      "deliverables": [
+        "Reel",
+        "Video promozionali",
+        "Storyboard"
+      ]
+    },
+    {
+      "id": "analytics",
+      "label": "Analytics & CRO",
+      "description": "Misurazione verificata, funnel, esperimenti e apprendimento.",
+      "accent": "cyan",
+      "agentIds": [
+        "analytics",
+        "strategist",
+        "paid-media"
+      ],
+      "stages": [
+        "Definizione KPI",
+        "Dati da fonti verificate",
+        "Proposte di ottimizzazione"
+      ],
+      "deliverables": [
+        "Report multicanale",
+        "Analisi funnel",
+        "Esperimenti CRO"
+      ]
+    },
+    {
+      "id": "assets",
+      "label": "Asset & Knowledge",
+      "description": "Documenti, fonti, creatività e linee guida riutilizzabili.",
+      "accent": "blue",
+      "agentIds": [
+        "art-director",
+        "web-content"
+      ],
+      "stages": [
+        "Catalogazione",
+        "Versioning",
+        "Riutilizzo autorizzato"
+      ],
+      "deliverables": [
+        "Brand memory",
+        "Libreria asset",
+        "Fonti e documenti"
+      ]
+    },
+    {
+      "id": "approvals",
+      "label": "Approvals & Releases",
+      "description": "Decisioni umane, revisioni immutabili e tracciabilità.",
+      "accent": "amber",
+      "agentIds": [
+        "marketing-orchestrator"
+      ],
+      "stages": [
+        "Richiesta su revisione",
+        "Decisione autorizzata",
+        "Audit e release"
+      ],
+      "deliverables": [
+        "Coda revisioni",
+        "Storico decisioni",
+        "Release checklist"
+      ]
+    },
+    {
+      "id": "team",
+      "label": "Agent Network",
+      "description": "Assegnazioni degli agenti RADIX già presenti, senza duplicazioni.",
+      "accent": "emerald",
+      "agentIds": [
+        "marketing-orchestrator",
+        "brand-strategist",
+        "strategist",
+        "copywriter",
+        "art-director",
+        "ai-specialist",
+        "social-media-manager",
+        "seo-geo",
+        "web-content",
+        "video-producer",
+        "paid-media",
+        "analytics",
+        "orchestrator",
+        "web-developer"
+      ],
+      "stages": [
+        "Assegna ruoli",
+        "Verifica permessi",
+        "Traccia workflow reali"
+      ],
+      "deliverables": [
+        "Mappa ruoli",
+        "Responsabilità",
+        "Flussi di lavoro"
+      ]
+    }
+  ]
+}

@@ -402,7 +402,8 @@
         <div class="tag">Agentic team · v3.7</div>
       </div>
     </div>
-    <div style="display:flex; align-items:center; gap:16px;">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+      <a href="/control-center-v2.html" aria-label="Torna al Command Center RADIX" style="display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid #9bc9b5;border-radius:9px;color:#fff;background:rgba(255,255,255,.12);font-size:12px;font-weight:700;text-decoration:none;white-space:nowrap;">⌘ Command Center</a>
       <div class="whoami" id="whoAmI" style="display:none;">
         <span id="whoAmIName"></span>
         <button id="logoutBtn" type="button">Esci</button>
@@ -882,6 +883,7 @@
       await loadRemoteState();
       renderRoster();
       selectAgent(state.agent);
+      applyAreaNavigation();
       checkApi();
     } catch (err) {
       showGate("Accesso non riuscito: " + (err && err.message ? err.message : String(err)));
@@ -3273,6 +3275,16 @@
     });
   }
 
+  // Command Center deep links: select only agents present in the existing roster.
+  // This does not trigger an AI request or change saved project data.
+  function applyAreaNavigation() {
+    var area = new URLSearchParams(window.location.search).get('area');
+    var defaultAgent = {commerciale:'comm-orchestrator',dev:'web-developer'}[area];
+    if (!defaultAgent) return;
+    var match = AGENTS.find(function(agent){return agent.id === defaultAgent && agent.group === area});
+    if (match) selectAgent(match.id);
+  }
+
   function selectAgent(id) {
     state.agent = id;
     var a = AGENTS.find(function (x) { return x.id === id; });
@@ -4452,6 +4464,7 @@
         await loadRemoteState();
         renderRoster();
         selectAgent(state.agent);
+        applyAreaNavigation();
       } else {
         showGate();
       }

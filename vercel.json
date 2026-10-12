@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/control-center-v2.html"
+    }
+  ]
+}
