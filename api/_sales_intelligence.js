@@ -76,7 +76,7 @@ function projectOpportunity({workspace,opportunityId,rows,asOf}){
  const value={contractVersion:'1.0.0',organizationId:workspace,clientId:r.company_id,contactId:r.contact_id,opportunityId:r.id,recordVersion:r.version,asOf,stage:{processId:r.process_id,id:r.stage_id},amount:r.amount_cents,amountUnit:'minor',currency:null,probability:null,closeDate:r.expected_close,ownerId:r.owner_id,activities:activities.slice(0,1000),nextAction:null};
  value.dataQuality={completeness:'partial',activitiesComplete:false,missingFields:nullableFields.filter(k=>value[k]===null),issues};
  // Validate every activity, including truncated records, before returning any data.
- if(!activities.every(a=>schema.properties.activities.items.oneOf.some(s=>matches(s,a)))||!validateEnvelope(value))invalid();
+ if(!activities.every(a=>schema.properties.activities.items.oneOf.some(s=>matches(s,a))&&a.title.trim())||!validateEnvelope(value))invalid();
  return value;
 }
 module.exports={validateEnvelope,projectOpportunity};

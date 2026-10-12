@@ -42,3 +42,23 @@ test('projection caps activity export explicitly and validates beyond truncated 
  s.rows.at(-1).record.title='';assert.throws(()=>projectOpportunity(s));
  s.rows=Array(1101).fill(template);assert.throws(()=>projectOpportunity(s));
 });
+
+test('projection rejects whitespace-only titles beyond exported activity boundary',()=>{
+ const s=input(),template=s.rows[1];s.rows=s.rows.slice(0,1);
+ for(let i=0;i<1001;i++)s.rows.push({entity:'tasks',record:{...template.record,id:'33333333-3333-4333-8333-'+String(i).padStart(12,'0')}});
+ s.rows.at(-1).record.title='   ';assert.throws(()=>projectOpportunity(s),/^Error: Sales intelligence input unavailable or invalid.$/);
+});
+test('runtime pinned schema vocabulary is explicitly covered and formats asserted',()=>{
+ const schema=require('../docs/CRM_SALES_INTELLIGENCE_CONTRACT.schema.json');
+ const supported=new Set(['$schema','title','type','additionalProperties','required','properties','const','format','pattern','minimum','maximum','anyOf','oneOf','enum','minLength','maxLength','maxItems','uniqueItems','items']);
+ function visit(s){
+  for(const k of Object.keys(s))assert.ok(supported.has(k),'unsupported schema keyword '+k);
+  if(s.type)assert.ok(['object','array','string','integer','boolean','null'].includes(s.type));
+  if(s.format)assert.ok(['uuid','date','date-time'].includes(s.format));
+  if(s.properties)Object.values(s.properties).forEach(visit);
+  for(const k of ['anyOf','oneOf'])if(s[k])s[k].forEach(visit);
+  if(s.items)visit(s.items);
+ }
+ visit(schema);
+ for(const asOf of ['0001-01-01T00:00:00Z','9999-12-31T23:59:59.999Z','2026-10-12T09:30:00.1Z']){const s=input();s.asOf=asOf;assert.ok(validateEnvelope(projectOpportunity(s)));}
+});
