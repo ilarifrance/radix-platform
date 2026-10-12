@@ -37,6 +37,8 @@ function createStore(rawSql){
     if(!['companies','contacts'].includes(c.entity)||typeof c.search!=='string'||c.search.length>200)throw new Error('invalid search');
     return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' AND strpos(lower(t.name),lower($4::text))>0 ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,c.search]);
    }
+   // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
+   if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.
    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
  },

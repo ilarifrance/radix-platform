@@ -21,3 +21,14 @@
 - **File modificati:** api/_sales.js, api/_sales_store.js, sales/sales.js, tests/sales-client.test.js, nuovo tests/sales-search.test.js; questo registro. tests/marketing-demo.test.js preesistente preservato ed escluso dal commit.
 - **PR/Preview:** PR #3 intoccata; PR consegna non aperta perché branch integrazione da concordare. Push ramo autorizzato in verifica dopo commit documentale. Issue #2 non aggiornata in quiet hours: rapporto al parent, nessun annuncio esterno ordinario.
 - **Decisioni richieste:** target DB isolato con permesso esplicito migrazioni; login/membership e Preview; branch integrazione. Sprint NON completato.
+
+## Checkpoint recupero P0 opportunità — 2026-10-12 08:17 UTC+1
+- **Data/ora:** 2026-10-12 08:17 UTC+1.
+- **Branch e SHA:** nexus/radix-sales-v1 / 4fb24c93c17f48845023d7ad6b3c5121627ca375 (base verificata; modifiche recuperate in preparazione commit).
+- **DONE verificato:** revisionato lavoro interrotto owner/expected_close; API con owner intero PostgreSQL nullable e data calendario stretta YYYY-MM-DD (0001–9999), null esplicito per cancellare, omissione update invariata. Owner membership stesso workspace tramite FK composita, incluso viewer come assegnatario (non concede permessi); rimozione membership richiede prima riassegnazione. Migrazione 004 solo file, funzione 003 preservata salvo allowlist opportunità. UI create/edit e schede pipeline/Customer360; riferimenti fuori pagina preservati. Corrette due asserzioni test (regex dollaro SQL e valore option nel DOM mock), non bug produzione.
+- **Test eseguiti con risultati:** node --test tests/sales*.test.js 71/71 PASS; node --test tests/*.test.js 151 totali, 148 PASS, 3 FAIL Marketing preesistenti alle righe 26/32/35; syntax API/store/client e git diff --check PASS. Log locali sales-sprint-opportunities-results.txt e sales-sprint-test-results.txt, non versionati. Solo mock DOM/fetch, adapter e static SQL: NON DB/browser/E2E.
+- **NEXT:** commit selettivo, documentazione setup 004, filtri attività scadute/prossime e contratto JSON Qwen; sprint aperto.
+- **BLOCKED:** DB TEST isolato/autorizzazione migrazioni, auth/membership e Preview non comprovati; nessun DB contattato, migrazione eseguita o segreto letto. Gate E2E 14 ottobre ancora non superato.
+- **File modificati:** api/_sales.js, api/_sales_store.js, sales/sales.js, migrations/sales/004_opportunity_owner_close.sql, tests/sales-opportunities.test.js, tests/sales-client.test.js, questo registro. Marketing preesistente preservato/escluso.
+- **PR/Preview:** PR3 intoccata; target integrazione non concordato, nessuna PR verso main. Issue2 da verificare tramite strumenti consentiti.
+- **Decisioni richieste:** ambiente isolato e permesso migrazioni; account/membership e Preview; branch integrazione.

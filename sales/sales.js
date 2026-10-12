@@ -69,6 +69,7 @@ function card(entity,row,readonly=false){
  const c=el('article',undefined,'card');c.append(el('h3',title(row)));
  if(row.company_id)c.append(el('p','Azienda: '+relation('companies',row.company_id),'muted'));
  if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
+ if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close || 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
  if(!readonly && (entity==='opportunities' || (entity==='tasks' && row.process_id))){
@@ -206,7 +207,12 @@ function openEditor(entity,row=null){
   addSelect('opportunity_id','Opportunità collegata',references('opportunities',row?.opportunity_id),row?.opportunity_id);
   const label=el('label','Testo (opzionale, massimo 4000 caratteri)');const body=el('textarea');body.name='body';body.maxLength=4000;body.rows=6;body.value=row?.body || '';label.append(body);fields.append(label);
  }
- if(entity==='opportunities')addInput('amount_cents','Importo in centesimi *','number',row?.amount_cents ?? 0,true);
+ if(entity==='opportunities'){
+  addInput('amount_cents','Importo in centesimi *','number',row?.amount_cents ?? 0,true);
+  addSelect('owner_id','Responsabile opportunità',references('members',row?.owner_id),row?.owner_id);
+  const close=addInput('expected_close','Chiusura prevista (opzionale)','date',row?.expected_close || '');close.min='0001-01-01';close.max='9999-12-31';
+  fields.append(el('small','Data di calendario YYYY-MM-DD, senza ora o fuso. Responsabile e data possono restare non impostati; nessun valore è dedotto.'));
+ }
  if(entity==='tasks'){
   addSelect('assignee_id','Assegnatario',references('members',row?.assignee_id),row?.assignee_id);
   addSelect('priority','Priorità *',priorities,row?.priority || 'normal',true);
@@ -227,9 +233,13 @@ $('editor-form').addEventListener('submit',event=>{
  event.preventDefault();if(!editing || state.busy)return;const {entity,row}=editing;const data={};
  for(const [key,value] of new FormData(event.currentTarget)){
   if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
-  else if(['assignee_id','task_assignee_id','task_due_days'].includes(key)){
+  else if(['owner_id','assignee_id','task_assignee_id','task_due_days'].includes(key)){
    if(!value.trim())data[key]=null;
    else{const n=Number(value);if(!/^\d+$/.test(value) || !Number.isSafeInteger(n) || (key==='task_due_days'?(n<0 || n>3650):(n<1 || n>2147483647))){error('Assegnatario o giorni non validi.');return;}data[key]=n;}
+  }
+  else if(key==='expected_close'){
+   const v=value.trim();if(!v)data[key]=null;
+   else if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!validUTC(v+'T00:00:00Z')){error('Usa una data di chiusura reale YYYY-MM-DD.');return;}else data[key]=v;
   }
   else if(['due_at','occurred_at'].includes(key)){
    const v=value.trim();if(!v && key==='due_at')data[key]=null;

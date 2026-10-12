@@ -1,6 +1,6 @@
 'use strict';
 const { randomUUID } = require('node:crypto');
-const fields = Object.freeze({companies:['name'],contacts:['name','company_id'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
+const fields = Object.freeze({companies:['name'],contacts:['name','company_id'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
@@ -10,6 +10,8 @@ function timestamp(v){
  const date=new Date(v);if(v.startsWith('0000-')||!Number.isFinite(date.getTime()))return false;
  return date.toISOString().slice(0,19)===v.slice(0,19);
 }
+// Calendar date, not an instant: no timezone conversion or inferred close time.
+function calendarDate(v){return typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && timestamp(v+'T00:00:00Z');}
 function command(body){
  if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k)))fail(400,'Comando non valido.');
  const {workspace,entity,action}=body; let d=body.data;
@@ -21,7 +23,8 @@ function command(body){
  if(Object.keys(d).some(k=>!allowed.includes(k)))fail(400,'Campo non consentito.');
  for(const [k,v] of Object.entries(d)){
    if(k==='version'){if(!Number.isInteger(v)||v<1||v>2147483646)fail(400,'Versione non valida.');}
-   else if(['assignee_id','task_assignee_id'].includes(k)){if(v!==null&&(!Number.isInteger(v)||v<1||v>2147483647))fail(400,'Assegnatario non valido.');}
+   else if(k==='expected_close'){if(v!==null&&!calendarDate(v))fail(400,'Data chiusura prevista non valida: usa YYYY-MM-DD.');}
+   else if(['owner_id','assignee_id','task_assignee_id'].includes(k)){if(v!==null&&(!Number.isInteger(v)||v<1||v>2147483647))fail(400,'Assegnatario non valido.');}
    else if(['due_at','occurred_at'].includes(k)){if(v===null&&k==='due_at')continue;if(!timestamp(v))fail(400,'Usa un timestamp UTC valido con secondi e suffisso Z.');}
    else if(['priority','task_priority'].includes(k)){if(v===null&&k==='task_priority')continue;if(!['low','normal','high','urgent'].includes(v))fail(400,'Priorità non valida.');}
    else if(k==='task_due_days'){if(v!==null&&(!Number.isInteger(v)||v<0||v>3650))fail(400,'Intervallo scadenza non valido.');}
@@ -82,4 +85,4 @@ function createHandler({getSessionUser,getStore}){
  }
  };
 }
-module.exports={createHandler,command,uuid,fields,timestamp};
+module.exports={createHandler,command,uuid,fields,timestamp,calendarDate};

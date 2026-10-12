@@ -87,3 +87,27 @@ test('workspace switch clears search while reload in same workspace retains it',
  c.app.state.search.companies='Remember';await c.app.reload();assert.equal(calls.find(q=>q.entity==='companies').search,'Remember');
  c.ids.workspace.value=P;c.ids.workspace.listeners.change();await tick();assert.deepEqual(plain(c.app.state.search),{});assert.equal(calls.filter(q=>q.entity==='companies').at(-1).search,undefined);
 });
+
+// Opportunity ownership and calendar date: offline DOM/fetch, not browser/DB proof.
+test('opportunity editor preserves unloaded owner and date-only value, sends versioned metadata',async()=>{
+ const posts=[];const c=client(async(_,o)=>{if(o.body)posts.push(JSON.parse(o.body));return response(409);});
+ c.app.openEditor('opportunities',{...row(),owner_id:27,expected_close:'2026-10-14',amount_cents:123});
+ const f=c.fields();assert.equal(f.owner_id.value,'27');assert.ok(f.owner_id.children.some(o=>String(o.value)==='27'));assert.equal(f.expected_close.type,'date');assert.equal(f.expected_close.value,'2026-10-14');assert.equal(f.expected_close.min,'0001-01-01');assert.equal(f.expected_close.max,'9999-12-31');
+ submit(c);await tick();assert.equal(posts[0].data.owner_id,27);assert.equal(posts[0].data.expected_close,'2026-10-14');assert.equal(posts[0].data.version,4);assert.equal(Object.hasOwn(posts[0].data,'stage_id'),false);assert.doesNotThrow(()=>command(posts[0]));
+ f.owner_id.value='';f.expected_close.value='';submit(c);await tick();assert.equal(posts[1].data.owner_id,null);assert.equal(posts[1].data.expected_close,null);
+});
+test('opportunity metadata invalid owner or date never sends a request',()=>{
+ let calls=0;const c=client(async()=>{calls++;return response();});c.app.openEditor('opportunities',{...row(),amount_cents:0});const f=c.fields();
+ for(const v of ['0000-01-01','2026-02-29','2026-04-31','2026-10-14T00:00:00Z','10000-01-01']){f.expected_close.value=v;submit(c);}f.expected_close.value='2024-02-29';
+ for(const v of ['0','-1','1.5','2147483648','abc']){f.owner_id.value=v;submit(c);}assert.equal(calls,0);
+});
+test('opportunity create sends explicit nullable defaults and valid selected metadata',async()=>{
+ const posts=[];const c=client(async(_,o)=>{if(o.body)posts.push(JSON.parse(o.body));return response(409);});c.app.state.rows.processes=[{id:P,title:'Sales',kind:'opportunity'}];c.app.state.rows.members=[{id:12,name:'Ada',role:'viewer'}];
+ c.app.openEditor('opportunities');const f=c.fields();f.title.value='Deal';f.process_id.value=P;f.process_id.listeners.change();f.stage_id.value=S;submit(c);await tick();assert.equal(posts[0].data.owner_id,null);assert.equal(posts[0].data.expected_close,null);assert.doesNotThrow(()=>command(posts[0]));
+ f.owner_id.value='12';f.expected_close.value='2024-02-29';submit(c);await tick();assert.equal(posts[1].data.owner_id,12);assert.equal(posts[1].data.expected_close,'2024-02-29');assert.doesNotThrow(()=>command(posts[1]));
+});
+test('opportunity pipeline and Customer360 cards expose metadata without enabling viewer writes',async()=>{
+ let calls=0;const c=client(async()=>{calls++;return response();});c.app.state.rows.members=[{id:12,name:'Ada',role:'member'}];c.app.state.workspaces[0].role='viewer';const r={...row(),owner_id:12,expected_close:'2026-10-14'};
+ for(const readonly of [false,true]){const card=c.app.card('opportunities',r,readonly);assert.match(contents(card),/Ada/);assert.match(contents(card),/2026-10-14/);if(readonly)assert.equal(card.querySelectorAll('button').length,0);}
+ c.app.openEditor('opportunities',r);assert.notEqual(c.ids.editor.open,true);await c.app.mutate('opportunities','update',{id:ID,version:4,owner_id:12},'Confirm');assert.equal(calls,0);assert.match(contents(c.app.card('opportunities',{...r,owner_id:null,expected_close:null},true)),/non impostata/);
+});
