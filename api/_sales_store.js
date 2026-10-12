@@ -37,6 +37,12 @@ function createStore(rawSql){
     if(!['companies','contacts'].includes(c.entity)||typeof c.search!=='string'||c.search.length>200)throw new Error('invalid search');
     return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' AND strpos(lower(t.name),lower($4::text))>0 ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,c.search]);
    }
+   // Server transaction time; open tasks only in due buckets, before pagination.
+   if(c.due!==undefined){
+    const predicates={all:'TRUE',overdue:"t.status<> 'done' AND t.due_at<now()",upcoming:"t.status<> 'done' AND t.due_at>=now() AND t.due_at<now()+interval '168 hours'",unscheduled:"t.status<> 'done' AND t.due_at IS NULL"};
+    if(c.entity!=='tasks'||!Object.hasOwn(predicates,c.due))throw new Error('invalid due filter');
+    return sql('SELECT t.* FROM sales_tasks t WHERE t.workspace_id=$1 AND '+guard+' AND ('+predicates[c.due]+') ORDER BY t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   }
    // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
    if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.

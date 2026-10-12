@@ -111,3 +111,20 @@ test('opportunity pipeline and Customer360 cards expose metadata without enablin
  for(const readonly of [false,true]){const card=c.app.card('opportunities',r,readonly);assert.match(contents(card),/Ada/);assert.match(contents(card),/2026-10-14/);if(readonly)assert.equal(card.querySelectorAll('button').length,0);}
  c.app.openEditor('opportunities',r);assert.notEqual(c.ids.editor.open,true);await c.app.mutate('opportunities','update',{id:ID,version:4,owner_id:12},'Confirm');assert.equal(calls,0);assert.match(contents(c.app.card('opportunities',{...r,owner_id:null,expected_close:null},true)),/non impostata/);
 });
+
+const taskSection=c=>c.ids.content.children.find(n=>n.id==='tasks');
+async function filterTasks(c,value){c.app.render();const control=taskSection(c).querySelector('select');control.value=value;await control.listeners.change();}
+test('task due filter queries server and keeps filter across pages and reload',async()=>{
+ const calls=[];const page=Array.from({length:100},(_,i)=>({...row(),id:String(i),title:'Server task '+i}));const c=client(async url=>{const q=Object.fromEntries(new URL(url,'https://example.test').searchParams);calls.push(q);return response(200,q.entity==='tasks'?(q.offset==='100'?[{...row(),title:'Next task'}]:page):[]);});
+ c.app.state.workspaces[0].role='viewer';c.app.state.offset.tasks=300;await filterTasks(c,'overdue');assert.equal(calls[0].due,'overdue');assert.equal(calls[0].offset,'0');assert.equal(calls[0].workspace,W);assert.equal(taskSection(c).querySelector('select').disabled,false);
+ await taskSection(c).querySelectorAll('button').find(n=>n.textContent.startsWith('Carica altri')).listeners.click();assert.equal(calls[1].due,'overdue');assert.equal(calls[1].offset,'100');assert.match(contents(taskSection(c)),/Next task/);
+ await c.app.reload();assert.equal(calls.filter(q=>q.entity==='tasks').at(-1).due,'overdue');await filterTasks(c,'all');assert.equal(calls.at(-1).due,'all');assert.equal(calls.at(-1).offset,'0');
+});
+test('task due filter failure clears stale records and recovery remains possible',async()=>{
+ let n=0;const c=client(async()=>++n===1?response(503):response());c.app.state.rows.tasks=[row()];await filterTasks(c,'upcoming');assert.equal(c.app.state.rows.tasks.length,0);assert.match(contents(taskSection(c)),/Dati non disponibili/);assert.equal(c.app.state.busy,false);await filterTasks(c,'unscheduled');assert.equal(c.app.state.errors.tasks,undefined);
+});
+for(const status of [401,403])test('task due filter auth '+status+' invalidates records and filter',async()=>{const c=client(async()=>response(status));await filterTasks(c,'overdue');assert.equal(c.app.state.workspace,null);assert.equal(c.app.state.taskDue,'all');assert.equal(c.ids.content.children.length,0);});
+test('task due filter locks controls and ignores late data after invalidation',async()=>{
+ let resolve;const c=client(()=>new Promise(r=>resolve=r));const pending=filterTasks(c,'upcoming');assert.equal(taskSection(c).querySelector('select').disabled,true);c.app.invalidateAccess();resolve(response(200,[row()]));await pending;assert.equal(c.app.state.taskDue,'all');assert.deepEqual(plain(c.app.state.rows),{});
+});
+test('workspace switch resets task due filter',async()=>{const c=client(async()=>response());c.app.state.taskDue='overdue';c.ids.workspace.value=P;c.ids.workspace.listeners.change();await tick();assert.equal(c.app.state.taskDue,'all');});

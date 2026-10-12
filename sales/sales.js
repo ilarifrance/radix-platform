@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
-const state = {workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},busy:false,ready:false,generation:0};
+const state = {workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
@@ -19,7 +19,7 @@ function error(message){$('error').textContent=message || ''; $('error').hidden=
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
 class ApiError extends Error { constructor(message,status=0){super(message);this.status=status;} }
 function invalidateAccess(){
- state.generation++;state.ready=false;state.workspace=null;state.workspaces=[];state.rows={};state.more={};state.offset={};state.errors={};state.search={};editing=null;customer=null;transitionKeys.clear();
+ state.generation++;state.ready=false;state.workspace=null;state.workspaces=[];state.rows={};state.more={};state.offset={};state.errors={};state.search={};state.taskDue='all';editing=null;customer=null;transitionKeys.clear();
  $('editor').close();$('editor-form').reset();$('editor-fields').replaceChildren();$('editor-title').textContent='';$('content').replaceChildren();renderWorkspace();
 }
 function current(generation){return generation===state.generation;}
@@ -29,6 +29,7 @@ async function api(entity, options={}) {
  if(options.subject)query.set('subject',options.subject);
  if(options.id)query.set('id',options.id);
  if(options.search!==undefined)query.set('search',options.search);
+ if(options.due!==undefined)query.set('due',options.due);
  if(state.workspace && entity!=='workspaces')query.set('workspace',state.workspace);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
  try{
@@ -41,7 +42,7 @@ async function api(entity, options={}) {
 }
 async function load(entity, append=false){
  const generation=state.generation;const offset=append?state.offset[entity]:0;
- try{const data=await api(entity,{offset,...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
+ try{const data=await api(entity,{offset,...(entity==='tasks'?{due:state.taskDue}:{}),...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
  catch(e){if(!current(generation))throw e;state.errors[entity]=e.message;if(!append){state.rows[entity]=[];state.more[entity]=false;}throw e;}
 }
 async function reload(){
@@ -112,6 +113,17 @@ function searchControl(entity){
  form.append(label,submit,button('Azzera ricerca',()=>searchRecords(entity,'')));
  return form;
 }
+function taskDueControl(){
+ const control=selectControl('Scadenza attività / follow-up',[['all','Tutte (incluse completate)'],['overdue','Scadute aperte'],['upcoming','Prossime 168 ore · aperte'],['unscheduled','Senza scadenza · aperte']],state.taskDue);
+ control.select.addEventListener('change',async()=>{
+  if(state.busy || !state.workspace || !['all','overdue','upcoming','unscheduled'].includes(control.select.value))return;
+  const generation=state.generation;state.taskDue=control.select.value;lock(true);error('');notice('Filtro scadenze sul server…');
+  try{await load('tasks');if(current(generation))notice('Filtro scadenze aggiornato.');}
+  catch(e){if(current(generation))error(e.message);}
+  finally{if(current(generation))render();lock(false);}
+ });
+ const box=el('div');box.append(control.wrap,el('p','Filtro su tutte le attività del workspace prima della paginazione. Ora del server; prossime = da adesso incluso a 168 ore escluse. Nessun invio automatico.','muted'));return box;
+}
 function render(){
  const root=$('content');root.replaceChildren();if(!state.workspace)return;
  if(customer)root.append(customerPanel());
@@ -119,6 +131,7 @@ function render(){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
   if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
   if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
+  if(entity==='tasks')section.append(taskDueControl());
   if(state.search[entity])section.append(el('p','Filtro nome attivo: '+state.search[entity]+' · ricerca su tutte le anagrafiche del workspace, prima della paginazione.','muted'));
   if(state.errors[entity])section.append(el('p',state.errors[entity],'notice'));
   if(entity==='dashboard'){
@@ -259,7 +272,7 @@ $('editor-form').addEventListener('submit',event=>{
 });
 $('editor-cancel').addEventListener('click',()=>{if(!state.busy)$('editor').close();});
 $('editor').addEventListener('cancel',event=>{if(state.busy)event.preventDefault();});
-$('workspace').addEventListener('change',()=>{if(state.busy)return;state.search={};state.workspace=$('workspace').value;$('editor').close();refresh(false);});
+$('workspace').addEventListener('change',()=>{if(state.busy)return;state.search={};state.taskDue='all';state.workspace=$('workspace').value;$('editor').close();refresh(false);});
 $('refresh').addEventListener('click',()=>refresh(true));
 for(const [entity,label] of Object.entries(names)){const a=el('a',label);a.href='#'+entity;$('navigation').append(a);}
 refresh(true);
