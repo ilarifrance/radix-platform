@@ -194,3 +194,9 @@ body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#0
 .workflow-task-link:focus-visible,.drawer-link:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
 
 button.drawer-link{background:#102b1e;color:#a1f4c5;cursor:pointer;font:inherit;min-height:44px}
+
+/* RADIX integration: all operational divisions remain reachable on shorter screens. */
+.sidebar{overflow-y:auto;overscroll-behavior:contain;padding-bottom:26px;scrollbar-width:thin;scrollbar-color:rgba(94,233,193,.34) transparent}
+.sidebar .side-foot{position:relative;left:auto;right:auto;bottom:auto;margin-top:20px}
+.sidebar .nav-item{flex-shrink:0}
+@media(max-height:760px){.sidebar{padding-top:12px}.sidebar .brand{padding-bottom:10px}}
