@@ -41,3 +41,16 @@ test('missing or structurally incomplete approval is rejected', () => {
   assert.throws(() => gate.assertPublishable({}, post));
   assert.throws(() => gate.requestApproval({ ...post, destinations: [] }, 'author'));
 });
+
+test('requester cannot approve own content or bypass publish decision', () => {
+  const pending = gate.requestApproval(post, 'author');
+  assert.throws(() => gate.decideApproval(pending, post, 'author', 'approve'), /Self-approval/);
+  assert.equal(gate.canPublish({ ...pending, state: gate.STATES.APPROVED,
+    reviewerId:'author', decidedAt:new Date().toISOString() },post), false);
+});
+test('approval requires present and distinct requester identities', () => {
+  const pending=gate.requestApproval(post, 'author');
+  assert.throws(()=>gate.decideApproval({ ...pending, requesterId:'   ' },post,'reviewer','approve'), /requesterId/);
+  assert.equal(gate.canPublish({ ...pending,state:gate.STATES.APPROVED,
+    requesterId:'',reviewerId:'reviewer',decidedAt:new Date().toISOString() },post),false);
+});
