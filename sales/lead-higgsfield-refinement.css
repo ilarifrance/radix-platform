@@ -60,3 +60,13 @@ table tbody tr:hover{background:#12404a69}
 section[id]{scroll-margin-top:78px}
 @media(max-width:1100px){.steps{display:flex;overflow-x:auto}.steps a{min-width:120px}}
 @media(max-width:690px){.steps{position:static}.out-sequence-card{grid-template-columns:1fr}.out-sequence-card time{grid-row:auto}}
+
+.sync-linked{margin-top:16px;padding:18px;border:1px solid #288578;border-radius:12px;background:linear-gradient(115deg,#0d383b,#081f2b);box-shadow:0 0 30px #1ceabb0b}
+.sync-linked[hidden]{display:none}
+.sync-linked-top{display:flex;align-items:center;gap:12px}
+.sync-linked-top strong{color:#d9fff3;font-size:14px}
+.sync-linked-top small{display:block;color:#83caba;font-size:11px;margin-top:3px}
+.sync-linked-symbol{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#154e42;color:#5dfbd0;font-size:21px;border:1px solid #238d75}
+.sync-go{display:inline-flex;align-items:center;padding:12px 10px;color:#88f4d1;font-size:12px;text-decoration:underline}
+.crm-existing-button{display:block;width:100%;text-align:left;background:#0c3640;border-color:#2b8578;margin:6px 0}
+.crm-existing-button:hover{background:#15564e}
