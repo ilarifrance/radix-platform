@@ -1,6 +1,6 @@
 module.exports = {
   calculatePriority: function(opportunity, nowIso) {
-    if (!opportunity || !nowIso) return { score: 0, reason: 'Invalid input' };
+    if (!opportunity || typeof opportunity !== 'object' || !Number.isFinite(Date.parse(nowIso))) return { score: 0, reason: 'Invalid input' };
     const { stage, status, value, lastContactAt, nextActionAt, createdAt } = opportunity;
     if (status === 'won' || status === 'lost') return { score: 0, reason: 'Closed deal' };
     let score = 0;
@@ -21,7 +21,7 @@ module.exports = {
     return { score, reason: `Stage: ${stage}, Value: ${value}, Inactivity: ${daysSinceLastContact} days, Next Action: ${daysSinceNextAction} days` };
   },
   rankOpportunities: function(opportunities, nowIso) {
-    if (!opportunities || !nowIso) return [];
+    if (!Array.isArray(opportunities) || !Number.isFinite(Date.parse(nowIso))) return [];
     return opportunities
       .map(opportunity => ({
         ...opportunity,
@@ -29,8 +29,10 @@ module.exports = {
       }))
       .sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;
-        if (a.status !== b.status) return a.status.localeCompare(b.status);
-        return a.id - b.id;
+        const statusA = String(a.status ?? ''), statusB = String(b.status ?? '');
+        if (statusA !== statusB) return statusA.localeCompare(statusB);
+        const idA = String(a.id ?? ''), idB = String(b.id ?? '');
+        return idA.localeCompare(idB, 'en', { numeric: true });
       });
   }
 };
