@@ -19,3 +19,10 @@ test('sidebar has a focusable scroll region and expandable sections',()=>{
  assert.match(cc,/id="sidebarScroll" tabindex="0"/);assert.equal((cc.match(/<details class="side-section sidebar-fold"/g)||[]).length,2);
  const css=fs.readFileSync('command-center-master.css','utf8');assert.match(css,/\.sidebar-scroll\{[^}]*min-height:0;overflow-y:auto/);assert.match(css,/\.sidebar \.side-foot\{[^}]*flex:0 0 auto/);
 });
+
+test('Agency and ecosystem return directly to Command Center',()=>{
+ const agency=fs.readFileSync('agency/index.html','utf8');
+ const ecosystem=fs.readFileSync('radix-ecosystem.html','utf8');
+ assert.ok(agency.includes('href="../control-center-v2.html" title="Torna al Command Center"'));
+ assert.ok(ecosystem.includes('class="mark" href="/control-center-v2.html"'));
+});
