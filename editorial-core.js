@@ -1,0 +1,35 @@
+(function(root){
+  'use strict';
+  const fields=['goal','audience','channels','period','voice','brand','offer','positioning','messages','topics','frequency','kpis','materials','gaps'];
+  function missing(brief){return fields.filter(key=>!String(brief[key]||'').trim())}
+  function key(owner,project){if(!owner||!project)throw Error('Account e progetto richiesti');return 'radix-editorial:v1:'+encodeURIComponent(owner)+':'+encodeURIComponent(project)}
+  function create(project){return {schemaVersion:1,projectId:String(project.id),brief:{goal:project.summary||'',audience:'',channels:'',period:'',voice:''},briefApproved:false,planApproval:null,contents:[]}}
+  function revise(state,brief){
+    const next=Object.fromEntries(fields.map(k=>[k,String(brief[k]||'').trim()]));
+    const changed=fields.some(k=>(state.brief[k]||'')!==next[k]);
+    if(changed){
+      state.strategyHistory=state.strategyHistory||[];
+      state.strategyHistory.push({revision:state.strategyRevision||0,brief:{...state.brief},approval:state.strategyApproval?{...state.strategyApproval}:null});
+      state.strategyRevision=(state.strategyRevision||0)+1;
+      state.briefApproved=false;state.strategyApproval=null;state.planApproval=null;
+      state.contents.forEach(item=>{item.needsStrategyReview=true;item.status='draft'});
+    }
+    state.brief=next;return state;
+  }
+  function approveBrief(state){
+    if(missing(state.brief).length)throw Error('Completa la strategia prima di confermarla');
+    state.strategyRevision=state.strategyRevision||1;
+    state.strategyApproval={revision:state.strategyRevision,approvedAt:new Date().toISOString(),scope:'browser-local'};
+    state.briefApproved=true;return state;
+  }
+  function isoDate(date){return date.toISOString().slice(0,10)}
+  function calendarPeriod(anchor,view,delta=0){const date=new Date(String(anchor)+'T12:00:00Z');if(Number.isNaN(date.getTime())||!['day','week','month','year'].includes(view))throw Error('Periodo calendario non valido');if(view==='day')date.setUTCDate(date.getUTCDate()+delta);if(view==='week')date.setUTCDate(date.getUTCDate()+delta*7);if(view==='month')date.setUTCMonth(date.getUTCMonth()+delta);if(view==='year')date.setUTCFullYear(date.getUTCFullYear()+delta);let start=new Date(date),count=1;if(view==='week'){const weekday=(start.getUTCDay()+6)%7;start.setUTCDate(start.getUTCDate()-weekday);count=7}else if(view==='month'){start=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth(),1,12));count=new Date(Date.UTC(date.getUTCFullYear(),date.getUTCMonth()+1,0)).getUTCDate()}else if(view==='year'){start=new Date(Date.UTC(date.getUTCFullYear(),0,1,12));count=12}const dates=Array.from({length:count},(_,i)=>{const d=new Date(start);view==='year'?d.setUTCMonth(i):d.setUTCDate(d.getUTCDate()+i);return isoDate(d)});return {anchor:isoDate(date),view,dates}}
+  function planFingerprint(state){return state.contents.map(x=>[x.id,x.title,x.channel,x.date,x.time||'',x.revision,x.strategyRevision].join('|')).sort().join('||')}
+  function approvePlan(state){if(!state.briefApproved)throw Error('Approva prima la strategia');if(!state.contents.length)throw Error('Aggiungi almeno un contenuto al piano');if(state.contents.some(x=>!x.date))throw Error('Assegna una data a tutti i contenuti');if(state.contents.some(x=>x.needsStrategyReview||x.strategyRevision!==state.strategyRevision))throw Error('Rivedi i contenuti rispetto alla strategia corrente');state.planApproval={strategyRevision:state.strategyRevision,fingerprint:planFingerprint(state),approvedAt:new Date().toISOString(),scope:'browser-local'};return state.planApproval}
+  function isPlanApproved(state){return !!(state.planApproval&&state.planApproval.strategyRevision===state.strategyRevision&&state.planApproval.fingerprint===planFingerprint(state))}
+  function updateContent(state,item){if(!state.briefApproved)throw Error('Conferma prima il brief');if(!String(item.title||'').trim()||!String(item.channel||'').trim())throw Error('Titolo e canale richiesti');if(item.date&&!/^\d{4}-\d{2}-\d{2}$/.test(item.date))throw Error('Data non valida');if(item.time&&!/^([01]\d|2[0-3]):[0-5]\d$/.test(item.time))throw Error('Orario non valido');const previous=state.contents.find(x=>x.id===item.id);const content={id:item.id,title:String(item.title).trim(),channel:String(item.channel).trim(),date:item.date||'',time:item.time||'',copy:String(item.copy||''),status:'draft',strategyRevision:state.strategyRevision,needsStrategyReview:false,history:previous?[...(previous.history||[]),{revision:previous.revision,title:previous.title,copy:previous.copy,channel:previous.channel,date:previous.date,time:previous.time||'',status:previous.status,strategyRevision:previous.strategyRevision}]:[],revision:previous?previous.revision+1:1};if(previous)state.contents.splice(state.contents.indexOf(previous),1,content);else state.contents.push(content);state.planApproval=null;return content}
+  function review(state,id,decision){const item=state.contents.find(x=>x.id===id);if(!item)throw Error('Contenuto non trovato');if(!state.briefApproved)throw Error('Brief da riconfermare');if(decision!=='revise'&&(item.needsStrategyReview||item.strategyRevision!==state.strategyRevision))throw Error('Strategia modificata: rivedi e salva una nuova versione del contenuto');if(decision==='request'){if(!item.copy.trim())throw Error('Inserisci il testo prima della revisione');item.status='review'}else if(decision==='approve'){if(item.status!=='review')throw Error('Invia prima in revisione');item.status='approved'}else if(decision==='revise'){item.status='draft'}else throw Error('Decisione non valida');return item}
+  function restore(raw,projectId){const state=JSON.parse(raw);if(state.schemaVersion!==1||String(state.projectId)!==String(projectId)||!state.brief||!Array.isArray(state.contents))throw Error('Archivio locale incompatibile');if(state.contents.some(x=>!x||!x.id||typeof x.copy!=='string'||!['draft','review','approved'].includes(x.status)))throw Error('Contenuti locali non validi');if(!state.strategyApproval||state.strategyApproval.revision!==state.strategyRevision||missing(state.brief).length){state.briefApproved=false}if(!isPlanApproved(state))state.planApproval=null;return state}
+  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
+})(typeof window==='undefined'?globalThis:window);
+
