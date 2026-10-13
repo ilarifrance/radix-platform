@@ -439,7 +439,22 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 
 <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" aria-hidden="true"><div class="drawer-head"><div class="drawer-title" id="drawerTitle">Agent</div><button class="drawer-close" id="drawerClose" type="button" aria-label="Chiudi pannello dettagli">×</button></div><div class="drawer-body" id="drawerBody"></div></aside>
 <div class="toast" id="toast"></div>
-<div class="fatal" id="fatal"><div class="fatal-card"><h2 id="fatalTitle">Accesso RADIX richiesto</h2><p id="fatalText">Accedi dalla piattaforma operativa per aprire il Command Center.</p><button type="button" class="drawer-link" id="fatalRetry">Riprova caricamento</button><a href="/index.html">Vai al login / workspace</a></div></div>
+<div class="fatal" id="fatal" role="dialog" aria-modal="true" aria-labelledby="fatalTitle">
+  <div class="fatal-card">
+    <h2 id="fatalTitle">Accesso RADIX richiesto</h2>
+    <p id="fatalText">Accedi per aprire il Command Center.</p>
+    <form id="fatalLoginForm" class="fatal-login" hidden>
+      <label for="fatalLoginEmail">Email RADIX</label>
+      <input id="fatalLoginEmail" name="email" type="email" autocomplete="username" inputmode="email" required>
+      <label for="fatalLoginPassword">Password</label>
+      <input id="fatalLoginPassword" name="password" type="password" autocomplete="current-password" required>
+      <button id="fatalLoginSubmit" type="submit">Accedi al Command Center</button>
+      <p id="fatalLoginMessage" role="status" aria-live="polite"></p>
+    </form>
+    <button type="button" class="drawer-link" id="fatalRetry">Riprova caricamento</button>
+    <a href="/radix-ecosystem.html">Esplora le aree RADIX</a>
+  </div>
+</div>
 
 <script src="command-center-network-scene.js"></script>
 <script>
@@ -559,7 +574,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }catch(err){
       $('systemStatus').textContent=err.auth?'LOGIN REQUIRED':'AGGIORNAMENTO NON DISPONIBILE';
       if(data&&!err.auth){$('syncNoticeText').textContent='Ultimo snapshot mantenuto · '+(err.message||'Aggiornamento non disponibile');$('syncNotice').hidden=false}
-      else{$('fatalTitle').textContent=err.auth?'Accesso RADIX richiesto':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.message||String(err);$('fatal').classList.add('show')}
+      else{$('fatalTitle').textContent=err.auth?'Accedi a RADIX':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.auth?'L’accesso rimane nel Command Center, senza passare dalla vecchia piattaforma.':(err.message||String(err));$('fatalLoginForm').hidden=!err.auth;$('fatalRetry').hidden=!!err.auth;$('fatal').classList.add('show');if(err.auth&&document.activeElement!==$('fatalLoginPassword'))$('fatalLoginEmail').focus()}
     }finally{loadInFlight=false;$('syncRetry').disabled=false;$('fatalRetry').disabled=false}
   }
   function render(){
@@ -1004,6 +1019,23 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('quickReport').addEventListener('click',function(){setView('command');toast('Riepilogo workflow registrati')});
   document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('commandInput').focus()}if(e.key==='Escape'){$('drawer').classList.remove('open');$('searchResults').hidden=true}});
   $('voiceBtn').addEventListener('click',function(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Dettatura non disponibile in questo browser');return}var rec=new SR();rec.lang='it-IT';rec.interimResults=false;rec.onresult=function(ev){$('commandInput').value=ev.results[0][0].transcript;$('commandInput').focus();if(data)doSearch($('commandInput').value)};rec.onerror=function(){toast('Dettatura non riuscita')};rec.start();toast('RADIX sta ascoltando…')});
+  $('fatalLoginForm').addEventListener('submit',async function(event){
+    event.preventDefault();
+    var email=$('fatalLoginEmail').value.trim(),password=$('fatalLoginPassword').value;
+    if(!email||!password)return;
+    var submit=$('fatalLoginSubmit');
+    if(submit.disabled)return;
+    submit.disabled=true;$('fatalLoginMessage').textContent='Verifica credenziali in corso…';
+    try{
+      var response=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})});
+      var result=await response.json().catch(function(){return {}});
+      if(!response.ok){$('fatalLoginMessage').textContent=result.error||'Credenziali non valide o servizio non disponibile.';return}
+      $('fatalLoginMessage').textContent='Accesso riuscito. Caricamento Command Center…';
+      await load();
+      if(!$('fatal').classList.contains('show'))$('fatalLoginMessage').textContent='';
+    }catch(error){$('fatalLoginMessage').textContent='Connessione non disponibile. Riprova.'}
+    finally{$('fatalLoginPassword').value='';submit.disabled=false}
+  });
   $('syncRetry').addEventListener('click',load);$('fatalRetry').addEventListener('click',load);
   load();
   setInterval(function(){if(document.visibilityState==='visible')load()},30000);
