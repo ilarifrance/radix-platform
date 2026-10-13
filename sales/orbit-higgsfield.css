@@ -70,3 +70,20 @@
 @media(max-width:1250px) and (min-width:901px){.earth{width:min(39%,320px)}.glass.priorities{width:175px}.entity-node{max-width:120px}.entity-node[data-pos="1"]{left:26%}.entity-node[data-pos="3"]{left:24%}}
 @media(max-width:900px){.earth{width:min(44%,330px)}.entity-node[data-pos="0"]{top:14%;left:48%}.entity-node[data-pos="1"]{top:29%;left:29%}.entity-node[data-pos="2"]{top:27%;right:6%}}
 @media(max-width:720px){.earth{top:45%;width:45%}.orbit{top:45%}.entity-node{max-width:95px;padding:5px;gap:4px}.entity-node .circle{width:25px;height:25px;font-size:14px}.entity-node b{font-size:9px}.entity-node small{font-size:8px}.entity-node[data-pos="1"]{left:27%}.entity-node[data-pos="3"]{left:24%}}
+
+/* Sales Orbit — interactive, data-backed cockpit navigation */
+.topbar{position:relative;z-index:30}
+.crm-search-results{position:absolute;left:27px;top:54px;z-index:65;width:min(440px,calc(100vw - 46px));max-height:min(62vh,480px);overflow-y:auto;background:linear-gradient(155deg,#0c2b38fa,#061720fc);border:1px solid #398a80;border-radius:14px;padding:8px;box-shadow:0 24px 55px #000b,0 0 25px #2af3bf20;backdrop-filter:blur(12px)}
+.crm-search-results[hidden]{display:none}
+.crm-search-caption{font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:10px;color:#5ce8c7}
+.crm-search-result{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px;border-radius:8px;border:1px solid transparent;transition:background .18s;color:#dffff5}
+.crm-search-result:hover,.crm-search-result:focus-visible{background:#16534f;border-color:#42c3af}
+.crm-search-result b{font-size:12px;font-weight:650;overflow-wrap:anywhere}.crm-search-result small{white-space:nowrap;color:#7cc7ba;font-size:10px}
+.crm-search-hint{color:#a9d1cf;padding:10px;margin:0;font-size:12px}
+.crm-back-command{display:block;margin-bottom:17px;padding:9px;border:1px solid #2b7569;border-radius:9px;font-size:11px;letter-spacing:0;color:#b9ffe9}
+.crm-back-command:hover{background:#10564c}
+.orbit{animation:orbit-breath 10s ease-in-out infinite alternate}
+.orbit-b{animation-delay:-3s}.orbit-c{animation-delay:-6s}
+@keyframes orbit-breath{from{opacity:.45;filter:drop-shadow(0 0 3px #29ddbc)}to{opacity:.95;filter:drop-shadow(0 0 18px #3cf5cc)}}
+@media(max-width:720px){.crm-search-results{left:10px;top:53px;width:calc(100vw - 20px)}.crm-search-result{align-items:flex-start;flex-direction:column;gap:2px}.topbar .search{min-width:160px}.crm-back-command{margin-bottom:8px}}
+@media(prefers-reduced-motion:reduce){.orbit{animation:none}}
