@@ -309,6 +309,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       <div class="brand-mark">R</div>
       <div class="brand-copy"><div class="brand-name">RADIX</div><div class="brand-sub">AI Operating System</div></div>
     </div>
+    <div class="sidebar-scroll" id="sidebarScroll" tabindex="0" aria-label="Menu RADIX scorrevole">
     <div class="side-section">
       <div class="side-label">Command</div>
       <div class="nav">
@@ -316,15 +317,6 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         <button class="nav-item" data-radix-view="projects"><span class="nav-icon">◈</span><span>Projects</span></button>
         <button class="nav-item" data-radix-view="command"><span class="nav-icon">⟲</span><span>Workflows</span><b class="nav-badge" id="navWorkflowBadge">0</b></button>
         <button class="nav-item" data-radix-view="approvals"><span class="nav-icon">✓</span><span>Approvals</span><b class="nav-badge" id="navApprovalBadge">0</b></button>
-      </div>
-    </div>
-    <div class="side-section">
-      <div class="side-label">Intelligence</div>
-      <div class="nav">
-        <button class="nav-item" data-radix-view="agents"><span class="nav-icon">✣</span><span>Agents</span></button>
-        <button class="nav-item" data-radix-view="knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
-        <button class="nav-item" data-radix-view="analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
-        <button class="nav-item" data-radix-view="integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
       </div>
     </div>
     <div class="side-section" aria-label="Aree operative RADIX">
@@ -340,9 +332,19 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         <a class="nav-item" href="/radix-ecosystem.html"><span class="nav-icon">↗</span><span>Tutte le aree</span></a>
       </nav>
     </div>
-    <div class="side-section">
-      <div class="side-label">Projects</div>
+    <details class="side-section sidebar-fold" title="Espandi Intelligence">
+      <summary class="side-label">Intelligence</summary>
+      <div class="nav">
+        <button class="nav-item" data-radix-view="agents"><span class="nav-icon">✣</span><span>Agents</span></button>
+        <button class="nav-item" data-radix-view="knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
+        <button class="nav-item" data-radix-view="analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
+        <button class="nav-item" data-radix-view="integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
+      </div>
+    </details>
+    <details class="side-section sidebar-fold" title="Espandi Projects">
+      <summary class="side-label">Projects</summary>
       <div id="projectList"></div>
+    </details>
     </div>
     <div class="side-foot">
       <a class="workspace-link" href="/radix-ecosystem.html"><span><b>Apri ecosistema</b><br>tutte le divisioni RADIX</span><b>↗</b></a>
