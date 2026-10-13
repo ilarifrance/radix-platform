@@ -45,3 +45,18 @@ table tbody tr:hover{background:#12404a69}
 .mail-preview{background:#092f3b;border-color:#307c74}
 @media(max-width:1150px){.workspace{grid-template-columns:1fr}.copilot{position:static}}
 @media(max-width:750px){.hero-glow{opacity:.22}.steps{overflow-x:auto;display:flex}.steps span{flex:0 0 155px}.app{grid-template-columns:1fr}.nav{height:auto;position:static;overflow-x:auto;flex-direction:row}.nav>a{white-space:nowrap}.nav .logo,.sidebar-bottom{display:none}.workspace{padding:12px}.hero{padding:20px 14px}}
+
+/* Higgsfield Lead — interactive seven-step workflow */
+.steps{grid-template-columns:repeat(7,minmax(0,1fr));position:sticky;top:0;z-index:17;background:#061b26e8;backdrop-filter:blur(10px)}
+.steps a{display:grid;place-items:center;padding:11px 2px;border-bottom:2px solid #25505b;color:#a1c5c6;font-size:10px;letter-spacing:.08em;white-space:nowrap}
+.steps a.on,.steps a:hover,.steps a:focus-visible{border-color:#48edba;color:#66ffd4;background:#12564a60}
+.out-panel{background:radial-gradient(circle at 95% 0,#0d5d5363,transparent 40%),linear-gradient(140deg,#0d303b,#081d2b);border-color:#318b7a}
+.out-output{display:block;padding:10px;min-height:39px;background:#0a2e37;border:1px solid #2b7569;border-radius:7px;color:#e8fff8}
+.out-checks{display:grid;gap:12px;margin:15px 0;color:#bfe8dd;font-size:12px}
+.out-checks label{display:flex;align-items:center;gap:10px}.out-checks input{width:16px;height:16px;accent-color:#27e4b3}
+.out-timeline{display:grid;gap:9px;margin:18px 0}
+.out-sequence-card{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;padding:15px;border-radius:11px;border:1px solid #317c71;border-left:3px solid #35edc3;background:linear-gradient(130deg,#123b45,#082431)}
+.out-sequence-card time{grid-row:span 3;color:#54f4cd;font-weight:700}.out-sequence-card b{font-size:10px;color:#8fd8c9;text-transform:uppercase}.out-sequence-card strong{color:#e8fffa}.out-sequence-card p{margin:0;color:#a2c4c6;font-size:12px;white-space:pre-wrap}
+section[id]{scroll-margin-top:78px}
+@media(max-width:1100px){.steps{display:flex;overflow-x:auto}.steps a{min-width:120px}}
+@media(max-width:690px){.steps{position:static}.out-sequence-card{grid-template-columns:1fr}.out-sequence-card time{grid-row:auto}}
