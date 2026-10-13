@@ -31,15 +31,15 @@
  if(!review)return;const item=review[Number($('mail-prospect').value)];if(!item)return;
  const values={azienda:item.candidate.name,settore:item.candidate.industry,paese:item.candidate.country,ruolo:item.candidate.contactRole};
  const subject=$('mail-subject').value,body=$('mail-template').value;
- const all=subject+' '+body;const placeholders=[...all.matchAll(/\\{([^{}]+)\\}/g)].map(m=>m[1]);
+ const all=subject+' '+body;const placeholders=[...all.matchAll(/\{([^{}]+)\}/g)].map(m=>m[1]);
  const unknown=placeholders.filter(p=>!Object.prototype.hasOwnProperty.call(values,p));
  const missing=placeholders.filter(p=>Object.prototype.hasOwnProperty.call(values,p)&&!values[p]);
  if(unknown.length||missing.length){$('mail-status').textContent='Impossibile generare: '+(unknown.length?'variabili sconosciute '+[...new Set(unknown)].join(', ')+'; ':'')+(missing.length?'dati mancanti '+[...new Set(missing)].join(', '):'');$('mail-copy').disabled=true;return}
- const render=text=>text.replace(/\\{([^{}]+)\\}/g,(_,key)=>values[key]);
+ const render=text=>text.replace(/\{([^{}]+)\}/g,(_,key)=>values[key]);
  $('mail-preview-subject').textContent=render(subject);$('mail-preview-body').textContent=render(body);
  $('mail-copy').disabled=false;$('mail-status').textContent='Bozza pronta per revisione. Nessun invio effettuato. Generazione tramite template deterministico, non AI.';
 }
 $('mail-generate').onclick=draft;$('mail-prospect').onchange=()=>{$('mail-copy').disabled=true;$('mail-preview-subject').textContent='Rigenera la bozza';};
-$('mail-copy').onclick=async()=>{if($('mail-copy').disabled)return;const text='Oggetto: '+$('mail-preview-subject').textContent+'\\n\\n'+$('mail-preview-body').textContent;try{await navigator.clipboard.writeText(text);$('mail-status').textContent='Bozza copiata negli appunti; nessun invio effettuato.'}catch(e){$('mail-status').textContent='Copia non disponibile: seleziona il testo della bozza.'}};
+$('mail-copy').onclick=async()=>{if($('mail-copy').disabled)return;const text='Oggetto: '+$('mail-preview-subject').textContent+'\n\n'+$('mail-preview-body').textContent;try{await navigator.clipboard.writeText(text);$('mail-status').textContent='Bozza copiata negli appunti; nessun invio effettuato.'}catch(e){$('mail-status').textContent='Copia non disponibile: seleziona il testo della bozza.'}};
 $('score').onclick=calculate;$('export').onclick=download;$('clear').onclick=()=>{candidates=[];$('total').textContent='—';$('file').value='';$('import-status').textContent='Dati cancellati dalla memoria';invalidate('Importa i dati e avvia la qualificazione.')};for(const id of ['country','industry','size','role'])$(id).addEventListener('input',()=>invalidate('ICP modificato: ricalcola i risultati.'));
 })();
