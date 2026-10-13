@@ -224,3 +224,13 @@ button.drawer-link{background:#102b1e;color:#a1f4c5;cursor:pointer;font:inherit;
   .sidebar-fold[open]>summary:after{content:'▴'}
   .sidebar-scroll{padding-left:0;padding-right:0}
 }
+
+/* Command Center inline authentication: remain on same page after login. */
+.fatal-login{display:grid;gap:9px;margin-top:20px;text-align:left}
+.fatal-login[hidden],.fatal-card [hidden]{display:none!important}
+.fatal-login label{font-size:12px;font-weight:650;color:#d5f9e7}
+.fatal-login input{width:100%;min-height:43px;border:1px solid #2e6b59;border-radius:9px;background:#03130e;color:#eafef2;font-size:15px;padding:10px 12px;outline-offset:2px}
+.fatal-login input:focus-visible{outline:2px solid #50ffc1}
+.fatal-login button{border:1px solid #45e6af;background:#104e39;color:#eafff5;border-radius:10px;min-height:43px;font-size:14px;font-weight:700;cursor:pointer}
+.fatal-login button:disabled{opacity:.65;cursor:wait}
+.fatal-login p{font-size:12px;min-height:18px;margin:1px 0;color:#d5f9e7}
