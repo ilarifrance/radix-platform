@@ -1,1 +1,24 @@
-{"rewrites":[{"source":"/","destination":"/control-center-v2.html"}]}
+{
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/control-center-v2.html"
+    },
+    {
+      "source": "/api/buffer",
+      "destination": "/api/integrations/buffer"
+    },
+    {
+      "source": "/api/heygen",
+      "destination": "/api/integrations/heygen"
+    },
+    {
+      "source": "/api/openai-image",
+      "destination": "/api/integrations/openai-image"
+    },
+    {
+      "source": "/api/send-email",
+      "destination": "/api/integrations/send-email"
+    }
+  ]
+}
