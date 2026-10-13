@@ -574,7 +574,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }catch(err){
       $('systemStatus').textContent=err.auth?'LOGIN REQUIRED':'AGGIORNAMENTO NON DISPONIBILE';
       if(data&&!err.auth){$('syncNoticeText').textContent='Ultimo snapshot mantenuto · '+(err.message||'Aggiornamento non disponibile');$('syncNotice').hidden=false}
-      else{$('fatalTitle').textContent=err.auth?'Accedi a RADIX':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.auth?'L’accesso rimane nel Command Center, senza passare dalla vecchia piattaforma.':(err.message||String(err));$('fatalLoginForm').hidden=!err.auth;$('fatalRetry').hidden=!!err.auth;$('fatal').classList.add('show');if(err.auth&&document.activeElement!==$('fatalLoginPassword'))$('fatalLoginEmail').focus()}
+      else{$('fatalTitle').textContent=err.auth?'Accedi a RADIX':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.auth?'L’accesso rimane nel Command Center, senza passare dalla vecchia piattaforma.':(err.message||String(err));$('fatalLoginForm').hidden=!err.auth;$('fatalRetry').hidden=!!err.auth;$('app').classList.remove('loading');$('fatal').classList.add('show');if(err.auth&&document.activeElement!==$('fatalLoginPassword'))$('fatalLoginEmail').focus()}
     }finally{loadInFlight=false;$('syncRetry').disabled=false;$('fatalRetry').disabled=false}
   }
   function render(){
