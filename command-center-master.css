@@ -200,3 +200,27 @@ button.drawer-link{background:#102b1e;color:#a1f4c5;cursor:pointer;font:inherit;
 .sidebar .side-foot{position:relative;left:auto;right:auto;bottom:auto;margin-top:20px}
 .sidebar .nav-item{flex-shrink:0}
 @media(max-height:760px){.sidebar{padding-top:12px}.sidebar .brand{padding-bottom:10px}}
+
+/* Integrated RADIX sidebar: independent scroll, footer never covers links. */
+.sidebar{display:flex;flex-direction:column;overflow:hidden!important;min-height:0}
+.sidebar .brand{flex:0 0 auto}
+.sidebar-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:#338875 transparent;padding:0 3px 16px}
+.sidebar-scroll::-webkit-scrollbar{width:7px}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:#245b52;border-radius:20px}
+.sidebar .side-foot{position:static!important;inset:auto!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto;margin:0!important;padding-top:10px;background:#03100f}
+.sidebar .side-section{margin-top:8px}
+.sidebar-scroll .nav-item{min-height:35px}
+.sidebar-fold{border:1px solid #173832;border-radius:10px;padding:3px 2px}
+.sidebar-fold>summary{display:block!important;cursor:pointer;list-style:none;user-select:none;padding:7px 10px!important;line-height:1.5}
+.sidebar-fold>summary::-webkit-details-marker{display:none}
+.sidebar-fold>summary:after{content:'▾';float:right;color:#67f0cb}
+.sidebar-fold[open]>summary:after{content:'▴'}
+.sidebar-fold:not([open]) .nav{display:none}
+.sidebar-fold .nav{padding-top:5px}
+.sidebar-scroll:focus-visible{outline:2px solid #55eac3;outline-offset:-2px}
+@media(max-width:860px){
+  .sidebar-fold>summary{font-size:0!important;text-align:center}
+  .sidebar-fold>summary:after{content:'⋯';float:none;font-size:18px}
+  .sidebar-fold[open]>summary:after{content:'▴'}
+  .sidebar-scroll{padding-left:0;padding-right:0}
+}
