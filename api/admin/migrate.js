@@ -5,6 +5,10 @@ const { sql } = require('../_db');
 const { isAdminRequest } = require('../_auth');
 
 module.exports = async (req, res) => {
+  // Explicit opt-in: reuse the existing protected admin function rather than deploying a second one.
+  if (req.query && req.query.agencyMemory === '1') {
+    return require('../_agency-memory-migration')(req, res);
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Usa POST' });
     return;
