@@ -503,78 +503,49 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   var workflowFilters={project:'all',status:'all',taskStatus:'all'};
   var knowledgeQuery='';
   var agentFilters={query:'',group:'all',status:'all'};
-  var loadInFlight=false;
+  var loadInFlight=false,authStopped=false;
   var $=function(id){return document.getElementById(id)};
   function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
   function fmtTime(value){if(!value)return '—';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}
   function fmtDate(value){if(!value)return 'mai';var d=new Date(value);if(isNaN(d))return '—';return d.toLocaleString('it-IT',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
   function initials(name){return String(name||'R').split(/\s+/).slice(0,2).map(function(x){return x[0]||''}).join('').toUpperCase()}
   function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){$('toast').classList.remove('show')},2200)}
-  function legacyProjection(payload,identity){
-    var state=payload&&payload.state||{},hist=state.history||{},flows=[],activity=[],agentStatus={};
-    var toTime=function(v){var n=typeof v==='number'?v:new Date(v||0).getTime();return Number.isFinite(n)&&n>0?n:0};
-    Object.keys(hist).forEach(function(agentId){
-      (Array.isArray(hist[agentId])?hist[agentId]:[]).forEach(function(msg,i){
-        if(!msg||!msg.flow)return;
-        var f=msg.flow,nodes=Array.isArray(f.nodes)?f.nodes:[],log=Array.isArray(f.log)?f.log:[],last=toTime(f.startedAt);
-        log.forEach(function(e){last=Math.max(last,toTime(e&&e.t))});
-        var recorded=f.halted?'blocked':f.status==='error'?'error':f.status==='done'?'done':f.status==='running'?'running':'pending';
-        var status=recorded==='running'&&(!last||Date.now()-last>600000)?'stale':recorded;
-        var id=agentId+':'+i,done=nodes.filter(function(n){return n.status==='done'}).length;
-        flows.push({id:id,orchestrator:agentId,task:String(f.task||'Workflow orchestrato').slice(0,220),status:status,recordedStatus:recorded,source:'legacy-browser-snapshot',projectId:typeof f.projectId==='string'?f.projectId:null,
-          progress:{total:nodes.length,done:done},nodes:nodes.map(function(n,j){return {id:id+':'+j,label:n.label||n.role||'Task',agentId:n.role||null,status:n.status||'pending',subtask:String(n.subtask||'').slice(0,220)}}),sortAt:last});
-        nodes.forEach(function(n){if(n.role&&(!agentStatus[n.role]||last>=agentStatus[n.role].at))agentStatus[n.role]={status:status==='stale'&&n.status==='running'?'stale':n.status||'pending',task:String(n.subtask||'').slice(0,180),workflowId:id,at:last}});
-        log.forEach(function(e,j){if(e&&e.x)activity.push({id:id+':'+j,at:e.t||null,text:String(e.x).slice(0,260),orchestrator:agentId})});
-      });
-    });
-    flows.sort(function(a,b){return b.sortAt-a.sortAt});activity.sort(function(a,b){return toTime(b.at)-toTime(a.at)});
-    var projects=Array.isArray(state.projects)?state.projects:[],blocked=flows.filter(function(f){return f.status==='blocked'||f.status==='error'});
-    // Francesco confirmed legacy unassigned workflows are shared by all projects.
-    return {user:identity.user||{},workspace:{sharedWorkflowCatalog:true,activeProjectId:state.activeProject||null,updatedAt:payload.updatedAt||null,updatedBy:payload.updatedBy||null},
-      projects:projects.filter(function(p){return p&&p.id}).map(function(p){return {id:p.id,name:p.name||p.id,kind:p.kind||'',summary:p.summary||'',active:p.id===state.activeProject}}),
-      workflows:flows,activity:activity.slice(0,24),agentStatus:agentStatus,approvals:[],approvalsSupported:false,
-      attention:blocked.slice(0,6).map(function(f){return {id:f.id,title:f.task,reason:f.status,workflowId:f.id}}),
-      metrics:{projects:projects.length,activeWorkflows:flows.filter(function(f){return f.status==='running'}).length,
-        activeAgents:Object.values(agentStatus).filter(function(a){return a.status==='running'}).length,approvals:0},
-      dataQuality:{source:'authenticated-legacy-state',realtimeExecutionVerified:false,integrationsVerified:false,projectAgentAssignmentsVerified:false}};
-  }
-  async function readSnapshotResponse(url){
+  async function readSnapshotResponse(url,options){
     var controller=new AbortController(),timer;
     try{
       return await Promise.race([
-        (async function(){var response=await fetch(url,{cache:'no-store',signal:controller.signal});var body=await response.json().catch(function(){return null});return {status:response.status,ok:response.ok,body:body}})(),
+        (async function(){var response=await fetch(url,Object.assign({cache:'no-store',credentials:'same-origin'},options||{},{signal:controller.signal}));var body=await response.json().catch(function(){return null});return {status:response.status,ok:response.ok,body:body}})(),
         new Promise(function(resolve,reject){timer=setTimeout(function(){controller.abort();reject(new Error('Tempo di attesa scaduto. Riprova il caricamento.'))},15000)})
       ]);
     }finally{clearTimeout(timer)}
   }
   function snapshotResponseError(response,message){
-    var error=new Error(response.status===401||response.status===403?'Sessione scaduta o accesso non disponibile. Accedi dal workspace.':message);
+    var error=new Error(response.status===401||response.status===403?'Sessione scaduta o accesso non disponibile. Accedi dal Command Center.':message);
     error.auth=response.status===401||response.status===403;return error;
   }
+  function clearPrivate(){
+    data=null;searchItems=[];selectedAgent=null;focusedProjectId=null;networkDetail=null;
+    ['projectList','networkSvg','projectView','commandView','operationalView','attentionList','activityList','workflowList','teamGrid','knowledgeList','searchResults','drawerBody'].forEach(function(id){$(id).replaceChildren()});
+    ['userName','welcomeName','avatar','updatedText','metricProjects','metricWorkflows','metricAgents','metricApprovals','navWorkflowBadge','navApprovalBadge'].forEach(function(id){$(id).textContent='—'});
+    $('drawer').classList.remove('open');$('drawer').setAttribute('aria-hidden','true');
+    $('searchResults').hidden=true;$('commandInput').value='';
+  }
   async function load(){
-    if(loadInFlight)return;loadInFlight=true;
+    if(loadInFlight||authStopped)return;loadInFlight=true;
     $('syncRetry').disabled=true;$('fatalRetry').disabled=true;
     try{
-      var me=await readSnapshotResponse('/api/auth/me');
-      if(!me.ok)throw snapshotResponseError(me,'Verifica della sessione non disponibile. Riprova.');
-      var response=await readSnapshotResponse('/api/dashboard'),next;
-      if(response.status===404){
-        var legacy=await readSnapshotResponse('/api/state');
-        if(!legacy.ok)throw snapshotResponseError(legacy,'Impossibile leggere lo stato RADIX. Riprova.');
-        if(!legacy.body||!legacy.body.state)throw new Error('Stato RADIX non valido. Riprova.');
-        next=legacyProjection(legacy.body,me.body||{});
-      }else{
-        if(!response.ok)throw snapshotResponseError(response,'Dashboard non disponibile. Riprova.');
-        next=response.body;
-      }
+      var response=await readSnapshotResponse('/api/state?view=dashboard');
+      if(!response.ok)throw snapshotResponseError(response,'Dashboard non disponibile. Riprova.');
+      var next=response.body;
       if(!next||!Array.isArray(next.projects)||!Array.isArray(next.workflows)||!next.metrics)throw new Error('Snapshot RADIX non valido. Riprova.');
       data=next;render();
       $('systemStatus').textContent='SNAPSHOT CARICATO';$('syncNotice').hidden=true;$('fatal').classList.remove('show');
-      $('app').classList.remove('loading');
+      $('app').classList.remove('loading');$('app').inert=false;
     }catch(err){
+      if(err.auth){authStopped=true;clearPrivate()}
       $('systemStatus').textContent=err.auth?'LOGIN REQUIRED':'AGGIORNAMENTO NON DISPONIBILE';
       if(data&&!err.auth){$('syncNoticeText').textContent='Ultimo snapshot mantenuto · '+(err.message||'Aggiornamento non disponibile');$('syncNotice').hidden=false}
-      else{$('fatalTitle').textContent=err.auth?'Accedi a RADIX':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.auth?'L’accesso rimane nel Command Center, senza passare dalla vecchia piattaforma.':(err.message||String(err));$('fatalLoginForm').hidden=!err.auth;$('fatalRetry').hidden=!!err.auth;$('app').classList.remove('loading');$('fatal').classList.add('show');if(err.auth&&document.activeElement!==$('fatalLoginPassword'))$('fatalLoginEmail').focus()}
+      else{$('fatalTitle').textContent=err.auth?'Accedi a RADIX':'Caricamento RADIX non riuscito';$('fatalText').textContent=err.auth?'L’accesso rimane nel Command Center, senza passare dalla vecchia piattaforma.':(err.message||String(err));$('fatalLoginForm').hidden=!err.auth;$('fatalRetry').hidden=!!err.auth;$('app').classList.remove('loading');$('fatal').classList.add('show');$('app').inert=true;if(err.auth&&document.activeElement!==$('fatalLoginPassword'))$('fatalLoginEmail').focus()}
     }finally{loadInFlight=false;$('syncRetry').disabled=false;$('fatalRetry').disabled=false}
   }
   function render(){
@@ -1017,9 +988,9 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   $('commandInput').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();openSearchResult(searchItems[0])}if(e.key==='Escape'){$('searchResults').hidden=true;e.target.blur()}});
   $('quickSearch').addEventListener('click',function(){$('commandInput').focus()});
   $('quickReport').addEventListener('click',function(){setView('command');toast('Riepilogo workflow registrati')});
-  document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('commandInput').focus()}if(e.key==='Escape'){$('drawer').classList.remove('open');$('searchResults').hidden=true}});
+  document.addEventListener('keydown',function(e){if(!$('fatal').classList.contains('show')&&(e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();$('commandInput').focus()}if(e.key==='Escape'){$('drawer').classList.remove('open');$('searchResults').hidden=true}});
   $('voiceBtn').addEventListener('click',function(){var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Dettatura non disponibile in questo browser');return}var rec=new SR();rec.lang='it-IT';rec.interimResults=false;rec.onresult=function(ev){$('commandInput').value=ev.results[0][0].transcript;$('commandInput').focus();if(data)doSearch($('commandInput').value)};rec.onerror=function(){toast('Dettatura non riuscita')};rec.start();toast('RADIX sta ascoltando…')});
-  $('fatalLoginForm').addEventListener('submit',async function(event){
+  async function login(event){
     event.preventDefault();
     var email=$('fatalLoginEmail').value.trim(),password=$('fatalLoginPassword').value;
     if(!email||!password)return;
@@ -1027,19 +998,28 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(submit.disabled)return;
     submit.disabled=true;$('fatalLoginMessage').textContent='Verifica credenziali in corso…';
     try{
-      var response=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})});
-      var result=await response.json().catch(function(){return {}});
+      var response=await readSnapshotResponse('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:password})});
+      var result=response.body||{};
       if(!response.ok){$('fatalLoginMessage').textContent=result.error||'Credenziali non valide o servizio non disponibile.';return}
+      authStopped=false;
       $('fatalLoginMessage').textContent='Accesso riuscito. Caricamento Command Center…';
       await load();
       if(!$('fatal').classList.contains('show'))$('fatalLoginMessage').textContent='';
-    }catch(error){$('fatalLoginMessage').textContent='Connessione non disponibile. Riprova.'}
+    }catch(error){$('fatalLoginMessage').textContent=error.message||'Connessione non disponibile. Riprova.'}
     finally{$('fatalLoginPassword').value='';submit.disabled=false}
+  }
+  $('fatalLoginForm').addEventListener('submit',login);
+  $('fatal').addEventListener('keydown',function(event){
+    if(event.key!=='Tab')return;
+    var items=Array.from($('fatal').querySelectorAll('input,button,a[href]')).filter(function(el){return !el.disabled&&el.getClientRects().length});
+    var first=items[0],last=items[items.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
   });
   $('syncRetry').addEventListener('click',load);$('fatalRetry').addEventListener('click',load);
   load();
   setInterval(function(){if(document.visibilityState==='visible')load()},30000);
 })();
 </script>
-<a href="/radix-ecosystem.html" aria-label="Apri tutte le aree RADIX" style="position:fixed;right:20px;bottom:20px;z-index:9999;background:#0d3936;border:1px solid #4ef0c6;color:#d5fff6;border-radius:30px;padding:11px 17px;font:600 13px system-ui;text-decoration:none;box-shadow:0 0 20px #26dcb455">↗ Ecosistema RADIX</a></body>
+<a href="/radix-ecosystem.html" aria-label="Apri tutte le aree RADIX" style="position:fixed;right:20px;bottom:20px;z-index:40;background:#0d3936;border:1px solid #4ef0c6;color:#d5fff6;border-radius:30px;padding:11px 17px;font:600 13px system-ui;text-decoration:none;box-shadow:0 0 20px #26dcb455">↗ Ecosistema RADIX</a></body>
 </html>

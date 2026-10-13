@@ -62,16 +62,13 @@ test('Agency preview script parses without executing external actions', () => {
 test('Approval, spend, send and production releases are explicitly gated', () => {
   assert.match(agencyHtml, /Ogni post richiede approvazione/);
   assert.match(agencyHtml, /Budget PPC, invio email e deploy produzione/);
-  assert.match(agencyHtml, /heartbeat verificato/);
-  assert.match(agencyHtml, /Nessun dato reale collegato/);
+  assert.match(agencyHtml, /Nessun agente risulta online senza una verifica reale/);
+  assert.match(agencyHtml, /Nessun task live collegato/);
 });
 
-test('Agency offers an explicit PED workbench link while keeping other divisions in preview-only navigation', () => {
-  assert.match(agencyHtml, /id="divisionActions"/);
-  assert.match(agencyHtml, /if\(d\.id==='ped'\)/);
-  assert.match(agencyHtml, /link\.href='\.\/ped\.html'/);
-  assert.match(agencyHtml, /division-link secondary/);
-  assert.match(agencyHtml, /detailTitle'\)\.focus\(\)/);
+test('Agency links PED and division workspaces without claiming live operation', () => {
+  assert.match(agencyHtml, /d\.id==='ped'\?'\.\/ped\.html':'\.\/workspace\.html\?division='/);
+  assert.ok(read('agency/workspace.html').length > 0);
   const ped = read('agency/ped.html');
   assert.match(ped, /DESIGN PREVIEW/);
   assert.match(ped, /disabled[^>]*>Genera proposta/);

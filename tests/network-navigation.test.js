@@ -24,13 +24,13 @@ test('operational sections collapse without nested scrolling and expose coarse-p
 function functionSource(name){const start=script.indexOf('  function '+name+'(');const end=script.indexOf('\n  function ',start+1);return script.slice(start,end)}
 function asyncFunctionSource(name){const start=script.indexOf('  async function '+name+'(');const match=script.slice(start+1).search(/\n  (?:async )?function /);return script.slice(start,start+1+match)}
 test('snapshot loading preserves saved data on transient errors, separates auth failures and recovers',async()=>{
- const elements={};const get=id=>elements[id]||(elements[id]={hidden:true,textContent:'',disabled:false,classList:{values:new Set(),add(k){this.values.add(k)},remove(k){this.values.delete(k)}}});
+ const elements={};const get=id=>elements[id]||(elements[id]={hidden:true,textContent:'',disabled:false,focus(){},classList:{values:new Set(),add(k){this.values.add(k)},remove(k){this.values.delete(k)}}});
  const saved={projects:[],workflows:[],metrics:{}};let mode='fail';let calls=0;
- const context={data:saved,loadInFlight:false,$:get,render(){context.renders=(context.renders||0)+1},readSnapshotResponse:async()=>{calls++;if(mode==='fail')throw new Error('Network offline');if(mode==='auth')return {ok:false,status:401};return {ok:true,status:200,body:saved}}};
+ const context={data:saved,loadInFlight:false,authStopped:false,document:{activeElement:null},clearPrivate(){context.data=null},$:get,render(){context.renders=(context.renders||0)+1},readSnapshotResponse:async()=>{calls++;if(mode==='fail')throw new Error('Network offline');if(mode==='auth')return {ok:false,status:401};return {ok:true,status:200,body:saved}}};
  vm.createContext(context);vm.runInContext(functionSource('snapshotResponseError')+asyncFunctionSource('load'),context);
  await context.load();assert.equal(context.data,saved);assert.equal(get('syncNotice').hidden,false);assert.ok(get('syncNoticeText').textContent.includes('Ultimo snapshot mantenuto'));assert.equal(get('fatal').classList.values.size,0);assert.equal(context.loadInFlight,false);
  mode='auth';await context.load();assert.ok(get('fatal').classList.values.has('show'));assert.equal(get('systemStatus').textContent,'LOGIN REQUIRED');
- mode='ok';await context.load();assert.equal(get('syncNotice').hidden,true);assert.equal(get('fatal').classList.values.size,0);assert.equal(get('systemStatus').textContent,'SNAPSHOT CARICATO');assert.equal(get('syncRetry').disabled,false);
+ mode='ok';context.authStopped=false;await context.load();assert.equal(get('syncNotice').hidden,true);assert.equal(get('fatal').classList.values.size,0);assert.equal(get('systemStatus').textContent,'SNAPSHOT CARICATO');assert.equal(get('syncRetry').disabled,false);
  const before=calls;context.loadInFlight=true;await context.load();assert.equal(calls,before);
 });
 test('snapshot request timeout includes body parsing and aborts stalled requests',async()=>{

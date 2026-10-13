@@ -25,7 +25,7 @@ module.exports = {
     return opportunities
       .map(opportunity => ({
         ...opportunity,
-        ...this.calculatePriority(opportunity, nowIso)
+        ...module.exports.calculatePriority(opportunity, nowIso)
       }))
       .sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;

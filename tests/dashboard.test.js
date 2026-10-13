@@ -10,3 +10,11 @@ function handler(user,query){const source=fs.readFileSync(require.resolve('../ap
 function response(){return {headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this}}}
 test('dashboard auth/no-store neutral errors, no SQL before authentication',async()=>{let h=handler(null,()=>{throw Error('secret')});let r=response();await h.run({method:'GET',query:{view:'dashboard'}},r);assert.equal(r.code,401);assert.equal(h.calls.length,0);assert.equal(r.headers['Cache-Control'],'no-store');h=handler({name:'Demo'},()=>{throw Error('secret')});r=response();await h.run({method:'GET',query:{view:'dashboard'}},r);assert.equal(r.code,500);assert.doesNotMatch(JSON.stringify(r.body),/secret/)});
 test('ordinary GET and POST patch retain contracts',async()=>{const state={history:{a:[]}};let h=handler({name:'Demo'},()=>[{data:state,updated_at:'stamp',updated_by:'Demo'}]),r=response();await h.run({method:'GET',query:{}},r);assert.equal(r.body.state,state);assert.equal(r.body.updatedAt,'stamp');h=handler({name:'Demo'},()=>[{updated_at:'stamp'}]);r=response();await h.run({method:'POST',query:{view:'dashboard'},body:{patch:{history:{a:[]},activeProject:'demo'}}},r);assert.equal(r.body.ok,true);assert.match(h.calls[0][0].join(''),/jsonb_set/);assert.equal(r.headers['Cache-Control'],undefined)});
+
+test('summary preserves validated project ownership and shared unassigned catalog',()=>{
+ const {dashboard}=require('../api/_dashboard');
+ const result=dashboard({data:{projects:[{id:'a',name:'A'}],history:{agent:[{flow:{projectId:'a',nodes:[]}},{flow:{projectId:'missing',nodes:[]}}]}}},{});
+ assert.equal(result.workflows.find(w=>w.id==='agent:0').projectId,'a');
+ assert.equal(result.workflows.find(w=>w.id==='agent:1').projectId,null);
+ assert.equal(result.workspace.sharedWorkflowCatalog,true);
+});
