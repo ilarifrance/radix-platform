@@ -14,7 +14,7 @@
   const linked=state.linked.get(key(selectedIndex()));
   $('sync-linked').hidden=!linked;
   $('sync-create-contact').disabled=state.busy||!linked||Boolean(linked.contactId)||!approval(selectedIndex())?.contact?.trim()||state.attempted.has(key(selectedIndex())+'|contact');
-  $('sync-create-lead').disabled=state.busy||!linked||Boolean(linked.leadId)||state.attempted.has(key(selectedIndex())+'|lead');
+  $('sync-create-lead').disabled=state.busy||!linked||!approval(selectedIndex())||Boolean(linked.leadId)||state.attempted.has(key(selectedIndex())+'|lead');
   if(linked)$('sync-linked-title').textContent='Azienda CRM collegata: '+(prospect()?.name||'Scheda esistente');
  }
  function reset(msg){
@@ -82,6 +82,7 @@
   }catch(e){reset('CRM non collegato: '+e.message)}
  }
  $('sync-workspace').addEventListener('change',()=>{state.workspace=$('sync-workspace').value;reset('Workspace cambiato: ripeti controllo duplicati e conferma.')});
+ window.addEventListener('radix:lead-approval-changed',e=>{if(e.detail?.approved===false&&Number(e.detail.index)===selectedIndex())reset('Revisione modificata o revocata: ricontrolla il prospect prima di procedere nel CRM.');});
  $('sync-prospect').addEventListener('change',()=>reset('Prospect selezionato: controlla le corrispondenze in CRM.'));
  $('sync-check').addEventListener('click',async()=>{
   const i=selectedIndex(),p=prospect(),a=approval(i),name=p?.name?.trim();
