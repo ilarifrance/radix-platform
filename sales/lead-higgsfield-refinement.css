@@ -1,0 +1,47 @@
+/* RADIX Lead Intelligence — high-fidelity cockpit layout aligned to the approved Higgsfield lead screen. */
+body{background:radial-gradient(ellipse at 83% -12%,#10465170,transparent 39%),#04101b;}
+.app{grid-template-columns:188px minmax(0,1fr)}
+.nav{padding:22px 11px;background:linear-gradient(170deg,#061a25,#03111c);border-right:1px solid #1c5860}
+.nav .logo{font-size:24px;margin:0 9px 31px;letter-spacing:.17em}
+.nav>a{padding:12px 9px;display:flex;align-items:center;min-height:43px}
+.nav>a.active{background:linear-gradient(95deg,#09594f,#0b2b39);border-left:3px solid #30f5c6;box-shadow:inset 0 0 23px #30f5b21c,0 0 12px #24bba730}
+main{min-width:0}
+.top{height:63px;padding:13px 25px;border-bottom:1px solid #24545b;background:#061923a3}
+.hero{min-height:0;padding:25px 28px 22px;background:radial-gradient(ellipse at 87% 20%,#0c595657,transparent 44%);border-bottom:1px solid #21535a}
+.hero h1{margin:9px 0 7px;font-size:clamp(25px,2.8vw,35px);letter-spacing:-.035em;line-height:1.12}
+.hero h1 br{display:none}
+.hero h1 em{color:#b7fff0}
+.hero>p{margin:7px 0;max-width:760px;font-size:12px}
+.hero-glow{width:310px;height:190px;right:2%;top:-18px;opacity:.45}
+.hero-glow .core{width:88px;height:88px;top:55px;left:130px}
+.hero-glow .ring{width:245px;height:78px;top:60px;left:54px}
+.hero-glow .r2{width:210px;height:85px;top:63px;left:70px}
+.steps{margin:0;padding:13px 26px;gap:0;border-block:0;background:#071d28;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid #1e5057}
+.steps span{position:relative;border:0;border-radius:0;background:none!important;text-align:center;padding:11px 6px;font-size:10px;color:#8fb6bd;border-bottom:2px solid #244b53}
+.steps .on{color:#43f6c8;border-bottom-color:#2bcda8}
+.workspace{grid-template-columns:minmax(0,1fr) minmax(250px,292px);gap:12px;padding:16px 17px;align-items:start}
+.left{gap:13px;min-width:0}
+.panel{padding:17px 16px;border-radius:12px;border:1px solid #255761;background:linear-gradient(140deg,#0a2531,#081d2a)}
+.panel h2{font-size:16px;margin:6px 0 10px}
+.panel .eyebrow{font-size:9px;letter-spacing:.14em;color:#44dcc0}
+.panel-head{gap:6px}
+.panel-head .tag{font-size:9px}
+.fields{gap:10px}
+.fields label{font-size:11px}
+.fields input,.fields select{padding:9px;border-radius:7px;background:#081e2c}
+.toolbar{margin-top:15px}
+.primary{border-color:#1cb896;background:linear-gradient(115deg,#18a98b,#078577);box-shadow:0 0 17px #25cfae22}
+.upload{padding:10px 15px}
+.tablewrap{border:1px solid #24505b;border-radius:9px}
+table th{background:#0d313d}
+table th,table td{padding:10px 8px}
+table tbody tr:hover{background:#12404a69}
+.right{min-width:0}
+.copilot{top:13px;padding:14px;background:linear-gradient(#082c34,#071c2b);border-color:#286d69;border-radius:11px}
+.copilot-head h2{font-size:16px}
+.copilot .stat{padding:11px 0}
+.copilot .stat strong{font-size:23px}
+.insight{margin-top:12px;padding:11px}
+.mail-preview{background:#092f3b;border-color:#307c74}
+@media(max-width:1150px){.workspace{grid-template-columns:1fr}.copilot{position:static}}
+@media(max-width:750px){.hero-glow{opacity:.22}.steps{overflow-x:auto;display:flex}.steps span{flex:0 0 155px}.app{grid-template-columns:1fr}.nav{height:auto;position:static;overflow-x:auto;flex-direction:row}.nav>a{white-space:nowrap}.nav .logo,.sidebar-bottom{display:none}.workspace{padding:12px}.hero{padding:20px 14px}}
