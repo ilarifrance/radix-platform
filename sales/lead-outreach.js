@@ -5,7 +5,7 @@
  const elt=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textContent=String(s);if(c)n.className=c;return n};
  const i=()=>Number($('out-prospect').value),candidate=()=>queue[i()];
  const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
- const say=s=>$('out-status').textContent=s;
+ const say=s=>{$('out-status').textContent=s;$('out-plan-status').textContent=s;};
  function counters(){$('out-count').textContent=state.approvals.size+' / '+queue.length;$('out-summary').textContent=String(state.approvals.size);$('out-summary-side').textContent=String(state.approvals.size)}
  function controls(){$('out-plan').disabled=!state.approvals.has(i())||!state.drafts.has(i());$('out-export').disabled=!state.plans.has(i());$('out-task').disabled=!state.plans.has(i())||state.tasks.has(i())}
  function timeline(){const root=$('out-timeline');root.replaceChildren();const plan=state.plans.get(i());if(!plan){root.append(elt('p','Prima approva un prospect e prepara la sua bozza email.','muted'));return}for(const item of plan){const card=elt('article',undefined,'out-sequence-card'),date=elt('time',item.date);date.dateTime=item.date;card.append(date,elt('b',item.step),elt('strong',item.subject),elt('p',item.body));root.append(card)}}
@@ -33,8 +33,11 @@
  window.radixLeadWorkflow={approvalFor:n=>state.approvals.get(Number(n))||null};
  window.addEventListener('radix:lead-reviewed',e=>update(e.detail?.entries||[]));
  window.addEventListener('radix:lead-draft',e=>{const x=e.detail||{},j=Number(x.index);if(!state.approvals.has(j))return;state.drafts.set(j,{subject:x.subject,body:x.body});state.plans.delete(j);timeline();controls();say('Bozza disponibile: prepara ora la sequenza.')});
+ window.addEventListener('radix:lead-draft-stale',e=>{const n=Number(e.detail?.index);state.drafts.delete(n);state.plans.delete(n);if(n===i()){timeline();controls();say('Bozza modificata: rigenerala prima di ripianificare la sequenza.')}});
  window.addEventListener('radix:lead-crm-created',e=>{const x=e.detail||{};if(/^[0-9a-f-]{36}$/i.test(x.companyId||''))state.created.set(Number(x.index),{workspace:x.workspace,companyId:x.companyId})});
  $('out-prospect').addEventListener('change',selected);$('out-approve').addEventListener('click',approve);
  $('out-revoke').addEventListener('click',()=>{if(!candidate())return;if(!window.confirm('Revocare approvazione e piano?'))return;state.approvals.delete(i());state.drafts.delete(i());state.plans.delete(i());selected()});
+ for(const id of ['out-email','out-contact','out-source','out-basis','out-notes','out-checked','out-privacy'])$(id).addEventListener('change',()=>{if(!state.approvals.has(i()))return;state.approvals.delete(i());state.drafts.delete(i());state.plans.delete(i());timeline();controls();counters();say('Dati del prospect modificati: ripeti l’approvazione prima di preparare le bozze.')});
+ for(const id of ['out-start','out-d1','out-d2'])$(id).addEventListener('change',()=>{if(!state.plans.has(i()))return;state.plans.delete(i());timeline();controls();say('Scadenze modificate: genera nuovamente la sequenza.')});
  $('out-start').value=today();$('out-start').min=today();$('out-plan').addEventListener('click',plan);$('out-export').addEventListener('click',exportCsv);$('out-task').addEventListener('click',crmTask);update([]);
 })();
