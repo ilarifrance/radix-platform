@@ -1,6 +1,5 @@
 'use strict';
 // Public Wikidata suggestions only: no arbitrary-URL fetch, LinkedIn session or paid provider.
-const https=require('node:https');
 function fail(msg){const e=new Error(msg);e.status=400;throw e}
 const normalized=s=>String(s||'').normalize('NFKC').trim().toLowerCase().replace(/\s+/g,' ');
 async function getJSON(url,request=globalThis.fetch){
@@ -21,7 +20,7 @@ async function lookup(input,request=globalThis.fetch){
  const query=new URL('https://www.wikidata.org/w/api.php');
  query.searchParams.set('action','wbsearchentities');query.searchParams.set('language','it');query.searchParams.set('type','item');query.searchParams.set('search',input.name);query.searchParams.set('limit','5');query.searchParams.set('format','json');
  const matches=(await getJSON(query.toString(),request)).search||[];
- const exact=matches.filter(e=>/^\Q/.test('')||normalized(e.label)===normalized(input.name));
+ const exact=matches.filter(e=>normalized(e.label)===normalized(input.name));
  if(exact.length!==1)return {suggestions:[],reason:exact.length?'Corrispondenze ambigue su Wikidata.':'Azienda non identificata con certezza su Wikidata.'};
  const id=exact[0].id;if(!/^Q[1-9]\d{0,11}$/.test(id))return{suggestions:[],reason:'Identificativo sorgente non valido.'};
  const item=await getJSON('https://www.wikidata.org/wiki/Special:EntityData/'+id+'.json',request);
