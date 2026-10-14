@@ -38,7 +38,8 @@
 <p id="li-provider-status" class="muted" role="status">Seleziona il provider, incolla l'URL sorgente e importa un risultato autorizzato.</p>
 <div class="li-separator"></div><h3>Collegamento a un agente browser</h3>
 <p class="muted">Puoi far preparare a un agente browser un file JSON con i dati a cui hai diritto di accesso, senza fornire a RADIX password, cookie o sessioni LinkedIn. RADIX verifica lo schema, confronta l'URL di origine, esclude i duplicati e aggiunge i prospect solo dopo tua conferma. Non è un connettore automatico a LinkedIn.</p>
-<div class="toolbar"><button id="li-agent-instructions" type="button" class="outline">Copia istruzioni per l’agente</button></div>
+<div class="toolbar"><button id="li-agent-instructions" type="button" class="outline">Copia istruzioni per l’agente</button><button id="li-agent-open" type="button" class="outline">Apri URL nell’altra scheda</button></div>
+<p class="muted">Procedura guidata: 1. Inserisci e verifica la URL. 2. Aprila nel tuo browser già autenticato. 3. Acquisisci esclusivamente dati esportabili o utilizzabili con autorizzazione. 4. Restituisci il JSON secondo le istruzioni. 5. Incollalo o carica il file qui e approva prima di salvare. Non c'è lettura automatica della sessione LinkedIn.</p>
 <label class="upload">Importa risultati agente (.json) <input id="li-agent-file" type="file" accept=".json,application/json"></label>
 <label class="draft-label">Oppure incolla qui il JSON restituito dall’agente<textarea id="li-agent-paste" rows="4" maxlength="160000" placeholder='{"version":1,"sourceUrl":"https://www.linkedin.com/company/example","companies":[{"name":"Azienda"}]}'></textarea></label><div class="toolbar"><button id="li-agent-paste-import" type="button" class="outline">Importa JSON incollato</button></div><p id="li-agent-status" class="muted" role="status">Nessun file agente caricato.</p>
 <div class="li-separator"></div>

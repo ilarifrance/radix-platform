@@ -33,6 +33,10 @@
    status('li-provider-status','Importazione completata: '+add.length+' aziende, '+duplicate+' duplicati. Qualifica e salva nell’Archivio.');
   }catch(e){status('li-provider-status','Importazione provider non riuscita: '+e.message)}
  };
+ $('li-agent-open').onclick=()=>{
+  try{const link=url();window.open(link.url,'_blank','noopener,noreferrer');status('li-agent-status','URL aperta nel browser. Puoi utilizzare i dati ai quali hai legittimo accesso; poi importa JSON da agente o provider.')}
+  catch(e){status('li-agent-status',e.message)}
+ };
  $('li-agent-instructions').onclick=async()=>{
   const instruction='Prepara un file JSON versione 1 con i soli dati aziendali che sono legittimamente disponibili per uso ed esportazione. Non aggirare protezioni, non effettuare scraping massivo e non condividere cookie o password. Schema: {"version":1,"sourceUrl":"URL LinkedIn/Sales Navigator fornito dall’utente","companies":[{"name":"Azienda","domain":"","country":"","industry":"","companySize":"","contactRole":"","source":"URL della fonte pubblica o esportazione autorizzata"}]}. Per campi non verificati usa una stringa vuota. Non inventare email o dati e non includere dati personali superflui.';
   try{await navigator.clipboard.writeText(instruction);status('li-agent-status','Istruzioni copiate: incollale nel tuo agente browser, poi importa il file JSON prodotto.')}catch{status('li-agent-status','Clipboard non disponibile in questo browser.')}
