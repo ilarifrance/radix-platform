@@ -37,10 +37,10 @@
  function approve(){
   const q=candidate();if(!q)return;const data=form();const validation=C.validate(q,data);
   if(!validation.ok){say('Approvazione bloccata: '+validation.errors.join(' · '));return}
-  state.edits.set(i(),data);state.approvals.set(i(),data);state.drafts.delete(i());state.plans.delete(i());$('mail-prospect').value=String(i());$('mail-copy').disabled=true;timeline();controls();counters();say('Approvato per bozza: nessun messaggio inviato.')
+  state.edits.set(i(),data);state.approvals.set(i(),data);state.drafts.delete(i());state.plans.delete(i());window.dispatchEvent(new CustomEvent('radix:lead-approval-changed',{detail:{index:i(),approved:true}}));$('mail-prospect').value=String(i());$('mail-copy').disabled=true;timeline();controls();counters();say('Approvato per bozza: nessun messaggio inviato.')
  }
  function plan(){
-  try{if($('out-start').value<today())throw Error('Seleziona una data non passata');state.plans.set(i(),C.makePlan(candidate(),state.drafts.get(i()),$('out-start').value,$('out-d1').value,$('out-d2').value));say('Sequenza di tre bozze pronta per revisione. Nessun invio programmato.')}catch(e){state.plans.delete(i());say(e.message)}timeline();controls()
+  try{if($('out-start').value<today())throw Error('Seleziona una data non passata');state.plans.set(i(),C.makePlan(candidate(),state.drafts.get(i()),$('out-start').value,$('out-d1').value,$('out-d2').value));window.dispatchEvent(new CustomEvent('radix:lead-plan-created',{detail:{index:i()}}));say('Sequenza di tre bozze pronta per revisione. Nessun invio programmato.')}catch(e){state.plans.delete(i());say(e.message)}timeline();controls()
  }
  function exportCsv(){const p=state.plans.get(i()),a=state.approvals.get(i());if(!p||!a)return;const value=C.toCsv(p,candidate().candidate.name,a.email),url=URL.createObjectURL(new Blob([value],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download='RADIX_Lead_outreach.csv';document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);say('Esportato il piano: nessuna email inviata.')}
  async function readTaskPage(workspace,offset){
@@ -81,8 +81,8 @@
  }
  window.radixLeadWorkflow={approvalFor:n=>state.approvals.get(Number(n))||null};
  window.addEventListener('radix:lead-reviewed',e=>update(e.detail?.entries||[]));
- window.addEventListener('radix:lead-draft',e=>{const x=e.detail||{},j=Number(x.index);if(!state.approvals.has(j))return;state.drafts.set(j,{subject:x.subject,body:x.body});state.plans.delete(j);timeline();controls();say('Bozza disponibile: prepara ora la sequenza.')});
- window.addEventListener('radix:lead-draft-stale',e=>{const n=Number(e.detail?.index);state.drafts.delete(n);state.plans.delete(n);if(n===i()){timeline();controls();say('Bozza modificata: rigenerala prima di ripianificare la sequenza.')}});
+ window.addEventListener('radix:lead-draft',e=>{const x=e.detail||{},j=Number(x.index);if(!state.approvals.has(j))return;state.drafts.set(j,{subject:x.subject,body:x.body});state.plans.delete(j);window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:j}}));timeline();controls();say('Bozza disponibile: prepara ora la sequenza.')});
+ window.addEventListener('radix:lead-draft-stale',e=>{const n=Number(e.detail?.index);state.drafts.delete(n);state.plans.delete(n);window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:n}}));if(n===i()){timeline();controls();say('Bozza modificata: rigenerala prima di ripianificare la sequenza.')}});
  window.addEventListener('radix:lead-crm-created',e=>{const x=e.detail||{};if(/^[0-9a-f-]{36}$/i.test(x.companyId||''))state.created.set(Number(x.index),{workspace:x.workspace,companyId:x.companyId})});
  $('out-prospect').addEventListener('change',selected);$('out-approve').addEventListener('click',approve);
  $('out-revoke').addEventListener('click',()=>{
@@ -102,6 +102,6 @@
  }
  for(const id of fields)$(id).addEventListener('input',changedField);
  for(const id of fields.filter(id=>['out-basis','out-checked','out-privacy'].includes(id)))$(id).addEventListener('change',changedField);
- for(const id of ['out-start','out-d1','out-d2'])$(id).addEventListener('change',()=>{if(!state.plans.has(i()))return;state.plans.delete(i());timeline();controls();say('Scadenze modificate: genera nuovamente la sequenza.')});
+ for(const id of ['out-start','out-d1','out-d2'])$(id).addEventListener('change',()=>{if(!state.plans.has(i()))return;state.plans.delete(i());window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:i()}}));timeline();controls();say('Scadenze modificate: genera nuovamente la sequenza.')});
  $('out-start').value=today();$('out-start').min=today();$('out-plan').addEventListener('click',plan);$('out-export').addEventListener('click',exportCsv);$('out-task').addEventListener('click',crmTask);update([]);
 })();

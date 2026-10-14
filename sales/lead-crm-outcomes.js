@@ -66,6 +66,7 @@
    if(!resp.ok)throw Error(payload.error||'Creazione CRM HTTP '+resp.status);
    if(!Array.isArray(payload.rows)||!payload.rows[0]?.id)throw Error('Conferma CRM incompleta.');
    const q=pending.get(index)||[];if(q[0]===row)q.shift();
+   window.dispatchEvent?.(new CustomEvent('radix:lead-crm-outcome-saved',{detail:{index,key:row.key,type:row.type}}));
    history=null;speak('Esito salvato nel CRM. Puoi rileggere lo storico e registrare il successivo.');
   }catch(e){speak((postAttempted?'Esito remoto incerto: controlla lo storico CRM prima di ripetere. ':'Nessun dato scritto: ')+e.message)}
   finally{busy=false;controls()}

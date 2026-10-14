@@ -8,7 +8,7 @@ function fixture(existing=[]){
  const node=()=>({value:'',disabled:false,textContent:'',children:[],listeners:{},replaceChildren(...x){this.children=[...x]},append(...x){this.children.push(...x)},addEventListener(n,f){(this.listeners[n]??=[]).push(f)},async fire(n){for(const f of this.listeners[n]||[])await f()}});
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
  get('sync-workspace').value=ws;get('outcome-prospect').value='0';
- const w={RadixLeadCrmOutcomesCore:core,radixLeadWorkflow:{approvalFor:i=>i===0?{checked:true}:null},confirm:()=>true,addEventListener:(n,f)=>{const arr=events.get(n)||[];arr.push(f);events.set(n,arr)}};
+ const w={RadixLeadCrmOutcomesCore:core,radixLeadWorkflow:{approvalFor:i=>i===0?{checked:true}:null},confirm:()=>true,addEventListener:(n,f)=>{const arr=events.get(n)||[];arr.push(f);events.set(n,arr)},dispatchEvent:()=>{}};
  const fetch=async(url,options={})=>{
   requests.push({url:String(url),options});
   if(options.method==='POST'){
@@ -18,7 +18,7 @@ function fixture(existing=[]){
   }
   return{ok:true,json:async()=>({rows:rows.slice(Number(new URL('http://radix.test'+url).searchParams.get('offset'))||0,100)})};
  };
- vm.runInNewContext(source,{window:w,document:{getElementById:get,createElement:node},fetch,Date,URLSearchParams});
+ vm.runInNewContext(source,{window:w,document:{getElementById:get,createElement:node},fetch,Date,URLSearchParams,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}});
  const fire=(name,detail)=>{for(const fn of events.get(name)||[])fn({detail})};
  fire('radix:lead-reviewed',{prospects:[{name:'Azienda Alfa'}]});
  fire('radix:lead-crm-created',{index:0,workspace:ws,companyId:company});

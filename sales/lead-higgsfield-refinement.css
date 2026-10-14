@@ -81,3 +81,29 @@ section[id]{scroll-margin-top:78px}
 .crm-outcome-history p{margin:0;color:#afcdd1;font-size:12px}
 .crm-outcome-history-row{padding:10px 12px;border-radius:8px;background:linear-gradient(90deg,#14494e80,#0b253400);border-left:2px solid #38dcad}
 @media(max-width:1100px){.steps{display:flex;overflow-x:auto}}
+
+/* Lead journey: counts are always derived from real client workflow events. */
+.lead-journey{position:relative;overflow:hidden;margin:0;padding:26px 27px 20px;background:radial-gradient(ellipse at 12% 0,#24526762,transparent 39%),radial-gradient(ellipse at 92% 100%,#123c7054,transparent 36%),linear-gradient(115deg,#071e2b,#061620);border-bottom:1px solid #32646c}
+.lead-journey:before{content:"";position:absolute;inset:-1px 0 auto;height:1px;background:linear-gradient(90deg,transparent,#2ff9d4aa,#7b8fff8c,transparent);pointer-events:none}
+.journey-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.journey-heading h2{font-size:clamp(18px,1.8vw,24px);font-weight:770;letter-spacing:-.035em;margin:5px 0;color:#eaffff}
+.journey-heading h2 em{font-style:normal;color:#6df1cf}
+.journey-live{display:inline-flex;align-items:center;gap:8px;color:#8efadf;border:1px solid #398b83;background:#103b42;border-radius:999px;padding:7px 12px;font-size:10px;letter-spacing:.11em}
+.journey-live:before{content:"";width:7px;height:7px;border-radius:50%;background:#5efad1;box-shadow:0 0 9px #29efb9}
+.journey-viewport{overflow-x:auto;scrollbar-width:thin;scrollbar-color:#347b78 #051824;padding:4px 2px 17px}
+.journey-track{display:grid;grid-template-columns:repeat(7,minmax(122px,1fr));gap:9px;min-width:850px;position:relative}
+.journey-track:before{content:"";position:absolute;z-index:0;top:36px;left:50px;right:50px;height:2px;background:linear-gradient(90deg,#1eab8f,#3eaec9,#4f56af);box-shadow:0 0 13px #2fccc055}
+.journey-node{z-index:1;display:flex;flex-direction:column;min-height:138px;gap:4px;padding:14px 14px 13px;background:linear-gradient(153deg,#123747d9,#081a29ee);border:1px solid #315869;border-radius:13px;color:#d9edf5;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.journey-node:hover,.journey-node:focus-visible{transform:translateY(-4px);border-color:#56d9b8;box-shadow:0 9px 30px #0007,0 0 25px #29f1c21e;outline:0}
+.journey-node-index{display:grid;place-items:center;flex:none;width:43px;height:43px;border:1px solid #467783;background:radial-gradient(circle,#165068,#0c2637);border-radius:50%;font-size:12px;letter-spacing:.07em;color:#a6bfdb;box-shadow:0 0 0 5px #091e2d}
+.journey-node.has-data .journey-node-index{border-color:#2be7b9;background:radial-gradient(circle,#27bdab,#0b3b52);color:white;box-shadow:0 0 12px #48f6bc88,0 0 0 5px #092b32}
+.journey-node-number{font:800 26px/1.14 ui-sans-serif,system-ui;color:#f1fffc;letter-spacing:-.06em;margin-top:2px}
+.journey-node.has-data .journey-node-number{color:#6ffbd6;text-shadow:0 0 22px #3cf2ab3d}
+.journey-node-label{font-size:12px;font-weight:750}.journey-node small{font-size:10px;color:#84acb7}
+.journey-next{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1px solid #31635f;background:#11313c8f;border-radius:11px;color:#d7f1eb}
+.journey-next strong{font-size:11px;color:#87e6d0}.journey-next p{font-size:12px;margin:1px 0 0;color:#b2ced6}.journey-next a{margin-left:auto;color:#65edca;font-size:12px;white-space:nowrap}
+.journey-signal{width:25px;height:25px;flex:none;border-radius:8px;border:1px solid #39dfbd;background:radial-gradient(circle,#3becd1,#0f465e 70%);box-shadow:0 0 18px #3bf5ca30;animation:journeyPulse 2.7s ease-in-out infinite}
+.journey-disclaimer{font-size:10px;color:#739ca4;margin:10px 0 0}
+@keyframes journeyPulse{0%,100%{opacity:1;box-shadow:0 0 9px #3bf5ca29}50%{opacity:.75;box-shadow:0 0 21px #3bf5ca6c}}
+@media(max-width:800px){.lead-journey{padding:19px 13px}.journey-node{min-height:124px}.journey-heading{align-items:flex-start}.journey-next{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.journey-signal{animation:none}.journey-node{transition:none}}
