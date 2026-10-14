@@ -3,6 +3,11 @@ function createLeadListStore(sql){
  const guard="EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND m.role IN ('owner','admin','member','viewer'))";
  const writer="EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND m.role IN ('owner','admin','member'))";
  return{
+  membership:async(w,u)=>{
+   const rows=await sql('SELECT m.role FROM sales_memberships m JOIN users a ON a.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND m.role IN (\'owner\',\'admin\',\'member\',\'viewer\')',[w,u]);
+   return rows[0]||null;
+  },
+  workspaces:async(u)=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users a ON a.id=m.user_id WHERE m.user_id=$1 AND m.role IN (\'owner\',\'admin\',\'member\',\'viewer\') ORDER BY w.name,w.id LIMIT 100',[u]),
   read:async(c,uid)=>{
    if(c.id){
     const rows=await sql('SELECT id,title,payload,version,created_at,updated_at FROM sales_lead_lists t WHERE t.workspace_id=$1 AND '+guard+' AND t.id=$3::uuid',[c.workspace,uid,c.id]);

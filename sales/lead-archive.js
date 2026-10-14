@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
  const $=id=>document.getElementById(id),state={workspace:'',listId:'',version:0,role:'',busy:false,dirty:false};
- const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
  const status=x=>$('archive-status').textContent=x;
  const opts=(name,value)=>{const a=document.createElement('option');a.textContent=name;a.value=value;return a};
  const writable=()=>['owner','admin','member'].includes(state.role);
@@ -40,7 +40,7 @@
  async function connect(){
   working(true);clearCurrent();
   try{
-   const workspaces=await get({entity:'workspaces'}),picker=$('archive-workspace');
+   const workspaces=await get({entity:'lead_workspaces'}),picker=$('archive-workspace');
    picker.replaceChildren(opts('Seleziona workspace',''));
    for(const w of workspaces)picker.append(opts(w.name+' · '+w.role,w.id));
    picker.disabled=false;state.workspace='';state.role='';

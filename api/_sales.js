@@ -68,13 +68,17 @@ function createHandler({getSessionUser,getStore}){
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
      if(q.due!==undefined && (q.entity!=='tasks'||!['all','overdue','upcoming','unscheduled'].includes(q.due)))fail(400,'Filtro scadenza non valido.');
      if(q.entity==='workspaces'){const store=getStore();return res.status(200).json({rows:await store.workspaces(user.uid)});}
+     if(q.entity==='lead_workspaces'){
+       if(Object.keys(q).some(k=>k!=='entity'))fail(400,'Parametri archivio non validi.');
+       const store=getStore();return res.status(200).json({rows:await store.leadLists.workspaces(user.uid)});
+     }
      if(!uuid(q.workspace)||(!Object.hasOwn(fields,q.entity)&&!['dashboard','members','customer360','lead_lists'].includes(q.entity)))fail(400,'Workspace o risorsa non validi.');
      const offset=q.offset===undefined?0:Number(q.offset);if(!Number.isSafeInteger(offset)||offset<0||offset>1000000||Array.isArray(q.offset))fail(400,'Pagina non valida.');
      if(q.entity==='customer360'){if(!['companies','contacts','opportunities'].includes(q.subject)||!uuid(q.id))fail(400,'Cliente non valido.');}
      else if(q.subject!==undefined||(q.id!==undefined&&(q.entity!=='lead_lists'||!uuid(q.id))))fail(400,'Filtro non consentito.');
      c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='lead_lists'&&q.id!==undefined?{id:q.id}:{})};
    }
-   const store=getStore();const membership=await store.membership(c.workspace,user.uid);
+   const store=getStore();const membership=await (c.entity==='lead_lists'?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');

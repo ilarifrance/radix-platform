@@ -29,3 +29,31 @@ test('stale version errors fail closed with a conflict',async()=>{
  const store=createLeadListStore(async()=>[]);
  await assert.rejects(()=>store.command({workspace:w,entity:'lead_lists',action:'delete',data:{id,version:1}},8),e=>e.status===409);
 });
+
+test('isolated vault membership and workspace listing require a matching logged-in uid',async()=>{
+ const observed=[],user=42,workspace=w;
+ const vault=createLeadListStore(async(sql,args)=>{observed.push({sql,args});return [{id:workspace,name:'Lead Preview',role:'owner'}]});
+ assert.equal((await vault.membership(workspace,user)).role,'owner');
+ assert.equal((await vault.workspaces(user))[0].name,'Lead Preview');
+ assert.deepEqual(observed[0].args,[workspace,user]);assert.deepEqual(observed[1].args,[user]);
+ assert.match(observed[0].sql,/sales_memberships/);
+ assert.match(observed[1].sql,/sales_workspaces/);
+});
+test('signed session accesses only isolated membership on lead archive routes',async()=>{
+ const {createHandler}=require('../api/_sales');
+ const calls=[];
+ const iso={membership:async()=>{calls.push('isolated-member');return {role:'owner'};},workspaces:async()=>{calls.push('isolated-workspaces');return [{id:w,name:'Test',role:'owner'}]},read:async()=>{calls.push('isolated-read');return []}};
+ const original={membership:async()=>{throw Error('Shared DB must not be used for lead archive')},workspaces:async()=>{throw Error('Shared DB must not be used for lead archive')},leadLists:iso};
+ const run=async query=>{const res={setHeader(){},status(s){this.statusCode=s;return this},json(data){this.result=data;return this}};await createHandler({getSessionUser:()=>({uid:42}),getStore:()=>original})({method:'GET',headers:{},query},res);return res};
+ const wks=await run({entity:'lead_workspaces'});assert.equal(wks.statusCode,200);
+ const lists=await run({entity:'lead_lists',workspace:w,offset:'0'});assert.equal(lists.statusCode,200);
+ assert.deepEqual(calls,['isolated-workspaces','isolated-member','isolated-read']);
+});
+test('viewer is forbidden to write archive but can read it',async()=>{
+ const {createHandler}=require('../api/_sales');
+ const res={setHeader(){},status(s){this.statusCode=s;return this},json(data){this.result=data;return this}};
+ const vault={membership:async()=>({role:'viewer'})},original={membership:async()=>{throw Error('Shared CRM DB access forbidden')},leadLists:vault};
+ const cmd={workspace:w,entity:'lead_lists',action:'delete',data:{id,version:1}};
+ await createHandler({getSessionUser:()=>({uid:42}),getStore:()=>original})({method:'POST',headers:{'x-radix-sales':'1','content-type':'application/json'},body:cmd},res);
+ assert.equal(res.statusCode,403);
+});
