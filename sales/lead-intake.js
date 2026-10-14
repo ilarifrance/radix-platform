@@ -19,6 +19,20 @@
   window.dispatchEvent(new CustomEvent('radix:lead-prospects-edited'));
   status('li-source-status',reason);
  }
+ $('li-provider-file').onchange=async()=>{
+  const file=$('li-provider-file').files?.[0];if(!file)return;
+  try{
+   if(!file.name.toLowerCase().endsWith('.json')||file.size>250000)throw Error('Carica un JSON valido (max 250 KB)');
+   const link=url(),mapped=window.RadixLeadProviderAdapter.convert(await file.text(),$('li-provider').value,link.url);
+   const previous=current(),seen=new Set(previous.map(C.identity).filter(Boolean));const add=[];let duplicate=0;
+   for(const row of mapped.rows){const id=C.identity(row);if(id&&seen.has(id)){duplicate++;continue}if(id)seen.add(id);add.push(row)}
+   if(!add.length)throw Error('Nessun prospect nuovo');
+   if(add.length+previous.length>250)throw Error('La lista supererebbe 250 aziende');
+   if(!window.confirm('Importare '+add.length+' aziende dal provider '+mapped.provider+'? '+duplicate+' duplicati esclusi. Verifica di avere il diritto di utilizzare i dati.'))return;
+   replace([...previous,...add],'Provider importato: '+add.length+' aziende.');
+   status('li-provider-status','Importazione completata: '+add.length+' aziende, '+duplicate+' duplicati. Qualifica e salva nell’Archivio.');
+  }catch(e){status('li-provider-status','Importazione provider non riuscita: '+e.message)}
+ };
  $('li-agent-instructions').onclick=async()=>{
   const instruction='Prepara un file JSON versione 1 con i soli dati aziendali che sono legittimamente disponibili per uso ed esportazione. Non aggirare protezioni, non effettuare scraping massivo e non condividere cookie o password. Schema: {"version":1,"sourceUrl":"URL LinkedIn/Sales Navigator fornito dall’utente","companies":[{"name":"Azienda","domain":"","country":"","industry":"","companySize":"","contactRole":"","source":"URL della fonte pubblica o esportazione autorizzata"}]}. Per campi non verificati usa una stringa vuota. Non inventare email o dati e non includere dati personali superflui.';
   try{await navigator.clipboard.writeText(instruction);status('li-agent-status','Istruzioni copiate: incollale nel tuo agente browser, poi importa il file JSON prodotto.')}catch{status('li-agent-status','Clipboard non disponibile in questo browser.')}
