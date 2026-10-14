@@ -5,8 +5,8 @@ function fixture(){
  const nodes=new Map(),listeners=new Map(),exports=[];
  const node=()=>({value:'',disabled:false,textContent:'',children:[],listeners:{},replaceChildren(...x){this.children=x},append(...x){this.children.push(...x)},addEventListener(n,f){(this.listeners[n]??=[]).push(f)},fire(n){for(const f of this.listeners[n]||[])f()},click(){},remove(){}});
  const get=id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id)};
- const window={RadixLeadOutcomes:core,radixLeadWorkflow:{approvalFor:i=>i===0?{checked:true}:null},confirm:()=>true,addEventListener:(n,f)=>listeners.set(n,f)};
- vm.runInNewContext(src,{window,document:{getElementById:get,createElement:node,body:{append(){}}},URL:{createObjectURL:()=>'',revokeObjectURL(){}},Blob:class{constructor(parts){exports.push(parts.join(''))}},Date});
+ const window={RadixLeadOutcomes:core,radixLeadWorkflow:{approvalFor:i=>i===0?{checked:true}:null},confirm:()=>true,addEventListener:(n,f)=>listeners.set(n,f),dispatchEvent:()=>{}};
+ vm.runInNewContext(src,{window,document:{getElementById:get,createElement:node,body:{append(){}}},URL:{createObjectURL:()=>'',revokeObjectURL(){}},Blob:class{constructor(parts){exports.push(parts.join(''))}},Date,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}});
  return{get,fire:(n,detail)=>listeners.get(n)({detail}),exports};
 }
 test('voided events do not count',()=>{
