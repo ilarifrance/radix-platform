@@ -8,7 +8,7 @@
  const clearCurrent=()=>{state.listId='';state.version=0;$('archive-selected').textContent='Nessuna lista caricata'};
  const working=b=>{state.busy=b;$('archive-workspace').disabled=b;$('archive-list').disabled=b;buttons()};
  const buttons=()=>{
-  $('archive-save').disabled=state.busy||!writable()||!state.workspace;
+  $('archive-save').disabled=state.busy||!writable()||!state.workspace||(Boolean(state.listId)&&$('archive-list').value!==state.listId);
   $('archive-new').disabled=state.busy||!writable()||!state.workspace;
   $('archive-load').disabled=state.busy||!state.workspace||!$('archive-list').value;
   $('archive-delete').disabled=state.busy||!writable()||!state.listId;
@@ -87,6 +87,7 @@
   working(true);
   try{
    const action=newList||!state.listId?'create':'update';
+   if(action==='update'&&$('archive-list').value!==state.listId)throw Error('Carica prima la lista selezionata per evitare sovrascritture.');
    const result=await post(action,action==='create'?{title,payload}:{id:state.listId,version:state.version,title,payload});
    state.listId=result.id;state.version=result.version;
    await list(result.id);$('archive-selected').textContent='Lista '+result.title+' · versione '+result.version;
@@ -106,6 +107,7 @@
   finally{working(false)}
  }
  $('archive-workspace').addEventListener('change',selectWorkspace);
+ $('archive-list').addEventListener('change',()=>{buttons();if(state.listId&&$('archive-list').value!==state.listId)status('Per modificare la lista selezionata, premi prima «Carica lista». La lista attualmente aperta non verrà sovrascritta.');});
  $('archive-load').addEventListener('click',load);
  $('archive-save').addEventListener('click',()=>save(false));
  $('archive-new').addEventListener('click',()=>save(true));

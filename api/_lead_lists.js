@@ -42,7 +42,7 @@ function payload(raw){
   if(!Array.isArray(r.plan)||!(r.plan.length===0||r.plan.length===3)||r.plan.length&&r.draft===null)fail(400,'Sequenza non valida.');
   r.plan.forEach((p,i)=>{
    keys(p,['date','step','subject','body'],'Tappa');
-   if(typeof p.date!=='string'||! /^\d{4}-\d{2}-\d{2}$/.test(p.date)||Number.isNaN(Date.parse(p.date+'T00:00:00Z')))fail(400,'Data non valida.');
+   if(typeof p.date!=='string'||! /^\d{4}-\d{2}-\d{2}$/.test(p.date)||Number.isNaN(Date.parse(p.date+'T00:00:00Z'))||new Date(p.date+'T00:00:00Z').toISOString().slice(0,10)!==p.date)fail(400,'Data non valida.');
    text(p.step,60,'Fase',true);text(p.subject,200,'Oggetto',true);text(p.body,3000,'Corpo',true);
    if(i>0&&p.date<=r.plan[i-1].date)fail(400,'Date sequenza non crescenti.');
   });
