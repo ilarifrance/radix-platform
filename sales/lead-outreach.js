@@ -136,10 +136,12 @@
     if(!q||!C.validate(q,a).ok)continue; // never silently reapprove a changed/duplicate prospect.
     state.approvals.set(idx,a);state.edits.set(idx,a);
     if(r.draft&&r.draft.subject&&r.draft.body)state.drafts.set(idx,{subject:r.draft.subject,body:r.draft.body});
-    if(state.drafts.has(idx)&&Array.isArray(r.plan)&&r.plan.length===3)state.plans.set(idx,r.plan.map(x=>({...x})));
     window.dispatchEvent(new CustomEvent('radix:lead-approval-changed',{detail:{index:idx,approved:true}}));
     if(state.drafts.has(idx))window.dispatchEvent(new CustomEvent('radix:lead-draft',{detail:{index:idx,...state.drafts.get(idx)}}));
-    if(state.plans.has(idx))window.dispatchEvent(new CustomEvent('radix:lead-plan-created',{detail:{index:idx}}));
+    if(state.drafts.has(idx)&&Array.isArray(r.plan)&&r.plan.length===3){
+     state.plans.set(idx,r.plan.map(x=>({...x})));
+     window.dispatchEvent(new CustomEvent('radix:lead-plan-created',{detail:{index:idx}}));
+    }
     restored++;
    }
    selected();counters();controls();
