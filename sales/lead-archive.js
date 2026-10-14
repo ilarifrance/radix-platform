@@ -8,10 +8,10 @@
  const clearCurrent=()=>{state.listId='';state.version=0;$('archive-selected').textContent='Nessuna lista caricata'};
  const working=b=>{state.busy=b;$('archive-workspace').disabled=b;$('archive-list').disabled=b;buttons()};
  const buttons=()=>{
-  $('archive-save').disabled=state.busy||!writable()||!state.workspace||(Boolean(state.listId)&&$('archive-list').value!==state.listId);
+  $('archive-save').disabled=state.busy||!writable()||!state.workspace||(Boolean($('archive-list').value)&&$('archive-list').value!==state.listId)||(Boolean(state.listId)&&$('archive-list').value!==state.listId);
   $('archive-new').disabled=state.busy||!writable()||!state.workspace;
   $('archive-load').disabled=state.busy||!state.workspace||!$('archive-list').value;
-  $('archive-delete').disabled=state.busy||!writable()||!state.listId;
+  $('archive-delete').disabled=state.busy||!writable()||!state.listId||$('archive-list').value!==state.listId;
   $('archive-refresh').disabled=state.busy||!state.workspace;
  };
  const get=async query=>{
