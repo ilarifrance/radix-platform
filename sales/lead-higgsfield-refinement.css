@@ -107,3 +107,6 @@ section[id]{scroll-margin-top:78px}
 @keyframes journeyPulse{0%,100%{opacity:1;box-shadow:0 0 9px #3bf5ca29}50%{opacity:.75;box-shadow:0 0 21px #3bf5ca6c}}
 @media(max-width:800px){.lead-journey{padding:19px 13px}.journey-node{min-height:124px}.journey-heading{align-items:flex-start}.journey-next{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){.journey-signal{animation:none}.journey-node{transition:none}}
+
+#out-task-all{background:linear-gradient(112deg,#158e79,#13799b);border-color:#45c8b8;box-shadow:0 0 24px #25cebd26}
+#out-task-all:not(:disabled):hover{filter:brightness(1.16);box-shadow:0 0 26px #3df7d34d}

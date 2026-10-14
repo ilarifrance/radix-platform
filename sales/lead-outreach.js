@@ -1,13 +1,13 @@
 'use strict';
 (()=>{
- const $=id=>document.getElementById(id),C=window.RadixOutreach,state={approvals:new Map(),edits:new Map(),drafts:new Map(),plans:new Map(),created:new Map(),tasks:new Set(),busy:false};
+ const $=id=>document.getElementById(id),C=window.RadixOutreach,state={approvals:new Map(),edits:new Map(),drafts:new Map(),plans:new Map(),created:new Map(),tasks:new Set(),taskGroups:new Set(),busy:false};
  let queue=[],activeIndex=null;
  const elt=(t,s,c)=>{const n=document.createElement(t);if(s!==undefined)n.textContent=String(s);if(c)n.className=c;return n};
  const i=()=>Number($('out-prospect').value),candidate=()=>queue[i()];
  const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
  const say=s=>{$('out-status').textContent=s;$('out-plan-status').textContent=s;};
  function counters(){$('out-count').textContent=state.approvals.size+' / '+queue.length;$('out-summary').textContent=String(state.approvals.size);$('out-summary-side').textContent=String(state.approvals.size)}
- function controls(){$('out-plan').disabled=!state.approvals.has(i())||!state.drafts.has(i());$('out-export').disabled=!state.plans.has(i());$('out-task').disabled=!state.approvals.has(i())||!state.plans.has(i())||state.tasks.has(i())}
+ function controls(){$('out-plan').disabled=!state.approvals.has(i())||!state.drafts.has(i());$('out-export').disabled=!state.plans.has(i());$('out-task').disabled=!state.approvals.has(i())||!state.plans.has(i())||state.tasks.has(i());$('out-task-all').disabled=state.busy||!state.approvals.has(i())||!state.plans.has(i())||state.taskGroups.has(i())}
  function timeline(){const root=$('out-timeline');root.replaceChildren();const plan=state.plans.get(i());if(!plan){root.append(elt('p','Prima approva un prospect e prepara la sua bozza email.','muted'));return}for(const item of plan){const card=elt('article',undefined,'out-sequence-card'),date=elt('time',item.date);date.dateTime=item.date;card.append(date,elt('b',item.step),elt('strong',item.subject),elt('p',item.body));root.append(card)}}
  const form=()=>({email:$('out-email').value.trim(),contact:$('out-contact').value.trim(),source:$('out-source').value.trim(),basis:$('out-basis').value,notes:$('out-notes').value.trim(),checked:$('out-checked').checked,privacy:$('out-privacy').checked});
  function remember(){if(activeIndex!==null&&queue[activeIndex])state.edits.set(activeIndex,form())}
@@ -31,7 +31,7 @@
   return true;
  }
  function update(items){
-  queue=Array.isArray(items)?items.slice(0,250):[];activeIndex=null;state.edits.clear();state.approvals.clear();state.drafts.clear();state.plans.clear();state.created.clear();state.tasks.clear();
+  queue=Array.isArray(items)?items.slice(0,250):[];activeIndex=null;state.edits.clear();state.approvals.clear();state.drafts.clear();state.plans.clear();state.created.clear();state.tasks.clear();state.taskGroups.clear();
   const sel=$('out-prospect');sel.replaceChildren();queue.forEach((p,n)=>{const o=elt('option',p.candidate.name||p.candidate.domain||'Prospect '+(n+1));o.value=String(n);sel.append(o)});if(!queue.length)sel.append(elt('option','Qualifica prima la lista'));sel.disabled=!queue.length;selected()
  }
  function approve(){
@@ -79,6 +79,43 @@
    say((postAttempted?'Esito creazione non confermato: controlla nel CRM prima di ripetere. ':'Nessun task creato: verifica CRM non completata. ')+e.message);
   }finally{state.busy=false;controls()}
  }
+ async function crmSequenceTasks(){
+  const idx=i(),plan=state.plans.get(idx),record=state.created.get(idx),workspace=$('sync-workspace').value,company=queue[idx]?.candidate?.name;
+  if(state.busy||state.taskGroups.has(idx)||!state.approvals.has(idx)||!plan||plan.length!==3||!company)return;
+  if(!record||!record.companyId||record.workspace!==workspace){say('Prima collega un’azienda CRM autorizzata nello stesso workspace.');return}
+  const labels=['Primo contatto','Follow-up 1','Follow-up 2'];
+  const specs=plan.map((row,j)=>({
+   title:(labels[j]+' · '+company).slice(0,200),
+   company_id:record.companyId,status:'todo',priority:'normal',due_at:row.date+'T12:00:00Z'
+  }));
+  const originalPlan=plan,originalRecord=record,unchanged=()=>state.approvals.has(idx)&&state.plans.get(idx)===originalPlan&&state.created.get(idx)===originalRecord&&$('sync-workspace').value===workspace;
+  state.busy=true;controls();let startedPost=false;
+  try{
+   const present=await window.RadixLeadTaskGuard.findExistingMany({
+    companyId:record.companyId,titles:specs.map(s=>s.title),fetchPage:offset=>readTaskPage(workspace,offset)
+   });
+   if(!unchanged()){say('Piano o revisione cambiati durante il controllo: nessuna attività creata.');return}
+   const missing=specs.filter(s=>!present.has(s.title));
+   if(!missing.length){state.tasks.add(idx);state.taskGroups.add(idx);say('Tutte e tre le attività sono già presenti nel CRM: nessun duplicato creato.');return}
+   if(!window.confirm('Il CRM contiene già '+present.size+' fasi di questa sequenza. Creare le '+missing.length+' attività mancanti per '+company+'? Le date sono quelle del piano, ma NESSUNA email verrà inviata.'))return;
+   if(!unchanged()){say('Piano cambiato prima della conferma: nessuna attività creata.');return}
+   let created=0;
+   for(const data of missing){
+    // Do not silently repeat a possibly completed POST.
+    startedPost=true;state.taskGroups.add(idx);controls();
+    const res=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace,entity:'tasks',action:'create',data})});
+    const result=await res.json().catch(()=>({}));
+    if(!res.ok)throw Error(result.error||'HTTP '+res.status);
+    if(!Array.isArray(result.rows)||!result.rows[0]?.id)throw Error('Risposta CRM non confermata');
+    created++;
+    say(created+' / '+missing.length+' attività CRM create. Nessuna email inviata.');
+   }
+   state.tasks.add(idx);say('Sequenza di 3 task CRM verificata: '+present.size+' già presenti, '+created+' aggiunti. Nessun invio email.');
+  }catch(e){
+   say((startedPost?'Operazione parziale o esito incerto: controlla i task nel CRM prima di riprovare. ':'Nessuna nuova attività creata: ')+e.message);
+  }finally{state.busy=false;controls()}
+ }
+
  window.radixLeadWorkflow={approvalFor:n=>state.approvals.get(Number(n))||null};
  window.addEventListener('radix:lead-reviewed',e=>update(e.detail?.entries||[]));
  window.addEventListener('radix:lead-draft',e=>{const x=e.detail||{},j=Number(x.index);if(!state.approvals.has(j))return;state.drafts.set(j,{subject:x.subject,body:x.body});state.plans.delete(j);window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:j}}));timeline();controls();say('Bozza disponibile: prepara ora la sequenza.')});
@@ -103,5 +140,5 @@
  for(const id of fields)$(id).addEventListener('input',changedField);
  for(const id of fields.filter(id=>['out-basis','out-checked','out-privacy'].includes(id)))$(id).addEventListener('change',changedField);
  for(const id of ['out-start','out-d1','out-d2'])$(id).addEventListener('change',()=>{if(!state.plans.has(i()))return;state.plans.delete(i());window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:i()}}));timeline();controls();say('Scadenze modificate: genera nuovamente la sequenza.')});
- $('out-start').value=today();$('out-start').min=today();$('out-plan').addEventListener('click',plan);$('out-export').addEventListener('click',exportCsv);$('out-task').addEventListener('click',crmTask);update([]);
+ $('out-start').value=today();$('out-start').min=today();$('out-plan').addEventListener('click',plan);$('out-export').addEventListener('click',exportCsv);$('out-task').addEventListener('click',crmTask);$('out-task-all').addEventListener('click',crmSequenceTasks);update([]);
 })();
