@@ -43,12 +43,41 @@
   try{if($('out-start').value<today())throw Error('Seleziona una data non passata');state.plans.set(i(),C.makePlan(candidate(),state.drafts.get(i()),$('out-start').value,$('out-d1').value,$('out-d2').value));say('Sequenza di tre bozze pronta per revisione. Nessun invio programmato.')}catch(e){state.plans.delete(i());say(e.message)}timeline();controls()
  }
  function exportCsv(){const p=state.plans.get(i()),a=state.approvals.get(i());if(!p||!a)return;const value=C.toCsv(p,candidate().candidate.name,a.email),url=URL.createObjectURL(new Blob([value],{type:'text/csv;charset=utf-8'})),link=document.createElement('a');link.href=url;link.download='RADIX_Lead_outreach.csv';document.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);say('Esportato il piano: nessuna email inviata.')}
+ async function readTaskPage(workspace,offset){
+  const query=new URLSearchParams({entity:'tasks',workspace,offset:String(offset)});
+  const res=await fetch('/api/sales?'+query.toString(),{method:'GET',credentials:'same-origin',cache:'no-store'});
+  const json=await res.json().catch(()=>({}));
+  if(!res.ok)throw Error(json.error||'Verifica task: HTTP '+res.status);
+  if(!Array.isArray(json.rows))throw Error('Elenco task non disponibile.');
+  return json.rows;
+ }
  async function crmTask(){
-  const idx=i(),p=state.plans.get(idx),record=state.created.get(idx),ws=$('sync-workspace').value;if(state.busy||!p||state.tasks.has(idx))return;
+  const idx=i(),p=state.plans.get(idx),record=state.created.get(idx),ws=$('sync-workspace').value,name=queue[idx]?.candidate?.name;
+  if(state.busy||!p||state.tasks.has(idx)||!state.approvals.has(idx)||!name)return;
   if(!record||!record.companyId||record.workspace!==ws){say('Prima crea la scheda azienda con il CRM handoff nello stesso workspace.');return}
-  if(!window.confirm('Creare UNA attività CRM per '+candidate().candidate.name+' in data '+p[0].date+'? Non verranno inviate email.'))return;
-  state.busy=true;$('out-task').disabled=true;
-  try{const body={workspace:ws,entity:'tasks',action:'create',data:{title:'Primo contatto · '+candidate().candidate.name,company_id:record.companyId,status:'todo',priority:'normal',due_at:p[0].date+'T12:00:00Z'}};const res=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify(body)});const json=await res.json().catch(()=>({}));if(!res.ok)throw Error(json.error||'HTTP '+res.status);say('Attività creata. Apri To-do nel CRM: nessuna email inviata.')}catch(e){say('Esito non confermato: '+e.message+'. Controlla nel CRM prima di ripetere.')}finally{state.busy=false;state.tasks.add(idx);controls()}
+  state.busy=true;$('out-task').disabled=true;let postAttempted=false;
+  const title='Primo contatto · '+name;
+  const unchanged=()=>state.approvals.has(idx)&&state.plans.get(idx)===p&&state.created.get(idx)===record&&$('sync-workspace').value===ws;
+  try{
+   // Fail closed if the authorized workspace cannot be scanned completely.
+   const found=await window.RadixLeadTaskGuard.findExisting({
+    companyId:record.companyId,title,fetchPage:offset=>readTaskPage(ws,offset)
+   });
+   if(!unchanged()){say('Dati o approvazione cambiati durante la verifica: nessun task creato.');return}
+   if(found){state.tasks.add(idx);say('Attività CRM già presente per questa azienda. Nessun duplicato creato. Controlla To-do nel CRM.');return}
+   if(!window.confirm('Non risultano task identici nei primi 1000 record del workspace. Creare UNA attività CRM per '+name+' in data '+p[0].date+'? Nessuna email sarà inviata.'))return;
+   if(!unchanged()){say('Dati cambiati durante la conferma: nessun task creato.');return}
+   const body={workspace:ws,entity:'tasks',action:'create',data:{title,company_id:record.companyId,status:'todo',priority:'normal',due_at:p[0].date+'T12:00:00Z'}};
+   // Once POST has started, never blindly retry after an uncertain response.
+   postAttempted=true;state.tasks.add(idx);
+   const res=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify(body)});
+   const json=await res.json().catch(()=>({}));
+   if(!res.ok)throw Error(json.error||'HTTP '+res.status);
+   if(!Array.isArray(json.rows)||!json.rows[0]?.id)throw Error('Conferma server incompleta');
+   say('Attività CRM creata e confermata. Nessuna email inviata.');
+  }catch(e){
+   say((postAttempted?'Esito creazione non confermato: controlla nel CRM prima di ripetere. ':'Nessun task creato: verifica CRM non completata. ')+e.message);
+  }finally{state.busy=false;controls()}
  }
  window.radixLeadWorkflow={approvalFor:n=>state.approvals.get(Number(n))||null};
  window.addEventListener('radix:lead-reviewed',e=>update(e.detail?.entries||[]));
