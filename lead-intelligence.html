@@ -31,6 +31,12 @@
 <div class="toolbar"><button id="li-paste-import" type="button" class="primary">＋ Importa righe nella lista</button></div>
 <p class="muted">Per i file Excel o CSV esportati puoi anche usare il normale pulsante «Seleziona CSV / TSV / Excel» nella sezione Dati. Questa sezione non legge o automatizza la sessione LinkedIn.</p>
 <div class="li-separator"></div>
+<h3>Collegamento a un agente browser</h3>
+<p class="muted">Puoi far preparare a un agente browser un file JSON con i dati a cui hai diritto di accesso, senza fornire a RADIX password, cookie o sessioni LinkedIn. RADIX verifica lo schema, confronta l'URL di origine, esclude i duplicati e aggiunge i prospect solo dopo tua conferma. Non è un connettore automatico a LinkedIn.</p>
+<div class="toolbar"><button id="li-agent-instructions" type="button" class="outline">Copia istruzioni per l’agente</button></div>
+<label class="upload">Importa risultati agente (.json) <input id="li-agent-file" type="file" accept=".json,application/json"></label>
+<p id="li-agent-status" class="muted" role="status">Nessun file agente caricato.</p>
+<div class="li-separator"></div>
 <h3>Importazione da pagina aziendale</h3>
 <p class="muted">Da una URL LinkedIn <code>/company/...</code> puoi aggiungere un prospect con il nome che verifichi manualmente; gli altri campi restano vuoti, da completare.</p>
 <div class="fields"><label>Nome azienda confermato <input id="li-company-name" maxlength="200" placeholder="Nome azienda"></label></div>

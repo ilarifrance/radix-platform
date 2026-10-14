@@ -19,6 +19,26 @@
   window.dispatchEvent(new CustomEvent('radix:lead-prospects-edited'));
   status('li-source-status',reason);
  }
+ $('li-agent-instructions').onclick=async()=>{
+  const instruction='Prepara un file JSON versione 1 con i soli dati aziendali che sono legittimamente disponibili per uso ed esportazione. Non aggirare protezioni, non effettuare scraping massivo e non condividere cookie o password. Schema: {"version":1,"sourceUrl":"URL LinkedIn/Sales Navigator fornito dall’utente","companies":[{"name":"Azienda","domain":"","country":"","industry":"","companySize":"","contactRole":"","source":"URL della fonte pubblica o esportazione autorizzata"}]}. Per campi non verificati usa una stringa vuota. Non inventare email o dati e non includere dati personali superflui.';
+  try{await navigator.clipboard.writeText(instruction);status('li-agent-status','Istruzioni copiate: incollale nel tuo agente browser, poi importa il file JSON prodotto.')}catch{status('li-agent-status','Clipboard non disponibile in questo browser.')}
+ };
+ $('li-agent-file').onchange=async()=>{
+  const file=$('li-agent-file').files?.[0];if(!file)return;
+  try{
+    const link=url();
+    if(file.size>160000)throw Error('File troppo grande (massimo 160 KB)');
+    if(!file.name.toLowerCase().endsWith('.json'))throw Error('Carica un file JSON');
+    const rows=C.fromAgentExport(await file.text(),link.url),previous=current();
+    if(previous.length+rows.length>250)throw Error('Limite di 250 aziende superato');
+    const seen=new Set(previous.map(C.identity).filter(Boolean)),newRows=[];let duplicates=0;
+    for(const row of rows){const key=C.identity(row);if(key&&seen.has(key)){duplicates++;continue}if(key)seen.add(key);newRows.push(row)}
+    if(!newRows.length)throw Error('Tutti i record sono duplicati: nessuna modifica');
+    if(!window.confirm('Importare '+newRows.length+' aziende dal file dell’agente? '+duplicates+' duplicati esclusi. Conferma solo se i dati sono utilizzabili legittimamente.'))return;
+    replace([...previous,...newRows],'File agente importato: '+newRows.length+' aziende, '+duplicates+' duplicati.');
+    status('li-agent-status','Importate '+newRows.length+' aziende dal file agente. Nessun dato acquisito direttamente da LinkedIn.');
+  }catch(e){status('li-agent-status','Importazione non riuscita: '+e.message)}
+ };
  $('li-company-add').onclick=()=>{
   try{
    const link=url();
