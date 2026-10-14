@@ -1,5 +1,6 @@
 'use strict';
 const {fields}=require('./_sales');
+const {createLeadListStore}=require('./_lead_lists_store');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
@@ -16,6 +17,7 @@ function createStore(rawSql){
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
  membership,
+ leadLists:createLeadListStore(sql),
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';
