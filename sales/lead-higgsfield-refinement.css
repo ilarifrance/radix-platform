@@ -70,3 +70,14 @@ section[id]{scroll-margin-top:78px}
 .sync-go{display:inline-flex;align-items:center;padding:12px 10px;color:#88f4d1;font-size:12px;text-decoration:underline}
 .crm-existing-button{display:block;width:100%;text-align:left;background:#0c3640;border-color:#2b8578;margin:6px 0}
 .crm-existing-button:hover{background:#15564e}
+
+/* Outcome journal linked to the scoped CRM interactions API. */
+.steps{grid-template-columns:repeat(8,minmax(0,1fr))}
+.crm-outcome-panel{position:relative;overflow:hidden;margin:18px 0 12px;padding:20px 19px;border:1px solid #368779;border-radius:15px;background:radial-gradient(ellipse at 100% 0%,#168e9a25,transparent 44%),linear-gradient(135deg,#092a35,#071a2a);box-shadow:inset 0 1px #78f5e91a,0 12px 34px #0003}
+.crm-outcome-panel:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(#4df9bd,#4dd4fa,#6c83ff)}
+.crm-outcome-panel .panel-head h2{margin:6px 0 9px;font-size:17px}
+.crm-outcome-pending{align-self:center;color:#82e6d3;font-size:12px}
+.crm-outcome-history{display:grid;gap:7px;margin-top:12px;padding:14px;border:1px solid #2e5866;border-radius:10px;background:#061923}
+.crm-outcome-history p{margin:0;color:#afcdd1;font-size:12px}
+.crm-outcome-history-row{padding:10px 12px;border-radius:8px;background:linear-gradient(90deg,#14494e80,#0b253400);border-left:2px solid #38dcad}
+@media(max-width:1100px){.steps{display:flex;overflow-x:auto}}

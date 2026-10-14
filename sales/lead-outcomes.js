@@ -32,7 +32,10 @@
   if(!Object.hasOwn(stages,stage)){status('Esito non valido.');return}
   if(!window.confirm('Confermi che '+stages[stage]+' è realmente avvenuto per '+(p.name||p.domain)+'? Nessuna comunicazione sarà inviata.'))return;
   if(events.filter(e=>e.index===index).length>=50){status('Limite 50 eventi per prospect. Esporta lo storico prima di proseguire.');return}
-  events.push({index,stage,at:new Date().toISOString()});render();status('Esito manuale registrato solo in questa sessione. Esporta prima di chiudere.');
+  const at=new Date().toISOString(),key='li-'+Date.now()+'-'+index+'-'+events.length;
+  const item={index,stage,at,key};events.push(item);render();
+  window.dispatchEvent(new CustomEvent('radix:lead-outcome-recorded',{detail:item}));
+  status('Esito registrato in questa sessione. Puoi salvarlo esplicitamente nel CRM dopo aver collegato la scheda azienda.');
  }
  function undo(){
   const index=current(),p=prospects[index];
@@ -41,7 +44,8 @@
   if(!latest){status('Nessun esito attivo da annullare.');return}
   if(!window.confirm('Annullare l’ultimo esito "'+stages[latest.stage]+'" per '+(p.name||p.domain)+'? La correzione rimarrà nello storico esportabile.'))return;
   latest.voidedAt=new Date().toISOString();
-  render();status('Esito annullato con traccia di correzione. Nessuna attività CRM o email modificata.');
+  window.dispatchEvent(new CustomEvent('radix:lead-outcome-voided',{detail:{index,key:'li-'+Date.now()+'-'+index+'-'+events.length+'-void',ref:latest.key,stage:latest.stage,at:latest.voidedAt}}));
+  render();status('Esito annullato nella sessione. Se era già nel CRM, salva anche la rettifica per mantenere lo storico coerente.');
  }
  function csvCell(v){let s=String(v??'').replace(/[\r\n\t]/g,' ').slice(0,500);if(/^\s*[=+\-@\uFEFF]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
  function exportCsv(){
