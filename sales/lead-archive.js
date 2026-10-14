@@ -69,7 +69,7 @@
    if(state.workspace!==workspace)return;
    const row=rows[0];if(!row||!UUID.test(row.id)||!row.payload)throw Error('Lista non trovata.');
    window.radixLeadData.restore(row.payload);
-   const count=window.radixLeadWorkflow.restoreReviews(row.payload.reviews||[]);
+   const count=window.radixLeadWorkflow.restoreReviews(row.payload.reviews||[]);window.radixLeadIntakeEvidence?.restore(row.payload.enrichment||[]);
    state.listId=row.id;state.version=row.version;
    $('archive-title').value=row.title;$('archive-list').value=row.id;
    $('archive-selected').textContent='Lista '+row.title+' · versione '+row.version;
@@ -81,7 +81,7 @@
   if(!writable()||!state.workspace||state.busy)return;
   const title=$('archive-title').value.trim();if(title.length<1||title.length>120){status('Inserisci un nome lista (max 120 caratteri).');return}
   const data=window.radixLeadData.export(),reviews=window.radixLeadWorkflow.archiveReviews();
-  const payload={...data,reviews};
+  const payload={...data,reviews,enrichment:window.radixLeadIntakeEvidence?.export()||[]};
   if(!data.prospects.length){status('Importa almeno un prospect reale prima di salvare.');return}
   if(!window.confirm('Salvare '+payload.prospects.length+' prospect e '+reviews.length+' revisioni nel workspace CRM? Email, basi giuridiche e bozze approvate saranno accessibili ai membri autorizzati. Nessun messaggio verrà inviato.'))return;
   working(true);

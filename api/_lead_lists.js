@@ -13,7 +13,7 @@ const integer=(n,max,label)=>{if(!Number.isInteger(n)||n<0||n>max)fail(400,label
 const uuid=x=>typeof x==='string'&&UUID.test(x);
 const fields=['name','domain','country','industry','companySize','contactRole','source'];
 function payload(raw){
- keys(raw,['icp','prospects','reviews'],'Archivio');
+ keys(raw,['icp','prospects','reviews','enrichment'],'Archivio');
  const icp=keys(raw.icp,['country','industry','size','role'],'ICP');
  for(const k of ['country','industry','size','role'])text(icp[k],400,'Criterio ICP');
  if(!Array.isArray(raw.prospects)||raw.prospects.length>MAX_PROSPECTS)fail(400,'Massimo 250 prospect per lista.');
@@ -48,8 +48,20 @@ function payload(raw){
   });
   return r;
  });
+ const entries=raw.enrichment===undefined?[]:raw.enrichment;
+ if(!Array.isArray(entries)||entries.length>250)fail(400,'Provenienza completamenti non valida.');
+ const enrichment=entries.map(e=>{
+  keys(e,['index','field','value','source','method','confirmedAt'],'Provenienza');
+  integer(e.index,MAX_PROSPECTS-1,'Indice provenienza');
+  if(e.index>=prospects.length||!['domain','country','industry','companySize','contactRole'].includes(e.field))fail(400,'Campo provenienza non valido.');
+  text(e.value,250,'Valore provenienza',true);text(e.source,1600,'Fonte provenienza',true);
+  if(!/^https:\/\/[^\s/@?#]+(?:\.[^\s/@?#]+)+(?:[/?#][^\s]*)?$/i.test(e.source))fail(400,'URL provenienza non verificabile.');
+  if(e.method!=='confronto-import'||typeof e.confirmedAt!=='string'||!/^\d{4}-\d\d-\d\dT/.test(e.confirmedAt)||!Number.isFinite(Date.parse(e.confirmedAt)))fail(400,'Controllo provenienza non valido.');
+  if(prospects[e.index][e.field]!==e.value)fail(400,'Il completamento non corrisponde al prospect.');
+  return e;
+ });
  if(Buffer.byteLength(JSON.stringify(raw))>MAX_BYTES)fail(413,'Lista troppo grande: dividi i prospect in più liste.');
- return {icp,prospects,reviews};
+ return {icp,prospects,reviews,enrichment};
 }
 function command(body){
  keys(body,['workspace','entity','action','data'],'Comando');
