@@ -38,8 +38,17 @@
   catch(e){status('li-agent-status',e.message)}
  };
  $('li-agent-instructions').onclick=async()=>{
-  const instruction='Prepara un file JSON versione 1 con i soli dati aziendali che sono legittimamente disponibili per uso ed esportazione. Non aggirare protezioni, non effettuare scraping massivo e non condividere cookie o password. Schema: {"version":1,"sourceUrl":"URL LinkedIn/Sales Navigator fornito dall’utente","companies":[{"name":"Azienda","domain":"","country":"","industry":"","companySize":"","contactRole":"","source":"URL della fonte pubblica o esportazione autorizzata"}]}. Per campi non verificati usa una stringa vuota. Non inventare email o dati e non includere dati personali superflui.';
-  try{await navigator.clipboard.writeText(instruction);status('li-agent-status','Istruzioni copiate: incollale nel tuo agente browser, poi importa il file JSON prodotto.')}catch{status('li-agent-status','Clipboard non disponibile in questo browser.')}
+  try{
+   const target=url().url;
+   const example={version:1,sourceUrl:target,companies:[{name:'Nome azienda verificato',domain:'',country:'',industry:'',companySize:'',contactRole:'',source:''}]};
+   const instruction='Usa soltanto informazioni che puoi visualizzare e utilizzare legittimamente. Non automatizzare la raccolta massiva da LinkedIn né aggirare restrizioni, login o CAPTCHA. Non condividere credenziali o cookie.\n'
+    +'URL di riferimento: '+target+'\n'
+    +'Fornisci un unico oggetto JSON valido, senza Markdown o commenti, con questo schema e lo stesso valore sourceUrl:\n'
+    +JSON.stringify(example,null,2)+'\n'
+    +'Sostituisci l\'esempio con le sole aziende realmente documentate in una fonte disponibile ed esportabile: massimo 250. Usa stringhe vuote per i campi sconosciuti e non inventare contatti, email o informazioni. Inserisci la URL della fonte per ciascuna azienda quando disponibile.';
+   await navigator.clipboard.writeText(instruction);
+   status('li-agent-status','Istruzioni copiate con URL della ricerca e schema compatibile RADIX. Importa poi il JSON fornito dall’agente.');
+  }catch(e){status('li-agent-status','Impossibile preparare le istruzioni: '+e.message)}
  };
  $('li-agent-paste-import').onclick=()=>{
   try{
