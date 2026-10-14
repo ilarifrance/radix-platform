@@ -11,7 +11,7 @@ CREATE TABLE sales_lead_lists(
  updated_at timestamptz NOT NULL DEFAULT now(),
  updated_by integer NOT NULL,
  PRIMARY KEY(workspace_id,id),
- FOREIGN KEY(workspace_id,updated_by) REFERENCES sales_memberships(workspace_id,user_id)
+ FOREIGN KEY(updated_by) REFERENCES users(id)
 );
 CREATE INDEX sales_lead_lists_recent ON sales_lead_lists(workspace_id,updated_at DESC,id);
 -- No account, membership or example prospect seeded. Authorization is enforced in

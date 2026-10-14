@@ -71,5 +71,23 @@ window.addEventListener('radix:lead-approval-changed',e=>{const idx=Number(e.det
 $('mail-generate').onclick=draft;function staleDraft(){$('mail-copy').disabled=true;$('mail-preview-subject').textContent='Rigenera la bozza dopo le modifiche';window.dispatchEvent(new CustomEvent('radix:lead-draft-stale',{detail:{index:Number($('mail-prospect').value)}}));}for(const id of ['mail-prospect','mail-subject','mail-template'])$(id).addEventListener('input',staleDraft);
 $('mail-copy').onclick=async()=>{if($('mail-copy').disabled)return;const text='Oggetto: '+$('mail-preview-subject').textContent+'\n\n'+$('mail-preview-body').textContent;try{await navigator.clipboard.writeText(text);$('mail-status').textContent='Bozza copiata negli appunti; nessun invio effettuato.'}catch(e){$('mail-status').textContent='Copia non disponibile: seleziona il testo della bozza.'}};
 $('score').onclick=calculate;$('export').onclick=download;$('clear').onclick=()=>{importEpoch++;candidates=[];$('total').textContent='—';$('file').value='';$('import-status').textContent='Dati cancellati dalla memoria';invalidate('Importa i dati e avvia la qualificazione.')};for(const id of ['country','industry','size','role'])$(id).addEventListener('input',()=>invalidate('ICP modificato: ricalcola i risultati.'));
-// CRM handoff loaded as an ordered deferred script in lead-intelligence.html.
+// Explicit API for user-authorized archive save/restore. Never uses browser storage for personal data.
+ window.radixLeadData={
+  export:()=>({
+   icp:{country:$('country').value,industry:$('industry').value,size:$('size').value,role:$('role').value},
+   prospects:candidates.map(c=>Object.fromEntries(fields.map(k=>[k,c[k]||''])))
+  }),
+  restore:payload=>{
+   if(!payload||!Array.isArray(payload.prospects)||payload.prospects.length>MAX_ROWS||!payload.icp)throw Error('Formato archivio non valido');
+   // Invalidate any file read still in flight before replacing the prospect list.
+   ++importEpoch;
+   candidates=payload.prospects.map(p=>Object.fromEntries(fields.map(f=>[f,String(p[f]||'')])));
+   for(const k of ['country','industry','size','role'])$(k).value=String(payload.icp[k]||'');
+   $('file').value='';$('total').textContent=String(candidates.length);
+   invalidate('Lista archivio caricata: qualificazione da ricostruire.');
+   if(candidates.length&&['country','industry','size','role'].some(k=>$(k).value.trim()))calculate();
+   $('import-status').textContent='Lista caricata nell’interfaccia: '+candidates.length+' prospect. Ricontrolla sempre le fonti prima di procedere.';
+  }
+ };
+ // CRM handoff loaded as an ordered deferred script in lead-intelligence.html.
 })();

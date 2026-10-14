@@ -110,3 +110,12 @@ section[id]{scroll-margin-top:78px}
 
 #out-task-all{background:linear-gradient(112deg,#158e79,#13799b);border-color:#45c8b8;box-shadow:0 0 24px #25cebd26}
 #out-task-all:not(:disabled):hover{filter:brightness(1.16);box-shadow:0 0 26px #3df7d34d}
+
+/* Workspace-scoped persistence: visual separation and explicit controls. */
+.lead-archive-panel{position:relative;overflow:hidden;border-color:#3e8bb9;background:radial-gradient(ellipse at 95% -15%,#274ab66b,transparent 43%),linear-gradient(135deg,#0d2d43,#061e2e)}
+.lead-archive-panel:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,#4cf7cc,#60bde9,#8c84f3);box-shadow:0 0 20px #78cafe}
+.lead-archive-panel .tag{color:#a9dafa;border-color:#487aa1}
+.lead-archive-panel .fields{margin-top:15px}
+.lead-archive-panel select{min-width:0;width:100%;padding:10px;border-radius:8px;background:#081e2c;border:1px solid #36718e;color:#ebffff}
+.lead-archive-panel #archive-delete{border-color:#7c485b;color:#f1b2ba}
+.lead-archive-panel #archive-status{padding:10px 13px;border-left:3px solid #42b6dc;background:#0b3044;border-radius:5px}

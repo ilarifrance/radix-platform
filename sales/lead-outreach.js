@@ -116,7 +116,37 @@
   }finally{state.busy=false;controls()}
  }
 
- window.radixLeadWorkflow={approvalFor:n=>state.approvals.get(Number(n))||null};
+ window.radixLeadWorkflow={
+  approvalFor:n=>state.approvals.get(Number(n))||null,
+  archiveReviews:()=>{
+   const rows=[];
+   for(const [idx,a] of state.approvals.entries()){
+    const q=queue[idx];if(!q||!C.validate(q,a).ok)continue;
+    rows.push({index:idx,contact:a.contact,email:a.email,source:a.source,basis:a.basis,notes:a.notes,
+     checked:a.checked,privacy:a.privacy,draft:state.drafts.get(idx)||null,plan:state.plans.get(idx)||[]});
+   }
+   return rows;
+  },
+  restoreReviews:rows=>{
+   if(!Array.isArray(rows))throw Error('Revisioni non valide');
+   // Called only after the source prospect list has been requalified, triggering update().
+   let restored=0;
+   for(const r of rows){
+    const idx=r.index,q=queue[idx],a={contact:r.contact,email:r.email,source:r.source,basis:r.basis,notes:r.notes,checked:r.checked,privacy:r.privacy};
+    if(!q||!C.validate(q,a).ok)continue; // never silently reapprove a changed/duplicate prospect.
+    state.approvals.set(idx,a);state.edits.set(idx,a);
+    if(r.draft&&r.draft.subject&&r.draft.body)state.drafts.set(idx,{subject:r.draft.subject,body:r.draft.body});
+    if(state.drafts.has(idx)&&Array.isArray(r.plan)&&r.plan.length===3)state.plans.set(idx,r.plan.map(x=>({...x})));
+    window.dispatchEvent(new CustomEvent('radix:lead-approval-changed',{detail:{index:idx,approved:true}}));
+    if(state.drafts.has(idx))window.dispatchEvent(new CustomEvent('radix:lead-draft',{detail:{index:idx,...state.drafts.get(idx)}}));
+    if(state.plans.has(idx))window.dispatchEvent(new CustomEvent('radix:lead-plan-created',{detail:{index:idx}}));
+    restored++;
+   }
+   selected();counters();controls();
+   say('Ricaricate '+restored+' / '+rows.length+' approvazioni. Verifica fonti, consenso e scadenze prima di nuove attività CRM.');
+   return restored;
+  }
+ };
  window.addEventListener('radix:lead-reviewed',e=>update(e.detail?.entries||[]));
  window.addEventListener('radix:lead-draft',e=>{const x=e.detail||{},j=Number(x.index);if(!state.approvals.has(j))return;state.drafts.set(j,{subject:x.subject,body:x.body});state.plans.delete(j);window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:j}}));timeline();controls();say('Bozza disponibile: prepara ora la sequenza.')});
  window.addEventListener('radix:lead-draft-stale',e=>{const n=Number(e.detail?.index);state.drafts.delete(n);state.plans.delete(n);window.dispatchEvent(new CustomEvent('radix:lead-plan-stale',{detail:{index:n}}));if(n===i()){timeline();controls();say('Bozza modificata: rigenerala prima di ripianificare la sequenza.')}});
