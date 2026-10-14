@@ -38,6 +38,9 @@
 <div class="li-separator"></div>
 <div class="eyebrow">01D / COMPLETAMENTO CAMPI</div><h3>Completa i dati mancanti</h3>
 <p class="muted">Carica una seconda lista CSV, TSV o XLSX contenente dati aggiuntivi. RADIX abbina per dominio o nome azienda univoco, individua i campi vuoti e propone le informazioni da valutare. Nessuna proposta sovrascrive campi già compilati, nessun dato viene cercato o inventato automaticamente sul web.</p>
+<div class="li-separator"></div><h3>Ricerca pubblica automatica · Wikidata</h3>
+<p class="muted">RADIX può cercare fino a 5 aziende per volta su Wikidata e proporre il loro sito ufficiale quando manca. Serve un workspace autorizzato. I suggerimenti non sono verifiche definitive e non vengono applicati automaticamente. I nomi aziendali vengono trasmessi al servizio pubblico Wikidata.</p>
+<div class="toolbar"><button id="li-public-lookup" class="outline" type="button">✧ Cerca siti ufficiali (max 5)</button></div><p id="li-public-status" class="muted" role="status">Nessuna ricerca avviata.</p>
 <label class="draft-label">URL della fonte da indicare se manca nelle righe del file
 <input id="li-enrich-source" type="url" inputmode="url" maxlength="1600" placeholder="https://sito-ufficiale.it/pagina"></label>
 <label class="upload">Confronta file di completamento <input id="li-enrich-file" type="file" accept=".csv,.tsv,.xlsx,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>

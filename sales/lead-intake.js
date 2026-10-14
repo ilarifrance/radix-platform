@@ -78,6 +78,31 @@
    status('li-enrich-status','Confrontate '+rows.length+' righe. '+plan.suggestions.length+' suggerimenti; '+plan.ambiguous.length+' corrispondenze ambigue; '+plan.unmatched.length+' non abbinate. Seleziona soltanto i campi che hai verificato.');
   }catch(e){state.suggestions=[];state.pending=[];render();status('li-enrich-status','Confronto non riuscito: '+e.message)}
  };
+ $('li-public-lookup').onclick=async()=>{
+  const work=$('archive-workspace')?.value,rows=current();
+  if(!work){status('li-public-status','Accedi a RADIX e seleziona prima il Workspace Vault.');return}
+  if(!rows.length){status('li-public-status','Importa almeno una azienda.');return}
+  const missing=rows.map((row,index)=>({row,index})).filter(x=>!x.row.domain&&x.row.name?.trim().length>=3).slice(0,5);
+  if(!missing.length){status('li-public-status','Nessuna azienda senza dominio e con nome utilizzabile.');return}
+  if(!window.confirm('Cercare su Wikidata il sito ufficiale di '+missing.length+' aziende? I nomi verranno trasmessi a Wikidata. Nessun dato sarà inserito senza revisione.'))return;
+  const button=$('li-public-lookup');button.disabled=true;let found=0,errors=0;
+  state.suggestions=[];state.pending=[];render();
+  try{
+   for(const {row,index} of missing){
+    status('li-public-status','Ricerca '+(found+errors+1)+' / '+missing.length+' in corso...');
+    try{
+     const r=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:work,entity:'lead_public_lookup',action:'suggest',data:{name:row.name,domain:row.domain||''}})});
+     const data=await r.json();if(!r.ok)throw Error(data.error||'HTTP '+r.status);
+     for(const suggestion of data.suggestions||[]){
+      if(suggestion.field!=='domain'||!suggestion.value||!suggestion.source)continue;
+      state.suggestions.push({index,field:'domain',value:suggestion.value,source:suggestion.source,company:row.name,match:'voce pubblica per nome',verified:false});
+      found++;
+     }
+    }catch{errors++}
+   }
+   render();status('li-public-status','Ricerca conclusa: '+found+' possibili siti ufficiali, '+errors+' errori. Seleziona e verifica i suggerimenti prima di applicarli.');
+  }finally{button.disabled=false}
+ };
  $('li-select-all').onclick=()=>{for(const check of $('li-suggestions').querySelectorAll('input[type=checkbox]'))check.checked=true};
  $('li-apply').onclick=()=>{
   try{
