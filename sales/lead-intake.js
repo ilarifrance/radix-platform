@@ -82,6 +82,8 @@
   try{
    const chosen=[...$('li-suggestions').querySelectorAll('input[type=checkbox]:checked')].map(x=>state.suggestions[Number(x.value)]).filter(Boolean);
    if(!chosen.length)throw Error('Seleziona almeno un campo');
+   if(chosen.some(s=>!/^https:\/\/[^\s/]+\.[^\s/]+/i.test(s.source)))throw Error('Ogni completamento richiede un URL HTTPS di provenienza. Inseriscilo nel campo Fonte e ricarica il file di completamento.');
+   if(state.evidence.length+chosen.length>250)throw Error('Massimo 250 campi di provenienza per lista. Seleziona meno suggerimenti.');
    if(!window.confirm('Applicare '+chosen.length+' completamenti verificati da te? Le approvazioni commerciali saranno invalidate; dovrai salvare esplicitamente la lista.'))return;
    const update=C.apply(current(),chosen);
    replace(update.rows,chosen.length+' campi completati dopo revisione. Salva le modifiche nell’Archivio per renderle persistenti.');
