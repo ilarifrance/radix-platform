@@ -16,6 +16,7 @@
  function replace(rows,reason){
   // All approvals and previous CRM links are invalidated by the existing RADIX import/restore flow.
   window.radixLeadData.restore({...window.radixLeadData.export(),prospects:rows});
+  window.dispatchEvent(new CustomEvent('radix:lead-prospects-edited'));
   status('li-source-status',reason);
  }
  $('li-company-add').onclick=()=>{

@@ -3,6 +3,10 @@
  const $=id=>document.getElementById(id),state={workspace:'',listId:'',version:0,role:'',busy:false,dirty:false};
  const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
  const status=x=>$('archive-status').textContent=x;
+ const markDirty=()=>{state.dirty=true;};
+ window.addEventListener('radix:lead-primary-list-changed',markDirty);
+ window.addEventListener('radix:lead-prospects-edited',markDirty);
+ window.addEventListener('beforeunload',e=>{if(!state.dirty)return;e.preventDefault();e.returnValue='';});
  const opts=(name,value)=>{const a=document.createElement('option');a.textContent=name;a.value=value;return a};
  const writable=()=>['owner','admin','member'].includes(state.role);
  const clearCurrent=()=>{state.listId='';state.version=0;$('archive-selected').textContent='Nessuna lista caricata'};
@@ -70,7 +74,7 @@
    const row=rows[0];if(!row||!UUID.test(row.id)||!row.payload)throw Error('Lista non trovata.');
    window.radixLeadData.restore(row.payload);
    const count=window.radixLeadWorkflow.restoreReviews(row.payload.reviews||[]);window.radixLeadIntakeEvidence?.restore(row.payload.enrichment||[]);
-   state.listId=row.id;state.version=row.version;
+   state.listId=row.id;state.version=row.version;state.dirty=false;
    $('archive-title').value=row.title;$('archive-list').value=row.id;
    $('archive-selected').textContent='Lista '+row.title+' · versione '+row.version;
    status('Archivio caricato: '+row.payload.prospects.length+' prospect e '+count+' approvazioni ricostruite. Le associazioni CRM vanno riconfermate.');
@@ -89,7 +93,7 @@
    const action=newList||!state.listId?'create':'update';
    if(action==='update'&&$('archive-list').value!==state.listId)throw Error('Carica prima la lista selezionata per evitare sovrascritture.');
    const result=await post(action,action==='create'?{title,payload}:{id:state.listId,version:state.version,title,payload});
-   state.listId=result.id;state.version=result.version;
+   state.listId=result.id;state.version=result.version;state.dirty=false;
    await list(result.id);$('archive-selected').textContent='Lista '+result.title+' · versione '+result.version;
    status('Salvataggio CRM confermato · '+reviews.length+' approvazioni · versione '+result.version+'. Nessun invio.');
   }catch(e){status('Archivio non salvato: '+e.message+' Se la lista è stata modificata altrove, ricaricala prima di riprovare.')}
@@ -101,7 +105,7 @@
   working(true);
   try{
    await post('delete',{id:state.listId,version:state.version});
-   clearCurrent();$('archive-title').value='';
+   clearCurrent();state.dirty=false;$('archive-title').value='';
    await list();status('Lista eliminata dall’archivio CRM. Le informazioni ancora aperte nella pagina restano in memoria fino all’uscita.');
   }catch(e){status('Eliminazione non confermata: '+e.message)}
   finally{working(false)}
