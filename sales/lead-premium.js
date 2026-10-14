@@ -39,16 +39,34 @@
  $('file').onchange=async()=>{
   const file=$('file').files?.[0],epoch=++importEpoch;
   if(!file)return;
-  if(file.size>1024*1024){$('import-status').textContent='Il file supera 1 MB';return}
+  const ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(!['csv','tsv','xlsx','xls'].includes(ext)){$('import-status').textContent='Formato non supportato';return}
+  if(file.size>(ext==='xlsx'?3:1)*1024*1024){$('import-status').textContent='File troppo grande: massimo '+(ext==='xlsx'?'3 MB':'1 MB');return}
   $('import-status').textContent='Lettura del file in corso…';
   try{
-   const text=await file.text();
-   // A slow previous file must never overwrite a newer import, manual entry or reset.
+   let parsed;
+   if(ext==='xlsx'){
+    if(!window.RadixLeadXlsx)throw Error('Lettore Excel non disponibile: aggiorna la pagina.');
+    parsed=await window.RadixLeadXlsx.parseXlsx(await file.arrayBuffer(),{maxRows:MAX_ROWS});
+   }else if(ext==='xls'){
+    // Legacy BIFF is read by RADIX existing authenticated parser, NEVER silently uploaded.
+    if(!window.confirm('Il formato .xls richiede elaborazione temporanea nel server RADIX. Il file verrà trasmesso via HTTPS per la conversione (non salvato dall’applicazione). Procedere?')){$('import-status').textContent='Importazione .xls annullata: nessun file trasmesso.';return}
+    const bytes=new Uint8Array(await file.arrayBuffer());let base64='';
+    for(let off=0;off<bytes.length;off+=32768)base64+=String.fromCharCode(...bytes.subarray(off,off+32768));
+    const response=await fetch('/api/parse-file',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentBase64:btoa(base64)})});
+    const result=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(result.error||'Conversione .xls non disponibile (HTTP '+response.status+')');
+    // The existing parser emits sections headed ## Foglio: sheetname, with CSV in each.
+    const raw=String(result.text||''),start=/^## Foglio:[^\r\n]*\r?\n/.exec(raw);
+    if(!start)throw Error('Nessun foglio .xls leggibile.');
+    const csv=raw.slice(start[0].length).split(/\r?\n\r?\n## Foglio:/)[0];
+    parsed=parseCsv(csv);
+   }else parsed=parseCsv(await file.text());
    if(epoch!==importEpoch)return;
-   const parsed=parseCsv(text);if(!parsed.length)throw Error('CSV: nessun prospect trovato');
+   if(!parsed.length)throw Error('Nessun prospect trovato');
    candidates=parsed;$('total').textContent=candidates.length;
    invalidate('Dati importati: avvia la qualificazione.');
-   $('import-status').textContent=candidates.length+' aziende importate: dati soltanto in memoria';
+   $('import-status').textContent=candidates.length+' aziende importate da '+ext+': dati soltanto in memoria'+(ext==='xls'?' (conversione RADIX tramite server, senza salvataggio del file)':'');
   }catch(e){if(epoch===importEpoch)$('import-status').textContent=e.message+' · Lista precedente conservata, se presente.'}
  };
  function parsePastedProfile(text){const lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);const pick=(pattern)=>{for(const line of lines){const m=line.match(pattern);if(m&&m[1]?.trim())return m[1].trim()}return ''};const bare=lines.find(line=>!line.includes(':')&&!/^https?:\/\//i.test(line)&&line.length>=3&&line.length<130)||'';let url=pick(/(?:sito|website|web|dominio|domain)\s*[:：-]\s*(https?:\/\/\S+|[a-z0-9-]+(?:\.[a-z0-9-]+)+)/i);if(!url){const m=text.match(/https?:\/\/(?!www\.linkedin\.com\/)\S+/i);if(m)url=m[0]}let source=pick(/(?:fonte|source|profilo|linkedin)\s*[:：-]\s*(https:\/\/\S+)/i);if(!source){const m=text.match(/https:\/\/(?:[a-z]{2,3}\.)?linkedin\.com\/[^\s]+/i);if(m)source=m[0]}return{name:pick(/(?:azienda|company|organization|organizzazione)\s*[:：-]\s*(.+)/i)||bare,domain:url,country:pick(/(?:paese|country|sede)\s*[:：-]\s*(.+)/i),industry:pick(/(?:settore|industry)\s*[:：-]\s*(.+)/i),companySize:pick(/(?:dimensione|company\s*size|size|dipendenti)\s*[:：-]\s*(.+)/i),contactRole:pick(/(?:ruolo|role|posizione|job\s*title)\s*[:：-]\s*(.+)/i),source};}
