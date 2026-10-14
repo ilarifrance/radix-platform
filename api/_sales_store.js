@@ -1,6 +1,7 @@
 'use strict';
 const {fields}=require('./_sales');
 const {createLeadListStore}=require('./_lead_lists_store');
+const {isolatedUrl}=require('./_lead_db_guard');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
@@ -13,11 +14,18 @@ function normalize(value,key=''){
 }
 function createStore(rawSql){
  const sql=async(...args)=>normalize(await rawSql(...args));
+ // Sensitive Lead archives must never connect to the shared RADIX database.
+ let leadRaw=null;
+ const leadSql=async(...args)=>{
+  const leadUrl=isolatedUrl(process.env.LEAD_DATABASE_URL,process.env.DATABASE_URL,process.env.VERCEL_ENV);
+  if(!leadRaw)leadRaw=require('@neondatabase/serverless').neon(leadUrl);
+  return normalize(await leadRaw(...args));
+ };
  const allowedRoles="m.role IN ('owner','admin','member','viewer')";
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
  membership,
- leadLists:createLeadListStore(sql),
+ leadLists:createLeadListStore(leadSql),
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';
