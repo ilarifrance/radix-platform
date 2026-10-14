@@ -23,6 +23,19 @@
   const instruction='Prepara un file JSON versione 1 con i soli dati aziendali che sono legittimamente disponibili per uso ed esportazione. Non aggirare protezioni, non effettuare scraping massivo e non condividere cookie o password. Schema: {"version":1,"sourceUrl":"URL LinkedIn/Sales Navigator fornito dall’utente","companies":[{"name":"Azienda","domain":"","country":"","industry":"","companySize":"","contactRole":"","source":"URL della fonte pubblica o esportazione autorizzata"}]}. Per campi non verificati usa una stringa vuota. Non inventare email o dati e non includere dati personali superflui.';
   try{await navigator.clipboard.writeText(instruction);status('li-agent-status','Istruzioni copiate: incollale nel tuo agente browser, poi importa il file JSON prodotto.')}catch{status('li-agent-status','Clipboard non disponibile in questo browser.')}
  };
+ $('li-agent-paste-import').onclick=()=>{
+  try{
+   const parsed=$('li-agent-paste').value.trim();if(parsed.length>160000)throw Error('JSON troppo grande');
+   const rows=C.fromAgentExport(parsed,url().url),previous=current();
+   const seen=new Set(previous.map(C.identity).filter(Boolean));const add=[];let skipped=0;
+   for(const row of rows){const key=C.identity(row);if(key&&seen.has(key)){skipped++;continue}if(key)seen.add(key);add.push(row)}
+   if(!add.length)throw Error('Nessuna azienda nuova');
+   if(add.length+previous.length>250)throw Error('Limite lista: 250 aziende');
+   if(!window.confirm('Importare '+add.length+' aziende? '+skipped+' duplicati esclusi.'))return;
+   replace([...previous,...add],'Risultati agente aggiunti alla lista.');
+   status('li-agent-status',add.length+' aziende aggiunte. Qualifica e salva la lista.');
+  }catch(e){status('li-agent-status','Importazione non riuscita: '+e.message)}
+ };
  $('li-agent-file').onchange=async()=>{
   const file=$('li-agent-file').files?.[0];if(!file)return;
   try{

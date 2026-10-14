@@ -35,7 +35,7 @@
 <p class="muted">Puoi far preparare a un agente browser un file JSON con i dati a cui hai diritto di accesso, senza fornire a RADIX password, cookie o sessioni LinkedIn. RADIX verifica lo schema, confronta l'URL di origine, esclude i duplicati e aggiunge i prospect solo dopo tua conferma. Non è un connettore automatico a LinkedIn.</p>
 <div class="toolbar"><button id="li-agent-instructions" type="button" class="outline">Copia istruzioni per l’agente</button></div>
 <label class="upload">Importa risultati agente (.json) <input id="li-agent-file" type="file" accept=".json,application/json"></label>
-<p id="li-agent-status" class="muted" role="status">Nessun file agente caricato.</p>
+<label class="draft-label">Oppure incolla qui il JSON restituito dall’agente<textarea id="li-agent-paste" rows="4" maxlength="160000" placeholder='{"version":1,"sourceUrl":"https://www.linkedin.com/company/example","companies":[{"name":"Azienda"}]}'></textarea></label><div class="toolbar"><button id="li-agent-paste-import" type="button" class="outline">Importa JSON incollato</button></div><p id="li-agent-status" class="muted" role="status">Nessun file agente caricato.</p>
 <div class="li-separator"></div>
 <h3>Importazione da pagina aziendale</h3>
 <p class="muted">Da una URL LinkedIn <code>/company/...</code> puoi aggiungere un prospect con il nome che verifichi manualmente; gli altri campi restano vuoti, da completare.</p>
