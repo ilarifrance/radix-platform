@@ -4,7 +4,7 @@
  function summarize(events){
   const state=new Map();
   for(const row of events||[]){
-   if(!row||!Number.isInteger(row.index)||row.index<0||!STAGES.includes(row.stage))continue;
+   if(!row||!Number.isInteger(row.index)||row.index<0||!STAGES.includes(row.stage)||row.voidedAt)continue;
    const prior=state.get(row.index)||{observed:new Set(),latest:''};
    prior.observed.add(row.stage);prior.latest=row.stage;state.set(row.index,prior);
   }
