@@ -63,6 +63,37 @@
    status('li-agent-status',add.length+' aziende aggiunte. Qualifica e salva la lista.');
   }catch(e){status('li-agent-status','Importazione non riuscita: '+e.message)}
  };
+ let pendingAgent=null;
+ const discardPreview=()=>{pendingAgent=null;$('li-agent-commit').disabled=true;};
+ $('li-agent-preview').onclick=()=>{
+  discardPreview();
+  try{
+    const valid=url(),raw=$('li-agent-paste').value.trim();
+    if(raw.length>160000)throw Error('Dimensioni JSON superiori al limite');
+    const rows=C.fromAgentExport(raw,valid.url),existing=current(),keys=new Set(existing.map(C.identity).filter(Boolean));
+    const newRows=[];let duplicate=0;
+    for(const r of rows){const key=C.identity(r);if(key&&keys.has(key)){duplicate++;continue}if(key)keys.add(key);newRows.push(r)}
+    if(existing.length+newRows.length>250)throw Error('Superato il limite di 250 aziende');
+    const table=$('li-agent-preview-rows');table.replaceChildren();
+    for(const r of newRows.slice(0,20)){
+      const tr=el('tr');for(const v of [r.name,r.domain,r.source])tr.append(el('td',v||'—'));table.append(tr);
+    }
+    if(!newRows.length)table.append(el('tr','Tutte le aziende sono duplicate.'));
+    pendingAgent={rows:newRows,at:JSON.stringify(existing),source:valid.url};
+    $('li-agent-commit').disabled=!newRows.length;
+    status('li-agent-preview-status',newRows.length+' nuove aziende; '+duplicate+' duplicate. Mostrate fino a 20 righe. Nessun salvataggio eseguito.');
+  }catch(e){status('li-agent-preview-status','Anteprima non disponibile: '+e.message)}
+ };
+ $('li-agent-commit').onclick=()=>{
+  try{
+    if(!pendingAgent||!pendingAgent.rows.length)throw Error('Genera prima l’anteprima');
+    if(JSON.stringify(current())!==pendingAgent.at||url().url!==pendingAgent.source)throw Error('La lista o la fonte è cambiata: rigenera l’anteprima');
+    if(!window.confirm('Confermi '+pendingAgent.rows.length+' aziende nella lista? Le approvazioni precedenti verranno invalidate. Salva poi nell’Archivio.'))return;
+    const rows=pendingAgent.rows;replace([...current(),...rows],'Aggiunte '+rows.length+' aziende dall’anteprima.');
+    discardPreview();status('li-agent-preview-status','Aziende aggiunte alla lista in memoria. Salva esplicitamente nell’Archivio.');
+  }catch(e){status('li-agent-preview-status',e.message)}
+ };
+ window.addEventListener('radix:lead-primary-list-changed',discardPreview);
  $('li-agent-file').onchange=async()=>{
   const file=$('li-agent-file').files?.[0];if(!file)return;
   try{
