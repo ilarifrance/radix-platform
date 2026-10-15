@@ -47,7 +47,7 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 .receiver-controls input{width:min(370px,100%)}.receiver-controls select{width:auto;min-width:190px}
 .receiver-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.receiver-metrics span{padding:7px 12px;border:1px solid #32606d;background:#0b2b36;border-radius:999px;font-size:12px;color:#b7dfd9}
 .receiver-table{overflow:auto;max-height:620px;border:1px solid #2d5664;border-radius:12px;scrollbar-width:thin;scrollbar-color:#398778 #0a222e}
-.receiver-table table{width:100%;border-collapse:collapse;font-size:13px;min-width:940px;text-align:left}
+.receiver-table table{width:100%;border-collapse:collapse;font-size:13px;min-width:1090px;text-align:left}
 .receiver-table thead{position:sticky;top:0;background:#103341;z-index:2}
 .receiver-table th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a5e6d7}
 .receiver-table th,.receiver-table td{padding:12px 11px;border-bottom:1px solid #244550;vertical-align:top;max-width:230px;overflow-wrap:anywhere}
@@ -83,7 +83,7 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
  <div class="receiver-head"><div><h2 id="receiver-title">04 · Contatti ricevuti</h2><p class="help">Archivio operativo dei dati già salvati sul Mac. Revisione prima dell'arricchimento: nessuna API a pagamento e nessuna scrittura automatica nel CRM.</p></div><button class="secondary" id="receiver-refresh" type="button">Aggiorna tabella ↻</button></div>
  <div class="receiver-metrics"><span id="receiver-total">0 contatti</span><span id="receiver-complete">0 completi</span><span id="receiver-incomplete">0 da verificare</span></div>
  <div class="receiver-controls"><label for="receiver-job">Lavoro <select id="receiver-job"><option value="">Nessun lavoro</option></select></label><label for="receiver-search">Cerca <input id="receiver-search" placeholder="Nome, ruolo, azienda..." autocomplete="off"></label><label for="receiver-filter">Qualità <select id="receiver-filter"><option value="all">Tutti</option><option value="complete">Ruolo e azienda presenti</option><option value="incomplete">Dati incompleti</option></select></label></div>
- <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="8">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
+ <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Dominio</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="9">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
  <div class="receiver-footer"><span id="receiver-summary" role="status">Dati locali, non sincronizzati.</span><div class="toolbar"><button id="receiver-prev" type="button" class="secondary" disabled>← Precedenti</button><span id="receiver-page">Pagina 1</span><button id="receiver-next" type="button" class="secondary" disabled>Successivi →</button></div></div>
 </section>
 <section class="panel receiver" id="enrichment-stage">
@@ -127,7 +127,7 @@ function renderReceiver(){
  const body=$('receiver-rows');body.replaceChildren();
  for(const row of filtered.slice(receiverPage*receiverPageSize,(receiverPage+1)*receiverPageSize)){
   const tr=document.createElement('tr');
-  for(const field of ['fullName','jobTitle','companyName','location','email','phone'])receiverCell(tr,row[field]);
+  for(const field of ['fullName','jobTitle','companyName','companyDomain','location','email','phone'])receiverCell(tr,row[field]);
   const status=receiverCell(tr,receiverFilled(row)?'Pronto per revisione':'Da completare');
   status.className=receiverFilled(row)?'receiver-pill':'receiver-pill missing';
   const td=document.createElement('td');
@@ -136,7 +136,7 @@ function renderReceiver(){
   }else td.textContent='—';
   tr.append(td);body.append(tr);
  }
- if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
+ if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
  $('receiver-page').textContent='Pagina '+(receiverPage+1)+' / '+pages;
  $('receiver-prev').disabled=receiverPage<=0;$('receiver-next').disabled=receiverPage>=pages-1;
  $('receiver-summary').textContent=filtered.length+' contatti visualizzabili su '+receiverRecords.length+' · solo consultazione';
