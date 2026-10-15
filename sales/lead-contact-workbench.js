@@ -36,7 +36,7 @@
    text('contact-api-result','Verifica in corso...');
    const response=await fetch(path,options),body=await response.json();
    if(!response.ok)throw Error(body.error||'Provider non disponibile');
-   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata in Preview, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY nelle variabili Preview di Vercel.');
+   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata in Preview, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY e CAPTAIN_DATA_USER_UID nelle variabili Preview di Vercel.');
   }catch(e){text('contact-api-result','Verifica API: '+e.message)}
  }
  $('contact-api-status').onclick=()=>apiStatus(false);
@@ -71,8 +71,9 @@
    const src=B.start(x.sourceUrl),validated=x.records.map(r=>B.person(r,src.sourceUrl));
    if(x.batches.some(b=>typeof b.id!=='string'||typeof b.signature!=='string'))throw Error('Lotti non validi');
    if(job&&!window.confirm('Sostituire il lavoro di contatti attualmente aperto?'))return;
-   job={...src,records:validated,batches:x.batches,total:Number.isSafeInteger(x.total)?x.total:validated.length,duplicates:Number.isSafeInteger(x.duplicates)?x.duplicates:0};
-   $('contact-source').value=job.sourceUrl;vault={id:'',version:0,workspace:'',dirty:true};show();
+   job={...src,records:validated,batches:x.batches,total:Number.isSafeInteger(x.total)?x.total:validated.length,duplicates:Number.isSafeInteger(x.duplicates)?x.duplicates:0,providerRunUid:x.providerRunUid};
+   $('contact-provider-run-uid').value=x.providerRunUid||'';
+   $('contact-source').value=job.sourceUrl;vault={id:'',version:0,workspace:'',dirty:true};show();updateCallbackInfo();
    text('contact-status','Lavoro ripristinato: '+job.records.length+' contatti. Continua importando un nuovo lotto.');
   }catch(e){text('contact-status','Ripristino non riuscito: '+e.message)}
  };
@@ -178,7 +179,7 @@
  });
  $('contact-clear').onclick=()=>{
   if(job&&!window.confirm('Chiudere il lavoro non ancora salvato? Scarica prima il backup se desideri conservarlo.'))return;
-  job=null;vault={id:'',version:0,workspace:'',dirty:false};show();text('contact-status','Lavoro svuotato. Nessun dato inviato al server.');
+  job=null;vault={id:'',version:0,workspace:'',dirty:false};$('contact-provider-run-uid').value='';show();updateCallbackInfo();text('contact-status','Lavoro svuotato. Nessun dato inviato al server.');
  };
  show();
 })();
