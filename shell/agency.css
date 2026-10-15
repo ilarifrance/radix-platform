@@ -30,3 +30,6 @@ html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
 }
 /* Grid pages: keep content at the top (a few pages used margin:auto, which centered it vertically) */
 .rx-agency .shell>main,.rx-agency .shell>.main{align-self:start;margin-top:0;margin-bottom:0}
+/* live registry counts on division cards (lib/agency-divisions.js) */
+.rx-agency small.live{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--rx-muted)}
+.rx-agency small.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-success)}
