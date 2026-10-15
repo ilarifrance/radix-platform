@@ -40,13 +40,59 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 .local-note{border-left:2px solid #66d6bb;padding-left:12px}
 @media(max-width:760px){main{grid-template-columns:1fr}.wrap{padding:14px 14px 40px}header{flex-wrap:wrap;gap:15px}.panel{padding:18px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Contact receiver / workbench */
+.receiver{margin-top:24px}.receiver-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.receiver-head p{margin:5px 0 0}.receiver-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.receiver-controls input{width:min(370px,100%)}.receiver-controls select{width:auto;min-width:190px}
+.receiver-metrics{display:flex;gap:10px;flex-wrap:wrap;margin:15px 0}.receiver-metrics span{padding:7px 12px;border:1px solid #32606d;background:#0b2b36;border-radius:999px;font-size:12px;color:#b7dfd9}
+.receiver-table{overflow:auto;max-height:620px;border:1px solid #2d5664;border-radius:12px;scrollbar-width:thin;scrollbar-color:#398778 #0a222e}
+.receiver-table table{width:100%;border-collapse:collapse;font-size:13px;min-width:940px;text-align:left}
+.receiver-table thead{position:sticky;top:0;background:#103341;z-index:2}
+.receiver-table th{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#a5e6d7}
+.receiver-table th,.receiver-table td{padding:12px 11px;border-bottom:1px solid #244550;vertical-align:top;max-width:230px;overflow-wrap:anywhere}
+.receiver-table tbody tr:hover{background:#173846}
+.receiver-table td:first-child{font-weight:650;color:#f2fffa}
+.receiver-table a{color:#86eccc}
+.receiver-pill{font-size:11px;padding:4px 8px;border-radius:7px;border:1px solid #538777;color:#a5f6d1;white-space:nowrap}
+.receiver-pill.missing{border-color:#957954;color:#ffd59d;background:#46372133}
+.receiver-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;color:#b4cfd3;font-size:12px;flex-wrap:wrap}
+.receiver-footer button{padding:8px 13px}
+@media(max-width:760px){.receiver{margin-top:14px}.receiver-controls input,.receiver-controls select{width:100%}}
+.enrich-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.enrich-summary div{padding:16px;border:1px solid #2b5d68;border-radius:12px;background:#0c303c}
+.enrich-summary strong{display:block;font-size:24px;color:#8affe0;font-variant-numeric:tabular-nums}
+.enrich-summary small{color:#9fc8cd;font-size:11px}
+.enrich-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;max-width:750px}
+.enrich-fields label{display:block}.enrich-disclaimer{border-left:3px solid #e5bd79;padding:5px 12px;color:#e6d0a6}
+@media(max-width:680px){.enrich-summary{grid-template-columns:repeat(2,1fr)}.enrich-fields{grid-template-columns:1fr}}
 </style></head><body><div class="wrap"><header><div class="logo">RADIX<span>LINKEDIN · LOCAL AGENT</span></div><span class="badge">LOCALHOST · SESSIONE PRIVATA</span></header>
 <div class="intro"><h1>Tu accedi. RADIX organizza i risultati.</h1><p>L'agente usa un browser locale visibile. Login manuale, nessuna password o cookie inviati a RADIX o a servizi esterni. Non risolve CAPTCHA e si arresta se il sito chiede una verifica.</p><div class="workflow" aria-label="Fasi operative"><span>01 Accesso personale</span><span>02 Ricerca autorizzata</span><span>03 Revisione dati</span><span>04 Import RADIX</span></div></div>
 <main><div>
 <section class="panel"><h2>01 · Apri il browser e accedi</h2><p class="help">Clicca e completa personalmente l'accesso nella finestra Chromium. Non inserire credenziali in questa pagina.</p><button id="open">Apri Sales Navigator ↗</button></section>
 <section class="panel"><h2>02 · Configura acquisizione</h2><label for="url">URL ricerca persone Sales Navigator</label><input id="url" placeholder="https://www.linkedin.com/sales/search/people?..." spellcheck="false"><label for="quantity">Numero massimo di contatti</label><input id="quantity" type="number" min="1" max="5000" value="200"><div class="toolbar"><button id="start">Avvia agente</button><button id="stop" class="danger">Ferma / pausa</button></div><p class="muted warning">LinkedIn limita la raccolta automatizzata. Effettua questa operazione soltanto dove autorizzata. Nessun aggiramento di CAPTCHA, limiti o blocchi.</p></section>
 <section class="panel"><h2>03 · Esporta i risultati a RADIX</h2><div class="toolbar"><a id="json" class="action secondary" href="#">Backup RADIX JSON ↓</a><a id="csv" class="action secondary" href="#">CSV ↓</a></div><p class="help">Il backup JSON è compatibile con <b>Contatti individuali → Ripristina backup</b> nella <a href="https://radix-platform-git-integration-r-6f2769-radix-innovation-studio.vercel.app/lead-intelligence.html" target="_blank" rel="noopener noreferrer">Lead Intelligence Preview ↗</a>. I file contengono dati personali.</p></section></div>
-<aside><section class="panel"><h2>Avanzamento</h2><div class="stats"><div class="stat"><small>CONTATTI UNICI</small><b id="count">0</b></div><div class="stat"><small>PAGINE</small><b id="pages">0</b></div><div class="stat"><small>DUPLICATI</small><b id="duplicates">0</b></div><div class="stat"><small>OBIETTIVO</small><b id="requested">0</b></div></div><div class="progress-wrap"><div class="progress-meta"><span>Completamento lavoro</span><output id="progress-value" for="progress-bar">0%</output></div><progress id="progress-bar" value="0" max="100" aria-label="Progresso del lavoro"></progress></div><label>Stato agente</label><div class="status" role="status" id="status" data-phase="idle">In attesa del browser...</div><p class="muted" id="job"></p></section><section class="panel"><h2>Riprendi un lavoro</h2><select id="saved"></select><div class="toolbar"><button id="resume" class="secondary">Riprendi selezionato</button></div><p class="muted">Checkpoint sul tuo Mac dopo ogni pagina; nessuna sincronizzazione automatica nel CRM.</p></section></aside></main></div>
+<aside><section class="panel"><h2>Avanzamento</h2><div class="stats"><div class="stat"><small>CONTATTI UNICI</small><b id="count">0</b></div><div class="stat"><small>PAGINE</small><b id="pages">0</b></div><div class="stat"><small>DUPLICATI</small><b id="duplicates">0</b></div><div class="stat"><small>OBIETTIVO</small><b id="requested">0</b></div></div><div class="progress-wrap"><div class="progress-meta"><span>Completamento lavoro</span><output id="progress-value" for="progress-bar">0%</output></div><progress id="progress-bar" value="0" max="100" aria-label="Progresso del lavoro"></progress></div><label>Stato agente</label><div class="status" role="status" id="status" data-phase="idle">In attesa del browser...</div><p class="muted" id="job"></p></section><section class="panel"><h2>Riprendi un lavoro</h2><select id="saved"></select><div class="toolbar"><button id="resume" class="secondary">Riprendi selezionato</button></div><p class="muted">Checkpoint sul tuo Mac dopo ogni pagina; nessuna sincronizzazione automatica nel CRM.</p></section></aside></main>
+<section class="panel receiver" id="contacts-receiver" aria-labelledby="receiver-title">
+ <div class="receiver-head"><div><h2 id="receiver-title">04 · Contatti ricevuti</h2><p class="help">Archivio operativo dei dati già salvati sul Mac. Revisione prima dell'arricchimento: nessuna API a pagamento e nessuna scrittura automatica nel CRM.</p></div><button class="secondary" id="receiver-refresh" type="button">Aggiorna tabella ↻</button></div>
+ <div class="receiver-metrics"><span id="receiver-total">0 contatti</span><span id="receiver-complete">0 completi</span><span id="receiver-incomplete">0 da verificare</span></div>
+ <div class="receiver-controls"><label for="receiver-job">Lavoro <select id="receiver-job"><option value="">Nessun lavoro</option></select></label><label for="receiver-search">Cerca <input id="receiver-search" placeholder="Nome, ruolo, azienda..." autocomplete="off"></label><label for="receiver-filter">Qualità <select id="receiver-filter"><option value="all">Tutti</option><option value="complete">Ruolo e azienda presenti</option><option value="incomplete">Dati incompleti</option></select></label></div>
+ <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="8">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
+ <div class="receiver-footer"><span id="receiver-summary" role="status">Dati locali, non sincronizzati.</span><div class="toolbar"><button id="receiver-prev" type="button" class="secondary" disabled>← Precedenti</button><span id="receiver-page">Pagina 1</span><button id="receiver-next" type="button" class="secondary" disabled>Successivi →</button></div></div>
+</section>
+<section class="panel receiver" id="enrichment-stage">
+<h2>05 · Preparazione arricchimento</h2>
+<p class="help">Analisi offline dei contatti ricevuti. Stima dei campi mancanti e simulazione del budget per email finder: <b>nessuna richiesta a provider, nessun credito consumato.</b></p>
+<div class="enrich-summary"><div><small>CONTATTI</small><strong id="enrich-total">0</strong></div><div><small>REVISIONE PRELIMINARE</small><strong id="enrich-review">0</strong></div><div><small>CANDIDATI EMAIL</small><strong id="enrich-eligible">0</strong></div><div><small>CHIAMATE SIMULATE</small><strong id="enrich-calls">0</strong></div></div>
+<div class="enrich-fields">
+<label for="enrich-unit">Costo ipotetico per richiesta (€)<input id="enrich-unit" type="number" min="0" max="100" step="0.001" value="0.02"></label>
+<label for="enrich-budget">Budget massimo di simulazione (€)<input id="enrich-budget" type="number" min="0" max="100000" step="0.01" value="1"></label>
+</div>
+<div class="toolbar"><button id="enrich-plan" type="button" class="secondary">Calcola piano offline</button><button id="enrich-copy" type="button" class="secondary" disabled>Copia riepilogo</button></div>
+<div class="status" id="enrich-result" role="status">Seleziona un lavoro nella tabella e calcola il piano.</div>
+<p class="help enrich-disclaimer">I prezzi sono valori inseriti da te, non tariffe verificate di Hunter, Dropcontact o altri provider. Il calcolo non acquista crediti e non modifica i contatti.</p>
+</section></div>
+<script src="/lead-enrichment-plan.js"></script>
 <script>
 'use strict';const $=id=>document.getElementById(id);let current='';
 async function call(route,body){const res=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});const v=await res.json();if(!res.ok)throw Error(v.error||'Errore');return v}
@@ -54,8 +100,73 @@ async function act(route,body){try{await call(route,body);await refresh()}catch(
 $('open').onclick=()=>act('/api/browser');$('stop').onclick=()=>act('/api/stop');
 $('start').onclick=()=>act('/api/start',{url:$('url').value,quantity:$('quantity').value});
 $('resume').onclick=()=>act('/api/start',{resumeId:$('saved').value});
-async function jobs(){try{const {jobs:list}=await(await fetch('/api/jobs')).json();$('saved').replaceChildren();for(const j of list){const o=document.createElement('option');o.value=j.id;o.textContent=j.createdAt+' · '+j.count+' contatti';$('saved').append(o)}}catch{}}
-async function refresh(){try{const s=await(await fetch('/api/status',{cache:'no-store'})).json();$('count').textContent=s.collected;$('pages').textContent=s.page;$('duplicates').textContent=s.duplicates;$('requested').textContent=s.requested;$('status').textContent=s.phase.toUpperCase()+(s.error?' · '+s.error:'');$('status').dataset.phase=s.phase;const pct=s.requested?Math.min(100,Math.round(100*s.collected/s.requested)):0;$('progress-bar').value=pct;$('progress-value').textContent=pct+'%';$('job').textContent=s.jobId?'ID lavoro: '+s.jobId:'';if(s.jobId&&s.jobId!==current){current=s.jobId;for(const type of ['json','csv'])$(type).href='/api/download?id='+encodeURIComponent(current)+'&format='+type;await jobs()}$('json').style.pointerEvents=s.outputAvailable?'auto':'none';$('csv').style.pointerEvents=s.outputAvailable?'auto':'none'}catch{$('status').textContent='Servizio locale non disponibile'}}
+async function jobs(preferredId){try{const {jobs:list}=await(await fetch('/api/jobs',{cache:'no-store'})).json();$('saved').replaceChildren();$('receiver-job').replaceChildren();list.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));for(const j of list){for(const select of [$('saved'),$('receiver-job')]){const o=document.createElement('option');o.value=j.id;o.textContent=j.createdAt+' · '+j.count+' contatti';select.append(o)}}const active=list.some(j=>j.id===preferredId)?preferredId:list.some(j=>j.id===receiverSelected)?receiverSelected:list[0]?.id||'';$('receiver-job').value=active;if(active&&active!==receiverSelected)await loadReceiver(active);if(!active){receiverRecords=[];renderReceiver()}}catch(e){$('receiver-summary').textContent='Impossibile caricare lavori: '+e.message}}
+async function refresh(){try{const s=await(await fetch('/api/status',{cache:'no-store'})).json();$('count').textContent=s.collected;$('pages').textContent=s.page;$('duplicates').textContent=s.duplicates;$('requested').textContent=s.requested;$('status').textContent=s.phase.toUpperCase()+(s.error?' · '+s.error:'');$('status').dataset.phase=s.phase;const pct=s.requested?Math.min(100,Math.round(100*s.collected/s.requested)):0;$('progress-bar').value=pct;$('progress-value').textContent=pct+'%';$('job').textContent=s.jobId?'ID lavoro: '+s.jobId:'';if(s.jobId&&s.jobId!==current){current=s.jobId;for(const type of ['json','csv'])$(type).href='/api/download?id='+encodeURIComponent(current)+'&format='+type;await jobs(s.jobId)}if(s.jobId&&s.jobId===receiverSelected&&s.lastUpdate&&s.lastUpdate!==receiverLastUpdate&&!receiverBusy){receiverLastUpdate=s.lastUpdate;await loadReceiver(s.jobId)}$('json').style.pointerEvents=s.outputAvailable?'auto':'none';$('csv').style.pointerEvents=s.outputAvailable?'auto':'none'}catch{$('status').textContent='Servizio locale non disponibile'}}
+let receiverRecords=[],receiverPage=0,receiverSelected='',receiverLastUpdate='',receiverBusy=false;
+const receiverPageSize=30;
+const receiverCell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value||'—');tr.append(td);return td};
+const receiverFilled=r=>Boolean(r.fullName&&r.jobTitle&&r.companyName);
+function renderReceiver(){
+ const query=$('receiver-search').value.trim().toLocaleLowerCase('it');
+ const mode=$('receiver-filter').value;
+ const filtered=receiverRecords.filter(r=>(mode==='all'||(mode==='complete')===receiverFilled(r))&&
+  (!query||[r.fullName,r.jobTitle,r.companyName,r.location].some(v=>String(v||'').toLocaleLowerCase('it').includes(query))));
+ const pages=Math.max(1,Math.ceil(filtered.length/receiverPageSize));receiverPage=Math.min(receiverPage,pages-1);
+ const body=$('receiver-rows');body.replaceChildren();
+ for(const row of filtered.slice(receiverPage*receiverPageSize,(receiverPage+1)*receiverPageSize)){
+  const tr=document.createElement('tr');
+  for(const field of ['fullName','jobTitle','companyName','location','email','phone'])receiverCell(tr,row[field]);
+  const status=receiverCell(tr,receiverFilled(row)?'Pronto per revisione':'Da completare');
+  status.className=receiverFilled(row)?'receiver-pill':'receiver-pill missing';
+  const td=document.createElement('td');
+  if(/^https:\/\/www\.linkedin\.com\/(sales\/lead\/|in\/)/.test(row.profileUrl||'')){
+   const a=document.createElement('a');a.textContent='Apri ↗';a.href=row.profileUrl;a.target='_blank';a.rel='noopener noreferrer';td.append(a);
+  }else td.textContent='—';
+  tr.append(td);body.append(tr);
+ }
+ if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=8;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
+ $('receiver-page').textContent='Pagina '+(receiverPage+1)+' / '+pages;
+ $('receiver-prev').disabled=receiverPage<=0;$('receiver-next').disabled=receiverPage>=pages-1;
+ $('receiver-summary').textContent=filtered.length+' contatti visualizzabili su '+receiverRecords.length+' · solo consultazione';
+}
+async function loadReceiver(id){
+ receiverSelected=id;receiverBusy=true;
+ try{
+  const res=await fetch('/api/contacts?id='+encodeURIComponent(id||''),{cache:'no-store'});
+  if(!res.ok)throw Error('Impossibile leggere il lavoro');
+  const data=await res.json();if(receiverSelected!==id)return;
+  receiverRecords=Array.isArray(data.records)?data.records:[];receiverPage=0;
+  $('receiver-total').textContent=data.total+' contatti';
+  $('receiver-complete').textContent=data.complete+' con ruolo e azienda';
+  $('receiver-incomplete').textContent=data.incomplete+' da verificare';
+  renderReceiver();
+ }catch(e){$('receiver-summary').textContent='Ricevitore: '+e.message}
+ finally{receiverBusy=false}
+}
+$('receiver-refresh').onclick=()=>loadReceiver($('receiver-job').value);
+$('receiver-search').oninput=()=>{receiverPage=0;renderReceiver()};
+$('receiver-filter').onchange=()=>{receiverPage=0;renderReceiver()};
+$('receiver-job').onchange=()=>loadReceiver($('receiver-job').value);
+$('receiver-prev').onclick=()=>{receiverPage--;renderReceiver()};
+$('receiver-next').onclick=()=>{receiverPage++;renderReceiver()};
+
+let latestEnrichment=null;
+function calculateEnrichment(){
+ try{
+  const engine=window.RadixEnrichmentPlan;if(!engine)throw Error('Modulo di pianificazione non disponibile');
+  const plan=engine.plan(receiverRecords,{unitCost:$('enrich-unit').value,budget:$('enrich-budget').value});
+  latestEnrichment=plan;
+  $('enrich-total').textContent=plan.total;
+  $('enrich-review').textContent=plan.needReview;
+  $('enrich-eligible').textContent=plan.eligible;
+  $('enrich-calls').textContent=plan.plannedCalls;
+  $('enrich-result').textContent='Simulazione: '+plan.plannedCalls+' richieste su '+plan.eligible+' candidati, costo teorico € '+plan.estimatedCost.toFixed(2)+'. Nessuna API contattata. '+plan.needReview+' contatti richiedono revisione dei dati.';
+  $('enrich-copy').disabled=false;
+ }catch(e){latestEnrichment=null;$('enrich-copy').disabled=true;$('enrich-result').textContent='Piano: '+e.message}
+}
+$('enrich-plan').onclick=calculateEnrichment;
+$('enrich-copy').onclick=()=>{if(!latestEnrichment)return;const p=latestEnrichment;navigator.clipboard?.writeText('RADIX — Piano offline\\nContatti: '+p.total+'\\nDa verificare: '+p.needReview+'\\nCandidati email: '+p.eligible+'\\nChiamate ipotetiche: '+p.plannedCalls+'\\nCosto teorico: EUR '+p.estimatedCost.toFixed(2));};
+
 const launchArgs=new URLSearchParams(location.search);if(launchArgs.has('source'))$('url').value=launchArgs.get('source');if(launchArgs.has('quantity'))$('quantity').value=launchArgs.get('quantity');
 refresh();jobs();setInterval(refresh,1800);
 </script></body></html>

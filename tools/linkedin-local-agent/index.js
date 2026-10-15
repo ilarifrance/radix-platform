@@ -17,7 +17,7 @@ const PROFILE = path.join(HOME, 'browser-profile');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const state = {phase:'idle', browser:null, page:null, active:null, stopping:false, error:'', lastUpdate:null};
 const json = (res,status,value) => send(res,status,JSON.stringify(value),{'Content-Type':'application/json; charset=utf-8'});
-function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",...headers});res.end(body)}
+function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'",...headers});res.end(body)}
 function isLocalRequest(req){
  const host=String(req.headers.host||'').toLowerCase();
  const expected='127.0.0.1:'+String(req.socket.localPort||PORT);
@@ -91,9 +91,23 @@ async function handler(req,res){
   const url = new URL(req.url,'http://127.0.0.1:'+PORT);
   if(req.method==='GET'&&url.pathname==='/')return send(res,200,fs.readFileSync(path.join(__dirname,'index.html'),'utf8'),{'Content-Type':'text/html; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/status')return json(res,200,snapshot());
+  if(req.method==='GET'&&url.pathname==='/lead-enrichment-plan.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-enrichment-plan.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/jobs'){
    const jobs=fs.existsSync(JOBS)?fs.readdirSync(JOBS).filter(x=>/^[a-f0-9-]{36}\.json$/.test(x)).slice(-30).map(x=>{try{const j=loadJob(x.slice(0,-5));return {id:j.id,sourceUrl:j.sourceUrl,page:j.page,count:j.data.records.length,createdAt:j.startedAt}}catch{return null}}).filter(Boolean):[];
    return json(res,200,{jobs});
+  }
+  if(req.method==='GET'&&url.pathname==='/api/contacts'){
+   const id=url.searchParams.get('id')||state.active?.id;
+   if(!id)return json(res,200,{jobId:'',total:0,complete:0,incomplete:0,records:[]});
+   const job=loadJob(id);
+   const records=job.data.records||[];
+   const complete=records.filter(r=>r.fullName&&r.jobTitle&&r.companyName).length;
+   // The receiver reads local checkpoints only; it never triggers browsing.
+   return json(res,200,{jobId:id,total:records.length,complete,incomplete:records.length-complete,records:records.slice(0,5000).map(r=>({
+    fullName:r.fullName||'',jobTitle:r.jobTitle||'',companyName:r.companyName||'',
+    location:r.location||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
+    sourceUrl:r.sourceUrl||''
+   }))});
   }
   if(req.method==='GET'&&url.pathname==='/api/download'){
    const id=url.searchParams.get('id')||state.active?.id;if(!id)throw Error('Nessun lavoro selezionato');
