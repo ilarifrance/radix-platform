@@ -17,7 +17,7 @@ const PROFILE = path.join(HOME, 'browser-profile');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const state = {phase:'idle', browser:null, page:null, active:null, stopping:false, error:'', lastUpdate:null};
 const json = (res,status,value) => send(res,status,JSON.stringify(value),{'Content-Type':'application/json; charset=utf-8'});
-function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'",...headers});res.end(body)}
+function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'",...headers});res.end(body)}
 function isLocalRequest(req){
  const host=String(req.headers.host||'').toLowerCase();
  const expected='127.0.0.1:'+String(req.socket.localPort||PORT);
