@@ -75,3 +75,31 @@ test('does not invent a company from location or profile metadata',()=>{
  assert.equal(rows[0].companyName,'');
  assert.equal(rows[0].jobTitle,'');
 });
+
+
+test('local contact receiver is read-only and returns an empty table without jobs',async()=>{
+ const server=http.createServer(handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ try{
+  const base='http://127.0.0.1:'+server.address().port;
+  const response=await fetch(base+'/api/contacts');
+  assert.equal(response.status,200);
+  const payload=await response.json();
+  assert.equal(Array.isArray(payload.records),true);
+  assert.equal(payload.total,0);
+  assert.equal(payload.complete,0);
+  assert.equal(payload.incomplete,0);
+  const page=await(await fetch(base+'/')).text();
+  assert.match(page,/Contatti ricevuti/);
+  assert.match(page,/receiver-filter/);
+ }finally{server.close()}
+});
+test('profile normalization prefers structured fields without inventing email or telephone',()=>{
+ const {normalizeProfileDetails}=require('../lib/linkedin-browser-extract');
+ const base={fullName:'Giulia Test',profileUrl:'https://www.linkedin.com/sales/lead/example,123',jobTitle:'',companyName:'',sourceUrl:SOURCE};
+ const normalized=normalizeProfileDetails({roleText:'Proprietaria · Impresa Esempio Srl',location:'Milano',lines:[]},base,SOURCE);
+ assert.equal(normalized.jobTitle,'Proprietaria');
+ assert.equal(normalized.companyName,'Impresa Esempio Srl');
+ assert.equal(normalized.location,'Milano');
+ assert.equal(normalized.email,undefined);
+ assert.equal(normalized.phone,undefined);
+});
