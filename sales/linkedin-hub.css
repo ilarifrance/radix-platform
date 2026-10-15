@@ -1,0 +1,16 @@
+
+/* LinkedIn hub / cockpit extension */
+.hub-steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 16px}
+.hub-step{display:flex;gap:9px;align-items:center;border:1px solid #315862;background:#071f2c;padding:12px 15px;border-radius:10px;color:#8cafb9;font-size:12px}
+.hub-step b{display:grid;place-items:center;width:27px;height:27px;background:#123640;border:1px solid #39616b;border-radius:50%;font-size:11px}
+.hub-step.selected{border-color:#42d7b5;background:#123d41;color:#dafff4}.hub-step.selected b{color:#70f4d0;border-color:#43c7aa}
+.hub-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:19px 0}
+.hub-metrics>div{border:1px solid #316a72;background:#082b39;border-radius:10px;padding:13px;min-height:83px}
+.hub-metrics small{display:block;color:#9bc1c6;letter-spacing:.08em;font-size:9px}.hub-metrics strong{display:block;margin-top:8px;color:#d2fff1;font-size:13px;overflow-wrap:anywhere}
+.hub-flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:15px 0 20px}
+.hub-flow>div{border:1px solid #2d6c73;background:linear-gradient(135deg,#0b3343,#081e2b);border-radius:13px;padding:15px;display:grid;gap:7px}
+.hub-flow strong{font-size:12px}.hub-flow small{font-size:11px;color:#a4c2c6}.hub-number{display:grid;place-items:center;width:28px;height:28px;border:1px solid #36bdad;background:#11534f;border-radius:9px;color:#8affdf;font-weight:750}
+.hub-start{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid #39a68a;color:#e1fff8;padding:14px 17px;border-radius:10px;background:linear-gradient(90deg,#14634e,#0a486a);font-weight:700}
+.hub-start:hover{border-color:#7ffff1}
+@media(max-width:950px){.hub-flow{grid-template-columns:1fr 1fr}.hub-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){.hub-flow,.hub-metrics,.hub-steps{grid-template-columns:1fr}.hub-step{padding:8px 11px}.hub-metrics>div{min-height:auto}}

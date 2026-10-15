@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RADIX · LinkedIn Sales Navigator</title>
+<link rel="stylesheet" href="/sales/growth-workspace.css"><link rel="stylesheet" href="/sales/linkedin-hub.css">
+<script src="/lib/salesnav-source.js" defer></script><script src="/sales/linkedin-hub.js" defer></script></head>
+<body><a class="skip" href="#main">Salta al contenuto</a><div class="shell">
+<aside class="sidebar"><a class="brand" href="/control-center-v2.html">RADIX <small>SALES INTELLIGENCE</small></a>
+<div class="side-label">LEAD ACQUISITION</div><nav aria-label="Sales">
+<a href="/control-center-v2.html">⌘ Command Center</a><a href="/sales-growth-projects.html">▦ Progetti commerciali</a>
+<a class="active" aria-current="page" href="/sales-linkedin.html">♧ LinkedIn / Sales Navigator</a>
+<a href="/lead-intelligence.html">✧ Lead Intelligence</a><a href="/sales-growth-campaigns.html">➤ Campagne</a><a href="/radix-sales.html">◇ CRM operativo</a>
+</nav><div class="sidebar-foot"><span class="ai-orb">✦</span><div><b>RADIX AI</b><small>Acquisizione verificabile</small></div></div></aside>
+<main id="main"><div class="topbar"><span>RADIX <i>/</i> SALES INTELLIGENCE <i>/</i> <strong>LINKEDIN</strong></span><span class="preview-tag">PREVIEW · SETUP PROVIDER</span></div>
+<header class="hero"><div><div class="eyebrow">LINKEDIN / SALES NAVIGATOR</div>
+<h1>Collega la ricerca. <em>Gestisci i contatti in RADIX.</em></h1>
+<p>Configura il provider, prepara l'URL di ricerca e importa i risultati autorizzati nel motore contatti. La gestione dell'account LinkedIn resta presso il provider, senza consegnare cookie di sessione a RADIX.</p>
+</div><div class="hero-orbit" aria-hidden="true"><div class="ring r1"></div><div class="ring r2"></div><div class="core">♧</div></div></header>
+<div class="content">
+<section class="hub-steps" aria-label="Avanzamento"><div class="hub-step selected"><b>01</b><span>Connessione</span></div><div class="hub-step"><b>02</b><span>Ricerca</span></div><div class="hub-step"><b>03</b><span>Importazione</span></div><div class="hub-step"><b>04</b><span>CRM</span></div></section>
+<div class="layout"><div class="main-col">
+<section class="panel"><div class="panel-title"><div><span class="eyebrow">01 / ACCOUNT & PROVIDER</span><h2>Connessione LinkedIn</h2></div><span class="pill" id="linkedin-connection-pill">NON VERIFICATA</span></div>
+<p class="helper">Il tuo piano Sales Navigator Advanced Plus è una licenza LinkedIn; non certifica che il provider esterno sia compatibile o autorizzato. Controlla i dettagli prima di avviare operazioni.</p>
+<div class="form-grid"><label>Workspace RADIX<select id="linkedin-workspace"><option value="">Caricamento...</option></select></label>
+<label>Provider selezionato<select id="linkedin-provider" disabled><option value="captain-data">Captain Data · integrazione in preparazione</option></select></label></div>
+<div class="hub-metrics"><div><small>CHIAVE API</small><strong id="linkedin-key">Da verificare</strong></div><div><small>ACCOUNT LINKEDIN</small><strong id="linkedin-account">Non verificato</strong></div><div><small>ACQUISIZIONE AUTOMATICA</small><strong id="linkedin-automation">Non attivata</strong></div></div>
+<div class="toolbar"><button class="ghost" id="linkedin-check" type="button">↻ Controlla configurazione</button><button class="primary" id="linkedin-test" type="button">Verifica collegamento API (sola lettura)</button><a class="ghost" href="https://app.captaindata.com/" target="_blank" rel="noopener noreferrer">Apri Captain Data ↗</a></div>
+<p class="helper" role="status" id="linkedin-connection-status">Seleziona un workspace autorizzato. Le credenziali API vanno configurate nelle variabili Vercel Preview; non sono richiesti login e password LinkedIn in RADIX.</p>
+<div class="notice compact"><strong>Gestione sicura dell'account</strong><p>Nella soluzione LydGen mostrata dagli screenshot viene chiesta una sessione LinkedIn tramite cookie. RADIX non raccoglie <code>li_at</code>, <code>JSESSIONID</code>, password o User-Agent del browser. L'autenticazione all'account avviene sull'interfaccia del provider, secondo le sue condizioni e quelle LinkedIn.</p></div></section>
+<section class="panel"><div class="panel-title"><div><span class="eyebrow">02 / FONTE SALES NAVIGATOR</span><h2>Prepara la ricerca persone</h2></div><span class="pill">NON AVVIA COSTI</span></div>
+<div class="form-grid"><label class="wide">URL di ricerca o lista Sales Navigator<input id="linkedin-search-url" type="url" autocomplete="off" spellcheck="false" placeholder="https://www.linkedin.com/sales/search/people?query=..." maxlength="8000"></label>
+<label>Numero di contatti desiderati (indicativo)<input id="linkedin-quantity" type="number" min="1" max="5000" step="1" value="200"></label>
+<label>Progetto commerciale<select id="linkedin-project"><option value="">Nessuno / scegli progetto</option></select></label></div>
+<div class="toolbar"><button id="linkedin-prepare" class="primary" type="button">Prepara lavoro in Lead Intelligence →</button><a class="ghost" href="/lead-intelligence.html">Apri Lead Intelligence ↗</a></div>
+<p id="linkedin-search-status" class="helper" role="status">La preparazione valida l'URL e lo trasferisce localmente alla schermata di importazione. Non legge le pagine LinkedIn e non avvia ricerche API.</p></section>
+<section class="panel"><div class="panel-title"><div><span class="eyebrow">03 / RISULTATI E REVISIONE</span><h2>Importa e controlla i contatti</h2></div></div>
+<div class="hub-flow"><div><span class="hub-number">1</span><strong>Acquisizione autorizzata</strong><small>Ricevi JSON dal provider oppure importa un export legittimo.</small></div>
+<div><span class="hub-number">2</span><strong>Normalizzazione e deduplicazione</strong><small>Contatti individuali, ruolo, azienda, URL profilo, origine.</small></div>
+<div><span class="hub-number">3</span><strong>Revisione e CRM</strong><small>Verifica dati mancanti, autorizza salvataggio e handoff commerciale.</small></div></div>
+<a class="hub-start" href="/lead-intelligence.html">Vai al motore contatti <span>↗</span></a>
+<p class="helper">Stato effettivo: importa JSON e gestisce lotti; la chiamata automatica di acquisizione e il collaudo reale del database Preview richiedono ancora configurazione e validazione del provider.</p></section>
+</div>
+<aside class="right-col"><div class="panel overview"><div class="eyebrow">RADIX / LINKEDIN STATUS</div><div class="glow-count">03</div>
+<div class="progress-track"><span style="width:66%"></span></div><p class="helper">Componenti tecnici già predisposti: parser contatti, importatore e ricevitore callback. Non indica l'avvenuta connessione LinkedIn.</p>
+<div class="mini-stat"><span>Profilo Sales Navigator</span><b>Advanced Plus</b></div>
+<div class="mini-stat"><span>Contatti gestiti per lavoro</span><b>Lotti multipli</b></div>
+<div class="mini-stat"><span>Importazione live</span><b>Da verificare</b></div>
+<div class="divider"></div><h3>Passaggio successivo</h3><p class="helper">Verificare compatibilità della licenza Advanced Plus, configurare API e ricezione callback, poi effettuare un collaudo di dimensioni ridotte prima di acquisizioni più ampie.</p>
+<div class="notice compact"><strong>Costi sotto controllo</strong><p>Questa pagina non invia richieste a pagamento. Le quantità inserite sono soltanto un obiettivo di lavoro.</p></div>
+</div></aside></div></div><footer>RADIX LinkedIn Hub · Preview · Niente cookie LinkedIn, invii automatici o costi attivati</footer></main></div></body></html>
