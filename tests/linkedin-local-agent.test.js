@@ -41,10 +41,16 @@ test('local server rejects forged Host headers (DNS rebinding) and accepts loopb
  try{
   const port=server.address().port,addr='http://127.0.0.1:'+port;
   const valid=await fetch(addr+'/api/status');assert.equal(valid.status,200);
-  const forged=await fetch(addr+'/api/status',{headers:{Host:'attacker.example'}});
-  assert.equal(forged.status,403);
-  const foreign=await fetch(addr+'/api/jobs',{headers:{Host:'localhost:'+port}});
-  assert.equal(foreign.status,403);
+  // Node's fetch() overrides the Host header: use raw http.request to exercise
+  // the actual Host validation instead of inadvertently testing a normal request.
+  const rawHost=host=>new Promise((resolve,reject)=>{
+   const req=http.request({hostname:'127.0.0.1',port,path:'/api/status',method:'GET',headers:{Host:host}},res=>{
+    res.resume();res.on('end',()=>resolve(res.statusCode));
+   });req.on('error',reject);req.end();
+  });
+  assert.equal(await rawHost('attacker.example'),403);
+  assert.equal(await rawHost('localhost:'+port),403);
+  assert.equal(await rawHost('127.0.0.1:'+port),200);
   assert.equal(isLocalRequest({headers:{host:'127.0.0.1:'+port},socket:{localPort:port,remoteAddress:'127.0.0.1'}}),true);
  }finally{server.close()}
 });
