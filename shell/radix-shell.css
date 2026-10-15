@@ -63,6 +63,7 @@ html.rx-shell .shell,html.rx-shell .app{min-height:calc(100vh - var(--rx-topbar)
 .rx-state[data-state="live"] i{background:var(--rx-success)}
 .rx-state[data-state="demo"] i{background:var(--rx-warning)}
 .rx-state[data-state="partial"] i{background:var(--rx-info)}
+.rx-state[data-state="local"] i{background:var(--rx-warning)}
 .rx-user{display:inline-flex;align-items:center;gap:8px;font:500 13px var(--rx-font);color:var(--rx-muted)}
 .rx-avatar{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--rx-core) 22%,var(--rx-surface));color:var(--rx-text);font:600 13px var(--rx-font);border:1px solid var(--rx-border-strong)}
 .rx-iconbtn{display:grid;place-items:center;width:40px;height:40px;border-radius:10px;border:1px solid var(--rx-border);background:var(--rx-surface);color:var(--rx-text);cursor:pointer}

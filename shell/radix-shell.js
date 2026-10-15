@@ -17,7 +17,8 @@
     live: ['Live', 'Dati reali dal database RADIX'],
     demo: ['Demo', 'Dati dimostrativi: nessun dato reale collegato'],
     partial: ['Parziale', 'Alcune sezioni usano dati reali, altre no'],
-    off: ['Non collegato', 'Questa pagina non è ancora collegata ai dati']
+    off: ['Non collegato', 'Questa pagina non è ancora collegata ai dati'],
+    local: ['Solo questo browser', 'I dati sono salvati in questo browser: non sono condivisi con altri utenti o dispositivi']
   };
   var I = {
     home: '<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
