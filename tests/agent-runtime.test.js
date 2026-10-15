@@ -76,3 +76,16 @@ test('agents page stores conversations per project and is linked from the other 
  assert.match(page,/ws\.bind\(project\.id,'agents'\)/);assert.match(page,/memoryScope:scope\(role\)/);
  const html=fs.readFileSync('agents.html','utf8');assert.match(html,/connect-src 'self'/);assert.doesNotMatch(html,/<script>(?!<\/script>)/);
 });
+
+test('v3.7 media tools: slides, email drafts and which agent gets which tool',()=>{
+ const media=require('../lib/radix-agent-media');
+ const text='Concept\n---SLIDES---\n1|#0F2D24|#FAF9F6|Hook forte\n2|#zzzzzz|#FAF9F6|colore errato\n3|#EDE6DE|#1F1F1F|Testo | con barra\n---FINE---';
+ const slides=media.parseSlides(text);
+ assert.equal(slides.length,2);assert.equal(slides[1].text,'Testo | con barra');assert.equal(media.stripSlides(text),'Concept');
+ assert.deepEqual(media.parseEmailDraft('Oggetto: Ciao\nCorpo:\nTesto mail'),{subject:'Ciao',body:'Testo mail'});
+ assert.equal(media.shortLabel({id:'acme',name:'Acme — Lancio'}),'ACME');assert.deepEqual(media.palette({visual:'#111111 e #222222'}),['#111111','#222222']);
+ assert.match(media.slideImagePrompt({text:'Hook'},{id:'acme',summary:'Caffè'}),/Caffè/);
+ const src=fs.readFileSync('lib/radix-agent-media.js','utf8');
+ for(const phrase of ['DAVVERO in coda','DAVVERO un’email','consuma crediti'])assert.ok(src.includes(phrase),'confirmation: '+phrase);
+ assert.match(fs.readFileSync('agents-page.js','utf8'),/media\.toolsFor\(/);
+});

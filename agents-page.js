@@ -3,7 +3,7 @@
    project profile and the team's confirmed memory (memoryScope, read on the server). */
 (function(){
 'use strict';
-const ws=window.RadixWorkspace,rt=window.RadixAgents,$=id=>document.getElementById(id);
+const ws=window.RadixWorkspace,rt=window.RadixAgents,media=window.RadixAgentMedia,$=id=>document.getElementById(id);
 const MAX_KEPT=60,MAX_ATTACH=5,MAX_BYTES=4*1024*1024,ACCEPTED=['xlsx','xls','csv','txt','md','docx','pdf'];
 const PIPELINE_STEPS={
  'strategist':'Dai la direzione strategica del post: pilastro, obiettivo, pubblico, angolo, formato e canale.',
@@ -58,6 +58,7 @@ function selectAgent(id){
  if(busy)return;agentId=rt.agent(id)?rt.agent(id).id:'marketing-orchestrator';
  const a=rt.agent(agentId);$('agent-name').textContent=a.icon+' '+a.name;$('agent-blurb').textContent=a.blurb;$('agent-group').textContent=rt.GROUP_LABELS[a.group]+(a.hub?' · orchestratore':'');
  const u=new URL(location.href);u.searchParams.set('agent',agentId);if(project)u.searchParams.set('project',project.id);history.replaceState(null,'',u);
+ if(project)say('Agenti al lavoro su «'+project.name+'»: profilo del progetto e memoria confermata del team arrivano a ogni agente.');
  renderRoster();render();
 }
 function docCard(d,by){
@@ -82,9 +83,10 @@ function renderFlow(flow,msg){
   row.append(head,node('small',n.subtask,'meta'));
   if(n.status==='done'&&n.output){
    const docs=rt.parseDocuments(n.output);docs.forEach(d=>row.append(docCard(d,n.label)));
-   const note=rt.stripDocuments(n.output);
+   const note=media.stripSlides(rt.stripDocuments(n.output));
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
+   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>row.append(t));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
  });
@@ -112,13 +114,15 @@ function render(){
   else if(m.pending)el.append(node('div',m.content));
   else{
    const a=rt.agent(m.agent||agentId);el.append(node('div',(a?a.icon+' '+a.name:'Agente')+(m.at?' · '+new Date(m.at).toLocaleString('it-IT'):''),'meta'));
-   const body=rt.stripRouting(rt.stripDocuments(m.content));if(body)el.append(mdBlock(body));
+   const body=media.stripSlides(rt.stripRouting(rt.stripDocuments(m.content)));if(body)el.append(mdBlock(body));
+   const slides=media.parseSlides(m.content);if(slides.length)el.append(node('p',slides.length+' slide pronte per il carosello: generale qui sotto.','meta'));
    rt.parseDocuments(m.content).forEach(d=>el.append(docCard(d,a&&a.name)));
    const s=sourcesEl(m.sources);if(s)el.append(s);
    if(m.flow)el.append(renderFlow(m.flow,m));
    const acts=node('div',undefined,'actions');
    acts.append(btn('Copia',()=>navigator.clipboard.writeText(m.content).then(()=>say('Testo copiato.'))),btn('Word',()=>rt.exportWord((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Proponi in memoria',()=>remember(m.agent||agentId,(a?a.name:'Agente')+' · '+project.name,m.content)));
    el.append(acts);
+   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>el.append(t));
   }
   box.append(el);
  }
