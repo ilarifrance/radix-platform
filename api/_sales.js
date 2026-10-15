@@ -58,7 +58,7 @@ function createHandler({getSessionUser,getStore}){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  try{
    if(req.method==='POST'&&(req.headers?.['x-radix-provider-token']!==undefined||req.query?.job!==undefined)){
-     const result=await providerCallback.receive(req,getStore());
+     const result=await providerCallback.receive(req,getStore);
      return res.status(200).json(result);
    }
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}

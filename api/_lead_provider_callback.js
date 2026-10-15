@@ -16,6 +16,7 @@ async function receive(req,store,env=process.env){
  const event=R.read(req.body);
  if(!event||!req.body?.run?.run_uid)fail(400,'Evento provider non riconosciuto');
  let records;try{records=P.convert(event.raw,'')}catch(e){fail(400,'Dati contatti non validi: '+e.message)}
- return store.leadContactJobs.receive(req.query.workspace,req.query.job,req.body.run.run_uid,records,event.id);
+ const authorizedStore=typeof store==='function'?store():store;
+ return authorizedStore.leadContactJobs.receive(req.query.workspace,req.query.job,req.body.run.run_uid,records,event.id);
 }
 module.exports={receive};
