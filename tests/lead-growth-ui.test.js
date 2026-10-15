@@ -7,7 +7,7 @@ test('commercial project wizard is navigable, complete and connected to API',()=
  assert.doesNotThrow(()=>new vm.Script(js));assert.match(js,/lead_growth_projects/);
  assert.match(js,/growth-go-leads/);assert.match(js,/growth-go-campaigns/);
  assert.doesNotMatch(js,/localStorage|sessionStorage/);
- assert.doesNotMatch(html,/Cookie JSON|JSESSIONID|Cookie-Editor/);
+ assert.doesNotMatch(html,/<(?:input|textarea)[^>]*(?:name|id)="[^"]*(?:cookie|password|session)/i);
 });
 test('campaign page offers editing and no automatic sending',()=>{
  const html=fs.readFileSync('sales-growth-campaigns.html','utf8'),js=fs.readFileSync('sales/growth-campaigns.js','utf8');
