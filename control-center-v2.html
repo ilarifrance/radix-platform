@@ -340,6 +340,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       <div class="nav">
         <button class="nav-item" data-radix-view="agents"><span class="nav-icon">✣</span><span>Agents</span></button>
         <a class="nav-item" href="/agents.html"><span class="nav-icon">◉</span><span>Chat agenti AI</span></a>
+        <a class="nav-item" href="/archive.html"><span class="nav-icon">▤</span><span>Archivio v3.7</span></a>
         <button class="nav-item" data-radix-view="knowledge"><span class="nav-icon">◇</span><span>Knowledge</span></button>
         <button class="nav-item" data-radix-view="analytics"><span class="nav-icon">⌁</span><span>Analytics</span></button>
         <button class="nav-item" data-radix-view="integrations"><span class="nav-icon">⛓</span><span>Integrations</span></button>
@@ -888,7 +889,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       $('drawerBody').innerHTML+='<button type="button" class="drawer-link" id="agentOpenWorkflow">Apri workflow collegato</button>';
       $('agentOpenWorkflow').onclick=function(){openWorkflow(st.workflowId)};
     }
-    $('drawerBody').innerHTML+='<a class="drawer-link" href="/agents.html?agent='+encodeURIComponent(id)+'">Apri la chat con l’agente</a>';
+    $('drawerBody').innerHTML+='<a class="drawer-link" href="/agents.html?agent='+encodeURIComponent(id)+'">Apri la chat con l’agente</a><a class="drawer-link" href="/archive.html?agent='+encodeURIComponent(id)+'">Conversazioni nell’archivio v3.7</a>';
     $('drawer').classList.add('open')
   }
   function openWorkflow(id){
