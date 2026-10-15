@@ -5,7 +5,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync('sales/lead-premium.js','utf8');
 const start=source.indexOf(' const identityKeys=c=>');
-const end=source.indexOf(' function parseCsv(source)');
+const end=source.indexOf(' const parseCsv=source=>');
 if(start<0||end<=start)throw Error('Lead identity functions missing');
 const norm=x=>typeof x==='string'?x.normalize('NFKC').trim().toLocaleLowerCase('it'):'';
 const fragment=source.slice(start,end);
