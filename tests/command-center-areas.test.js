@@ -2,7 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const cc=fs.readFileSync('control-center-v2.html','utf8');
 test('Command Center is landing route and does not send users to V3.7',()=>{
- assert.deepEqual(JSON.parse(fs.readFileSync('vercel.json','utf8')).rewrites,[{source:'/',destination:'/control-center-v2.html'}]);
+ const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
+ // Vercel serves an existing static file before rewrites, so the root must be a redirect to beat index.html.
+ assert.deepEqual(config.redirects.filter(r=>r.source==='/'),[{source:'/',destination:'/control-center-v2.html',permanent:false}]);
+ assert.ok(!config.rewrites.some(r=>r.source==='/'));
  assert.doesNotMatch(cc,/href=["']\/?(?:\.\/)?index\.html/);assert.ok(fs.existsSync('index.html'));
 });
 test('all operational areas point to existing canonical pages',()=>{
