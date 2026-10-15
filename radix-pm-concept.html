@@ -46,7 +46,7 @@ async function boot(){
   }
   projectId=state.projects[0].id;selected=state.tasks[0]?state.tasks[0].id:null;
   for(const id of ['persist','load-local','forget-local','reset']){const el=$(id);if(el){(el.closest('label')||el).hidden=true;}}
-  const links=[];if(current.kind==='agency')links.push(['./agency/project-workspace.html?id=','Workspace Agency']);links.push(['./project-editorial.html?project=','PED del progetto']);links.push(['./agency/memory.html?id=','Memoria del progetto']);
+  const links=[];if(current.kind==='agency')links.push(['./agency/project-workspace.html?id=','Workspace Agency']);links.push(['./project-editorial.html?project=','PED del progetto']);links.push(['./agency/memory.html?id=','Memoria del progetto']);links.push(['./agents.html?project=','Agenti AI']);
   const note=$('project-note');if(note&&!document.querySelector('[data-project-link]')){const box=node('p',undefined,'muted');links.forEach(([href,label],i)=>{const a=node('a',label+' ↗');a.href=href+encodeURIComponent(current.id);a.dataset.projectLink='1';if(i)box.append(document.createTextNode(' · '));box.append(a);});note.after(box);}
   projects();owners();render();if(!saved)persist();say('Piano di «'+current.name+'» condiviso con il team.');
  }catch(e){say(e.message);$('tasks').replaceChildren(node('p',e.message,'muted'));}
