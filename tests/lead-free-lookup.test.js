@@ -5,7 +5,7 @@ const {handler}=require('../tools/linkedin-local-agent/index');
 test('public lookup suggests a domain but never silently persists it',async()=>{
  const mock=async url=>({ok:true,headers:{get:()=>null},text:async()=>{
   if(url.includes('wbsearchentities'))return JSON.stringify({search:[{id:'Q123',label:'Example Srl'}]});
-  return JSON.stringify({entities:{Q123:{claims:{P856:[{mainsnak:{datavalue:{value:'https://www.example.com/'}}}]}}}}});
+  return JSON.stringify({entities:{Q123:{claims:{P856:[{mainsnak:{datavalue:{value:'https://www.example.com/'}}}]}}}});
  }});
  const result=await Lookup.lookup({name:'Example Srl'},mock);
  assert.equal(result.suggestions[0].value,'example.com');
