@@ -54,3 +54,24 @@ test('local server rejects forged Host headers (DNS rebinding) and accepts loopb
   assert.equal(isLocalRequest({headers:{host:'127.0.0.1:'+port},socket:{localPort:port,remoteAddress:'127.0.0.1'}}),true);
  }finally{server.close()}
 });
+
+
+test('extracts Italian role and company from visible Sales Navigator card text',()=>{
+ const rows=normalizeVisibleCards([
+  {fullName:'Carmine Cavezza',profileUrl:'https://www.linkedin.com/sales/lead/flaxia,123',lines:['Carmine Cavezza · 2°','Proprietario · Flaxia spa','Cicciano, Campania, Italia','3 anni 10 mesi nel ruolo']},
+  {fullName:'Nicolò Costanzo',profileUrl:'https://www.linkedin.com/sales/lead/intertex,123',lines:['Nicolò Costanzo','Direttore · Intertex Milano 1-2-3 February 2027','Milano, Lombardia, Italia']},
+  {fullName:'Francesco Canuti',profileUrl:'https://www.linkedin.com/sales/lead/confindustria,123',lines:['Francesco Canuti','Vice presidente · Confindustria Reggio Emilia','9 anni nel ruolo']},
+  {fullName:'Michele Sacchet',profileUrl:'https://www.linkedin.com/sales/lead/remax,123',lines:['Michele Sacchet','Broker Titolare · Re/Max casamia Belluno','Belluno, Veneto, Italia']}
+ ],SOURCE);
+ assert.deepEqual(rows.map(x=>[x.jobTitle,x.companyName]),[
+  ['Proprietario','Flaxia spa'],
+  ['Direttore','Intertex Milano 1-2-3 February 2027'],
+  ['Vice presidente','Confindustria Reggio Emilia'],
+  ['Broker Titolare','Re/Max casamia Belluno']
+ ]);
+});
+test('does not invent a company from location or profile metadata',()=>{
+ const rows=normalizeVisibleCards([{fullName:'Example Person',profileUrl:'https://www.linkedin.com/sales/lead/test,123',lines:['Example Person · 2°','Milano, Lombardia, Italia','3 anni 10 mesi nel ruolo','Informazioni: personal update']}],SOURCE);
+ assert.equal(rows[0].companyName,'');
+ assert.equal(rows[0].jobTitle,'');
+});
