@@ -46,7 +46,7 @@
    if(file.size>3500000)throw Error('File superiore a 3,5 MB');
    const raw=JSON.parse(await file.text()),provided=source(),callback=window.RadixProviderCallback?.read(raw);
    const id=callback?.id||$('contact-batch-id').value.trim();
-   if(!id||id.length>210)throw Error('Indica un ID lotto, ad esempio pagina-1');
+   if(!id||id.length>100)throw Error('Indica un ID lotto, ad esempio pagina-1');
    const base=job||B.start(provided);if(base.sourceUrl!==B.start(provided).sourceUrl)throw Error('La provenienza differisce dal lavoro aperto');
    const rows=P.convert(callback?.raw||raw,base.sourceUrl);
    let next=base;
