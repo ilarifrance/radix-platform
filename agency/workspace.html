@@ -10,7 +10,9 @@ button:not(:disabled):hover{transform:translateY(-1px)}
 <script src="/lib/radix-workspace-client.js"></script><script src="/lib/agency-divisions.js"></script>
 <script>'use strict';(function(){
 const $=id=>document.getElementById(id),dv=window.RadixAgencyDivisions,ws=window.RadixWorkspace;
-const id=new URLSearchParams(location.search).get('division')||'strategy';
+const id=new URLSearchParams(location.search).get('division');
+// Without a division the overview is the list of divisions.
+if(!id){location.replace('./index.html#divisioni');return}
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function append(target,tag,cls,text){const n=document.createElement(tag);n.className=cls;n.textContent=text;$(target).append(n)}
 let catalog,division;
