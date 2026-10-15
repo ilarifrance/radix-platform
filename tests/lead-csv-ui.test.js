@@ -16,7 +16,7 @@ function fixture(){
  vm.runInNewContext(src,{window,document,CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}},URL:{},Blob:class{},navigator:{}});
  return {get,window};
 }
-async function importFile(f,text){f.get('file').files=[{size:Buffer.byteLength(text),text:async()=>text}];await f.get('file').onchange()}
+async function importFile(f,text){f.get('file').files=[{name:'test.csv',size:Buffer.byteLength(text),text:async()=>text}];await f.get('file').onchange()}
 test('browser loads the shared parser before Lead Intelligence',()=>{
  assert.ok(html.indexOf('src="/lib/lead-csv-parser.js"')<html.indexOf('src="/sales/lead-premium.js"'));
  assert.ok(html.includes('.tsv'));
@@ -52,8 +52,8 @@ test('missing parser fails closed without silently using obsolete implementation
 test('overlapping CSV reads keep the newest completed selection, not the slow older file',async()=>{
  const f=fixture(),pending=[];
  function later(){let resolve;const promise=new Promise(r=>resolve=r);pending.push(resolve);return promise}
- f.get('file').files=[{size:80,text:()=>later()}];const first=f.get('file').onchange();
- f.get('file').files=[{size:80,text:()=>later()}];const second=f.get('file').onchange();
+ f.get('file').files=[{name:'test.csv',size:80,text:()=>later()}];const first=f.get('file').onchange();
+ f.get('file').files=[{name:'test.csv',size:80,text:()=>later()}];const second=f.get('file').onchange();
  pending[1]('name,domain\nNuova,nuova.it');await second;
  pending[0]('name,domain\nVecchia,vecchia.it');await first;
  assert.equal(f.get('total').textContent,1);
@@ -62,14 +62,14 @@ test('overlapping CSV reads keep the newest completed selection, not the slow ol
 });
 test('manual insertion and reset cannot be overwritten by an older pending file read',async()=>{
  const f=fixture();let resolve;const promise=new Promise(r=>resolve=r);
- f.get('file').files=[{size:80,text:()=>promise}];const importing=f.get('file').onchange();
+ f.get('file').files=[{name:'test.csv',size:80,text:()=>promise}];const importing=f.get('file').onchange();
  f.get('paste-company').value='Manuale';f.get('paste-domain').value='manuale.it';
  f.get('paste-add').onclick();
  resolve('name,domain\nDaFile,dafile.it');await importing;
  assert.equal(f.get('total').textContent,'1');
  f.get('score').onclick();assert.equal(f.get('results').children[0].children[0].textContent,'Manuale');
  let finish;const secondPromise=new Promise(r=>finish=r);
- f.get('file').files=[{size:80,text:()=>secondPromise}];const second=f.get('file').onchange();
+ f.get('file').files=[{name:'test.csv',size:80,text:()=>secondPromise}];const second=f.get('file').onchange();
  f.get('clear').onclick();finish('name,domain\nAltro,altro.it');await second;
  assert.equal(f.get('total').textContent,'—');
  assert.match(f.get('import-status').textContent,/cancellati dalla memoria/);
