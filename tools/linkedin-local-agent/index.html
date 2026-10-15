@@ -59,6 +59,13 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 .receiver-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;color:#b4cfd3;font-size:12px;flex-wrap:wrap}
 .receiver-footer button{padding:8px 13px}
 @media(max-width:760px){.receiver{margin-top:14px}.receiver-controls input,.receiver-controls select{width:100%}}
+.enrich-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
+.enrich-summary div{padding:16px;border:1px solid #2b5d68;border-radius:12px;background:#0c303c}
+.enrich-summary strong{display:block;font-size:24px;color:#8affe0;font-variant-numeric:tabular-nums}
+.enrich-summary small{color:#9fc8cd;font-size:11px}
+.enrich-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;max-width:750px}
+.enrich-fields label{display:block}.enrich-disclaimer{border-left:3px solid #e5bd79;padding:5px 12px;color:#e6d0a6}
+@media(max-width:680px){.enrich-summary{grid-template-columns:repeat(2,1fr)}.enrich-fields{grid-template-columns:1fr}}
 </style></head><body><div class="wrap"><header><div class="logo">RADIX<span>LINKEDIN · LOCAL AGENT</span></div><span class="badge">LOCALHOST · SESSIONE PRIVATA</span></header>
 <div class="intro"><h1>Tu accedi. RADIX organizza i risultati.</h1><p>L'agente usa un browser locale visibile. Login manuale, nessuna password o cookie inviati a RADIX o a servizi esterni. Non risolve CAPTCHA e si arresta se il sito chiede una verifica.</p><div class="workflow" aria-label="Fasi operative"><span>01 Accesso personale</span><span>02 Ricerca autorizzata</span><span>03 Revisione dati</span><span>04 Import RADIX</span></div></div>
 <main><div>
@@ -72,7 +79,20 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
  <div class="receiver-controls"><label for="receiver-job">Lavoro <select id="receiver-job"><option value="">Nessun lavoro</option></select></label><label for="receiver-search">Cerca <input id="receiver-search" placeholder="Nome, ruolo, azienda..." autocomplete="off"></label><label for="receiver-filter">Qualità <select id="receiver-filter"><option value="all">Tutti</option><option value="complete">Ruolo e azienda presenti</option><option value="incomplete">Dati incompleti</option></select></label></div>
  <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="8">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
  <div class="receiver-footer"><span id="receiver-summary" role="status">Dati locali, non sincronizzati.</span><div class="toolbar"><button id="receiver-prev" type="button" class="secondary" disabled>← Precedenti</button><span id="receiver-page">Pagina 1</span><button id="receiver-next" type="button" class="secondary" disabled>Successivi →</button></div></div>
+</section>
+<section class="panel receiver" id="enrichment-stage">
+<h2>05 · Preparazione arricchimento</h2>
+<p class="help">Analisi offline dei contatti ricevuti. Stima dei campi mancanti e simulazione del budget per email finder: <b>nessuna richiesta a provider, nessun credito consumato.</b></p>
+<div class="enrich-summary"><div><small>CONTATTI</small><strong id="enrich-total">0</strong></div><div><small>REVISIONE PRELIMINARE</small><strong id="enrich-review">0</strong></div><div><small>CANDIDATI EMAIL</small><strong id="enrich-eligible">0</strong></div><div><small>CHIAMATE SIMULATE</small><strong id="enrich-calls">0</strong></div></div>
+<div class="enrich-fields">
+<label for="enrich-unit">Costo ipotetico per richiesta (€)<input id="enrich-unit" type="number" min="0" max="100" step="0.001" value="0.02"></label>
+<label for="enrich-budget">Budget massimo di simulazione (€)<input id="enrich-budget" type="number" min="0" max="100000" step="0.01" value="1"></label>
+</div>
+<div class="toolbar"><button id="enrich-plan" type="button" class="secondary">Calcola piano offline</button><button id="enrich-copy" type="button" class="secondary" disabled>Copia riepilogo</button></div>
+<div class="status" id="enrich-result" role="status">Seleziona un lavoro nella tabella e calcola il piano.</div>
+<p class="help enrich-disclaimer">I prezzi sono valori inseriti da te, non tariffe verificate di Hunter, Dropcontact o altri provider. Il calcolo non acquista crediti e non modifica i contatti.</p>
 </section></div>
+<script src="/lead-enrichment-plan.js"></script>
 <script>
 'use strict';const $=id=>document.getElementById(id);let current='';
 async function call(route,body){const res=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});const v=await res.json();if(!res.ok)throw Error(v.error||'Errore');return v}
@@ -129,6 +149,23 @@ $('receiver-filter').onchange=()=>{receiverPage=0;renderReceiver()};
 $('receiver-job').onchange=()=>loadReceiver($('receiver-job').value);
 $('receiver-prev').onclick=()=>{receiverPage--;renderReceiver()};
 $('receiver-next').onclick=()=>{receiverPage++;renderReceiver()};
+
+let latestEnrichment=null;
+function calculateEnrichment(){
+ try{
+  const engine=window.RadixEnrichmentPlan;if(!engine)throw Error('Modulo di pianificazione non disponibile');
+  const plan=engine.plan(receiverRecords,{unitCost:$('enrich-unit').value,budget:$('enrich-budget').value});
+  latestEnrichment=plan;
+  $('enrich-total').textContent=plan.total;
+  $('enrich-review').textContent=plan.needReview;
+  $('enrich-eligible').textContent=plan.eligible;
+  $('enrich-calls').textContent=plan.plannedCalls;
+  $('enrich-result').textContent='Simulazione: '+plan.plannedCalls+' richieste su '+plan.eligible+' candidati, costo teorico € '+plan.estimatedCost.toFixed(2)+'. Nessuna API contattata. '+plan.needReview+' contatti richiedono revisione dei dati.';
+  $('enrich-copy').disabled=false;
+ }catch(e){latestEnrichment=null;$('enrich-copy').disabled=true;$('enrich-result').textContent='Piano: '+e.message}
+}
+$('enrich-plan').onclick=calculateEnrichment;
+$('enrich-copy').onclick=()=>{if(!latestEnrichment)return;const p=latestEnrichment;navigator.clipboard?.writeText('RADIX — Piano offline\\nContatti: '+p.total+'\\nDa verificare: '+p.needReview+'\\nCandidati email: '+p.eligible+'\\nChiamate ipotetiche: '+p.plannedCalls+'\\nCosto teorico: EUR '+p.estimatedCost.toFixed(2));};
 
 const launchArgs=new URLSearchParams(location.search);if(launchArgs.has('source'))$('url').value=launchArgs.get('source');if(launchArgs.has('quantity'))$('quantity').value=launchArgs.get('quantity');
 refresh();jobs();setInterval(refresh,1800);
