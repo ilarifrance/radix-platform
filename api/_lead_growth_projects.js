@@ -3,7 +3,7 @@ const {randomUUID}=require('node:crypto');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const err=(message,status=400)=>{const e=new Error(message);e.status=status;throw e};
 function only(v,names,label){if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).some(k=>!names.includes(k)))err(label+' non valido');return v}
-function str(v,max,label){if(typeof v!=='string'||v.length>max||/[\u0000-\u001f]/.test(v))err(label+' non valido (max '+max+')');return v.trim()}
+function str(v,max,label){if(typeof v!=='string'||v.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(v))err(label+' non valido (max '+max+')');return v.trim()}
 function group(p,shape,name){only(p,Object.keys(shape),name);const o={};for(const [k,n] of Object.entries(shape))o[k]=str(p[k],n,name+'/'+k);return o}
 function secureUrl(u,label){if(!u)return u;let v;try{v=new URL(u)}catch{err(label+' URL non valido')}if(v.protocol!=='https:'||v.username||v.password||u.length>500)err(label+' deve essere HTTPS');return u}
 const parts={
