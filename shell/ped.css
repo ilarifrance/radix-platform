@@ -51,7 +51,7 @@ html.rx-shell body.rx-ped{
 .rx-ped .calendar-event.status-approved::before{background:var(--rx-success)}
 /* Status, metrics, list */
 .rx-ped .plan-status{border-radius:12px;border:1px solid var(--rx-border);background:var(--rx-surface);color:var(--rx-muted);padding:12px 16px;margin-top:16px}
-.rx-ped .metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rx-ped .metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .rx-ped .metric{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px;color:var(--rx-muted);font-size:12px}
 .rx-ped .metric strong{font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
 .rx-ped .content-card{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px}
@@ -72,3 +72,23 @@ html.rx-shell body.rx-ped{
 .rx-ped #pedPage .hero>.eyebrow,.rx-ped #pedPage .hero>h2{display:none}
 .rx-ped #pedPage .hero #briefSummary{margin-top:0}
 @media (max-width:767px){.rx-ped .calendar,.rx-ped .calendar-column{min-height:0}.rx-ped .calendar-column{padding-bottom:16px}}
+/* ---- Board by state, channel marks, publishing (hooks: #contentViews [data-list], #board.ped-board section[data-column], [data-channel], .status-queued, #publish) ---- */
+html.rx-shell body.rx-ped{--ped-draft:#9B7BFF;--ped-review:var(--rx-projects);--ped-approved:var(--rx-success);--ped-queued:var(--rx-warning)}
+.rx-ped [data-channel]{--ch:var(--rx-border-strong)}
+.rx-ped [data-channel=linkedin]{--ch:#4A9FFF}.rx-ped [data-channel=instagram]{--ch:#FF5FA2}.rx-ped [data-channel=facebook]{--ch:#5B7CFF}.rx-ped [data-channel=tiktok]{--ch:#3FF0E6}
+.rx-ped [data-channel=youtube]{--ch:#FF4D4D}.rx-ped [data-channel=x]{--ch:#D8D8D8}.rx-ped [data-channel=blog]{--ch:var(--rx-studio)}.rx-ped [data-channel=newsletter]{--ch:var(--rx-agency)}
+.rx-ped [data-channel]{border-left:3px solid var(--ch)!important}
+.rx-ped #contentViews{display:inline-flex;gap:4px;padding:4px;margin:0 0 12px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-bg-raised)}
+@media (min-width:1280px){.rx-ped .layout:has(#board:not([hidden])){grid-template-columns:minmax(0,1fr) 340px}}
+.rx-ped .ped-board{grid-template-columns:repeat(4,minmax(170px,1fr));gap:10px;padding-bottom:4px}
+.rx-ped .ped-board section{--c:var(--ped-draft);min-height:200px;padding:10px;border:1px solid color-mix(in srgb,var(--c) 30%,var(--rx-border));border-radius:14px;background:color-mix(in srgb,var(--c) 4%,var(--rx-bg-raised))}
+.rx-ped .ped-board section[data-column=review]{--c:var(--ped-review)}
+.rx-ped .ped-board section[data-column=approved]{--c:var(--ped-approved)}
+.rx-ped .ped-board section[data-column=queued]{--c:var(--ped-queued)}
+.rx-ped .ped-board h3{margin:0 0 10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:10px;color:var(--rx-text);font:600 12px/1.3 var(--rx-display);letter-spacing:.06em;text-transform:uppercase}
+.rx-ped .ped-board .content-card{width:100%;margin:0 0 8px;text-align:left}
+.rx-ped .ped-board .content-card:hover{border-color:color-mix(in srgb,var(--c) 60%,var(--rx-border))}
+.rx-ped .calendar-event.status-queued{border-color:color-mix(in srgb,var(--ped-queued) 70%,transparent)}
+.rx-ped .publish{margin-top:14px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--ped-queued) 40%,var(--rx-border));border-radius:14px;background:color-mix(in srgb,var(--ped-queued) 5%,var(--rx-surface))}
+.rx-ped #publishState{color:var(--rx-muted);font-size:13px}
+@media (max-width:767px){.rx-ped .ped-board{grid-template-columns:repeat(4,minmax(220px,78vw));scroll-snap-type:x mandatory}.rx-ped .ped-board section{scroll-snap-align:start}}
