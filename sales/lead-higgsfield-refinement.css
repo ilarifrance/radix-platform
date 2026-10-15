@@ -158,3 +158,10 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 @media(max-width:950px){.contact-vault{padding:16px}.contact-vault .fields{grid-template-columns:1fr}.contact-vault-header{align-items:center}}
 @media(max-width:560px){.contact-vault{padding:14px}.contact-metrics{gap:6px}.contact-metrics>div{padding:10px 7px}.contact-metrics small{font-size:9px;letter-spacing:.02em}.contact-vault-header{flex-wrap:wrap}.contact-vault .toolbar>button{flex:1 1 150px}}
 @media(prefers-reduced-motion:reduce){.contact-vault .toolbar button,#contact-preview-rows tr{transition:none}}
+
+/* Growth project bridge */
+.growth-context{display:flex;align-items:center;gap:15px;justify-content:space-between;flex-wrap:wrap;border:1px solid #287b73;border-radius:12px;background:linear-gradient(135deg,#0b3541,#08242d);padding:16px 21px;margin:15px 18px 0}
+.growth-context[hidden]{display:none}
+.growth-context>div:first-child{display:grid;gap:4px}
+.growth-context strong{font-size:15px;color:#eafffa}.growth-context small{color:#94d0ca;font-size:12px}.growth-context .toolbar{margin:0;gap:8px}.growth-context .toolbar a{padding:9px 12px;border:1px solid #398376;border-radius:8px;font-size:12px}.growth-context .toolbar a:hover{background:#145047}.growth-context p{flex-basis:100%;margin:0;font-size:11px}
+@media(max-width:750px){.growth-context{margin:10px 12px;padding:13px}.growth-context .toolbar{width:100%;flex-wrap:wrap}}
