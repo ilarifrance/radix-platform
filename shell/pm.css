@@ -16,7 +16,7 @@ html.rx-shell body.rx-pm{
 .rx-pm .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:20px 22px;box-shadow:none}
 .rx-pm .future{background:transparent;border-style:dashed}
 /* KPI row */
-.rx-pm .stats{gap:12px}
+.rx-pm .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .rx-pm .stat{background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface));border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px}
 .rx-pm .stat strong{display:block;font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
 .rx-pm .stat span{color:var(--rx-muted);font-size:12px}
@@ -100,3 +100,8 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-heatmap td[style*="--load"]{background:color-mix(in srgb,var(--pm-heat) calc(15% + var(--load) * 70%),var(--rx-surface))!important}
 .rx-pm .pm-heatmap>p{margin:6px 14px 12px;font-size:12px}
 @media (max-width:767px){.rx-pm .pm-tabs{display:flex;overflow-x:auto}.rx-pm .pm-kanban{grid-template-columns:repeat(4,minmax(240px,82vw));scroll-snap-type:x mandatory}.rx-pm .pm-col{scroll-snap-align:start}.rx-pm .pm-gantt .g-row{grid-template-columns:140px minmax(480px,1fr)}}
+/* Budget (F4): project budget field, over-budget tile (.stat.over set by the page script) */
+.rx-pm .pm-budget{display:inline-grid;gap:6px;margin:4px 0 12px;color:var(--rx-muted);font-size:13px}
+.rx-pm .pm-budget input{max-width:200px;font-variant-numeric:tabular-nums}
+.rx-pm .stat.over{border-color:color-mix(in srgb,var(--rx-error) 55%,var(--rx-border));background:linear-gradient(160deg,color-mix(in srgb,var(--rx-error) 10%,var(--rx-surface-2)),var(--rx-surface))}
+.rx-pm .stat.over strong{color:var(--rx-error)}
