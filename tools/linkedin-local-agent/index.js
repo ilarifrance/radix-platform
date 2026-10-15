@@ -17,7 +17,13 @@ const PROFILE = path.join(HOME, 'browser-profile');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const state = {phase:'idle', browser:null, page:null, active:null, stopping:false, error:'', lastUpdate:null};
 const json = (res,status,value) => send(res,status,JSON.stringify(value),{'Content-Type':'application/json; charset=utf-8'});
-function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});res.end(body)}
+function send(res,status,body,headers={}) {res.writeHead(status,{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','Content-Security-Policy':"default-src 'self'; style-src 'unsafe-inline'",...headers});res.end(body)}
+function isLocalRequest(req){
+ const host=String(req.headers.host||'').toLowerCase();
+ const expected='127.0.0.1:'+String(req.socket.localPort||PORT);
+ const remote=String(req.socket.remoteAddress||'');
+ return host===expected&&(remote==='127.0.0.1'||remote==='::ffff:127.0.0.1');
+}
 function snapshot(){const job=state.active;return {phase:state.phase,error:state.error,jobId:job?.id||'',page:job?.page||0,requested:job?.requested||0,collected:job?.data?.records?.length||0,duplicates:job?.data?.duplicates||0,startedAt:job?.startedAt||null,lastUpdate:state.lastUpdate,sourceUrl:job?.sourceUrl||'',browserOpen:!!state.browser,outputAvailable:!!job?.data?.records?.length}}
 function atomicSave(job){fs.mkdirSync(JOBS,{recursive:true,mode:0o700});const final=path.join(JOBS,job.id+'.json'),temp=final+'.tmp';fs.writeFileSync(temp,JSON.stringify(job,null,2),{mode:0o600});fs.renameSync(temp,final);state.lastUpdate=new Date().toISOString()}
 function loadJob(id){if(!/^[a-f0-9-]{36}$/.test(id))throw Error('ID lavoro non valido');return JSON.parse(fs.readFileSync(path.join(JOBS,id+'.json'),'utf8'))}
@@ -81,6 +87,7 @@ async function scrape(job){
 async function readBody(req){let s='';for await(const part of req){s+=part;if(s.length>16000)throw Error('Richiesta troppo grande')}return JSON.parse(s||'{}')}
 async function handler(req,res){
  try{
+  if(!isLocalRequest(req))return json(res,403,{error:'Accesso consentito solo da 127.0.0.1'});
   const url = new URL(req.url,'http://127.0.0.1:'+PORT);
   if(req.method==='GET'&&url.pathname==='/')return send(res,200,fs.readFileSync(path.join(__dirname,'index.html'),'utf8'),{'Content-Type':'text/html; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/status')return json(res,200,snapshot());
@@ -118,4 +125,4 @@ if(require.main===module){
  server.listen(PORT,'127.0.0.1',()=>{process.stdout.write('RADIX LinkedIn Local Agent: http://127.0.0.1:'+PORT+'\nProfilo browser e dati: '+HOME+'\n')});
  process.on('SIGINT',()=>{state.stopping=true;server.close()});
 }
-module.exports={handler,snapshot,isAuthOrChallenge};
+module.exports={handler,snapshot,isAuthOrChallenge,isLocalRequest};
