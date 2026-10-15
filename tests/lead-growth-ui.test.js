@@ -12,10 +12,10 @@ test('commercial project wizard is navigable, complete and connected to API',()=
 test('campaign page offers editing and no automatic sending',()=>{
  const html=fs.readFileSync('sales-growth-campaigns.html','utf8'),js=fs.readFileSync('sales/growth-campaigns.js','utf8');
  for(const field of ['campaign-project','campaign-workspace','campaign-save','campaign-delete','campaign-credit-total','campaign-list'])assert.ok(html.includes('id="'+field+'"'));
- assert.doesNotThrow(()=>new vm.Script(js));assert.match(js,/lead_growth_projects/);assert.doesNotMatch(js,/sendEmail|smtp\.send|fetch\('https:\/\/www\.linkedin/);
+ assert.doesNotThrow(()=>new vm.Script(js));assert.match(js,/lead_growth_projects/);assert.match(html,/id="campaign-import-file"/);assert.match(html,/id="campaign-export-file"/);assert.match(js,/localOnly/);assert.match(js,/safeImport/);assert.doesNotMatch(js,/sendEmail|smtp\.send|fetch\('https:\/\/www\.linkedin/);
 });
 test('Lead Intelligence applies linked ICP only with user confirmation',()=>{
  const html=fs.readFileSync('lead-intelligence.html','utf8'),script=fs.readFileSync('sales/lead-growth-context.js','utf8');
- assert.match(html,/id="lead-growth-context"/);assert.match(script,/window\.confirm/);
+ assert.match(html,/id="lead-growth-context"/);assert.match(html,/id="lead-growth-import-file"/);assert.match(script,/window\.confirm/);
  assert.match(script,/entity:'lead_growth_projects'/);assert.match(script,/lead-growth-apply-icp/);
 });
