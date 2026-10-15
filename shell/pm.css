@@ -1,0 +1,46 @@
+/* Project Management visual layer — approved ref: Gantt/Kanban/heatmap mockup (flat everyday version). Layout only; data and logic stay in the page script / lib/pm-*.js. */
+html.rx-shell body.rx-pm{
+  --bg:var(--rx-bg);--panel:var(--rx-surface);--line:var(--rx-border);--muted:var(--rx-muted);--ink:var(--rx-text);--green:var(--rx-projects);--amber:var(--rx-warning);
+  background:radial-gradient(ellipse at 85% -10%,color-mix(in srgb,var(--rx-projects) 14%,transparent),transparent 50%),var(--rx-bg);
+  color:var(--rx-text);font:14px/1.55 var(--rx-font)}
+.rx-pm>header:not(.rx-topbar){display:none} /* brand + demo tag now live in the shell (wordmark + Demo badge) */
+.rx-pm main{max-width:1680px;padding:24px 28px 40px}
+.rx-pm h1,.rx-pm h2,.rx-pm h3{font-family:var(--rx-display);letter-spacing:-.01em}
+.rx-pm h1{font-size:30px;letter-spacing:-.01em;margin:8px 0 6px}
+.rx-pm h2{font-size:18px}
+.rx-pm .eyebrow{color:var(--rx-projects);font-size:12px;letter-spacing:.14em}
+.rx-pm .muted,.rx-pm small{color:var(--rx-muted)}
+.rx-pm .hero{padding:4px 0 8px}
+.rx-pm .notice{border:1px solid var(--rx-border);border-left:3px solid var(--rx-warning);border-radius:12px;background:var(--rx-surface);color:var(--rx-muted);font-size:13px;padding:12px 16px;margin:16px 0}
+.rx-pm .notice strong{color:var(--rx-text)}
+.rx-pm .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:20px 22px;box-shadow:none}
+.rx-pm .future{background:transparent;border-style:dashed}
+/* KPI row */
+.rx-pm .stats{gap:12px}
+.rx-pm .stat{background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface));border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px}
+.rx-pm .stat strong{display:block;font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-pm .stat span{color:var(--rx-muted);font-size:12px}
+/* Controls */
+.rx-pm button{min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
+.rx-pm button:hover:not(:disabled){border-color:var(--rx-projects);background:var(--rx-surface-2)}
+.rx-pm button.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-pm button.primary:hover:not(:disabled){background:var(--rx-core-soft)}
+.rx-pm input,.rx-pm select,.rx-pm textarea{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
+.rx-pm input[type=checkbox]{min-height:0;accent-color:var(--rx-projects)}
+.rx-pm label{color:var(--rx-muted);font-size:13px}
+.rx-pm :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+/* Task cards: Kanban-style card language */
+.rx-pm .task{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px}
+.rx-pm .task:hover{border-color:var(--rx-border-strong)}
+.rx-pm .task[aria-pressed=true]{border-color:var(--rx-projects);background:color-mix(in srgb,var(--rx-projects) 10%,var(--rx-surface-2));box-shadow:0 0 0 1px var(--rx-projects) inset}
+.rx-pm .task strong{color:var(--rx-text)}
+.rx-pm .pill,.rx-pm .task .pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid var(--rx-border-strong);color:var(--rx-muted);background:transparent;font-size:12px}
+.rx-pm .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,var(--rx-border))}
+/* Detail panel */
+.rx-pm .detail-title{font:600 20px/1.25 var(--rx-display)}
+.rx-pm .meta dt{color:var(--rx-subtle);font-size:12px}
+.rx-pm .meta dd{color:var(--rx-text)}
+.rx-pm .approval{border:1px solid color-mix(in srgb,var(--rx-warning) 40%,var(--rx-border));background:color-mix(in srgb,var(--rx-warning) 6%,var(--rx-surface));border-radius:12px}
+.rx-pm dialog{background:var(--rx-bg-raised);color:var(--rx-text);border:1px solid var(--rx-border-strong);border-radius:16px}
+.rx-pm footer{color:var(--rx-subtle);font-size:12px}
+@media (max-width:767px){.rx-pm main{padding:16px 12px 32px}.rx-pm h1{font-size:26px}.rx-pm .stats{grid-template-columns:1fr 1fr}}
