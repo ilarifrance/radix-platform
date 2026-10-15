@@ -20,7 +20,8 @@ test('workbench scripts parse and require authentication and per-call approval',
  assert.doesNotThrow(()=>new vm.Script(js));
  assert.match(js,/fetch\('\/api\/auth\/me'/);
  assert.match(js,/if\(!window\.confirm\(/);
- assert.match(js,/fetch\('\/api\/chat'/);
+ // AI calls go through the shared v3.7 engine (continuation, project profile, team memory).
+ assert.match(js,/rt\.reply\(\{role/);assert.match(js,/memoryScope:project\?/);
  assert.ok(js.includes('busy||!authenticated||!selected'));
  assert.doesNotMatch(js,/localStorage|sessionStorage/);
 });
@@ -29,6 +30,7 @@ test('both vertical pages link to shared catalog and JS with no cloned backend',
   const html=fs.readFileSync(area+'/index.html','utf8');
   assert.ok(html.includes('data-area="'+area+'"'));
   assert.ok(html.includes('../verticals/studio.js'));
+  assert.ok(html.includes('/lib/radix-agent-runtime.js')&&html.includes('/lib/radix-workspace-client.js'));
   assert.ok(html.includes('../verticals/studio.css'));
   assert.ok(html.includes('../control-center-v2.html'));
  }
