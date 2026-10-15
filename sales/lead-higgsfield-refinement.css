@@ -122,3 +122,39 @@ section[id]{scroll-margin-top:78px}
 
 /* Lead Intake: URL source + supervised enrichment */
 .lead-linkedin-panel h3{font-size:16px;margin:16px 0 10px;color:#e1fffa}.lead-linkedin-panel .li-separator{height:1px;background:linear-gradient(90deg,#30d8c6aa,#2b536000);margin:24px 0}.lead-linkedin-panel textarea,.lead-linkedin-panel input[type=url]{display:block;width:100%;background:#08222e;border:1px solid #376875;border-radius:9px;color:#e5fff9;padding:12px;margin-top:6px;font:inherit}.lead-linkedin-panel .li-link{color:#42ecc9;border:1px solid #376875;padding:9px 13px;border-radius:9px}.li-suggestions{max-height:360px;overflow:auto;margin:10px 0;border-top:1px solid #27525c}.li-suggestion{display:flex;align-items:flex-start;gap:12px;padding:10px 6px;border-bottom:1px solid #27525c;color:#cde7e5;cursor:pointer;overflow-wrap:anywhere}.li-suggestion input{flex:0 0 auto;accent-color:#28e8b7;width:17px;height:17px}.lead-linkedin-panel .upload{margin:12px 0}.lead-linkedin-panel p{line-height:1.6}@media(max-width:760px){.li-suggestion{font-size:12px}.lead-linkedin-panel .toolbar{flex-wrap:wrap}}
+
+
+/* RADIX Lead Intelligence / 2026 cockpit contact intelligence: dedicated high-contrast layout */
+.contact-vault{position:relative;isolation:isolate;overflow:hidden;margin:22px 0 18px;padding:22px;border:1px solid #2b797c;border-radius:16px;background:radial-gradient(ellipse at 96% 0%,#164b6750,transparent 48%),linear-gradient(155deg,#0a2d39,#061d2d 77%);box-shadow:0 14px 44px #010c1740,inset 0 1px #75fff515}
+.contact-vault::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,#54f3c9,#5ea6ff,transparent);opacity:.8}
+.contact-vault-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px}
+.contact-vault-header>div{display:grid;gap:5px}
+.contact-vault-header strong{font-size:16px;font-weight:720;letter-spacing:-.02em;color:#eafffc}
+.contact-vault-header span:not(.tag){font-size:11px;color:#a1c7cf}
+.contact-vault .fields{margin-block:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.contact-vault .toolbar{gap:8px;display:flex;flex-wrap:wrap;align-items:center}
+.contact-vault .toolbar button{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.contact-vault .toolbar button:not(:disabled):hover{transform:translateY(-2px);border-color:#69eecb;box-shadow:0 4px 18px #29dabc24}
+.contact-vault .tag{background:#153d54;border:1px solid #4487a3;color:#b1e9ff;letter-spacing:.11em}
+.contact-metrics{margin-top:22px;margin-bottom:22px;gap:12px}
+.contact-metrics>div{position:relative;overflow:hidden;border:1px solid #27696f;border-radius:14px;box-shadow:inset 0 1px #f0fffa0d,0 9px 23px #03121c40;background:linear-gradient(130deg,#103342,#082331)}
+.contact-metrics>div::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:#4ce1c1}
+.contact-metrics>div:nth-child(2)::before{background:#81b7ff}
+.contact-metrics>div:nth-child(3)::before{background:#f4bf70}
+.contact-metrics>div:nth-child(2) strong{color:#acd7ff}
+.contact-metrics>div:nth-child(3) strong{color:#f2cc8b}
+.contact-metrics strong{display:block;margin-top:7px;font-size:clamp(23px,2.8vw,30px);letter-spacing:-.035em}
+#contact-status,#contact-job-status,#contact-api-result{padding:12px 14px;border:1px solid #255660;border-radius:10px;background:#081c2a;color:#adced3;line-height:1.6}
+#contact-job-status{margin-top:17px;border-color:#2d7679}
+#contact-preview-rows td{max-width:310px;overflow-wrap:anywhere}
+#contact-source,#contact-batch-id,#contact-job-title,#contact-job-select{width:100%;min-width:0}
+#contact-preview-rows tr{transition:background-color .16s ease}
+#contact-preview-rows tr:hover{background-color:#14505d50}
+.panel:has(#contact-import){border-color:#2b7775;box-shadow:inset 0 1px #ffffff08,0 0 30px #24c7b20b}
+#contact-import,#contact-job-save{background:linear-gradient(110deg,#0c907c,#1698b5);border-color:#29cfbb;color:#fff;font-weight:700}
+#contact-job-delete{color:#f3a8ac;border-color:#6a5055}
+#contact-job-delete:hover{border-color:#e29394!important}
+button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+@media(max-width:950px){.contact-vault{padding:16px}.contact-vault .fields{grid-template-columns:1fr}.contact-vault-header{align-items:center}}
+@media(max-width:560px){.contact-vault{padding:14px}.contact-metrics{gap:6px}.contact-metrics>div{padding:10px 7px}.contact-metrics small{font-size:9px;letter-spacing:.02em}.contact-vault-header{flex-wrap:wrap}.contact-vault .toolbar>button{flex:1 1 150px}}
+@media(prefers-reduced-motion:reduce){.contact-vault .toolbar button,#contact-preview-rows tr{transition:none}}

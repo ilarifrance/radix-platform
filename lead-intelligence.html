@@ -31,14 +31,13 @@
 <div class="toolbar"><button id="li-paste-import" type="button" class="primary">＋ Importa righe nella lista</button></div>
 <p class="muted">Per i file Excel o CSV esportati puoi anche usare il normale pulsante «Seleziona CSV / TSV / Excel» nella sezione Dati. Questa sezione non legge o automatizza la sessione LinkedIn.</p>
 <div class="li-separator"></div>
-<div class="li-separator"></div>
 <h3>Connessione API · Captain Data</h3>
 <p class="muted">Verifica la disponibilità di una chiave Captain Data nel solo ambiente Preview. La verifica legge lo stato dell'account provider: non avvia ricerche, non accede a LinkedIn e non genera job a pagamento.</p>
 <div class="toolbar"><button id="contact-api-status" type="button" class="outline">Controlla configurazione</button><button id="contact-api-test" type="button" class="outline">Testa chiave API (sola lettura)</button></div>
 <p id="contact-api-result" class="muted" role="status">Chiave API non ancora verificata. Usa lo stesso workspace selezionato nell'Archivio RADIX.</p>
 <div class="li-separator"></div>
 <h3>Motore contatti · acquisizione a lotti</h3>
-<p class="muted">Area sperimentale Preview per risultati JSON forniti tramite export/API autorizzati. Gestisce persone distinte dalle aziende, lotti successivi, duplicati e ripresa da backup. Non legge LinkedIn né invia dati a servizi esterni. I contatti restano in memoria fino all'esportazione: il vault aziendale attuale ha un limite separato di 250 aziende.</p>
+<p class="muted">Area sperimentale Preview per risultati JSON forniti tramite export/API autorizzati. Gestisce persone distinte dalle aziende, lotti successivi, duplicati e ripresa da backup. Non legge LinkedIn né invia dati a servizi esterni. I contatti rimangono in memoria fino al backup o al salvataggio esplicito nel nuovo archivio Preview. Il vault aziendale mantiene un limite separato di 250 aziende.</p>
 <div class="fields">
 <label>URL di provenienza dei risultati <input id="contact-source" type="url" placeholder="https://example.com/provenienza"></label>
 <label>ID lotto (unico per ogni file) <input id="contact-batch-id" value="lotto-1" placeholder="lotto-1"></label>
