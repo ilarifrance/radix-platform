@@ -1,0 +1,4 @@
+'use strict';const test=require('node:test'),assert=require('node:assert/strict');const C=require('../api/_lead_provider_client');
+test('provider is read-only and disabled in production',()=>{assert.equal(C.status({VERCEL_ENV:'production',CAPTAIN_DATA_API_KEY:'not-real'}).configured,false);assert.equal(C.status({VERCEL_ENV:'preview'}).configured,false)});
+test('safe read-only provider connection test',async()=>{let endpoint,opts;const fetcher=async(u,o)=>{endpoint=u;opts=o;return{ok:true,status:200}};const r=await C.verify({VERCEL_ENV:'preview',CAPTAIN_DATA_API_KEY:'dummy'},fetcher);assert.equal(r.connection,'ok');assert.match(endpoint,/^https:\/\/api\.captaindata\.com\/v4\/users$/);assert.equal(opts.method,'GET');assert.equal(opts.headers['X-API-Key'],'dummy');assert.equal(r.linked,false)});
+test('rejects missing key',async()=>{await assert.rejects(()=>C.verify({VERCEL_ENV:'preview'},async()=>({ok:true})),/CAPTAIN_DATA_API_KEY/)});
