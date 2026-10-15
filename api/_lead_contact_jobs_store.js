@@ -9,6 +9,7 @@ function createLeadContactJobsStore(sql){
   const found=await sql("SELECT payload,version FROM sales_lead_contact_jobs WHERE workspace_id=$1::uuid AND id=$2::uuid AND payload->>'providerRunUid'=$3",[workspace,id,runUid]);
   if(!found.length){const e=new Error('Lavoro o identità provider non associati');e.status=403;throw e}
   const current=found[0],next=B.add(current.payload,rows,batchId);
+  next.providerRunUid=runUid;
   if(next.last.repeated)return {accepted:true,repeated:true,contacts:current.payload.records.length};
   const clean=payload(next);
   const saved=await sql("UPDATE sales_lead_contact_jobs SET payload=$5::jsonb,version=version+1,updated_at=now() WHERE workspace_id=$1::uuid AND id=$2::uuid AND version=$3 AND payload->>'providerRunUid'=$4 RETURNING version",[workspace,id,current.version,runUid,JSON.stringify(clean)]);
