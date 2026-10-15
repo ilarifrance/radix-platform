@@ -39,3 +39,23 @@ test('PM page offers the four views and syncs from the Agency workspace',()=>{
  for(const view of ['list','kanban','gantt','workload'])assert.match(html,new RegExp('data-view="'+view+'"'));
  assert.match(html,/views\.syncFromAgency\(pm,state/);assert.doesNotMatch(fs.readFileSync('lib/pm-demo.js','utf8'),/Cambio stato simulato|Approvazione esplicita simulata/);
 });
+
+test('budget compares planned and actual costs with the project budget',()=>{
+ const v=require('../lib/pm-views.js');
+ const tasks=[{estimate:1000,actual:400},{estimate:500.5},{actual:250.25},{}];
+ assert.deepEqual(v.budget(tasks,{budget:2000}),{budget:2000,planned:1500.5,spent:650.25,remaining:1349.75,spentPct:33,plannedPct:75,overPlanned:false,overSpent:false});
+ const none=v.budget(tasks,{});assert.equal(none.spentPct,null);assert.equal(none.remaining,null);assert.equal(none.overSpent,false);
+ assert.equal(v.budget([{estimate:3000,actual:2100}],{budget:2000}).overSpent,true);
+});
+
+test('cost-only edits keep status and approval; other edits still revoke it',()=>{
+ const s=pm.validateState({projects:[{id:'p1',name:'P',note:'',synthetic:true,subprojects:[{id:'p1s1',name:'G'}]}],tasks:[],nextId:1});
+ const t=pm.create(s,{title:'A',owner:'Anna',due:'2026-10-20',project:'p1',subproject:'p1s1',approvalRequired:true});
+ pm.changeStatus(s,t.id,'In corso');pm.changeStatus(s,t.id,'In revisione');pm.approve(s,t.id,true);
+ pm.update(s,t.id,{estimate:'800',actual:'120,5'});
+ assert.equal(t.status,'In revisione');assert.equal(t.approved,true);assert.equal(t.estimate,800);assert.equal(t.actual,120.5);
+ pm.update(s,t.id,{actual:''});assert.equal('actual' in t,false);assert.equal(t.approved,true);
+ assert.throws(()=>pm.update(s,t.id,{estimate:'-5'}),/Costo previsto/);
+ assert.deepEqual(pm.validateState(JSON.parse(JSON.stringify(s))).tasks[0].estimate,800);
+ pm.update(s,t.id,{title:'B'});assert.equal(t.approved,false);assert.equal(t.status,'Da fare');
+});
