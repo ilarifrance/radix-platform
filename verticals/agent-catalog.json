@@ -180,6 +180,87 @@
           ]
         }
       ]
+    },
+    "commercial": {
+      "name": "RADIX Commerciale",
+      "subtitle": "Reparto commerciale AI · Mercati, contatti, outreach e CRM",
+      "description": "I cinque agenti commerciali della v3.7, con gli stessi identificativi e prompt. Le email vengono inviate solo dopo che hai controllato destinatario e testo e confermato l’invio.",
+      "accent": "#ffc46b",
+      "roles": [
+        {
+          "id": "comm-orchestrator",
+          "name": "Orchestratore Commerciale",
+          "description": "Smista l’obiettivo commerciale agli specialisti giusti",
+          "tasks": [
+            "Imposta il piano commerciale per un nuovo mercato",
+            "Definisci le priorità commerciali del trimestre"
+          ]
+        },
+        {
+          "id": "comm-market-analyst",
+          "name": "Analista di Mercato e Strategia",
+          "description": "Ricerche di mercato, trend, strategia per ogni mercato target",
+          "tasks": [
+            "Analizza il mercato target e i concorrenti principali",
+            "Definisci il profilo del cliente ideale"
+          ]
+        },
+        {
+          "id": "comm-contact-finder",
+          "name": "Ricercatore di Contatti",
+          "description": "Trova aziende e contatti professionali pubblici in base alla strategia",
+          "tasks": [
+            "Elenca aziende target coerenti con il profilo cliente",
+            "Indica i ruoli decisionali da contattare"
+          ]
+        },
+        {
+          "id": "comm-email-outreach",
+          "name": "Specialista Email Outreach",
+          "description": "Scrive le email; l’invio resta una tua conferma esplicita",
+          "tasks": [
+            "Scrivi la prima email di contatto (Oggetto: / Corpo:)",
+            "Scrivi un follow-up dopo 7 giorni senza risposta"
+          ]
+        },
+        {
+          "id": "comm-crm-manager",
+          "name": "Responsabile CRM / Sales Ops",
+          "description": "Stato dei contatti, follow-up dovuti, tasso di risposta",
+          "tasks": [
+            "Riassumi lo stato della pipeline e i follow-up dovuti",
+            "Proponi le metriche commerciali da monitorare"
+          ]
+        }
+      ],
+      "workflows": [
+        {
+          "id": "market",
+          "title": "Strategia di mercato",
+          "steps": [
+            "comm-orchestrator",
+            "comm-market-analyst",
+            "comm-contact-finder"
+          ]
+        },
+        {
+          "id": "outreach",
+          "title": "Campagna di outreach",
+          "steps": [
+            "comm-orchestrator",
+            "comm-email-outreach",
+            "comm-crm-manager"
+          ]
+        },
+        {
+          "id": "pipeline",
+          "title": "Revisione pipeline",
+          "steps": [
+            "comm-crm-manager",
+            "comm-orchestrator"
+          ]
+        }
+      ]
     }
   }
 }
