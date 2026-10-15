@@ -104,7 +104,7 @@ html.rx-shell .shell,html.rx-shell .app{min-height:calc(100vh - var(--rx-topbar)
   .rx-iconbtn.rx-menu{display:grid;flex:0 0 40px}
   .rx-pagetop{display:flex;align-items:center;gap:8px}
   .rx-search,html.rx-shell .rx-topbar button.rx-search{flex:1 1 auto;min-width:0}
-  .rx-search kbd,.rx-user span{display:none}
+  .rx-search kbd,.rx-user span,.rx-spacer{display:none}
   .rx-state{padding:0 9px}.rx-state span{display:none}
 }
 @media (prefers-reduced-motion:reduce){.rx-sidebar,.rx-chev{transition:none}}
@@ -128,3 +128,5 @@ html.rx-shell header.rx-topbar{flex-direction:row;align-items:center;justify-con
 html.rx-shell .rx-topbar button.rx-search{min-height:40px;height:40px;padding:0 12px;border-radius:12px;white-space:nowrap;overflow:hidden;font-weight:400}
 html.rx-shell .rx-topbar .rx-search>span{overflow:hidden;text-overflow:ellipsis}
 html.rx-shell .rx-topbar button.rx-iconbtn{min-height:40px;padding:0}
+html.rx-shell .rx-topbar button.rx-search{background:var(--rx-surface);color:var(--rx-subtle);border:1px solid var(--rx-border);width:auto;margin:0;font-family:var(--rx-font);font-size:14px;opacity:1}
+html.rx-shell .rx-topbar button.rx-iconbtn{background:var(--rx-surface);color:var(--rx-text);border:1px solid var(--rx-border);width:40px;margin:0}
