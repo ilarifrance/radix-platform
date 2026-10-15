@@ -67,6 +67,7 @@ test('manual insertion and reset cannot be overwritten by an older pending file 
  f.get('paste-add').onclick();
  resolve('name,domain\nDaFile,dafile.it');await importing;
  assert.equal(f.get('total').textContent,'1');
+ f.get('country').value='Italia';
  f.get('score').onclick();assert.equal(f.get('results').children[0].children[0].textContent,'Manuale');
  let finish;const secondPromise=new Promise(r=>finish=r);
  f.get('file').files=[{name:'test.csv',size:80,text:()=>secondPromise}];const second=f.get('file').onchange();
