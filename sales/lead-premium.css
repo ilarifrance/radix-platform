@@ -6,3 +6,10 @@
 .mail-preview{margin-top:20px;border:1px solid #2a7974;border-radius:12px;background:#082d34;padding:17px}
 .mail-preview strong{display:block;margin:7px 0 12px;color:#cdfbf4;font-size:15px}
 .mail-preview pre{white-space:pre-wrap;word-wrap:break-word;font:13px/1.6 system-ui,sans-serif;color:#c0d9dc;margin:0}
+
+/* RADIX contact-batch workbench */
+.contact-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}
+.contact-metrics>div{border:1px solid #235c62;border-radius:12px;background:linear-gradient(145deg,#09242c,#0a333c);padding:13px 16px}
+.contact-metrics small{display:block;color:#9ebfc5;font-size:10px;letter-spacing:.12em}
+.contact-metrics strong{font-size:25px;color:#63f4db;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.contact-metrics{grid-template-columns:1fr 1fr 1fr}.contact-metrics>div{padding:8px}.contact-metrics strong{font-size:20px}}
