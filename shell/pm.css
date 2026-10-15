@@ -96,8 +96,7 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-heatmap td{height:38px;padding:6px;border:0;border-radius:8px;background:var(--rx-surface);color:var(--rx-text);text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
 .rx-pm .pm-heatmap th:first-child,.rx-pm .pm-heatmap td:first-child{text-align:left;background:transparent;padding-left:10px;white-space:nowrap}
 .rx-pm .pm-heatmap td:last-child{background:transparent;font-weight:600}
-/* cell intensity: --load (0–1) when the script sets it; older script paints green, shifted to the PM violet */
+/* cell intensity: --load (0–1) set by the page script */
 .rx-pm .pm-heatmap td[style*="--load"]{background:color-mix(in srgb,var(--pm-heat) calc(15% + var(--load) * 70%),var(--rx-surface))!important}
-.rx-pm .pm-heatmap td[style*="rgba(121"]{filter:hue-rotate(125deg) saturate(1.3)}
 .rx-pm .pm-heatmap>p{margin:6px 14px 12px;font-size:12px}
 @media (max-width:767px){.rx-pm .pm-tabs{display:flex;overflow-x:auto}.rx-pm .pm-kanban{grid-template-columns:repeat(4,minmax(240px,82vw));scroll-snap-type:x mandatory}.rx-pm .pm-col{scroll-snap-align:start}.rx-pm .pm-gantt .g-row{grid-template-columns:140px minmax(480px,1fr)}}
