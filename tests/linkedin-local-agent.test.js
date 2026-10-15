@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),http=require('node:http');
 const Batch=require('../lib/lead-contact-batches'),Source=require('../lib/salesnav-source');
 const {normalizeVisibleCards,csvExport}=require('../lib/linkedin-browser-extract');
-const {handler,isAuthOrChallenge}=require('../tools/linkedin-local-agent/index');
+const {handler,isAuthOrChallenge,isLocalRequest}=require('../tools/linkedin-local-agent/index');
 const SOURCE='https://www.linkedin.com/sales/search/people?query=test';
 test('validates real Sales Navigator URLs, rejects other sources and credentials',()=>{
  assert.equal(Source.validate(SOURCE),SOURCE);
@@ -33,5 +33,18 @@ test('local API rejects foreign origin and requires browser session',async()=>{
   const unauth=await fetch(addr+'/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:SOURCE,quantity:50})});assert.equal(unauth.status,409);
   const content=await fetch(addr+'/');assert.equal(content.status,200);assert.match(await content.text(),/RADIX/);
   const status=await(await fetch(addr+'/api/status')).json();assert.equal(status.phase,'idle');
+ }finally{server.close()}
+});
+
+test('local server rejects forged Host headers (DNS rebinding) and accepts loopback',async()=>{
+ const server=http.createServer(handler);await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ try{
+  const port=server.address().port,addr='http://127.0.0.1:'+port;
+  const valid=await fetch(addr+'/api/status');assert.equal(valid.status,200);
+  const forged=await fetch(addr+'/api/status',{headers:{Host:'attacker.example'}});
+  assert.equal(forged.status,403);
+  const foreign=await fetch(addr+'/api/jobs',{headers:{Host:'localhost:'+port}});
+  assert.equal(foreign.status,403);
+  assert.equal(isLocalRequest({headers:{host:'127.0.0.1:'+port},socket:{localPort:port,remoteAddress:'127.0.0.1'}}),true);
  }finally{server.close()}
 });
