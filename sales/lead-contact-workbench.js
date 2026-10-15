@@ -26,6 +26,20 @@
   link.href=uri;link.download=name;document.body.append(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(uri),1000);
  }
+ async function apiStatus(test){
+  try{
+   const workspace=$('archive-workspace')?.value;
+   if(!workspace)throw Error('Seleziona prima un workspace nell’Archivio Lead Intelligence');
+   const options=test?{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace,entity:'lead_provider_status',action:'test',data:{}})}:{credentials:'same-origin'};
+   const path=test?'/api/sales':'/api/sales?entity=lead_provider_status&workspace='+encodeURIComponent(workspace);
+   text('contact-api-result','Verifica in corso...');
+   const response=await fetch(path,options),body=await response.json();
+   if(!response.ok)throw Error(body.error||'Provider non disponibile');
+   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata in Preview, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY nelle variabili Preview di Vercel.');
+  }catch(e){text('contact-api-result','Verifica API: '+e.message)}
+ }
+ $('contact-api-status').onclick=()=>apiStatus(false);
+ $('contact-api-test').onclick=()=>apiStatus(true);
  $('contact-import').onclick=async()=>{
   try{
    const file=$('contact-file').files?.[0];if(!file)throw Error('Seleziona prima un file JSON');
