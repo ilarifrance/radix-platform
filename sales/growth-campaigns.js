@@ -1,7 +1,7 @@
 'use strict';
 (()=>{
  const $=id=>document.getElementById(id),UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
- let project=null,record=null,selected='',busy=false,dirty=false;
+ let project=null,record=null,selected='',busy=false,dirty=false,localOnly=false,localTitle='';
  const say=(id,m)=>{$(id).textContent=m};
  const opt=(id,label)=>{const x=document.createElement('option');x.value=id;x.textContent=label;return x};
  const ws=()=>{const id=$('campaign-workspace').value;if(!UUID.test(id))throw Error('Seleziona un workspace');return id};
@@ -26,7 +26,7 @@
   if(dirty&&!window.confirm('Cambiare progetto? Le modifiche locali non salvate saranno perse.'))return;
   const w=ws(),rows=await request('/api/sales?'+new URLSearchParams({entity:'lead_growth_projects',workspace:w,id}));
   const result=rows[0];if(!result?.payload||!Array.isArray(result.payload.campaigns))throw Error('Progetto non disponibile');
-  project=result.payload;record={id:result.id,version:result.version,workspace:w,title:result.title};selected='';dirty=false;
+  project=result.payload;record={id:result.id,version:result.version,workspace:w,title:result.title};localOnly=false;localTitle=result.title;selected='';dirty=false;
   clear();show();applyLinks();$('campaign-project').value=id;
   say('campaign-status','Progetto '+record.title+' · versione '+record.version+' · '+project.campaigns.length+' campagne.');
  }
@@ -38,7 +38,7 @@
   say('campaign-draft',String(campaigns.filter(x=>x.stage==='draft').length));
   say('campaign-credit-total',String(campaigns.reduce((sum,x)=>sum+Number(x.creditBudget||0),0)));
   $('campaign-progress').style.width=Math.min(100,campaigns.length/10*100)+'%';
-  say('campaign-save-state',record?'PROGETTO v'+record.version:'SELEZIONA PROGETTO');
+  say('campaign-save-state',record?'PROGETTO v'+record.version:localOnly?'FILE LOCALE':'SELEZIONA PROGETTO');
   const dest=$('campaign-list');dest.replaceChildren();
   if(!campaigns.length){const empty=document.createElement('p');empty.className='helper';empty.textContent='Nessuna campagna nel progetto. Crea una nuova campagna per iniziare.';dest.append(empty)}
   for(const c of campaigns){
@@ -79,7 +79,12 @@
   return {id,title,channel:$('campaign-channel').value,stage,segment:$('campaign-segment').value.trim(),goal:$('campaign-goal').value.trim(),notes:$('campaign-notes').value.trim(),creditBudget:String(credit)};
  };
  async function update(next,verb){
-  if(!record||!project)throw Error('Apri prima un progetto salvato');
+  if(!project)throw Error('Apri prima un progetto o importa un backup');
+  if(localOnly){
+   if(!window.confirm(verb+' in questa bozza locale? Esporta poi il JSON per non perdere le modifiche.'))return;
+   project.campaigns=next;selected='';clear();dirty=true;show();say('campaign-edit-status','Modifiche locali pronte. Premi Esporta progetto e campagne per conservarle.');return;
+  }
+  if(!record)throw Error('Apri prima un progetto salvato');
   if(busy)return;busy=true;$('campaign-save').disabled=true;
   try{
    const w=ws();if(w!==record.workspace)throw Error('Il workspace è cambiato. Ricarica il progetto.');
@@ -111,7 +116,48 @@
  $('campaign-project').onchange=async()=>{try{if($('campaign-project').value)await open($('campaign-project').value)}catch(e){say('campaign-status',e.message)}};
  $('campaign-workspace').onchange=async()=>{
   try{if(dirty&&!window.confirm('Cambiare workspace? Le modifiche non salvate saranno perse.'))return;
-   project=null;record=null;dirty=false;selected='';clear();show();applyLinks();await list();
+   project=null;record=null;localOnly=false;localTitle='';dirty=false;selected='';clear();show();applyLinks();await list();
+  }catch(e){say('campaign-status',e.message)}
+ };
+ const safeImport=p=>{
+  if(!p||p.format!=='radix-growth-project'||p.version!==1||typeof p.title!=='string'||!p.title.trim()||p.title.length>120)throw Error('Backup RADIX non valido');
+  if(!p.payload||p.payload.version!==1||!Array.isArray(p.payload.campaigns)||p.payload.campaigns.length>30)throw Error('Schema progetto incompatibile');
+  const allowed={company:['name','website','industry','description'],icp:['geos','titles','industries','companySize'],offer:['core','differentiators','proof'],sending:['domains','mailboxes','provider'],linkedin:['profileUrl'],calendars:['bookingUrl','demoUrl']};
+  const model={version:1,state:p.payload.state==='ready'?'ready':'draft',campaigns:[]};
+  for(const [k,fields] of Object.entries(allowed)){
+   if(!p.payload[k]||typeof p.payload[k]!=='object')throw Error('Sezione '+k+' mancante');
+   model[k]={};for(const f of fields){const v=p.payload[k][f];if(typeof v!=='string'||v.length>1800)throw Error('Campo non valido: '+k+'/'+f);model[k][f]=v}
+  }
+  const fields=['id','title','stage','channel','segment','goal','notes','creditBudget'];
+  const ids=new Set();
+  for(const c of p.payload.campaigns){
+   const row={};for(const f of fields){if(typeof c[f]!=='string'||c[f].length>2000)throw Error('Campo campagna non valido');row[f]=c[f]}
+   if(!UUID.test(row.id)||ids.has(row.id))throw Error('ID campagna duplicato o non valido');ids.add(row.id);
+   if(!['draft','ready','paused'].includes(row.stage)||!['email','linkedin','manual','multichannel'].includes(row.channel))throw Error('Stato o canale non valido');
+   model.campaigns.push(row);
+  }
+  return {title:p.title,payload:model};
+ };
+ $('campaign-import-file').onchange=async()=>{
+  try{
+   const file=$('campaign-import-file').files?.[0];if(!file)throw Error('Seleziona prima un backup');
+   if(file.size>150000||!file.name.toLowerCase().endsWith('.json'))throw Error('File non valido o troppo grande');
+   const p=safeImport(JSON.parse(await file.text()));
+   if((dirty||project)&&!window.confirm('Aprire questo backup? Le modifiche non esportate potrebbero andare perse.'))return;
+   project=p.payload;localTitle=p.title;record=null;localOnly=true;selected='';dirty=false;
+   $('campaign-project').value='';clear();show();applyLinks();
+   say('campaign-status','Backup '+localTitle+' aperto localmente: '+project.campaigns.length+' campagne. Esporta le modifiche dopo il salvataggio.');
+  }catch(e){say('campaign-status','Impossibile aprire backup: '+e.message)}
+ };
+ $('campaign-export-file').onclick=()=>{
+  try{
+   if(!project)throw Error('Seleziona un progetto o importa un backup');
+   const contents=JSON.stringify({format:'radix-growth-project',version:1,title:record?.title||localTitle,payload:project},null,2);
+   const blob=new Blob([contents],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+   link.href=url;link.download='radix-progetto-con-campagne.json';document.body.append(link);link.click();link.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),1000);
+   if(localOnly)dirty=false;
+   say('campaign-status','Backup progetto e campagne esportato. Custodisci il file in modo sicuro.');
   }catch(e){say('campaign-status',e.message)}
  };
  window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
