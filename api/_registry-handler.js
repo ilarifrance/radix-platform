@@ -5,6 +5,7 @@
 const {sql}=require('./_db');
 const {getSessionUser}=require('./_auth');
 const core=require('./_registry-core');
+const memory=require('./_agency-memory-store');
 const send=(res,code,data)=>res.status(code).json(data);
 function bodyOf(req){if(typeof req.body==='string')return JSON.parse(req.body||'{}');return req.body||{}}
 const revisionOf=v=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw new core.InputError('Versione richiesta');return n};
@@ -100,6 +101,7 @@ async function projects(req,res,db,uid){
  if(req.method==='DELETE'){
   const rows=await db`DELETE FROM rx_projects WHERE id=${data.id} AND revision=${revision} RETURNING name`;
   if(!rows.length)return conflict(res);
+  try{await memory.removeProject(db,data.id)}catch(e){}
   await log(db,uid,null,'project.deleted',rows[0].name,{projectId:data.id});
   return send(res,200,{ok:true});
  }
@@ -166,7 +168,13 @@ async function approvals(req,res,db,uid){
    WHERE id=${d.id} AND state='awaiting_approval' RETURNING *`;
   if(!rows.length)return conflict(res);
   await log(db,uid,a.project_id,'approval.'+d.state,a.summary||a.subject_id,{approvalId:d.id,selfReview:self});
-  return send(res,200,{ok:true,item:rows[0]});
+  // An approval can carry what the team should remember; it becomes confirmed project memory.
+  let remembered=null;
+  if(d.state==='approved'&&data.memory){
+   try{remembered=(await memory.insert(db,memory.fromApproval(rows[0],data.memory),uid,{approvalId:d.id})).id}
+   catch(e){remembered=false}
+  }
+  return send(res,200,{ok:true,item:rows[0],memoryId:remembered});
  }
  throw new core.InputError('Azione non valida');
 }
