@@ -1,9 +1,12 @@
 {
-  "rewrites": [
+  "redirects": [
     {
       "source": "/",
-      "destination": "/control-center-v2.html"
-    },
+      "destination": "/control-center-v2.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
     {
       "source": "/api/buffer",
       "destination": "/api/integrations/buffer"

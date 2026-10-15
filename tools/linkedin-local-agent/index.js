@@ -9,6 +9,7 @@ const os = require('node:os');
 const crypto = require('node:crypto');
 const Batch = require('../../lib/lead-contact-batches');
 const Source = require('../../lib/salesnav-source');
+const PublicLookup = require('../../api/_lead_public_lookup');
 const {visibleSearchCards,normalizeVisibleCards,csvExport} = require('../../lib/linkedin-browser-extract');
 const PORT = Number(process.env.RADIX_LINKEDIN_PORT || 4317);
 const HOME = path.join(os.homedir(), '.radix', 'linkedin-agent');
@@ -105,7 +106,7 @@ async function handler(req,res){
    // The receiver reads local checkpoints only; it never triggers browsing.
    return json(res,200,{jobId:id,total:records.length,complete,incomplete:records.length-complete,records:records.slice(0,5000).map(r=>({
     fullName:r.fullName||'',jobTitle:r.jobTitle||'',companyName:r.companyName||'',
-    location:r.location||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
+    location:r.location||'',companyDomain:r.companyDomain||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
     sourceUrl:r.sourceUrl||''
    }))});
   }
@@ -119,6 +120,27 @@ async function handler(req,res){
   if(req.headers.origin && req.headers.origin!=='http://127.0.0.1:'+PORT)return json(res,403,{error:'Origine non autorizzata'});
   if(!String(req.headers['content-type']||'').startsWith('application/json'))return json(res,415,{error:'Content-Type JSON richiesto'});
   const input=await readBody(req);
+  if(url.pathname==='/api/free-lookup'){
+   const id=String(input.jobId||''),profileUrl=String(input.profileUrl||'');
+   const job=loadJob(id),contact=job.data.records.find(r=>r.profileUrl===profileUrl);
+   if(!contact)return json(res,404,{error:'Contatto non trovato nel lavoro'});
+   if(!contact.companyName||contact.companyDomain)return json(res,400,{error:'Nome aziendale assente oppure dominio già presente'});
+   const result=await PublicLookup.lookup({name:contact.companyName});
+   return json(res,200,{jobId:id,profileUrl,companyName:contact.companyName,...result});
+  }
+  if(url.pathname==='/api/free-accept'){
+   const id=String(input.jobId||''),profileUrl=String(input.profileUrl||'');
+   const name=String(input.companyName||''),domain=String(input.domain||''),source=String(input.source||'');
+   if(!/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(domain)||domain.length>253||!/^https:\/\/www\.wikidata\.org\/wiki\/Q[1-9]\d{0,11}$/.test(source))return json(res,400,{error:'Proposta fonte/dominio non valida'});
+   if(state.phase==='running')return json(res,409,{error:'Attendi la fine della acquisizione'});
+   const job=loadJob(id),contact=job.data.records.find(r=>r.profileUrl===profileUrl);
+   if(!contact||contact.companyName!==name||contact.companyDomain)return json(res,409,{error:'Contatto modificato o dominio già disponibile'});
+   contact.companyDomain=domain;
+   job.freeEnrichment=Array.isArray(job.freeEnrichment)?job.freeEnrichment:[];
+   job.freeEnrichment.push({profileUrl,field:'companyDomain',value:domain,source,confirmedAt:new Date().toISOString()});
+   atomicSave(job);
+   return json(res,200,{saved:true,domain});
+  }
   if(url.pathname==='/api/browser'){await openBrowser();return json(res,200,snapshot())}
   if(url.pathname==='/api/stop'){state.stopping=true;return json(res,200,snapshot())}
   if(url.pathname==='/api/start'){
