@@ -1,7 +1,7 @@
 ---
 name: RADIX
-version: 0.1 (draft 2026-10-15)
-status: draft — points marked PROVISIONAL wait for Francesco's decision
+version: 0.2 (2026-10-15)
+status: decisions recorded with Francesco on 2026-10-15
 mode: operate
 theme: dark
 colors:
@@ -46,7 +46,7 @@ Approved references: `docs/RADIX_APPROVED_VISUAL_DIRECTION.md` (Command Center m
 
 ## 1. Principles
 
-1. **One product, one shell.** Every page uses the same sidebar, top bar, Copilot rail and components. A module changes its accent color, never its layout language.
+1. **One product, one shell.** Everything lives in the Command Center or in pages linked from it, all with the same sidebar, top bar, Copilot rail and components. A module changes its accent color, never its layout language.
 2. **Truth over decoration.** Never show invented numbers, agents, approvals or live activity. If data is missing, show a clear empty state. Glow and energy effects are decoration, never proof that something is running.
 3. **Plain language.** UI copy speaks to the user, not the developer. Banned in visible copy: "snapshot", "offset", "pagine lette", "contract", "non modellata", stack traces, env var names. Data reliability goes in the data-state badge (§5), not in paragraphs.
 4. **Operate first.** These are work tools: scanability, density and keyboard use beat spectacle. Spectacle (network, orbit, globe) lives only in the hero zone of a home page.
@@ -59,7 +59,7 @@ Approved references: `docs/RADIX_APPROVED_VISUAL_DIRECTION.md` (Command Center m
 - Each area has one accent (`area-*`) used for its nodes, icons, active tab underline and chart series. Accent text on dark must keep ≥ 4.5:1 contrast.
 - Status colors override area colors. Red/coral means risk or urgent action only, never decoration.
 - Color is never the only signal: status always carries a text label or icon.
-- **PROVISIONAL (D2):** Sales uses the teal-green accent `area-sales`, matching the PROD_2/PROD_3 mockups; the blue variant is not used.
+- **Decided:** palette adapts to the context and service, as in the approved mockups. Core tokens (background, surfaces, text, `core`, status) are shared everywhere; each area brings its own accent and hero imagery (Agency violet/blue, Sales teal-green, Command Center emerald). An area never redefines the shared tokens.
 
 ## 3. Typography
 
@@ -79,7 +79,7 @@ Approved references: `docs/RADIX_APPROVED_VISUAL_DIRECTION.md` (Command Center m
 └───────────────┴───────────────────────────────────────────────────────────────────┘
 ```
 
-- **Sidebar (PROVISIONAL, D4: one global sidebar):** Command Center · Projects · area groups (Marketing Agency, Sales Intelligence, Studio, upcoming areas) each expandable to its pages · Approvals · Knowledge · Integrations · Settings. Full viewport height, sticky. Collapses to 72px icons at < 1280px and to a drawer at < 768px.
+- **Sidebar (decided: one global sidebar):** Command Center · Projects · area groups (Marketing Agency, Sales Intelligence, Studio, upcoming areas) each expandable to its pages · Approvals · Knowledge · Integrations · Settings. Full viewport height, sticky. Collapses to 72px icons at < 1280px and to a drawer at < 768px.
 - **Copilot rail:** right column at ≥ 1280px, a slide-over panel below that. Never pushed under the page content.
 - Page width: fluid, max 1680px content. Mobile 390px must work with no horizontal scroll; tables become cards, kanban becomes a horizontal snap list inside its own scroller, network/orbit views fall back to a list.
 - Long workflows (Lead Intelligence, new project) are steppers showing one step at a time, not one long page.
@@ -106,11 +106,15 @@ Approved references: `docs/RADIX_APPROVED_VISUAL_DIRECTION.md` (Command Center m
 
 ## 7. Brand
 
-- **PROVISIONAL (D1):** logo is the "RADIX" wordmark set in Space Grotesk with wide tracking, plus the area name below in small caps (e.g. "SALES INTELLIGENCE"). It will be replaced by the final SVG.
-- **PROVISIONAL (D3):** in Marketing Agency, "PED" means *Piano Editoriale* (as in current code) until Francesco confirms otherwise.
-- **PROVISIONAL (D5):** the v3.7 agent workspace (`index.html`) moves to this dark theme after the shell exists.
+- **Logo (decided):** no single fixed file. The "RADIX" wordmark (Space Grotesk, wide tracking) is always present, with the area or service name below in small caps (e.g. "MARKETING AGENCY", "SALES INTELLIGENCE") and the area accent, as in the mockups.
+- **PED (decided):** *Piano Editoriale*, a tool inside Marketing Agency to manage an editorial plan strategically (goals, pillars, campaigns) and operationally (calendar, content, approvals, publishing) across all social platforms.
+- **v3.7 (decided):** the v3.7 workspace is absorbed, not restyled. Its AI-agent functions (orchestrators, specialists, chat, file attachments, document outputs) are integrated into the Command Center and the area pages; the Command Center takes the home `/`. No agent capability may be lost in the move.
 
-## 8. Quality bar (check before every UI PR)
+## 8. Ownership
+
+CRM / Sales pages (`radix-sales`, `sales-*`, `lead-intelligence`) are being finished in a separate workstream. They adopt this system only once handed over; until then do not restyle them.
+
+## 9. Quality bar (check before every UI PR)
 
 - Screenshots at 1440px and 390px; no horizontal scroll; no text < 12px.
 - Keyboard: every action reachable, visible focus ring.
