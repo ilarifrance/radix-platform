@@ -17,13 +17,13 @@ const rosterEnd = mainHtml.indexOf('var AGENT_ALIASES', rosterStart);
 assert.ok(rosterStart >= 0 && rosterEnd > rosterStart, 'Existing RADIX agent roster must be discoverable');
 const rosterIds = new Set([...mainHtml.slice(rosterStart, rosterEnd).matchAll(/\bid:\s*"([^"]+)"/g)].map(m => m[1]));
 
-test('Agency catalog is explicitly a design preview', () => {
+test('Agency catalog configures divisions; live work comes from the registry', () => {
   assert.equal(catalog.schemaVersion, 1);
-  assert.equal(catalog.mode, 'design_preview');
+  assert.equal(catalog.mode, 'registry');
   assert.equal(catalog.divisions.length, 13);
   assert.equal(Object.keys(catalog.roles).length, 14);
-  assert.match(agencyHtml, /DESIGN PREVIEW/);
-  assert.match(agencyHtml, /nessuna azione esterna/i);
+  assert.match(agencyHtml, /lib\/agency-divisions\.js/);
+  assert.match(agencyHtml, /nessuna azione esterna senza conferma esplicita/i);
 });
 
 test('Agency divisions are unique, complete and use existing roles', () => {
@@ -50,8 +50,8 @@ test('Agency divisions are unique, complete and use existing roles', () => {
   assert.deepEqual([...divisionIds].sort(), ['strategy', 'campaigns', 'ped', 'creative', 'web', 'seo-geo', 'paid', 'email', 'video', 'analytics', 'assets', 'approvals', 'team'].sort());
 });
 
-test('Agency preview script parses without executing external actions', () => {
-  const scripts = [...agencyHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+test('Agency overview script parses and reads data only through the workspace client', () => {
+  const scripts = [...agencyHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)];
   assert.equal(scripts.length, 1);
   new vm.Script(scripts[0][1], { filename: 'agency/index.html' });
   assert.match(scripts[0][1], /fetch\('\.\/catalog\.json'/);
@@ -62,13 +62,16 @@ test('Agency preview script parses without executing external actions', () => {
 test('Approval, spend, send and production releases are explicitly gated', () => {
   assert.match(agencyHtml, /Ogni post richiede approvazione/);
   assert.match(agencyHtml, /Budget PPC, invio email e deploy produzione/);
-  assert.match(agencyHtml, /Nessun agente risulta online senza una verifica reale/);
-  assert.match(agencyHtml, /Nessun task live collegato/);
+  assert.match(agencyHtml, /id="recentTasks"/);
 });
 
-test('Agency links PED and division workspaces without claiming live operation', () => {
-  assert.match(agencyHtml, /d\.id==='ped'\?'\.\/ped\.html':'\.\/workspace\.html\?division='/);
-  assert.ok(read('agency/workspace.html').length > 0);
+test('Agency links PED, agents and live division workspaces', () => {
+  assert.match(agencyHtml, /d\.id==='ped'\?'\/project-editorial\.html':'\.\/workspace\.html\?division='/);
+  assert.match(agencyHtml, /\/agents\.html\?agent=/);
+  const workspace = read('agency/workspace.html');
+  assert.match(workspace, /RadixAgencyDivisions/);
+  assert.doesNotMatch(workspace, /NON CONNESSO|disabled>/);
+  for (const s of workspace.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(s[1], { filename: 'agency/workspace.html' });
   // The old PED preview now forwards to the real, registry-backed PED.
   const ped = read('agency/ped.html');
   assert.match(ped, /url=\/project-editorial\.html/);
