@@ -69,7 +69,8 @@ test('Approval, spend, send and production releases are explicitly gated', () =>
 test('Agency links PED and division workspaces without claiming live operation', () => {
   assert.match(agencyHtml, /d\.id==='ped'\?'\.\/ped\.html':'\.\/workspace\.html\?division='/);
   assert.ok(read('agency/workspace.html').length > 0);
+  // The old PED preview now forwards to the real, registry-backed PED.
   const ped = read('agency/ped.html');
-  assert.match(ped, /DESIGN PREVIEW/);
-  assert.match(ped, /disabled[^>]*>Genera proposta/);
+  assert.match(ped, /url=\/project-editorial\.html/);
+  assert.doesNotMatch(ped, /<script/);
 });
