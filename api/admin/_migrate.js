@@ -9,6 +9,9 @@ module.exports = async (req, res) => {
   if (req.query && req.query.agencyMemory === '1') {
     return require('../_agency-memory-migration')(req, res);
   }
+  if (req.query && req.query.registry === '1') {
+    return require('../_registry-migration')(req, res);
+  }
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Usa POST' });
     return;
