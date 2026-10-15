@@ -50,6 +50,10 @@
 <div class="contact-vault">
 <div class="contact-vault-header"><div><strong>Archivio contatti RADIX</strong><span>Persistenza nel workspace Preview isolato · salvataggio manuale</span></div><span class="tag">VERSIONATO</span></div>
 <div class="fields"><label>Nome lavoro <input id="contact-job-title" maxlength="120" value="Lead Intelligence · Contatti" placeholder="Nome ricerca"></label><label>Lavori salvati <select id="contact-job-select"><option value="">Nessun lavoro selezionato</option></select></label></div>
+<label class="contact-provider-binding">UID esecuzione Captain Data (solo se già autorizzata) <input id="contact-provider-run-uid" maxlength="40" placeholder="run_uid del provider"></label>
+<p class="muted">Per ricevere callback automatici, salva il lavoro con il run_uid autentico. Il provider deve inviare l'intestazione <code>X-Radix-Provider-Token</code> con il segreto configurato in Vercel Preview. Non incollare il segreto in questa pagina.</p>
+<div class="toolbar"><button id="contact-callback-copy" type="button" class="outline">Copia URL callback del lavoro</button></div>
+<p id="contact-callback-url" class="muted" role="status">Salva prima il lavoro e associa un run_uid per ottenere l'URL callback.</p>
 <div class="toolbar"><button id="contact-job-list" type="button" class="outline">↻ Aggiorna archivio</button><button id="contact-job-load" type="button" class="outline">Apri lavoro</button><button id="contact-job-save" type="button" class="primary" disabled>Salva contatti nel workspace</button><button id="contact-job-new" type="button" class="outline">Nuovo lavoro</button><button id="contact-job-delete" type="button" class="outline">Elimina lavoro</button></div>
 <p id="contact-job-status" class="muted" role="status">Seleziona prima un workspace RADIX nella sezione Archivio storico. Nessun salvataggio automatico.</p>
 </div>
