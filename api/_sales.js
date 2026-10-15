@@ -4,6 +4,7 @@ const leadLists=require('./_lead_lists');
 const leadContactJobs=require('./_lead_contact_jobs');
 const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
+const providerCallback=require('./_lead_provider_callback');
 const fields = Object.freeze({companies:['name'],contacts:['name','company_id'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
@@ -56,6 +57,10 @@ function createHandler({getSessionUser,getStore}){
  return async function(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  try{
+   if(req.method==='POST'&&(req.headers?.['x-radix-provider-token']!==undefined||req.query?.job!==undefined)){
+     const result=await providerCallback.receive(req,getStore());
+     return res.status(200).json(result);
+   }
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}
    let user;try{user=getSessionUser(req);}catch{user=null;}
    if(!user||!Number.isInteger(user.uid)||user.uid<1||user.uid>2147483647)fail(401,'Accedi con il tuo account RADIX.');
