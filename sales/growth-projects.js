@@ -26,6 +26,7 @@
   const params=record.id&&record.workspace?'?growth_project='+encodeURIComponent(record.id)+'&growth_workspace='+encodeURIComponent(record.workspace):'';
   $('growth-go-leads').href='/lead-intelligence.html'+params;
   $('growth-go-campaigns').href='/sales-growth-campaigns.html'+(record.id&&record.workspace?'?project='+encodeURIComponent(record.id)+'&workspace='+encodeURIComponent(record.workspace):'');
+  $('growth-open-linkedin').href='/sales-linkedin.html'+(record.id&&record.workspace?'?project='+encodeURIComponent(record.id)+'&workspace='+encodeURIComponent(record.workspace):'');
  }
  function renderMeta(){
   const score=progress();say('growth-score',score+'%');$('growth-progress-bar').style.width=score+'%';
