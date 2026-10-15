@@ -52,6 +52,7 @@
    const rows=P.convert(callback?.raw||raw,base.sourceUrl);
    let next=base;
    for(let i=0;i<rows.length;i+=200){next=B.add(next,rows.slice(i,i+200),id+'-'+Math.floor(i/200))}
+   if(job?.providerRunUid)next.providerRunUid=job.providerRunUid;
    job=next;vault.dirty=true;show();
    text('contact-status','Lotto elaborato: '+rows.length+' record ricevuti; '+job.records.length+' contatti unici. Nessun salvataggio sul server.');
   }catch(e){text('contact-status','Importazione non riuscita: '+e.message)}
@@ -104,6 +105,18 @@
   menu.value=selected||'';
   text('contact-job-status',rows.length+' lavori disponibili nel workspace. Nessun dato sovrascritto.');
  }
+ const callbackUrl=()=>location.origin+'/api/sales?workspace='+encodeURIComponent(vault.workspace)+'&job='+encodeURIComponent(vault.id);
+ function updateCallbackInfo(){
+  const linked=Boolean(vault.id&&vault.version&&job?.providerRunUid&&$('contact-provider-run-uid').value.trim()===job.providerRunUid);
+  text('contact-callback-url',linked?'URL callback: '+callbackUrl():'Salva il lavoro e associa un run_uid per abilitare i callback.');
+ }
+ $('contact-callback-copy').onclick=async()=>{
+  try{
+   if(!vault.id||!vault.version||!job?.providerRunUid||$('contact-provider-run-uid').value.trim()!==job.providerRunUid)throw Error('Salva prima il lavoro con il run_uid del provider');
+   await navigator.clipboard.writeText(callbackUrl());
+   text('contact-callback-url','URL copiato. Imposta nel provider il segreto tramite intestazione X-Radix-Provider-Token.');
+  }catch(e){text('contact-callback-url','Impossibile copiare il callback: '+e.message)}
+ };
  $('contact-job-list').onclick=async()=>{try{await listJobs(vault.id&&vault.workspace===workspace()?vault.id:'')}catch(e){text('contact-job-status','Archivio: '+e.message)}};
  $('contact-job-save').onclick=async()=>{
   try{
@@ -114,9 +127,12 @@
    const action=vault.id?'update':'create';
    if(!window.confirm('Salvare '+job.records.length+' contatti individuali nel database Preview isolato del workspace? Verifica provenienza e trattamento dei dati.'))return;
    const payload={...job};delete payload.last;
+   const runUid=$('contact-provider-run-uid').value.trim();
+   if(runUid&&!/^[a-zA-Z0-9_-]{1,40}$/.test(runUid))throw Error('run_uid provider non valido');
+   if(runUid)payload.providerRunUid=runUid;else delete payload.providerRunUid;
    const data={title,payload,...(action==='update'?{id:vault.id,version:vault.version}:{})};
    const [row]=await api('POST','lead_contact_jobs',{action,data},ws);
-   vault={id:row.id,version:row.version,workspace:ws,dirty:false};
+   vault={id:row.id,version:row.version,workspace:ws,dirty:false};job.providerRunUid=runUid||undefined;updateCallbackInfo();
    text('contact-job-status','Lavoro salvato nel workspace · versione '+row.version+' · '+job.records.length+' contatti.');
    await listJobs(row.id);
   }catch(e){text('contact-job-status','Salvataggio non riuscito: '+e.message)}
@@ -132,17 +148,18 @@
    if(p.version!==1||!Array.isArray(p.records)||!Array.isArray(p.batches))throw Error('Contenuto archivio non valido');
    const base=B.start(p.sourceUrl);
    const contacts=p.records.map(r=>B.person(r,base.sourceUrl));
-   job={...base,records:contacts,batches:p.batches,total:p.total,duplicates:p.duplicates};
+   job={...base,records:contacts,batches:p.batches,total:p.total,duplicates:p.duplicates,providerRunUid:p.providerRunUid};
+   $('contact-provider-run-uid').value=p.providerRunUid||'';
    $('contact-source').value=job.sourceUrl;
    $('contact-job-title').value=row.title;
-   vault={id:row.id,version:row.version,workspace:ws,dirty:false};show();
+   vault={id:row.id,version:row.version,workspace:ws,dirty:false};show();updateCallbackInfo();
    text('contact-job-status','Caricati '+contacts.length+' contatti dal workspace · versione '+row.version);
   }catch(e){text('contact-job-status','Apertura non riuscita: '+e.message)}
  };
  $('contact-job-new').onclick=()=>{
   if(job&&!window.confirm('Iniziare un nuovo lavoro? Esporta o salva quello corrente prima di continuare.'))return;
   job=null;vault={id:'',version:0,workspace:'',dirty:false};
-  $('contact-source').value='';$('contact-job-select').value='';show();
+  $('contact-source').value='';$('contact-provider-run-uid').value='';$('contact-job-select').value='';show();updateCallbackInfo();
   text('contact-job-status','Nuovo lavoro in attesa dei risultati. Il lavoro precedente rimane nell’archivio se salvato.');
  };
  $('contact-job-delete').onclick=async()=>{
@@ -152,7 +169,7 @@
    if(id!==vault.id||ws!==vault.workspace||!vault.version)throw Error('Apri prima il lavoro, così RADIX ne verifica la versione aggiornata');
    if(!window.confirm('Eliminare definitivamente questo lavoro contatti dal workspace Preview?'))return;
    await api('POST','lead_contact_jobs',{action:'delete',data:{id,version:vault.version}},ws);
-   job=null;vault={id:'',version:0,workspace:'',dirty:false};show();await listJobs('');
+   job=null;vault={id:'',version:0,workspace:'',dirty:false};show();updateCallbackInfo();await listJobs('');
    text('contact-job-status','Lavoro eliminato dall’archivio.');
   }catch(e){text('contact-job-status','Eliminazione non riuscita: '+e.message)}
  };
