@@ -1,0 +1,3 @@
+'use strict';const test=require('node:test'),assert=require('node:assert/strict'),R=require('../lib/lead-provider-callback');
+test('identifies multi-batch provider delivery by run and batch IDs',()=>{const event={run:{run_uid:'run_123',batch_uid:'batch_3',status:'SUCCEEDED'},results:[{first_name:'Ada'}]};assert.equal(R.read(event).id,'run-run_123-batch_3');assert.equal(R.read({results:[{name:'Ada'}]}),null)});
+test('rejects failed/incomplete callback events',()=>{assert.throws(()=>R.read({run:{run_uid:'a',batch_uid:'b',status:'FAILED'},results:[{}]}),/senza risultati/);assert.throws(()=>R.read({run:{run_uid:'a',batch_uid:'b',status:'SUCCEEDED'},results:[]}),/senza contatti/)});

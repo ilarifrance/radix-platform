@@ -44,10 +44,11 @@
   try{
    const file=$('contact-file').files?.[0];if(!file)throw Error('Seleziona prima un file JSON');
    if(file.size>3500000)throw Error('File superiore a 3,5 MB');
-   const raw=JSON.parse(await file.text()),provided=source(),id=$('contact-batch-id').value.trim();
-   if(!id||id.length>80)throw Error('Indica un ID lotto, ad esempio pagina-1');
+   const raw=JSON.parse(await file.text()),provided=source(),callback=window.RadixProviderCallback?.read(raw);
+   const id=callback?.id||$('contact-batch-id').value.trim();
+   if(!id||id.length>210)throw Error('Indica un ID lotto, ad esempio pagina-1');
    const base=job||B.start(provided);if(base.sourceUrl!==B.start(provided).sourceUrl)throw Error('La provenienza differisce dal lavoro aperto');
-   const rows=P.convert(raw,base.sourceUrl);
+   const rows=P.convert(callback?.raw||raw,base.sourceUrl);
    let next=base;
    for(let i=0;i<rows.length;i+=200){next=B.add(next,rows.slice(i,i+200),id+'-'+Math.floor(i/200))}
    job=next;show();
