@@ -24,3 +24,6 @@ html.rx-shell body.rx-studio{
 .rx-studio #projectLinks{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 12px;font-size:13px}
 .rx-studio #projectLinks a{color:var(--rx-accent)}
 .rx-studio #saveNote{color:var(--rx-muted);font-size:12px}
+/* Send panel under the draft (.tools, commercial/legal/accounting) */
+.rx-studio .tools{display:grid;gap:10px;margin-top:14px;padding:14px 16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-surface)}
+.rx-studio .tools input,.rx-studio .tools textarea{border:1px solid var(--rx-border);border-radius:10px;background:var(--rx-bg-raised);color:var(--rx-text)}
