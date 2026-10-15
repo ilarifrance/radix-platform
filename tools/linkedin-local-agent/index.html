@@ -198,7 +198,7 @@ $('free-lookup').onclick=async()=>{
    if(!freeProposal||!window.confirm('Hai verificato che il dominio appartiene realmente a '+freeProposal.companyName+'? Salvare il dominio sul Mac?'))return;
    accept.disabled=true;
    try{
-    await call('/api/free-accept',freeProposal);
+    await call('/api/free-accept',{jobId:freeProposal.jobId,profileUrl:freeProposal.profileUrl,companyName:freeProposal.companyName,domain:freeProposal.value,source:freeProposal.source});
     target.textContent='Dominio confermato e salvato nel lavoro locale. Nessun costo API.';
     await loadReceiver(receiverSelected);
    }catch(e){target.textContent='Salvataggio non riuscito: '+e.message}
