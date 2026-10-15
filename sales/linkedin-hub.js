@@ -62,6 +62,14 @@
  $('linkedin-check').onclick=()=>check(false);
  $('linkedin-test').onclick=()=>check(true);
  $('linkedin-workspace').onchange=async()=>{resetConnection();if($('linkedin-workspace').value){await loadProjects();await check(false)}};
+ $('linkedin-local-open').onclick=()=>{
+  let destination='http://127.0.0.1:4317/';
+  try{
+   const value=$('linkedin-search-url').value.trim();
+   if(value){const source=S.validate(value),quantity=S.quantity($('linkedin-quantity').value);destination+='?'+new URLSearchParams({source,quantity:String(quantity)});}
+  }catch(e){say('linkedin-search-status','URL non precompilata: '+e.message+'. Inseriscila nell’agente locale.')}
+  $('linkedin-local-open').href=destination;
+ };
  $('linkedin-prepare').onclick=()=>{
   try{
    const url=S.validate($('linkedin-search-url').value),requested=S.quantity($('linkedin-quantity').value);
