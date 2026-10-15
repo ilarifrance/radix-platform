@@ -106,7 +106,7 @@ async function handler(req,res){
    // The receiver reads local checkpoints only; it never triggers browsing.
    return json(res,200,{jobId:id,total:records.length,complete,incomplete:records.length-complete,records:records.slice(0,5000).map(r=>({
     fullName:r.fullName||'',jobTitle:r.jobTitle||'',companyName:r.companyName||'',
-    location:r.location||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
+    location:r.location||'',companyDomain:r.companyDomain||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
     sourceUrl:r.sourceUrl||''
    }))});
   }
