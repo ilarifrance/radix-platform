@@ -48,6 +48,12 @@
 <label class="upload">Riprendi un lavoro precedente (.json) <input id="contact-restore-file" type="file" accept=".json,application/json"></label>
 <div class="toolbar"><button id="contact-restore" type="button" class="outline">Riprendi backup</button><button id="contact-clear" type="button" class="outline">Svuota lavoro</button></div>
 <div class="contact-metrics"><div><small>CONTATTI UNICI</small><strong id="contact-count">0</strong></div><div><small>LOTTI</small><strong id="contact-batches">0</strong></div><div><small>DUPLICATI</small><strong id="contact-duplicates">0</strong></div></div>
+<div class="contact-vault">
+<div class="contact-vault-header"><div><strong>Archivio contatti RADIX</strong><span>Persistenza nel workspace Preview isolato · salvataggio manuale</span></div><span class="tag">VERSIONATO</span></div>
+<div class="fields"><label>Nome lavoro <input id="contact-job-title" maxlength="120" value="Lead Intelligence · Contatti" placeholder="Nome ricerca"></label><label>Lavori salvati <select id="contact-job-select"><option value="">Nessun lavoro selezionato</option></select></label></div>
+<div class="toolbar"><button id="contact-job-list" type="button" class="outline">↻ Aggiorna archivio</button><button id="contact-job-load" type="button" class="outline">Apri lavoro</button><button id="contact-job-save" type="button" class="primary" disabled>Salva contatti nel workspace</button><button id="contact-job-new" type="button" class="outline">Nuovo lavoro</button><button id="contact-job-delete" type="button" class="outline">Elimina lavoro</button></div>
+<p id="contact-job-status" class="muted" role="status">Seleziona prima un workspace RADIX nella sezione Archivio storico. Nessun salvataggio automatico.</p>
+</div>
 <p class="muted" id="contact-status" role="status">In attesa di un file provider. Nessun contatto è stato acquisito.</p>
 <div class="tablewrap"><table><thead><tr><th>Nominativo</th><th>Ruolo</th><th>Azienda</th><th>Email</th><th>Fonte</th></tr></thead><tbody id="contact-preview-rows"></tbody></table></div>
 <h3>Importazione da provider esterno</h3>
