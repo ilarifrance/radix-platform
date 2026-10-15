@@ -95,6 +95,19 @@ async function handler(req,res){
    const jobs=fs.existsSync(JOBS)?fs.readdirSync(JOBS).filter(x=>/^[a-f0-9-]{36}\.json$/.test(x)).slice(-30).map(x=>{try{const j=loadJob(x.slice(0,-5));return {id:j.id,sourceUrl:j.sourceUrl,page:j.page,count:j.data.records.length,createdAt:j.startedAt}}catch{return null}}).filter(Boolean):[];
    return json(res,200,{jobs});
   }
+  if(req.method==='GET'&&url.pathname==='/api/contacts'){
+   const id=url.searchParams.get('id')||state.active?.id;
+   if(!id)return json(res,200,{jobId:'',total:0,complete:0,incomplete:0,records:[]});
+   const job=loadJob(id);
+   const records=job.data.records||[];
+   const complete=records.filter(r=>r.fullName&&r.jobTitle&&r.companyName).length;
+   // The receiver reads local checkpoints only; it never triggers browsing.
+   return json(res,200,{jobId:id,total:records.length,complete,incomplete:records.length-complete,records:records.slice(0,5000).map(r=>({
+    fullName:r.fullName||'',jobTitle:r.jobTitle||'',companyName:r.companyName||'',
+    location:r.location||'',email:r.email||'',phone:r.phone||'',profileUrl:r.profileUrl||'',
+    sourceUrl:r.sourceUrl||''
+   }))});
+  }
   if(req.method==='GET'&&url.pathname==='/api/download'){
    const id=url.searchParams.get('id')||state.active?.id;if(!id)throw Error('Nessun lavoro selezionato');
    const job=loadJob(id),type=url.searchParams.get('format');if(!['json','csv'].includes(type))throw Error('Formato non valido');
