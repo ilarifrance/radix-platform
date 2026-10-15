@@ -165,3 +165,5 @@ button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .growth-context>div:first-child{display:grid;gap:4px}
 .growth-context strong{font-size:15px;color:#eafffa}.growth-context small{color:#94d0ca;font-size:12px}.growth-context .toolbar{margin:0;gap:8px}.growth-context .toolbar a{padding:9px 12px;border:1px solid #398376;border-radius:8px;font-size:12px}.growth-context .toolbar a:hover{background:#145047}.growth-context p{flex-basis:100%;margin:0;font-size:11px}
 @media(max-width:750px){.growth-context{margin:10px 12px;padding:13px}.growth-context .toolbar{width:100%;flex-wrap:wrap}}
+
+.icp-project-import{border:1px solid #337e75;border-radius:11px;padding:15px;background:linear-gradient(120deg,#0b3940,#09232f);margin:18px 0}.icp-project-import strong{color:#9bffe0;font-size:13px}.icp-project-import p{font-size:12px;margin:8px 0}.icp-project-import .upload{margin-top:11px}

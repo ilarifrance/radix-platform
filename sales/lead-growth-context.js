@@ -2,6 +2,20 @@
 (()=>{
  const params=new URLSearchParams(location.search),id=params.get('growth_project'),ws=params.get('growth_workspace');
  const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+ const backupInput=document.getElementById('lead-growth-import-file');
+ if(backupInput)backupInput.onchange=async()=>{
+  const status=document.getElementById('lead-growth-import-status');
+  try{
+   const f=backupInput.files?.[0];if(!f||f.size>150000||!f.name.toLowerCase().endsWith('.json'))throw Error('Scegli un backup RADIX JSON valido (max 150 KB)');
+   const data=JSON.parse(await f.text());
+   if(data?.format!=='radix-growth-project'||data.version!==1||!data.payload?.icp)throw Error('File progetto non riconosciuto');
+   const i=data.payload.icp,values={country:i.geos,industry:i.industries,size:i.companySize,role:i.titles};
+   if(Object.values(values).some(v=>typeof v!=='string'||v.length>500))throw Error('Criteri ICP non validi');
+   if(!window.confirm('Applicare l’ICP del progetto '+String(data.title||'')+' ai campi correnti?'))return;
+   for(const [key,value] of Object.entries(values)){const input=document.getElementById(key);if(!input)throw Error('Campo ICP non trovato: '+key);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))}
+   status.textContent='ICP importato dal backup del progetto. Ricalcola lo score per aggiornare i risultati.';
+  }catch(e){status.textContent='Importazione ICP non riuscita: '+e.message}
+ };
  if(!id&&!ws)return;
  const $=id=>document.getElementById(id),panel=$('lead-growth-context');if(!panel)return;panel.hidden=false;
  const say=s=>$('lead-growth-context-status').textContent=s;
