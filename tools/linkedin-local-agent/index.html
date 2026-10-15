@@ -59,6 +59,12 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 .receiver-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;color:#b4cfd3;font-size:12px;flex-wrap:wrap}
 .receiver-footer button{padding:8px 13px}
 @media(max-width:760px){.receiver{margin-top:14px}.receiver-controls input,.receiver-controls select{width:100%}}
+.free-lookup-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}
+.free-lookup-controls label{min-width:260px;max-width:460px;flex:1}
+.free-lookup-controls select{width:100%}
+.free-result{border:1px solid #315b66;background:#0b2934;border-radius:12px;padding:14px;min-height:45px;overflow-wrap:anywhere}
+.free-result strong{color:#9dfbdc}
+.free-result .toolbar{margin-top:9px}
 .enrich-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0}
 .enrich-summary div{padding:16px;border:1px solid #2b5d68;border-radius:12px;background:#0c303c}
 .enrich-summary strong{display:block;font-size:24px;color:#8affe0;font-variant-numeric:tabular-nums}
@@ -83,6 +89,12 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <section class="panel receiver" id="enrichment-stage">
 <h2>05 · Preparazione arricchimento</h2>
 <p class="help">Analisi offline dei contatti ricevuti. Stima dei campi mancanti e simulazione del budget per email finder: <b>nessuna richiesta a provider, nessun credito consumato.</b></p>
+<section aria-labelledby="free-lookup-title">
+<h3 id="free-lookup-title">Ricerca gratuita · Sito ufficiale</h3>
+<p class="help">Seleziona un contatto e cerca una corrispondenza esatta dell'azienda su Wikidata. La ricerca è manuale, non massiva. I suggerimenti sono da verificare prima del salvataggio.</p>
+<div class="free-lookup-controls"><label for="free-company">Contatto / azienda<select id="free-company"><option value="">Seleziona un lavoro</option></select></label><button id="free-lookup" type="button" class="secondary">Cerca dominio gratuito</button></div>
+<div class="free-result" id="free-result" role="status">Nessuna ricerca eseguita. Costo API: €0.</div>
+</section><hr style="border:0;border-top:1px solid #29535f;margin:24px 0">
 <div class="enrich-summary"><div><small>CONTATTI</small><strong id="enrich-total">0</strong></div><div><small>REVISIONE PRELIMINARE</small><strong id="enrich-review">0</strong></div><div><small>CANDIDATI EMAIL</small><strong id="enrich-eligible">0</strong></div><div><small>CHIAMATE SIMULATE</small><strong id="enrich-calls">0</strong></div></div>
 <div class="enrich-fields">
 <label for="enrich-unit">Costo ipotetico per richiesta (€)<input id="enrich-unit" type="number" min="0" max="100" step="0.001" value="0.02"></label>
@@ -139,7 +151,7 @@ async function loadReceiver(id){
   $('receiver-total').textContent=data.total+' contatti';
   $('receiver-complete').textContent=data.complete+' con ruolo e azienda';
   $('receiver-incomplete').textContent=data.incomplete+' da verificare';
-  renderReceiver();
+  renderReceiver();populateFreeCompany();
  }catch(e){$('receiver-summary').textContent='Ricevitore: '+e.message}
  finally{receiverBusy=false}
 }
@@ -149,6 +161,52 @@ $('receiver-filter').onchange=()=>{receiverPage=0;renderReceiver()};
 $('receiver-job').onchange=()=>loadReceiver($('receiver-job').value);
 $('receiver-prev').onclick=()=>{receiverPage--;renderReceiver()};
 $('receiver-next').onclick=()=>{receiverPage++;renderReceiver()};
+
+let freeProposal=null;
+function populateFreeCompany(){
+ const select=$('free-company'),previous=select.value;
+ select.replaceChildren();
+ const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona un contatto';select.append(placeholder);
+ receiverRecords.forEach((r,i)=>{
+  if(!r.companyName||r.companyDomain)return;
+  const option=document.createElement('option');
+  option.value=String(i);option.textContent=r.fullName+' · '+r.companyName;
+  select.append(option);
+ });
+ if([...select.options].some(x=>x.value===previous))select.value=previous;
+ freeProposal=null;
+ $('free-result').textContent='Seleziona un contatto e richiedi una ricerca gratuita.';
+}
+$('free-lookup').onclick=async()=>{
+ const index=$('free-company').value,contact=receiverRecords[Number(index)];
+ if(index===''||!contact||!receiverSelected){$('free-result').textContent='Seleziona prima un contatto con azienda.';return}
+ $('free-lookup').disabled=true;freeProposal=null;
+ $('free-result').textContent='Ricerca della società su Wikidata in corso…';
+ try{
+  const payload=await call('/api/free-lookup',{jobId:receiverSelected,profileUrl:contact.profileUrl});
+  const target=$('free-result');target.replaceChildren();
+  if(!payload.suggestions?.length){target.textContent=payload.reason||'Nessun dominio suggerito.';return}
+  const suggestion=payload.suggestions.find(x=>x.field==='domain');
+  if(!suggestion){target.textContent='Nessun dominio suggerito.';return}
+  freeProposal={...suggestion,jobId:receiverSelected,profileUrl:contact.profileUrl,companyName:contact.companyName};
+  const title=document.createElement('strong');title.textContent='Dominio proposto: '+suggestion.value;
+  const note=document.createElement('p');note.className='help';note.textContent='Non verificato. Confronta il sito con l’azienda prima di approvare.';
+  const link=document.createElement('a');link.href=suggestion.source;link.textContent='Apri fonte Wikidata ↗';link.target='_blank';link.rel='noopener noreferrer';
+  const bar=document.createElement('div');bar.className='toolbar';
+  const accept=document.createElement('button');accept.type='button';accept.textContent='Conferma e salva dominio';
+  accept.onclick=async()=>{
+   if(!freeProposal||!window.confirm('Hai verificato che il dominio appartiene realmente a '+freeProposal.companyName+'? Salvare il dominio sul Mac?'))return;
+   accept.disabled=true;
+   try{
+    await call('/api/free-accept',freeProposal);
+    target.textContent='Dominio confermato e salvato nel lavoro locale. Nessun costo API.';
+    await loadReceiver(receiverSelected);
+   }catch(e){target.textContent='Salvataggio non riuscito: '+e.message}
+  };
+  bar.append(accept);target.append(title,note,link,bar);
+ }catch(e){$('free-result').textContent='Ricerca non riuscita: '+e.message}
+ finally{$('free-lookup').disabled=false}
+};
 
 let latestEnrichment=null;
 function calculateEnrichment(){
