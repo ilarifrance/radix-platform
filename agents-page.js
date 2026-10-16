@@ -76,7 +76,8 @@ function selectAgent(id){
 function docCard(d,by){
  const c=node('div',undefined,'doc'),t=node('div',undefined,'t');
  t.append(node('strong','📄 '+d.title),node('small',(by?by+' · ':'')+rt.wordCount(d.body)+' parole'+(d.incomplete?' · interrotto prima della fine':'')));
- c.append(t,btn('Apri',()=>openViewer(d.title,d.body)),btn('Word',()=>rt.exportWord(d.title,d.body)),btn('PDF',()=>rt.exportPdf(d.title,d.body)),btn('Markdown',()=>rt.exportMarkdown(d.title,d.body)));
+ if(rt.isHtmlDoc(d))c.append(t,btn('Anteprima sito',()=>openSite(d)),btn('HTML',()=>rt.exportHtml(d)));else c.append(t);
+ c.append(btn('Apri',()=>openViewer(d.title,d.body)),btn('Word',()=>rt.exportWord(d.title,d.body)),btn('PDF',()=>rt.exportPdf(d.title,d.body)),btn('Markdown',()=>rt.exportMarkdown(d.title,d.body)));
  if(rt.markdownTables(d.body).length)c.append(btn('Excel',()=>rt.exportExcel(d.title,d.body)));
  return c;
 }
@@ -196,6 +197,37 @@ function render(){
 function openViewer(title,body){$('viewer-title').textContent=title;$('viewer-body').innerHTML=rt.renderMarkdown(body,0);
  $('viewer-word').onclick=()=>rt.exportWord(title,body);$('viewer-md').onclick=()=>rt.exportMarkdown(title,body);$('viewer-pdf').onclick=()=>rt.exportPdf(title,body);$('viewer-xls').hidden=!rt.markdownTables(body).length;$('viewer-xls').onclick=()=>rt.exportExcel(title,body);$('viewer-txt').onclick=()=>rt.exportText(title,body);$('viewer-copy').onclick=()=>navigator.clipboard.writeText(body).then(()=>say('Documento copiato.'));$('viewer').showModal()}
 $('viewer-close').onclick=()=>$('viewer').close();
+// ---- Web Developer site preview (v3.7 openSitePreview): sandboxed without scripts; links between pages switch tabs ----
+let sitePagesList=[],siteCurrent=null;
+function openSite(d){
+ const pages=rt.sitePages(rt.collectDocuments(conv(),rt.label(agentId))),same=p=>rt.htmlFilename(p.doc)===rt.htmlFilename(d);
+ if(!pages.some(same))pages.unshift({doc:d});sitePagesList=pages;showSitePage(pages.find(same)||pages[0]);
+ $('site-download-all').hidden=pages.length<2;if(!$('site').open)$('site').showModal();
+}
+function showSitePage(p){
+ siteCurrent=p;$('site-title').textContent=rt.htmlFilename(p.doc)+(p.by?' · '+p.by:'');
+ $('site-tabs').replaceChildren(...sitePagesList.map(x=>{const b=btn(rt.htmlFilename(x.doc),()=>showSitePage(x));b.setAttribute('role','tab');b.setAttribute('aria-selected',String(x===p));return b}));
+ $('site-frame').srcdoc=rt.htmlSource(p.doc);
+}
+$('site-frame').addEventListener('load',()=>{
+ let doc;try{doc=$('site-frame').contentDocument}catch(e){return}if(!doc)return;
+ doc.addEventListener('click',e=>{
+  const a=e.target.closest&&e.target.closest('a[href]');if(!a)return;e.preventDefault();
+  const href=a.getAttribute('href')||'',name=href.split(/[?#]/)[0].replace(/^\.?\//,'').toLowerCase();
+  if(/^https?:\/\//i.test(href)){window.open(href,'_blank','noopener,noreferrer');return}
+  if(!name){if(href.startsWith('#')){const t=doc.getElementById(href.slice(1));if(t)t.scrollIntoView()}return}
+  const target=sitePagesList.find(x=>rt.htmlFilename(x.doc)===name||(name==='index.html'&&x===sitePagesList[0]));
+  if(target)showSitePage(target);else say('La pagina «'+name+'» non è tra quelle prodotte in questa conversazione.');
+ });
+});
+const siteView=mobile=>{$('site-wrap').classList.toggle('mobile',mobile);$('site-mobile').setAttribute('aria-pressed',String(mobile));$('site-desktop').setAttribute('aria-pressed',String(!mobile))};
+$('site-mobile').onclick=()=>siteView(true);$('site-desktop').onclick=()=>siteView(false);
+$('site-download').onclick=()=>siteCurrent&&rt.exportHtml(siteCurrent.doc);$('site-download-all').onclick=()=>sitePagesList.forEach(p=>rt.exportHtml(p.doc));
+$('site-close').onclick=()=>$('site').close();
+// ---- presentation mode (v3.7 setPresent): only the conversation and the flows, full width; remembered on this browser ----
+function setPresent(on){document.body.classList.toggle('present',on);$('present').textContent=on?'🎥 Esci dalla presentazione':'🎥 Presentazione';$('present').setAttribute('aria-pressed',String(on));try{localStorage.setItem('radix.present',on?'1':'0')}catch(e){}}
+$('present').onclick=()=>setPresent(!document.body.classList.contains('present'));
+try{if(localStorage.getItem('radix.present')==='1')setPresent(true)}catch(e){}
 
 // What an agent produced can be proposed to the team memory; a person confirms it there.
 async function remember(role,title,content){

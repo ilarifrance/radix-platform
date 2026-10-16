@@ -1,6 +1,6 @@
 # Collaudo F2 · funzioni della v3.7 nelle nuove pagine
 
-Aggiornato il 16/10/2026 (PR #12). Stato: 41 portate, 3 parziali, 2 mancanti.
+Aggiornato il 16/10/2026 (PR #12). Stato: 43 portate, 3 parziali, 0 mancanti.
 Ogni riga è verificata sul codice; le funzioni con un test automatico sono coperte dalle suite in `tests/` e dai collaudi Playwright locali descritti nella PR.
 
 
@@ -31,7 +31,7 @@ Verificato con grep su: lib/radix-agent-runtime.js, lib/radix-agent-media.js, ag
 | 21 | Copia tutto / scarica tutto il risultato della pipeline | pipelineFullText, #pipelineCopyAll, #pipelineDownloadAll | lib/radix-agent-runtime.js:flowFullText; agents-page.js (.flow-all) | PORTED | Copia tutto, Scarica tutto in Word e in Markdown, senza i blocchi slide. |
 | 22 | Documenti come schede (Apri, Word, Markdown, Copia) e visualizzatore | parseDocuments, stripDocuments, buildDocCard, docActionButtons, openDocumentViewer | lib/radix-agent-runtime.js:parseDocuments, stripDocuments; agents-page.js:docCard, openViewer; agents.html #viewer, #viewer-word, #viewer-md, #viewer-copy | PORTED | Schede e visualizzatore con Word, PDF, Markdown, Excel (se ci sono tabelle) e Testo. |
 | 23 | Pannello "Documenti prodotti in questa conversazione" | collectDocuments, buildDeliverablesPanel | lib/radix-agent-runtime.js:collectDocuments; agents-page.js:deliverablesPanel | PORTED | Pannello in fondo alla conversazione con ogni documento (risposte e passi dei flussi), chi l'ha prodotto e Apri / Word / PDF / Markdown. |
-| 24 | Pagine web del Web Developer: anteprima del sito, tab tra pagine, mobile/desktop, scarica HTML/tutto il sito | isHtmlDoc, htmlDocSource, htmlDocFilename, exportHtmlFile, collectSitePages, openSitePreview, sitePreviewSrcdoc | nessuna (nessun srcdoc/iframe nei nuovi file) | MISSING | L'agente web-developer e nel roster ma le sue pagine HTML appaiono come documenti Markdown. Attenzione: la CSP di agents.html (default-src 'none', script-src 'self') blocca gli script inline anche in un iframe srcdoc. |
+| 24 | Pagine web del Web Developer: anteprima del sito, tab tra pagine, mobile/desktop, scarica HTML/tutto il sito | isHtmlDoc, htmlDocSource, htmlDocFilename, exportHtmlFile, collectSitePages, openSitePreview, sitePreviewSrcdoc | agents-page.js:openSite, showSitePage; lib/radix-agent-runtime.js:isHtmlDoc, htmlSource, htmlFilename, sitePages, exportHtml | PORTED | Anteprima in un iframe sandbox senza script (allow-same-origin soltanto): i link tra le pagine cambiano scheda, mobile/desktop, scarica pagina o tutto il sito. Differenza voluta da v3.7: gli script della pagina non girano. |
 | 25 | Testo in Markdown formattato | renderMarkdown, mdBlocks, inlineMd, setMarkdown | lib/radix-agent-runtime.js:renderMarkdown; agents-page.js:mdBlock | PORTED | |
 | 26 | Esportazione Word | exportMarkdownToWord, exportToWord | lib/radix-agent-runtime.js:exportWord, wordHtml | PORTED | Usata in agents-page.js, archive-page.js, verticals/studio.js (#word). |
 | 27 | Esportazione Markdown | exportMarkdownFile | lib/radix-agent-runtime.js:exportMarkdown (withTitle); agents-page.js risposte e schede | PORTED | Titolo "# …" ripristinato; Markdown anche sulle risposte di chat. |
@@ -51,6 +51,6 @@ Verificato con grep su: lib/radix-agent-runtime.js, lib/radix-agent-media.js, ag
 | 41 | Accesso con email/password, chi e collegato, esci | showGate, hideGate, login, logout, setCurrentUser, #gate, #whoAmI, #logoutBtn | agents.html #me, #logout (agents-page.js); login dal Command Center | PARTIAL | "Esci" nel Command Center e nelle altre pagine arriva con la shell UX (design/shell-v1, PR #7, #8, #10). |
 | 42 | Spia "agente collegato / manca ANTHROPIC_API_KEY" | checkApi, #apiStatus | agents-page.js:checkApi, #api-status | PORTED | GET gratuito su /api/chat come nella v3.7. |
 | 43 | Contatore caratteri sotto i post del Copywriter | renderMessages (char-count) | agents-page.js:render (.char-count) | PORTED | |
-| 44 | Modalita presentazione (solo chat e flusso, a tutta pagina) | setPresent, #presentToggle | nessuna | MISSING | |
+| 44 | Modalita presentazione (solo chat e flusso, a tutta pagina) | setPresent, #presentToggle | agents-page.js:setPresent; agents.html #present | PORTED | Nasconde menu, elenco agenti e spunti; ricordata nel browser. |
 | 45 | Autore dei messaggi (chi ha scritto) | m.by, msg-author | agents-page.js:render (m.by + data), composer onsubmit (by:user.name) | PORTED | |
 | 46 | Vecchie conversazioni v3.7 | state.history in /api/state | archive.html + archive-page.js:open, copyToProject; lib/v37-archive.js:summarize, toMarkdown, mergeInto | PARTIAL | Cronologie leggibili, esportabili (Markdown/Word) e copiabili in un progetto. Non mostrati: l'ultimo run della pipeline (pipelineSteps/pipelineTask) e i profili progetto v3.7. |

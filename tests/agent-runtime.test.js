@@ -123,3 +123,10 @@ test('flow summaries: time left, full text, all documents and the "cosa creare o
  const docs=rt.collectDocuments([{role:'assistant',agent:'legal-contracts',content:'---DOCUMENTO: NDA---\nCorpo\n---FINE DOCUMENTO---'},{role:'assistant',pending:true,content:'---DOCUMENTO: X---\nno\n---FINE DOCUMENTO---'},{role:'assistant',content:'ok',flow}]);
  assert.deepEqual(docs.map(x=>x.doc.title),['NDA','Strategia']);assert.equal(docs[1].by,flow.nodes[0].label);
 });
+test('Web Developer pages: recognised, unwrapped from code fences, one per file name',()=>{
+ const a={title:'Home',body:'```html\n<!doctype html><html><body>v1</body></html>\n```'},b={title:'Chi Siamo.html',body:'<p>x</p>'},c={title:'Home',body:'<!doctype html><html><body>v2</body></html>'};
+ assert.equal(rt.isHtmlDoc(a),true);assert.equal(rt.isHtmlDoc(b),true);assert.equal(rt.isHtmlDoc({title:'NDA',body:'Testo'}),false);
+ assert.equal(rt.htmlSource(a),'<!doctype html><html><body>v1</body></html>');assert.equal(rt.htmlFilename(a),'home.html');assert.equal(rt.htmlFilename(b),'chi-siamo.html');
+ assert.deepEqual(rt.sitePages([{doc:a},{doc:{title:'NDA',body:'x'}},{doc:b},{doc:c}]).map(p=>p.doc),[a,b]);
+ const page=fs.readFileSync('agents.html','utf8');assert.match(page,/<iframe id="site-frame" sandbox="allow-same-origin"/);assert.doesNotMatch(page,/sandbox="[^"]*allow-scripts/);
+});
