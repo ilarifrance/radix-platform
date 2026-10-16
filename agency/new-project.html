@@ -18,7 +18,6 @@ function updateAuth(){
  $('authOpen').disabled=!!sessionUser;
 }
 function loadClients(){const sel=$('clientId');clientList=[];sel.disabled=true;sel.innerHTML='<option value="">Nessun cliente (progetto interno)</option>';if(!sessionUser)return;RadixWorkspace.ready().then(()=>RadixWorkspace.clients.list()).then(list=>{clientList=list.filter(c=>['active','prospect','paused'].includes(c.status));for(const client of clientList){const opt=document.createElement('option');opt.value=client.id;opt.textContent=client.name;sel.appendChild(opt)}const requested=new URLSearchParams(location.search).get('client');if(requested&&clientList.some(c=>c.id===requested))sel.value=requested;$('clientHint').textContent=clientList.length?clientList.length+' clienti disponibili nell’archivio del team.':'Nessun cliente disponibile: crealo nella pagina Clienti.';sel.disabled=false}).catch(e=>{$('clientHint').textContent='Impossibile leggere i clienti: '+e.message})}
-}
 function openAuth(){ $('loginOverlay').classList.add('open');$('loginError').textContent='';$('loginEmail').focus()}
 function closeAuth(){ $('loginOverlay').classList.remove('open');$('loginPassword').value='' }
 $('authOpen').addEventListener('click',openAuth);
