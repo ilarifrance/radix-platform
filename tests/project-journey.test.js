@@ -48,11 +48,12 @@ test('agency tasks: drafts wait for approval, all approved is done',()=>{
  assert.equal(step(journey({'agency-workspace':w(['approved','approved'])}),'tasks').state,'done');
 });
 
-test('pm: synthetic demo tasks are ignored; review waits; all completed is done',()=>{
- const p={projects:[{id:'d',synthetic:true},{id:'r'}],tasks:[{project:'d',status:'In corso'},{project:'r',status:'Da fare'}]};
- const s=step(journey({pm:p}),'pm');assert.equal(s.state,'todo');assert.equal(s.total,1);
+test('pm: tasks of the plan count even when pm-demo marks the plan project synthetic; review waits; all completed is done',()=>{
+ const p={projects:[{id:'p1',synthetic:true}],tasks:[{project:'p1',status:'Da fare'},{project:'p1',status:'Da fare'}]};
+ const s=step(journey({pm:p}),'pm');assert.equal(s.state,'todo');assert.equal(s.total,2);
+ p.tasks[0].status='In corso';assert.equal(step(journey({pm:p}),'pm').state,'active');
  p.tasks[1].status='In revisione';assert.equal(step(journey({pm:p}),'pm').state,'waiting');
- p.tasks[1].status='Completato';assert.equal(step(journey({pm:p}),'pm').state,'done');
+ p.tasks[0].status=p.tasks[1].status='Completato';assert.equal(step(journey({pm:p}),'pm').state,'done');
 });
 
 test('agents are used or not, never block progress; next skips done steps',()=>{
