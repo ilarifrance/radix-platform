@@ -132,6 +132,27 @@ async function followUps(days){
  await run('Creo le attività…',async()=>{for(const o of due){try{await post('tasks','create',{title:'Follow-up: '+a.title(o).slice(0,180),opportunity_id:o.id,company_id:o.company_id||null,contact_id:o.contact_id||null,assignee_id:o.owner_id||null,priority:'normal',due_at:dueAt,status:'todo'});done++}catch(e){failed.push(a.title(o)+': '+e.message)}}});
  await a.refresh(false);a.notice('Create '+done+' attività di follow-up.');if(failed.length)a.error('Non create: '+failed.join(' · '));
 }
+// Automations: each rule shows how many tasks it would create; one confirmation per rule.
+function automationsPanel(){
+ const R=window.RadixCrmAutomations;if(!R)return null;
+ const box=E('details',undefined,'panel crm-automations');box.append(E('summary','Automazioni'));
+ const list=E('div',undefined,'crm-automation-list');box.append(E('p','Le regole propongono attività dai dati caricati: nulla parte da solo, confermi tu. Le attività automatiche all’ingresso in una fase si impostano sulla fase della pipeline.','muted'),list);
+ const data=()=>{const a=app();return {opportunities:a.rows('opportunities'),tasks:a.rows('tasks'),tickets:a.rows('tickets'),contacts:a.rows('contacts'),interactions:a.rows('interactions'),stages:a.rows('stages')}};
+ const opts=()=>({now:Date.now(),assignee:app().state.me||null,score:window.RadixCrmScore&&window.RadixCrmScore.score});
+ function draw(){list.replaceChildren();for(const rule of R.RULES){let p;try{p=R.plan(rule.id,data(),opts())}catch(e){continue}
+  const row=E('div',undefined,'crm-automation');row.dataset.rule=rule.id;const n=p.items.length;
+  row.append(E('strong',rule.name),E('span',rule.description,'muted'),E('span',n?n+(n===1?' attività da creare':' attività da creare'):'Niente da fare','crm-automation-count'));
+  const b=B('Applica',()=>apply(rule.id));b.disabled=!n;row.append(b);list.append(row)}}
+ async function apply(id){
+  const a=app(),p=R.plan(id,data(),opts());if(!p.items.length){draw();return}
+  if(!window.confirm('«'+p.rule.name+'»: creare '+p.items.length+' attività?\n'+p.items.slice(0,10).map(x=>'• '+x.task.title).join('\n')+(p.items.length>10?'\n…':'')))return;
+  let done=0;const failed=[];
+  await run('Applico la regola…',async()=>{for(const x of p.items){try{await post('tasks','create',x.task);done++}catch(e){failed.push(e.message)}}});
+  await a.refresh(false);a.notice('«'+p.rule.name+'»: '+done+' attività create.');if(failed.length)a.error('Non create: '+failed.length+' · '+failed[0]);
+ }
+ box.addEventListener('toggle',()=>{if(box.open)draw()});
+ return box;
+}
 // GDPR: access (everything the CRM holds on the contact) and erasure by anonymisation.
 async function gdprExport(row){
  await run('Raccolgo i dati del contatto…',async()=>{const a=app();const all=[];let offset=0;
@@ -156,7 +177,7 @@ window.RadixCrmTools={
   if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf))}
   else if(entity==='companies')section.append(ioBar('companies'));
   // The tasks view keeps only the heading row visible, so the rule lives there.
-  else if(entity==='tasks'&&app().writable('tasks'))(section.querySelector(':scope>.row')||section).append(followUpBar());
+  else if(entity==='tasks'&&app().writable('tasks')){const head=section.querySelector(':scope>.row')||section;head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
  card(entity,row,c,readonly){
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');
