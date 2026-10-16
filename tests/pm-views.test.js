@@ -92,3 +92,19 @@ test('weekly capacity is validated with the plan',()=>{
  assert.throws(()=>pm.validateState({...base,projects:[{...base.projects[0],capacity:0}]}),/Capacità/);
  assert.equal('capacity' in pm.validateState(base).projects[0],false);
 });
+
+test('agent work goes to review, keeps the last five results and feeds dependent briefs',()=>{
+ const state={projects:[{id:'p1',name:'X',note:'',synthetic:true,subprojects:[{id:'p1s1',name:'G'}]}],nextId:3,
+  tasks:[T('t1',{assignedAgents:['strategist'],approvalRequired:true,history:[]}),T('t2',{assignedAgents:['copywriter'],dependencies:['t1'],details:'Tre post',checklist:[{id:'c1',text:'Post LinkedIn',done:false}],history:[]})]};
+ assert.throws(()=>pm.recordAgentWork(state,'t2',{agent:'copywriter',text:'x'}),/dipendenze/);
+ assert.throws(()=>pm.recordAgentWork(state,'t1',{agent:'copywriter',text:'x'}),/non è assegnato/);
+ const e=pm.recordAgentWork(state,'t1',{agent:'strategist',text:'Strategia: tono diretto',by:'Anna',at:'2026-10-16T08:00:00Z'});
+ assert.equal(e.by,'Anna');assert.equal(state.tasks[0].status,'In revisione');assert.match(state.tasks[0].history.join('|'),/Risultato dell’agente strategist avviato da Anna/);
+ for(let i=0;i<6;i++)pm.recordAgentWork(state,'t1',{agent:'strategist',text:'v'+i,at:'2026-10-16T08:0'+i+':00Z'});
+ assert.equal(state.tasks[0].agentWork.length,5);pm.approve(state,'t1',true);pm.recordAgentWork(state,'t1',{agent:'strategist',text:'v5'});assert.equal(state.tasks[0].approved,false);assert.equal(state.tasks[0].agentWork[4].text,'v5');
+ assert.doesNotThrow(()=>pm.validateState(state));
+ pm.approve(state,'t1',true);pm.changeStatus(state,'t1','Completato');assert.throws(()=>pm.recordAgentWork(state,'t1',{agent:'strategist',text:'x'}),/già completata/);
+ const brief=v.agentBrief(state,state.tasks[1],'copywriter');
+ assert.match(brief,/Tre post/);assert.match(brief,/- Post LinkedIn/);assert.match(brief,/=== Task t1 \(strategist\) ===\nv5/);
+ assert.throws(()=>pm.validateState({...state,tasks:[{...state.tasks[0],agentWork:[{agent:'a',at:'ieri',text:'x'}]},state.tasks[1]]}),/Data lavoro/);
+});
