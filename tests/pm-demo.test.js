@@ -45,3 +45,10 @@ test('PM loads an existing shared plan and creates new projects in the registry'
  assert.equal(c.app.state.tasks.length,0);assert.equal(reg.saves.length,0,'existing plan is not rewritten on open');assert.equal(c.ids['project-nav'].children.length,2);
  await c.submit('project-form',{name:'Nuovo interno',note:'Nota',subprojects:'Build\nReview'});assert.equal(reg.created[0].kind,'internal');assert.equal(reg.store.get('new-1/pm').data.projects[0].subprojects.length,2);assert.equal(c.location.search,'?project=new-1');});
 test('PM without registry projects explains what to do instead of showing demo data',async()=>{const c=await pmClient(fakeRegistry([]));assert.equal(c.app.state,null);assert.match(c.ids.message.textContent,/Nessun progetto/);});
+test('sub-tasks are a checklist: ticking keeps approval, completion needs all of them, completed tasks are frozen',()=>{const s=pm.seed();const t=s.tasks.find(x=>x.status==='Da fare'&&!x.dependencies.length&&!x.approvalRequired)||pm.create(s,{project:s.projects[0].id,subproject:s.projects[0].subprojects[0].id,title:'Nuova',owner:'Anna',due:'2026-11-30'});
+ const a=pm.addSubtask(s,t.id,' Raccogliere i dati ');const b=pm.addSubtask(s,t.id,'Bozza');assert.equal(a.text,'Raccogliere i dati');assert.notEqual(a.id,b.id);assert.throws(()=>pm.addSubtask(s,t.id,'  '),/non valido/);
+ pm.changeStatus(s,t.id,'In corso');pm.toggleSubtask(s,t.id,a.id,true);assert.equal(t.status,'In corso');
+ assert.throws(()=>pm.changeStatus(s,t.id,'Completato'),/sotto-attività/);pm.removeSubtask(s,t.id,b.id);pm.changeStatus(s,t.id,'Completato');
+ assert.throws(()=>pm.toggleSubtask(s,t.id,a.id,false),/Riapri/);assert.throws(()=>pm.addSubtask(s,t.id,'Altro'),/Riapri/);
+ const again=pm.validateState(JSON.parse(JSON.stringify(s)));assert.deepEqual(again.tasks.find(x=>x.id===t.id).checklist,[{id:a.id,text:'Raccogliere i dati',done:true}]);
+ const bad=JSON.parse(JSON.stringify(s));bad.tasks.find(x=>x.id===t.id).checklist=[{id:'c1',text:'x',done:'si'}];assert.throws(()=>pm.validateState(bad),/Sotto-attività/)});
