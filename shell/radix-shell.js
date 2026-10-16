@@ -56,6 +56,9 @@
     { label: 'Aree' },
     { group: 'agency', text: 'Marketing Agency', icon: 'spark', items: [
       { id: 'agency', text: 'Panoramica', href: '/agency/index.html' },
+      { id: 'agency-divisions', text: 'Divisioni', href: '/agency/index.html#divisioni', kw: 'reparti team' },
+      { id: 'agency-agents', text: 'Agenti AI', href: '/agency/index.html#agenti', kw: 'agenti agenzia' },
+      { id: 'agency-workflow', text: 'Workflow', href: '/agency/index.html#workflow', kw: 'flussi processi' },
       { id: 'agency-clients', text: 'Clienti', href: '/agency/clients.html' },
       { id: 'agency-projects', text: 'Progetti', href: '/agency/projects.html' },
       { id: 'agency-ped', text: 'Piano editoriale', href: '/project-editorial.html', project: 'project', kw: 'ped social calendario contenuti' },
@@ -100,7 +103,11 @@
   // Project-scoped pages keep the project open when you move between them (?id= / ?project= on the current URL).
   var qs = new URLSearchParams(location.search), curProject = qs.get('project') || qs.get('id') || '';
   if (!/^[a-z0-9-]{1,80}$/i.test(curProject) || !/(project|editorial|pm-concept|agents|memory|profile)/.test(location.pathname)) curProject = '';
-  function href(n) { return n.project && curProject ? n.href + '?' + n.project + '=' + encodeURIComponent(curProject) : n.href; }
+  function href(n) {
+    if (!n.project || !curProject) return n.href;
+    var i = n.href.indexOf('#'), base = i < 0 ? n.href : n.href.slice(0, i), hash = i < 0 ? '' : n.href.slice(i);
+    return base + '?' + n.project + '=' + encodeURIComponent(curProject) + hash;
+  }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function item(n) {
     var cur = n.id === page ? ' aria-current="page"' : '';
