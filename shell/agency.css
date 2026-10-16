@@ -1,0 +1,35 @@
+/* Marketing Agency visual layer — approved ref: "RADIX Marketing Agency" mockup (navy + violet/cyan).
+   One palette for every Agency page; layout and logic stay in each page. */
+html.rx-shell body.rx-agency{
+  --bg:#050a1c;--side:#060b1d;--surface:#0c1630;--panel:#0c1630;--panel2:#0f1b3a;--raised:#0f1b3a;
+  --line:#2c3a63;--edge:#2c3a63;--stroke:#2c3a63;--border:#2c3a63;
+  --text:#f3f4ff;--ink:#f3f4ff;--muted:#aeb9da;
+  --violet:#a68bff;--v:#a68bff;--accent:#a68bff;--cyan:#42dcf7;--c:#42dcf7;--blue:#608dff;
+  background:radial-gradient(ellipse at 80% -10%,rgba(120,90,255,.16),transparent 50%),radial-gradient(ellipse at 10% 110%,rgba(66,220,247,.07),transparent 45%),#050a1c;
+  color:#f3f4ff;font-family:var(--rx-font)}
+/* Area-tinted shell, as in the mockup */
+html.rx-shell[data-rx-area="agency"]{--rx-accent:#a68bff;--rx-border:#22305a;--rx-border-strong:#33437a;--rx-surface:#0b1430;--rx-surface-2:#101c3e;--rx-bg-raised:#081129}
+html.rx-shell[data-rx-area="agency"] .rx-sidebar{background:linear-gradient(180deg,#071028,#050a1c)}
+html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
+.rx-agency h1,.rx-agency h2{font-family:var(--rx-display)}
+/* Readability floor: no visible text below 12px (DESIGN.md §3) */
+.rx-agency .eyebrow,.rx-agency .tag,.rx-agency .chip,.rx-agency .status,.rx-agency .gate,.rx-agency .profile,.rx-agency .planet-label,
+.rx-agency .division-card .number,.rx-agency .division-card p,.rx-agency .meta-tag,.rx-agency .timeline-item span,.rx-agency .agent-copy b,
+.rx-agency .agent-copy small,.rx-agency .agent-row .role,.rx-agency .spotlight p,.rx-agency small{font-size:12px}
+/* Shared controls */
+.rx-agency :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-agency input,.rx-agency select,.rx-agency textarea{min-height:40px;border-radius:10px}
+/* The page-local "RADIX / Agency" brand and profile chips duplicate the shell */
+.rx-agency .top-actions .profile{display:none}
+@media (max-width:767px){
+  .rx-agency main,.rx-agency .main{padding-left:12px!important;padding-right:12px!important;min-width:0}
+  .rx-agency .rx-pagetop .searchbox{flex:1;min-width:0}
+  .rx-agency .rx-pagetop .top-actions{display:none}
+  .rx-agency .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+  .rx-agency .stats>*{padding:12px 14px}
+}
+/* Grid pages: keep content at the top (a few pages used margin:auto, which centered it vertically) */
+.rx-agency .shell>main,.rx-agency .shell>.main{align-self:start;margin-top:0;margin-bottom:0}
+/* live registry counts on division cards (lib/agency-divisions.js) */
+.rx-agency small.live{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--rx-muted)}
+.rx-agency small.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-success)}
