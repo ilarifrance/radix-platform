@@ -30,6 +30,18 @@ Download **Backup RADIX JSON** from the agent running at `http://127.0.0.1:4317`
 
 The local JSON may contain personal data and the source's domain-approval evidence. The converter deliberately transfers only whitelisted contact fields; detailed original `freeEnrichment` provenance remains in the original local backup for audit and must be retained securely if required. Domain values do **not** certify the identity of a company.
 
+## Optional visible-profile quality review
+
+The search card export sometimes has a name/role but omits the employer: the four previously exported CSV samples (20/40/30/10 people) contain respectively 2/37/10/10 records with no company. This is not solved by CSV normalization alone.
+
+If the user is authorized to access the individual profile data, select the local job under **Contatti ricevuti** and explicitly click **Esamina max 20 profili incompleti**. The agent navigates **up to 20 visible LinkedIn profile pages per request**, pauses if login/checkpoints appear and honours **Interrompi revisione** between pages. Data are accepted only if the visible profile name matches the saved contact identity. Only explicitly rendered `title`, `company-name` and `location` values can fill **empty** fields. No inferred employer, email, phone, hidden endpoint, cookie or credential is used.
+
+Local `profileReview` checkpoints log the reviewed link, changed field names and a non-verified status, without storing the full page text. A page that does not expose an explicit company cannot be filled. **This browser interaction can be restricted by LinkedIn terms; use only when authorized.** No live authenticated test has been performed. The offline parser tests use mock visible fields, not real LinkedIn pages.
+
+## Preview integration availability
+
+As checked on 2026-10-16, the Vercel project has `LEAD_DATABASE_URL` configured only for the **integration branch's Preview environment**, not the feature branch's own PR Preview. Therefore this PR's Preview can stage data in browser memory and export backups, but **persistent workspace saves cannot be assumed operational there**. No fallback to `DATABASE_URL` is allowed. The integration branch must run the isolated Lead migration and pass the live workspace read/write/reload test when a merge is explicitly approved. Never point Lead data at production.
+
 ## Technical / legal boundaries
 
 - LinkedIn restricts automated extraction under its terms, even if the user personally authenticates. An account may be limited or suspended. Use only where allowed and with a lawful basis for processing personal data.
