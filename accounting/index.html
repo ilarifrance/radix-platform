@@ -1,1 +1,48 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>RADIX Accounting · Studio AI</title><link rel="stylesheet" href="../verticals/studio.css"><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/studio.css"><script src="/shell/radix-shell.js" defer></script></head><body class="rx-studio" data-shell-area="studio" data-shell-page="accounting" data-area="accounting"><div class="shell"><aside class="side"><div class="brand">RADI<span>X</span></div><div class="small">Professional Workspaces</div><nav class="nav" aria-label="Aree RADIX"><a href="../control-center-v2.html">⌘ Command Center</a><a href="../agency/index.html">✦ Marketing Agency</a><a href="../sales-orbit-higgsfield.html">▤ CRM &amp; Sales</a><a href="../commercial/index.html">◎ RADIX Commerciale</a><a href="../legal/index.html" >⚖ RADIX Legal</a><a href="../accounting/index.html" class="active">▥ RADIX Accounting</a><a href="../radix-ecosystem.html">⌘ Ecosistema RADIX</a><a href="../coordination/index.html">◇ Control Room</a></nav><div class="side-foot">Agenti importati dal roster RADIX Platform v3.7. Stessi identificativi e backend AI esistente. Nessun automatismo esterno.</div></aside><main><div class="top"><span class="eyebrow">RADIX / Studio operativo</span><span class="pill" id="auth">Verifica sessione…</span></div><h1 id="title">RADIX Accounting</h1><p id="subtitle" class="eyebrow"></p><p id="description" class="lead"></p><div class="stats"><div class="stat"><strong id="agentCount">—</strong><span>Agenti esistenti</span></div><div class="stat"><strong id="workflowCount">—</strong><span>Workflow guidati</span></div><div class="stat"><strong>0</strong><span>Azioni esterne automatiche</span></div></div><div class="notice">Ambiente di supporto professionale: le risposte AI sono bozze e possono contenere errori. Verificare fonti, norme aggiornate, calcoli e documenti con professionisti abilitati prima dell'utilizzo. Evita di inserire dati personali o riservati non necessari: il mandato viene inviato al provider AI solo dopo conferma.</div><div class="grid"><section><div class="panel"><h2>Team di specialisti</h2><div class="agents" id="agents"></div></div><div class="panel"><h2>Workflow multi-agente</h2><p class="small">Ogni passaggio richiede revisione e conferma. Nessuna esecuzione in catena automatica.</p><div class="workflows" id="workflows"></div><div class="flow" id="flow" style="margin-top:13px"></div></div></section><section><div class="panel"><div class="top"><h2>Mandato e produzione</h2><span class="pill" id="selected">Seleziona un agente</span></div><div class="field"><label for="project">Progetto</label><select id="project" disabled><option value="">Nessun progetto · la bozza non viene salvata</option></select><div class="small" id="projectLinks"></div></div><div class="field"><label for="request">Descrizione dell'incarico</label><textarea id="request" maxlength="12000" placeholder="Descrivi obiettivo, fatti disponibili, risultati attesi e vincoli. Non inserire informazioni riservate non necessarie."></textarea></div><div class="field"><label for="context">Contesto e note (opzionale)</label><textarea id="context" maxlength="6000" style="min-height:85px" placeholder="Ipotesi, dati già verificati, sintesi del progetto."></textarea></div><div class="small">Suggerimenti per lo specialista selezionato</div><div id="suggestions" class="workflows" style="margin:10px 0 18px"></div><div class="buttons"><button id="run" class="primary" type="button" disabled>Conferma e genera bozza AI</button><button id="clear" class="secondary" type="button">Nuovo mandato</button></div><p id="message" class="message" role="status" aria-live="polite">In attesa del catalogo agenti.</p></div><div class="panel"><div class="top"><h2>Bozza da revisionare</h2><span class="pill">Non approvata</span></div><div id="output" class="output" aria-live="polite">La bozza apparirà qui dopo la tua conferma.</div><div class="buttons" style="margin-top:12px"><button id="copy" class="secondary" type="button" disabled>Copia bozza</button><button id="word" class="secondary" type="button" disabled>Scarica Word</button><button id="next" class="primary" type="button" disabled>Approva fase e continua →</button></div><p class="small" id="saveNote">Con un progetto selezionato, mandato e bozza vengono salvati nella conversazione del team con lo specialista (pagina Agenti AI) e l’agente riceve la memoria confermata del progetto. Senza progetto non viene salvato nulla.</p></div></section></div></main></div><script src="/lib/radix-workspace-client.js" defer></script><script src="/lib/radix-agent-runtime.js" defer></script><script src="../verticals/studio.js" defer></script></body></html>
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>RADIX Accounting · Contabilità e controllo di gestione</title>
+<link rel="stylesheet" href="/shell/radix-shell.css">
+<link rel="stylesheet" href="/accounting/app.css">
+<script src="/shell/radix-shell.js" defer></script>
+</head>
+<body class="acc" data-shell-area="accounting" data-shell-page="accounting">
+<aside class="acc-localnav" hidden><nav aria-label="Aree RADIX"><a href="../control-center-v2.html">Command Center</a><a href="../sales-orbit-higgsfield.html">CRM &amp; Sales</a><a href="../commercial/index.html">Commerciale</a><a href="../legal/index.html">Legal</a><a href="../accounting/studio.html">Studio AI</a></nav></aside>
+<main class="acc-main">
+ <header class="acc-head">
+  <div>
+   <p class="acc-eyebrow">RADIX / Accounting</p>
+   <h1 id="accTitle">Contabilità e controllo di gestione</h1>
+   <p class="acc-lead" id="accLead">Carichi le fatture elettroniche e l'estratto conto: RADIX propone le registrazioni in partita doppia, calcola l'IVA e ti mostra margini, budget e cassa. Ogni registrazione la confermi tu.</p>
+  </div>
+  <div class="acc-switch" id="accSwitch" hidden>
+   <label>Azienda <select id="accCompany" aria-label="Azienda"></select></label>
+   <label>Esercizio <select id="accYear" aria-label="Esercizio"></select></label>
+   <button type="button" class="acc-btn ghost" id="accNewCompany">+ Nuova azienda</button>
+  </div>
+ </header>
+ <p class="acc-banner" id="accBanner" role="status" aria-live="polite" hidden></p>
+ <nav class="acc-tabs" id="accTabs" aria-label="Sezioni Accounting" hidden>
+  <a href="#panoramica" data-tab="panoramica">Panoramica</a>
+  <a href="#fatture" data-tab="fatture">Fatture <span class="acc-count" id="cntDocs"></span></a>
+  <a href="#prima-nota" data-tab="prima-nota">Prima nota</a>
+  <a href="#banca" data-tab="banca">Banca e scadenze <span class="acc-count" id="cntBank"></span></a>
+  <a href="#iva" data-tab="iva">IVA</a>
+  <a href="#bilancio" data-tab="bilancio">Bilancio</a>
+  <a href="#gestione" data-tab="gestione">Controllo di gestione</a>
+  <a href="#impostazioni" data-tab="impostazioni">Azienda</a>
+ </nav>
+ <section id="accView" class="acc-view" aria-live="polite"><p class="acc-muted">Caricamento…</p></section>
+ <p class="acc-foot">RADIX prepara i dati; gli invii telematici (F24, LIPE, dichiarazioni) li fa il professionista abilitato. Le proposte automatiche vanno sempre verificate prima della conferma.</p>
+</main>
+<dialog id="accDialog" class="acc-dialog"><form method="dialog" id="accDialogForm"></form></dialog>
+<script src="/lib/accounting/chart-of-accounts.js" defer></script>
+<script src="/lib/accounting/ledger.js" defer></script>
+<script src="/lib/accounting/fatturapa.js" defer></script>
+<script src="/lib/accounting/bank-csv.js" defer></script>
+<script src="/lib/accounting/posting.js" defer></script>
+<script src="/lib/accounting/vat.js" defer></script>
+<script src="/lib/accounting/management.js" defer></script>
+<script src="/lib/accounting/reconcile.js" defer></script>
+<script src="/accounting/demo-data.js" defer></script>
+<script src="/accounting/app.js" defer></script>
+</body></html>
