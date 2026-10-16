@@ -23,7 +23,7 @@ const BRAVE_USAGE=path.join(HOME,'brave-usage.json');
 let braveBusy=false;
 const braveLimit=()=>{const raw=process.env.RADIX_BRAVE_DAILY_LIMIT||'0';const n=Number(raw);return /^\d+$/.test(raw)&&Number.isSafeInteger(n)&&n>=0&&n<=100?n:0};
 const braveEnabled=()=>process.env.RADIX_BRAVE_ENABLED==='1'&&Boolean(process.env.BRAVE_SEARCH_API_KEY)&&braveLimit()>0;
-function braveStored(){try{const v=JSON.parse(fs.readFileSync(BRAVE_USAGE,'utf8'));return v&&typeof v==='object'&&!Array.isArray(v)?v:null}catch{return null}}
+function braveStored(){let raw;try{raw=fs.readFileSync(BRAVE_USAGE,'utf8')}catch(e){if(e.code==='ENOENT')return null;throw Error('Contatore Brave non accessibile: ricerca bloccata')}let v;try{v=JSON.parse(raw)}catch{throw Error('Contatore Brave corrotto: ricerca bloccata')}if(!v||typeof v!=='object'||!/^\d{4}-\d{2}-\d{2}$/.test(v.day)||!Number.isSafeInteger(v.used)||v.used<0)throw Error('Contatore Brave non valido: ricerca bloccata');return v}
 function braveState(){const q=ProviderBudget.status(braveStored(),new Date().toISOString().slice(0,10),braveLimit());return {configured:Boolean(process.env.BRAVE_SEARCH_API_KEY),enabled:braveEnabled(),busy:braveBusy,...q}}
 function reserveBrave(){if(!braveEnabled())throw Error('Brave non abilitato: configura chiave, RADIX_BRAVE_ENABLED=1 e RADIX_BRAVE_DAILY_LIMIT');const current=ProviderBudget.reserve(braveStored(),new Date().toISOString().slice(0,10),braveLimit());fs.mkdirSync(HOME,{recursive:true,mode:0o700});const tmp=BRAVE_USAGE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(current),{mode:0o600});fs.renameSync(tmp,BRAVE_USAGE);return current}
 
