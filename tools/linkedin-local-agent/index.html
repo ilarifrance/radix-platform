@@ -98,6 +98,8 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <div class="progress-wrap"><div class="progress-meta"><span id="free-bulk-status" role="status">Controllo complessivo non avviato.</span><output id="free-bulk-counter">0 / 0</output></div><progress id="free-bulk-progress" max="100" value="0" aria-label="Avanzamento ricerche gratuite"></progress></div>
 <div class="receiver-table" style="margin-top:12px;max-height:390px"><table style="min-width:760px"><thead><tr><th>Azienda</th><th>Esito</th><th>Dominio suggerito</th><th>Fonte</th><th>Revisione</th></tr></thead><tbody id="free-bulk-rows"><tr><td colspan="5">Avvia un controllo per vedere i suggerimenti.</td></tr></tbody></table></div>
 <p class="help">Una sola ricerca per azienda (anche quando ricorre in più contatti), richieste sequenziali e arrestabili. Nessun salvataggio automatico: ogni suggerimento richiede conferma.</p>
+<div class="status" id="free-reconcile-status" role="status">Riconciliazione delle fonti: in attesa del controllo del lotto.</div>
+<p class="help">Seconda fonte in preparazione: adapter per risultati Brave Search. Nessuna chiamata Brave automatica, nessuna chiave API memorizzata, nessun credito acquistato. I suggerimenti da più fonti restano sempre soggetti a revisione.</p>
 </section><hr style="border:0;border-top:1px solid #29535f;margin:24px 0">
 <div class="enrich-summary"><div><small>CONTATTI</small><strong id="enrich-total">0</strong></div><div><small>REVISIONE PRELIMINARE</small><strong id="enrich-review">0</strong></div><div><small>CANDIDATI EMAIL</small><strong id="enrich-eligible">0</strong></div><div><small>CHIAMATE SIMULATE</small><strong id="enrich-calls">0</strong></div></div>
 <div class="enrich-fields">
@@ -107,8 +109,25 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <div class="toolbar"><button id="enrich-plan" type="button" class="secondary">Calcola piano offline</button><button id="enrich-copy" type="button" class="secondary" disabled>Copia riepilogo</button></div>
 <div class="status" id="enrich-result" role="status">Seleziona un lavoro nella tabella e calcola il piano.</div>
 <p class="help enrich-disclaimer">I prezzi sono valori inseriti da te, non tariffe verificate di Hunter, Dropcontact o altri provider. Il calcolo non acquista crediti e non modifica i contatti.</p>
+<section aria-labelledby="waterfall-title" style="margin-top:20px">
+<h3 id="waterfall-title">Simulatore multi-provider · tutto offline</h3>
+<p class="help">Inserisci costi <strong>ipotetici in EUR per richiesta</strong>, soltanto per i provider che vuoi confrontare. RADIX calcola un limite prudenziale considerando anche il fallimento di tutti i provider. Non attiva alcuna connessione.</p>
+<div class="enrich-fields" id="waterfall-inputs">
+<label for="wf-hunter">Hunter (€ / chiamata)<input id="wf-hunter" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-dropcontact">Dropcontact (€ / chiamata)<input id="wf-dropcontact" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-snov">Snov.io (€ / chiamata)<input id="wf-snov" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-prospeo">Prospeo (€ / chiamata)<input id="wf-prospeo" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-findymail">Findymail (€ / chiamata)<input id="wf-findymail" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-apollo">Apollo (€ / chiamata)<input id="wf-apollo" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-people-data-labs">People Data Labs (€ / chiamata)<input id="wf-people-data-labs" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+</div>
+<div class="toolbar"><button id="waterfall-plan" type="button" class="secondary">Confronta i costi · senza API</button></div>
+<div class="status" id="waterfall-result" role="status">Nessun provider configurato; nessuna chiamata esterna.</div>
+</section>
 </section></div>
 <script src="/lead-enrichment-plan.js"></script>
+<script src="/lead-domain-suggestions.js"></script>
+<script src="/lead-provider-waterfall.js"></script>
 <script>
 'use strict';const $=id=>document.getElementById(id);let current='';
 async function call(route,body){const res=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});const v=await res.json();if(!res.ok)throw Error(v.error||'Errore');return v}
@@ -213,7 +232,7 @@ $('free-lookup').onclick=async()=>{
 };
 
 
-let freeBulkRunning=false,freeBulkStop=false,freeBulkJob='',freeBulkCount=0;
+let freeBulkRunning=false,freeBulkStop=false;
 const bulkCell=(row,value)=>{const td=document.createElement('td');td.textContent=value||'—';row.append(td);return td};
 function bulkRow(company,reason,proposal,jobId,contacts){
  const tr=document.createElement('tr');bulkCell(tr,company);bulkCell(tr,reason);
@@ -226,6 +245,7 @@ function bulkRow(company,reason,proposal,jobId,contacts){
   const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Verifica e approva';
   button.onclick=async()=>{
    if(freeBulkRunning){$('free-bulk-status').textContent='Attendi la fine della ricerca prima di salvare.';return}
+   if(receiverSelected!==jobId){$('free-bulk-status').textContent='Lavoro cambiato: avvia un nuovo controllo.';return}
    if(!window.confirm('Hai verificato il sito ufficiale di '+company+'? Salvare il dominio in '+contacts.length+' contatti del lavoro?'))return;
    button.disabled=true;let updated=0,failures=0;
    for(const person of contacts){
@@ -236,26 +256,30 @@ function bulkRow(company,reason,proposal,jobId,contacts){
    await loadReceiver(jobId);
   };
   action.append(button);
- }else action.textContent='Da verificare manualmente';
+ }else action.textContent='Non approvabile automaticamente';
  tr.append(action);$('free-bulk-rows').append(tr);
 }
 $('free-stop').onclick=()=>{$('free-stop').disabled=true;freeBulkStop=true;$('free-bulk-status').textContent='Arresto richiesto: attendo la risposta in corso.'};
 $('free-bulk').onclick=async()=>{
  if(freeBulkRunning||!receiverSelected||!receiverRecords.length){$('free-bulk-status').textContent='Prima seleziona un lavoro con contatti.';return}
- const id=receiverSelected;freeBulkJob=id;freeBulkRunning=true;freeBulkStop=false;
+ const engine=window.RadixLeadDomainSuggestions;
+ if(!engine){$('free-bulk-status').textContent='Modulo di riconciliazione non disponibile.';return}
+ const id=receiverSelected,records=receiverRecords.slice();
+ freeBulkRunning=true;freeBulkStop=false;
  $('free-bulk').disabled=true;$('free-stop').disabled=false;
  $('free-bulk-rows').replaceChildren();
- // Normalization deduplicates lookups only; never guesses that different brands
- // share an employer. Skip records with domains or clearly suspicious names.
+ $('free-reconcile-status').textContent='Ricerca in corso. Nessun salvataggio automatico.';
+ // Search once per company-and-country; unknown country remains a human-review case.
  const groups=new Map(),bad=/\b(?:mostra altro|see more|january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
- for(const person of receiverRecords){
-  const company=(person.companyName||'').trim();if(!company||person.companyDomain||bad.test(company))continue;
-  const key=company.normalize('NFKC').toLocaleLowerCase('it').replace(/\s+/g,' ');
-  if(!groups.has(key))groups.set(key,{company,contacts:[]});
+ const normalize=x=>String(x||'').normalize('NFKC').toLocaleLowerCase('it').trim().replace(/\s+/g,' ');
+ for(const person of records){
+  const company=(person.companyName||'').trim(),country=(person.country||'').trim();
+  if(!company||person.companyDomain||bad.test(company))continue;
+  const key=normalize(company)+'|'+normalize(country);
+  if(!groups.has(key))groups.set(key,{company,country,contacts:[]});
   groups.get(key).contacts.push(person);
  }
- const entries=[...groups.values()].slice(0,50);
- if(groups.size>50)$('free-bulk-status').textContent='Primo gruppo di 50 aziende. Riesamina il risultato prima di altre richieste.';
+ const entries=[...groups.values()].slice(0,50),results=[],evidence=[];
  let done=0,proposed=0;
  $('free-bulk-progress').value=0;$('free-bulk-counter').textContent='0 / '+entries.length;
  try{
@@ -264,17 +288,50 @@ $('free-bulk').onclick=async()=>{
    try{
     const result=await call('/api/free-lookup',{jobId:id,profileUrl:group.contacts[0].profileUrl});
     const proposal=result.suggestions?.find(x=>x.field==='domain');
-    if(proposal)proposed++;
-    bulkRow(group.company,proposal?'Proposta non verificata':result.reason||'Nessuna corrispondenza',proposal,id,group.contacts);
-   }catch(error){bulkRow(group.company,'Errore: '+error.message,null,id,group.contacts)}
+    if(proposal){
+     proposed++;
+     evidence.push({companyName:group.company,country:group.country,domain:proposal.value,provider:'wikidata',sourceUrl:proposal.source});
+    }
+    results.push({...group,proposal,reason:proposal?'Proposta non verificata':result.reason||'Nessuna corrispondenza'});
+   }catch(error){results.push({...group,proposal:null,reason:'Errore: '+error.message})}
    done++;
    $('free-bulk-counter').textContent=done+' / '+entries.length;
    $('free-bulk-progress').value=entries.length?Math.round(100*done/entries.length):100;
    $('free-bulk-status').textContent=done+' aziende esaminate, '+proposed+' proposte da verificare.';
    if(!freeBulkStop&&done<entries.length)await new Promise(resolve=>setTimeout(resolve,900));
   }
-  $('free-bulk-status').textContent=(freeBulkStop?'Interrotto. ':'Completato. ')+done+' aziende controllate, '+proposed+' proposte, nessun dato salvato automaticamente.';
- }finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false}
+  if(receiverSelected!==id){$('free-bulk-status').textContent='Lavoro modificato: risultato scartato.';return}
+  const review=engine.reconcile(records,evidence),reviewByKey=new Map();
+  for(const company of review.companies)reviewByKey.set(normalize(company.companyName)+'|'+normalize(company.country),company);
+  let conflicts=0,reviewable=0;
+  for(const result of results){
+   const item=reviewByKey.get(normalize(result.company)+'|'+normalize(result.country));
+   if(item?.status==='conflict'||item?.status==='existing_conflict')conflicts++;
+   const allowed=item?.status==='review'&&item.proposals.some(p=>p.domain===engine.domain(result.proposal?.value));
+   if(allowed)reviewable++;
+   bulkRow(result.company,allowed?'Proposta da verificare':item?.status==='conflict'?'Domini in conflitto':result.reason,allowed?result.proposal:null,id,result.contacts);
+  }
+  $('free-reconcile-status').textContent='Riconciliazione offline: '+review.totalCompanies+' aziende nel lotto, '+reviewable+' proposte verificabili, '+conflicts+' conflitti, '+review.invalidEvidence+' fonti non valide. Nessun dato applicato senza conferma.';
+  $('free-bulk-status').textContent=(freeBulkStop?'Interrotto. ':'Completato. ')+done+' aziende controllate, '+proposed+' proposte, nessun dato salvato automaticamente.'+(groups.size>50?' Limite: prime 50 aziende.':'');
+ }catch(error){$('free-reconcile-status').textContent='Riconciliazione non riuscita: '+error.message}
+ finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false}
+};
+$('waterfall-plan').onclick=()=>{
+ try{
+  const planner=window.RadixLeadProviderWaterfall;
+  if(!planner)throw Error('Motore dei preventivi non disponibile');
+  const providers=['hunter','dropcontact','snov','prospeo','findymail','apollo','people-data-labs'];
+  const prices={};
+  for(const id of providers){
+   const value=$('wf-'+id).value.trim();
+   if(value!=='')prices[id]=Number(value);
+  }
+  const result=planner.quote(receiverRecords,prices,Number($('enrich-budget').value));
+  $('waterfall-result').textContent='Solo simulazione · '+result.eligible+' contatti candidabili, '+result.missingIdentity+' senza dati minimi. Provider in ordine di costo: '+
+   (result.tiers.map(t=>t.label+' €'+t.unitCost.toFixed(3)).join(' → ')||'nessuno configurato')+
+   '. Costo massimo teorico per contatto €'+result.worstCaseCostPerContact.toFixed(3)+
+   '; budget copre '+result.coveredContacts+' contatti con tutte le alternative, massimo '+result.maxPlannedCalls+' chiamate teoriche. Chiamate reali: 0; spesa reale: €0.';
+ }catch(e){$('waterfall-result').textContent='Preventivo non disponibile: '+e.message}
 };
 
 let latestEnrichment=null;
