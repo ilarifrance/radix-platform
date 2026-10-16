@@ -161,6 +161,42 @@ async function handler(req,res){
   if(req.headers.origin && req.headers.origin!=='http://127.0.0.1:'+PORT)return json(res,403,{error:'Origine non autorizzata'});
   if(!String(req.headers['content-type']||'').startsWith('application/json'))return json(res,415,{error:'Content-Type JSON richiesto'});
   const input=await readBody(req);
+  if(url.pathname==='/api/brave-lookup'){
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un altro lavoro è in esecuzione'});
+   const id=String(input.jobId||''),job=loadJob(id);
+   const contact=job.data.records.find(r=>r.profileUrl===String(input.profileUrl||''));
+   if(!contact)return json(res,404,{error:'Contatto non trovato'});
+   if(!contact.companyName||contact.companyDomain)return json(res,409,{error:'Azienda senza nome o dominio già presente'});
+   if(!braveEnabled())return json(res,409,{error:'Brave disabilitato. Configura separatamente la chiave e un limite di query per giorno.'});
+   braveBusy=true;
+   try{
+    reserveBrave(); // Count attempted requests before sending data or invoking the API.
+    const found=await BraveLookup.lookup(contact.companyName,{apiKey:process.env.BRAVE_SEARCH_API_KEY});
+    const latest=loadJob(id),current=latest.data.records.find(r=>r.profileUrl===contact.profileUrl);
+    if(!current||current.companyName!==contact.companyName||current.companyDomain)return json(res,409,{error:'Contatto modificato durante ricerca: proposte scartate. La chiamata può essere stata fatturata.'});
+    latest.braveProposals=Array.isArray(latest.braveProposals)?latest.braveProposals.filter(x=>x.profileUrl!==contact.profileUrl):[];
+    latest.braveProposals.push({profileUrl:contact.profileUrl,companyName:contact.companyName,suggestions:found.suggestions,queriedAt:new Date().toISOString()});
+    atomicSave(latest);
+    return json(res,200,{jobId:id,profileUrl:contact.profileUrl,companyName:contact.companyName,...found,quota:braveState()});
+   }finally{braveBusy=false}
+  }
+  if(url.pathname==='/api/brave-accept'){
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine del lavoro corrente'});
+   const id=String(input.jobId||''),job=loadJob(id);
+   const profileUrl=String(input.profileUrl||''),name=String(input.companyName||''),domain=String(input.domain||''),sourceUrl=String(input.sourceUrl||'');
+   const contact=job.data.records.find(x=>x.profileUrl===profileUrl),proposal=(job.braveProposals||[]).find(x=>x.profileUrl===profileUrl&&x.companyName===name);
+   if(!contact||!proposal||contact.companyName!==name||contact.companyDomain)return json(res,409,{error:'Proposta scaduta o contatto modificato'});
+   const allowed=proposal.suggestions.find(x=>x.domain===domain&&x.sourceUrl===sourceUrl&&x.provider==='brave-search');
+   if(!allowed||ContactReview.domain(domain)!==domain)return json(res,400,{error:'Proposta Brave non valida'});
+   const verifiedSource=new URL(sourceUrl);
+   if(verifiedSource.protocol!=='https:'||verifiedSource.username||verifiedSource.password||verifiedSource.port||verifiedSource.hostname.replace(/^www\./,'')!==domain)return json(res,400,{error:'Fonte non corrispondente al dominio'});
+   contact.companyDomain=domain;
+   job.braveEnrichment=Array.isArray(job.braveEnrichment)?job.braveEnrichment:[];
+   job.braveEnrichment.push({profileUrl,field:'companyDomain',value:domain,source:sourceUrl,confirmedAt:new Date().toISOString(),provider:'brave-search',verified:false});
+   job.braveProposals=job.braveProposals.filter(x=>x.profileUrl!==profileUrl);
+   atomicSave(job);
+   return json(res,200,{saved:true,domain,verified:false});
+  }
   if(url.pathname==='/api/contact-review'){
    if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine dell’acquisizione o revisione profili'});
    const id=String(input.jobId||''),job=loadJob(id);
