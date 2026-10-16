@@ -10,7 +10,8 @@ const crypto = require('node:crypto');
 const Batch = require('../../lib/lead-contact-batches');
 const Source = require('../../lib/salesnav-source');
 const PublicLookup = require('../../api/_lead_public_lookup');
-const {visibleSearchCards,normalizeVisibleCards,csvExport} = require('../../lib/linkedin-browser-extract');
+const ProfileReview = require('../../lib/linkedin-profile-review');
+const {visibleSearchCards,normalizeVisibleCards,visibleProfileDetails,csvExport} = require('../../lib/linkedin-browser-extract');
 const PORT = Number(process.env.RADIX_LINKEDIN_PORT || 4317);
 const HOME = path.join(os.homedir(), '.radix', 'linkedin-agent');
 const JOBS = path.join(HOME, 'jobs');
@@ -25,7 +26,7 @@ function isLocalRequest(req){
  const remote=String(req.socket.remoteAddress||'');
  return host===expected&&(remote==='127.0.0.1'||remote==='::ffff:127.0.0.1');
 }
-function snapshot(){const job=state.active;return {phase:state.phase,error:state.error,jobId:job?.id||'',page:job?.page||0,requested:job?.requested||0,collected:job?.data?.records?.length||0,duplicates:job?.data?.duplicates||0,startedAt:job?.startedAt||null,lastUpdate:state.lastUpdate,sourceUrl:job?.sourceUrl||'',browserOpen:!!state.browser,outputAvailable:!!job?.data?.records?.length}}
+function snapshot(){const job=state.active;return {phase:state.phase,error:state.error,jobId:job?.id||'',page:job?.page||0,requested:job?.requested||0,collected:job?.data?.records?.length||0,duplicates:job?.data?.duplicates||0,startedAt:job?.startedAt||null,lastUpdate:state.lastUpdate,sourceUrl:job?.sourceUrl||'',browserOpen:!!state.browser,outputAvailable:!!job?.data?.records?.length,profilesReviewed:job?.profileReview?.length||0}}
 function atomicSave(job){fs.mkdirSync(JOBS,{recursive:true,mode:0o700});const final=path.join(JOBS,job.id+'.json'),temp=final+'.tmp';fs.writeFileSync(temp,JSON.stringify(job,null,2),{mode:0o600});fs.renameSync(temp,final);state.lastUpdate=new Date().toISOString()}
 function loadJob(id){if(!/^[a-f0-9-]{36}$/.test(id))throw Error('ID lavoro non valido');return JSON.parse(fs.readFileSync(path.join(JOBS,id+'.json'),'utf8'))}
 async function openBrowser(){
@@ -85,6 +86,32 @@ async function scrape(job){
   if(state.stopping)state.phase='paused';else if(state.phase!=='completed')state.phase='completed';
  }catch(err){state.error=err.message;state.phase='error'}finally{job.status=state.phase;job.error=state.error;atomicSave(job)}
 }
+
+async function reviewVisibleProfiles(job,limit){
+ state.phase='reviewing';state.error='';state.stopping=false;
+ try{
+  job.profileReview=Array.isArray(job.profileReview)?job.profileReview:[];
+  const choices=ProfileReview.select(job.data.records,{limit,attempted:job.profileReview.map(x=>x.profileUrl)});
+  for(const choice of choices){
+   if(state.stopping)break;
+   // Only explicit, visible LinkedIn profile pages are opened. No hidden APIs
+   // or authentication workarounds are used.
+   await state.page.goto(choice.profileUrl,{waitUntil:'domcontentloaded',timeout:60000});
+   if(isAuthOrChallenge(state.page.url()))throw Error('LinkedIn richiede un nuovo accesso o verifica. Fermata la revisione; completa personalmente l’accesso.');
+   await state.page.locator('main').first().waitFor({state:'visible',timeout:12000});
+   await delay(1200);
+   if(state.stopping)break;
+   const observed=await state.page.evaluate(visibleProfileDetails);
+   const result=ProfileReview.apply(job.data.records[choice.index],observed);
+   if(result.changed)job.data.records[choice.index]=result.record;
+   job.profileReview.push({profileUrl:choice.profileUrl,status:result.reason,fields:result.fields,reviewedAt:new Date().toISOString()});
+   atomicSave(job);
+   await delay(1600);
+  }
+  state.phase=state.stopping?'paused':job.status==='paused'?'paused':'completed';
+ }catch(err){state.phase='error';state.error=err.message}
+ finally{atomicSave(job)}
+}
 async function readBody(req){let s='';for await(const part of req){s+=part;if(s.length>16000)throw Error('Richiesta troppo grande')}return JSON.parse(s||'{}')}
 async function handler(req,res){
  try{
@@ -134,7 +161,7 @@ async function handler(req,res){
    const id=String(input.jobId||''),profileUrl=String(input.profileUrl||'');
    const name=String(input.companyName||''),domain=String(input.domain||''),source=String(input.source||'');
    if(!/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(domain)||domain.length>253||!/^https:\/\/www\.wikidata\.org\/wiki\/Q[1-9]\d{0,11}$/.test(source))return json(res,400,{error:'Proposta fonte/dominio non valida'});
-   if(state.phase==='running')return json(res,409,{error:'Attendi la fine della acquisizione'});
+   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine del lavoro corrente'});
    const job=loadJob(id),contact=job.data.records.find(r=>r.profileUrl===profileUrl);
    if(!contact||contact.companyName!==name||contact.companyDomain)return json(res,409,{error:'Contatto modificato o dominio già disponibile'});
    contact.companyDomain=domain;
@@ -144,9 +171,18 @@ async function handler(req,res){
    return json(res,200,{saved:true,domain});
   }
   if(url.pathname==='/api/browser'){await openBrowser();return json(res,200,snapshot())}
+  if(url.pathname==='/api/profile-review'){
+   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
+   if(!state.browser||!state.page||state.page.isClosed())return json(res,409,{error:'Apri prima il browser e accedi personalmente a Sales Navigator'});
+   const job=loadJob(String(input.jobId||'')),limit=Number(input.limit);
+   const choices=ProfileReview.select(job.data.records,{limit,attempted:(job.profileReview||[]).map(x=>x.profileUrl)});
+   if(!choices.length)return json(res,200,{started:false,message:'Nessun contatto idoneo da rivedere, oppure tutti già esaminati.'});
+   state.active=job;void reviewVisibleProfiles(job,limit);
+   return json(res,202,{started:true,selected:choices.length,...snapshot()});
+  }
   if(url.pathname==='/api/stop'){state.stopping=true;return json(res,200,snapshot())}
   if(url.pathname==='/api/start'){
-   if(state.phase==='running')return json(res,409,{error:'Un lavoro è già in esecuzione'});
+   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
    if(!state.browser||!state.page||state.page.isClosed())return json(res,409,{error:'Apri prima il browser e accedi personalmente a Sales Navigator'});
    if(input.resumeId){state.active=loadJob(input.resumeId);if(state.active.status==='completed')return json(res,409,{error:'Questo lavoro è già completato'});}
    else {const sourceUrl=Source.validate(input.url),requested=Source.quantity(input.quantity);
