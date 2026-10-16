@@ -236,7 +236,8 @@
     if (!id || id === barProject || body.dataset.shellProject === 'off') return;
     barProject = id;
     var P = encodeURIComponent(id), fresh = !pbar;
-    var owns = STEPS.map(function (s) { return s.local && document.getElementById(s.local); });
+    var onPed = /project-editorial/.test(location.pathname);
+    var owns = STEPS.map(function (s) { return onPed && s.local && document.getElementById(s.local); });
     if (fresh) {
       pbar = document.createElement('nav');
       pbar.className = 'rx-project';
