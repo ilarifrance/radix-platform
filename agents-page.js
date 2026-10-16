@@ -20,6 +20,9 @@ const btn=(text,fn,title)=>{const b=node('button',text);b.type='button';if(title
 const say=t=>{$('status').textContent=t};
 const conv=()=>{data.conversations[agentId]=data.conversations[agentId]||[];return data.conversations[agentId]};
 const forModel=hist=>hist.filter(m=>!m.pending&&(m.role==='user'||m.role==='assistant')).map(m=>({role:m.role,content:m.content}));
+// HeyGen avatar and voice, Buffer channel: chosen once, shared by the team on this project.
+let prefsDirty=false;
+const teamPrefs={get:k=>(data&&data.prefs&&data.prefs[k])||null,set:(k,v)=>{if(!data||teamPrefs.get(k)===v)return;data.prefs=Object.assign({},data.prefs,{[k]:v});prefsDirty=true;persist()}};
 const scope=role=>({projectId:project.id,clientId:project.client_id||'',agentId:role});
 function call(role,messages,onProgress){return rt.reply({role,messages,project:rt.profileFor(project),memoryScope:scope(role)},{onProgress})}
 const callOne=(role,text,onProgress)=>call(role,[{role:'user',content:text}],onProgress);
@@ -28,18 +31,19 @@ const callOne=(role,text,onProgress)=>call(role,[{role:'user',content:text}],onP
 function persist(){
  const id=agentId;
  saving=saving.then(async()=>{
-  try{await doc.save(clean(data))}
+  try{await doc.save(clean(data));prefsDirty=false}
   catch(e){
    if(!(e instanceof ws.ConflictError))throw e;
    // Someone else saved meanwhile: keep their other conversations, re-apply ours for this agent.
    const fresh=(await doc.load())||{conversations:{}};
    for(const [k,v] of Object.entries(fresh.conversations||{}))if(k!==id)data.conversations[k]=v;
-   await doc.save(clean(data));
+   if(!prefsDirty)data.prefs=fresh.prefs||{};
+   await doc.save(clean(data));prefsDirty=false;
   }
  }).catch(e=>say('Salvataggio non riuscito: '+e.message));
  return saving;
 }
-function clean(d){const out={schemaVersion:1,conversations:{}};for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
+function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
 
 // ---- rendering ----
 function renderRoster(){
@@ -105,7 +109,7 @@ function renderFlow(flow,msg){
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
    const src=sourcesEl(n.sources);if(src)row.append(src);
-   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>row.append(t));
+   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>row.append(t));
    if(!busy)row.append(stepTools(msg,i));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
@@ -184,7 +188,7 @@ function render(){
    if((m.agent||agentId)==='copywriter')acts.append(node('small',m.content.length+' caratteri','char-count'));
    if(rt.markdownTables(m.content).length)acts.append(btn('Excel',()=>rt.exportExcel((a?a.name:'Risposta')+' · '+project.name,m.content)));
    el.append(acts);
-   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>el.append(t));
+   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>el.append(t));
   }
   box.append(el);
  }
@@ -381,7 +385,7 @@ $('project').onchange=()=>{if(busy){$('project').value=project.id;return}openPro
 async function checkApi(){const el=$('api-status');try{const r=await fetch('/api/chat',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.configured){el.textContent='● Agenti collegati';el.dataset.state='ok'}else{el.textContent=r.status===401?'● Accesso richiesto':'● Agenti non configurati sul server';el.dataset.state='err'}}catch(e){el.textContent='● Agenti non raggiungibili';el.dataset.state='err'}}
 $('logout').onclick=async()=>{if(busy&&!confirm('Un agente sta ancora lavorando. Uscire comunque?'))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
 // Colleagues' replies appear when you come back to the tab, without reloading the page.
-document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
 async function boot(){
  renderRoster();checkApi();
  try{

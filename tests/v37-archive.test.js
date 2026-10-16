@@ -26,3 +26,22 @@ test('import goes in front of the project conversation once',()=>{
  const many=Array.from({length:80},(_,i)=>({role:'assistant',content:'m'+i}));
  const big=a.mergeInto({},'x',many);assert.equal(big.added,60);assert.equal(big.conversations.x[59].content,'m79');
 });
+
+test('last Pipeline post run becomes an editable pipeline flow, once',()=>{
+ const st={pipelineTask:'Lancio servizio',pipelineSteps:[{role:'strategist',label:'Strategist',status:'done',output:'Direzione'},{role:'copywriter',label:'Copywriter',status:'stale',output:'Testo'},{role:'art-director',label:'Art Director',status:'pending',output:null}]};
+ const run=a.pipelineRun(st);assert.equal(run.steps.length,2);assert.equal(a.pipelineRun({pipelineSteps:[{role:'x',output:'  '}]}),null);
+ assert.match(a.pipelineMarkdown(run),/\*\*Brief:\*\* Lancio servizio[\s\S]*## 2\. Copywriter\n\nTesto/);
+ const r=a.mergePipeline({orchestrator:[{role:'user',content:'mio'}]},run);
+ assert.equal(r.added,2);const f=r.conversations.orchestrator[1].flow;
+ assert.equal(f.pipeline,true);assert.deepEqual(f.nodes.map(n=>[n.status,n.deps]),[['done',[]],['stale',[1]]]);assert.equal(r.conversations.orchestrator[2].content,'mio');
+ assert.equal(a.mergePipeline(r.conversations,run).added,0);assert.equal(a.mergePipeline({},null).added,0);
+});
+
+test('v3.7 profiles fill only empty project fields; HeyGen choice kept when missing',()=>{
+ const v={name:'RADIX',kind:'Studio',summary:'Studio AI',audience:'PMI',voice:'Diretta',visual:'#0F2D24'};
+ const {changes,filled}=a.profileFill(v,{summary:'Già scritta',profile:{voice:'Del team',channels:'LinkedIn'}});
+ assert.deepEqual(filled.sort(),['audience','kind','visual']);assert.equal(changes.profile.voice,'Del team');assert.equal(changes.profile.channels,'LinkedIn');assert.equal(changes.summary,undefined);
+ assert.equal(a.profileFill(v,{summary:'',profile:{}}).changes.summary,'Studio AI');
+ assert.deepEqual(a.profiles({projects:[{name:'A'},{},null]}).length,1);
+ assert.deepEqual(a.mergePrefs({'heygen-voice':'mia'},{heygenAvatarId:'av',heygenVoiceId:'v37'}),{'heygen-voice':'mia','heygen-avatar':'av'});
+});

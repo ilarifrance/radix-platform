@@ -1,6 +1,6 @@
 # Collaudo F2 · funzioni della v3.7 nelle nuove pagine
 
-Aggiornato il 16/10/2026 (PR #12). Stato: 43 portate, 3 parziali, 0 mancanti.
+Aggiornato il 16/10/2026 (PR #12). Stato: 45 portate, 1 parziali, 0 mancanti.
 Ogni riga è verificata sul codice; le funzioni con un test automatico sono coperte dalle suite in `tests/` e dai collaudi Playwright locali descritti nella PR.
 
 
@@ -40,7 +40,7 @@ Verificato con grep su: lib/radix-agent-runtime.js, lib/radix-agent-media.js, ag
 | 30 | Carosello: slide PNG con grafica del brand, scarica una o tutte | parseSlides, renderSlideCanvas, buildSlideGallery, buildCarouselButton, downloadCanvas | lib/radix-agent-media.js:parseSlides, renderSlide, carouselTool, downloadCanvas | PORTED | Attivo in chat e nei nodi del flusso (toolsFor). |
 | 31 | Sfondi fotografici AI per le slide (OpenAI) | generateSlideBackground, generateAllBackgrounds, slideImagePrompt, rerenderGallery | lib/radix-agent-media.js:slideBackground, slideImagePrompt, carouselTool (pulsante "Genera sfondi") | PORTED | |
 | 32 | Palette e nome del progetto sulle slide | projectPalette, projectShortLabel | lib/radix-agent-media.js:palette, shortLabel; lib/radix-agent-runtime.js:profileFor (campo visual) | PORTED | Il campo "Identità visiva" del profilo ora si modifica in project-profile.html: i colori esadecimali finiscono sulle slide. |
-| 33 | Video bozza HeyGen (avatar, voce, attesa, link) | buildHeygenButton, fetchHeygenLists, pollHeygenStatus | lib/radix-agent-media.js:videoTool, heygenOptions | PARTIAL | Funziona; avatar e voce scelti restano solo nel browser (localStorage via pref) invece che condivisi col team (v3.7 heygenAvatarId/heygenVoiceId in /api/state). |
+| 33 | Video bozza HeyGen (avatar, voce, attesa, link) | buildHeygenButton, fetchHeygenLists, pollHeygenStatus | lib/radix-agent-media.js:videoTool, heygenOptions, prefsOf; agents-page.js:teamPrefs | PORTED | Avatar e voce (e il canale Buffer) scelti una volta valgono per tutto il team sul progetto (documento agents, campo prefs); la scelta fatta in v3.7 viene ripresa quando si copia dall'Archivio. |
 | 34 | Mettere in coda su Buffer (Copywriter) | buildBufferButton, fetchBufferChannels | lib/radix-agent-media.js:bufferTool; anche editorial-workspace.js (bufferTool con locked:true nel PED) | PORTED | Canale preferito in localStorage. |
 | 35 | Inviare l'email (Email Outreach) | buildEmailSendButton, parseEmailDraft | lib/radix-agent-media.js:emailTool, parseEmailDraft; usato da agents-page.js e verticals/studio.js:showTools | PORTED | |
 | 36 | Fonti web sotto le risposte | buildSourcesEl | agents-page.js:sourcesEl (messaggi e passi dei flussi) | PORTED | |
@@ -53,4 +53,4 @@ Verificato con grep su: lib/radix-agent-runtime.js, lib/radix-agent-media.js, ag
 | 43 | Contatore caratteri sotto i post del Copywriter | renderMessages (char-count) | agents-page.js:render (.char-count) | PORTED | |
 | 44 | Modalita presentazione (solo chat e flusso, a tutta pagina) | setPresent, #presentToggle | agents-page.js:setPresent; agents.html #present | PORTED | Nasconde menu, elenco agenti e spunti; ricordata nel browser. |
 | 45 | Autore dei messaggi (chi ha scritto) | m.by, msg-author | agents-page.js:render (m.by + data), composer onsubmit (by:user.name) | PORTED | |
-| 46 | Vecchie conversazioni v3.7 | state.history in /api/state | archive.html + archive-page.js:open, copyToProject; lib/v37-archive.js:summarize, toMarkdown, mergeInto | PARTIAL | Cronologie leggibili, esportabili (Markdown/Word) e copiabili in un progetto. Non mostrati: l'ultimo run della pipeline (pipelineSteps/pipelineTask) e i profili progetto v3.7. |
+| 46 | Vecchie conversazioni v3.7 | state.history in /api/state | archive.html + archive-page.js; lib/v37-archive.js:summarize, toMarkdown, mergeInto, pipelineRun, mergePipeline, profiles, profileFill, mergePrefs | PORTED | Conversazioni, ultima Pipeline post (copiata come pipeline modificabile in Agenti AI) e profili progetto v3.3 (riempiono solo i campi vuoti del profilo del progetto). |
