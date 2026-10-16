@@ -106,6 +106,7 @@ function segmentPanel(){
    if(await run('Elimino il segmento…',()=>post('segments','delete',{id:r.id,version:r.version}))){await loadSaved();app().notice('Segmento eliminato.')}},'danger'));
  }
  box.addEventListener('toggle',()=>{if(box.open&&!box.dataset.loaded){box.dataset.loaded='1';loadSaved()}});
+box.filterOf=filterOf;
  box.append(keep,form,a,out,E('p','«Non sentiti da» usa le interazioni caricate nella pagina. Per campagne email esporta solo contatti con consenso.','muted'));
  return box;
 }
@@ -147,7 +148,7 @@ async function gdprErase(row){
 }
 window.RadixCrmTools={
  section(entity,section){
-  if(entity==='contacts'){section.append(ioBar('contacts'),segmentPanel())}
+  if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf))}
   else if(entity==='companies')section.append(ioBar('companies'));
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks'))(section.querySelector(':scope>.row')||section).append(followUpBar());
