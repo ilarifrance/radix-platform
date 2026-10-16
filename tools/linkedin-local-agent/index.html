@@ -83,8 +83,21 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
  <div class="receiver-head"><div><h2 id="receiver-title">04 · Contatti ricevuti</h2><p class="help">Archivio operativo dei dati già salvati sul Mac. Revisione prima dell'arricchimento: nessuna API a pagamento e nessuna scrittura automatica nel CRM.</p></div><button class="secondary" id="receiver-refresh" type="button">Aggiorna tabella ↻</button></div>
  <div class="receiver-metrics"><span id="receiver-total">0 contatti</span><span id="receiver-complete">0 completi</span><span id="receiver-incomplete">0 da verificare</span></div>
  <div class="receiver-controls"><label for="receiver-job">Lavoro <select id="receiver-job"><option value="">Nessun lavoro</option></select></label><label for="receiver-search">Cerca <input id="receiver-search" placeholder="Nome, ruolo, azienda..." autocomplete="off"></label><label for="receiver-filter">Qualità <select id="receiver-filter"><option value="all">Tutti</option><option value="complete">Ruolo e azienda presenti</option><option value="incomplete">Dati incompleti</option></select></label></div>
- <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Dominio</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="9">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
+ <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Dominio</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th><th>Revisione</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="9">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
  <div class="receiver-footer"><span id="receiver-summary" role="status">Dati locali, non sincronizzati.</span><div class="toolbar"><button id="receiver-prev" type="button" class="secondary" disabled>← Precedenti</button><span id="receiver-page">Pagina 1</span><button id="receiver-next" type="button" class="secondary" disabled>Successivi →</button></div></div>
+</section>
+<section class="panel receiver" id="contact-manual-review-stage" aria-labelledby="contact-manual-review-title">
+ <h2 id="contact-manual-review-title">04A · Completa o correggi i dati del contatto</h2>
+ <p class="help">Seleziona «Correggi» accanto al contatto. Riporta soltanto informazioni che hai verificato personalmente. I dati vengono salvati nel checkpoint sul tuo Mac con indicazione di revisione manuale; non diventano automaticamente informazioni certificate. Non vengono modificati nome, URL profilo, email o telefono.</p>
+ <p class="status" id="manual-review-selected" role="status">Nessun contatto selezionato.</p>
+ <div class="enrich-fields">
+  <label for="manual-job-title">Ruolo <input id="manual-job-title" maxlength="160" autocomplete="off" placeholder="Es. CEO"></label>
+  <label for="manual-company-name">Azienda <input id="manual-company-name" maxlength="160" autocomplete="off" placeholder="Nome verificato"></label>
+  <label for="manual-country">Paese <input id="manual-country" maxlength="160" autocomplete="off" placeholder="Italia"></label>
+  <label for="manual-company-domain">Sito aziendale · dominio <input id="manual-company-domain" maxlength="253" autocomplete="off" placeholder="esempio.it (solo se verificato)"></label>
+ </div>
+ <div class="toolbar"><button id="manual-review-save" type="button" disabled>Verifica e salva nel lavoro locale</button><button id="manual-review-cancel" type="button" class="secondary">Annulla</button></div>
+ <p class="help warning">La correzione di dati già presenti richiede una seconda conferma; un campo vuoto non cancella il valore precedente. Verifica l'identità aziendale prima di inserire un dominio.</p>
 </section>
 <section class="panel receiver" id="profile-review-stage" aria-labelledby="profile-review-title">
  <h2 id="profile-review-title">04B · Completa i campi visibili dai profili</h2>
@@ -164,9 +177,10 @@ function renderReceiver(){
   if(/^https:\/\/www\.linkedin\.com\/(sales\/lead\/|in\/)/.test(row.profileUrl||'')){
    const a=document.createElement('a');a.textContent='Apri ↗';a.href=row.profileUrl;a.target='_blank';a.rel='noopener noreferrer';td.append(a);
   }else td.textContent='—';
-  tr.append(td);body.append(tr);
+  tr.append(td);
+  const editCell=document.createElement('td');const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='Correggi';edit.onclick=()=>selectManualReview(row);editCell.append(edit);tr.append(editCell);body.append(tr);
  }
- if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
+ if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=10;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
  $('receiver-page').textContent='Pagina '+(receiverPage+1)+' / '+pages;
  $('receiver-prev').disabled=receiverPage<=0;$('receiver-next').disabled=receiverPage>=pages-1;
  $('receiver-summary').textContent=filtered.length+' contatti visualizzabili su '+receiverRecords.length+' · solo consultazione';
