@@ -1,0 +1,209 @@
+/* Agenti AI, Archivio v3.7 and Profilo progetto visual layer (body.rx-work). Approved ref: RADIX AI Copilot mockup (M12)
+   in the Command Center accent. CSS only: ids, classes and button texts stay as the pages and e2e tests expect. */
+html.rx-shell body.rx-work{
+  --bg:var(--rx-bg);--panel:var(--rx-surface);--panel2:var(--rx-surface-2);--line:var(--rx-border);--text:var(--rx-text);--muted:var(--rx-muted);
+  --green:var(--rx-core);--amber:var(--rx-warning);--red:var(--rx-error);--blue:var(--rx-info);--violet:var(--rx-agency);
+  --wk-h:calc(100dvh - var(--rx-topbar));--wk-glow:0 0 0 1px color-mix(in srgb,var(--rx-core) 35%,transparent),0 0 24px -6px color-mix(in srgb,var(--rx-core) 45%,transparent);
+  background:radial-gradient(ellipse at 85% -10%,color-mix(in srgb,var(--rx-core) 9%,transparent),transparent 55%),var(--rx-bg);
+  font:14px/1.55 var(--rx-font);color:var(--rx-text)}
+.rx-work h1,.rx-work h2,.rx-work h3{font-family:var(--rx-display);letter-spacing:-.01em}
+.rx-work a{color:var(--rx-core-soft)}
+.rx-work :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-work button{border-radius:10px;border:1px solid var(--rx-border);background:var(--rx-surface-2);color:var(--rx-text);min-height:36px;padding:7px 13px;font:500 13px/1.2 var(--rx-font);transition:border-color .15s,background .15s}
+.rx-work button:hover:not(:disabled){border-color:var(--rx-border-strong);background:color-mix(in srgb,var(--rx-core) 8%,var(--rx-surface-2))}
+.rx-work button.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-work button.primary:hover:not(:disabled){background:var(--rx-core-soft);border-color:var(--rx-core-soft)}
+.rx-work :is(input,select,textarea){background:var(--rx-bg-raised);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text)}
+.rx-work :is(input,select,textarea):focus{border-color:var(--rx-core);outline:none;box-shadow:var(--wk-glow)}
+.rx-work :is(.meta,small,.small,.tag,.chip,.st,.eyebrow,.char-count,.log){font-size:12px}
+
+/* ---------- layout: page column(s) under the shell top bar ---------- */
+.rx-work .app{min-height:var(--wk-h)}
+.rx-work[data-shell-page=agents] .app{grid-template-columns:288px minmax(0,1fr)!important;height:var(--wk-h)}
+html.rx-shell .rx-work:is([data-shell-page=agents],[data-shell-page=archive]) .app>:is(.main,main){grid-column:2!important}
+@media(max-width:760px){html.rx-shell .rx-work[data-shell-page] .app>:is(.main,main){grid-column:1!important}}
+.rx-work[data-shell-page=archive] .app{grid-template-columns:300px minmax(0,1fr)!important}
+.rx-work[data-shell-page=project-profile] .app{grid-template-columns:minmax(0,1fr)}
+.rx-work :is(.roster,.list){background:color-mix(in srgb,var(--rx-bg-raised) 70%,transparent);border-right:1px solid var(--rx-border);max-height:var(--wk-h);top:var(--rx-topbar)}
+.rx-work .main{max-height:var(--wk-h)}
+
+/* ---------- roster / archive list ---------- */
+.rx-work .roster h2,.rx-work .list h2{font:600 12px/1 var(--rx-font);letter-spacing:.14em;color:var(--rx-subtle);margin:20px 6px 8px}
+.rx-work .list h1{font-size:20px;margin:2px 4px 6px}.rx-work .list>p{margin:0 4px 14px}
+.rx-work #filter{margin-bottom:4px}
+.rx-work button.agent{min-height:0;padding:10px;border-radius:12px;border:1px solid transparent;background:transparent;gap:10px;align-items:flex-start}
+.rx-work button.agent:hover{background:var(--rx-surface-2);border-color:var(--rx-border)}
+.rx-work button.agent[aria-current=true]{border-color:color-mix(in srgb,var(--rx-core) 55%,transparent);background:linear-gradient(90deg,color-mix(in srgb,var(--rx-core) 14%,transparent),transparent 80%);box-shadow:inset 3px 0 0 var(--rx-core)}
+.rx-work .agent .ic{width:30px;height:30px;flex:0 0 30px;display:grid;place-items:center;font-size:16px;border-radius:9px;background:var(--rx-surface-2);border:1px solid var(--rx-border)}
+.rx-work .agent strong{font-size:13.5px;font-weight:600}
+.rx-work .tag{border-color:color-mix(in srgb,var(--rx-core) 40%,transparent);color:var(--rx-core);background:color-mix(in srgb,var(--rx-core) 8%,transparent);border-radius:999px;padding:1px 8px;letter-spacing:.06em}
+
+/* ---------- header: agent + context (mockup: title left, CONTESTO selects right) ---------- */
+.rx-work .top{padding:20px 28px 16px;border-bottom:1px solid var(--rx-border);background:linear-gradient(180deg,color-mix(in srgb,var(--rx-core) 5%,transparent),transparent);align-items:flex-start}
+.rx-work .eyebrow{color:var(--rx-core);letter-spacing:.14em;font-weight:600}
+.rx-work .top h1{font-size:26px;margin:4px 0 2px}
+.rx-work .top p{max-width:640px}
+.rx-work .links{gap:6px;margin-top:10px}
+.rx-work .links a{display:inline-flex;align-items:center;min-height:30px;padding:4px 11px;border:1px solid var(--rx-border);border-radius:999px;background:var(--rx-surface);color:var(--rx-muted);text-decoration:none;font-size:12.5px}
+.rx-work .links a:hover{color:var(--rx-text);border-color:var(--rx-border-strong)}
+.rx-work .session{align-items:stretch;gap:8px;min-width:280px}
+.rx-work .session label,.rx-work .bar label{display:grid;gap:4px;font:600 12px/1.2 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--rx-subtle)}
+.rx-work .session select,.rx-work .bar select{text-transform:none;letter-spacing:0;font:500 14px var(--rx-font);color:var(--rx-text);padding:10px 12px;background:var(--rx-surface)}
+.rx-work .session p.small{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px}
+.rx-work .api-status{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--rx-border);color:var(--rx-muted)}
+.rx-work .api-status[data-state=ok]{color:var(--rx-success);border-color:color-mix(in srgb,var(--rx-success) 35%,transparent);background:color-mix(in srgb,var(--rx-success) 8%,transparent)}
+.rx-work .api-status[data-state=err]{color:var(--rx-error);border-color:color-mix(in srgb,var(--rx-error) 35%,transparent);background:color-mix(in srgb,var(--rx-error) 8%,transparent)}
+.rx-work #me:empty{display:none}
+/* the shell already shows who is signed in and "Esci" */
+html.rx-shell .rx-work #me,html.rx-shell .rx-work #logout{display:none}
+.rx-work #present{min-height:30px;padding:4px 11px;font-size:12.5px}
+.rx-work #status{color:var(--rx-subtle)}.rx-work[data-shell-page=agents] #status{padding:8px 28px}.rx-work:not([data-shell-page=agents]) #status{padding:0;margin:8px 0}
+
+/* ---------- conversation ---------- */
+.rx-work .thread{padding:6px 28px 28px}
+.rx-work .msg{max-width:960px;border-radius:16px;border:1px solid var(--rx-border);background:var(--rx-surface);padding:16px 18px}
+.rx-work .msg.user{max-width:680px;background:color-mix(in srgb,var(--rx-core) 9%,var(--rx-surface-2));border-color:color-mix(in srgb,var(--rx-core) 28%,var(--rx-border));border-bottom-right-radius:6px}
+.rx-work .msg:not(.user):not(.error){border-top-left-radius:6px}
+.rx-work .msg .meta{color:var(--rx-subtle);letter-spacing:.02em}
+.rx-work .msg:not(.user)>.meta:first-child{color:var(--rx-core-soft);font-weight:600}
+.rx-work .msg.error{background:color-mix(in srgb,var(--rx-error) 8%,var(--rx-surface));border-color:color-mix(in srgb,var(--rx-error) 40%,transparent);color:#FFD3D5}
+.rx-work .md :is(pre,th,td){border-color:var(--rx-border)}.rx-work .md pre{background:var(--rx-bg)}
+.rx-work .actions{gap:6px}
+.rx-work .actions button{min-height:30px;padding:4px 11px;font-size:12.5px;background:transparent}
+.rx-work .actions button.primary{background:var(--rx-core)}
+.rx-work .empty{background:var(--rx-surface);border:1px dashed var(--rx-border-strong);border-radius:16px;padding:18px 22px}
+
+/* document card (mockup: icon tile + title + meta) */
+.rx-work .doc{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px;position:relative}
+.rx-work .doc:hover{border-color:var(--rx-border-strong)}
+.rx-work .doc button{min-height:30px;padding:4px 10px;font-size:12.5px;background:transparent}
+.rx-work .doc strong{font-size:14px}
+
+/* ---------- flow card: steps as recommendation cards with a status bar ---------- */
+.rx-work .flow{background:var(--rx-bg-raised);border:1px solid var(--rx-border);border-radius:14px;padding:14px 16px;margin-top:14px}
+.rx-work .flow h3{font:600 12px/1.3 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--rx-muted);margin:0 0 4px}
+.rx-work .flow-time{margin:0 0 10px;color:var(--rx-subtle)}
+.rx-work .flow .node{--c:var(--rx-subtle);border:1px solid var(--rx-border);border-left:3px solid var(--c);border-radius:12px;background:var(--rx-surface);padding:12px 14px;margin:8px 0;transition:box-shadow .2s}
+.rx-work .node:has(> .row .st.done){--c:var(--rx-success)}
+.rx-work .node:has(> .row .st.running){--c:var(--rx-warning)}
+.rx-work .node:has(> .row .st.stale){--c:var(--rx-warning);background:color-mix(in srgb,var(--rx-warning) 5%,var(--rx-surface))}
+.rx-work .node:has(> .row .st.error){--c:var(--rx-error)}
+.rx-work .node .row strong{font-size:14px}
+.rx-work .node>small.meta{display:block;margin-top:2px;color:var(--rx-muted)}
+.rx-work .st{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;border:1px solid var(--rx-border);color:var(--rx-muted);font-weight:500}
+.rx-work .st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rx-work .st.done{color:var(--rx-success);border-color:color-mix(in srgb,var(--rx-success) 35%,transparent);background:color-mix(in srgb,var(--rx-success) 8%,transparent)}
+.rx-work .st.running{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 40%,transparent);background:color-mix(in srgb,var(--rx-warning) 8%,transparent)}
+.rx-work .st.running::before{animation:wk-pulse 1.2s ease-in-out infinite}
+.rx-work .st.stale{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 40%,transparent);background:color-mix(in srgb,var(--rx-warning) 10%,transparent)}
+.rx-work .st.error{color:var(--rx-error);border-color:color-mix(in srgb,var(--rx-error) 40%,transparent);background:color-mix(in srgb,var(--rx-error) 8%,transparent)}
+.rx-work .st.pending{color:var(--rx-subtle)}
+@keyframes wk-pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.rx-work .st.running::before{animation:none}}
+.rx-work .node.focus{box-shadow:var(--wk-glow);outline:0}
+.rx-work .node details{border-top:1px solid var(--rx-border);margin-top:10px;padding-top:8px}
+.rx-work .log{background:var(--rx-bg);border-radius:8px;padding:8px 10px}
+
+/* pipeline map: a stepper */
+.rx-work .flow-map{gap:4px;margin:2px 0 12px;padding:10px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-work .flow-map .st{padding:4px 10px}
+.rx-work .flow-map .arrow{color:var(--rx-subtle);font-size:12px}
+
+/* per-step tools: quiet until needed */
+.rx-work .step-tools{border-top:1px dashed var(--rx-border);margin-top:12px;padding-top:10px;gap:6px;align-items:center}
+.rx-work .step-tools button{min-height:30px;padding:4px 11px;font-size:12.5px;background:transparent;color:var(--rx-muted)}
+.rx-work .step-tools button:hover{color:var(--rx-text)}
+.rx-work .step-tools button.primary{color:#03201A;background:var(--rx-core)}
+.rx-work .step-tools textarea{margin:4px 0;min-height:84px}
+
+/* "cosa creare ora" (mockup: human confirmation bar) */
+.rx-work .ready-panel{display:grid;gap:6px;margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--rx-core) 40%,transparent);
+  background:linear-gradient(100deg,color-mix(in srgb,var(--rx-core) 12%,var(--rx-surface)),var(--rx-surface) 70%);box-shadow:var(--wk-glow)}
+.rx-work .ready-panel>strong{font:600 15px/1.3 var(--rx-display);display:flex;align-items:center;gap:10px}
+.rx-work .ready-panel>strong::before{content:"✓";display:grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:14px;color:var(--rx-core);border:1px solid color-mix(in srgb,var(--rx-core) 50%,transparent);background:var(--rx-bg)}
+.rx-work .ready-decision{margin:0 0 0 38px;font-weight:600;color:var(--rx-core-soft)}
+.rx-work .ready-panel>.meta{margin:0 0 0 38px}
+.rx-work .ready-panel .actions{margin:4px 0 0 38px}
+.rx-work .ready-panel .actions button{min-height:36px;padding:7px 14px;font-size:13px}
+
+.rx-work .flow-all{border-top:1px solid var(--rx-border);padding-top:12px;margin-top:12px}
+.rx-work .routing-list{padding:10px 12px;border:1px dashed var(--rx-border-strong);border-radius:12px}
+.rx-work .routing-list>small{color:var(--rx-subtle);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+
+/* deliverables: one panel at the end of the conversation */
+.rx-work details.deliverables{max-width:960px;border:1px solid var(--rx-border);background:var(--rx-surface);border-radius:16px;padding:12px 16px;margin-top:16px}
+.rx-work .deliverables summary{font:600 12px/1.4 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--rx-muted)}
+.rx-work .deliverables[open] summary{margin-bottom:6px}
+
+/* ---------- composer (mockup: glowing input box) ---------- */
+.rx-work .composer{background:var(--rx-bg-raised);border-top:1px solid var(--rx-border);padding:14px 28px 16px}
+.rx-work .composer textarea{border-radius:14px;border-color:color-mix(in srgb,var(--rx-core) 35%,var(--rx-border));background:linear-gradient(180deg,color-mix(in srgb,var(--rx-core) 5%,var(--rx-bg)),var(--rx-bg));padding:12px 14px;min-height:76px}
+.rx-work .composer textarea:focus{box-shadow:var(--wk-glow)}
+.rx-work .composer.dropping{outline:2px dashed var(--rx-core);outline-offset:4px;border-radius:14px}
+.rx-work .chip{border-color:var(--rx-border);background:var(--rx-surface);color:var(--rx-muted)}
+.rx-work .chips.quick button.chip{min-height:28px;padding:3px 11px;border-radius:999px;background:var(--rx-surface)}
+.rx-work .chips.quick button.chip:hover{color:var(--rx-text);border-color:color-mix(in srgb,var(--rx-core) 45%,transparent)}
+
+/* ---------- dialogs: document viewer and site preview ---------- */
+.rx-work dialog{background:var(--rx-surface);border:1px solid var(--rx-border-strong);border-radius:18px;color:var(--rx-text);box-shadow:0 30px 80px -20px #000}
+.rx-work dialog::backdrop{background:color-mix(in srgb,var(--rx-bg) 85%,transparent);backdrop-filter:blur(3px)}
+.rx-work .site-head{flex-wrap:wrap}.rx-work .site-head .grow{flex:1}
+.rx-work .site-head button[aria-pressed=true]{border-color:var(--rx-core);color:var(--rx-core)}
+.rx-work .site-tabs{display:flex;gap:2px;padding:3px;border:1px solid var(--rx-border);border-radius:11px;background:var(--rx-bg);width:max-content;max-width:100%;overflow-x:auto}
+.rx-work .site-tabs button{min-height:30px;border:0;background:transparent;color:var(--rx-muted);border-radius:8px}
+.rx-work .site-tabs button[aria-selected=true]{background:var(--rx-surface-2);color:var(--rx-text);box-shadow:inset 0 0 0 1px var(--rx-border-strong)}
+.rx-work .site-frame{background:var(--rx-bg);border:1px solid var(--rx-border);border-radius:12px}
+.rx-work .site-frame.mobile iframe{border-radius:22px;box-shadow:0 0 0 8px #0B1416,0 0 0 9px var(--rx-border-strong)}
+
+/* ---------- presentation mode: the conversation alone ---------- */
+html.rx-shell body.rx-work.present{padding-left:0!important}
+.rx-work.present .rx-sidebar,.rx-work.present .rx-tabs{display:none!important}
+.rx-work.present .app{grid-template-columns:minmax(0,1fr)!important}
+html.rx-shell .rx-work.present .app>.main{grid-column:1!important}
+.rx-work.present .thread{padding-left:max(28px,calc((100% - 1040px)/2));padding-right:max(28px,calc((100% - 1040px)/2))}
+.rx-work.present #present{border-color:var(--rx-core);color:var(--rx-core)}
+
+/* ---------- archive + profile ---------- */
+.rx-work[data-shell-page=archive] main,.rx-work[data-shell-page=project-profile] main{padding:22px 28px}
+.rx-work .bar{gap:10px}
+.rx-work #agentName{font:600 18px/1.3 var(--rx-display)}
+.rx-work .msg.profile dl{display:grid;grid-template-columns:minmax(120px,180px) minmax(0,1fr);gap:6px 14px;margin:6px 0 10px}
+.rx-work .msg.profile dt{color:var(--rx-subtle);font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding-top:2px}
+.rx-work .msg.profile dd{margin:0}
+.rx-work[data-shell-page=project-profile] main h1{font-size:28px;margin:14px 0 4px}
+.rx-work .lead{color:var(--rx-muted)}
+.rx-work .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:18px 20px}
+.rx-work .panel h2{font:600 12px/1.3 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--rx-muted);margin:0 0 12px}
+.rx-work form.panel label{font-weight:600;font-size:13.5px;margin-bottom:16px}
+.rx-work form.panel label small{color:var(--rx-subtle)}
+.rx-work .cols>section.panel{position:sticky;top:calc(var(--rx-topbar) + 16px);border-color:color-mix(in srgb,var(--rx-core) 30%,var(--rx-border));background:linear-gradient(180deg,color-mix(in srgb,var(--rx-core) 6%,var(--rx-surface)),var(--rx-surface))}
+.rx-work .preview dt{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--rx-subtle);margin-top:12px}
+.rx-work .preview dd{color:var(--rx-text)}
+.rx-work .swatches span{width:30px;height:30px;border-radius:8px;border-color:var(--rx-border-strong)}
+
+/* ---------- smaller screens ---------- */
+@media(max-width:1100px){.rx-work:is([data-shell-page=agents],[data-shell-page=archive]) .app{grid-template-columns:260px minmax(0,1fr)!important}}
+@media(max-width:760px){
+  .rx-work[data-shell-page] .app{grid-template-columns:minmax(0,1fr)!important;height:auto}
+  .rx-work :is(.roster,.list){max-height:none;border-right:0;border-bottom:1px solid var(--rx-border)}
+  .rx-work .main{max-height:none}
+  .rx-work .top,.rx-work .thread,.rx-work .composer,.rx-work #status,.rx-work[data-shell-page] main{padding-left:16px;padding-right:16px}
+  .rx-work .session{min-width:0;width:100%}.rx-work .session p.small{justify-content:flex-start}
+  .rx-work .ready-decision,.rx-work .ready-panel>.meta,.rx-work .ready-panel .actions{margin-left:0}
+  .rx-work .msg.profile dl{grid-template-columns:1fr}
+  .rx-work .msg{padding:12px 14px}.rx-work .flow{padding:12px 10px}.rx-work .flow .node{padding:10px 12px}
+  .rx-work .cols>section.panel{position:static}
+}
+/* the flow's next step (update stale steps, retry failed ones) stands out from the export buttons */
+.rx-work .flow>.actions:not(.flow-all) button{border-color:color-mix(in srgb,var(--rx-core) 50%,transparent);color:var(--rx-core-soft);background:color-mix(in srgb,var(--rx-core) 7%,transparent)}
+.rx-work .flow>details>summary,.rx-work .node details>summary{font-size:12.5px;color:var(--rx-muted);cursor:pointer}
+/* media tools under a step: accented, but the "cosa creare ora" panel stays the main call to action */
+.rx-work .tool button.primary{background:color-mix(in srgb,var(--rx-core) 12%,transparent);color:var(--rx-core-soft);border-color:color-mix(in srgb,var(--rx-core) 50%,transparent)}
+.rx-work .tool .panel{background:var(--rx-bg);border-color:var(--rx-border)}
+/* document cards wrap their buttons under the title on narrow columns */
+.rx-work .doc{flex-wrap:wrap;row-gap:8px}.rx-work .doc .t{flex:1 1 220px}
+/* team memory reaching this agent (PR #14): a status pill at the end of the project links */
+.rx-work .links .memory-info{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:4px 11px;border-radius:999px;font-size:12.5px;color:var(--rx-muted);border:1px dashed color-mix(in srgb,var(--rx-agency) 45%,transparent);background:color-mix(in srgb,var(--rx-agency) 7%,transparent)}
+.rx-work .links .memory-info::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-agency)}
+.rx-work .links .memory-info:empty{display:none}
+.rx-work .links .memory-info a{padding:0;border:0;background:none;min-height:0;color:var(--rx-core-soft)}
