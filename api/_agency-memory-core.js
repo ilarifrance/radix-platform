@@ -15,10 +15,26 @@ function validate(input){
  if(title.length<3||content.length<5||source.length<3)throw Error('Titolo, contenuto e provenienza obbligatori');
  return {level,kind,status,projectId,clientId,agentId,title,content,source};
 }
-function buildContext(rows,{projectId='',clientId='',agentId='',maxChars=6500}={}){
- const relevant=(rows||[]).filter(r=>r.status==='confirmed'&&(r.level==='agency'||r.level==='client'&&clientId&&r.client_id===clientId||r.level==='project'&&projectId&&r.project_id===projectId||r.level==='agent'&&projectId&&agentId&&r.project_id===projectId&&r.agent_id===agentId||r.level==='shared'&&projectId&&r.project_id===projectId));
- let used=0;const chunks=[];
- for(const r of relevant){const block='['+r.level+'/'+r.kind+'] '+r.title+'\n'+r.content+'\nFonte: '+r.source; if(used+block.length>maxChars)break;chunks.push(block);used+=block.length+2}
- return chunks.join('\n\n');
+const LEVEL_LABELS=Object.freeze({agent:'Per questo agente',project:'Progetto',shared:'Condivisa nel progetto',client:'Cliente',agency:'Agenzia'});
+const KIND_LABELS=Object.freeze({decision:'Decisione',preference:'Preferenza',feedback:'Feedback',handoff:'Passaggio di consegne',fact:'Informazione',outcome:'Risultato'});
+// The closer an item is to the work (this agent, then this project, then client, then agency) and the more
+// binding it is (decisions and preferences before results), the earlier it goes in; newest first within that.
+const LEVEL_RANK={agent:0,project:1,shared:2,client:3,agency:4},KIND_RANK={decision:0,preference:1,feedback:2,handoff:3,fact:4,outcome:5};
+function relevantRows(rows,{projectId='',clientId='',agentId=''}={}){
+ const seen=new Set();
+ return (rows||[]).filter(r=>r&&r.status==='confirmed'&&(r.level==='agency'||r.level==='client'&&clientId&&r.client_id===clientId||r.level==='project'&&projectId&&r.project_id===projectId||r.level==='agent'&&projectId&&agentId&&r.project_id===projectId&&r.agent_id===agentId||r.level==='shared'&&projectId&&r.project_id===projectId))
+  .sort((a,b)=>(LEVEL_RANK[a.level]-LEVEL_RANK[b.level])||((KIND_RANK[a.kind]??9)-(KIND_RANK[b.kind]??9))||String(b.updated_at||'').localeCompare(String(a.updated_at||'')))
+  .filter(r=>{const k=String(r.title||'').trim().toLowerCase()+'|'+String(r.content||'').trim().toLowerCase();if(seen.has(k))return false;seen.add(k);return true});
 }
-module.exports={LEVELS,KINDS,STATUSES,clean,validId,validate,buildContext};
+// Returns the text for the agents plus which items went in and which were left out for space.
+function selectContext(rows,opts={}){
+ const maxChars=opts.maxChars||6500,used=[],omitted=[];let size=0;
+ for(const r of relevantRows(rows,opts)){
+  const block='['+(LEVEL_LABELS[r.level]||r.level)+' · '+(KIND_LABELS[r.kind]||r.kind)+'] '+r.title+'\n'+r.content+'\nFonte: '+r.source;
+  if(size+block.length>maxChars){omitted.push(r);continue}
+  used.push({row:r,block});size+=block.length+2;
+ }
+ return {context:used.map(u=>u.block).join('\n\n'),used:used.map(u=>u.row.id),omitted:omitted.map(r=>r.id)};
+}
+function buildContext(rows,opts){return selectContext(rows,opts).context}
+module.exports={LEVELS,KINDS,STATUSES,LEVEL_LABELS,KIND_LABELS,clean,validId,validate,relevantRows,selectContext,buildContext};
