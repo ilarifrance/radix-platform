@@ -93,6 +93,8 @@ async function handler(req,res){
   if(req.method==='GET'&&url.pathname==='/')return send(res,200,fs.readFileSync(path.join(__dirname,'index.html'),'utf8'),{'Content-Type':'text/html; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/status')return json(res,200,snapshot());
   if(req.method==='GET'&&url.pathname==='/lead-enrichment-plan.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-enrichment-plan.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
+  if(req.method==='GET'&&url.pathname==='/lead-domain-suggestions.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-domain-suggestions.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
+  if(req.method==='GET'&&url.pathname==='/lead-provider-waterfall.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-provider-waterfall.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/jobs'){
    const jobs=fs.existsSync(JOBS)?fs.readdirSync(JOBS).filter(x=>/^[a-f0-9-]{36}\.json$/.test(x)).slice(-30).map(x=>{try{const j=loadJob(x.slice(0,-5));return {id:j.id,sourceUrl:j.sourceUrl,page:j.page,count:j.data.records.length,createdAt:j.startedAt}}catch{return null}}).filter(Boolean):[];
    return json(res,200,{jobs});
