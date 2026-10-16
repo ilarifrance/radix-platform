@@ -190,3 +190,8 @@ html.rx-shell .rx-steps a{color:var(--rx-muted)}
 html.rx-shell .rx-steps a:hover,html.rx-shell .rx-project-extra a:hover,html.rx-shell .rx-project-extra a[aria-current],
 html.rx-shell .rx-steps a[aria-current]:not([aria-current=false]){color:var(--rx-text)}
 html.rx-shell .rx-project-switch:hover{color:var(--rx-accent)}
+
+/* Agent media tools whose service has no key on this deployment (lib/radix-agent-media.js markService): visible, dimmed, with the reason. */
+html.rx-shell .tool[data-connected=false]{position:relative;padding:10px 12px 10px 14px;border:1px dashed rgba(245,184,74,.45);border-radius:12px;background:rgba(245,184,74,.05)}
+html.rx-shell .tool[data-connected=false] button[disabled]{opacity:.5;cursor:not-allowed;filter:saturate(.3)}
+html.rx-shell .tool[data-connected=false]>.tool-status{margin:8px 0 0;color:#f5cf8a;font:12px/1.45 var(--rx-font)}
