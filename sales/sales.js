@@ -14,6 +14,8 @@ const title = row => row.name || row.title || row.id;
 const rows = entity => state.rows[entity] || [];
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
+// Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
+window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r)};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
@@ -100,6 +102,7 @@ function card(entity,row,readonly=false){
  if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data UTC: '+row.occurred_at+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
  if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button('Customer360',()=>openCustomer(entity,row)));
  if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.'),'danger'));c.append(a);}
+ window.RadixCrmTools?.card(entity,row,c,readonly);
  return c;
 }
 async function searchRecords(entity,value){
@@ -199,6 +202,7 @@ function render(){
     if(entity==='opportunities')groups.push({name:'Vinte',matches:r=>r.outcome==='won'},{name:'Perse',matches:r=>r.outcome==='lost'});
     groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
    }else rows(entity).forEach(r=>section.append(card(entity,r)));
+   window.RadixCrmTools?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
    if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
