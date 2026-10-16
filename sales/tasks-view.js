@@ -94,8 +94,8 @@ async function render(){const sec=document.getElementById('tasks');if(!sec||!sec
     const label=TABS.find(x=>x[0]===state.tab)[1];main.append(table(d,state.tab==='done'?'Attività completate':'Attività · '+label.toLowerCase(),g[state.tab],{warn:state.tab==='due',empty:'Nessuna attività in questa vista.'}))}
   root.append(main,rail(d,g));
   const anchor=sec.querySelector(':scope>.row');anchor?anchor.after(root):sec.prepend(root);
-  document.documentElement.classList.toggle('tv-on',true);document.documentElement.classList.toggle('tv-kanban',state.kanban);requestAnimationFrame(()=>{busy=false})}
+  document.documentElement.classList.toggle('tv-on',true);document.documentElement.classList.toggle('tv-kanban',state.kanban);requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv)\b/.test(n.className||''))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv)\b/.test(n.className||''))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 addEventListener('hashchange',later);later();
 })();

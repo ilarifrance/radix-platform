@@ -78,9 +78,9 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   const legend=E('div',undefined,'cal-legend');for(const [name,tone] of Object.values(TYPES))legend.append(E('span',name,'dot '+tone));main.append(legend);
   root.append(left,main,rail(d,all));sec.append(root);
   const body=sec.querySelector('.cal-body');if(body&&state.mode!=='month'&&!sec.dataset.scrolled){sec.dataset.scrolled='1'}
-  requestAnimationFrame(()=>{busy=false})}
+  requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});
 addEventListener('hashchange',later);later();
 })();

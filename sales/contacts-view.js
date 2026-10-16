@@ -74,10 +74,10 @@ async function render(){const section=document.getElementById('contacts');if(!se
   const sel=cards.find(x=>x.contact.id===state.selected);
   const root=E('div',undefined,'cx');root.append(table(d,cards),sheet(d,sel.contact,sel.card));
   const after=section.querySelector(':scope>p.muted')||section.querySelector(':scope>form');after?after.after(root):section.append(root);
-  document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false})}
+  document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false;if(!section.isConnected)later()})}
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&n.classList?.contains('cx'))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&n.classList?.contains('cx'))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 wsSelect.addEventListener('change',()=>{state.selected=null});
 addEventListener('hashchange',later);later();
 })();

@@ -62,8 +62,8 @@ function build(d){const opps=d.opportunities,tasks=d.tasks,val=o=>Number(o.amoun
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
 
 let busy=false;
-async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!d||!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d));requestAnimationFrame(()=>{busy=false})}
+async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!d||!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d));requestAnimationFrame(()=>{busy=false;if(!s.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal|an)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal|an)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});addEventListener('hashchange',later);later();
 })();
