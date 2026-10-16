@@ -82,7 +82,30 @@ const SCHEMA=Object.freeze([
  detail jsonb NOT NULL DEFAULT '{}'::jsonb,
  at timestamptz NOT NULL DEFAULT now()
 )`,
-`CREATE INDEX IF NOT EXISTS rx_activity_project_idx ON rx_activity(project_id, id DESC)`
+`CREATE INDEX IF NOT EXISTS rx_activity_project_idx ON rx_activity(project_id, id DESC)`,
+// One row per approved content version sent to a publishing service: the unique key makes sending idempotent.
+`CREATE TABLE IF NOT EXISTS rx_publications (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ revision integer NOT NULL CHECK (revision > 0),
+ service text NOT NULL CHECK (service IN ('buffer')),
+ channel_id text NOT NULL CHECK (length(channel_id) BETWEEN 1 AND 120),
+ channel_name text NOT NULL DEFAULT '' CHECK (length(channel_name) <= 160),
+ mode text NOT NULL CHECK (mode IN ('scheduled','queue')),
+ timezone text NOT NULL DEFAULT '' CHECK (length(timezone) <= 60),
+ scheduled_at timestamptz,
+ status text NOT NULL CHECK (status IN ('sending','queued','failed')),
+ post_id text,
+ due_at timestamptz,
+ error text NOT NULL DEFAULT '' CHECK (length(error) <= 500),
+ attempts integer NOT NULL DEFAULT 1 CHECK (attempts > 0),
+ requested_by integer REFERENCES users(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, revision, service)
+)`,
+`CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC)`
 ]);
 
 class InputError extends Error{}
@@ -171,6 +194,20 @@ function approvalDecision(input){
  return {id,decision,state:DECISIONS[decision],note,fingerprint:fingerprint(input.content)};
 }
 
+// A request to publish one approved content version; the text and time come from the server's copy of the PED.
+function publicationRequest(input){
+ if(!isObject(input))fail('Richiesta di pubblicazione non valida');
+ const projectId=clean(input.projectId,80),contentId=clean(input.contentId,120),channelId=clean(input.channelId,120);
+ if(!validProjectId(projectId))fail('Progetto non valido');
+ if(!contentId)fail('Contenuto richiesto');
+ const revision=Number(input.revision);
+ if(!Number.isSafeInteger(revision)||revision<1)fail('Versione del contenuto richiesta');
+ if(!channelId)fail('Scegli il canale Buffer');
+ const mode=clean(input.mode,20);
+ if(!['scheduled','queue'].includes(mode))fail('Modalità di pubblicazione non valida');
+ return {projectId,contentId,revision,channelId,channelName:clean(input.channelName,160),mode,retryUncertain:input.retryUncertain===true};
+}
+
 // Approved only while the stored fingerprint still matches the current content.
 function approvalStatus(record,content){
  if(!record)return 'none';
@@ -180,4 +217,4 @@ function approvalStatus(record,content){
 
 module.exports={CLIENT_STATUSES,PROJECT_KINDS,PROJECT_STATUSES,MODULES,SUBJECT_TYPES,DECISIONS,MAX_DOCUMENT_BYTES,SCHEMA,
  InputError,clean,validClientId,validProjectId,newClientId,newProjectId,client,project,documentPayload,canonical,fingerprint,
- approvalRequest,approvalDecision,approvalStatus};
+ approvalRequest,approvalDecision,approvalStatus,publicationRequest};

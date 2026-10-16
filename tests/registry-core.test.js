@@ -69,3 +69,12 @@ test('serverless function count stays within the Hobby limit of 12',()=>{
  const fns=walk('api').filter(f=>f.endsWith('.js')&&!f.split('/').pop().startsWith('_'));
  assert.ok(fns.length<=12,fns.join(', '));
 });
+
+test('publication requests name one approved content version and a Buffer channel',()=>{
+ const ok=core.publicationRequest({projectId:'radix',contentId:'c-1',revision:3,channelId:'ch1',channelName:'LinkedIn RADIX',mode:'scheduled'});
+ assert.deepEqual(ok,{projectId:'radix',contentId:'c-1',revision:3,channelId:'ch1',channelName:'LinkedIn RADIX',mode:'scheduled',retryUncertain:false});
+ assert.throws(()=>core.publicationRequest({projectId:'radix',contentId:'c-1',revision:0,channelId:'ch1',mode:'queue'}),/Versione/);
+ assert.throws(()=>core.publicationRequest({projectId:'radix',contentId:'c-1',revision:1,channelId:'',mode:'queue'}),/canale/);
+ assert.throws(()=>core.publicationRequest({projectId:'radix',contentId:'c-1',revision:1,channelId:'x',mode:'now'}),/Modalità/);
+ assert.match(core.SCHEMA.join('\n'),/UNIQUE \(project_id, content_id, revision, service\)/);
+});

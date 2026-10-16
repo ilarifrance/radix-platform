@@ -49,6 +49,32 @@ async function bufferGraphQL(apiKey, query, variables) {
   return data ? data.data : null;
 }
 
+// Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
+// viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
+// il post, 502 se la risposta non è valida.
+async function createPost(apiKey, { channelId, text, dueAt }) {
+  const scheduled = !!dueAt;
+  const data = await bufferGraphQL(
+    apiKey,
+    'mutation($channelId: String!, $text: String!' + (scheduled ? ', $dueAt: DateTime!' : '') + ') {\n' +
+      '  createPost(input: { text: $text, channelId: $channelId, schedulingType: automatic, mode: ' +
+      (scheduled ? 'customScheduled, dueAt: $dueAt' : 'addToQueue') + ' }) {\n' +
+      '    ... on PostActionSuccess { post { id text dueAt } }\n' +
+      '    ... on MutationError { message }\n' +
+      '  }\n' +
+      '}',
+    scheduled ? { channelId, text, dueAt } : { channelId, text }
+  );
+  const result = data && data.createPost;
+  const fail = (status, message) => Object.assign(new Error(message), { status });
+  if (!result) throw fail(502, 'Buffer non ha restituito una risposta valida.');
+  // Union "MutationError": Buffer ha capito la richiesta ma l'ha rifiutata (es. canale non
+  // valido, testo troppo lungo per quel servizio) — messaggio già leggibile, lo passiamo su.
+  if (result.message) throw fail(422, result.message);
+  if (!result.post || !result.post.id) throw fail(502, 'Buffer non ha confermato la creazione del post.');
+  return { postId: result.post.id, dueAt: result.post.dueAt || null };
+}
+
 module.exports = async (req, res) => {
   const user = getSessionUser(req);
   if (!user) {
@@ -107,32 +133,8 @@ module.exports = async (req, res) => {
         res.status(400).json({ error: "Mancano 'channelId' o 'text'." });
         return;
       }
-      const data = await bufferGraphQL(
-        apiKey,
-        'mutation($channelId: String!, $text: String!) {\n' +
-          '  createPost(input: { text: $text, channelId: $channelId, schedulingType: automatic, mode: addToQueue }) {\n' +
-          '    ... on PostActionSuccess { post { id text dueAt } }\n' +
-          '    ... on MutationError { message }\n' +
-          '  }\n' +
-          '}',
-        { channelId, text: String(text) }
-      );
-      const result = data && data.createPost;
-      if (!result) {
-        res.status(502).json({ error: 'Buffer non ha restituito una risposta valida.' });
-        return;
-      }
-      if (result.message) {
-        // Union "MutationError": Buffer ha capito la richiesta ma l'ha rifiutata (es. canale non
-        // valido, testo troppo lungo per quel servizio) — messaggio già leggibile, lo passiamo su.
-        res.status(422).json({ error: result.message });
-        return;
-      }
-      if (!result.post || !result.post.id) {
-        res.status(502).json({ error: 'Buffer non ha confermato la creazione del post. Risposta: ' + JSON.stringify(result) });
-        return;
-      }
-      res.status(200).json({ postId: result.post.id, dueAt: result.post.dueAt || null });
+      const post = await createPost(apiKey, { channelId, text: String(text) });
+      res.status(200).json(post);
       return;
     }
 
@@ -143,3 +145,4 @@ module.exports = async (req, res) => {
     });
   }
 };
+module.exports.createPost = createPost;

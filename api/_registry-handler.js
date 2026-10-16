@@ -1,11 +1,12 @@
 'use strict';
-// /api/workspace?resource=clients|projects|documents|approvals|activity|import
+// /api/workspace?resource=clients|projects|documents|approvals|activity|publications|import
 // Shared team registry: every signed-in RADIX user sees the same clients and projects.
 // Writes use optimistic revisions (409 when someone else saved first) and leave an activity entry.
 const {sql}=require('./_db');
 const {getSessionUser}=require('./_auth');
 const core=require('./_registry-core');
 const memory=require('./_agency-memory-store');
+const editorial=require('../editorial-core.js');
 const send=(res,code,data)=>res.status(code).json(data);
 function bodyOf(req){if(typeof req.body==='string')return JSON.parse(req.body||'{}');return req.body||{}}
 const revisionOf=v=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw new core.InputError('Versione richiesta');return n};
@@ -179,6 +180,56 @@ async function approvals(req,res,db,uid){
  throw new core.InputError('Azione non valida');
 }
 
+// An attempt still 'sending' after this long may or may not have reached Buffer.
+const UNCERTAIN_MS=2*60*1000;
+// Publishing goes through the server: it sends only the approved version stored in the team PED,
+// at the time planned in the PED's time zone, and at most once per content version.
+async function publications(req,res,db,uid,deps){
+ if(req.method==='GET'){
+  const projectId=core.clean((req.query||{}).projectId,80);
+  if(!core.validProjectId(projectId))throw new core.InputError('Progetto non valido');
+  const rows=await db`SELECT * FROM rx_publications WHERE project_id=${projectId} ORDER BY updated_at DESC LIMIT 500`;
+  return send(res,200,{items:rows});
+ }
+ if(req.method!=='POST')return send(res,405,{error:'Metodo non consentito'});
+ const r=core.publicationRequest(bodyOf(req));
+ const docs=await db`SELECT data FROM rx_documents WHERE project_id=${r.projectId} AND module='editorial'`;
+ const plan=docs.length?docs[0].data:null,item=plan&&Array.isArray(plan.contents)?plan.contents.find(x=>x&&x.id===r.contentId):null;
+ if(!item)return send(res,404,{error:'Contenuto non trovato nel PED del team: ricarica la pagina'});
+ if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
+ if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
+ const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
+ if(core.approvalStatus(approved[0],editorial.approvalPayload(item))!=='approved')return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
+ // The page asks with a 5-minute margin; the server accepts down to 2 minutes so a slow click still goes through.
+ const plan2=editorial.publishSchedule(plan,item,Date.now()-3*60*1000);
+ if(r.mode==='scheduled'&&plan2.mode!=='scheduled')return send(res,409,{error:plan2.reason==='past'?'L’orario previsto è già passato: aggiorna data e ora o usa il prossimo slot libero':'Data e orario mancanti: usa il prossimo slot libero',stale:true});
+ const scheduledAt=r.mode==='scheduled'?plan2.scheduledAt:null;
+ // Claim the content version; the unique key stops a second send of the same version.
+ let claim=await db`INSERT INTO rx_publications(project_id,content_id,revision,service,channel_id,channel_name,mode,timezone,scheduled_at,status,requested_by)
+  VALUES(${r.projectId},${r.contentId},${r.revision},'buffer',${r.channelId},${r.channelName},${r.mode},${plan2.timezone},${scheduledAt},'sending',${uid})
+  ON CONFLICT (project_id,content_id,revision,service) DO NOTHING RETURNING id`;
+ if(!claim.length){
+  const prev=(await db`SELECT * FROM rx_publications WHERE project_id=${r.projectId} AND content_id=${r.contentId} AND revision=${r.revision} AND service='buffer'`)[0];
+  if(!prev)return conflict(res);
+  if(prev.status==='queued')return send(res,200,{ok:true,idempotent:true,item:prev});
+  const uncertain=prev.status==='sending';
+  if(uncertain&&Date.now()-new Date(prev.updated_at).getTime()<UNCERTAIN_MS)return send(res,409,{error:'Invio di questa versione già in corso: attendi qualche istante e ricarica'});
+  if(uncertain&&!r.retryUncertain)return send(res,409,{uncertain:true,item:prev,error:'L’invio precedente si è interrotto senza risposta: controlla su Buffer se il post c’è già prima di riprovare'});
+  claim=await db`UPDATE rx_publications SET status='sending',channel_id=${r.channelId},channel_name=${r.channelName},mode=${r.mode},timezone=${plan2.timezone},scheduled_at=${scheduledAt},
+   error='',attempts=attempts+1,requested_by=${uid},updated_at=now() WHERE id=${prev.id} AND status=${prev.status} AND attempts=${prev.attempts} RETURNING id`;
+  if(!claim.length)return send(res,409,{error:'Invio di questa versione già in corso: ricarica'});
+ }
+ const id=claim[0].id,key=process.env.BUFFER_ACCESS_TOKEN;
+ const failed=async(code,message)=>{const rows=await db`UPDATE rx_publications SET status='failed',error=${core.clean(message,500)},updated_at=now() WHERE id=${id} RETURNING *`;return send(res,code,{error:message,item:rows[0]})};
+ if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
+ let post;
+ try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt})}
+ catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
+ const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
+ await log(db,uid,r.projectId,'publication.queued',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,revision:r.revision,mode:r.mode,scheduledAt,postId:String(post.postId)});
+ return send(res,201,{ok:true,item:rows[0]});
+}
+
 async function activity(req,res,db){
  if(req.method!=='GET')return send(res,405,{error:'Metodo non consentito'});
  const q=req.query||{};
@@ -234,7 +285,7 @@ async function importData(req,res,db,uid){
  return send(res,200,{ok:true,...result});
 }
 
-const ROUTES={clients,projects,documents,approvals,activity,import:importData};
+const ROUTES={clients,projects,documents,approvals,activity,publications,import:importData};
 
 module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
@@ -243,7 +294,7 @@ module.exports=async(req,res)=>{
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{
-  return await route(req,res,sql(),Number(user.uid));
+  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost});
  }catch(e){
   if(e instanceof SyntaxError)return send(res,400,{error:'JSON non valido'});
   if(e instanceof core.InputError)return send(res,400,{error:e.message});

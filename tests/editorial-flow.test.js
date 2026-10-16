@@ -47,3 +47,18 @@ test('rubric suggestions come from the brief topics and skip existing ones',()=>
  assert.deepEqual(core.rubricsFromBrief(s),['Casi studio','Dietro le quinte']);
  const r=core.restore(JSON.stringify({...s,campaigns:undefined}),'aura');assert.deepEqual(r.campaigns,[]);assert.equal(r.rubrics.length,1);
 });
+
+test('publishing schedule reads PED times in the plan time zone, across daylight saving',()=>{
+ const s=core.create({id:'p',summary:'x'});assert.equal(core.timeZoneOf(s),'Europe/Rome');
+ assert.equal(core.zonedTime('2026-10-20','18:00','Europe/Rome'),'2026-10-20T16:00:00.000Z');
+ assert.equal(core.zonedTime('2026-12-20','18:00','Europe/Rome'),'2026-12-20T17:00:00.000Z');
+ assert.equal(core.zonedTime('2026-10-20','09:00','America/New_York'),'2026-10-20T13:00:00.000Z');
+ assert.equal(core.zonedTime('2026-10-20','','Europe/Rome'),null);assert.equal(core.zonedTime('2026-10-20','25:00','Europe/Rome'),null);
+ assert.throws(()=>core.setTimeZone(s,'Mars/Base'),/Fuso/);core.setTimeZone(s,'America/New_York');assert.equal(core.timeZoneOf(s),'America/New_York');
+ const now=Date.parse('2026-10-20T12:00:00Z'),item={date:'2026-10-20',time:'09:30'};
+ assert.deepEqual(core.publishSchedule(s,item,now),{mode:'scheduled',timezone:'America/New_York',scheduledAt:'2026-10-20T13:30:00.000Z',reason:''});
+ assert.equal(core.publishSchedule(s,{date:'2026-10-20',time:'08:02'},now).reason,'past');
+ assert.equal(core.publishSchedule(s,{date:'2026-10-20',time:''},now).reason,'missing');
+ s.timezone='Nowhere';assert.equal(core.timeZoneOf(s),'Europe/Rome');
+ assert.deepEqual(core.approvalPayload({id:'1',title:'T',channel:'LinkedIn',date:'2026-10-20',copy:'c',revision:2,status:'approved'}),{title:'T',channel:'LinkedIn',date:'2026-10-20',time:'',copy:'c',revision:2});
+});
