@@ -1,197 +1,166 @@
 // Command Center design layer (command-center-universo + layout mockups):
-// 1) CRM planets (Aziende, Contatti, Opportunità, Attività, Interazioni, with their counts) orbiting the RADIX core
-//    of the network view, each placed where it covers no project planet or label; around each project planet, one
-//    satellite per agent that worked on it (saved conversations);
+// 1) the overview of the network view as the rotating dotted earth, projects on the outer orbit, services on the inner one
+//    (the CRM planets now live in Sales Orbit);
 // 2) connected systems in the top bar, one icon per service, from /api/integrations/status (key present or not);
 // 3) projects and a RADIX CORE box in the sidebar, Rivedi on the attention rows, icons and status rings in the activity.
-// Presentation only: it adds its own layer after renderNetwork() and never changes the page's nodes or handlers.
+// Presentation only: it adds its own layer over the map renderNetwork() draws and never changes the page's nodes or handlers.
 'use strict';
 (function () {
-  var svg = document.getElementById('networkSvg');
-  var NS = 'http://www.w3.org/2000/svg';
-  var PLANETS = [
-    { id: 'companies', label: 'Aziende', unit: 'totali', color: '#3ff0b0', a: 205 },
-    { id: 'contacts', label: 'Contatti', unit: 'totali', color: '#4aa8ff', a: 335 },
-    { id: 'opportunities', label: 'Opportunità', unit: 'attive', color: '#f5b544', a: 155 },
-    { id: 'tasks', label: 'Attività', unit: 'aperte', color: '#a27bff', a: 25 },
-    { id: 'interactions', label: 'Interazioni', unit: 'registrate', color: '#38d6e8', a: 90 }
+  // ---- The world (Francesco, 16/10 evening): on the overview the network becomes the rotating dotted earth, with the
+  // projects on the outer orbit and the services on the inner one. Inside a project the page's own map comes back.
+  // Projects, colours and workflow counts are read from the map renderNetwork() just drew; a click on a project
+  // clicks its own hub, so the drill-down is the page's. Agents per project come from the project flow (saved conversations).
+  var svg = document.getElementById('networkSvg'), stage = document.getElementById('networkStage');
+  var SERVICES = [
+    { label: 'Marketing Agency', href: '/agency/index.html', color: '#ff8fc8', a: 198 },
+    { label: 'Sales Intelligence', href: '/sales-orbit-higgsfield.html', color: '#36edbd', a: 342 },
+    { label: 'Project Management', href: '/radix-pm-concept.html', color: '#ffc46b', a: 162 },
+    { label: 'Studio', href: '/legal/index.html', color: '#9fb4ff', a: 18 }
   ];
-  var CX = 450, CY = 245, RX = 128, RY = 108;
-  var counts = null;
-
-  function api(q) { return fetch('/api/sales?' + q, { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }); }
-  function loadCounts() {
-    return api('entity=workspaces&offset=0').then(function (d) {
-      var ws = d && d.rows && d.rows[0]; if (!ws) return null;
-      return Promise.all(PLANETS.map(function (p) {
-        return api(new URLSearchParams({ entity: p.id, offset: '0', workspace: ws.id }).toString()).then(function (r) {
-          var rows = (r && r.rows) || [];
-          if (p.id === 'tasks') rows = rows.filter(function (t) { return ['done', 'completed', 'closed'].indexOf(String(t.status || '').toLowerCase()) === -1; });
-          return { n: rows.length, more: !!(r && r.rows && r.rows.length >= 100) };
-        });
-      })).then(function (list) { var o = {}; PLANETS.forEach(function (p, i) { o[p.id] = list[i]; }); return o; });
-    }).catch(function () { return null; });
-  }
-  function el(tag, attrs) { var n = document.createElementNS(NS, tag); for (var k in attrs) n.setAttribute(k, attrs[k]); return n; }
-
-  // Agents that worked on each project (saved conversations), from the project flow: /api/workspace?resource=projects&journey=1.
-  var roles = {}, projectAgents = null;
+  var projectAgents = {};
   function loadAgents() {
-    var j = fetch('/api/workspace?resource=projects&journey=1', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; });
-    var c = fetch('/agency/catalog.json', { cache: 'force-cache' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-    return Promise.all([j, c]).then(function (res) {
-      roles = (res[1] && res[1].roles) || {};
+    return fetch('/api/workspace?resource=projects&journey=1', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       var out = {};
-      ((res[0] && res[0].items) || []).forEach(function (p) {
+      ((d && d.items) || []).forEach(function (p) {
         var st = p.journey && p.journey.steps.find(function (x) { return x.id === 'agents'; });
-        if (st && Array.isArray(st.agents) && st.agents.length) out[String(p.name).trim().toLowerCase()] = { id: p.id, agents: st.agents };
+        out[String(p.name).trim().toLowerCase()] = (st && Array.isArray(st.agents)) ? st.agents.length : 0;
       });
       return out;
     }).catch(function () { return {}; });
   }
-  function roleName(id) { return roles[id] || String(id).replace(/-/g, ' ').replace(/\b\w/g, function (m) { return m.toUpperCase(); }); }
-
-  // Boxes already on the map, in SVG units: project planets and their labels, the core.
-  function toSvg(r) {
-    var m = svg.getScreenCTM(); if (!m) return null; m = m.inverse();
-    var a = new DOMPoint(r.left, r.top).matrixTransform(m), b = new DOMPoint(r.right, r.bottom).matrixTransform(m);
-    return { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
-  }
-  function obstacles() {
-    var list = [{ x: CX - 84, y: CY - 84, w: 168, h: 168 }];
-    svg.querySelectorAll('.project-hub .project-ring').forEach(function (c) {
-      var x = +c.getAttribute('cx'), y = +c.getAttribute('cy'), r = +c.getAttribute('r') + 10;
-      list.push({ x: x - r, y: y - r, w: 2 * r, h: 2 * r });
-    });
-    svg.querySelectorAll('.network-label strong, .network-label small').forEach(function (n) {
-      var r = n.getBoundingClientRect(); if (!r.width) return;
-      var b = toSvg(r); if (b) list.push({ x: b.x - 6, y: b.y - 3, w: b.w + 12, h: b.h + 6 });
-    });
-    return list;
-  }
-  function overlap(a, b) {
-    var w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-    return w > 0 && h > 0 ? w * h : 0;
-  }
-  function hitsCore(b) {
-    var nx = Math.max(b.x, Math.min(CX, b.x + b.w)), ny = Math.max(b.y, Math.min(CY, b.y + b.h));
-    return (nx - CX) * (nx - CX) + (ny - CY) * (ny - CY) < 88 * 88;
-  }
-  function cost(boxes, list) { var c = 0; boxes.forEach(function (b) { list.forEach(function (o) { c += overlap(b, o); }); }); return c; }
-  function textWidth(g, cls, str) { var t = el('text', { class: cls, x: -999, y: -999 }); t.textContent = str; g.append(t); var w = t.getComputedTextLength() || str.length * 7.5; t.remove(); return w; }
-  // A label beside its dot, on the side facing away from the point it orbits.
-  function labelBox(x, y, ang, r, w, h) {
-    var c = Math.cos(ang), s = Math.sin(ang), side = Math.abs(c) > .45, lx, ly, anchor;
-    if (side) { anchor = c > 0 ? 'start' : 'end'; lx = x + (c > 0 ? r + 6 : -r - 6); ly = y - h / 2 + 4; }
-    else { anchor = 'middle'; lx = x; ly = s < 0 ? y - r - h - 2 : y + r + 4; }
-    var bx = anchor === 'start' ? lx : anchor === 'end' ? lx - w : lx - w / 2;
-    return { box: { x: bx - 3, y: ly - 2, w: w + 6, h: h + 4 }, x: lx, y: ly, anchor: anchor };
+  function landPoints() {
+    var L = window.RadixGlobeLand; if (!L) return null;
+    var raw = atob(L.LAND), ga = Math.PI * (3 - Math.sqrt(5)), pts = [];
+    for (var i = 0; i < L.N; i += 2) {
+      if (!(raw.charCodeAt(i >> 3) >> (i & 7) & 1)) continue;
+      var y = 1 - (i + .5) / L.N * 2, r = Math.sqrt(1 - y * y), t = ga * i, h = Math.sin(i * 12.9898) * 43758.5453;
+      pts.push([Math.cos(t) * r, y, -Math.sin(t) * r, h - Math.floor(h) < .08 ? 1 : 0]);
+    }
+    return pts;
   }
 
-  // Agent satellites: around each project planet, on the outer side, away from the project's own label below it.
-  function drawAgents(g, taken) {
-    if (!projectAgents) return;
-    svg.querySelectorAll('.project-hub[data-network-type=project]').forEach(function (hub) {
-      var name = String(hub.getAttribute('aria-label') || '').split(' · ')[0].trim().toLowerCase(), p = projectAgents[name];
-      var ring = hub.querySelector('.project-ring'); if (!p || !ring) return;
-      var hx = +ring.getAttribute('cx'), hy = +ring.getAttribute('cy'), hr = +ring.getAttribute('r');
-      var color = getComputedStyle(hub).getPropertyValue('--node-color').trim() || '#3ff0b0';
-      var out = Math.atan2(hy - CY, hx - CX), RXa = hr + 44, RYa = hr + 30, used = [], missing = p.agents.slice(6);
-      // Best free spot on the ring around the planet; relaxed = also under the planet and close to other satellites, but only on empty space.
-      function place(w, relaxed) {
-        var best = null;
-        for (var k = 0; k < 48; k++) {
-          var far = k >= 24 ? 22 : 0; // second, wider ring when the first has no free spot
-          var kk = k % 24, ang = out + (kk % 2 ? 1 : -1) * Math.ceil(kk / 2) * Math.PI / 12, norm = ((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-          if (!relaxed && norm > .7 && norm < 2.45) continue; // under the planet: that is where its name sits
-          if (used.some(function (u) { return Math.abs(Math.atan2(Math.sin(u - ang), Math.cos(u - ang))) < (relaxed ? .3 : .62); })) continue;
-          var x = hx + Math.cos(ang) * (RXa + far), y = hy + Math.sin(ang) * (RYa + far), L = labelBox(x, y, ang, 7, w, 11);
-          var dot = { x: x - 9, y: y - 9, w: 18, h: 18 };
-          if (hitsCore(dot) || hitsCore(L.box)) continue; // never on the RADIX core or its ring
-          var ov = cost([dot, L.box], taken);
-          if (relaxed && ov > 0) continue; // the +N fallback goes only where it covers nothing (project names included)
-          var c = ov + kk * 4 + far * 30;
-          if (!best || c < best.c) best = { c: c, ang: ang, x: x, y: y, L: L, dot: dot };
-          if (c === 0) break;
-        }
-        if (best) { used.push(best.ang); taken.push(best.dot, best.L.box); }
-        return best;
+  var world = null, cv = null, ctx = null, nodes = null, pts = null, W = 0, H = 0, dpr = 1, geo = null, items = [];
+  var reduce = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  function atRoot() {
+    var crumb = document.getElementById('networkBreadcrumb');
+    return !!svg.querySelector('.project-hub[data-network-type=project]') && !(crumb && crumb.querySelector('[data-level=project],[data-level=workflow]'));
+  }
+  function mapProjects() {
+    var clusters = svg.querySelectorAll('.network-cluster'), out = [];
+    svg.querySelectorAll('.project-hub[data-network-type=project]').forEach(function (h, i) {
+      var name = (h.getAttribute('aria-label') || '').split(' · ')[0];
+      out.push({ hub: h, name: name, color: (h.style.getPropertyValue('--node-color') || '#36edbd').trim(), wf: clusters[i] ? clusters[i].querySelectorAll('.scene-satellite').length : 0 });
+    });
+    return out;
+  }
+  function size() {
+    if (!cv) return; var r = stage.getBoundingClientRect(), z = stage.offsetWidth ? r.width / stage.offsetWidth : 1;
+    W = stage.offsetWidth; H = stage.offsetHeight; dpr = Math.min(2, (window.devicePixelRatio || 1) * z);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    var small = W < 560, R = small ? Math.min(W * .17, H * .21) : Math.max(66, Math.min(W * .13, H * .2));
+    world.classList.toggle('cc-small', small);
+    geo = small ? { cx: W / 2, cy: H * .52, R: R, rx: W * .37, ry: H * .34, sx: R * 1.45, sy: R * .55 } : { cx: W / 2, cy: H * .47, R: R, rx: Math.min(W * .42, R * 3.6), ry: H * .31, sx: R * 1.8, sy: R * .62 };
+  }
+  function layout() {
+    if (!geo) return;
+    var n = items.length, top = Math.ceil(n / 2), bottom = n - top;
+    items.forEach(function (it, i) {
+      var up = i < top, k = up ? i : i - top, m = up ? top : bottom;
+      var deg = up ? (m === 1 ? 270 : 218 + k * (104 / (m - 1))) : (m === 1 ? 90 : 142 - k * (104 / (m - 1)));
+      var a = deg * Math.PI / 180;
+      it.x = geo.cx + Math.cos(a) * geo.rx; it.y = geo.cy + Math.sin(a) * geo.ry;
+      it.el.style.left = it.x + 'px'; it.el.style.top = it.y + 'px'; it.el.classList.toggle('cc-up', up);
+    });
+    nodes.querySelectorAll('.cc-svc').forEach(function (b, i) {
+      var a = SERVICES[i].a * Math.PI / 180, x = geo.cx + Math.cos(a) * geo.sx, y = geo.cy + Math.sin(a) * geo.sy;
+      b.style.left = x + 'px'; b.style.top = y + 'px'; b.classList.toggle('cc-left', Math.cos(a) < 0);
+    });
+    var core = nodes.querySelector('.cc-world-core'); if (core) { core.style.left = geo.cx + 'px'; core.style.top = (geo.cy + geo.R + 12) + 'px'; }
+  }
+  function build() {
+    if (!svg || !stage) return;
+    var on = atRoot();
+    stage.classList.toggle('cc-world-on', on);
+    if (!on) { if (world) world.hidden = true; return; }
+    if (!world) {
+      world = node('div', 'cc-world'); cv = node('canvas', 'cc-world-sky'); cv.setAttribute('aria-hidden', 'true');
+      nodes = node('div', 'cc-world-nodes'); world.append(cv, nodes); stage.append(world);
+      ctx = cv.getContext('2d');
+      if (window.ResizeObserver) new ResizeObserver(function () { size(); layout(); }).observe(stage);
+      requestAnimationFrame(loop);
+    }
+    world.hidden = false; nodes.replaceChildren();
+    var core = node('div', 'cc-world-core'); core.append(node('b', '', 'RADIX'), node('small', '', 'AI OPERATING SYSTEM')); nodes.append(core);
+    SERVICES.forEach(function (s) {
+      var a = node('a', 'cc-svc'); a.href = s.href; a.style.setProperty('--c', s.color); a.title = 'Apri ' + s.label;
+      a.append(node('i'), node('span', '', s.label)); nodes.append(a);
+    });
+    items = mapProjects().map(function (p) {
+      var b = node('button', 'cc-proj'); b.type = 'button'; b.style.setProperty('--c', p.color);
+      var ag = projectAgents[p.name.trim().toLowerCase()] || 0, meta = [];
+      if (p.wf) meta.push(p.wf + (p.wf === 1 ? ' workflow' : ' workflow'));
+      if (ag) meta.push(ag + (ag === 1 ? ' agente' : ' agenti'));
+      var t = node('span', 'cc-proj-t'); t.append(node('b', '', p.name), node('small', '', meta.length ? meta.join(' · ') : 'Profilo progetto'));
+      b.append(node('i', '', initial(p.name)), t);
+      b.setAttribute('aria-label', 'Apri il progetto ' + p.name + (meta.length ? ', ' + meta.join(', ') : ''));
+      b.addEventListener('click', function () { p.hub.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      nodes.append(b);
+      return { el: b, color: p.color };
+    });
+    var un = svg.querySelector('.unassigned-node');
+    if (un) {
+      var u = node('button', 'cc-shared'); u.type = 'button';
+      u.textContent = ((un.getAttribute('aria-label') || 'Workflow condivisi').split(' · ')[0]) + ' →';
+      u.addEventListener('click', function () { un.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      nodes.append(u);
+    }
+    size(); layout();
+    if (!pts && !window.RadixGlobeLand && !document.getElementById('cc-globe-land')) {
+      var s = document.createElement('script'); s.id = 'cc-globe-land'; s.src = '/sales/orbit-globe.js'; s.onload = function () { pts = landPoints(); }; document.head.appendChild(s);
+    } else if (!pts) pts = landPoints();
+  }
+  function frame(t) {
+    if (!ctx || !geo || !W) return;
+    var g = geo, cx = g.cx, cy = g.cy, R = g.R, rot = t * .00005 + .6, tilt = .36, ct = Math.cos(tilt), st = Math.sin(tilt);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    // orbits: projects outside, services inside, a few glints moving along them
+    [[g.rx, g.ry, '84,240,210', .28, .00004], [g.sx, g.sy, '160,190,255', .32, -.00007]].forEach(function (o) {
+      ctx.beginPath(); ctx.ellipse(cx, cy, o[0], o[1], 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(' + o[2] + ',' + o[3] + ')'; ctx.lineWidth = 1; ctx.setLineDash([2, 6]); ctx.stroke(); ctx.setLineDash([]);
+      for (var k = 0; k < 4; k++) { var a = t * o[4] + k * 1.57, x = cx + Math.cos(a) * o[0], y = cy + Math.sin(a) * o[1], gr = ctx.createRadialGradient(x, y, 0, x, y, 6);
+        gr.addColorStop(0, 'rgba(255,245,215,.9)'); gr.addColorStop(.35, 'rgba(' + o[2] + ',.7)'); gr.addColorStop(1, 'rgba(' + o[2] + ',0)'); ctx.fillStyle = gr; ctx.fillRect(x - 6, y - 6, 12, 12); }
+    });
+    // links from the earth to each project
+    items.forEach(function (it) {
+      var dx = it.x - cx, dy = it.y - cy, d = Math.hypot(dx, dy) || 1, sx = cx + dx / d * R * 1.04, sy = cy + dy / d * R * 1.04, ex = it.x - dx / d * 26, ey = it.y - dy / d * 26;
+      var lg = ctx.createLinearGradient(sx, sy, ex, ey); lg.addColorStop(0, 'rgba(120,255,230,.05)'); lg.addColorStop(1, it.color);
+      ctx.globalAlpha = .55; ctx.strokeStyle = lg; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo((sx + ex) / 2 + dy / d * 18, (sy + ey) / 2 - dx / d * 18, ex, ey); ctx.stroke();
+      var f = (t * .0003 + d * .01) % 1; ctx.globalAlpha = .9; ctx.fillStyle = it.color; ctx.beginPath(); ctx.arc(sx + (ex - sx) * f, sy + (ey - sy) * f, 1.8, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    });
+    // the earth
+    var at = ctx.createRadialGradient(cx, cy, R * .9, cx, cy, R * 1.55); at.addColorStop(0, 'rgba(70,255,215,.45)'); at.addColorStop(1, 'rgba(40,220,190,0)');
+    ctx.fillStyle = at; ctx.beginPath(); ctx.arc(cx, cy, R * 1.55, 0, Math.PI * 2); ctx.fill();
+    var sea = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .05, cx, cy, R); sea.addColorStop(0, '#1d9c8c'); sea.addColorStop(.4, '#0b5c5e'); sea.addColorStop(.85, '#05303d'); sea.addColorStop(1, '#03202a');
+    ctx.fillStyle = sea; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+    if (pts) {
+      var cr = Math.cos(rot), sr = Math.sin(rot), s = Math.max(1, R / 110);
+      ctx.globalCompositeOperation = 'lighter';
+      for (var i = 0; i < pts.length; i++) {
+        var p = pts[i], x = p[0] * cr - p[2] * sr, z = p[0] * sr + p[2] * cr, y2 = p[1] * ct - z * st, z2 = p[1] * st + z * ct; if (z2 < 0) continue;
+        ctx.fillStyle = p[3] ? 'rgba(255,214,120,' + (.5 + .5 * z2) + ')' : 'rgba(110,255,215,' + (.25 + .75 * z2) + ')';
+        ctx.fillRect(cx + x * R - s * .7, cy - y2 * R - s * .7, s * 1.4, s * 1.4);
       }
-      function satellite(best, label, title, href, cls) {
-        var a = el('a', { class: 'cc-agent' + (cls ? ' ' + cls : ''), href: href, style: '--pl:' + color });
-        var t = el('title', {}); t.textContent = title; a.append(t);
-        a.append(el('line', { class: 'cc-agent-tether', x1: hx + Math.cos(best.ang) * (hr + 2), y1: hy + Math.sin(best.ang) * (hr + 2), x2: best.x, y2: best.y }));
-        a.append(el('circle', { class: 'cc-agent-dot', cx: best.x, cy: best.y, r: 6.5 }));
-        a.append(el('circle', { class: 'cc-agent-core', cx: best.x, cy: best.y, r: 2.4 }));
-        var tx = el('text', { class: 'cc-agent-name', x: best.L.x, y: best.L.y + 9, 'text-anchor': best.L.anchor }); tx.textContent = label; a.append(tx);
-        g.append(a);
-      }
-      p.agents.slice(0, 6).forEach(function (id) {
-        var label = roleName(id), best = place(textWidth(g, 'cc-agent-name', label), false);
-        if (!best) { missing.push(id); return; }
-        satellite(best, label, label + ' · ha lavorato su questo progetto (conversazioni salvate)', '/agents.html?agent=' + encodeURIComponent(id) + '&project=' + encodeURIComponent(p.id));
-      });
-      // Agents with no free spot are not dropped: one «+N» satellite names them all in its tooltip.
-      if (missing.length) {
-        var more = '+' + missing.length, spot = place(textWidth(g, 'cc-agent-name', more), true);
-        if (!spot) { var ang = -Math.PI / 4, x = hx + Math.cos(ang) * (hr + 16), y = hy + Math.sin(ang) * (hr + 16); spot = { ang: ang, x: x, y: y, L: labelBox(x, y, ang, 7, 20, 11) }; }
-        satellite(spot, more, 'Altri agenti su questo progetto: ' + missing.map(roleName).join(', '), '/agents.html?project=' + encodeURIComponent(p.id), 'cc-agent-more');
-      }
-    });
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    var sh = ctx.createRadialGradient(cx - R * .45, cy - R * .5, R * .1, cx, cy, R * 1.02); sh.addColorStop(0, 'rgba(190,255,240,.14)'); sh.addColorStop(.55, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,10,16,.6)');
+    ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+    ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(110,255,220,.85)'; ctx.shadowColor = 'rgba(70,255,210,1)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
   }
-
-  // CRM planets on the inner orbit, each where it covers no project planet, label or agent.
-  function drawCrm(g, taken) {
-    if (!counts) return;
-    g.append(el('ellipse', { class: 'cc-crm-orbit', cx: CX, cy: CY, rx: RX, ry: RY }));
-    g.append(el('ellipse', { class: 'cc-crm-orbit cc-crm-orbit-2', cx: CX, cy: CY, rx: RX + 30, ry: RY + 22, transform: 'rotate(10 ' + CX + ' ' + CY + ')' }));
-    var used = [];
-    PLANETS.forEach(function (p, i) {
-      var c = counts[p.id]; if (!c) return;
-      var count = c.n + (c.more ? '+' : '') + ' ' + p.unit, w = Math.max(textWidth(g, 'cc-planet-name', p.label), textWidth(g, 'cc-planet-count', count)), best = null;
-      [0, 18, 34].forEach(function (dr) {
-        for (var k = 0; k < 72; k++) {
-          var ang = (p.a + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 5) * Math.PI / 180;
-          if (used.some(function (u) { return Math.abs(Math.atan2(Math.sin(u - ang), Math.cos(u - ang))) < .5; })) continue;
-          var x = CX + Math.cos(ang) * (RX + dr), y = CY + Math.sin(ang) * (RY + dr * .8), L = labelBox(x, y, ang, 16, w, 30);
-          var body = { x: x - 18, y: y - 18, w: 36, h: 36 }, s = cost([body, L.box], taken) + k * 6 + dr * 20;
-          if (!best || s < best.s) best = { s: s, ang: ang, x: x, y: y, L: L, body: body };
-        }
-      });
-      used.push(best.ang); taken.push(best.body, best.L.box);
-      var a = el('a', { class: 'cc-planet', href: '/radix-sales.html#' + p.id, style: '--pl:' + p.color + ';--d:' + (-i * 1.3) + 's' });
-      var title = el('title', {}); title.textContent = p.label + ': ' + count + ' · apri nel CRM'; a.append(title);
-      a.append(el('circle', { class: 'cc-planet-halo', cx: best.x, cy: best.y, r: 20 }));
-      a.append(el('circle', { class: 'cc-planet-body', cx: best.x, cy: best.y, r: 12 }));
-      var t1 = el('text', { class: 'cc-planet-name', x: best.L.x, y: best.L.y + 13, 'text-anchor': best.L.anchor }); t1.textContent = p.label;
-      var t2 = el('text', { class: 'cc-planet-count', x: best.L.x, y: best.L.y + 28, 'text-anchor': best.L.anchor }); t2.textContent = count;
-      a.append(t1, t2); g.append(a);
-    });
-  }
-
-  var busy = false;
-  function draw() {
-    if (!svg || (!counts && !projectAgents)) return;
-    // Only on the overview of the projects (not inside a project or a workflow), and when the layout leaves the inner orbit free.
-    var hubs = svg.querySelectorAll('.project-hub'), crumb = document.getElementById('networkBreadcrumb');
-    if (crumb && crumb.textContent.indexOf('›') !== -1) return;
-    if (svg.querySelector('[data-network-type]:not([data-network-type=project]):not([data-network-type=satellite]):not([data-network-type=root])') || hubs.length > 5) return;
-    if (!svg.getBoundingClientRect().width) return;
-    busy = true;
-    var old = svg.querySelector('.cc-crm'); if (old) old.remove();
-    var g = el('g', { class: 'cc-crm', 'aria-label': 'Universo commerciale dal CRM e agenti dei progetti' });
-    // Above the project links and labels, under the core (the page draws the core last).
-    svg.insertBefore(g, svg.lastElementChild);
-    var taken = obstacles();
-    drawAgents(g, taken);
-    drawCrm(g, taken);
-    busy = false;
-  }
-  if (svg) {
-    new MutationObserver(function () { if (!busy && !svg.querySelector('.cc-crm')) draw(); }).observe(svg, { childList: true });
-    // The map is laid out only when visible: draw again when it first gets a size.
-    if (window.ResizeObserver) new ResizeObserver(function () { if (!svg.querySelector('.cc-crm')) draw(); }).observe(svg);
-    Promise.all([loadCounts(), loadAgents()]).then(function (r) { counts = r[0]; projectAgents = r[1]; draw(); });
+  function loop(t) { if (world && !world.hidden) frame(reduce.matches ? 0 : t); requestAnimationFrame(loop); }
+  if (svg && stage) {
+    new MutationObserver(build).observe(svg, { childList: true });
+    var crumb = document.getElementById('networkBreadcrumb'); if (crumb) new MutationObserver(build).observe(crumb, { childList: true, subtree: true, characterData: true });
+    build();
+    loadAgents().then(function (a) { projectAgents = a; build(); });
   }
 
   // Connected systems: one icon per service, lit when its key is configured on this deployment.
