@@ -51,7 +51,8 @@ test('Agency divisions are unique, complete and use existing roles', () => {
 });
 
 test('Agency preview script parses without executing external actions', () => {
-  const scripts = [...agencyHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
+  // Inline scripts only; the shared shell (/shell/radix-shell.js) is loaded by src.
+  const scripts = [...agencyHtml.matchAll(/<script(?![^>]*\ssrc=)(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)];
   assert.equal(scripts.length, 1);
   new vm.Script(scripts[0][1], { filename: 'agency/index.html' });
   assert.match(scripts[0][1], /fetch\('\.\/catalog\.json'/);
