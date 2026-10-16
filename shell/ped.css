@@ -316,3 +316,55 @@ html[data-ped-section="overview"] .rx-ped #pedPage>:is(.calendar-toolbar,#calend
 html[data-ped-section="analytics"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,.filters,#groups,.layout),
 html[data-ped-section="library"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,#analytics){display:none!important}
 html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns:minmax(0,1fr)!important;margin-top:18px}
+
+/* ---- Orbitly fidelity (ped-mockup-orbitly.png): one near-black frame for toolbar and grid, neutral cards with title first,
+   status chip at the bottom, round channel badge, a quiet hour grid and a now-line with its time on the axis ---- */
+.rx-ped{--orb-bg:#0c0c0f;--orb-card:#1b1b20;--orb-line:#26262c;--orb-text:#f2f2f5;--orb-muted:#8d8d96}
+.rx-ped .ped-rail{background:var(--orb-bg);border-color:var(--orb-line);border-radius:20px}
+.rx-ped .calendar-toolbar{flex-wrap:nowrap;align-items:center;margin:24px 0 0;padding:12px 14px;background:var(--orb-bg);border:1px solid var(--orb-line);border-bottom:0;border-radius:20px 20px 0 0}
+.rx-ped .calendar-toolbar .view-switch{background:#151519;border:1px solid var(--orb-line);border-radius:12px;padding:3px}
+.rx-ped .calendar-toolbar .view-switch button{border:0;border-radius:9px;background:none;color:var(--orb-muted);min-height:32px;padding:4px 14px}
+.rx-ped .calendar-toolbar .view-switch button[aria-pressed=true]{background:#2a2a31;color:var(--orb-text)}
+.rx-ped .calendar-toolbar .period-nav{display:flex;align-items:center;gap:4px;margin-right:auto}
+.rx-ped .calendar-toolbar .period-nav>button:not(#calendarToday){border:0;background:none;min-width:32px;min-height:32px;padding:0;color:var(--orb-muted);font-size:16px}
+.rx-ped .calendar-toolbar .period-nav>button:not(#calendarToday):hover{color:var(--orb-text);background:#1f1f25}
+.rx-ped .calendar-toolbar #calendarLabel{order:3;min-width:0;padding:0 10px;font-size:16px;color:var(--orb-text)}
+.rx-ped .calendar-toolbar #calendarToday{order:4;min-height:32px;padding:4px 12px;border-radius:9px;border-color:var(--orb-line);background:#151519}
+.rx-ped .calendar-toolbar label.tz{font-size:0;gap:0;padding-left:12px;border-left:1px solid var(--orb-line)}
+.rx-ped .calendar-toolbar label.tz select{font-size:13px;border:0;background:transparent;color:var(--orb-muted);min-height:30px}
+html.ped-grid .rx-ped .calendar{--ped-head:52px;margin-top:0;background:var(--orb-bg);border:1px solid var(--orb-line);border-top:1px solid var(--orb-line);border-radius:0 0 20px 20px;max-height:min(780px,calc(100vh - 140px))}
+html.ped-grid .rx-ped .calendar-column{border-right:1px solid rgba(255,255,255,.035)}
+html.ped-grid .rx-ped .calendar-column::after{background:repeating-linear-gradient(to bottom,transparent 0 calc(var(--ped-row) - 1px),rgba(255,255,255,.05) calc(var(--ped-row) - 1px) var(--ped-row));opacity:1}
+html.ped-grid .rx-ped .calendar-column h3{padding:18px 12px 0;background:var(--orb-bg);border-bottom:0;font:500 13px var(--rx-font);color:var(--orb-text)}
+html.ped-grid .rx-ped .calendar-column.ped-today{background:rgba(160,110,255,.035)}
+html.ped-grid .rx-ped .ped-hours{background:var(--orb-bg);border-right:0}
+html.ped-grid .rx-ped .ped-hours span{color:var(--orb-muted);font-size:11.5px}
+/* cards */
+html.ped-grid .rx-ped .calendar-column>.calendar-event,html.ped-grid .rx-ped .ped-allday .calendar-event{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-radius:13px;border:1px solid #2c2c33;background:var(--orb-card)!important;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+html.ped-grid .rx-ped .calendar-column>.calendar-event::before,html.ped-grid .rx-ped .ped-allday .calendar-event::before{display:none}
+html.ped-grid .rx-ped .calendar-column>.calendar-event strong{order:1;width:100%;padding-right:28px;font-size:13.5px;font-weight:600;color:var(--orb-text)}
+html.ped-grid .rx-ped .calendar-column>.calendar-event small{order:2;color:var(--orb-muted);font-size:12px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event .ped-pill{order:4;margin-top:auto;padding:2px 8px 2px 7px;border:0;border-radius:6px;background:rgba(255,255,255,.07);color:#d8d8de;font:600 9.5px/14px var(--rx-font);letter-spacing:.06em;text-transform:uppercase}
+html.ped-grid .rx-ped .calendar-event .ped-pill::before{content:"";display:inline-block;width:5px;height:5px;margin-right:6px;border-radius:50%;vertical-align:1px;background:currentColor}
+html.ped-grid .rx-ped .calendar-event.status-approved .ped-pill,html.ped-grid .rx-ped .calendar-event.status-published .ped-pill{background:rgba(62,207,120,.14);color:#7ee2a5}
+html.ped-grid .rx-ped .calendar-event.status-review .ped-pill{background:rgba(255,120,80,.15);color:#ff9a76}
+html.ped-grid .rx-ped .calendar-event.status-queued .ped-pill,html.ped-grid .rx-ped .calendar-event.status-scheduled .ped-pill{background:rgba(90,140,255,.16);color:#9cb8ff}
+html.ped-grid .rx-ped .calendar-event.status-draft .ped-pill{background:rgba(255,255,255,.07);color:#a9a9b2}
+html.ped-grid .rx-ped .calendar-column>.calendar-event .ped-ch{top:9px;right:9px;width:22px;height:22px;border-radius:50%}
+html.ped-grid .rx-ped .calendar-column>.calendar-event:hover:not(:disabled),html.ped-grid .rx-ped .calendar-column>.calendar-event:focus-visible{border-color:rgba(190,140,255,.85);background:linear-gradient(170deg,#2a1d45,#1b1626)!important;box-shadow:0 0 0 1px rgba(190,140,255,.35),0 0 28px rgba(150,90,255,.45),0 10px 30px rgba(0,0,0,.5)}
+html.ped-grid .rx-ped .calendar-column>.calendar-event:hover{min-height:0}
+/* now-line: thin light line, time pill on the hour axis */
+html.ped-grid .rx-ped .ped-now{border-top:1px solid rgba(235,235,245,.75)}
+html.ped-grid .rx-ped .ped-now::before{left:-3px;top:-4px;width:7px;height:7px;background:#ededf3;box-shadow:none}
+html.ped-grid .rx-ped .ped-now::after{right:auto;left:-54px;top:-11px;padding:2px 7px;border-radius:7px;background:#232329;border:1px solid #3a3a42;color:var(--orb-text);font-size:11px;line-height:16px}
+@media (max-width:900px){.rx-ped .calendar-toolbar{flex-wrap:wrap;border-radius:20px 20px 0 0}}
+html.ped-grid .rx-ped .calendar-column>.calendar-event[data-channel],html.ped-grid .rx-ped .ped-allday .calendar-event[data-channel]{border-left:1px solid #2c2c33!important}
+html.ped-grid .rx-ped .calendar-column>.calendar-event strong{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}
+html.ped-grid .rx-ped .calendar-column>.calendar-event .ped-pill{letter-spacing:.03em;font-size:9px}
+/* rail channels: a small square in the channel colour instead of a side bar */
+.rx-ped .ped-rail-ch{border-left-width:1px!important;border-left-color:transparent!important}
+.rx-ped .ped-rail-ch::before{content:"";width:16px;height:16px;flex:none;border-radius:5px;background:color-mix(in srgb,var(--ch) 80%,#000);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+html.ped-grid .rx-ped .calendar-column>.calendar-event{padding:9px 10px;gap:1px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event strong{overflow-wrap:normal;word-break:normal;hyphens:auto;padding-right:22px;font-size:13px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event .ped-ch{top:8px;right:7px;width:19px;height:19px}
+@media (max-width:900px){.rx-ped .calendar-toolbar label.tz{border-left:0;padding-left:0}}

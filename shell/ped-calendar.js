@@ -5,7 +5,7 @@
 (function () {
   var cal = document.getElementById('calendar'), page = document.getElementById('pedPage');
   if (!cal || !page) return;
-  var H0 = 7, H1 = 23, ROW = 80; // visible hours and pixels per hour
+  var H0 = 7, H1 = 23, ROW = 92; // visible hours and pixels per hour
   var STATUS = { draft: 'Bozza', review: 'In revisione', approved: 'Approvato', queued: 'In coda', published: 'Pubblicato', scheduled: 'Programmato' };
   var root = document.documentElement;
   root.style.setProperty('--ped-row', ROW + 'px');
