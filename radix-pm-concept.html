@@ -197,6 +197,7 @@ function persist(){const snapshot=pm.validateState(state);$('storage-status').te
 function plusDays(n){const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
 // First plan of an Agency project: one activity per specialist assignment, same dependencies.
 function planFromAgency(base,agency){const map={},labels=agency.roles||{};const order=agency.tasks.slice();order.forEach((t,i)=>{const task=pm.create(base,{title:((labels[t.role]||t.role)+' — '+t.instruction).slice(0,120),owner:String(labels[t.role]||t.role).slice(0,80),start:'',due:plusDays(7*(i+1)),details:t.instruction,assignedAgents:[t.role],project:'p1',subproject:'p1s1',dependencies:t.dependsOn.map(d=>map[d]).filter(Boolean),approvalRequired:true,milestone:i===order.length-1,recurrence:'Nessuna'});map[t.id]=task.id;task.agencyTaskId=t.id;task.history.push('Creata dal piano del progetto Agency.');});return base;}
+function pedSummary(r){const parts=[];if(r.created.length)parts.push(r.created.length+(r.created.length===1?' nuova attività':' nuove attività'));if(r.updated.length)parts.push(r.updated.length+(r.updated.length===1?' aggiornata':' aggiornate'));if(r.completed.length)parts.push(r.completed.length+(r.completed.length===1?' completata':' completate'));return 'Dal PED: '+parts.join(', ')+'.'}
 async function boot(){
  try{
   const user=await ws.ready();me=user?String(user.name||user.email||''):'';if(!user)throw Error('Accedi a RADIX dal Command Center per aprire il project manager.');
@@ -211,11 +212,15 @@ async function boot(){
    state={projects:[{id:'p1',name:current.name,note:String(current.summary||'').slice(0,1000),synthetic:true,subprojects:[{id:'p1s1',name:'Generale'}]}],tasks:[],nextId:1};
    if(current.kind==='agency'){try{const agency=await ws.documents.load(current.id,'agency-workspace');if(agency.data&&Array.isArray(agency.data.tasks)&&agency.data.tasks.length)planFromAgency(state,agency.data);}catch(e){}}
   }
+  // The PED's dated contents become production tasks; their approvals in the PED move the tasks forward.
+  let fromPed={created:[],updated:[],completed:[]};
+  try{const ped=await ws.documents.load(current.id,'editorial');if(ped&&ped.data)fromPed=views.syncFromPed(pm,state,ped.data);}catch(e){}
+  const pedChanged=fromPed.created.length+fromPed.updated.length+fromPed.completed.length;
   projectId=state.projects[0].id;selected=state.tasks[0]?state.tasks[0].id:null;
   for(const id of ['persist','load-local','forget-local','reset']){const el=$(id);if(el){(el.closest('label')||el).style.display='none';}}
   const links=[];if(current.kind==='agency')links.push(['./agency/project-workspace.html?id=','Workspace Agency']);links.push(['./project-editorial.html?project=','PED del progetto']);links.push(['./agency/memory.html?id=','Memoria del progetto']);links.push(['./agents.html?project=','Agenti AI']);
   const note=$('project-note');if(note&&!document.querySelector('[data-project-link]')){const box=node('p',undefined,'muted');links.forEach(([href,label],i)=>{const a=node('a',label+' ↗');a.href=href+encodeURIComponent(current.id);a.dataset.projectLink='1';if(i)box.append(document.createTextNode(' · '));box.append(a);});note.after(box);}
-  projects();owners();render();loadPortfolio().catch(()=>{});if(!saved||synced.length)persist();else $('storage-status').textContent='Piano caricato dall’archivio del team.';if(synced.length)say(synced.length+' attività completate dal workspace Agency.');else say('Piano di «'+current.name+'» condiviso con il team.');
+  projects();owners();render();loadPortfolio().catch(()=>{});if(!saved||synced.length||pedChanged)persist();else $('storage-status').textContent='Piano caricato dall’archivio del team.';const pedNote=pedChanged?pedSummary(fromPed):'';if(synced.length)say(synced.length+' attività completate dal workspace Agency.'+(pedNote?' '+pedNote:''));else if(pedNote)say(pedNote);else say('Piano di «'+current.name+'» condiviso con il team.');
  }catch(e){say(e.message);$('tasks').replaceChildren(node('p',e.message,'muted'));}
 }
 boot();
