@@ -237,18 +237,34 @@
     if (location.hash) setTimeout(applyHash, 0);
   }
 
-  // Signed-in user chip (best effort; pages with a strict CSP simply skip it).
-  if (window.fetch && !pageTop && body.dataset.shellUser !== 'off') {
+  // Signed-in user chip with "Esci" (best effort; pages with a strict CSP simply skip it).
+  // Pages that keep their own top bar get only the logout button, next to their user pill.
+  function logoutButton() {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'rx-logout'; b.textContent = 'Esci';
+    b.addEventListener('click', function () {
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' })
+        .then(function () { location.reload(); }, function () { location.reload(); });
+    });
+    return b;
+  }
+  if (window.fetch && body.dataset.shellUser !== 'off') {
     fetch('/api/auth/me', { credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         var u = d && (d.user || d);
         var name = u && (u.name || u.displayName || u.email);
         if (!name) return;
+        if (pageTop) {
+          var pill = top.querySelector('.user-pill');
+          (pill ? pill.parentNode : top).insertBefore(logoutButton(), pill ? pill.nextSibling : null);
+          return;
+        }
         var chip = top.querySelector('.rx-user');
         if (!chip) return;
         chip.querySelector('.rx-avatar').textContent = String(name).trim().charAt(0).toUpperCase();
         chip.querySelector('.rx-user-name').textContent = String(name).split('@')[0];
+        chip.appendChild(logoutButton());
         chip.hidden = false;
       })
       .catch(function () {});
