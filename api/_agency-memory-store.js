@@ -39,7 +39,8 @@ async function list(db,ctx){
 async function context(db,ctx){
  const resolved=await resolveContext(db,ctx);
  const rows=await list(db,resolved);
- return {context:core.buildContext(rows,resolved),count:rows.length};
+ const sel=core.selectContext(rows,resolved);
+ return {context:sel.context,count:rows.length,used:sel.used,omitted:sel.omitted};
 }
 
 async function insert(db,item,uid,{approvalId=null}={}){
@@ -63,8 +64,26 @@ function fromApproval(approval,memory){
   source:'Approvazione '+approval.subject_type+' · '+String(approval.subject_id).slice(0,120)});
 }
 
+// Team-wide counts for the Command Center: what waits for a person to confirm, per project.
+async function pending(db){
+ const rows=await db`SELECT m.project_id,count(*) FILTER (WHERE m.status='proposed')::int AS proposed,count(*) FILTER (WHERE m.status='confirmed')::int AS confirmed,
+  max(m.updated_at) FILTER (WHERE m.status='proposed') AS last_proposed,max(p.name) AS project_name
+  FROM agency_memory m LEFT JOIN rx_projects p ON p.id=m.project_id GROUP BY m.project_id`;
+ const projects=rows.filter(r=>r.project_id).map(r=>({projectId:r.project_id,name:r.project_name||r.project_id,proposed:Number(r.proposed),confirmed:Number(r.confirmed),lastProposed:r.last_proposed}))
+  .sort((a,b)=>b.proposed-a.proposed||String(b.lastProposed||'').localeCompare(String(a.lastProposed||'')));
+ return {proposed:rows.reduce((n,r)=>n+Number(r.proposed),0),confirmed:rows.reduce((n,r)=>n+Number(r.confirmed),0),projects};
+}
+
+// Changing the text of a memory sends it back to "da confermare": agents only get what a person confirmed as written.
+async function edit(db,id,revision,fields){
+ const rows=await db`UPDATE agency_memory SET kind=${fields.kind},title=${fields.title},content=${fields.content},source=${fields.source},
+  status='proposed',confirmed_by=NULL,confirmed_at=NULL,revision=revision+1,updated_at=now()
+  WHERE id=${id} AND revision=${revision} RETURNING id,status,revision,updated_at`;
+ return rows[0]||null;
+}
+
 async function removeProject(db,projectId){
  await db`DELETE FROM agency_memory WHERE project_id=${projectId} AND level IN ('project','agent','shared')`;
 }
 
-module.exports={UPGRADE,TEAM_LIMIT,resolveContext,list,context,insert,fromApproval,removeProject};
+module.exports={UPGRADE,TEAM_LIMIT,resolveContext,list,context,pending,edit,insert,fromApproval,removeProject};

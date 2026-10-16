@@ -793,11 +793,20 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var resources=[
       {i:'◈',n:active?active.name:'Project Memory',m:active?(active.kind||'progetto attivo'):'Nessun progetto attivo'},
       {i:'⌁',n:'Shared workspace state',m:data.workspace.updatedAt?'stato salvato '+fmtDate(data.workspace.updatedAt):'not yet synced'},
-      {i:'◇',n:'Knowledge layer',m:'memoria strutturata: prossimo sviluppo'}
+      {i:'◇',n:'Memoria del team',m:memorySummary?memorySummary.confirmed+' confermate · '+memorySummary.proposed+' da confermare':'apri la memoria condivisa'}
     ];
+    loadMemorySummary();
     $('knowledgeList').innerHTML=resources.map(function(r,i){return '<button type="button" class="resource knowledge-resource" data-knowledge-resource="'+i+'"><div class="resource-icon">'+r.i+'</div><div class="resource-main"><div class="resource-name">'+esc(r.n)+'</div><div class="resource-meta">'+esc(r.m)+'</div></div></button>'}).join('');
-    $('knowledgeList').querySelectorAll('[data-knowledge-resource]').forEach(function(button){button.onclick=function(){if(button.getAttribute('data-knowledge-resource')==='0'&&active)openProject(active.id);else setView('knowledge')}});
+    $('knowledgeList').querySelectorAll('[data-knowledge-resource]').forEach(function(button){button.onclick=function(){var k=button.getAttribute('data-knowledge-resource');if(k==='0'&&active)openProject(active.id);else if(k==='2'){var top=memorySummary&&memorySummary.projects.find(function(p){return p.proposed});location.href='/agency/memory.html'+(top?'?id='+encodeURIComponent(top.projectId)+'&status=proposed':'')}else setView('knowledge')}});
   }
+  // Team memory counts (confirmed / waiting for a person) from /api/agency-memory, read once per page view.
+  var memorySummary=null,memoryLoading=false;
+  function loadMemorySummary(){
+    if(memorySummary||memoryLoading)return;memoryLoading=true;
+    fetch('/api/agency-memory?mode=pending',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.projects)){memorySummary=d;renderKnowledge();if(currentKnowledgeOpen())renderKnowledgeView()}}).catch(function(){}).then(function(){memoryLoading=false});
+  }
+  function currentKnowledgeOpen(){var h=$('operationalView');return !!(h&&h.getAttribute('aria-label')==='Knowledge')}
+  function memoryOf(id){return memorySummary&&memorySummary.projects.find(function(p){return p.projectId===id})}
   function filterKnowledgeProjects(projects,query){
     query=String(query||'').trim().toLocaleLowerCase('it-IT');
     return (projects||[]).filter(function(project){return !query||[project.name,project.kind,project.summary].join(' ').toLocaleLowerCase('it-IT').includes(query)});
@@ -808,7 +817,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   function renderKnowledgeView(){
     var host=$('operationalView'),projects=data.projects||[],matches=filterKnowledgeProjects(projects,knowledgeQuery);
     host.setAttribute('aria-label','Knowledge');
-    host.innerHTML='<div class="operational-head"><div><strong>Knowledge</strong><span>Contesti salvati dei progetti · documenti e memoria AI non disponibili nello snapshot</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="knowledge-search"><label for="knowledgeSearch">Cerca nei contesti</label><input id="knowledgeSearch" type="search" placeholder="Nome, tipo o contenuto del progetto" autocomplete="off"><output aria-live="polite">'+matches.length+' di '+projects.length+' contesti</output></div><div class="operational-grid">'+matches.map(function(project){return '<article class="operational-card"><button type="button" data-knowledge-project="'+esc(project.id)+'" aria-label="Leggi contesto '+esc(project.name)+'"><i>◇</i><div><strong>'+esc(project.name)+'</strong><span>'+esc(project.kind||'Progetto')+'</span><small>'+esc(knowledgeExcerpt(project.summary))+'</small></div><b>↗</b></button></article>'}).join('')+(matches.length?'':'<div class="empty-state"><b>Nessun contesto trovato</b>'+(projects.length?'Prova un altro termine.':'Non risultano progetti nello snapshot.')+'</div>')+'</div>';
+    host.innerHTML='<div class="operational-head"><div><strong>Knowledge</strong><span>Contesti salvati dei progetti e memoria confermata dal team</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="knowledge-search"><label for="knowledgeSearch">Cerca nei contesti</label><input id="knowledgeSearch" type="search" placeholder="Nome, tipo o contenuto del progetto" autocomplete="off"><output aria-live="polite">'+matches.length+' di '+projects.length+' contesti</output></div><div class="operational-grid">'+matches.map(function(project){return '<article class="operational-card"><button type="button" data-knowledge-project="'+esc(project.id)+'" aria-label="Leggi contesto '+esc(project.name)+'"><i>◇</i><div><strong>'+esc(project.name)+'</strong><span>'+esc(project.kind||'Progetto')+'</span><small>'+esc(knowledgeExcerpt(project.summary))+'</small>'+(memoryOf(project.id)?'<small class="knowledge-memory">Memoria: '+memoryOf(project.id).confirmed+' confermate · '+memoryOf(project.id).proposed+' da confermare</small>':'')+'</div><b>↗</b></button></article>'}).join('')+(matches.length?'':'<div class="empty-state"><b>Nessun contesto trovato</b>'+(projects.length?'Prova un altro termine.':'Non risultano progetti nello snapshot.')+'</div>')+'</div>';
     $('knowledgeSearch').value=knowledgeQuery;
     $('knowledgeSearch').oninput=function(event){var position=event.target.selectionStart;knowledgeQuery=event.target.value;renderKnowledgeView();$('knowledgeSearch').focus();if($('knowledgeSearch').setSelectionRange)$('knowledgeSearch').setSelectionRange(position,position)};
     host.querySelector('[data-return-network]').onclick=function(){setView('network')};

@@ -19,6 +19,7 @@ module.exports=async(req,res)=>{
  try{
  const db=sql();
  if(req.method==='GET'){
+  if(req.query&&req.query.mode==='pending')return send(res,200,await store.pending(db));
   const ctx=safeContext(req.query||{});
   if(!ctx.projectId&&!ctx.clientId)return send(res,400,{error:'Seleziona un progetto o un cliente'});
   if(req.query&&req.query.mode==='context')return send(res,200,await store.context(db,ctx));
@@ -36,6 +37,14 @@ module.exports=async(req,res)=>{
   const revision=Number(data.revision);if(!Number.isSafeInteger(revision)||revision<1)return send(res,400,{error:'Versione richiesta'});
   const rows=await db`DELETE FROM agency_memory WHERE id=${id} AND revision=${revision} RETURNING id`;
   return rows.length?send(res,200,{ok:true}):send(res,409,{error:'Elemento assente o modificato altrove'});
+ }
+ if(data.title!==undefined||data.content!==undefined){
+  const revision=Number(data.revision);if(!Number.isSafeInteger(revision)||revision<1)return send(res,400,{error:'Versione richiesta'});
+  const kind=core.clean(data.kind,30),title=core.clean(data.title,140),content=core.clean(data.content,4000),source=core.clean(data.source,200);
+  if(!core.KINDS.includes(kind))return send(res,400,{error:'Tipo non valido'});
+  if(title.length<3||content.length<5||source.length<3)return send(res,400,{error:'Titolo, contenuto e provenienza obbligatori'});
+  const item=await store.edit(db,id,revision,{kind,title,content,source});
+  return item?send(res,200,{ok:true,item}):send(res,409,{error:'Elemento assente o modificato altrove'});
  }
  const revision=Number(data.revision),status=String(data.status||'');
  if(!Number.isSafeInteger(revision)||revision<1||!core.STATUSES.includes(status))return send(res,400,{error:'Versione o stato non valido'});

@@ -75,7 +75,7 @@ function selectAgent(id){
  const a=rt.agent(agentId);$('agent-name').textContent=a.icon+' '+a.name;$('agent-blurb').textContent=a.blurb;$('agent-group').textContent=rt.GROUP_LABELS[a.group]+(a.hub?' · orchestratore':'');
  const u=new URL(location.href);u.searchParams.set('agent',agentId);if(project)u.searchParams.set('project',project.id);history.replaceState(null,'',u);
  if(project)say('Agenti al lavoro su «'+project.name+'»: profilo del progetto e memoria confermata del team arrivano a ogni agente.');
- renderRoster();render();renderQuick();
+ renderRoster();render();renderQuick();memoryInfo();
 }
 function docCard(d,by){
  const c=node('div',undefined,'doc'),t=node('div',undefined,'t');
@@ -239,7 +239,7 @@ async function remember(role,title,content){
  try{
   const r=await fetch('/api/agency-memory',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({level:'project',kind:'outcome',projectId:project.id,clientId:project.client_id||'',agentId:role,title:title.slice(0,140),content:text,source:('Agente '+rt.label(role)+' · '+new Date().toLocaleDateString('it-IT')).slice(0,200)})});
   const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Errore '+r.status);
-  say('Proposta salvata nella memoria del progetto: confermala dalla pagina Memoria per renderla disponibile agli agenti.');
+  say('Proposta salvata nella memoria del progetto: confermala dalla pagina Memoria per renderla disponibile agli agenti.');memoryInfo();
  }catch(e){say('Memoria non aggiornata: '+e.message)}
 }
 
@@ -367,11 +367,24 @@ for(const zone of [$('thread'),$('composer')]){
 }
 
 // ---- project ----
+// What this agent receives from the team memory on this project, and what waits for confirmation.
+let memoryReq=0;
+async function memoryInfo(){
+ const el=$('memory-info');if(!el||!project)return;const req=++memoryReq,q='?projectId='+encodeURIComponent(project.id)+'&clientId='+encodeURIComponent(project.client_id||'')+'&agentId='+encodeURIComponent(agentId);
+ try{
+  const get=u=>fetch('/api/agency-memory'+u,{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject(Error('HTTP '+r.status)));
+  const [ctx,list]=await Promise.all([get(q+'&mode=context'),get(q)]);if(req!==memoryReq)return;
+  const n=(ctx.used||[]).length,pending=(list.items||[]).filter(m=>m.status==='proposed').length;
+  el.replaceChildren();const a=node('a',(n?'Memoria: '+n+(n===1?' elemento confermato':' elementi confermati')+' arriva a questo agente':'Memoria: nessun elemento confermato per ora')+(pending?' · '+pending+' da confermare':'')+' ↗');
+  a.href='/agency/memory.html?id='+encodeURIComponent(project.id)+(pending?'&status=proposed':'');el.append(a);el.dataset.count=String(n);el.dataset.pending=String(pending);
+ }catch(e){if(req===memoryReq)el.textContent='Memoria non raggiungibile in questo momento.'}
+}
 function projectLinks(){
  const box=$('project-links');box.replaceChildren();const id=encodeURIComponent(project.id);
  const links=[];if(project.kind==='agency')links.push(['/agency/project-workspace.html?id='+id,'Workspace Agency']);
  links.push(['/project-editorial.html?project='+id,'Piano editoriale'],['/radix-pm-concept.html?project='+id,'Project manager'],['/agency/memory.html?id='+id,'Memoria del progetto'],['/project-profile.html?id='+id,'Profilo per gli agenti']);
  for(const [href,text] of links){const a=node('a',text+' ↗');a.href=href;a.dataset.projectLink='1';box.append(a)}
+ const mi=node('span',undefined,'memory-info');mi.id='memory-info';box.append(mi);
  $('nav-ped').href='/project-editorial.html?project='+id;$('nav-pm').href='/radix-pm-concept.html?project='+id;$('nav-memory').href='/agency/memory.html?id='+id;
 }
 async function openProject(id){
