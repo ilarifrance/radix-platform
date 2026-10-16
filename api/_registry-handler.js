@@ -64,7 +64,10 @@ async function journeys(db,ids){
  const out={};if(!ids.length)return out;
  const docs=await db`SELECT project_id,module,data FROM rx_documents WHERE project_id = ANY(${ids}) AND module = ANY(${JOURNEY_MODULES})`;
  const by={};for(const d of docs)(by[d.project_id]=by[d.project_id]||{})[d.module]=d.data;
- for(const id of ids)out[id]=projectJourney.journey(by[id]||{});
+ // Publications are optional: the table only exists once the registry migration has run.
+ let pubs=[];try{pubs=await db`SELECT project_id,content_id,status FROM rx_publications WHERE project_id = ANY(${ids})`}catch(e){pubs=[]}
+ const pubsBy={};for(const r of pubs)(pubsBy[r.project_id]=pubsBy[r.project_id]||[]).push(r);
+ for(const id of ids)out[id]=projectJourney.journey(by[id]||{},{publications:pubsBy[id]||[]});
  return out;
 }
 async function projects(req,res,db,uid){

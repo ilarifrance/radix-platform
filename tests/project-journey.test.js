@@ -66,3 +66,26 @@ test('malformed documents do not throw',()=>{
  const j=journey({editorial:{contents:'x',strategyApproval:5},pm:{tasks:[null,1]},'agency-workspace':{tasks:{}},agents:{conversations:[]}});
  assert.equal(j.steps.length,5);
 });
+
+test('agency flow phases follow plan tasks, PED contents and publications',()=>{
+ const {PHASES}=require('../lib/project-journey.js');
+ const e=E.create({id:'p1'});e.brief=fullBrief();
+ const w={tasks:[{id:'brief',status:'approved'},{id:'research',status:'running'},{id:'strategy',status:'done'},{id:'produce-social',status:'proposed'},{id:'review',status:'proposed'},{id:'measurement',status:'proposed'}]};
+ let ph=journey({editorial:e,'agency-workspace':w}).phases;
+ const at=id=>ph.find(p=>p.id===id);
+ assert.deepEqual(ph.map(p=>p.id),PHASES.map(p=>p.id));
+ assert.equal(at('brief').state,'done');assert.equal(at('research').state,'active');
+ assert.equal(at('strategy').state,'waiting');assert.equal(at('strategy-approval').state,'waiting');
+ assert.equal(at('publishing').state,'todo');
+ E.approveBrief(e);
+ E.updateContent(e,{id:'c1',title:'A',channel:'LinkedIn',date:'2026-10-20',copy:'x'});
+ E.updateContent(e,{id:'c2',title:'B',channel:'LinkedIn',date:'2026-10-21',copy:'y'});
+ E.review(e,'c1','request');E.review(e,'c1','approve');E.review(e,'c2','request');
+ ph=journey({editorial:e,'agency-workspace':w},{publications:[{content_id:'c1',status:'queued'}]}).phases;
+ assert.equal(at('strategy').state,'done');assert.equal(at('strategy-approval').state,'done');
+ assert.equal(at('review').state,'waiting');
+ assert.equal(at('publishing').state,'done');assert.match(at('publishing').detail,/1 contenuto in coda/);
+ ph=journey({editorial:e},{publications:[{content_id:'c1',status:'failed'}]}).phases;
+ assert.equal(at('publishing').state,'waiting');
+ ph=journey({}).phases;assert.ok(ph.every(p=>p.state==='todo'));
+});
