@@ -35,3 +35,21 @@ test('the copywriter prompt carries the strategy and the content, not empty fiel
  assert.doesNotMatch(p,/Bozza attuale/);
  assert.match(pv.copyPrompt({}, {title:'T',channel:'X',copy:'vecchio testo'}),/Bozza attuale da migliorare:\nvecchio testo/);
 });
+
+test('plan analytics: weeks, channels and what needs attention, in the plan time zone',()=>{
+ const s={timezone:'Europe/Rome',contents:[
+  {id:'a',title:'A',channel:'LinkedIn',date:'2026-10-14',status:'approved',revision:2},
+  {id:'b',title:'B',channel:'LinkedIn',date:'2026-10-20',status:'draft',revision:1},
+  {id:'c',title:'C',channel:'Instagram',date:'2026-10-22',status:'approved',revision:3,publication:{revision:3}},
+  {id:'d',title:'D',channel:'Instagram',date:'',status:'review',revision:1},
+  {id:'e',title:'E',channel:'Blog',date:'2026-11-10',status:'approved',revision:1}]};
+ const a=pv.analytics(s,{today:'2026-10-16',pubs:[{content_id:'e',revision:1,status:'failed'},{content_id:'c',revision:3,status:'queued'}]});
+ assert.deepEqual(a.byStatus,{draft:1,review:1,approved:2,queued:1});
+ assert.equal(a.weeks[0].start,'2026-10-12');assert.deepEqual(a.weeks.slice(0,2).map(w=>[w.count,w.ready]),[[1,1],[2,1]]);
+ assert.deepEqual(a.attention.map(x=>x.id+':'+x.kind),['e:failed','a:late','b:soon','d:undated']);
+ assert.equal(a.kpis.approvedShare,60);assert.equal(a.kpis.next14,2);assert.equal(a.kpis.next14Ready,50);assert.equal(a.kpis.late,1);
+ assert.deepEqual(a.channels.map(c=>c.channel),['Instagram','LinkedIn','Blog']);assert.deepEqual(a.publications,{queued:1,failed:1,sending:0});
+ // late night in Rome is already the next day there
+ assert.equal(pv.analytics({timezone:'Europe/Rome',contents:[]},{now:Date.parse('2026-10-16T22:30:00Z')}).today,'2026-10-17');
+ assert.equal(pv.analytics({contents:[]},{today:'2026-10-16'}).kpis.approvedShare,null);
+});
