@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>RADIX — Profilo del progetto</title>
+<style>
+:root{--bg:#030906;--panel:#08140f;--panel2:#0c1d16;--line:#163429;--text:#f1fff8;--muted:#8fb3a3;--green:#1ef28f;--amber:#f4bd5f}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 Inter,system-ui,sans-serif}a{color:var(--green)}
+button,select{font:inherit;color:inherit;border:1px solid var(--line);background:#0f251b;border-radius:9px;padding:8px 12px}button{cursor:pointer}button:hover{border-color:var(--green)}button:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+.app{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+.side{border-right:1px solid var(--line);padding:22px 16px;background:#040c08}.brand{font-weight:800;letter-spacing:.18em;font-size:20px}.brand span{color:var(--green)}
+.side nav{display:grid;gap:4px;margin-top:26px}.side nav a{color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:8px}.side nav a[aria-current]{color:var(--text);background:var(--panel2)}
+.list{border-right:1px solid var(--line);padding:18px 14px;overflow:auto;max-height:100vh}.list h1{font-size:18px;margin:0 0 4px}.list p{color:var(--muted);margin:0 0 14px;font-size:13px}
+.agent{display:block;width:100%;text-align:left;background:transparent;border:1px solid transparent;margin:2px 0;padding:9px}.agent[aria-current=true]{border-color:var(--green);background:#0e2a1d}.agent small{display:block;color:var(--muted);font-size:12px}
+main{padding:18px 26px;min-width:0}.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.grow{flex:1}
+#status{color:var(--muted);font-size:13px;min-height:20px}.msg{max-width:920px;margin:12px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel)}.msg.user{margin-left:auto;max-width:720px;background:#0f2a1e}.msg.error{border-color:#6b2a2d}.msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}
+.md table{border-collapse:collapse;display:block;overflow:auto}.md th,.md td{border:1px solid var(--line);padding:5px 8px}.md pre{background:#020705;padding:10px;border-radius:8px;overflow:auto}
+@media(max-width:1100px){.app{grid-template-columns:280px minmax(0,1fr)}.side{display:none}}@media(max-width:760px){.app{grid-template-columns:1fr}.list{max-height:none;border-right:0;border-bottom:1px solid var(--line)}main{padding:16px}}
+
+input,textarea{font:inherit;color:inherit;border:1px solid var(--line);background:#06110c;border-radius:9px;padding:9px 11px;width:100%}textarea{min-height:76px;resize:vertical}
+main h1{font-size:22px;margin:0 0 4px}.lead{color:var(--muted);margin:0 0 16px;max-width:760px}
+.cols{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(280px,.9fr);gap:22px;align-items:start}
+form label{display:block;margin:0 0 12px;font-weight:600}form label small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:2px}form label input,form label textarea{margin-top:6px;font-weight:400}
+.panel{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px}.panel h2{font-size:15px;margin:0 0 10px}
+.preview dt{color:var(--muted);font-size:12px;margin-top:8px}.preview dd{margin:2px 0 0;white-space:pre-wrap}.swatches{display:flex;gap:6px;margin-top:6px}.swatches span{width:28px;height:28px;border-radius:7px;border:1px solid var(--line)}
+.links{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 14px;font-size:13px}button.primary{background:var(--green);color:#03140b;border-color:var(--green);font-weight:700}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+</style></head>
+<body data-shell-area="cc" data-shell-page="project-profile" data-shell-state="live">
+<div class="app">
+ <aside class="side" data-rx-local-nav><div class="brand">RADIX<span> /</span></div><nav aria-label="Navigazione"><a href="/control-center-v2.html">⌘ Command Center</a><a href="/agents.html" id="nav-agents">◉ Agenti AI</a><a href="/project-editorial.html" id="nav-ped">Piano editoriale</a><a href="/radix-pm-concept.html" id="nav-pm">Project manager</a><a href="/agency/memory.html" id="nav-memory">Memoria</a></nav></aside>
+ <main id="main">
+  <div class="bar"><label>Progetto <select id="project" disabled><option>Caricamento…</option></select></label><span class="grow"></span></div>
+  <h1 id="title">Profilo del progetto</h1>
+  <p class="lead">Questi dati arrivano a ogni agente AI all’inizio di ogni compito, in tutte le pagine (Agenti AI, PED, Legale, Contabilità, Commerciale). Se un campo è vuoto, l’agente usa quello che c’è nel brief Agency, mostrato in grigio.</p>
+  <p id="status" role="status" aria-live="polite">Verifica accesso…</p>
+  <div class="cols">
+   <form id="form" class="panel" hidden>
+    <label>Nome<input id="name" maxlength="200" required></label>
+    <label>Sintesi<small>Di cosa si occupa il progetto e l’obiettivo principale.</small><textarea id="summary" maxlength="2000"></textarea></label>
+    <label>Pubblico<small>Chi deve essere raggiunto: segmenti, ruoli, bisogni.</small><textarea id="audience" maxlength="2000"></textarea></label>
+    <label>Posizionamento<small>Cosa lo distingue e come vuole essere percepito.</small><textarea id="positioning" maxlength="2000"></textarea></label>
+    <label>Tone of voice e regole<small>Come scrivere, parole da usare o evitare, vincoli.</small><textarea id="voice" maxlength="2000"></textarea></label>
+    <label>Canali<small>Ad esempio LinkedIn, Instagram, newsletter.</small><input id="channels" maxlength="500"></label>
+    <label>Identità visiva<small>Colori in esadecimale (#0F2D24), font, stile. I colori finiscono anche sulle slide dei caroselli.</small><input id="visual" maxlength="500"><span class="swatches" id="swatches" aria-hidden="true"></span></label>
+    <label>Link<small>Sito, profili social, materiali di riferimento.</small><textarea id="links" maxlength="2000"></textarea></label>
+    <label>Note per gli agenti<small>Mercato, vincoli, cose da sapere sempre.</small><textarea id="notes" maxlength="4000"></textarea></label>
+    <div class="bar"><button type="submit" class="primary" id="save">Salva il profilo</button><button type="button" id="reload" hidden>Ricarica la versione del team</button></div>
+   </form>
+   <section class="panel" aria-labelledby="pv"><h2 id="pv">Cosa riceve ogni agente</h2><div class="links" id="links-out"></div><dl class="preview" id="preview"></dl></section>
+  </div>
+ </main>
+</div>
+<script src="/lib/radix-workspace-client.js" defer></script><script src="/lib/radix-agent-runtime.js" defer></script><script src="/project-profile.js" defer></script>
+</body></html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:; media-src https:; base-uri 'none'; form-action 'none'">
+<title>RADIX — Agenti AI</title>
+<style>
+:root{--bg:#030906;--panel:#08140f;--panel2:#0c1d16;--line:#163429;--text:#f1fff8;--muted:#8fb3a3;--green:#1ef28f;--amber:#f4bd5f;--red:#ff6b70;--blue:#65b8ff;--violet:#b68cff}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:radial-gradient(ellipse at 85% -10%,#0f3a2766,transparent 50%),var(--bg);color:var(--text);font:14px/1.55 Inter,system-ui,sans-serif}
+a{color:var(--green)}button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:1px solid var(--line);background:#0f251b;border-radius:9px;padding:8px 13px}button:hover{border-color:var(--green)}button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--green);color:#03140b;border-color:var(--green);font-weight:700}:focus-visible{outline:2px solid var(--green);outline-offset:3px}
+input,select,textarea{background:#050f0b;border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;min-width:0}
+.skip{position:absolute;top:-80px;left:8px;background:var(--panel);padding:10px;z-index:9}.skip:focus{top:8px}
+.app{display:grid;grid-template-columns:220px 300px minmax(0,1fr);min-height:100vh}
+.side{border-right:1px solid var(--line);padding:22px 16px;background:#040c08}.brand{font-weight:800;letter-spacing:.18em;font-size:20px}.brand span{color:var(--green)}
+.side nav{display:grid;gap:4px;margin-top:26px}.side nav a{color:var(--muted);text-decoration:none;padding:8px 10px;border-radius:8px}.side nav a:hover,.side nav a[aria-current]{color:var(--text);background:var(--panel2)}
+.roster{border-right:1px solid var(--line);padding:18px 14px;overflow:auto;max-height:100vh;position:sticky;top:0}
+.roster h2{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:18px 4px 8px}
+.agent{display:flex;gap:10px;width:100%;text-align:left;background:transparent;border:1px solid transparent;margin:2px 0;padding:9px}.agent:hover{background:var(--panel2)}
+.agent[aria-current=true]{border-color:var(--green);background:#0e2a1d}.agent .ic{font-size:18px;line-height:1.2}.agent strong{display:block;font-size:13px}.agent small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
+.tag{display:inline-block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border:1px solid #2b5b46;color:var(--green);border-radius:6px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+.main{display:flex;flex-direction:column;min-width:0;max-height:100vh}
+.top{padding:18px 26px;border-bottom:1px solid var(--line);display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.top .who{flex:1;min-width:240px}.eyebrow{font-size:11px;letter-spacing:.16em;color:var(--green);text-transform:uppercase}.top h1{margin:2px 0 0;font-size:24px}.top p{margin:2px 0 0;color:var(--muted)}
+.top label{display:block;font-size:12px;color:var(--muted);min-width:260px}.links{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin-top:6px}
+#status{padding:8px 26px;color:var(--muted);font-size:13px;min-height:20px}
+.thread{flex:1;overflow:auto;padding:10px 26px 24px}
+.msg{max-width:920px;margin:14px 0;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:var(--panel)}
+.msg.user{margin-left:auto;max-width:720px;background:#0f2a1e;border-color:#245540}.msg.error{border-color:#6b2a2d;background:#1c0b0c;color:#ffc9cb}.msg.pending{color:var(--muted);font-style:italic}
+.msg .meta{font-size:12px;color:var(--muted);margin-bottom:6px}.md h1,.md h2,.md h3,.md h4{margin:14px 0 6px;line-height:1.3}.md h2{font-size:18px}.md h3{font-size:16px}.md p{margin:8px 0}.md table{border-collapse:collapse;display:block;overflow:auto;margin:8px 0}.md th,.md td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}.md pre{background:#020705;padding:10px;border-radius:8px;overflow:auto}.md code{font-family:ui-monospace,monospace;font-size:12.5px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{padding:5px 10px;font-size:12.5px}
+.doc{display:flex;align-items:center;gap:12px;border:1px solid #2b5b46;background:#071a12;border-radius:11px;padding:10px 12px;margin:10px 0}.doc .t{flex:1;min-width:0}.doc strong{display:block;overflow-wrap:anywhere}.doc small{color:var(--muted)}
+.flow{border:1px solid #2a4a7a;background:#071223;border-radius:12px;padding:12px;margin-top:12px}.flow h3{margin:0 0 8px;font-size:14px}
+.node{border-top:1px solid #1b3155;padding:9px 0}.node .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.node .st{font-size:11px;border-radius:6px;padding:1px 7px;border:1px solid #33507f}
+.st.done{color:var(--green);border-color:#2b5b46}.st.running{color:var(--amber);border-color:#6b5428}.st.error{color:var(--red);border-color:#6b2a2d}.st.pending{color:var(--muted)}
+.node details{margin-top:6px}.node summary{cursor:pointer;color:var(--muted);font-size:12.5px}.log{font:12px/1.5 ui-monospace,monospace;color:var(--muted);max-height:150px;overflow:auto;margin-top:8px}
+.composer{border-top:1px solid var(--line);padding:14px 26px;background:#040c08}.composer textarea{min-height:70px;resize:vertical}.composer .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}.composer .grow{flex:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:3px 10px;display:inline-flex;gap:6px;align-items:center}.chip button{border:0;background:none;padding:0 2px}
+.empty{color:var(--muted);max-width:640px;margin:30px 0}.empty ul{padding-left:18px}
+dialog{width:min(900px,calc(100% - 24px));max-height:88vh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:22px}dialog::backdrop{background:#000c}
+.tool{margin-top:10px}.tool .panel{display:grid;gap:8px;max-width:620px;border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:8px;background:#06110c}.tool label{font-size:12.5px;color:var(--muted);display:grid;gap:4px}.tool-status{font-size:13px;color:var(--amber);margin:4px 0}.tool video{width:100%;max-width:560px;border-radius:10px}
+.gallery .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:10px 0}.gallery canvas{width:100%;height:auto;border-radius:8px;display:block;margin-bottom:6px}.thumb button{width:100%}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media(max-width:1100px){.app{grid-template-columns:260px minmax(0,1fr)}.side{display:none}}
+@media(max-width:760px){.app{grid-template-columns:1fr}.roster{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--line)}.roster .list{display:flex;gap:6px;overflow-x:auto}.roster h2{display:none}.agent{min-width:200px}.main{max-height:none}.top,.thread,.composer,#status{padding-left:16px;padding-right:16px}.top label{min-width:0;width:100%}}
+.session{display:flex;flex-direction:column;align-items:flex-end;gap:4px}.session .small{margin:0;font-size:12px;color:var(--muted,#9aa)}.api-status[data-state=ok]{color:#79e8b0}.api-status[data-state=err]{color:#f0a08c}.composer.dropping{outline:2px dashed #79e8b0;outline-offset:4px}.char-count{font-size:12px;opacity:.7;align-self:center}.quick{margin:0 0 6px}.quick .small{font-size:12px;opacity:.75;align-self:center}button.chip{cursor:pointer;background:transparent;color:inherit}.step-tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.step-tools textarea{flex-basis:100%;min-height:70px}.st.stale{color:#f4bd5f}.flow-map{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 8px}.flow-map .arrow{color:var(--muted)}.ready-panel{border:1px solid #2b5b46;border-radius:11px;padding:10px 12px;margin-top:10px}.ready-decision{margin:6px 0}.node.focus{outline:2px solid #79e8b0;outline-offset:2px;border-radius:8px}.deliverables{border:1px solid #2a4a7a;border-radius:12px;padding:10px 12px;margin-top:12px}.deliverables summary{cursor:pointer;font-weight:600}.routing-list{align-items:center}.site{width:min(1280px,calc(100% - 24px));max-height:94vh}.site-head{margin-top:0;align-items:center}.site-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}.site-tabs button[aria-selected=true]{border-color:var(--green);color:var(--green)}.site-frame{display:flex;justify-content:center;background:#0b0f0d;border-radius:10px;padding:8px}.site-frame iframe{width:100%;height:68vh;border:0;background:#fff;border-radius:6px}.site-frame.mobile iframe{width:390px}body.present .side,body.present [data-rx-local-nav],body.present .roster,body.present #quick,body.present #project-links,body.present #agent-blurb{display:none!important}body.present .app{grid-template-columns:minmax(0,1fr)}body.present .thread{font-size:15px}body.present #present{border-color:var(--green);color:var(--green)}</style></head>
+<body data-shell-area="cc" data-shell-page="agents" data-shell-state="live">
+<a class="skip" href="#input">Vai al messaggio</a>
+<div class="app">
+ <aside class="side" data-rx-local-nav><div class="brand">RADIX<span> /</span></div><nav aria-label="Navigazione">
+  <a href="/control-center-v2.html">⌘ Command Center</a><a href="/agents.html" aria-current="page">◉ Agenti AI</a><a href="/agency/projects.html">Progetti Agency</a>
+  <a href="/project-editorial.html" id="nav-ped">Piano editoriale</a><a href="/radix-pm-concept.html" id="nav-pm">Project manager</a><a href="/agency/memory.html" id="nav-memory">Memoria</a><a href="/archive.html">Archivio v3.7</a></nav></aside>
+ <section class="roster" aria-label="Agenti"><label class="sr" for="filter">Cerca agente</label><input id="filter" type="search" placeholder="Cerca agente o competenza"><div class="list" id="roster"></div></section>
+ <main class="main" id="main">
+  <div class="top"><div class="who"><div class="eyebrow" id="agent-group">Agenti AI</div><h1 id="agent-name">Seleziona un agente</h1><p id="agent-blurb"></p><div class="links" id="project-links"></div></div>
+   <div class="session"><label>Progetto<select id="project" disabled><option>Caricamento…</option></select></label><p class="small"><span id="api-status" class="api-status">Verifica agenti…</span> <span id="me"></span> <button type="button" id="logout" hidden>Esci</button> <button type="button" id="present" aria-pressed="false">🎥 Presentazione</button></p></div></div>
+  <p id="status" role="status" aria-live="polite">Verifica accesso…</p>
+  <div class="thread" id="thread" aria-live="polite"></div>
+  <form class="composer" id="composer"><label class="sr" for="input">Messaggio per l'agente</label>
+   <div class="chips quick" id="quick" aria-label="Spunti dal piano editoriale"></div>
+   <textarea id="input" maxlength="20000" placeholder="Scrivi il compito o la domanda. Il profilo del progetto e la memoria confermata del team arrivano all'agente automaticamente." disabled></textarea>
+   <div class="chips" id="chips"></div>
+   <div class="bar"><button type="button" id="attach" disabled>📎 Allega file</button><input type="file" id="file" class="sr" accept=".xlsx,.xls,.csv,.txt,.md,.docx,.pdf" multiple tabindex="-1">
+    <span class="grow"></span><button type="button" id="regenerate" disabled>Rigenera ultima risposta</button><button type="button" id="reset" disabled>Nuova conversazione</button><button class="primary" type="submit" id="send" disabled>Invia</button></div>
+  </form>
+ </main>
+</div>
+<dialog id="viewer" aria-labelledby="viewer-title"><div class="actions" style="margin-top:0;justify-content:space-between"><h2 id="viewer-title" style="margin:0"></h2><span><button id="viewer-word">Word</button> <button id="viewer-pdf">PDF</button> <button id="viewer-md">Markdown</button> <button id="viewer-xls">Excel</button> <button id="viewer-txt">Testo</button> <button id="viewer-copy">Copia</button> <button id="viewer-close">Chiudi</button></span></div><div class="md" id="viewer-body"></div></dialog>
+<dialog id="site" class="site" aria-labelledby="site-title"><div class="actions site-head"><h2 id="site-title" style="margin:0"></h2><span class="grow"></span><button type="button" id="site-mobile" aria-pressed="false">📱 Mobile</button><button type="button" id="site-desktop" aria-pressed="true">🖥 Desktop</button><button type="button" id="site-download">Scarica pagina</button><button type="button" id="site-download-all" hidden>Scarica tutto il sito</button><button type="button" id="site-close">Chiudi</button></div>
+ <div class="site-tabs" id="site-tabs" role="tablist" aria-label="Pagine del sito"></div><p class="meta">Anteprima statica: script, moduli e risorse esterne non vengono caricati. I link tra le pagine funzionano.</p>
+ <div class="site-frame" id="site-wrap"><iframe id="site-frame" sandbox="allow-same-origin" title="Anteprima del sito"></iframe></div></dialog>
+<noscript><p>Abilita JavaScript per usare gli agenti.</p></noscript>
+<script src="/lib/radix-workspace-client.js"></script><script src="/lib/radix-agent-runtime.js"></script><script src="/lib/radix-agent-media.js"></script><script src="/agents-page.js"></script>
+</body></html>

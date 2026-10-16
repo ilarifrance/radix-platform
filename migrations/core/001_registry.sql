@@ -33,13 +33,17 @@ CREATE INDEX IF NOT EXISTS rx_projects_client_idx ON rx_projects(client_id, upda
 
 CREATE TABLE IF NOT EXISTS rx_documents (
  project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
- module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm')),
+ module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents')),
  data jsonb NOT NULL CHECK (jsonb_typeof(data) = 'object' AND octet_length(data::text) <= 1500000),
  revision integer NOT NULL DEFAULT 1 CHECK (revision > 0),
  updated_by integer REFERENCES users(id),
  updated_at timestamptz NOT NULL DEFAULT now(),
  PRIMARY KEY (project_id, module)
 );
+
+ALTER TABLE rx_documents DROP CONSTRAINT IF EXISTS rx_documents_module_check;
+
+ALTER TABLE rx_documents ADD CONSTRAINT rx_documents_module_check CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents'));
 
 CREATE TABLE IF NOT EXISTS rx_approvals (
  id uuid PRIMARY KEY,
