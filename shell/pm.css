@@ -105,3 +105,10 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-budget input{max-width:200px;font-variant-numeric:tabular-nums}
 .rx-pm .stat.over{border-color:color-mix(in srgb,var(--rx-error) 55%,var(--rx-border));background:linear-gradient(160deg,color-mix(in srgb,var(--rx-error) 10%,var(--rx-surface-2)),var(--rx-surface))}
 .rx-pm .stat.over strong{color:var(--rx-error)}
+/* Subtasks in the detail panel (ul.pm-subtasks, form.pm-subtask-form) */
+.rx-pm .pm-subtasks{padding-left:0;list-style:none}
+.rx-pm .pm-subtasks li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--rx-surface-2);color:var(--rx-text)}
+.rx-pm .pm-subtasks button.link{min-height:28px;padding:2px 8px;border:0;background:transparent;color:var(--rx-muted);font-size:12px;text-decoration:underline}
+.rx-pm .pm-subtasks button.link:hover:not(:disabled){color:var(--rx-error);background:transparent}
+.rx-pm .pm-subtask-form{display:flex;gap:8px;margin:8px 0 4px}
+.rx-pm .pm-subtask-form input{flex:1 1 auto;min-width:0}
