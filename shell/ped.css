@@ -92,3 +92,15 @@ html.rx-shell body.rx-ped{--ped-draft:#9B7BFF;--ped-review:var(--rx-projects);--
 .rx-ped .publish{margin-top:14px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--ped-queued) 40%,var(--rx-border));border-radius:14px;background:color-mix(in srgb,var(--ped-queued) 5%,var(--rx-surface))}
 .rx-ped #publishState{color:var(--rx-muted);font-size:13px}
 @media (max-width:767px){.rx-ped .ped-board{grid-template-columns:repeat(4,minmax(220px,78vw));scroll-snap-type:x mandatory}.rx-ped .ped-board section{scroll-snap-align:start}}
+/* Variants, comments, versions in the content detail (.ped-extra: #variants, #commentsBox, #versions) */
+.rx-ped .ped-extra{margin-top:14px;padding:14px 16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-surface)}
+.rx-ped .ped-extra h3,.rx-ped .ped-extra summary{margin:0 0 10px;color:var(--rx-text);font:600 14px/1.3 var(--rx-display)}
+.rx-ped details.ped-extra summary{cursor:pointer;margin:0}
+.rx-ped details.ped-extra[open] summary{margin-bottom:10px}
+.rx-ped #variantList{display:grid;gap:8px;margin-bottom:10px}
+.rx-ped .ped-comments,.rx-ped .ped-versions{display:grid;gap:8px;margin:0 0 10px;padding:0;list-style:none}
+.rx-ped .ped-comments li{padding:10px 12px;border-radius:10px;background:var(--rx-surface-2);font-size:13px}
+.rx-ped .ped-comments li small{display:block;margin-bottom:4px;color:var(--rx-subtle)}
+.rx-ped .ped-versions li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid var(--rx-border);font-size:13px;color:var(--rx-muted)}
+.rx-ped .ped-versions li:last-child{border-bottom:0}
+.rx-ped .ped-versions button{min-height:32px;padding:4px 10px;font-size:12px}
