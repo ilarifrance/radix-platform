@@ -416,6 +416,10 @@ $('manual-review-save').onclick=async()=>{
  const changed=['jobTitle','companyName','country','companyDomain'].filter(k=>String(input[k]||'').trim()&&String(input[k]||'').trim()!==String(choice.original[k]||'').trim());
  if(!changed.length){$('manual-review-selected').textContent='Nessuna modifica. Inserisci un dato verificato.';return}
  input.replaceExisting=changed.some(k=>choice.original[k]&&choice.original[k]!==input[k]);
+ if(changed.includes('companyName')&&choice.original.companyDomain&&!changed.includes('companyDomain')){
+  if(!window.confirm('Hai modificato il nome azienda ma il dominio è rimasto '+choice.original.companyDomain+'. Hai verificato che questo sito appartenga ancora alla nuova azienda? Se hai dubbi, annulla e ricontrolla.'))return;
+  input.reconfirmExistingDomain=true;
+ }
  if(!window.confirm('Confermi la revisione manuale di '+choice.fullName+'? Campi: '+changed.join(', ')+'. '+(input.replaceExisting?'ATTENZIONE: alcuni valori già presenti saranno sostituiti. ':'')+'Controlla sempre le informazioni; nessuna email inventata.'))return;
  $('manual-review-save').disabled=true;
  try{
