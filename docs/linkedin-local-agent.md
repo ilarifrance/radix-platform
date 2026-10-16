@@ -52,3 +52,34 @@ As checked on 2026-10-16, the Vercel project has `LEAD_DATABASE_URL` configured 
 - No paid provider and no CRM intermediary are used.
 
 Test from repo root: node --test tests/linkedin-local-agent.test.js. These unit tests do not prove real LinkedIn compatibility.
+
+## Manual company correction (October 16 update)
+
+If the visible Sales Navigator search result or subsequent profile review does not include an employer, select the original job under **Contatti ricevuti**, click **Correggi** on that person, inspect the source profile and type the fields you verified: role, employer, country or official company domain. Saving requires a confirmation; overwriting existing fields additionally requires an explicit overwrite confirmation, and changing an employer with an existing domain requires a separate domain-reconfirmation gate. No email or telephone is fabricated or changed.
+
+Corrections are checkpointed in `~/.radix/linkedin-agent/jobs/<id>.json` under `manualReviews` with date and field names. Previous accepted public-domain evidence is marked superseded if the company or domain changes; it no longer counts as current evidence. Download a fresh RADIX backup before importing to the web Preview.
+
+## Optional official Brave Search API
+
+A second source for company website discovery has been implemented, but it is **off by default** and is not a LinkedIn integration. It sends **only the selected company name** to Brave Search, never contact name, LinkedIn URL, cookie, email or phone. The site returned is a **proposal**, not proof of company identity.
+
+To make the **optional** button available, configure all of these environment variables *only in the local Mac process* (never commit or paste API keys into RADIX web pages):
+
+- `BRAVE_SEARCH_API_KEY`: your own Brave Search API credential.
+- `RADIX_BRAVE_ENABLED=1`: explicit enable flag.
+- `RADIX_BRAVE_DAILY_LIMIT=5`: example daily **request** cap; allowed 1–100, default 0 (disabled).
+
+Before each request, RADIX shows a confirmation warning that the Brave account may be billed. The server checks and reserves one unit **before** contacting the official `api.search.brave.com` endpoint, stores the daily counter in the private local file `~/.radix/linkedin-agent/brave-usage.json`, and blocks further requests when the cap is exhausted. Corrupt counters and backward clock changes block new requests. Failed API calls may count toward the cap and **may still incur vendor charges**. No price or free allowance is guaranteed by RADIX.
+
+Returned candidate websites must be reviewed manually; **Conferma** only after establishing the domain belongs to the selected company. Proposal URLs and confirmation are saved in the local checkpoint; the original file should be retained when an audit trail is required. No official Brave API call was made in development or testing; mocked tests are not a live integration check.
+
+## Browser-to-CRM reviewed contact bridge
+
+From the new Lead Intelligence Preview:
+1. Select the original agent JSON checkpoint in **Importa il backup Sales Navigator dal tuo Mac**.
+2. Inspect the statistics. For jobs exceeding the server's **4,000 contacts or 1.5 MB limit**, click **Scarica backup compatibile** repeatedly to download numbered, independently archivable segments, and import/save each segment separately. The UI prevents a single oversized cloud save.
+3. For a supported single archive, click **Carica contatti nel motore**; save them in an authorized workspace only after verification.
+4. Click **Porta aziende alla qualificazione ICP**; review and score the companies. RADIX allows 250 companies per ICP list, not 5,000. Split large projects into smaller lists.
+5. In **Revisione prospect e contatti**, the **Seleziona il referente corretto** selector proposes individuals only for an exact company name and compatible domain/country identity. You must select a person, confirm, separately verify their email, source and lawful basis, and approve the prospect yourself. Email, consent flags and CRM records are **never created automatically**.
+
+The browser bridge does not replace the existing protected CRM API or its database. As of this release, `LEAD_DATABASE_URL` is available only in the *integration branch Preview*; this feature branch Preview has no confirmed DB access. No production writes or merges have been performed. End-to-end save/reload and CRM creation remain release gates requiring the Mac and an authorized workspace.
