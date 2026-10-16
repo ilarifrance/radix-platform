@@ -1,5 +1,5 @@
 // Agency overview design layer (agenzia-mockup.png): dotted earth in the hero, a 14th "Progetto personalizzato" tile,
-// and agent rows that name their division and its deliverables. Presentation only: it reads what the page and
+// agent rows that name their division and its deliverables, arrows through the featured division, status pills in Task recenti. Presentation only: it reads what the page and
 // agency/catalog.json already hold and never changes the page's ids, texts or links.
 'use strict';
 (function () {
@@ -75,8 +75,70 @@
     });
   }
 
+  // ---- agent rows: a green dot = role available in chat (every catalogued role is) ----
+  function agentDots() {
+    if (!agents) return;
+    agents.querySelectorAll('.agent-row').forEach(function (row) {
+      if (row.querySelector('.ag-dot')) return;
+      var link = row.querySelector('a.role'); if (!link) return;
+      var d = document.createElement('i'); d.className = 'ag-dot'; d.title = 'Disponibile in chat';
+      var tags = row.querySelector('.ag-tags'); (tags || link).before(d);
+    });
+  }
+
+  // ---- Divisione in evidenza: arrows through the 13 divisions, number and deliverables ----
+  var spot = document.querySelector('.spotlight'), spotIdx = -1;
+  function spotlight(step) {
+    if (!spot || !grid || !catalog) return;
+    var cards = [].slice.call(grid.querySelectorAll('a.division-card:not(.ag-custom)')); if (!cards.length) return;
+    if (spotIdx < 0) {
+      var h = spot.querySelector('h4'); spotIdx = Math.max(0, cards.findIndex(function (c) { return c.querySelector('strong').textContent === (h && h.textContent); }));
+      var head = spot.closest('.panel') && spot.closest('.panel').querySelector('.panel-head');
+      if (head && !head.querySelector('.ag-arrows')) {
+        var nav = document.createElement('span'); nav.className = 'ag-arrows';
+        [['‹', -1, 'Divisione precedente'], ['›', 1, 'Divisione successiva']].forEach(function (a) {
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = a[0]; b.setAttribute('aria-label', a[2]);
+          b.addEventListener('click', function () { spotlight(a[1]); }); nav.append(b);
+        });
+        head.append(nav);
+      }
+    } else spotIdx = (spotIdx + step + cards.length) % cards.length;
+    var card = cards[spotIdx], label = card.querySelector('strong').textContent;
+    var div = (catalog.divisions || []).filter(function (d) { return d.label === label; })[0] || {};
+    if (step) {
+      spot.querySelector('.spotlight-icon').textContent = card.querySelector('.symbol').textContent;
+      spot.querySelector('h4').textContent = label;
+      spot.querySelector('.spotlight-top small').textContent = (div.stages || [])[0] || '';
+      spot.querySelector('p').textContent = div.description || card.querySelector('p').textContent;
+      spot.querySelector('a').href = card.getAttribute('href');
+      spot.style.setProperty('--accent', card.style.getPropertyValue('--accent'));
+    }
+    var num = spot.querySelector('.ag-num'); if (!num) { num = document.createElement('span'); num.className = 'ag-num'; spot.querySelector('.spotlight-top').append(num); }
+    num.textContent = card.querySelector('.number').textContent;
+    var tags = spot.querySelector('.ag-spot-tags'); if (!tags) { tags = document.createElement('span'); tags.className = 'ag-spot-tags'; spot.querySelector('p').after(tags); }
+    tags.replaceChildren.apply(tags, (div.deliverables || []).slice(0, 3).map(function (t) { var e = document.createElement('i'); e.textContent = t; return e; }));
+  }
+
+  // ---- Task recenti: title, project and a status pill per row (same link, same words) ----
+  var tasks = document.getElementById('recentTasks');
+  var PILL = { 'Da avviare': 'todo', 'In lavorazione': 'run', 'Bozza da revisionare': 'review', 'Bozza approvata': 'done', 'Modifiche richieste': 'warn', 'Errore': 'err' };
+  function taskRows() {
+    if (!tasks) return;
+    tasks.querySelectorAll('a.empty-task:not(.ag-task)').forEach(function (a) {
+      var b = a.querySelector('b'), sm = a.querySelector('small'); if (!b || !sm) return;
+      var status = b.textContent, project = (a.childNodes[1] && a.childNodes[1].textContent || '').replace(/^\s*·\s*/, '').trim();
+      var txt = sm.textContent, cut = txt.indexOf(': '), role = cut > 0 ? txt.slice(0, cut) : '', title = cut > 0 ? txt.slice(cut + 2) : txt;
+      a.className = 'empty-task ag-task'; a.removeAttribute('style'); a.title = status + ' · ' + project + ' · ' + txt;
+      var t = document.createElement('span'); t.className = 'ag-task-title'; t.textContent = title;
+      var m = document.createElement('span'); m.className = 'ag-task-meta'; m.textContent = project + (role ? ' · ' + role : '');
+      var pill = document.createElement('span'); pill.className = 'ag-pill ' + (PILL[status] || 'todo'); pill.textContent = status;
+      a.replaceChildren(t, m, pill);
+    });
+  }
+
   function watch(el, fn) { if (!el) return; fn(); new MutationObserver(fn).observe(el, { childList: true }); }
   loadGlobe();
   watch(grid, customTile);
-  fetch('/agency/catalog.json', { cache: 'force-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (c) { catalog = c; watch(agents, agentRows); }, function () {});
+  watch(tasks, taskRows);
+  fetch('/agency/catalog.json', { cache: 'force-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (c) { catalog = c; watch(agents, function () { agentRows(); agentDots(); }); watch(grid, function () { if (spotIdx < 0) spotlight(0); }); }, function () {});
 })();
