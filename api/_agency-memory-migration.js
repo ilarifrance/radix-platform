@@ -1,6 +1,7 @@
 // Explicit, admin-only Agency memory migration. Never runs automatically on Preview.
 const { sql } = require('./_db');
 const { isAdminRequest } = require('./_auth');
+const { UPGRADE } = require('./_agency-memory-store');
 module.exports = async (req,res)=>{
  if(req.method!=='POST')return res.status(405).json({error:'Usa POST'});
  if(!isAdminRequest(req))return res.status(401).json({error:'Autorizzazione admin richiesta'});
@@ -24,6 +25,8 @@ module.exports = async (req,res)=>{
    CONSTRAINT agency_memory_revision_positive CHECK (revision > 0)
  )`;
  await db`CREATE INDEX IF NOT EXISTS agency_memory_owner_context_idx ON agency_memory(owner_id, project_id, client_id, updated_at DESC)`;
- res.status(200).json({ok:true,message:'Schema memoria Agency verificato'});
+ // v2: team-shared memory with author, confirmer and source approval.
+ for (const statement of UPGRADE) await db(statement);
+ res.status(200).json({ok:true,message:'Schema memoria del team verificato'});
  }catch(e){res.status(500).json({error:'Migrazione memoria non riuscita'});}
 };
