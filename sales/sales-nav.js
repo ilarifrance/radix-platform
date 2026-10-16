@@ -12,6 +12,7 @@
       { href: CRM + '#companies', text: 'Aziende', ic: 'building' },
       { href: CRM + '#contacts', text: 'Contatti', ic: 'person' },
       { href: CRM + '#tasks', text: 'Attività', ic: 'check' },
+      { href: CRM + '#tickets', text: 'Assistenza', ic: 'chat' },
       { href: CRM + '#calendar', text: 'Calendario', ic: 'cal' },
       { href: CRM + '#analytics', text: 'Analisi', ic: 'chart' }
     ] },

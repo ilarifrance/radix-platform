@@ -1,12 +1,13 @@
 'use strict';
 (() => {
 const $ = id => document.getElementById(id);
-const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',members:'Membri',processes:'Processi',stages:'Fasi'};
+const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',tickets:'Assistenza',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
 const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
+const ticketStatus={open:'Aperto',pending:'In attesa del cliente',resolved:'Risolto',closed:'Chiuso'},ticketChannel={email:'Email',phone:'Telefono',chat:'Chat',web:'Sito web',other:'Altro'};
 function transitionKey(row,stage){const fingerprint=[state.workspace,row.id,row.version,stage.id].join(':');if(!transitionKeys.has(fingerprint))transitionKeys.set(fingerprint,crypto.randomUUID());return transitionKeys.get(fingerprint);}
 const el = (tag, text, cls) => { const n=document.createElement(tag); if(text!==undefined)n.textContent=String(text); if(cls)n.className=cls; return n; };
 const button = (text, fn, cls) => {const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b;};
@@ -100,6 +101,13 @@ function card(entity,row,readonly=false){
  if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza UTC: '+(row.due_at || 'nessuna')));
  if(entity==='stages' && row.task_title)c.append(el('p','Regole esplicite: '+relation('members',row.task_assignee_id)+' · '+(row.task_priority || 'non impostata')+' · Giorni: '+(row.task_due_days ?? 'non impostati')));
  if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data UTC: '+row.occurred_at+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
+ if(entity==='tickets'){
+  c.append(el('p',(ticketStatus[row.status]||row.status)+' · Priorità: '+({low:'bassa',normal:'normale',high:'alta',urgent:'urgente'}[row.priority]||row.priority)+' · Canale: '+(ticketChannel[row.channel]||row.channel),'ticket-state ticket-'+row.status));
+  c.append(el('p','Assegnato a: '+relation('members',row.assignee_id)+' · Scadenza UTC: '+(row.due_at||'nessuna')+(row.resolved_at?' · Risolto il '+row.resolved_at.slice(0,10):''),'muted'));
+  if(row.body)c.append(el('p',row.body,'interaction-body'));if(row.resolution)c.append(el('p','Soluzione: '+row.resolution,'muted'));
+  if(!readonly){const control=selectControl('Stato di '+title(row),Object.entries(ticketStatus),row.status);control.select.disabled=!writable(entity);
+   const save=button('Conferma stato',()=>{if(control.select.value!==row.status)mutate(entity,'update',{id:row.id,version:row.version,status:control.select.value},'Portare «'+title(row)+'» in «'+ticketStatus[control.select.value]+'»?');});save.disabled=!writable(entity);c.append(control.wrap,save);}
+ }
  if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button('Customer360',()=>openCustomer(entity,row)));
  if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.'),'danger'));c.append(a);}
  window.RadixCrmTools?.card(entity,row,c,readonly);
@@ -190,7 +198,10 @@ function render(){
    const stats=rows(entity)[0];if(stats){const metrics=el('div',undefined,'metrics');for(const key of ['companies','contacts','leads','opportunities','tasks','open_amount_cents']){const box=el('div',undefined,'metric');box.append(el('span',names[key] || 'Valore pipeline · valuta workspace'),el('strong',key==='open_amount_cents'?new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(stats[key] || 0)/100):stats[key] ?? '—'));metrics.append(box);}section.append(metrics);}else section.append(el('p','Indicatori server non disponibili.','muted'));
   }else{
    section.append(el('p',rows(entity).length+' record caricati.'+(state.more[entity]?' Elenco parziale: sono disponibili altre pagine.':'')+' I selettori includono solo i riferimenti già caricati.','muted'));
-   if(entity==='opportunities' || entity==='tasks'){
+   if(entity==='tickets'){
+    const board=el('div',undefined,'board');board.setAttribute('aria-label','Assistenza · ticket per stato');
+    Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=rows(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
+   }else if(entity==='opportunities' || entity==='tasks'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label',label+' · vista kanban');
     const kind=entity==='tasks'?'task':'opportunity';
     const groups=rows('processes').filter(p=>p.kind===kind).flatMap(p=>rows('stages').filter(s=>s.process_id===p.id).sort((a,b)=>a.position-b.position).map(s=>({name:title(p)+' / '+s.title,matches:r=>r.process_id===p.id && r.stage_id===s.id})));
@@ -262,10 +273,20 @@ function openEditor(entity,row=null){
  if(entity==='contacts'){addText('role','Ruolo',120);addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('linkedin_url','Profilo LinkedIn',300,'url').placeholder='https://';addArea('notes','Note',4000);
   const l=el('label');const box=el('input');box.type='checkbox';box.name='marketing_consent';box.checked=Boolean(row?.marketing_consent);l.append(box,el('span',' Ha dato il consenso a ricevere comunicazioni marketing'));fields.append(l);
   fields.append(el('small','Registra il consenso solo se la persona lo ha dato esplicitamente. Togliendo la spunta si registra la revoca.'));}
- if(['contacts','leads','opportunities','tasks','interactions'].includes(entity))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
- if(['leads','opportunities','tasks','interactions'].includes(entity))addSelect('contact_id','Contatto',references('contacts',row?.contact_id),row?.contact_id);
+ if(['contacts','leads','opportunities','tasks','interactions','tickets'].includes(entity))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
+ if(['leads','opportunities','tasks','interactions','tickets'].includes(entity))addSelect('contact_id','Contatto',references('contacts',row?.contact_id),row?.contact_id);
  if(['leads','opportunities','tasks','interactions'].includes(entity))fields.append(el('p','Se scegli un contatto, indica la sua azienda. Se colleghi un’opportunità, riporta esattamente la sua azienda e il suo contatto (anche i valori non assegnati). Il server rifiuta combinazioni incoerenti.','muted'));
  if(entity==='interactions')fields.append(el('p','Collega almeno un’azienda, un contatto o un’opportunità. Registrare un’email non la invia.','muted'));
+ if(entity==='tickets'){
+  fields.append(el('p','Se scegli un contatto, indica anche la sua azienda: il server rifiuta combinazioni incoerenti.','muted'));
+  addArea('body','Descrizione della richiesta',4000);
+  addSelect('status','Stato *',Object.entries(ticketStatus),row?.status||'open',true);
+  addSelect('priority','Priorità *',priorities,row?.priority||'normal',true);
+  addSelect('channel','Canale *',Object.entries(ticketChannel),row?.channel||'email',true);
+  addSelect('assignee_id','Assegnato a',references('members',row?.assignee_id),row?.assignee_id);
+  utcInput('due_at','Scadenza UTC (opzionale)',row?.due_at);
+  addArea('resolution','Soluzione (quando lo risolvi)',4000);
+ }
  if(entity==='processes' && !row)addSelect('kind','Tipo *',[['opportunity','Opportunità'],['task','Attività']],'opportunity',true);
  if(entity==='stages'){
   addSelect('process_id','Processo *',references('processes',row?.process_id),row?.process_id,true);addInput('position','Posizione *','number',row?.position ?? 0,true);addInput('task_title','Attività automatica al passaggio (solo opportunità)','text',row?.task_title || '');
@@ -323,7 +344,7 @@ $('editor-form').addEventListener('submit',event=>{
    const v=value.trim();if(!v && key==='due_at')data[key]=null;
    else if(!validUTC(v)){error('Usa una data reale ISO UTC esplicita, ad esempio 2026-10-10T14:30:00Z.');return;}else data[key]=v;
   }
-  else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason'].includes(key))data[key]=value.trim()||null;
+  else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason','resolution'].includes(key))data[key]=value.trim()||null;
   else if(key==='marketing_consent')continue;
   else if(key==='outcome')data[key]=value;
   else if(key==='probability'){const v=value.trim();if(!v)data[key]=null;else{const n=Number(v);if(!/^\d+$/.test(v)||n>100){error('La probabilità è un numero da 0 a 100.');return;}data[key]=n;}}
