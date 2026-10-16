@@ -225,6 +225,9 @@ html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(4){border-colo
 @media (max-width:1180px){
   #pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   #pm-board-kanban{grid-column:1/-1;order:-1}
+  #pm-board-gantt .g-row{grid-template-columns:180px minmax(0,1fr)!important}
+  #pm-board-gantt{transform:perspective(1800px) rotateY(5deg)!important}
+  #pm-board-workload{transform:perspective(1800px) rotateY(-5deg)!important}
 }
 @media (max-width:720px){
   #pm-board.pm-board{grid-template-columns:minmax(0,1fr)}
@@ -326,3 +329,14 @@ html:has(#pm-board:not([hidden])) main#workspace{overflow-x:clip}
 html:has(#pm-board:not([hidden])):not(.pm-detail-open) .layout>#detail{display:none!important}
 html.pm-detail-open:has(#pm-board:not([hidden])) .layout>#detail{position:fixed;top:0;right:0;bottom:0;width:min(540px,100vw);z-index:60;overflow:auto;margin:0!important;padding:24px 24px 40px!important;border-radius:0;border:0;border-left:1px solid rgba(190,120,255,.5);background:linear-gradient(180deg,#1a0f36,#0d0820)!important;box-shadow:-24px 0 60px rgba(0,0,0,.6)}
 html.pm-detail-open:has(#pm-board:not([hidden])) .pm-detail-close{display:grid;place-items:center;position:fixed;top:14px;right:16px;z-index:61;width:34px;height:34px;padding:0;border-radius:50%;font-size:20px;line-height:1;background:#2a1650;border:1px solid rgba(190,120,255,.6);color:#f3eaff}
+/* Under 1600px the three-panel row leaves the Kanban columns ~120px wide (titles break word by word, pills cut):
+   the Kanban takes the whole first row, Gantt and carico del team sit side by side under it. */
+@media (min-width:1001px) and (max-width:1599px){
+  #pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+  #pm-board-kanban{grid-column:1/-1;order:-1}
+  #pm-board-gantt .g-row{grid-template-columns:180px minmax(0,1fr)!important}
+  #pm-board-gantt{transform:perspective(1800px) rotateY(5deg)!important}
+  #pm-board-workload{transform:perspective(1800px) rotateY(-5deg)!important}
+}
+#pm-board-kanban .pm-card>.pill{white-space:normal;overflow:visible;text-overflow:clip}
+#pm-board-kanban .pm-card strong{overflow-wrap:normal;word-break:normal;hyphens:auto}
