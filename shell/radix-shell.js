@@ -266,11 +266,28 @@
       setH(); window.addEventListener('resize', setH);
     }
     // Name and which steps already hold saved work come from the shared registry.
-    if (window.fetch) fetch('/api/workspace?resource=projects&id=' + P, { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+    // With journey=1 the server also returns each step's real state (todo/active/waiting/done); older servers ignore it.
+    if (window.fetch) fetch('/api/workspace?resource=projects&id=' + P + '&journey=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       var it = d && d.item; if (!it || id !== barProject) return;
       pbar.querySelector('.rx-project-name').textContent = it.name || id;
+      var j = it.journey, steps = {};
+      if (j && j.steps) j.steps.forEach(function (x) { steps[x.id] = x; });
       var mods = (it.documents || []).map(function (x) { return x.module; });
-      STEPS.forEach(function (s) { if (mods.indexOf(s.mod) !== -1) pbar.querySelector('[data-step="' + s.id + '"]').setAttribute('data-saved', ''); });
+      STEPS.forEach(function (s) {
+        var li = pbar.querySelector('[data-step="' + s.id + '"]'), x = steps[s.id];
+        if (x && /^(todo|active|waiting|done)$/.test(x.state)) {
+          li.setAttribute('data-state', x.state);
+          if (x.detail) li.querySelector('a').title = x.detail;
+          if (j.next === s.id) li.setAttribute('data-next', '');
+        } else if (mods.indexOf(s.mod) !== -1) li.setAttribute('data-saved', '');
+      });
+      if (j && typeof j.progress === 'number') {
+        var pr = pbar.querySelector('.rx-project-progress') || pbar.querySelector('.rx-project-id').appendChild(document.createElement('span'));
+        pr.className = 'rx-project-progress';
+        pr.style.setProperty('--p', Math.max(0, Math.min(100, j.progress)) + '%');
+        pr.textContent = j.progress + '%';
+        pr.title = (j.done || 0) + ' di ' + (j.total || STEPS.length) + ' fasi completate';
+      }
     }).catch(function () {});
   }
   buildBar(curProject);
