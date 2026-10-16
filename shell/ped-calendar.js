@@ -77,8 +77,11 @@
       timed.forEach(function (x) {
         var over = timed.filter(function (y) { return y.top < x.end - 1 && y.end > x.top + 1; });
         var n = Math.max.apply(null, over.map(function (y) { return y.lane; })) + 1;
-        x.ev.dataset.pedTop = x.top; x.ev.style.top = 'calc(var(--ped-off) + ' + x.top + 'px)'; x.ev.style.height = (ROW - 6) + 'px';
-        x.ev.style.left = 'calc(' + (x.lane / n * 100) + '% + 3px)'; x.ev.style.width = 'calc(' + (100 / n) + '% - 6px)';
+        // Narrow day columns stack overlapping contents inside the hour instead of splitting it into slivers.
+        var stack = n > 1 && col.clientWidth < 240, h = stack ? ROW / n : ROW, top = x.top + (stack ? x.lane * h : 0);
+        x.ev.dataset.pedTop = top; x.ev.style.top = 'calc(var(--ped-off) + ' + top + 'px)'; x.ev.style.height = (h - 4) + 'px';
+        x.ev.classList.toggle('ped-compact', stack);
+        x.ev.style.left = stack ? '3px' : 'calc(' + (x.lane / n * 100) + '% + 3px)'; x.ev.style.width = stack ? 'calc(100% - 6px)' : 'calc(' + (100 / n) + '% - 6px)';
       });
       var empty = col.querySelector('.calendar-empty'); if (empty) empty.hidden = true;
       var head = (col.querySelector('h3') || {}).textContent || '';
@@ -119,11 +122,12 @@
       if (onclick) x.addEventListener('click', onclick);
       r.append(x); return x;
     }
-    function jump(id) { return function (e) { var t = document.getElementById(id); if (!t) return; e.preventDefault(); if (t.tagName === 'DETAILS') t.open = true; t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; }
-    a('Overview', '#metrics', 'overview', jump('metrics'));
-    a('Calendario', '#calendar', 'calendar', jump('calendar')).setAttribute('aria-current', 'true');
-    a('Libreria contenuti', '#board', 'library', jump(document.getElementById('board') ? 'board' : 'groups'));
-    a('Analytics', '#analytics', 'analytics', jump('analytics'));
+    // The four entries switch what the page shows (html[data-ped-section]); the calendar is the default.
+    function show(section) { return function (e) { e.preventDefault(); setSection(section); }; }
+    a('Overview', '#metrics', 'overview', show('overview')).dataset.section = 'overview';
+    a('Calendario', '#calendar', 'calendar', show('calendar')).dataset.section = 'calendar';
+    a('Libreria contenuti', '#board', 'library', show('library')).dataset.section = 'library';
+    a('Analytics', '#analytics', 'analytics', show('analytics')).dataset.section = 'analytics';
     sect('Canali');
     var chBox = document.createElement('div'); chBox.className = 'ped-rail-channels'; r.append(chBox);
     sect('Progetti');
@@ -131,6 +135,13 @@
     page.prepend(r);
     page.classList.add('ped-has-rail');
     fillProjects(prBox);
+  }
+  function setSection(section) {
+    root.dataset.pedSection = section;
+    [].slice.call(page.querySelectorAll('.ped-rail-link[data-section]')).forEach(function (x) { if (x.dataset.section === section) x.setAttribute('aria-current', 'true'); else x.removeAttribute('aria-current'); });
+    var an = document.getElementById('analytics'); if (section === 'analytics' && an && an.tagName === 'DETAILS') an.open = true;
+    if (section === 'calendar') later();
+    window.scrollTo({ top: 0 });
   }
   function fillChannels() {
     var box = page.querySelector('.ped-rail-channels'); if (!box) return;
@@ -179,5 +190,6 @@
   var tzSel = document.getElementById('timezone'); if (tzSel) tzSel.addEventListener('change', later);
   setInterval(function () { if (root.classList.contains('ped-grid')) later(); }, 60000);
   rail();
+  setSection('calendar');
   later();
 })();
