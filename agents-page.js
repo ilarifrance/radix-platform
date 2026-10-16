@@ -54,17 +54,30 @@ function renderRoster(){
   }
  }
 }
+// ---- spunti dal piano editoriale: the project's PED contents still to write, for the Copywriter and the post pipeline ----
+let pedCache={id:null,items:[]};
+async function pedItems(){
+ if(pedCache.id===project.id)return pedCache.items;
+ let items=[];try{const d=await ws.documents.load(project.id,'editorial');items=(d&&d.data&&Array.isArray(d.data.contents)?d.data.contents:[]).filter(c=>c.status!=='approved').sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')).slice(0,8)}catch(e){}
+ pedCache={id:project.id,items};return items;
+}
+async function renderQuick(){
+ const box=$('quick');box.replaceChildren();const a=rt.agent(agentId);if(!project||!(agentId==='copywriter'||a.pipeline))return;
+ const items=await pedItems();if(!items.length||rt.agent(agentId)!==a)return;
+ box.append(node('span','Dal piano editoriale:','small'),...items.map(c=>{const b=btn(c.channel+' · '+c.title,()=>{$('input').value='Scrivi il post per '+c.channel+': '+c.title+(c.date?' (uscita prevista '+c.date+(c.time?' alle '+c.time:'')+')':'')+'.';$('input').focus()},'Usa come compito');b.className='chip';return b}));
+}
 function selectAgent(id){
  if(busy)return;agentId=rt.agent(id)?rt.agent(id).id:'marketing-orchestrator';
  const a=rt.agent(agentId);$('agent-name').textContent=a.icon+' '+a.name;$('agent-blurb').textContent=a.blurb;$('agent-group').textContent=rt.GROUP_LABELS[a.group]+(a.hub?' · orchestratore':'');
  const u=new URL(location.href);u.searchParams.set('agent',agentId);if(project)u.searchParams.set('project',project.id);history.replaceState(null,'',u);
  if(project)say('Agenti al lavoro su «'+project.name+'»: profilo del progetto e memoria confermata del team arrivano a ogni agente.');
- renderRoster();render();
+ renderRoster();render();renderQuick();
 }
 function docCard(d,by){
  const c=node('div',undefined,'doc'),t=node('div',undefined,'t');
  t.append(node('strong','📄 '+d.title),node('small',(by?by+' · ':'')+rt.wordCount(d.body)+' parole'+(d.incomplete?' · interrotto prima della fine':'')));
- c.append(t,btn('Apri',()=>openViewer(d.title,d.body)),btn('Word',()=>rt.exportWord(d.title,d.body)),btn('Markdown',()=>rt.exportMarkdown(d.title,d.body)));
+ c.append(t,btn('Apri',()=>openViewer(d.title,d.body)),btn('Word',()=>rt.exportWord(d.title,d.body)),btn('PDF',()=>rt.exportPdf(d.title,d.body)),btn('Markdown',()=>rt.exportMarkdown(d.title,d.body)));
+ if(rt.markdownTables(d.body).length)c.append(btn('Excel',()=>rt.exportExcel(d.title,d.body)));
  return c;
 }
 function mdBlock(text){const d=node('div',undefined,'md');d.innerHTML=rt.renderMarkdown(text,1);return d}
@@ -120,7 +133,9 @@ function render(){
    const s=sourcesEl(m.sources);if(s)el.append(s);
    if(m.flow)el.append(renderFlow(m.flow,m));
    const acts=node('div',undefined,'actions');
-   acts.append(btn('Copia',()=>navigator.clipboard.writeText(m.content).then(()=>say('Testo copiato.'))),btn('Word',()=>rt.exportWord((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Proponi in memoria',()=>remember(m.agent||agentId,(a?a.name:'Agente')+' · '+project.name,m.content)));
+   acts.append(btn('Copia',()=>navigator.clipboard.writeText(m.content).then(()=>say('Testo copiato.'))),btn('Word',()=>rt.exportWord((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('PDF',()=>rt.exportPdf((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Markdown',()=>rt.exportMarkdown((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Proponi in memoria',()=>remember(m.agent||agentId,(a?a.name:'Agente')+' · '+project.name,m.content)));
+   if((m.agent||agentId)==='copywriter')acts.append(node('small',m.content.length+' caratteri','char-count'));
+   if(rt.markdownTables(m.content).length)acts.append(btn('Excel',()=>rt.exportExcel((a?a.name:'Risposta')+' · '+project.name,m.content)));
    el.append(acts);
    if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>el.append(t));
   }
@@ -132,7 +147,7 @@ function render(){
  $('regenerate').disabled=busy||!has;
 }
 function openViewer(title,body){$('viewer-title').textContent=title;$('viewer-body').innerHTML=rt.renderMarkdown(body,0);
- $('viewer-word').onclick=()=>rt.exportWord(title,body);$('viewer-md').onclick=()=>rt.exportMarkdown(title,body);$('viewer-copy').onclick=()=>navigator.clipboard.writeText(body).then(()=>say('Documento copiato.'));$('viewer').showModal()}
+ $('viewer-word').onclick=()=>rt.exportWord(title,body);$('viewer-md').onclick=()=>rt.exportMarkdown(title,body);$('viewer-pdf').onclick=()=>rt.exportPdf(title,body);$('viewer-xls').hidden=!rt.markdownTables(body).length;$('viewer-xls').onclick=()=>rt.exportExcel(title,body);$('viewer-txt').onclick=()=>rt.exportText(title,body);$('viewer-copy').onclick=()=>navigator.clipboard.writeText(body).then(()=>say('Documento copiato.'));$('viewer').showModal()}
 $('viewer-close').onclick=()=>$('viewer').close();
 
 // What an agent produced can be proposed to the team memory; a person confirms it there.
@@ -221,8 +236,8 @@ $('filter').oninput=renderRoster;
 // ---- attachments (/api/parse-file, same limits as v3.7) ----
 function renderChips(){const box=$('chips');box.replaceChildren(...attachments.map((f,i)=>{const c=node('span','📎 '+f.name,'chip');c.append(btn('×',()=>{attachments.splice(i,1);renderChips()},'Rimuovi '+f.name));return c}))}
 $('attach').onclick=()=>$('file').click();
-$('file').onchange=async()=>{
- for(const file of Array.from($('file').files||[])){
+async function addFiles(files){
+ for(const file of Array.from(files||[])){
   if(attachments.length>=MAX_ATTACH){say('Massimo '+MAX_ATTACH+' file per messaggio.');break}
   const ext=(file.name.split('.').pop()||'').toLowerCase();
   if(!ACCEPTED.includes(ext)){say('Formato non supportato: '+file.name);continue}
@@ -236,7 +251,14 @@ $('file').onchange=async()=>{
   }catch(e){say('Non sono riuscito a leggere '+file.name+': '+e.message)}
  }
  $('file').value='';renderChips();
-};
+}
+$('file').onchange=()=>addFiles($('file').files);
+// Files dropped on the conversation or the composer are attached like the 📎 button (v3.7 drag and drop).
+for(const zone of [$('thread'),$('composer')]){
+ zone.addEventListener('dragover',e=>{if(!project||busy||!e.dataTransfer||![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();$('composer').classList.add('dropping')});
+ zone.addEventListener('dragleave',()=>$('composer').classList.remove('dropping'));
+ zone.addEventListener('drop',e=>{$('composer').classList.remove('dropping');if(!project||busy||!e.dataTransfer||!e.dataTransfer.files.length)return;e.preventDefault();addFiles(e.dataTransfer.files)});
+}
 
 // ---- project ----
 function projectLinks(){
@@ -253,11 +275,17 @@ async function openProject(id){
 }
 $('project').onchange=()=>{if(busy){$('project').value=project.id;return}openProject($('project').value).catch(e=>say(e.message))};
 
+// Agent status light (free GET, as in v3.7) and the signed-in person with a logout.
+async function checkApi(){const el=$('api-status');try{const r=await fetch('/api/chat',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.configured){el.textContent='● Agenti collegati';el.dataset.state='ok'}else{el.textContent=r.status===401?'● Accesso richiesto':'● Agenti non configurati sul server';el.dataset.state='err'}}catch(e){el.textContent='● Agenti non raggiungibili';el.dataset.state='err'}}
+$('logout').onclick=async()=>{if(busy&&!confirm('Un agente sta ancora lavorando. Uscire comunque?'))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
+// Colleagues' replies appear when you come back to the tab, without reloading the page.
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
 async function boot(){
- renderRoster();
+ renderRoster();checkApi();
  try{
   user=await ws.ready();
   if(!user){say('');const p=node('p','Accedi a RADIX dal Command Center per usare gli agenti. ');const a=node('a','Vai al Command Center');a.href='/control-center-v2.html';p.append(a);$('thread').replaceChildren(p);return}
+  $('me').textContent=user.name||user.email||'';$('logout').hidden=false;
   projects=(await ws.projects.list()).filter(p=>p.status!=='archived');
   if(!projects.length){say('Nessun progetto nell’archivio: creane uno dalle pagine Agency o Project manager.');return}
   $('project').replaceChildren(...projects.map(p=>{const o=node('option',p.name+(p.client_name?' · '+p.client_name:''));o.value=p.id;return o}));$('project').disabled=false;

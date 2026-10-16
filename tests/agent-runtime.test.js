@@ -89,3 +89,9 @@ test('v3.7 media tools: slides, email drafts and which agent gets which tool',()
  for(const phrase of ['DAVVERO in coda','DAVVERO un’email','consuma crediti'])assert.ok(src.includes(phrase),'confirmation: '+phrase);
  assert.match(fs.readFileSync('agents-page.js','utf8'),/media\.toolsFor\(/);
 });
+test('Markdown tables become Excel sheets with numbers kept as numbers',()=>{
+ const md='Piano\n\n| Canale | Post | Budget |\n|---|:---:|---|\n| **LinkedIn** | 4 | 1200,50 |\n| Instagram | 6 | da definire |\n\nTesto\n\n| A | B |\n|---|---|\n| 1 | <x> |';
+ const t=rt.markdownTables(md);assert.equal(t.length,2);assert.deepEqual(t[0],[['Canale','Post','Budget'],['LinkedIn','4','1200,50'],['Instagram','6','da definire']]);
+ const x=rt.excelXml('Piano / Q4',md);assert.match(x,/<Worksheet ss:Name="1 Piano   Q4">/);assert.match(x,/<Data ss:Type="Number">1200.5<\/Data>/);assert.match(x,/<Data ss:Type="String">da definire/);assert.match(x,/&lt;x&gt;/);
+ assert.equal(rt.excelXml('Nessuna','solo testo'),null);
+});
