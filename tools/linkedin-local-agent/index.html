@@ -188,6 +188,7 @@ function renderReceiver(){
 async function loadReceiver(id){
  const previousJob=receiverSelected;
  receiverSelected=id;receiverBusy=true;
+ if(previousJob&&previousJob!==id){manualSelected=null;$('manual-review-save').disabled=true;$('manual-review-selected').textContent='Lavoro cambiato: riseleziona il contatto.'}
  if(previousJob&&previousJob!==id){
   $('free-bulk-rows').replaceChildren();
   $('free-reconcile-status').textContent='Lavoro cambiato: esegui un nuovo controllo prima di approvare.';
@@ -394,6 +395,35 @@ $('profile-review-run').onclick=async()=>{
 $('profile-review-stop').onclick=async()=>{
  try{await call('/api/stop');$('profile-review-status').textContent='Interruzione richiesta: attendo la pagina in corso.'}
  catch(e){$('profile-review-status').textContent='Impossibile interrompere: '+e.message}
+};
+
+
+let manualSelected=null;
+function selectManualReview(record){
+ if(!receiverSelected||!record?.profileUrl)return;
+ manualSelected={jobId:receiverSelected,fullName:record.fullName,profileUrl:record.profileUrl,original:{...record}};
+ $('manual-review-selected').textContent='Selezionato: '+record.fullName+' · '+(record.companyName||'azienda da verificare');
+ for(const [id,field] of [['manual-job-title','jobTitle'],['manual-company-name','companyName'],['manual-country','country'],['manual-company-domain','companyDomain']])$(id).value=record[field]||'';
+ $('manual-review-save').disabled=false;
+}
+$('manual-review-cancel').onclick=()=>{manualSelected=null;$('manual-review-save').disabled=true;$('manual-review-selected').textContent='Selezione annullata.'};
+$('manual-review-save').onclick=async()=>{
+ const choice=manualSelected;
+ if(!choice||choice.jobId!==receiverSelected){$('manual-review-selected').textContent='Lavoro cambiato: riseleziona il contatto.';return}
+ const input={jobId:choice.jobId,profileUrl:choice.profileUrl,fullName:choice.fullName,
+  jobTitle:$('manual-job-title').value,companyName:$('manual-company-name').value,
+  country:$('manual-country').value,companyDomain:$('manual-company-domain').value};
+ const changed=['jobTitle','companyName','country','companyDomain'].filter(k=>String(input[k]||'').trim()&&String(input[k]||'').trim()!==String(choice.original[k]||'').trim());
+ if(!changed.length){$('manual-review-selected').textContent='Nessuna modifica. Inserisci un dato verificato.';return}
+ input.replaceExisting=changed.some(k=>choice.original[k]&&choice.original[k]!==input[k]);
+ if(!window.confirm('Confermi la revisione manuale di '+choice.fullName+'? Campi: '+changed.join(', ')+'. '+(input.replaceExisting?'ATTENZIONE: alcuni valori già presenti saranno sostituiti. ':'')+'Controlla sempre le informazioni; nessuna email inventata.'))return;
+ $('manual-review-save').disabled=true;
+ try{
+  const response=await call('/api/contact-review',input);
+  manualSelected=null;await loadReceiver(choice.jobId);
+  $('manual-review-selected').textContent='Salvato sul Mac · '+choice.fullName+' · '+response.fields.join(', ')+'. Scarica un nuovo backup quando hai terminato.';
+  $('free-reconcile-status').textContent='Contatti modificati: ripeti la ricerca gratuita se sono cambiati i nomi aziendali.';
+ }catch(e){$('manual-review-selected').textContent='Salvataggio non riuscito: '+e.message;$('manual-review-save').disabled=false}
 };
 
 const launchArgs=new URLSearchParams(location.search);if(launchArgs.has('source'))$('url').value=launchArgs.get('source');if(launchArgs.has('quantity'))$('quantity').value=launchArgs.get('quantity');
