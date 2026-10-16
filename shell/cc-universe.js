@@ -226,6 +226,7 @@
       });
       box.append(icons);
       top.insertBefore(box, top.firstChild);
+      systemsKpi(on, d.items.length);
     }).catch(function () {});
   }
 
@@ -327,5 +328,39 @@
     new MutationObserver(function () { attention(); counts(); }).observe(document.getElementById('attentionList'), { childList: true });
     steppers(); var wl = document.getElementById('workflowList'); if (wl) new MutationObserver(steppers).observe(wl, { childList: true });
     new MutationObserver(function () { if (snap) activity(snap); }).observe(document.getElementById('activityList'), { childList: true });
+  }
+
+  // 4th KPI: «Sistemi connessi» from /api/integrations/status (configured keys / services RADIX integrates).
+  function systemsKpi(on, total) {
+    var v = document.getElementById('metricAgents'); if (!v) return;
+    var card = v.closest('.metric'), label = card && card.querySelector('.metric-label'), note = v.parentElement.querySelector('.metric-note');
+    function paint() {
+      if (label && label.textContent !== 'Sistemi connessi') label.textContent = 'Sistemi connessi';
+      if (v.textContent !== String(on)) v.textContent = String(on);
+      var n = on + '/' + total + ' configurati'; if (note && note.textContent !== n) note.textContent = n;
+    }
+    if (card) { card.classList.add('cc-kpi-systems'); card.title = 'Servizi esterni con la chiave configurata su questo ambiente'; }
+    paint(); new MutationObserver(paint).observe(card || v, { childList: true, subtree: true, characterData: true });
+  }
+
+  // «Ask RADIX anything»: Enter sends the text to the Partner agent; search hits stay clickable below.
+  var ask = document.getElementById('commandInput'), hits = document.getElementById('searchResults');
+  if (ask) {
+    ask.placeholder = innerWidth < 640 ? 'Chiedi a RADIX…' : 'Chiedi a RADIX o cerca…';
+    ask.setAttribute('aria-label', 'Chiedi a RADIX o cerca');
+    var go = function () { var q = ask.value.trim(); if (q) location.href = '/agents.html?agent=partner&q=' + encodeURIComponent(q); };
+    ask.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' || e.isComposing || !ask.value.trim()) return;
+      e.preventDefault(); e.stopImmediatePropagation(); go();
+    }, true);
+    var askRow = function () {
+      if (!hits || hits.hidden || hits.querySelector('.cc-ask-row')) return;
+      var q = ask.value.trim(); if (!q) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'search-hit cc-ask-row';
+      var t = document.createElement('span'); t.textContent = 'Chiedi a RADIX: «' + q.slice(0, 90) + '»';
+      var k = document.createElement('small'); k.textContent = 'Invio';
+      b.append(t, k); b.addEventListener('click', go); hits.insertBefore(b, hits.firstChild);
+    };
+    if (hits) new MutationObserver(askRow).observe(hits, { childList: true, attributes: true, attributeFilter: ['hidden'] });
   }
 })();
