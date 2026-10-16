@@ -198,14 +198,15 @@ async function handler(req,res){
    return json(res,200,{saved:true,domain,verified:false});
   }
   if(url.pathname==='/api/contact-review'){
-   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine dell’acquisizione o revisione profili'});
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine dell’acquisizione o revisione profili'});
    const id=String(input.jobId||''),job=loadJob(id);
    const record=job.data.records.find(r=>r.profileUrl===input.profileUrl);
    if(!record)return json(res,404,{error:'Contatto non trovato nel lavoro'});
    const reviewed=ContactReview.review(record,input);
    Object.assign(record,reviewed.record);
    if(reviewed.audit.fields.includes('companyName')||reviewed.audit.fields.includes('companyDomain')){
-    for(const note of (job.freeEnrichment||[]))if(note.profileUrl===record.profileUrl&&note.field==='companyDomain'&&!note.supersededAt)note.supersededAt=new Date().toISOString();
+    for(const note of [...(job.freeEnrichment||[]),...(job.braveEnrichment||[])])if(note.profileUrl===record.profileUrl&&note.field==='companyDomain'&&!note.supersededAt)note.supersededAt=new Date().toISOString();
+    job.braveProposals=(job.braveProposals||[]).filter(x=>x.profileUrl!==record.profileUrl);
    }
    job.manualReviews=Array.isArray(job.manualReviews)?job.manualReviews:[];
    job.manualReviews.push({...reviewed.audit,reviewedAt:new Date().toISOString()});
@@ -224,7 +225,7 @@ async function handler(req,res){
    const id=String(input.jobId||''),profileUrl=String(input.profileUrl||'');
    const name=String(input.companyName||''),domain=String(input.domain||''),source=String(input.source||'');
    if(!/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(domain)||domain.length>253||!/^https:\/\/www\.wikidata\.org\/wiki\/Q[1-9]\d{0,11}$/.test(source))return json(res,400,{error:'Proposta fonte/dominio non valida'});
-   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine del lavoro corrente'});
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine del lavoro corrente'});
    const job=loadJob(id),contact=job.data.records.find(r=>r.profileUrl===profileUrl);
    if(!contact||contact.companyName!==name||contact.companyDomain)return json(res,409,{error:'Contatto modificato o dominio già disponibile'});
    contact.companyDomain=domain;
@@ -235,7 +236,7 @@ async function handler(req,res){
   }
   if(url.pathname==='/api/browser'){await openBrowser();return json(res,200,snapshot())}
   if(url.pathname==='/api/profile-review'){
-   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
    if(!state.browser||!state.page||state.page.isClosed())return json(res,409,{error:'Apri prima il browser e accedi personalmente a Sales Navigator'});
    const job=loadJob(String(input.jobId||'')),limit=Number(input.limit);
    const choices=ProfileReview.select(job.data.records,{limit,attempted:(job.profileReview||[]).map(x=>x.profileUrl)});
@@ -245,7 +246,7 @@ async function handler(req,res){
   }
   if(url.pathname==='/api/stop'){state.stopping=true;return json(res,200,snapshot())}
   if(url.pathname==='/api/start'){
-   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
+   if(braveBusy||['running','reviewing'].includes(state.phase))return json(res,409,{error:'Un lavoro è già in esecuzione'});
    if(!state.browser||!state.page||state.page.isClosed())return json(res,409,{error:'Apri prima il browser e accedi personalmente a Sales Navigator'});
    if(input.resumeId){state.active=loadJob(input.resumeId);if(state.active.status==='completed')return json(res,409,{error:'Questo lavoro è già completato'});}
    else {const sourceUrl=Source.validate(input.url),requested=Source.quantity(input.quantity);
