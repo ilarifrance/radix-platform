@@ -212,3 +212,5 @@ html.sx-no-crm .app #main>.content{grid-row:4}
 html.sx-no-crm .app #main>.stats{grid-row:5}
 html.sx-no-crm .app #main>.ai-rail{grid-row:2/6}
 @media (max-width:900px){.app #main>.sx-access{margin:14px 12px 0}}
+/* No CRM workspace: the .sx-access notice is the only next step, so drop the data placeholders that repeat it */
+html.sx-no-crm .top-end .connection,html.sx-no-crm .top-end #workspace,html.sx-no-crm .orbital-nodes .empty-node,html.sx-no-crm .priorities,html.sx-no-crm #notice,html.sx-no-crm .ai-card:has(#ai-focus),html.sx-no-crm .ai-card:has(#ai-tasks),html.sx-no-crm .ai-card.warning{display:none!important}
