@@ -58,7 +58,7 @@ test('pm: synthetic demo tasks are ignored; review waits; all completed is done'
 test('agents are used or not, never block progress; next skips done steps',()=>{
  const e=E.create({id:'p1'});e.brief=fullBrief();E.approveBrief(e);
  const j=journey({editorial:e,agents:{conversations:{copywriter:[{},{}],seo:[]}}});
- assert.equal(step(j,'agents').state,'active');assert.match(step(j,'agents').detail,/1 agente coinvolto · 2 messaggi/);
+ assert.equal(step(j,'agents').state,'active');assert.match(step(j,'agents').detail,/1 agente coinvolto · 2 messaggi/); assert.deepEqual(step(j,'agents').agents,['copywriter']);
  assert.equal(j.done,1);assert.equal(j.progress,25);assert.equal(j.next,'ped');
 });
 

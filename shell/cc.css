@@ -117,3 +117,53 @@
 .rx-cc .activity-item:nth-child(3n)::before{background:color-mix(in srgb,#3ee08f 18%,transparent);border-color:color-mix(in srgb,#3ee08f 45%,transparent)}
 .rx-cc .activity-item .activity-time{grid-column:1;grid-row:1}
 .rx-cc .activity-item .activity-text{grid-column:3;grid-row:1}
+/* Agent satellites around each project planet: one per agent with saved conversations on that project. */
+#networkSvg .cc-agent{cursor:pointer}
+#networkSvg .cc-agent-tether{stroke:var(--pl);stroke-opacity:.35;stroke-width:1;stroke-dasharray:2 3}
+#networkSvg .cc-agent-dot{fill:#04140f;stroke:var(--pl);stroke-width:1.6;filter:drop-shadow(0 0 5px var(--pl))}
+#networkSvg .cc-agent-core{fill:var(--pl)}
+#networkSvg .cc-agent-name{fill:#cfe9df;font:500 10.5px Inter,system-ui,sans-serif;paint-order:stroke;stroke:#020a08;stroke-width:3px}
+#networkSvg .cc-agent:hover .cc-agent-dot,#networkSvg .cc-agent:focus-visible .cc-agent-dot{fill:color-mix(in srgb,var(--pl) 35%,#04140f)}
+#networkSvg .cc-agent:focus-visible{outline:none}
+/* activity rows with the real icon (letter for a project, mark for an agent) and a status ring */
+.rx-cc .activity-item.cc-act{grid-template-columns:44px 26px minmax(0,1fr) 16px!important}
+.rx-cc .activity-item.cc-act::before{display:none}
+.rx-cc .cc-act-icon{grid-column:2;grid-row:1;width:24px;height:24px;margin-top:1px;border-radius:7px;display:grid;place-items:center;font:700 11px/1 Inter,system-ui,sans-serif;font-style:normal;color:var(--ac);background:color-mix(in srgb,var(--ac) 20%,transparent);border:1px solid color-mix(in srgb,var(--ac) 50%,transparent)}
+.rx-cc .cc-act-icon.agent{font-size:12px}
+.rx-cc .cc-ring{grid-column:4;grid-row:1;width:14px;height:14px;margin-top:6px;border-radius:50%;border:1.6px solid #5b7a70;box-sizing:border-box;position:relative}
+.rx-cc .cc-ring.done{border-color:#3ee08f}
+.rx-cc .cc-ring.done::after{content:"";position:absolute;left:3.5px;top:1.5px;width:3px;height:6px;border:solid #3ee08f;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.rx-cc .cc-ring.run{border-color:#5aa8ff;border-right-color:transparent;animation:ccSpin 1.4s linear infinite}
+.rx-cc .cc-ring.err{border-color:#ff6b7a}
+.rx-cc .cc-ring.warn{border-color:#f5b544}
+.rx-cc .cc-ring.info::after{content:"";position:absolute;inset:3.5px;border-radius:50%;background:#5b7a70}
+@keyframes ccSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rx-cc .cc-ring.run{animation:none}}
+/* needs your attention: avatar and Rivedi */
+.rx-cc #attentionList .workflow-card[data-cc]{display:grid;grid-template-columns:34px minmax(0,1fr) auto;column-gap:10px;align-items:center}
+.rx-cc #attentionList .cc-avatar{grid-row:1/span 2;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font:700 15px/1 Inter,system-ui,sans-serif;font-style:normal;color:#9cc8ff;background:rgba(74,168,255,.14);border:1px solid rgba(74,168,255,.45)}
+.rx-cc #attentionList .workflow-card[data-cc] .workflow-name,.rx-cc #attentionList .workflow-card[data-cc] .workflow-task{grid-column:2}
+.rx-cc #attentionList .cc-review{grid-column:3;grid-row:1/span 2;padding:5px 10px;border-radius:8px;font:600 11.5px/1 Inter,system-ui,sans-serif;color:#7dffc0;background:rgba(30,242,143,.1);border:1px solid rgba(30,242,143,.35);white-space:nowrap}
+.rx-cc #attentionList .workflow-card[data-cc]:hover .cc-review{background:rgba(30,242,143,.2)}
+/* sidebar: projects and the RADIX CORE box (Command Center only) */
+.cc-side{padding:10px 0 12px;margin-top:6px}
+.cc-side-head{display:flex;align-items:center;justify-content:space-between;padding-right:8px}
+.cc-side-head .rx-label{padding-top:0;margin:0}
+.cc-side-add{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;color:#9fb8ae;border:1px solid rgba(255,255,255,.18);text-decoration:none;font-size:14px;line-height:1}
+.cc-side-add:hover{color:#fff;border-color:#3ff0b0}
+.cc-side-projects{display:grid;gap:2px;margin-top:6px}
+.cc-side-project{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:9px;color:#d7e8e1;text-decoration:none;font:500 13.5px/1.2 Inter,system-ui,sans-serif}
+.cc-side-project:hover{background:rgba(255,255,255,.05)}
+.cc-side-project i{width:22px;height:22px;flex:none;border-radius:6px;display:grid;place-items:center;font:700 11px/1 Inter,system-ui,sans-serif;font-style:normal;color:#04110c;background:var(--pc)}
+.cc-side-project span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-side-new{color:#9fb8ae}
+.cc-side-new i{background:transparent;color:#9fb8ae;border:1px solid rgba(255,255,255,.2);font-size:14px}
+.cc-core-box{display:block;margin:12px 4px 0;padding:12px 14px;border-radius:14px;text-decoration:none;color:#d7e8e1;background:linear-gradient(160deg,rgba(30,242,143,.08),rgba(255,255,255,.02));border:1px solid rgba(30,242,143,.22)}
+.cc-core-box:hover{border-color:rgba(30,242,143,.45)}
+.cc-core-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.cc-core-mark{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-style:normal;color:#3ff0b0;border:1px solid rgba(63,240,176,.5);box-shadow:0 0 14px rgba(63,240,176,.25)}
+.cc-core-top b{display:block;font:700 12.5px/1.2 Inter,system-ui,sans-serif;letter-spacing:.06em}
+.cc-core-top small{display:block;color:#3ff0b0;font-size:11.5px}
+.cc-core-row{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:12.5px;color:#a9c4b9}
+.cc-core-row b{min-width:22px;color:#3ff0b0;font:700 15px/1 Inter,system-ui,sans-serif}
+.cc-core-row:last-child b{color:#f5b544}
