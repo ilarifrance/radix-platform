@@ -79,7 +79,7 @@ async function scrape(job){
     .catch(()=>{throw Error('Nessun risultato visibile: verifica URL, login oppure selettori della pagina.')});
    let combined=[],profileSeen=new Set();
    for(let scroll=0;scroll<5 && !state.stopping;scroll++){
-    const found=normalizeVisibleCards(await page.evaluate(visibleSearchCards),job.sourceUrl);
+    const found=normalizeVisibleCards(await page.evaluate(visibleSearchCards),job.sourceUrl.length>1000?job.sourceUrl.split('?')[0]:job.sourceUrl);
     for(const r of found)if(!profileSeen.has(r.profileUrl)){profileSeen.add(r.profileUrl);combined.push(r)}
     await page.evaluate(()=>window.scrollBy(0,Math.max(550,window.innerHeight*.7)));
     await delay(600);
