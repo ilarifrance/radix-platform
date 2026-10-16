@@ -1,12 +1,12 @@
 /* Sales Orbit: visual layer that brings the page in line with the reference
-   mockups (globe, J.A.R.V.I.S. column, circular relation nodes). It only
+   mockups (globe, copilot column, circular relation nodes). It only
    restyles: ids, classes and logic of orbit-higgsfield.js stay untouched.
    Selectors start with ".app #main" so they win over the layered rules in
    orbit-higgsfield.css without !important. */
 
 body{background:radial-gradient(ellipse 70% 55% at 45% 42%,#06303a 0,#041a24 46%,#020d15 100%) fixed #020d15}
 
-/* ---------- page grid: scene on the left, J.A.R.V.I.S. on the right ---------- */
+/* ---------- page grid: scene on the left, copilot on the right ---------- */
 @media (min-width:1100px){
   .app #main{display:grid;grid-template-columns:minmax(0,1fr) 262px;column-gap:20px;padding-right:18px;align-content:start}
   .app #main>.topbar{grid-column:1/-1;grid-row:1}
@@ -76,21 +76,21 @@ html.so-globe .app #main .orbit-stage .hologram{display:none}
 .app #main .entity-node[data-pos="4"]{top:57%;left:75%;right:auto}
 .app #main .entity-node[data-pos="3"]:is(:hover,:focus-visible){transform:translate(calc(-100% + 31px),calc(-50% - 3px))}
 
-/* ---------- J.A.R.V.I.S. command bar ---------- */
-.app #main .jarvis{width:auto;margin:34px 30px 0;min-height:150px;padding:20px 34px 20px 22px;gap:26px;border-radius:90px;border-color:#2fb9a6;background:linear-gradient(100deg,#0a2d38f0,#061d29f2);box-shadow:0 0 0 8px #36edbd0a,0 0 40px #20cbb233,inset 0 0 30px #36edbd12}
-.app #main .jarvis-orb{width:112px;height:112px;font-size:0;border:1.5px solid #5de7d5;background:radial-gradient(circle at 38% 32%,#bffff0 0,#3bd9c2 9%,#0e5d63 32%,#03232d 62%,#010d14 100%);box-shadow:0 0 0 9px #36edbd12,0 0 0 10px #36edbd30,0 0 36px #48fcd380,inset 0 0 22px #5dffe066}
-.app #main .jarvis-input{gap:12px 14px}
-.app #main .jarvis-input label{font-size:17px;letter-spacing:.08em}
-.app #main .jarvis-input input{font-size:17px;color:#cfe9e4;padding:14px 0}
-.app #main .jarvis-input input::placeholder{color:#9fbdc0}
-.app #main .jarvis-input:has(input){position:relative}
-.app #main .jarvis-input label,.app #main .jarvis-input input{position:relative;z-index:1}
-.app #main .jarvis-input::before{content:"";position:absolute;left:-12px;right:44px;top:0;height:52px;border:1px solid #2a5f63;border-radius:30px;background:#0a2833b0}
-.app #main .jarvis-input>button{font-size:0;width:40px;height:40px;position:relative;z-index:1}
-.app #main .jarvis-input>button::before{content:"";position:absolute;inset:6px;background:#56f0cc;-webkit-mask:var(--so-i-send) center/contain no-repeat;mask:var(--so-i-send) center/contain no-repeat}
-.app #main .jarvis-prompts{gap:10px}
-.app #main .jarvis-prompts button{font-size:13px;padding:10px 18px;border-radius:30px;background:#0a2a34;border-color:#2d5e62;color:#cfe3e0;cursor:pointer}
-.app #main .jarvis-prompts button:hover{border-color:#3fe8bd;color:#fff}
+/* ---------- RADIX AI command bar ---------- */
+.app #main .assist{width:auto;margin:34px 30px 0;min-height:150px;padding:20px 34px 20px 22px;gap:26px;border-radius:90px;border-color:#2fb9a6;background:linear-gradient(100deg,#0a2d38f0,#061d29f2);box-shadow:0 0 0 8px #36edbd0a,0 0 40px #20cbb233,inset 0 0 30px #36edbd12}
+.app #main .assist-orb{width:112px;height:112px;font-size:0;border:1.5px solid #5de7d5;background:radial-gradient(circle at 38% 32%,#bffff0 0,#3bd9c2 9%,#0e5d63 32%,#03232d 62%,#010d14 100%);box-shadow:0 0 0 9px #36edbd12,0 0 0 10px #36edbd30,0 0 36px #48fcd380,inset 0 0 22px #5dffe066}
+.app #main .assist-input{gap:12px 14px}
+.app #main .assist-input label{font-size:17px;letter-spacing:.08em}
+.app #main .assist-input input{font-size:17px;color:#cfe9e4;padding:14px 0}
+.app #main .assist-input input::placeholder{color:#9fbdc0}
+.app #main .assist-input:has(input){position:relative}
+.app #main .assist-input label,.app #main .assist-input input{position:relative;z-index:1}
+.app #main .assist-input::before{content:"";position:absolute;left:-12px;right:44px;top:0;height:52px;border:1px solid #2a5f63;border-radius:30px;background:#0a2833b0}
+.app #main .assist-input>button{font-size:0;width:40px;height:40px;position:relative;z-index:1}
+.app #main .assist-input>button::before{content:"";position:absolute;inset:6px;background:#56f0cc;-webkit-mask:var(--so-i-send) center/contain no-repeat;mask:var(--so-i-send) center/contain no-repeat}
+.app #main .assist-prompts{gap:10px}
+.app #main .assist-prompts button{font-size:13px;padding:10px 18px;border-radius:30px;background:#0a2a34;border-color:#2d5e62;color:#cfe3e0;cursor:pointer}
+.app #main .assist-prompts button:hover{border-color:#3fe8bd;color:#fff}
 
 .app #main .enter{margin:30px auto 6px;padding:12px 14px 12px 32px;gap:24px;font-size:21px;font-weight:600;border-radius:16px;background:linear-gradient(100deg,#0b2c33,#0d3f40);border-color:#2fd5b3;box-shadow:0 0 30px #2ff0c733}
 .app #main .enter b{width:52px;height:52px;font-size:26px;background:radial-gradient(circle at 40% 35%,#7dffcf,#26d796);box-shadow:0 0 18px #38fbb6a0}
@@ -152,9 +152,9 @@ html.so-globe .app #main .orbit-stage .hologram{display:none}
   .app #main .entity-node[data-pos="4"]{top:285px;left:86%}
   .app #main .entity-node b{font-size:12px}
   .app #main .entity-node small{display:none}
-  .app #main .jarvis{margin:20px 0 0;border-radius:24px;padding:14px;gap:12px}
-  .app #main .jarvis-orb{width:56px;height:56px}
-  .app #main .jarvis-input::before{display:none}
+  .app #main .assist{margin:20px 0 0;border-radius:24px;padding:14px;gap:12px}
+  .app #main .assist-orb{width:56px;height:56px}
+  .app #main .assist-input::before{display:none}
   .app #main .stats article{padding-left:66px}
 }
 @media (prefers-reduced-motion:reduce){.app #main .entity-node{transition:none}}

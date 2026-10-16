@@ -404,6 +404,10 @@
     });
     return b;
   }
+  // PED: the week calendar as an hour grid with the left rail (design layer, no change to the page's own scripts).
+  if (/project-editorial/.test(location.pathname) && document.getElementById('calendar')) {
+    var pedJs = document.createElement('script'); pedJs.src = '/shell/ped-calendar.js'; document.body.appendChild(pedJs);
+  }
   if (window.fetch && body.dataset.shellUser !== 'off') {
     fetch('/api/auth/me', { credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
