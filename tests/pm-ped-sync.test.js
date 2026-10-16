@@ -31,3 +31,12 @@ test('PM work never goes backwards because of the PED',()=>{
  const s=base();v.syncFromPed(pm,s,{contents:[C('c1')]});pm.changeStatus(s,s.tasks[0].id,'In corso');
  v.syncFromPed(pm,s,{contents:[C('c1')]});assert.equal(s.tasks[0].status,'In corso');
 });
+
+test('incarichi added to the Agency plan later get their PM task, after their dependencies',()=>{
+ const s=base();const t1=pm.create(s,{title:'Copywriter — testi',owner:'Copywriter',start:'',due:'2026-10-20',project:'p1',subproject:'p1s1',approvalRequired:true});t1.agencyTaskId='step-1';
+ const agency={roles:{copywriter:'Copywriter','seo-specialist':'SEO'},tasks:[{id:'step-1',role:'copywriter',instruction:'testi',dependsOn:[]},{id:'step-2',role:'seo-specialist',instruction:'Analizza le keyword',dependsOn:['step-1']}]};
+ const added=v.addFromAgency(pm,s,agency,'2026-10-16');assert.equal(added.length,1);
+ const t2=s.tasks.find(t=>t.agencyTaskId==='step-2');assert.equal(t2.title,'SEO — Analizza le keyword');assert.equal(t2.due,'2026-10-27');assert.deepEqual(t2.dependencies,[t1.id]);assert.equal(t2.approvalRequired,true);
+ assert.equal(v.addFromAgency(pm,s,agency,'2026-10-16').length,0);
+ assert.equal(v.addFromAgency(pm,base(),agency,'2026-10-16').length,0,'hand-made plans are not touched');
+});
