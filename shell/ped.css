@@ -299,3 +299,20 @@ html.ped-grid .rx-ped .calendar-empty{display:none}
 .rx-ped #pedPage .hero:has(#newContent:disabled) #briefSummary::before{content:"";width:8px;height:8px;flex:none;border-radius:50%;background:var(--rx-warning);box-shadow:0 0 8px var(--rx-warning)}
 .rx-ped #pedPage .hero button:disabled{opacity:1;background:transparent!important;border-color:var(--rx-border)!important;color:var(--rx-subtle)!important;cursor:not-allowed}
 .rx-ped .ped-rail-label:has(+.ped-rail-channels:empty){display:none}
+/* Week grid: taller hours; overlapping contents in narrow days stack inside the hour (ped-compact) */
+html.ped-grid .rx-ped .calendar-column>.calendar-event strong{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact{display:flex;flex-direction:row;align-items:center;gap:6px;padding:3px 26px 3px 10px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact small{display:none}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact strong{-webkit-line-clamp:1;font-size:11.5px;flex:1 1 auto;min-width:0}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact .ped-pill{display:none}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact .ped-ch{top:50%;transform:translateY(-50%);width:16px;height:16px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact:hover{height:auto!important;flex-direction:column;align-items:flex-start;padding:6px 26px 6px 10px}
+html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact:hover small,html.ped-grid .rx-ped .calendar-column>.calendar-event.ped-compact:hover .ped-pill{display:block}
+/* Left rail sections (shell/ped-calendar.js sets html[data-ped-section]); the content editor opens under the calendar */
+html[data-ped-section="calendar"] .rx-ped #pedPage>:is(#metrics,#analytics,.filters,#groups),
+html[data-ped-section="calendar"] .rx-ped #pedPage>.layout>section:first-child,
+html[data-ped-section="calendar"] .rx-ped #pedPage>.layout:not(:has(#contentForm:not([hidden]))),
+html[data-ped-section="overview"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,.filters,#groups,.layout),
+html[data-ped-section="analytics"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,.filters,#groups,.layout),
+html[data-ped-section="library"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,#analytics){display:none!important}
+html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns:minmax(0,1fr)!important;margin-top:18px}
