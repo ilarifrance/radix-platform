@@ -5,7 +5,7 @@
 (function () {
   var cal = document.getElementById('calendar'), page = document.getElementById('pedPage');
   if (!cal || !page) return;
-  var H0 = 7, H1 = 23, ROW = 80; // visible hours and pixels per hour
+  var H0 = 7, H1 = 23, ROW = 92; // visible hours and pixels per hour
   var STATUS = { draft: 'Bozza', review: 'In revisione', approved: 'Approvato', queued: 'In coda', published: 'Pubblicato', scheduled: 'Programmato' };
   var root = document.documentElement;
   root.style.setProperty('--ped-row', ROW + 'px');
@@ -79,7 +79,7 @@
         var n = Math.max.apply(null, over.map(function (y) { return y.lane; })) + 1;
         // Narrow day columns stack overlapping contents inside the hour instead of splitting it into slivers.
         var stack = n > 1 && col.clientWidth < 240, h = stack ? ROW / n : ROW, top = x.top + (stack ? x.lane * h : 0);
-        x.ev.dataset.pedTop = top; x.ev.style.top = 'calc(var(--ped-off) + ' + top + 'px)'; x.ev.style.height = (h - 4) + 'px';
+        x.ev.dataset.pedTop = top; x.ev.style.top = 'calc(var(--ped-off) + ' + top + 'px)'; x.ev.style.height = (h - 6) + 'px';
         x.ev.classList.toggle('ped-compact', stack);
         x.ev.style.left = stack ? '3px' : 'calc(' + (x.lane / n * 100) + '% + 3px)'; x.ev.style.width = stack ? 'calc(100% - 6px)' : 'calc(' + (100 / n) + '% - 6px)';
       });
