@@ -58,7 +58,7 @@ function build(d){const opps=d.opportunities,tasks=d.tasks,val=o=>Number(o.amoun
   const rail=E('aside',undefined,'an-rail');rail.append(E('h3','In sintesi'));const best=stages.map(s=>[s,opps.filter(o=>o.stage_id===s.id).reduce((a,o)=>a+val(o),0)]).sort((a,b)=>b[1]-a[1])[0];
   const lines=[`La pipeline vale ${eur(total)} su ${opps.length} opportunità.`,best?`La fase con più valore è ${best[0].title} (${pct(best[1],total)}%).`:'',`${pct(linked,tasks.length)}% delle attività è collegato a un’opportunità.`,avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
   for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM, senza modelli previsionali. Probabilità e punteggi arriveranno quando il CRM li salverà.','an-note'));
-  const ask=E('a','Chiedi a J.A.R.V.I.S. in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
+  const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
 
 let busy=false;

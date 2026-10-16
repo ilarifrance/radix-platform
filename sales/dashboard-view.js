@@ -95,7 +95,7 @@ function rail(d,m){const r=E('aside',undefined,'pv-rail');const h=E('div',undefi
   if(!items.length)r.append(E('p','Niente da segnalare oggi.','pv-empty'));
   for(const [t,s,href] of items){const a=E('a',undefined,'pv-action');a.href=href;a.append(E('b',t),E('small',s));r.append(a)}
   const next=E('div',undefined,'pv-rail-block');next.append(E('h4','Prossime attività'));for(const t of [...m.open].sort((a,b)=>String(a.due_at||'9999').localeCompare(String(b.due_at||'9999'))).slice(0,3)){const p=E('p');p.append(E('b',t.title),E('small',company(d,t.company_id)+' · '+fmtDay(t.due_at)));next.append(p)}r.append(next);
-  const ask=E('a','Chiedi a J.A.R.V.I.S. in Sales Orbit →','pv-ask');ask.href='/sales-orbit-higgsfield.html';r.append(ask);return r}
+  const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','pv-ask');ask.href='/sales-orbit-higgsfield.html';r.append(ask);return r}
 
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}

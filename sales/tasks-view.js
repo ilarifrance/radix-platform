@@ -77,7 +77,7 @@ function rail(d,g){const r=E('aside',undefined,'tv-rail');const h=E('div',undefi
   [['bulb',`Hai ${g.today.length} attività oggi, ${high} ad alta priorità`],['cal',`${g.due.length} attività scadute o in scadenza oggi`],['chart','Pipeline nel CRM: '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(pipe/100)],['clock',`${atRisk} trattative chiudono entro 14 giorni senza attività`]].forEach(([i,t])=>{const b=E('p',undefined,'tv-brief');b.append(E('span',undefined,'tv-ico '+i),E('span',t));r.append(b)});
   r.append(E('p','Numeri calcolati dai dati del CRM.','tv-note'));
   const q=E('div',undefined,'tv-quick');q.append(E('h4','Azioni rapide'));
-  [['Nuova attività',()=>[...document.querySelectorAll('#tasks>.row button.primary')][0]?.click()],['Prepara email in Lead Intelligence','/lead-intelligence.html#email-studio'],['Apri J.A.R.V.I.S. in Sales Orbit','/sales-orbit-higgsfield.html']].forEach(([t,a])=>{const el=typeof a==='string'?E('a',t):E('button',t);if(typeof a==='string')el.href=a;else{el.type='button';el.addEventListener('click',a)}q.append(el)});
+  [['Nuova attività',()=>[...document.querySelectorAll('#tasks>.row button.primary')][0]?.click()],['Prepara email in Lead Intelligence','/lead-intelligence.html#email-studio'],['Apri il Copilota commerciale in Sales Orbit','/sales-orbit-higgsfield.html']].forEach(([t,a])=>{const el=typeof a==='string'?E('a',t):E('button',t);if(typeof a==='string')el.href=a;else{el.type='button';el.addEventListener('click',a)}q.append(el)});
   r.append(q);return r}
 
 let busy=false;
