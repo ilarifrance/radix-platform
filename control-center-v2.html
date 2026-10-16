@@ -836,14 +836,21 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var host=$('operationalView');
     if(host&&!host.hidden&&['agents','knowledge','approvals','analytics','integrations'].includes(currentView))renderOperationalView(currentView);
   }
-  function integrationStatusItems(snapshot,agentCount){
+  function integrationStatusItems(snapshot,agentCount,services){
     var quality=snapshot.dataQuality||{},workflows=snapshot.workflows||[],user=snapshot.user||{};
     return [
       {icon:'●',name:'Sessione e snapshot RADIX',meta:user.name||user.email?'Connesso':'Identità non disponibile',detail:(quality.source||'sorgente non dichiarata')+' · dati caricati in sola lettura',action:''},
       {icon:'⟲',name:'Orchestratori v3.7',meta:workflows.length+' workflow salvati',detail:agentCount+' agenti configurati · esecuzione live '+(quality.realtimeExecutionVerified===true?'verificata':'non verificata'),action:'view:command'},
       {icon:'↗',name:'Workspace v3.7',meta:'Disponibile',detail:'Chat e orchestratori esistenti · il progetto selezionato non viene trasferito',action:'workspace'},
-      {icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}
-    ];
+    ].concat(services?services.map(function(i){
+      return {icon:i.configured?'✓':'○',name:i.label,meta:i.configured?'Chiave configurata':'Non collegato',detail:i.use+(i.configured?' · la chiave viene verificata al primo utilizzo':' · manca la chiave su Vercel: la funzione resta disattivata'),action:''};
+    }):[{icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}]);
+  }
+  // Which external services have a key on this deployment (booleans only), read once per page view.
+  var integrations=null,integrationsLoading=false;
+  function loadIntegrations(){
+    if(integrations||integrationsLoading||!window.fetch)return;integrationsLoading=true;
+    fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){integrations=d.items;if(currentView==='integrations')renderOperationalView('integrations')}}).catch(function(){}).then(function(){integrationsLoading=false});
   }
   function filterAgentRoster(roster,states,filters){
     var query=String(filters.query||'').trim().toLocaleLowerCase('it-IT');
@@ -883,8 +890,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }else if(view==='analytics'){
       title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
     }else{
-      title='Integrations';var integrations=integrationStatusItems(data,AGENTS.length);
-      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',integrations.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action)}).join(''));
+      title='Integrations';loadIntegrations();var items=integrationStatusItems(data,AGENTS.length,integrations);
+      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',items.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action)}).join(''));
     }
     host.innerHTML=html;host.setAttribute('aria-label',title);
     var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};

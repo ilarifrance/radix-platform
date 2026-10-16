@@ -6,7 +6,8 @@ const handlers = Object.freeze({
   'buffer': '../_buffer',
   'heygen': '../_heygen',
   'openai-image': '../_openai-image',
-  'send-email': '../_send-email'
+  'send-email': '../_send-email',
+  'status': '../_integrations-status'
 });
 module.exports = async function integrationRoute(req, res) {
   const service = req.query && req.query.service;

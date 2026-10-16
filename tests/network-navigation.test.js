@@ -60,6 +60,9 @@ test('Integrations reports only snapshot-supported states and links to existing 
  assert.equal(items[3].meta,'Stato non disponibile');assert.equal(items[3].action,'');
  const verified=context.integrationStatusItems({...snapshot,dataQuality:{source:'dashboard',realtimeExecutionVerified:true,integrationsVerified:true}},30);
  assert.equal(verified[3].meta,'Connessioni verificate');assert.ok(verified[1].detail.includes('esecuzione live verificata'));
+ const keyed=context.integrationStatusItems(snapshot,30,[{id:'buffer',label:'Buffer',use:'Coda',configured:false},{id:'anthropic',label:'Agenti AI',use:'Chat',configured:true}]);
+ assert.equal(keyed.length,5);assert.equal(keyed[3].meta,'Non collegato');assert.equal(keyed[4].meta,'Chiave configurata');
+ assert.ok(script.includes("fetch('/api/integrations/status'"));
  assert.ok(script.includes("parts[0]==='view')setView"));
 });
 test('Agents filters the configured roster by real saved state without implying live execution',()=>{
