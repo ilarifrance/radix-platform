@@ -6,7 +6,7 @@ const growthProjects=require('./_lead_growth_projects');
 const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
 const providerCallback=require('./_lead_provider_callback');
-const fields = Object.freeze({companies:['name'],contacts:['name','company_id'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
+const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
@@ -18,11 +18,14 @@ function timestamp(v){
 }
 // Calendar date, not an instant: no timezone conversion or inferred close time.
 function calendarDate(v){return typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && timestamp(v+'T00:00:00Z');}
+// Optional record fields (phase A): empty string clears them, as NULL does.
+const TEXT_LIMITS=Object.freeze({website:300,industry:120,email:254,phone:40,city:120,notes:4000,role:120,linkedin_url:300,lost_reason:500});
 function command(body){
  if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k)))fail(400,'Comando non valido.');
  const {workspace,entity,action}=body; let d=body.data;
  if(!uuid(workspace)||!Object.hasOwn(fields,entity)||!['create','update','delete','transition'].includes(action)||!object(d))fail(400,'Comando non valido.');
  let allowed=[...fields[entity]];
+ if(action==='create'&&entity==='opportunities')allowed=allowed.filter(k=>!['outcome','lost_reason'].includes(k));
  if(action==='update'){if(entity==='opportunities')allowed=allowed.filter(k=>!['process_id','stage_id'].includes(k));if(entity==='processes')allowed=allowed.filter(k=>k!=='kind');allowed.push('id','version');}
  if(action==='delete')allowed=['id','version'];
  if(action==='transition'){if(entity!=='opportunities')fail(400,'Transizione non supportata.');allowed=['id','version','stage_id','key'];}
@@ -35,6 +38,11 @@ function command(body){
    else if(['priority','task_priority'].includes(k)){if(v===null&&k==='task_priority')continue;if(!['low','normal','high','urgent'].includes(v))fail(400,'Priorità non valida.');}
    else if(k==='task_due_days'){if(v!==null&&(!Number.isInteger(v)||v<0||v>3650))fail(400,'Intervallo scadenza non valido.');}
    else if(k==='body'){if(typeof v!=='string'||v.length>4000)fail(400,'Nota troppo lunga.');}
+   else if(Object.hasOwn(TEXT_LIMITS,k)){if(v===null||v==='')continue;if(typeof v!=='string'||v.length>TEXT_LIMITS[k]||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(v))fail(400,'Testo troppo lungo o non valido.');if(k==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v))fail(400,'Email non valida.');if(['website','linkedin_url'].includes(k)&&!/^https?:\/\/\S+$/i.test(v))fail(400,'Indirizzo web non valido: inizia con https://');}
+   else if(k==='marketing_consent'){if(typeof v!=='boolean')fail(400,'Consenso non valido.');}
+   else if(k==='consent_at'){if(v!==null&&!timestamp(v))fail(400,'Data consenso non valida.');}
+   else if(k==='probability'){if(v!==null&&(!Number.isInteger(v)||v<0||v>100))fail(400,'Probabilità tra 0 e 100.');}
+   else if(k==='outcome'){if(!['open','won','lost'].includes(v))fail(400,'Esito non valido.');}
    else if(k==='id'||k==='key'||k.endsWith('_id')){if(v===null && ['company_id','contact_id','opportunity_id'].includes(k))continue;if(v===null&&entity==='tasks'&&['process_id','stage_id'].includes(k))continue;if(!uuid(v))fail(400,'Identificativo non valido.');}
    else if(['name','title','task_title'].includes(k)){if(k==='task_title'&&v===null)continue;if(typeof v!=='string'||!v.trim()||v.length>200)fail(400,'Testo obbligatorio: massimo 200 caratteri.');}
    else if(k==='amount_cents'){if(!Number.isSafeInteger(v)||v<0||v>9000000000000)fail(400,'Importo non valido.');}
@@ -49,10 +57,23 @@ function command(body){
    if(required.some(k=>d[k]===undefined||d[k]===null))fail(400,'Campi obbligatori mancanti.');
  }
  if(action==='update'&&Object.keys(d).length===2)fail(400,'Nessuna modifica.');
+ if(d.outcome==='lost'&&(typeof d.lost_reason!=='string'||!d.lost_reason.trim()))fail(400,'Indica il motivo della perdita.');
+ if(Object.hasOwn(d,'lost_reason')&&d.lost_reason&&d.outcome!=='lost')fail(400,'Il motivo vale solo per le trattative perse.');
+ d={...d};for(const k of Object.keys(TEXT_LIMITS))if(d[k]==='')d[k]=null;
  if(entity==='tasks'&&((Object.hasOwn(d,'process_id')!==Object.hasOwn(d,'stage_id'))||(Object.hasOwn(d,'process_id')&&((d.process_id===null)!==(d.stage_id===null)))))fail(400,'Processo e fase devono essere coerenti.');
  if(action==='transition'&&(!d.key||!d.stage_id))fail(400,'Fase e chiave idempotenza obbligatorie.');
  d={...d};if(action==='create')d.id=randomUUID();if(action==='transition')d.task_id=randomUUID();
  return {workspace,entity,action,data:d};
+}
+// Workspace members (phase A): owners/admins add an existing RADIX account by email, change roles, remove.
+function memberCommand(body){
+ if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.entity!=='members'||!uuid(body.workspace)||!['add','update','remove'].includes(body.action)||!object(body.data))fail(400,'Comando membri non valido.');
+ const d=body.data,keys=Object.keys(d).sort().join(',');
+ const roles=['owner','admin','member','viewer'];
+ if(body.action==='add'){if(keys!=='email,role'||typeof d.email!=='string'||d.email.length>254||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email.trim())||!roles.includes(d.role))fail(400,'Indica email e ruolo validi.');}
+ else if(body.action==='update'){if(keys!=='role,user_id'||!Number.isInteger(d.user_id)||d.user_id<1||!roles.includes(d.role))fail(400,'Membro o ruolo non validi.');}
+ else if(keys!=='user_id'||!Number.isInteger(d.user_id)||d.user_id<1)fail(400,'Membro non valido.');
+ return {workspace:body.workspace,entity:'members',action:body.action,data:{...d,...(d.email?{email:d.email.trim()}:{})}};
 }
 function createHandler({getSessionUser,getStore}){
  return async function(req,res){
@@ -77,7 +98,7 @@ function createHandler({getSessionUser,getStore}){
      }else if(body?.entity==='lead_public_lookup'){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='suggest'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).some(k=>!['name','domain'].includes(k)))fail(400,'Richiesta ricerca pubblica non valida.');
        c={workspace:body.workspace,entity:'lead_public_lookup',data:body.data};
-     }else c=body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
+     }else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)))fail(400,'Parametro non consentito.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
@@ -106,13 +127,13 @@ function createHandler({getSessionUser,getStore}){
    }
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
-     return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):store.command(c,user.uid))]});
+     return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):c.entity==='members'?store.memberCommand(c,user.uid):store.command(c,user.uid))]});
    }
    return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
  }catch(e){
-   const codes={'42P01':[503,'Archivio Lead Intelligence non attivato: migrazione Preview ancora da applicare in un database isolato.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
+   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-008 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
    const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
  }
  };
 }
-module.exports={createHandler,command,uuid,fields,timestamp,calendarDate};
+module.exports={createHandler,command,memberCommand,uuid,fields,timestamp,calendarDate};

@@ -3,7 +3,6 @@ const {fields}=require('./_sales');
 const {createLeadListStore}=require('./_lead_lists_store');
 const {createLeadContactJobsStore}=require('./_lead_contact_jobs_store');
 const {createGrowthProjectsStore}=require('./_lead_growth_projects_store');
-const {isolatedUrl}=require('./_lead_db_guard');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
@@ -16,13 +15,8 @@ function normalize(value,key=''){
 }
 function createStore(rawSql){
  const sql=async(...args)=>normalize(await rawSql(...args));
- // Sensitive Lead archives must never connect to the shared RADIX database.
- let leadRaw=null;
- const leadSql=async(...args)=>{
-  const leadUrl=isolatedUrl(process.env.LEAD_DATABASE_URL,process.env.DATABASE_URL,process.env.VERCEL_ENV);
-  if(!leadRaw)leadRaw=require('@neondatabase/serverless').neon(leadUrl);
-  return normalize(await leadRaw(...args));
- };
+ // Acquisition (Lead Intelligence) lives in the same CRM database since phase A: one archive, one pipeline.
+ const leadSql=sql;
  const allowedRoles="m.role IN ('owner','admin','member','viewer')";
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
@@ -62,6 +56,11 @@ function createStore(rawSql){
    if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.
    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+ },
+ memberCommand:async(c,u)=>{
+   const messages={'unknown user':[404,'Nessun account RADIX con questa email: crealo prima dall\'amministrazione.'],'already member':[409,'Questa persona è già nel workspace.'],'last owner':[409,'Il workspace deve avere almeno un owner.'],'forbidden':[403,'Solo owner e admin gestiscono i membri; solo un owner assegna owner o admin.']};
+   try{const rows=await sql('SELECT sales_member_command($1::uuid,$2::integer,$3::text,$4::jsonb) AS result',[c.workspace,u,c.action,JSON.stringify(c.data)]);return rows[0].result;}
+   catch(e){const m=messages[e.message];if(m){const err=new Error(m[1]);err.status=m[0];throw err;}if(e.code==='23503'){const err=new Error('Riassegna prima le trattative e le attività di questo membro.');err.status=409;throw err;}throw e;}
  },
  command:async(c,u)=>{
    // One HTTP SQL statement calls one atomic PL/pgSQL function. No fake BEGIN/COMMIT across HTTP connections.

@@ -546,7 +546,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       var next=response.body;
       if(!next||!Array.isArray(next.projects)||!Array.isArray(next.workflows)||!next.metrics)throw new Error('Snapshot RADIX non valido. Riprova.');
       data=next;render();
-      if(currentView!=='network')setView(currentView); // a #view link opened before the snapshot arrived
+      if(typeof currentView==='string'&&currentView!=='network'&&typeof setView==='function')setView(currentView); // a #view link opened before the snapshot arrived
       $('systemStatus').textContent='SNAPSHOT CARICATO';$('syncNotice').hidden=true;$('fatal').classList.remove('show');
       $('app').classList.remove('loading');$('app').inert=false;
     }catch(err){
