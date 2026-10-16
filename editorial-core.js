@@ -49,6 +49,17 @@
   function rubricsFromBrief(state){const have=new Set((state.rubrics||[]).map(x=>x.name.toLowerCase()));return [...new Set(String(state.brief&&state.brief.topics||'').split(/[\n;,]+/).map(x=>x.replace(/^\s*[-*•\d.)]+\s*/,'').replace(/[:.]+$/,'').trim()).filter(x=>x&&x.length<=120))].filter(x=>!have.has(x.toLowerCase())).slice(0,20)}
   // Per campaign: how many contents, their states, channels, and those dated outside the campaign.
   function campaignStats(state,columnOf){const col=columnOf||(x=>x.status);return (state.campaigns||[]).map(c=>{const items=state.contents.filter(x=>x.campaignId===c.id),by={draft:0,review:0,approved:0,queued:0};items.forEach(x=>{const k=col(x);by[k]=(by[k]||0)+1});return {campaign:c,total:items.length,byStatus:by,channels:[...new Set(items.map(x=>x.channel))].sort(),undated:items.filter(x=>!x.date).length,outside:items.filter(x=>x.date&&((c.start&&x.date<c.start)||(c.end&&x.date>c.end))).length}})}
-  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
+  // Publishing schedule: dates and times in the PED are wall-clock times in the plan's time zone.
+  const DEFAULT_TIMEZONE='Europe/Rome';
+  function validTimeZone(tz){if(!tz||typeof tz!=='string')return false;try{new Intl.DateTimeFormat('en-US',{timeZone:tz});return true}catch(e){return false}}
+  function timeZoneOf(state){return state&&validTimeZone(state.timezone)?state.timezone:DEFAULT_TIMEZONE}
+  function setTimeZone(state,tz){if(!validTimeZone(tz))throw Error('Fuso orario non valido');state.timezone=tz;return tz}
+  function tzOffset(ms,tz){const p={};new Intl.DateTimeFormat('en-US',{timeZone:tz,hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).formatToParts(new Date(ms)).forEach(x=>{p[x.type]=x.value});return Date.UTC(+p.year,+p.month-1,+p.day,+p.hour%24,+p.minute,+p.second)-Math.floor(ms/1000)*1000}
+  function zonedTime(date,time,tz){if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time||''))return null;const [y,m,d]=date.split('-').map(Number),[h,mi]=time.split(':').map(Number),wall=Date.UTC(y,m-1,d,h,mi);let t=wall-tzOffset(wall,tz);t=wall-tzOffset(t,tz);return new Date(t).toISOString()}
+  // At the planned local time while it is still ahead (5 minutes margin); otherwise only Buffer's next free slot is possible.
+  function publishSchedule(state,item,now){const tz=timeZoneOf(state),at=item?zonedTime(item.date,item.time,tz):null,t=now==null?Date.now():now;if(!at)return {mode:'queue',timezone:tz,scheduledAt:null,reason:'missing'};if(Date.parse(at)<=t+5*60000)return {mode:'queue',timezone:tz,scheduledAt:at,reason:'past'};return {mode:'scheduled',timezone:tz,scheduledAt:at,reason:''}}
+  // What an approval of a content covers; the server checks the same fields before publishing.
+  function approvalPayload(item){return {title:item.title,channel:item.channel,date:item.date,time:item.time||'',copy:item.copy,revision:item.revision}}
+  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats,DEFAULT_TIMEZONE,validTimeZone,timeZoneOf,setTimeZone,zonedTime,publishSchedule,approvalPayload};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
 })(typeof window==='undefined'?globalThis:window);
 

@@ -75,3 +75,25 @@ CREATE TABLE IF NOT EXISTS rx_activity (
 );
 
 CREATE INDEX IF NOT EXISTS rx_activity_project_idx ON rx_activity(project_id, id DESC);
+CREATE TABLE IF NOT EXISTS rx_publications (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ revision integer NOT NULL CHECK (revision > 0),
+ service text NOT NULL CHECK (service IN ('buffer')),
+ channel_id text NOT NULL CHECK (length(channel_id) BETWEEN 1 AND 120),
+ channel_name text NOT NULL DEFAULT '' CHECK (length(channel_name) <= 160),
+ mode text NOT NULL CHECK (mode IN ('scheduled','queue')),
+ timezone text NOT NULL DEFAULT '' CHECK (length(timezone) <= 60),
+ scheduled_at timestamptz,
+ status text NOT NULL CHECK (status IN ('sending','queued','failed')),
+ post_id text,
+ due_at timestamptz,
+ error text NOT NULL DEFAULT '' CHECK (length(error) <= 500),
+ attempts integer NOT NULL DEFAULT 1 CHECK (attempts > 0),
+ requested_by integer REFERENCES users(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, revision, service)
+);
+CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC);
