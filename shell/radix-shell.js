@@ -404,6 +404,10 @@
     });
     return b;
   }
+  // Command Center: CRM planets in the universe and the connected systems in the top bar (design layer).
+  if (/control-center-v2/.test(location.pathname) && document.getElementById('networkSvg')) {
+    var ccJs = document.createElement('script'); ccJs.src = '/shell/cc-universe.js'; document.body.appendChild(ccJs);
+  }
   // PED: the week calendar as an hour grid with the left rail (design layer, no change to the page's own scripts).
   if (/project-editorial/.test(location.pathname) && document.getElementById('calendar')) {
     var pedJs = document.createElement('script'); pedJs.src = '/shell/ped-calendar.js'; document.body.appendChild(pedJs);

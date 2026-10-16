@@ -53,3 +53,32 @@
 .operational-card[data-state=configured] i{color:#1ef28f;border-color:#1e7f53}
 .operational-card[data-state=missing] i{color:#f5b84a;border-color:rgba(245,184,74,.5);background:rgba(245,184,74,.07)}
 .operational-card[data-state=missing]{border-color:rgba(245,184,74,.28)}
+/* ---- Universe: CRM planets around the core (shell/cc-universe.js) ---- */
+#networkSvg .cc-crm-orbit{fill:none;stroke:#46f0c0;stroke-opacity:.32;stroke-width:1;stroke-dasharray:2 5}
+#networkSvg .cc-crm-orbit-2{stroke:#f5b544;stroke-opacity:.2;stroke-dasharray:none}
+#networkSvg .cc-planet{cursor:pointer}
+#networkSvg .cc-planet-halo{fill:var(--pl);opacity:.14;animation:ccPulse 4s ease-in-out infinite;animation-delay:var(--d);transform-box:fill-box;transform-origin:center}
+#networkSvg .cc-planet-body{fill:#04140f;stroke:var(--pl);stroke-width:2;filter:drop-shadow(0 0 6px var(--pl))}
+#networkSvg .cc-planet-name{fill:#eafff7;font:600 15px Inter,system-ui,sans-serif;paint-order:stroke;stroke:#020a08;stroke-width:3px}
+#networkSvg .cc-planet-count{fill:var(--pl);font:600 12.5px Inter,system-ui,sans-serif;paint-order:stroke;stroke:#020a08;stroke-width:3px}
+#networkSvg .cc-planet:hover .cc-planet-body,#networkSvg .cc-planet:focus-visible .cc-planet-body{fill:color-mix(in srgb,var(--pl) 30%,#04140f)}
+#networkSvg .cc-planet:focus-visible{outline:none}
+#networkSvg .cc-planet:focus-visible .cc-planet-halo{opacity:.4}
+@keyframes ccPulse{50%{transform:scale(1.25);opacity:.06}}
+@media (prefers-reduced-motion:reduce){#networkSvg .cc-planet-halo{animation:none}}
+/* ---- Top bar: connected systems with one icon per service ---- */
+.cc-systems{display:flex;align-items:center;gap:10px;height:38px;padding:0 10px 0 12px;border:1px solid var(--rx-border,#1d3a31);border-radius:12px;background:rgba(8,20,15,.8);color:#cfe9de;text-decoration:none;font-family:Inter,system-ui,sans-serif}
+.cc-systems:hover{border-color:#2f8f6f}
+.cc-systems-text{display:grid;line-height:1.15;position:relative;padding-left:14px}
+.cc-systems-text::before{content:"";position:absolute;left:0;top:50%;width:7px;height:7px;margin-top:-4px;border-radius:50%;background:#2fe7a5;box-shadow:0 0 8px #2fe7a5}
+.cc-systems-text b{font:600 11px Inter,system-ui,sans-serif;color:#eafff7}
+.cc-systems-text small{font-size:10px;color:#79c9a8}
+.cc-systems-icons{display:flex;gap:5px}
+.cc-systems-icons i{display:grid;place-items:center;width:24px;height:24px;border-radius:7px;font:700 9.5px/1 Inter,system-ui,sans-serif;font-style:normal;color:#6f8a80;background:#0b1b16;border:1px dashed #2c4a3f}
+.cc-systems-icons i[data-on=true]{color:#03201a;background:#3ff0b0;border:1px solid #3ff0b0;box-shadow:0 0 10px #3ff0b055}
+.cc-systems-icons i[data-service=anthropic][data-on=true]{background:#e8a27a;border-color:#e8a27a}
+.cc-systems-icons i[data-service=buffer][data-on=true]{background:#d9e4ff;border-color:#d9e4ff}
+.cc-systems-icons i[data-service=heygen][data-on=true]{background:#9b7bff;border-color:#9b7bff}
+.cc-systems-icons i[data-service=email][data-on=true]{background:#ff7a6b;border-color:#ff7a6b}
+@media (max-width:1180px){.cc-systems-text{display:none}}
+@media (max-width:760px){.cc-systems{display:none}}
