@@ -437,6 +437,52 @@ $('manual-review-save').onclick=async()=>{
  }catch(e){$('manual-review-selected').textContent='Salvataggio non riuscito: '+e.message;$('manual-review-save').disabled=false}
 };
 
+
+let braveQuota=null,bravePending=false;
+async function checkBrave(){
+ $('brave-lookup').disabled=true;
+ try{
+  const response=await fetch('/api/brave-status',{cache:'no-store'}),state=await response.json();
+  if(!response.ok)throw Error(state.error||'Verifica non disponibile');
+  braveQuota=state;
+  $('brave-quota').textContent=state.enabled?'Brave pronto · '+state.remaining+' / '+state.limit+' richieste rimaste oggi (UTC). Ogni ricerca può consumare crediti.':'Brave disattivato: configura BRAVE_SEARCH_API_KEY, RADIX_BRAVE_ENABLED=1 e RADIX_BRAVE_DAILY_LIMIT (1–100) sul tuo Mac.';
+  $('brave-lookup').disabled=!state.enabled||state.remaining<1||bravePending;
+ }catch(e){braveQuota=null;$('brave-quota').textContent='Brave non disponibile: '+e.message}
+}
+$('brave-check').onclick=checkBrave;
+$('brave-lookup').onclick=async()=>{
+ const idx=$('free-company').value,contact=receiverRecords[Number(idx)],jobId=receiverSelected;
+ if(bravePending||!braveQuota?.enabled||braveQuota.remaining<1||!jobId||idx===''||!contact?.companyName||contact.companyDomain){
+  $('brave-result').textContent='Seleziona prima un contatto con azienda e senza dominio, poi verifica la disponibilità Brave.';return
+ }
+ if(!window.confirm('Inviare a Brave Search il solo nome azienda "'+contact.companyName+'"? Una richiesta API può consumare crediti del tuo account. Limite residuo: '+braveQuota.remaining+'. Nessun dominio verrà salvato automaticamente.'))return;
+ bravePending=true;$('brave-lookup').disabled=true;$('brave-result').textContent='Ricerca Brave in corso…';
+ try{
+  const data=await call('/api/brave-lookup',{jobId,profileUrl:contact.profileUrl});
+  if(jobId!==receiverSelected){$('brave-result').textContent='Hai cambiato lavoro: scarta le proposte e ripeti la ricerca.';return}
+  const box=$('brave-result');box.replaceChildren();
+  if(!data.suggestions?.length){box.textContent='Nessun dominio proposto da Brave: nessun salvataggio.';return}
+  const heading=document.createElement('p');heading.textContent='Proposte Brave per '+data.companyName+' (NON verificate):';box.append(heading);
+  for(const item of data.suggestions){
+   const wrap=document.createElement('div');wrap.className='toolbar';
+   const link=document.createElement('a');link.textContent=item.domain+' · Apri sito ↗';link.href=item.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+   const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Conferma '+item.domain;
+   button.onclick=async()=>{
+    if(bravePending||receiverSelected!==jobId){box.textContent='Lavoro cambiato: ripeti la ricerca.';return}
+    if(!window.confirm('Hai verificato direttamente che '+item.domain+' sia il sito ufficiale di '+data.companyName+'? Confermi il salvataggio nel backup locale?'))return;
+    button.disabled=true;
+    try{
+     await call('/api/brave-accept',{jobId,profileUrl:contact.profileUrl,companyName:data.companyName,domain:item.domain,sourceUrl:item.sourceUrl});
+     box.textContent='Dominio confermato e salvato nel lavoro locale. Nessuna email dedotta. Scarica un nuovo backup RADIX.';
+     await loadReceiver(jobId);
+    }catch(e){box.textContent='Salvataggio Brave non riuscito: '+e.message;button.disabled=false}
+   };
+   wrap.append(link,button);box.append(wrap);
+  }
+ }catch(e){$('brave-result').textContent='Ricerca Brave non riuscita: '+e.message+'. Una chiamata tentata potrebbe comunque aver consumato una quota.'}
+ finally{bravePending=false;await checkBrave()}
+};
+
 const launchArgs=new URLSearchParams(location.search);if(launchArgs.has('source'))$('url').value=launchArgs.get('source');if(launchArgs.has('quantity'))$('quantity').value=launchArgs.get('quantity');
-refresh();jobs();setInterval(refresh,1800);
+refresh();jobs();checkBrave();setInterval(refresh,1800);
 </script></body></html>
