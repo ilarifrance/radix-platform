@@ -7,6 +7,7 @@ const {getSessionUser}=require('./_auth');
 const core=require('./_registry-core');
 const memory=require('./_agency-memory-store');
 const editorial=require('../editorial-core.js');
+const projectJourney=require('../lib/project-journey.js');
 const send=(res,code,data)=>res.status(code).json(data);
 function bodyOf(req){if(typeof req.body==='string')return JSON.parse(req.body||'{}');return req.body||{}}
 const revisionOf=v=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw new core.InputError('Versione richiesta');return n};
@@ -58,6 +59,17 @@ async function clients(req,res,db,uid){
  return send(res,405,{error:'Metodo non consentito'});
 }
 
+const JOURNEY_LIMIT=40,JOURNEY_MODULES=['editorial','agency-workspace','pm','agents'];
+async function journeys(db,ids){
+ const out={};if(!ids.length)return out;
+ const docs=await db`SELECT project_id,module,data FROM rx_documents WHERE project_id = ANY(${ids}) AND module = ANY(${JOURNEY_MODULES})`;
+ const by={};for(const d of docs)(by[d.project_id]=by[d.project_id]||{})[d.module]=d.data;
+ // Publications are optional: the table only exists once the registry migration has run.
+ let pubs=[];try{pubs=await db`SELECT project_id,content_id,status FROM rx_publications WHERE project_id = ANY(${ids})`}catch(e){pubs=[]}
+ const pubsBy={};for(const r of pubs)(pubsBy[r.project_id]=pubsBy[r.project_id]||[]).push(r);
+ for(const id of ids)out[id]=projectJourney.journey(by[id]||{},{publications:pubsBy[id]||[]});
+ return out;
+}
 async function projects(req,res,db,uid){
  if(req.method==='GET'){
   const q=req.query||{};
@@ -66,12 +78,19 @@ async function projects(req,res,db,uid){
    const rows=await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id WHERE p.id=$1`,[q.id]);
    if(!rows.length)return send(res,404,{error:'Progetto non trovato'});
    const docs=await db`SELECT module,revision,updated_at FROM rx_documents WHERE project_id=${q.id} ORDER BY module`;
-   return send(res,200,{item:{...rows[0],documents:docs}});
+   const item={...rows[0],documents:docs};
+   if(q.journey==='1')item.journey=(await journeys(db,[q.id]))[q.id];
+   return send(res,200,{item});
   }
   if(q.clientId&&!core.validClientId(q.clientId))throw new core.InputError('Cliente non valido');
   const rows=q.clientId
    ?await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id WHERE p.client_id=$1 ORDER BY p.updated_at DESC LIMIT 500`,[q.clientId])
    :await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id ORDER BY p.updated_at DESC LIMIT 500`);
+  // ?journey=1 adds each step's state for the most recently updated projects (documents are read in full).
+  if(q.journey==='1'){
+   const ids=rows.slice(0,JOURNEY_LIMIT).map(r=>r.id),map=await journeys(db,ids);
+   return send(res,200,{items:rows.map(r=>map[r.id]?{...r,journey:map[r.id]}:r)});
+  }
   return send(res,200,{items:rows});
  }
  const data=bodyOf(req);
