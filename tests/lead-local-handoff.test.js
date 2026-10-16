@@ -35,3 +35,5 @@ test('name-only company may be reviewed but identity is marked uncertain',()=>{
  assert.equal(r.prospects.length,1);assert.equal(r.report.identityUncertain,2);assert.equal(r.report.needsReview,1);
  assert.equal(r.prospects[0].contactRole,'CEO');assert.equal(r.prospects[0].source,'https://www.linkedin.com/sales/search/people');
 });
+
+test('superseded public-domain evidence no longer counts as reviewed',()=>{const x=job([person()]);x.freeEnrichment=[{field:'companyDomain',source:'https://www.wikidata.org/wiki/Q12',confirmedAt:'2026-10-16T12:00:00Z',supersededAt:'2026-10-16T13:00:00Z'}];assert.equal(Bridge.parse(x).report.reviewedDomainCount,0)});
