@@ -170,3 +170,5 @@ body{background:radial-gradient(ellipse at 40% 0,#0a2a36 0,#03101b 55%) fixed,#0
  .app #main .so-left .stats{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){.so-planet{animation:none}}
+/* Sales Orbit asks the Copilot from «Chiedi a RADIX AI»: no floating button here */
+.cc-fab{display:none}
