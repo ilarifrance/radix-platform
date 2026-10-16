@@ -77,14 +77,34 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <main><div>
 <section class="panel"><h2>01 · Apri il browser e accedi</h2><p class="help">Clicca e completa personalmente l'accesso nella finestra Chromium. Non inserire credenziali in questa pagina.</p><button id="open">Apri Sales Navigator ↗</button></section>
 <section class="panel"><h2>02 · Configura acquisizione</h2><label for="url">URL ricerca persone Sales Navigator</label><input id="url" placeholder="https://www.linkedin.com/sales/search/people?..." spellcheck="false"><label for="quantity">Numero massimo di contatti</label><input id="quantity" type="number" min="1" max="5000" value="200"><div class="toolbar"><button id="start">Avvia agente</button><button id="stop" class="danger">Ferma / pausa</button></div><p class="muted warning">LinkedIn limita la raccolta automatizzata. Effettua questa operazione soltanto dove autorizzata. Nessun aggiramento di CAPTCHA, limiti o blocchi.</p></section>
-<section class="panel"><h2>03 · Esporta i risultati a RADIX</h2><div class="toolbar"><a id="json" class="action secondary" href="#">Backup RADIX JSON ↓</a><a id="csv" class="action secondary" href="#">CSV ↓</a></div><p class="help">Il backup JSON è compatibile con <b>Contatti individuali → Ripristina backup</b> nella <a href="https://radix-platform-git-integration-r-6f2769-radix-innovation-studio.vercel.app/lead-intelligence.html" target="_blank" rel="noopener noreferrer">Lead Intelligence Preview ↗</a>. I file contengono dati personali.</p></section></div>
+<section class="panel"><h2>03 · Esporta i risultati a RADIX</h2><div class="toolbar"><a id="json" class="action secondary" href="#">Backup RADIX JSON ↓</a><a id="csv" class="action secondary" href="#">CSV ↓</a></div><p class="help">Il backup JSON originale va importato da <b>Agente locale → RADIX</b> nella <a href="https://radix-platform-git-chatgpt-lead-979335-radix-innovation-studio.vercel.app/lead-intelligence.html" target="_blank" rel="noopener noreferrer">Lead Intelligence Preview ↗</a>. I file contengono dati personali.</p></section></div>
 <aside><section class="panel"><h2>Avanzamento</h2><div class="stats"><div class="stat"><small>CONTATTI UNICI</small><b id="count">0</b></div><div class="stat"><small>PAGINE</small><b id="pages">0</b></div><div class="stat"><small>DUPLICATI</small><b id="duplicates">0</b></div><div class="stat"><small>OBIETTIVO</small><b id="requested">0</b></div></div><div class="progress-wrap"><div class="progress-meta"><span>Completamento lavoro</span><output id="progress-value" for="progress-bar">0%</output></div><progress id="progress-bar" value="0" max="100" aria-label="Progresso del lavoro"></progress></div><label>Stato agente</label><div class="status" role="status" id="status" data-phase="idle">In attesa del browser...</div><p class="muted" id="job"></p></section><section class="panel"><h2>Riprendi un lavoro</h2><select id="saved"></select><div class="toolbar"><button id="resume" class="secondary">Riprendi selezionato</button></div><p class="muted">Checkpoint sul tuo Mac dopo ogni pagina; nessuna sincronizzazione automatica nel CRM.</p></section></aside></main>
 <section class="panel receiver" id="contacts-receiver" aria-labelledby="receiver-title">
  <div class="receiver-head"><div><h2 id="receiver-title">04 · Contatti ricevuti</h2><p class="help">Archivio operativo dei dati già salvati sul Mac. Revisione prima dell'arricchimento: nessuna API a pagamento e nessuna scrittura automatica nel CRM.</p></div><button class="secondary" id="receiver-refresh" type="button">Aggiorna tabella ↻</button></div>
  <div class="receiver-metrics"><span id="receiver-total">0 contatti</span><span id="receiver-complete">0 completi</span><span id="receiver-incomplete">0 da verificare</span></div>
  <div class="receiver-controls"><label for="receiver-job">Lavoro <select id="receiver-job"><option value="">Nessun lavoro</option></select></label><label for="receiver-search">Cerca <input id="receiver-search" placeholder="Nome, ruolo, azienda..." autocomplete="off"></label><label for="receiver-filter">Qualità <select id="receiver-filter"><option value="all">Tutti</option><option value="complete">Ruolo e azienda presenti</option><option value="incomplete">Dati incompleti</option></select></label></div>
- <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Dominio</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="9">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
+ <div class="receiver-table"><table><thead><tr><th>Nome</th><th>Ruolo</th><th>Azienda</th><th>Dominio</th><th>Località</th><th>Email</th><th>Telefono</th><th>Qualità</th><th>Profilo</th><th>Revisione</th></tr></thead><tbody id="receiver-rows"><tr><td colspan="9">Seleziona un lavoro per visualizzare i contatti.</td></tr></tbody></table></div>
  <div class="receiver-footer"><span id="receiver-summary" role="status">Dati locali, non sincronizzati.</span><div class="toolbar"><button id="receiver-prev" type="button" class="secondary" disabled>← Precedenti</button><span id="receiver-page">Pagina 1</span><button id="receiver-next" type="button" class="secondary" disabled>Successivi →</button></div></div>
+</section>
+<section class="panel receiver" id="contact-manual-review-stage" aria-labelledby="contact-manual-review-title">
+ <h2 id="contact-manual-review-title">04A · Completa o correggi i dati del contatto</h2>
+ <p class="help">Seleziona «Correggi» accanto al contatto. Riporta soltanto informazioni che hai verificato personalmente. I dati vengono salvati nel checkpoint sul tuo Mac con indicazione di revisione manuale; non diventano automaticamente informazioni certificate. Non vengono modificati nome, URL profilo, email o telefono.</p>
+ <p class="status" id="manual-review-selected" role="status">Nessun contatto selezionato.</p>
+ <div class="enrich-fields">
+  <label for="manual-job-title">Ruolo <input id="manual-job-title" maxlength="160" autocomplete="off" placeholder="Es. CEO"></label>
+  <label for="manual-company-name">Azienda <input id="manual-company-name" maxlength="160" autocomplete="off" placeholder="Nome verificato"></label>
+  <label for="manual-country">Paese <input id="manual-country" maxlength="160" autocomplete="off" placeholder="Italia"></label>
+  <label for="manual-company-domain">Sito aziendale · dominio <input id="manual-company-domain" maxlength="253" autocomplete="off" placeholder="esempio.it (solo se verificato)"></label>
+ </div>
+ <div class="toolbar"><button id="manual-review-save" type="button" disabled>Verifica e salva nel lavoro locale</button><button id="manual-review-cancel" type="button" class="secondary">Annulla</button></div>
+ <p class="help warning">La correzione di dati già presenti richiede una seconda conferma; un campo vuoto non cancella il valore precedente. Verifica l'identità aziendale prima di inserire un dominio.</p>
+</section>
+<section class="panel receiver" id="profile-review-stage" aria-labelledby="profile-review-title">
+ <h2 id="profile-review-title">04B · Completa i campi visibili dai profili</h2>
+ <p class="help">Se la scheda della ricerca non mostra azienda o ruolo, puoi chiedere una revisione locale di massimo <b>20 profili per volta</b>. La funzione apre soltanto le pagine visualizzabili dopo il tuo login, controlla che il nome corrisponda e propone esclusivamente dati esplicitamente mostrati. Salva i campi nel backup locale come <b>da verificare</b>, non come fatti certificati. Non legge email o cookie e non aggira login, CAPTCHA o limiti di LinkedIn.</p>
+ <div class="toolbar"><button id="profile-review-run" type="button" class="secondary">Esamina max 20 profili incompleti</button><button id="profile-review-stop" type="button" class="danger">Interrompi revisione</button></div>
+ <div class="status" id="profile-review-status" role="status">Seleziona un lavoro contatti prima di avviare la revisione.</div>
+ <p class="help warning">La navigazione automatizzata può essere limitata dalle condizioni LinkedIn. Usa questa funzione soltanto se hai il diritto di acquisire questi dati; fermati se compare una verifica. I dati mancanti non vengono inventati.</p>
 </section>
 <section class="panel receiver" id="enrichment-stage">
 <h2>05 · Preparazione arricchimento</h2>
@@ -98,6 +118,15 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <div class="progress-wrap"><div class="progress-meta"><span id="free-bulk-status" role="status">Controllo complessivo non avviato.</span><output id="free-bulk-counter">0 / 0</output></div><progress id="free-bulk-progress" max="100" value="0" aria-label="Avanzamento ricerche gratuite"></progress></div>
 <div class="receiver-table" style="margin-top:12px;max-height:390px"><table style="min-width:760px"><thead><tr><th>Azienda</th><th>Esito</th><th>Dominio suggerito</th><th>Fonte</th><th>Revisione</th></tr></thead><tbody id="free-bulk-rows"><tr><td colspan="5">Avvia un controllo per vedere i suggerimenti.</td></tr></tbody></table></div>
 <p class="help">Una sola ricerca per azienda (anche quando ricorre in più contatti), richieste sequenziali e arrestabili. Nessun salvataggio automatico: ogni suggerimento richiede conferma.</p>
+<div class="status" id="free-reconcile-status" role="status">Riconciliazione delle fonti: in attesa del controllo del lotto.</div>
+<section aria-label="Seconda fonte Brave Search" style="margin-top:18px">
+ <h3>Seconda fonte · Brave Search (facoltativa)</h3>
+ <p class="help">Se Wikidata non trova un dominio, puoi interrogare il servizio Brave Search ufficiale per il <b>solo nome azienda</b> del contatto selezionato sopra. Può consumare crediti dell'account Brave: per default è <b>disattivato</b> e richiede chiave privata sul Mac, abilitazione esplicita, limite di chiamate giornaliero e conferma prima di ogni richiesta. Nessun dato personale del contatto viene inviato.</p>
+ <div class="toolbar"><button type="button" id="brave-check" class="secondary">Verifica disponibilità Brave</button><button type="button" id="brave-lookup" disabled>Cerca dominio con Brave (1 richiesta)</button></div>
+ <p class="status" id="brave-quota" role="status">Brave non configurato. Nessuna richiesta avviata.</p>
+ <div class="free-result" id="brave-result" role="status">Se abilitato, seleziona prima un contatto con nome azienda e dominio mancante.</div>
+ <p class="help warning">Confermare un risultato non equivale a verificare l'identità aziendale: confronta il sito e approva soltanto se corrisponde. Tariffe e franchigie dipendono dal tuo account Brave.</p>
+</section>
 </section><hr style="border:0;border-top:1px solid #29535f;margin:24px 0">
 <div class="enrich-summary"><div><small>CONTATTI</small><strong id="enrich-total">0</strong></div><div><small>REVISIONE PRELIMINARE</small><strong id="enrich-review">0</strong></div><div><small>CANDIDATI EMAIL</small><strong id="enrich-eligible">0</strong></div><div><small>CHIAMATE SIMULATE</small><strong id="enrich-calls">0</strong></div></div>
 <div class="enrich-fields">
@@ -107,17 +136,34 @@ progress::-moz-progress-bar{background:#57eac1;border-radius:30px}
 <div class="toolbar"><button id="enrich-plan" type="button" class="secondary">Calcola piano offline</button><button id="enrich-copy" type="button" class="secondary" disabled>Copia riepilogo</button></div>
 <div class="status" id="enrich-result" role="status">Seleziona un lavoro nella tabella e calcola il piano.</div>
 <p class="help enrich-disclaimer">I prezzi sono valori inseriti da te, non tariffe verificate di Hunter, Dropcontact o altri provider. Il calcolo non acquista crediti e non modifica i contatti.</p>
+<section aria-labelledby="waterfall-title" style="margin-top:20px">
+<h3 id="waterfall-title">Simulatore multi-provider · tutto offline</h3>
+<p class="help">Inserisci costi <strong>ipotetici in EUR per richiesta</strong>, soltanto per i provider che vuoi confrontare. RADIX calcola un limite prudenziale considerando anche il fallimento di tutti i provider. Non attiva alcuna connessione.</p>
+<div class="enrich-fields" id="waterfall-inputs">
+<label for="wf-hunter">Hunter (€ / chiamata)<input id="wf-hunter" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-dropcontact">Dropcontact (€ / chiamata)<input id="wf-dropcontact" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-snov">Snov.io (€ / chiamata)<input id="wf-snov" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-prospeo">Prospeo (€ / chiamata)<input id="wf-prospeo" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-findymail">Findymail (€ / chiamata)<input id="wf-findymail" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-apollo">Apollo (€ / chiamata)<input id="wf-apollo" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+<label for="wf-people-data-labs">People Data Labs (€ / chiamata)<input id="wf-people-data-labs" type="number" min="0" max="100" step="0.001" placeholder="Non impostato"></label>
+</div>
+<div class="toolbar"><button id="waterfall-plan" type="button" class="secondary">Confronta i costi · senza API</button></div>
+<div class="status" id="waterfall-result" role="status">Nessun provider configurato; nessuna chiamata esterna.</div>
+</section>
 </section></div>
 <script src="/lead-enrichment-plan.js"></script>
+<script src="/lead-domain-suggestions.js"></script>
+<script src="/lead-provider-waterfall.js"></script>
 <script>
-'use strict';const $=id=>document.getElementById(id);let current='';
+'use strict';const $=id=>document.getElementById(id);let current='',previousReviewPhase='';
 async function call(route,body){const res=await fetch(route,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});const v=await res.json();if(!res.ok)throw Error(v.error||'Errore');return v}
 async function act(route,body){try{await call(route,body);await refresh()}catch(e){$('status').textContent='Errore: '+e.message}}
 $('open').onclick=()=>act('/api/browser');$('stop').onclick=()=>act('/api/stop');
 $('start').onclick=()=>act('/api/start',{url:$('url').value,quantity:$('quantity').value});
 $('resume').onclick=()=>act('/api/start',{resumeId:$('saved').value});
 async function jobs(preferredId){try{const {jobs:list}=await(await fetch('/api/jobs',{cache:'no-store'})).json();$('saved').replaceChildren();$('receiver-job').replaceChildren();list.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));for(const j of list){for(const select of [$('saved'),$('receiver-job')]){const o=document.createElement('option');o.value=j.id;o.textContent=j.createdAt+' · '+j.count+' contatti';select.append(o)}}const active=list.some(j=>j.id===preferredId)?preferredId:list.some(j=>j.id===receiverSelected)?receiverSelected:list[0]?.id||'';$('receiver-job').value=active;if(active&&active!==receiverSelected)await loadReceiver(active);if(!active){receiverRecords=[];renderReceiver()}}catch(e){$('receiver-summary').textContent='Impossibile caricare lavori: '+e.message}}
-async function refresh(){try{const s=await(await fetch('/api/status',{cache:'no-store'})).json();$('count').textContent=s.collected;$('pages').textContent=s.page;$('duplicates').textContent=s.duplicates;$('requested').textContent=s.requested;$('status').textContent=s.phase.toUpperCase()+(s.error?' · '+s.error:'');$('status').dataset.phase=s.phase;const pct=s.requested?Math.min(100,Math.round(100*s.collected/s.requested)):0;$('progress-bar').value=pct;$('progress-value').textContent=pct+'%';$('job').textContent=s.jobId?'ID lavoro: '+s.jobId:'';if(s.jobId&&s.jobId!==current){current=s.jobId;for(const type of ['json','csv'])$(type).href='/api/download?id='+encodeURIComponent(current)+'&format='+type;await jobs(s.jobId)}if(s.jobId&&s.jobId===receiverSelected&&s.lastUpdate&&s.lastUpdate!==receiverLastUpdate&&!receiverBusy){receiverLastUpdate=s.lastUpdate;await loadReceiver(s.jobId)}$('json').style.pointerEvents=s.outputAvailable?'auto':'none';$('csv').style.pointerEvents=s.outputAvailable?'auto':'none'}catch{$('status').textContent='Servizio locale non disponibile'}}
+async function refresh(){try{const s=await(await fetch('/api/status',{cache:'no-store'})).json();$('count').textContent=s.collected;$('pages').textContent=s.page;$('duplicates').textContent=s.duplicates;$('requested').textContent=s.requested;$('status').textContent=s.phase.toUpperCase()+(s.error?' · '+s.error:'');$('status').dataset.phase=s.phase;const pct=s.requested?Math.min(100,Math.round(100*s.collected/s.requested)):0;$('progress-bar').value=pct;$('progress-value').textContent=pct+'%';$('job').textContent=s.jobId?'ID lavoro: '+s.jobId:'';if(s.jobId&&s.jobId!==current){current=s.jobId;for(const type of ['json','csv'])$(type).href='/api/download?id='+encodeURIComponent(current)+'&format='+type;await jobs(s.jobId)}if(s.jobId===receiverSelected){if(s.phase==='reviewing')$('profile-review-status').textContent='Revisione dei profili in corso · '+(s.profilesReviewed||0)+' profili esaminati. Nessun dato certificato automaticamente.';else if(previousReviewPhase==='reviewing')$('profile-review-status').textContent='Revisione conclusa con stato '+s.phase+' · '+(s.profilesReviewed||0)+' profili esaminati. '+(s.error||'Controlla i dati nella tabella e scarica un nuovo backup.');previousReviewPhase=s.phase;}if(s.jobId&&s.jobId===receiverSelected&&s.lastUpdate&&s.lastUpdate!==receiverLastUpdate&&!receiverBusy){receiverLastUpdate=s.lastUpdate;await loadReceiver(s.jobId)}$('json').style.pointerEvents=s.outputAvailable?'auto':'none';$('csv').style.pointerEvents=s.outputAvailable?'auto':'none'}catch{$('status').textContent='Servizio locale non disponibile'}}
 let receiverRecords=[],receiverPage=0,receiverSelected='',receiverLastUpdate='',receiverBusy=false;
 const receiverPageSize=30;
 const receiverCell=(tr,value)=>{const td=document.createElement('td');td.textContent=String(value||'—');tr.append(td);return td};
@@ -138,15 +184,24 @@ function renderReceiver(){
   if(/^https:\/\/www\.linkedin\.com\/(sales\/lead\/|in\/)/.test(row.profileUrl||'')){
    const a=document.createElement('a');a.textContent='Apri ↗';a.href=row.profileUrl;a.target='_blank';a.rel='noopener noreferrer';td.append(a);
   }else td.textContent='—';
-  tr.append(td);body.append(tr);
+  tr.append(td);
+  const editCell=document.createElement('td');const edit=document.createElement('button');edit.type='button';edit.className='secondary';edit.textContent='Correggi';edit.onclick=()=>selectManualReview(row);editCell.append(edit);tr.append(editCell);body.append(tr);
  }
- if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=9;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
+ if(!filtered.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=10;td.textContent='Nessun contatto per i filtri selezionati.';tr.append(td);body.append(tr)}
  $('receiver-page').textContent='Pagina '+(receiverPage+1)+' / '+pages;
  $('receiver-prev').disabled=receiverPage<=0;$('receiver-next').disabled=receiverPage>=pages-1;
  $('receiver-summary').textContent=filtered.length+' contatti visualizzabili su '+receiverRecords.length+' · solo consultazione';
 }
 async function loadReceiver(id){
+ const previousJob=receiverSelected;
  receiverSelected=id;receiverBusy=true;
+ if(previousJob&&previousJob!==id){manualSelected=null;$('manual-review-save').disabled=true;$('manual-review-selected').textContent='Lavoro cambiato: riseleziona il contatto.'}
+ if(previousJob&&previousJob!==id){
+  $('free-bulk-rows').replaceChildren();
+  $('free-reconcile-status').textContent='Lavoro cambiato: esegui un nuovo controllo prima di approvare.';
+  $('free-bulk-counter').textContent='0 / 0';
+  $('free-bulk-progress').value=0;
+ }
  try{
   const res=await fetch('/api/contacts?id='+encodeURIComponent(id||''),{cache:'no-store'});
   if(!res.ok)throw Error('Impossibile leggere il lavoro');
@@ -213,7 +268,7 @@ $('free-lookup').onclick=async()=>{
 };
 
 
-let freeBulkRunning=false,freeBulkStop=false,freeBulkJob='',freeBulkCount=0;
+let freeBulkRunning=false,freeBulkStop=false;
 const bulkCell=(row,value)=>{const td=document.createElement('td');td.textContent=value||'—';row.append(td);return td};
 function bulkRow(company,reason,proposal,jobId,contacts){
  const tr=document.createElement('tr');bulkCell(tr,company);bulkCell(tr,reason);
@@ -226,6 +281,7 @@ function bulkRow(company,reason,proposal,jobId,contacts){
   const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Verifica e approva';
   button.onclick=async()=>{
    if(freeBulkRunning){$('free-bulk-status').textContent='Attendi la fine della ricerca prima di salvare.';return}
+   if(receiverSelected!==jobId){$('free-bulk-status').textContent='Lavoro cambiato: avvia un nuovo controllo.';return}
    if(!window.confirm('Hai verificato il sito ufficiale di '+company+'? Salvare il dominio in '+contacts.length+' contatti del lavoro?'))return;
    button.disabled=true;let updated=0,failures=0;
    for(const person of contacts){
@@ -236,26 +292,30 @@ function bulkRow(company,reason,proposal,jobId,contacts){
    await loadReceiver(jobId);
   };
   action.append(button);
- }else action.textContent='Da verificare manualmente';
+ }else action.textContent='Non approvabile automaticamente';
  tr.append(action);$('free-bulk-rows').append(tr);
 }
 $('free-stop').onclick=()=>{$('free-stop').disabled=true;freeBulkStop=true;$('free-bulk-status').textContent='Arresto richiesto: attendo la risposta in corso.'};
 $('free-bulk').onclick=async()=>{
  if(freeBulkRunning||!receiverSelected||!receiverRecords.length){$('free-bulk-status').textContent='Prima seleziona un lavoro con contatti.';return}
- const id=receiverSelected;freeBulkJob=id;freeBulkRunning=true;freeBulkStop=false;
- $('free-bulk').disabled=true;$('free-stop').disabled=false;
+ const engine=window.RadixLeadDomainSuggestions;
+ if(!engine){$('free-bulk-status').textContent='Modulo di riconciliazione non disponibile.';return}
+ const id=receiverSelected,records=receiverRecords.slice();
+ freeBulkRunning=true;freeBulkStop=false;
+ $('free-bulk').disabled=true;$('free-stop').disabled=false;$('free-lookup').disabled=true;
  $('free-bulk-rows').replaceChildren();
- // Normalization deduplicates lookups only; never guesses that different brands
- // share an employer. Skip records with domains or clearly suspicious names.
+ $('free-reconcile-status').textContent='Ricerca in corso. Nessun salvataggio automatico.';
+ // Search once per company-and-country; unknown country remains a human-review case.
  const groups=new Map(),bad=/\b(?:mostra altro|see more|january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
- for(const person of receiverRecords){
-  const company=(person.companyName||'').trim();if(!company||person.companyDomain||bad.test(company))continue;
-  const key=company.normalize('NFKC').toLocaleLowerCase('it').replace(/\s+/g,' ');
-  if(!groups.has(key))groups.set(key,{company,contacts:[]});
+ const normalize=x=>String(x||'').normalize('NFKC').toLocaleLowerCase('it').trim().replace(/\s+/g,' ');
+ for(const person of records){
+  const company=(person.companyName||'').trim(),country=(person.country||'').trim();
+  if(!company||person.companyDomain||bad.test(company))continue;
+  const key=normalize(company)+'|'+normalize(country);
+  if(!groups.has(key))groups.set(key,{company,country,contacts:[]});
   groups.get(key).contacts.push(person);
  }
- const entries=[...groups.values()].slice(0,50);
- if(groups.size>50)$('free-bulk-status').textContent='Primo gruppo di 50 aziende. Riesamina il risultato prima di altre richieste.';
+ const entries=[...groups.values()].slice(0,50),results=[],evidence=[];
  let done=0,proposed=0;
  $('free-bulk-progress').value=0;$('free-bulk-counter').textContent='0 / '+entries.length;
  try{
@@ -264,17 +324,50 @@ $('free-bulk').onclick=async()=>{
    try{
     const result=await call('/api/free-lookup',{jobId:id,profileUrl:group.contacts[0].profileUrl});
     const proposal=result.suggestions?.find(x=>x.field==='domain');
-    if(proposal)proposed++;
-    bulkRow(group.company,proposal?'Proposta non verificata':result.reason||'Nessuna corrispondenza',proposal,id,group.contacts);
-   }catch(error){bulkRow(group.company,'Errore: '+error.message,null,id,group.contacts)}
+    if(proposal){
+     proposed++;
+     evidence.push({companyName:group.company,country:group.country,domain:proposal.value,provider:'wikidata',sourceUrl:proposal.source});
+    }
+    results.push({...group,proposal,reason:proposal?'Proposta non verificata':result.reason||'Nessuna corrispondenza'});
+   }catch(error){results.push({...group,proposal:null,reason:'Errore: '+error.message})}
    done++;
    $('free-bulk-counter').textContent=done+' / '+entries.length;
    $('free-bulk-progress').value=entries.length?Math.round(100*done/entries.length):100;
    $('free-bulk-status').textContent=done+' aziende esaminate, '+proposed+' proposte da verificare.';
    if(!freeBulkStop&&done<entries.length)await new Promise(resolve=>setTimeout(resolve,900));
   }
-  $('free-bulk-status').textContent=(freeBulkStop?'Interrotto. ':'Completato. ')+done+' aziende controllate, '+proposed+' proposte, nessun dato salvato automaticamente.';
- }finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false}
+  if(receiverSelected!==id){$('free-bulk-status').textContent='Lavoro modificato: risultato scartato.';return}
+  const review=engine.reconcile(records,evidence),reviewByKey=new Map();
+  for(const company of review.companies)reviewByKey.set(normalize(company.companyName)+'|'+normalize(company.country),company);
+  let conflicts=0,reviewable=0;
+  for(const result of results){
+   const item=reviewByKey.get(normalize(result.company)+'|'+normalize(result.country));
+   if(item?.status==='conflict'||item?.status==='existing_conflict')conflicts++;
+   const allowed=item?.status==='review'&&item.proposals.some(p=>p.domain===engine.domain(result.proposal?.value));
+   if(allowed)reviewable++;
+   bulkRow(result.company,allowed?'Proposta da verificare':item?.status==='conflict'?'Domini in conflitto':result.reason,allowed?result.proposal:null,id,result.contacts);
+  }
+  $('free-reconcile-status').textContent='Riconciliazione offline: '+review.totalCompanies+' aziende nel lotto, '+reviewable+' proposte verificabili, '+conflicts+' conflitti, '+review.invalidEvidence+' fonti non valide. Nessun dato applicato senza conferma.';
+  $('free-bulk-status').textContent=(freeBulkStop?'Interrotto. ':'Completato. ')+done+' aziende controllate, '+proposed+' proposte, nessun dato salvato automaticamente.'+(groups.size>50?' Limite: prime 50 aziende.':'');
+ }catch(error){$('free-reconcile-status').textContent='Riconciliazione non riuscita: '+error.message}
+ finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false;$('free-lookup').disabled=false}
+};
+$('waterfall-plan').onclick=()=>{
+ try{
+  const planner=window.RadixLeadProviderWaterfall;
+  if(!planner)throw Error('Motore dei preventivi non disponibile');
+  const providers=['hunter','dropcontact','snov','prospeo','findymail','apollo','people-data-labs'];
+  const prices={};
+  for(const id of providers){
+   const value=$('wf-'+id).value.trim();
+   if(value!=='')prices[id]=Number(value);
+  }
+  const result=planner.quote(receiverRecords,prices,Number($('enrich-budget').value));
+  $('waterfall-result').textContent='Solo simulazione · '+result.eligible+' contatti candidabili, '+result.missingIdentity+' senza dati minimi. Provider in ordine di costo: '+
+   (result.tiers.map(t=>t.label+' €'+t.unitCost.toFixed(3)).join(' → ')||'nessuno configurato')+
+   '. Costo massimo teorico per contatto €'+result.worstCaseCostPerContact.toFixed(3)+
+   '; budget copre '+result.coveredContacts+' contatti con tutte le alternative, massimo '+result.maxPlannedCalls+' chiamate teoriche. Chiamate reali: 0; spesa reale: €0.';
+ }catch(e){$('waterfall-result').textContent='Preventivo non disponibile: '+e.message}
 };
 
 let latestEnrichment=null;
@@ -294,6 +387,102 @@ function calculateEnrichment(){
 $('enrich-plan').onclick=calculateEnrichment;
 $('enrich-copy').onclick=()=>{if(!latestEnrichment)return;const p=latestEnrichment;navigator.clipboard?.writeText('RADIX — Piano offline\\nContatti: '+p.total+'\\nDa verificare: '+p.needReview+'\\nCandidati email: '+p.eligible+'\\nChiamate ipotetiche: '+p.plannedCalls+'\\nCosto teorico: EUR '+p.estimatedCost.toFixed(2));};
 
+
+$('profile-review-run').onclick=async()=>{
+ if(!receiverSelected){$('profile-review-status').textContent='Seleziona prima un lavoro contatti.';return}
+ if(freeBulkRunning){$('profile-review-status').textContent='Attendi la fine della ricerca Wikidata prima di esaminare i profili.';return}
+ if(!window.confirm('Aprire al massimo 20 profili LinkedIn incompleti nella tua sessione browser locale? I dati visibili saranno confrontati con il nome e salvati nel backup locale, da rivedere prima dell’utilizzo. LinkedIn può limitare l’automazione.'))return;
+ $('profile-review-run').disabled=true;
+ try{
+  const result=await call('/api/profile-review',{jobId:receiverSelected,limit:20});
+  $('profile-review-status').textContent=result.started?'Revisione avviata per '+result.selected+' profili: attendi la fine oppure interrompi.':'Nessun profilo idoneo da rivedere.';
+ }catch(e){$('profile-review-status').textContent='Revisione non avviata: '+e.message}
+ finally{$('profile-review-run').disabled=false}
+};
+$('profile-review-stop').onclick=async()=>{
+ try{await call('/api/stop');$('profile-review-status').textContent='Interruzione richiesta: attendo la pagina in corso.'}
+ catch(e){$('profile-review-status').textContent='Impossibile interrompere: '+e.message}
+};
+
+
+let manualSelected=null;
+function selectManualReview(record){
+ if(!receiverSelected||!record?.profileUrl)return;
+ manualSelected={jobId:receiverSelected,fullName:record.fullName,profileUrl:record.profileUrl,original:{...record}};
+ $('manual-review-selected').textContent='Selezionato: '+record.fullName+' · '+(record.companyName||'azienda da verificare');
+ for(const [id,field] of [['manual-job-title','jobTitle'],['manual-company-name','companyName'],['manual-country','country'],['manual-company-domain','companyDomain']])$(id).value=record[field]||'';
+ $('manual-review-save').disabled=false;
+}
+$('manual-review-cancel').onclick=()=>{manualSelected=null;$('manual-review-save').disabled=true;$('manual-review-selected').textContent='Selezione annullata.'};
+$('manual-review-save').onclick=async()=>{
+ const choice=manualSelected;
+ if(!choice||choice.jobId!==receiverSelected){$('manual-review-selected').textContent='Lavoro cambiato: riseleziona il contatto.';return}
+ const input={jobId:choice.jobId,profileUrl:choice.profileUrl,fullName:choice.fullName,
+  jobTitle:$('manual-job-title').value,companyName:$('manual-company-name').value,
+  country:$('manual-country').value,companyDomain:$('manual-company-domain').value};
+ const changed=['jobTitle','companyName','country','companyDomain'].filter(k=>String(input[k]||'').trim()&&String(input[k]||'').trim()!==String(choice.original[k]||'').trim());
+ if(!changed.length){$('manual-review-selected').textContent='Nessuna modifica. Inserisci un dato verificato.';return}
+ input.replaceExisting=changed.some(k=>choice.original[k]&&choice.original[k]!==input[k]);
+ if(changed.includes('companyName')&&choice.original.companyDomain&&!changed.includes('companyDomain')){
+  if(!window.confirm('Hai modificato il nome azienda ma il dominio è rimasto '+choice.original.companyDomain+'. Hai verificato che questo sito appartenga ancora alla nuova azienda? Se hai dubbi, annulla e ricontrolla.'))return;
+  input.reconfirmExistingDomain=true;
+ }
+ if(!window.confirm('Confermi la revisione manuale di '+choice.fullName+'? Campi: '+changed.join(', ')+'. '+(input.replaceExisting?'ATTENZIONE: alcuni valori già presenti saranno sostituiti. ':'')+'Controlla sempre le informazioni; nessuna email inventata.'))return;
+ $('manual-review-save').disabled=true;
+ try{
+  const response=await call('/api/contact-review',input);
+  manualSelected=null;await loadReceiver(choice.jobId);
+  $('manual-review-selected').textContent='Salvato sul Mac · '+choice.fullName+' · '+response.fields.join(', ')+'. Scarica un nuovo backup quando hai terminato.';
+  $('free-reconcile-status').textContent='Contatti modificati: ripeti la ricerca gratuita se sono cambiati i nomi aziendali.';
+ }catch(e){$('manual-review-selected').textContent='Salvataggio non riuscito: '+e.message;$('manual-review-save').disabled=false}
+};
+
+
+let braveQuota=null,bravePending=false;
+async function checkBrave(){
+ $('brave-lookup').disabled=true;
+ try{
+  const response=await fetch('/api/brave-status',{cache:'no-store'}),state=await response.json();
+  if(!response.ok)throw Error(state.error||'Verifica non disponibile');
+  braveQuota=state;
+  $('brave-quota').textContent=state.enabled?'Brave pronto · '+state.remaining+' / '+state.limit+' richieste rimaste oggi (UTC). Ogni ricerca può consumare crediti.':'Brave disattivato: configura BRAVE_SEARCH_API_KEY, RADIX_BRAVE_ENABLED=1 e RADIX_BRAVE_DAILY_LIMIT (1–100) sul tuo Mac.';
+  $('brave-lookup').disabled=!state.enabled||state.remaining<1||bravePending;
+ }catch(e){braveQuota=null;$('brave-quota').textContent='Brave non disponibile: '+e.message}
+}
+$('brave-check').onclick=checkBrave;
+$('brave-lookup').onclick=async()=>{
+ const idx=$('free-company').value,contact=receiverRecords[Number(idx)],jobId=receiverSelected;
+ if(bravePending||!braveQuota?.enabled||braveQuota.remaining<1||!jobId||idx===''||!contact?.companyName||contact.companyDomain){
+  $('brave-result').textContent='Seleziona prima un contatto con azienda e senza dominio, poi verifica la disponibilità Brave.';return
+ }
+ if(!window.confirm('Inviare a Brave Search il solo nome azienda "'+contact.companyName+'"? Una richiesta API può consumare crediti del tuo account. Limite residuo: '+braveQuota.remaining+'. Nessun dominio verrà salvato automaticamente.'))return;
+ bravePending=true;$('brave-lookup').disabled=true;$('brave-result').textContent='Ricerca Brave in corso…';
+ try{
+  const data=await call('/api/brave-lookup',{jobId,profileUrl:contact.profileUrl});
+  if(jobId!==receiverSelected){$('brave-result').textContent='Hai cambiato lavoro: scarta le proposte e ripeti la ricerca.';return}
+  const box=$('brave-result');box.replaceChildren();
+  if(!data.suggestions?.length){box.textContent='Nessun dominio proposto da Brave: nessun salvataggio.';return}
+  const heading=document.createElement('p');heading.textContent='Proposte Brave per '+data.companyName+' (NON verificate):';box.append(heading);
+  for(const item of data.suggestions){
+   const wrap=document.createElement('div');wrap.className='toolbar';
+   const link=document.createElement('a');link.textContent=item.domain+' · Apri sito ↗';link.href=item.sourceUrl;link.target='_blank';link.rel='noopener noreferrer';
+   const button=document.createElement('button');button.type='button';button.className='secondary';button.textContent='Conferma '+item.domain;
+   button.onclick=async()=>{
+    if(bravePending||receiverSelected!==jobId){box.textContent='Lavoro cambiato: ripeti la ricerca.';return}
+    if(!window.confirm('Hai verificato direttamente che '+item.domain+' sia il sito ufficiale di '+data.companyName+'? Confermi il salvataggio nel backup locale?'))return;
+    button.disabled=true;
+    try{
+     await call('/api/brave-accept',{jobId,profileUrl:contact.profileUrl,companyName:data.companyName,domain:item.domain,sourceUrl:item.sourceUrl});
+     box.textContent='Dominio confermato e salvato nel lavoro locale. Nessuna email dedotta. Scarica un nuovo backup RADIX.';
+     await loadReceiver(jobId);
+    }catch(e){box.textContent='Salvataggio Brave non riuscito: '+e.message;button.disabled=false}
+   };
+   wrap.append(link,button);box.append(wrap);
+  }
+ }catch(e){$('brave-result').textContent='Ricerca Brave non riuscita: '+e.message+'. Una chiamata tentata potrebbe comunque aver consumato una quota.'}
+ finally{bravePending=false;await checkBrave()}
+};
+
 const launchArgs=new URLSearchParams(location.search);if(launchArgs.has('source'))$('url').value=launchArgs.get('source');if(launchArgs.has('quantity'))$('quantity').value=launchArgs.get('quantity');
-refresh();jobs();setInterval(refresh,1800);
+refresh();jobs();checkBrave();setInterval(refresh,1800);
 </script></body></html>
