@@ -159,6 +159,11 @@
     var links = crmNav.querySelectorAll(':scope > a.sx-link');
     for (var i = 1; i < links.length; i++) links[i].remove();
     crmNav.classList.add('sx-nav');
+    if (!crmNav.querySelector(':scope > .sx-brand')) {
+      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = '/sales-orbit-higgsfield.html';
+      brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
+      crmNav.prepend(brand);
+    }
     mark(crmNav);
     busy = false;
   }
