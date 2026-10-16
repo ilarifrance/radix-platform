@@ -188,6 +188,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 .command-view-card{border:1px solid #1c4b35;background:#081810;border-radius:11px;padding:13px;cursor:pointer;text-align:left;min-height:94px}.command-view-card:hover{border-color:#2c9660}.command-view-card b{display:block;font-size:11px;margin-bottom:6px}.command-view-card span{display:block;color:#7ba592;font-size:9px;line-height:1.45}
 .lower-grid{grid-template-columns:1.42fr 1fr 1fr .8fr}.quick-panel{grid-column:auto}.quick-actions{display:flex;flex-direction:column;gap:7px;padding:10px}.action{height:39px;display:flex;align-items:center;gap:10px;padding:8px 10px}.action-icon{font-size:13px}.action-title{margin:0;font-size:9px}.action-sub{display:none}
 .search-results{position:absolute;top:49px;left:0;right:0;background:#071710;border:1px solid #2b6a4d;border-radius:11px;padding:7px;z-index:90;box-shadow:0 20px 55px rgba(0,0,0,.65);max-height:360px;overflow:auto}.command{position:relative}.search-hit{display:flex;width:100%;text-align:left;align-items:center;justify-content:space-between;padding:10px;border:0;border-radius:7px;background:transparent;cursor:pointer;color:#d2eddd;font-size:11px}.search-hit:hover,.search-hit:focus{background:#103021}.search-hit small{font-size:9px;color:#6d9981}.search-empty{padding:10px;font-size:10px;color:#6d9981}
+.journey-card{display:block;text-decoration:none;color:inherit}.journey-dots{display:inline-flex;gap:3px}.journey-dot{width:7px;height:7px;border-radius:50%;border:1px solid #2a634a;background:transparent}.journey-dot.done{background:#6ac493;border-color:#6ac493}.journey-dot.active{background:#1e7f53}.journey-dot.waiting{background:#f4d18c;border-color:#f4d18c}
 .attention-list .workflow-card{cursor:pointer}.attention-list .workflow-card .workflow-task{white-space:normal}
 @media(max-width:1250px){.welcome-bar{grid-template-columns:1fr}.lower-grid{grid-template-columns:1.2fr 1fr}.quick-panel{grid-column:auto}.knowledge{grid-column:auto}}
 @media(max-width:860px){.lower-grid{grid-template-columns:1fr 1fr}.welcome-bar .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -779,9 +780,27 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('activityList').innerHTML=list.map(function(a){return '<div class="activity-item"><div class="activity-time">'+fmtTime(a.at)+'</div><div class="activity-text"><b>'+esc(a.orchestrator||'RADIX')+'</b><br>'+esc(a.text)+'</div></div>'}).join('')||'<div class="empty-state"><b>Nessuna attività recente</b>Gli eventi reali dei workflow appariranno qui.</div>'
   }
   function pct(w){var p=w.progress||{},total=p.total||0;return total?Math.round(((p.done||0)/total)*100):0}
+  // Project flows: each registry project's step states (brief, piano, incarichi, attività), read once per page view.
+  var journeys=null,journeysLoading=false;
+  var STEP_HREF={brief:'/project-editorial.html?project={p}#brief',ped:'/project-editorial.html?project={p}#ped',tasks:'/agency/project-workspace.html?id={p}',pm:'/radix-pm-concept.html?project={p}',agents:'/agents.html?agent=marketing-orchestrator&project={p}'};
+  var STEP_STATE={todo:'pending',active:'running',waiting:'blocked',done:'done'},STEP_WORD={todo:'da fare',active:'in corso',waiting:'da approvare',done:'completato'};
+  function loadJourneys(){
+    if(journeys||journeysLoading||!window.fetch)return;journeysLoading=true;
+    fetch('/api/workspace?resource=projects&journey=1',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){journeys=d.items.filter(function(p){return p.journey&&p.status!=='archived'&&p.journey.steps.some(function(s){return s.state!=='todo'})});renderWorkflows()}}).catch(function(){}).then(function(){journeysLoading=false});
+  }
+  function journeyCards(){
+    // Projects waiting on a person first, then those in progress; finished ones last.
+    var rank=function(p){var j=p.journey;return j.waiting.length?0:j.next?1:2};
+    return (journeys||[]).slice().sort(function(a,b){return rank(a)-rank(b)}).slice(0,6).map(function(p){
+      var j=p.journey,step=j.steps.find(function(s){return s.id===j.next})||j.steps[j.steps.length-1],href=STEP_HREF[step.id].replace('{p}',encodeURIComponent(p.id));
+      var dots=j.steps.filter(function(s){return s.id!=='agents'}).map(function(s){return '<i class="journey-dot '+esc(s.state)+'" title="'+esc(s.label+': '+s.detail)+'"></i>'}).join('');
+      return '<a class="workflow-card journey-card" data-journey="'+esc(p.id)+'" href="'+esc(href)+'"><div class="workflow-top"><div class="workflow-name">'+esc(p.name)+'</div><div class="workflow-state '+(j.next?STEP_STATE[step.state]:'done')+'">'+esc(j.next?STEP_WORD[step.state]:'completato')+'</div></div><div class="workflow-task">'+esc(j.next?step.label+' · '+step.detail:'Tutte le fasi completate')+'</div><div class="progress"><span style="width:'+j.progress+'%"></span></div><div class="workflow-foot"><span class="journey-dots">'+dots+'</span><span>'+j.done+' / '+j.total+' fasi</span></div></a>';
+    });
+  }
   function renderWorkflows(){
-    var list=(data.workflows||[]).slice(0,6);$('workflowMeta').textContent=list.length+' registrati';
-    $('workflowList').innerHTML=list.map(function(w){return '<div class="workflow-card" data-workflow="'+esc(w.id)+'"><div class="workflow-top"><div class="workflow-name">'+esc(w.orchestrator)+'</div><div class="workflow-state '+esc(w.status)+'">'+esc(w.status)+'</div></div><div class="workflow-task">'+esc(w.task)+'</div><div class="progress"><span style="width:'+pct(w)+'%"></span></div><div class="workflow-foot"><span>'+((w.progress&&w.progress.done)||0)+' / '+((w.progress&&w.progress.total)||0)+' tasks</span><span>'+pct(w)+'%</span></div></div>'}).join('')||'<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un orchestratore dal workspace per alimentare questa vista.</div>';
+    loadJourneys();
+    var flows=journeyCards(),list=(data.workflows||[]).slice(0,Math.max(0,6-flows.length));$('workflowMeta').textContent=(flows.length?flows.length+' progetti · ':'')+list.length+' registrati';
+    $('workflowList').innerHTML=flows.join('')+list.map(function(w){return '<div class="workflow-card" data-workflow="'+esc(w.id)+'"><div class="workflow-top"><div class="workflow-name">'+esc(w.orchestrator)+'</div><div class="workflow-state '+esc(w.status)+'">'+esc(w.status)+'</div></div><div class="workflow-task">'+esc(w.task)+'</div><div class="progress"><span style="width:'+pct(w)+'%"></span></div><div class="workflow-foot"><span>'+((w.progress&&w.progress.done)||0)+' / '+((w.progress&&w.progress.total)||0)+' tasks</span><span>'+pct(w)+'%</span></div></div>'}).join('')||(flows.length?'':'<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un progetto o un orchestratore dal workspace per alimentare questa vista.</div>');
     document.querySelectorAll('[data-workflow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-workflow'))})})
   }
   function renderTeams(){
