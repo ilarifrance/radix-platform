@@ -22,7 +22,7 @@ const cities=pts.filter(p=>p[3]);const arcs=[];for(let k=0;k<14&&cities.length>2
 const reduce=matchMedia('(prefers-reduced-motion: reduce)');
 let W=0,H=0,dpr=1,rot=.35;const tilt=.36,ct=Math.cos(tilt),st=Math.sin(tilt);
 function size(){const r=cv.getBoundingClientRect();dpr=Math.min(2,window.devicePixelRatio||1);W=r.width;H=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
-function geo(){const narrow=W<760;const cx=W*(narrow?.5:.53),cy=narrow?200:H*.43,R=narrow?Math.min(W*.3,130):Math.min(W*.18,H*.25);return{cx,cy,R}}
+function geo(){const narrow=W<760;const cx=W*(narrow?.5:.53),cy=narrow?200:H*.43,R=narrow?Math.min(W*.3,130):Math.min(W*.195,H*.27);return{cx,cy,R}}
 function proj(p,g){const cr=Math.cos(rot),sr=Math.sin(rot);let x=p[0]*cr-p[2]*sr,z=p[0]*sr+p[2]*cr,y=p[1];const y2=y*ct-z*st,z2=y*st+z*ct;return[g.cx+x*g.R,g.cy-y2*g.R,z2]}
 function slerp(a,b,t){const d=Math.acos(Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2])))||1e-6,s=Math.sin(d),k1=Math.sin((1-t)*d)/s,k2=Math.sin(t*d)/s;const h=1+.12*Math.sin(Math.PI*t);return[(a[0]*k1+b[0]*k2)*h,(a[1]*k1+b[1]*k2)*h,(a[2]*k1+b[2]*k2)*h]}
 const orbits=[{rx:2.25,ry:.62,a:-.2,c:'54,237,189',w:1.1,o:.55,s:.00011},{rx:1.95,ry:.95,a:.42,c:'54,237,189',w:.9,o:.35,s:-.00008},{rx:2.5,ry:.78,a:.12,c:'242,184,75',w:1,o:.45,s:.00006},{rx:1.62,ry:1.32,a:-.75,c:'84,203,218',w:.8,o:.28,s:.0001}];
@@ -35,19 +35,25 @@ function drawOrbits(g,t,front){for(const o of orbits){ctx.lineWidth=o.w;ctx.stro
     const ex=Math.cos(ang)*o.rx*g.R,ey=Math.sin(ang)*o.ry*g.R,x=g.cx+ex*Math.cos(o.a)-ey*Math.sin(o.a),y=g.cy+ex*Math.sin(o.a)+ey*Math.cos(o.a);
     const gr=ctx.createRadialGradient(x,y,0,x,y,9);gr.addColorStop(0,'rgba(255,240,200,.95)');gr.addColorStop(.25,'rgba('+o.c+',.8)');gr.addColorStop(1,'rgba('+o.c+',0)');ctx.fillStyle=gr;ctx.fillRect(x-9,y-9,18,18)}}}
 function drawPedestal(g,t){const px=g.cx,py=g.cy+g.R*1.62,rx=g.R*1.25;
-  const beam=ctx.createLinearGradient(0,g.cy+g.R*.6,0,py);beam.addColorStop(0,'rgba(80,255,220,0)');beam.addColorStop(1,'rgba(80,255,220,.35)');
+  const beam=ctx.createLinearGradient(0,g.cy+g.R*.6,0,py);beam.addColorStop(0,'rgba(80,255,220,0)');beam.addColorStop(1,'rgba(110,255,225,.55)');
   ctx.fillStyle=beam;ctx.beginPath();ctx.moveTo(px-g.R*.42,g.cy+g.R*.75);ctx.lineTo(px+g.R*.42,g.cy+g.R*.75);ctx.lineTo(px+5,py);ctx.lineTo(px-5,py);ctx.fill();
-  for(let i=0;i<7;i++){const k=1-i*.13;ctx.beginPath();ctx.ellipse(px,py,rx*k,rx*k*.2,0,0,Math.PI*2);ctx.strokeStyle=i===2?'rgba(242,184,75,.45)':'rgba(84,240,210,'+(.18+i*.07)+')';ctx.lineWidth=i%3?1:2;
+  for(let i=0;i<9;i++){const k=1.18-i*.12;ctx.beginPath();ctx.ellipse(px,py,rx*k,rx*k*.2,0,0,Math.PI*2);ctx.strokeStyle=i===2?'rgba(242,184,75,.45)':'rgba(84,240,210,'+(.25+i*.08)+')';ctx.lineWidth=i%3?1:2;
     ctx.setLineDash(i%2?[2,6+i]:[]);ctx.lineDashOffset=-t*.01*(i%2?1:-1);ctx.stroke()}ctx.setLineDash([]);
   const core=ctx.createRadialGradient(px,py,0,px,py,rx*.45);core.addColorStop(0,'rgba(220,255,245,.95)');core.addColorStop(.12,'rgba(80,255,220,.6)');core.addColorStop(1,'rgba(80,255,220,0)');
   ctx.save();ctx.translate(px,py);ctx.scale(1,.22);ctx.translate(-px,-py);ctx.fillStyle=core;ctx.beginPath();ctx.arc(px,py,rx*.45,0,Math.PI*2);ctx.fill();ctx.restore()}
 function drawGlobe(g){const{cx,cy,R}=g;
-  const at=ctx.createRadialGradient(cx,cy,R*.9,cx,cy,R*1.35);at.addColorStop(0,'rgba(60,255,210,.35)');at.addColorStop(.3,'rgba(40,220,190,.12)');at.addColorStop(1,'rgba(40,220,190,0)');ctx.fillStyle=at;ctx.beginPath();ctx.arc(cx,cy,R*1.35,0,Math.PI*2);ctx.fill();
-  const sea=ctx.createRadialGradient(cx-R*.35,cy-R*.4,R*.05,cx,cy,R);sea.addColorStop(0,'#0f5d60');sea.addColorStop(.4,'#073a43');sea.addColorStop(.85,'#031d27');sea.addColorStop(1,'#02121a');ctx.fillStyle=sea;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
+  const at=ctx.createRadialGradient(cx,cy,R*.9,cx,cy,R*1.5);at.addColorStop(0,'rgba(70,255,215,.55)');at.addColorStop(.3,'rgba(40,230,195,.2)');at.addColorStop(1,'rgba(40,220,190,0)');ctx.fillStyle=at;ctx.beginPath();ctx.arc(cx,cy,R*1.5,0,Math.PI*2);ctx.fill();
+  const sea=ctx.createRadialGradient(cx-R*.35,cy-R*.4,R*.05,cx,cy,R);sea.addColorStop(0,'#21a596');sea.addColorStop(.35,'#0c6466');sea.addColorStop(.8,'#063645');sea.addColorStop(1,'#04222e');ctx.fillStyle=sea;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
   const s=Math.max(1,R/150);
+  /* faint latitude / longitude grid, as on the holographic globe of the mockup */
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.clip();ctx.lineWidth=.6;ctx.strokeStyle='rgba(150,255,230,.13)';
+  for(let la=-60;la<=60;la+=30){ctx.beginPath();let on=false;for(let lo=0;lo<=360;lo+=6){const f=la*Math.PI/180,l=lo*Math.PI/180,q=proj([Math.cos(f)*Math.cos(l),Math.sin(f),-Math.cos(f)*Math.sin(l)],g);if(q[2]<0){on=false;continue}on?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);on=true}ctx.stroke()}
+  for(let lo=0;lo<360;lo+=30){ctx.beginPath();let on=false;for(let la=-90;la<=90;la+=6){const f=la*Math.PI/180,l=lo*Math.PI/180,q=proj([Math.cos(f)*Math.cos(l),Math.sin(f),-Math.cos(f)*Math.sin(l)],g);if(q[2]<0){on=false;continue}on?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);on=true}ctx.stroke()}
+  ctx.restore();ctx.globalCompositeOperation='lighter';
   for(const p of pts){const q=proj(p,g);if(q[2]<0)continue;const l=.25+.75*q[2];
     if(p[3]){ctx.fillStyle='rgba(255,'+(190+Math.round(p[4]*400))+',110,'+(.55+.45*l)+')';ctx.fillRect(q[0]-s*.8,q[1]-s*.8,s*1.7,s*1.7)}
-    else{ctx.fillStyle='rgba(120,255,220,'+(.22+.7*l)+')';ctx.fillRect(q[0]-s*.75,q[1]-s*.75,s*1.5,s*1.5)}}
+    else{ctx.fillStyle='rgba(110,255,215,'+(.3+.7*l)+')';ctx.fillRect(q[0]-s*.8,q[1]-s*.8,s*1.6,s*1.6)}}
+  ctx.globalCompositeOperation='source-over';
   ctx.lineWidth=.8;for(const[a,b]of arcs){ctx.beginPath();let on=false;for(let i=0;i<=24;i++){const q=proj(slerp(a,b,i/24),g);if(q[2]<.05){on=false;continue}on?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]);on=true}ctx.strokeStyle='rgba(120,255,225,.35)';ctx.stroke()}
   const sh=ctx.createRadialGradient(cx-R*.45,cy-R*.5,R*.1,cx,cy,R*1.02);sh.addColorStop(0,'rgba(190,255,240,.16)');sh.addColorStop(.55,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(0,10,16,.55)');ctx.fillStyle=sh;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
   ctx.lineWidth=2;ctx.strokeStyle='rgba(110,255,220,.85)';ctx.shadowColor='rgba(70,255,210,1)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}

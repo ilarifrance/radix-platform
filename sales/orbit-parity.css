@@ -189,3 +189,19 @@ html.so-globe .app #main .orbit-stage .hologram{display:none}
 .app .sidebar:not(.sx-side) nav a:nth-child(8){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='7'/%3E%3Cpath d='M15.5 15.5L21 21M8 12.5c1.4 1.3 3.6 1.3 5 0M8.5 8.5h.01M12.5 8.5h.01'/%3E%3C/svg%3E")}
 .app .sidebar:not(.sx-side) nav a:nth-child(9){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E")}
 .app .sidebar:not(.sx-side) nav a:nth-child(10){--ic:var(--so-i-chart)}
+/* Node labels from the CRM (orbit-nodes.js): type, value, risk; icon by relation type */
+.app #main .entity-node small.so-type{margin-top:4px;color:#7fe7cd;font-weight:500}
+.app #main .entity-node[data-type=cliente] small.so-type{color:#9fb8ff}
+.app #main .entity-node[data-type=trattativa] small.so-type{color:#f2c46b}
+.app #main .entity-node[data-type=nuovo-lead] small.so-type{color:#9ff59a}
+.app #main .entity-node small.so-value{margin-top:2px;color:#e8fffa;font:600 13px/1.3 Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.app #main .entity-node[data-type=cliente] .circle::before{-webkit-mask-image:var(--so-i-people);mask-image:var(--so-i-people)}
+.app #main .entity-node[data-type=opportunita] .circle::before,.app #main .entity-node[data-type=opportunità] .circle::before{-webkit-mask-image:var(--so-i-building);mask-image:var(--so-i-building)}
+.app #main .entity-node[data-type=trattativa] .circle::before{-webkit-mask-image:var(--so-i-chart);mask-image:var(--so-i-chart)}
+.app #main .entity-node[data-type=nuovo-lead] .circle::before{-webkit-mask-image:var(--so-i-leaf);mask-image:var(--so-i-leaf)}
+.app #main .entity-node.at-risk .circle{border-color:#ff7a5c;background:radial-gradient(circle at 50% 40%,#5a2018,#2a0c0a 70%);box-shadow:0 0 0 6px #ff6a4a14,0 0 0 7px #ff6a4a40,0 0 24px #ff5a3a90,inset 0 0 14px #ff6a4a55}
+.app #main .entity-node.at-risk .circle::before{background:#ffd2c6;-webkit-mask:none;mask:none;clip-path:polygon(50% 4%,96% 92%,4% 92%);inset:16px 15px 17px}
+.app #main .entity-node.at-risk .circle::after{content:"!";position:absolute;inset:0;display:grid;place-items:center;padding-top:6px;font:800 15px/1 Inter,system-ui,sans-serif;color:#5a1a10}
+.app #main .entity-node.at-risk small.so-type{color:#ff8a6e;font-weight:600}
+/* Copilota title on one line */
+.ai-title strong{letter-spacing:.06em!important;font-size:15px!important;white-space:nowrap}
