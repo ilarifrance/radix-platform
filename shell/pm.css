@@ -169,7 +169,6 @@ html:has(#pm-board:not([hidden])) main#workspace>#portfolio{order:5}
 html:has(#pm-board:not([hidden])) main#workspace>#stats{order:6}
 /* compact project bar: select, budget, new project and status on one line */
 html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){order:2;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 4px}
-html:has(#pm-board:not([hidden])) main#workspace>.pm-budget{order:2;align-self:flex-start;margin:-58px 0 0 210px;width:170px}
 html:has(#pm-board:not([hidden])) main#workspace>#project-note,html:has(#pm-board:not([hidden])) main#workspace>#message{order:2;margin:2px 0 0;font-size:12px}
 html:has(#pm-board:not([hidden])) .pm-hero-note{display:none}
 html:has(#pm-board:not([hidden])) .layout{grid-template-columns:minmax(0,1fr)!important}
@@ -244,10 +243,77 @@ html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(4){border-colo
 #pm-board-workload .pm-load{min-width:0!important}
 #pm-board-workload .pm-load .pm-progress{width:52px!important}
 html:has(#pm-board:not([hidden])) main#workspace>#project-note{display:none}
-html:has(#pm-board:not([hidden])) main#workspace>.pm-budget{margin:-62px 0 0 230px;width:180px}
 #pm-board-workload td:not(:first-child){background:rgba(196,86,255,calc(var(--load,0) * .8))!important;border-color:rgba(120,70,190,.35)!important;border-radius:4px}
 #pm-board-workload td.over{background:rgba(255,95,190,.75)!important}
 
+/* ---- Panoramica, mockup pm-mockup.png: compact project bar, space backdrop, wider neon Kanban, KPI row under the board ---- */
+html:has(#pm-board:not([hidden])) main#workspace{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:12px;
+  background:radial-gradient(1px 1px at 12% 18%,#fff9,transparent 60%),radial-gradient(1px 1px at 68% 9%,#e9d8ff,transparent 60%),radial-gradient(1.5px 1.5px at 38% 62%,#fff8,transparent 60%),radial-gradient(1px 1px at 86% 44%,#d9c4ff,transparent 60%),radial-gradient(1px 1px at 22% 84%,#fff7,transparent 60%);background-size:230px 190px,310px 260px,270px 230px,190px 210px,350px 300px}
+html:has(#pm-board:not([hidden])) .rx-main,html:has(#pm-board:not([hidden])) body.rx-pm{background:radial-gradient(ellipse 55% 40% at 30% 0%,rgba(150,70,230,.22),transparent 70%),radial-gradient(circle at 104% -18%,transparent 33%,rgba(150,120,255,.35) 34%,rgba(60,30,120,.12) 37%,transparent 46%),radial-gradient(ellipse 80% 30% at 50% 100%,rgba(120,50,220,.18),transparent 70%),#07040f}
+html:has(#pm-board:not([hidden])) main#workspace>*{flex:0 0 100%;min-width:0}
+html:has(#pm-board:not([hidden])) main#workspace>.hero{margin:0 0 6px}
+html:has(#pm-board:not([hidden])) main#workspace>.hero h1{font-size:26px;margin:2px 0}
+html:has(#pm-board:not([hidden])) main#workspace>.hero p.muted{display:none}
+/* one bar: project, budget, views */
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex:0 0 auto;order:2;margin:0;align-items:center;gap:8px;flex-wrap:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--rx-subtle);white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) select{min-width:170px;max-width:220px;height:38px;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #new-project{height:38px;min-height:0;padding:0 12px;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-budget{flex:0 0 auto;order:2;display:flex;align-items:center;gap:8px;margin:0;width:auto;font-size:12px;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-budget input{width:120px;height:38px;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{flex:1 1 300px;order:2;margin:0;padding:3px}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs button{padding:6px 12px;min-height:0}
+html:has(#pm-board:not([hidden])) main#workspace>#message:empty{display:none}
+html:has(#pm-board:not([hidden])) main#workspace>.layout>section.panel{margin-top:18px}
+/* board: kanban is the centre piece; side panels lean back without leaving the page */
+#pm-board.pm-board{gap:22px;padding:0 6px;position:relative}
+#pm-board.pm-board::after{content:"";position:absolute;left:8%;right:8%;bottom:-46px;height:60px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,rgba(190,90,255,.35),transparent 70%);filter:blur(6px)}
+#pm-board>section::after{left:28%;right:28%;height:4px;background:linear-gradient(90deg,transparent,#e59bff 20%,#e59bff 80%,transparent);box-shadow:0 0 18px #c56bff,0 0 4px #fff}
+#pm-board>section{border-color:rgba(205,140,255,.7)!important;box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 34px rgba(170,90,255,.35),0 0 2px rgba(230,180,255,.9),0 30px 60px rgba(0,0,0,.55)}
+@media (min-width:1280px){
+  #pm-board-gantt{transform:perspective(1400px) rotateY(10deg) scale(.96);transform-origin:right center}
+  #pm-board-workload{transform:perspective(1400px) rotateY(-10deg) scale(.96);transform-origin:left center}
+}
+/* kanban columns: one-line neon header with the count, cards bordered in the column colour */
+#pm-board-kanban{--c1:#a77bff;--c2:#ff5fd2;--c3:#4ea8ff;--c4:#3ee08f;gap:10px!important}
+#pm-board-kanban .pm-col{padding:0!important;background:transparent!important;display:flex;flex-direction:column;gap:8px}
+#pm-board-kanban .pm-col>h3{display:flex;justify-content:space-between;align-items:center;margin:0!important;font:700 12px/1 'Space Grotesk',Inter,system-ui,sans-serif!important;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:rgba(14,6,34,.75)}
+#pm-board-kanban .pm-col>h3 .pill{min-width:0;padding:2px 7px;border:0;background:rgba(255,255,255,.12);font-size:11px}
+#pm-board-kanban .pm-card{margin:0!important;padding:10px 38px 10px 10px!important;border:1px solid var(--cc,var(--c1))!important;box-shadow:0 0 12px color-mix(in srgb,var(--cc,var(--c1)) 30%,transparent),inset 0 0 18px rgba(255,255,255,.03)}
+#pm-board-kanban .pm-col:nth-of-type(1){--cc:var(--c1)}#pm-board-kanban .pm-col:nth-of-type(2){--cc:var(--c2)}#pm-board-kanban .pm-col:nth-of-type(3){--cc:var(--c3)}#pm-board-kanban .pm-col:nth-of-type(4){--cc:var(--c4)}
+#pm-board-kanban .pm-card .pm-progress{display:block;width:44px!important;height:4px;margin:0 0 7px;border-radius:9px;background:var(--cc)!important;opacity:.9}
+#pm-board-kanban .pm-card strong{display:block;font-weight:600}
+#pm-board-kanban .pm-card small{display:block;margin-top:3px;font-size:10.5px;color:#b9a6dc}
+#pm-board-kanban .pm-card>.pill{display:inline-block;margin:6px 4px 0 0;padding:1px 7px;font-size:10px;line-height:1.5;border-radius:99px;border:0;background:color-mix(in srgb,var(--cc) 45%,#2a1450);color:#fff}
+#pm-board-kanban .pm-card>.pill.warn{background:rgba(255,95,95,.55)}
+#pm-board-kanban .pm-card .pm-avatar{right:8px;bottom:8px;width:24px;height:24px;font-size:9.5px;background:linear-gradient(135deg,#6a3fd0,#c04fb0);border:1px solid rgba(255,255,255,.35);color:#fff}
+/* KPI row right under the board */
+html:has(#pm-board:not([hidden])) #portfolio{order:5;margin-top:34px;padding:0;background:none;border:0;box-shadow:none}
+html:has(#pm-board:not([hidden])) #portfolio>.row h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#cdb5ff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis{gap:16px!important;max-width:1040px;margin:0 auto 18px}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 10px;padding:16px 18px;border-width:1.5px;box-shadow:0 0 22px color-mix(in srgb,var(--k) 35%,transparent),inset 0 0 22px color-mix(in srgb,var(--k) 10%,transparent);border-color:var(--k)!important;--k:#a77bff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(2){--k:#ff5fd2}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(3){--k:#4ea8ff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(4){--k:#3ee08f}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>span{grid-column:1/-1;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#e6dcff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>strong{font:600 40px/1 'Space Grotesk',Inter,system-ui,sans-serif}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>small{justify-self:end;text-align:right;max-width:150px;font-size:11px;color:var(--k)}
+@media (max-width:1180px){html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{flex-basis:100%}}
+@media (max-width:720px){
+  html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex-wrap:wrap}
+  html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>strong{font-size:30px}
+}
+html:has(#pm-board:not([hidden])) main#workspace>#project-note{display:none!important}
+@media (min-width:1181px){#pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,2.1fr) minmax(0,1fr)}}
+html:has(#pm-board:not([hidden])) main#workspace>#message{order:3;margin:8px 0 0;color:var(--rx-subtle)}
+#pm-board-kanban .pm-card>.pill{white-space:nowrap}
+/* outer edges stay put and inner edges recede, so the tilted panels never leave the page */
+@media (min-width:1280px){
+  #pm-board-gantt{transform:perspective(1400px) rotateY(10deg);transform-origin:left center}
+  #pm-board-workload{transform:perspective(1400px) rotateY(-10deg);transform-origin:right center}
+}
+#pm-board-kanban .pm-card>.pill{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+@media (max-width:720px){html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex:1 1 100%}html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) select{min-width:0;flex:1}}
 /* ===== Panoramica parity, round 2: project bar in markup, detail as a drawer, readable Kanban ===== */
 .rx-pm .pm-projectbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 4px}
 .rx-pm .pm-projectbar>label{display:grid;gap:6px;margin:0;color:var(--rx-muted);font-size:13px}
@@ -284,3 +350,13 @@ html.pm-detail-open:has(#pm-board:not([hidden])) .pm-detail-close{display:grid;p
 #pm-board-kanban .pm-col>h3>*:last-child{min-width:18px;height:18px;padding:0 5px;font-size:10px;line-height:18px;text-align:center}
 #pm-board-kanban .pm-card>.pill{max-width:calc(100% - 32px)}
 #pm-board-kanban .pm-card>.pill:not(:last-of-type){max-width:100%}
+/* project bar (markup since 2745319) shares the line with the view tabs */
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar{flex:0 1 auto;order:2;align-items:center;flex-wrap:nowrap;margin:0}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar>label,html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar .pm-budget{display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar>label:first-child select{min-width:170px;max-width:220px}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar .pm-budget input{width:110px}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar #new-project{margin-left:0;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar select,html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar input,html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar #new-project{height:38px;min-height:0;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{flex:1 1 380px}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs button{white-space:nowrap}
+@media (max-width:1180px){html:has(#pm-board:not([hidden])) main#workspace>.pm-projectbar{flex-wrap:wrap}}
