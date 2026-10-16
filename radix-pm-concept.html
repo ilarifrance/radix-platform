@@ -34,6 +34,8 @@ function ganttScale(g,box){
  const px=Math.max(560,(box.clientWidth||900)-300),fits=n=>n<=px/58;
  if(fits(g.weeks.length))return g.weeks.map(w=>({day:w.day,label:new Date(w.label+'T12:00:00').toLocaleDateString('it-IT',{day:'numeric',month:'short'})}));
  const months=[];for(let d=g.from;d<=g.to;d++){const iso=views.fromDay(d);if(iso.endsWith('-01'))months.push({day:d,iso});}
+ // the partial month before the first 1st, when there is room for its name
+ if(!months.length||months[0].day-g.from>(g.to-g.from)*.06)months.unshift({day:g.from,iso:views.fromDay(g.from)});
  const step=[1,2,3,6,12].find(n=>Math.ceil(months.length/n)<=px/64)||12;
  return months.filter((m,i)=>i%step===0).map(m=>{const d=new Date(m.iso+'T12:00:00');return {day:m.day,month:true,label:d.toLocaleDateString('it-IT',{month:'short'})+(d.getMonth()===0||m===months[0]?' '+d.getFullYear():'')};});
 }
