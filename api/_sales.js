@@ -108,11 +108,12 @@ function createHandler({getSessionUser,getStore}){
        if(Object.keys(q).some(k=>k!=='entity'))fail(400,'Parametri archivio non validi.');
        const store=getStore();return res.status(200).json({rows:await store.leadLists.workspaces(user.uid)});
      }
-     if(!uuid(q.workspace)||(!Object.hasOwn(fields,q.entity)&&!['dashboard','members','customer360','lead_lists','lead_contact_jobs','lead_growth_projects','lead_provider_status'].includes(q.entity)))fail(400,'Workspace o risorsa non validi.');
+     if(!uuid(q.workspace)||(!Object.hasOwn(fields,q.entity)&&!['dashboard','members','customer360','export','lead_lists','lead_contact_jobs','lead_growth_projects','lead_provider_status'].includes(q.entity)))fail(400,'Workspace o risorsa non validi.');
      const offset=q.offset===undefined?0:Number(q.offset);if(!Number.isSafeInteger(offset)||offset<0||offset>1000000||Array.isArray(q.offset))fail(400,'Pagina non valida.');
      if(q.entity==='customer360'){if(!['companies','contacts','opportunities'].includes(q.subject)||!uuid(q.id))fail(400,'Cliente non valido.');}
+     else if(q.entity==='export'){if(!['companies','contacts'].includes(q.subject)||q.id!==undefined)fail(400,'Esportazione non valida.');}
      else if(q.subject!==undefined||(q.id!==undefined&&(!['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)||!uuid(q.id))))fail(400,'Filtro non consentito.');
-     c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};
+     c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='export'?{subject:q.subject}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
