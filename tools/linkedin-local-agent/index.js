@@ -11,6 +11,7 @@ const Batch = require('../../lib/lead-contact-batches');
 const Source = require('../../lib/salesnav-source');
 const PublicLookup = require('../../api/_lead_public_lookup');
 const ProfileReview = require('../../lib/linkedin-profile-review');
+const ContactReview = require('../../lib/linkedin-contact-review');
 const {visibleSearchCards,normalizeVisibleCards,visibleProfileDetails,csvExport} = require('../../lib/linkedin-browser-extract');
 const PORT = Number(process.env.RADIX_LINKEDIN_PORT || 4317);
 const HOME = path.join(os.homedir(), '.radix', 'linkedin-agent');
@@ -149,6 +150,18 @@ async function handler(req,res){
   if(req.headers.origin && req.headers.origin!=='http://127.0.0.1:'+PORT)return json(res,403,{error:'Origine non autorizzata'});
   if(!String(req.headers['content-type']||'').startsWith('application/json'))return json(res,415,{error:'Content-Type JSON richiesto'});
   const input=await readBody(req);
+  if(url.pathname==='/api/contact-review'){
+   if(['running','reviewing'].includes(state.phase))return json(res,409,{error:'Attendi la fine dell’acquisizione o revisione profili'});
+   const id=String(input.jobId||''),job=loadJob(id);
+   const record=job.data.records.find(r=>r.profileUrl===input.profileUrl);
+   if(!record)return json(res,404,{error:'Contatto non trovato nel lavoro'});
+   const reviewed=ContactReview.review(record,input);
+   Object.assign(record,reviewed.record);
+   job.manualReviews=Array.isArray(job.manualReviews)?job.manualReviews:[];
+   job.manualReviews.push({...reviewed.audit,reviewedAt:new Date().toISOString()});
+   if(job.manualReviews.length>10000)job.manualReviews=job.manualReviews.slice(-10000);
+   atomicSave(job);return json(res,200,{saved:true,fields:reviewed.audit.fields,record:{fullName:record.fullName,profileUrl:record.profileUrl,jobTitle:record.jobTitle,companyName:record.companyName,country:record.country,companyDomain:record.companyDomain}});
+  }
   if(url.pathname==='/api/free-lookup'){
    const id=String(input.jobId||''),profileUrl=String(input.profileUrl||'');
    const job=loadJob(id),contact=job.data.records.find(r=>r.profileUrl===profileUrl);
