@@ -97,7 +97,7 @@
       var hx = +ring.getAttribute('cx'), hy = +ring.getAttribute('cy'), hr = +ring.getAttribute('r');
       var color = getComputedStyle(hub).getPropertyValue('--node-color').trim() || '#3ff0b0';
       var out = Math.atan2(hy - CY, hx - CX), RXa = hr + 44, RYa = hr + 30, used = [], missing = p.agents.slice(6);
-      // Best free spot on the ring around the planet; relaxed = also under the planet and close to other satellites.
+      // Best free spot on the ring around the planet; relaxed = also under the planet and close to other satellites, but only on empty space.
       function place(w, relaxed) {
         var best = null;
         for (var k = 0; k < 48; k++) {
@@ -108,7 +108,9 @@
           var x = hx + Math.cos(ang) * (RXa + far), y = hy + Math.sin(ang) * (RYa + far), L = labelBox(x, y, ang, 7, w, 11);
           var dot = { x: x - 9, y: y - 9, w: 18, h: 18 };
           if (hitsCore(dot) || hitsCore(L.box)) continue; // never on the RADIX core or its ring
-          var c = cost([dot, L.box], taken) + kk * 4 + far * 30;
+          var ov = cost([dot, L.box], taken);
+          if (relaxed && ov > 0) continue; // the +N fallback goes only where it covers nothing (project names included)
+          var c = ov + kk * 4 + far * 30;
           if (!best || c < best.c) best = { c: c, ang: ang, x: x, y: y, L: L, dot: dot };
           if (c === 0) break;
         }
