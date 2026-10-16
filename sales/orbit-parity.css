@@ -214,3 +214,40 @@ html.sx-no-crm .app #main>.ai-rail{grid-row:2/6}
 @media (max-width:900px){.app #main>.sx-access{margin:14px 12px 0}}
 /* No CRM workspace: the .sx-access notice is the only next step, so drop the data placeholders that repeat it */
 html.sx-no-crm .top-end .connection,html.sx-no-crm .top-end #workspace,html.sx-no-crm .orbital-nodes .empty-node,html.sx-no-crm .priorities,html.sx-no-crm #notice,html.sx-no-crm .ai-card:has(#ai-focus),html.sx-no-crm .ai-card:has(#ai-tasks),html.sx-no-crm .ai-card.warning{display:none!important}
+
+/* ---------- KPI sparklines, Andamento pipeline, Distribuzione opportunità (orbit-charts.js) ---------- */
+@media (min-width:1100px){.app #main .stats article strong{white-space:nowrap}}
+.app #main .stats article{min-width:0}
+.app #main .so-spark{order:4;display:block;width:100%;height:30px;margin-top:8px;overflow:visible}
+.app #main .so-spark-line{vector-effect:non-scaling-stroke;fill:none;stroke:#36edbd;stroke-width:1.8;stroke-linejoin:round;filter:drop-shadow(0 0 4px #36edbd88)}
+.app #main .so-spark-area{fill:#36edbd;opacity:.12}
+.app #main .so-spark-dot{fill:#bfffee}
+.app #main .stats article:nth-child(3) .so-spark-line{stroke:#f5b544;filter:drop-shadow(0 0 4px #f5b54488)}
+.app #main .stats article:nth-child(3) .so-spark-area{fill:#f5b544}
+.app #main .so-charts{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;margin:0 0 18px 25px}
+@media (min-width:1100px){.app #main>.so-charts{grid-column:1;grid-row:5}}
+html.sx-no-crm .app #main>.so-charts{display:none}
+.app #main .so-panel{position:relative;padding:18px 20px;border-radius:16px;border:1px solid #1f5a5c;background:linear-gradient(160deg,#0a2a33,#061b25);display:flex;flex-direction:column;min-width:0}
+.app #main .so-panel h2{margin:0;font-size:16px;font-weight:600;color:#e8f8f5}
+.app #main .so-sub{margin:4px 0 10px;font-size:12px;color:#8fb3b0}
+.app #main .so-empty{margin:auto 0;padding:22px;border:1px dashed #24545b;border-radius:12px;color:#9fbdc0;text-align:center;font-size:12.5px}
+.app #main .so-link{margin-top:auto;align-self:flex-end;color:#36edbd;font-size:12.5px;text-decoration:none}
+.app #main .so-trend{width:100%;height:auto;display:block}
+.app #main .so-grid{stroke:#1d454c;stroke-dasharray:2 4}
+.app #main .so-bar{fill:url(#soBar)}
+.app #main .so-trend-line{fill:none;stroke:#bfffee;stroke-width:1.4;stroke-opacity:.6;stroke-dasharray:3 3}
+.app #main .so-axis{fill:#8fb3b0;font-size:11px}
+.app #main .so-val{fill:#e8f8f5;font-size:10.5px;font-weight:600}
+.app #main .so-donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.app #main .so-donut{width:150px;height:150px;flex:none}
+.app #main .so-donut-track{fill:none;stroke:#10343a;stroke-width:16}
+.app #main .so-donut-seg{fill:none;stroke-width:16;filter:drop-shadow(0 0 4px rgba(54,237,189,.25))}
+.app #main .so-donut-n{fill:#e8f8f5;font-size:28px;font-weight:600}
+.app #main .so-donut-s{fill:#8fb3b0;font-size:11px}
+.app #main .so-legend{list-style:none;margin:0;padding:0;display:grid;gap:8px;flex:1;min-width:170px}
+.app #main .so-legend li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:8px;align-items:center;font-size:12.5px;color:#cfe5e2}
+.app #main .so-legend i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.app #main .so-legend b{font-weight:600;color:#fff}
+.app #main .so-legend small{grid-column:2/-1;color:#8fb3b0;font-size:11px}
+@media (max-width:900px){.app #main .so-charts{grid-template-columns:1fr;margin-left:0}}
+
