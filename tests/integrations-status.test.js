@@ -21,3 +21,21 @@ test('route requires a RADIX session and GET',async()=>{
   r=res();await handler({method:'GET'},r);assert.equal(r.code,200);assert.ok(Array.isArray(r.body.items));assert.equal(r.headers['Cache-Control'],'no-store');
  }finally{auth.getSessionUser=orig}
 });
+
+test('workspace client reads the status once and retries after a failure',async()=>{
+ const path=require.resolve('../lib/radix-workspace-client.js');const orig=globalThis.fetch;let calls=0,ok=false;
+ globalThis.fetch=async()=>{calls++;return ok?{ok:true,json:async()=>({items:[{id:'buffer',configured:false},{id:'anthropic',configured:true}]})}:{ok:false,json:async()=>({})}};
+ try{
+  delete require.cache[path];const ws=require(path);
+  assert.equal(await ws.integrations(),null);ok=true;
+  assert.deepEqual(await ws.integrations(),{buffer:false,anthropic:true});await ws.integrations();
+  assert.equal(calls,2);
+ }finally{globalThis.fetch=orig;delete require.cache[path]}
+});
+
+test('media tools for services without a key are disabled with the reason',async()=>{
+ const media=require('../lib/radix-agent-media.js');
+ assert.match(require('node:fs').readFileSync('lib/radix-agent-media.js','utf8'),/markService\(bufferTool[\s\S]*markService\(emailTool/);
+ assert.equal(typeof media.toolsFor,'function');
+ assert.match(require('node:fs').readFileSync('editorial-workspace.js','utf8'),/map\.buffer===false/);
+});
