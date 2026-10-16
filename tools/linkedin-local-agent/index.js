@@ -157,6 +157,9 @@ async function handler(req,res){
    if(!record)return json(res,404,{error:'Contatto non trovato nel lavoro'});
    const reviewed=ContactReview.review(record,input);
    Object.assign(record,reviewed.record);
+   if(reviewed.audit.fields.includes('companyName')||reviewed.audit.fields.includes('companyDomain')){
+    for(const note of (job.freeEnrichment||[]))if(note.profileUrl===record.profileUrl&&note.field==='companyDomain'&&!note.supersededAt)note.supersededAt=new Date().toISOString();
+   }
    job.manualReviews=Array.isArray(job.manualReviews)?job.manualReviews:[];
    job.manualReviews.push({...reviewed.audit,reviewedAt:new Date().toISOString()});
    if(job.manualReviews.length>10000)job.manualReviews=job.manualReviews.slice(-10000);
