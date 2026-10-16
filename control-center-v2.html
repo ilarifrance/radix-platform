@@ -546,6 +546,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       var next=response.body;
       if(!next||!Array.isArray(next.projects)||!Array.isArray(next.workflows)||!next.metrics)throw new Error('Snapshot RADIX non valido. Riprova.');
       data=next;render();
+      if(currentView!=='network')setView(currentView); // a #view link opened before the snapshot arrived
       $('systemStatus').textContent='SNAPSHOT CARICATO';$('syncNotice').hidden=true;$('fatal').classList.remove('show');
       $('app').classList.remove('loading');$('app').inert=false;
     }catch(err){
@@ -614,7 +615,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     return {x:450+Math.cos(angle)*(230+ring*160),y:245+Math.sin(angle)*(155+ring*110)};
   }
   function enterProject(id){focusedProjectId=id;networkDetail=null;networkPage=0;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
-  function renderNetwork(){
+  function renderNetwork(){if(!data)return;
     var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
     if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:data.workspace&&data.workspace.sharedWorkflowCatalog?'Workflow condivisi':'Attività senza progetto'};
     if(!focused){focusedProjectId=null;networkDetail=null}
@@ -770,7 +771,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       document.querySelectorAll('[data-blocked]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-blocked'))})});return;
     }
     // Only what still needs someone: blocked workflows and approvals awaiting a decision.
-    var waiting=(data.approvals||[]).filter(function(a){return a.awaiting});
+    var waiting=(data.approvals||[]).filter(function(a){return a.awaiting}).concat(journeyAttention());
     $('approvalMeta').textContent=waiting.length+' da decidere';
     $('attentionList').innerHTML=blocked.filter(function(b){return b.workflowId}).map(function(b){return '<div class="workflow-card" data-blocked="'+esc(b.workflowId)+'"><div class="workflow-name">⚠ '+esc(b.title||'Workflow bloccato')+'</div><div class="workflow-task">'+esc(b.reason||'Verificare nel workspace')+'</div></div>'}).join('')+waiting.map(function(a){return '<a class="workflow-card" href="'+esc(a.href||'#')+'"><div class="workflow-name">'+esc(a.title)+'</div><div class="workflow-task">'+esc(a.reason||'')+'</div></a>'}).join('')||'<div class="empty-state"><b>Niente da approvare</b>Nessuna richiesta aperta e nessun workflow bloccato.</div>';
     document.querySelectorAll('[data-blocked]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-blocked'))})});
@@ -786,7 +787,12 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   var STEP_STATE={todo:'pending',active:'running',waiting:'blocked',done:'done'},STEP_WORD={todo:'da fare',active:'in corso',waiting:'da approvare',done:'completato'};
   function loadJourneys(){
     if(journeys||journeysLoading||!window.fetch)return;journeysLoading=true;
-    fetch('/api/workspace?resource=projects&journey=1',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){journeys=d.items.filter(function(p){return p.journey&&p.status!=='archived'&&p.journey.steps.some(function(s){return s.state!=='todo'})});renderWorkflows()}}).catch(function(){}).then(function(){journeysLoading=false});
+    fetch('/api/workspace?resource=projects&journey=1',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){journeys=d.items.filter(function(p){return p.journey&&p.status!=='archived'&&p.journey.steps.some(function(s){return s.state!=='todo'})});renderWorkflows();if(data)renderApprovals()}}).catch(function(){}).then(function(){journeysLoading=false});
+  }
+  // Project steps waiting for a person (strategy to approve, contents or tasks in review), from the journey.
+  function journeyAttention(){
+    var out=[];(journeys||[]).forEach(function(p){(p.journey.steps||[]).forEach(function(s){if(s.state==='waiting'&&STEP_HREF[s.id])out.push({title:p.name+' · '+s.label,reason:s.detail,href:STEP_HREF[s.id].replace('{p}',encodeURIComponent(p.id))})})});
+    return out.slice(0,12);
   }
   function journeyCards(){
     // Projects waiting on a person first, then those in progress; finished ones last.
@@ -970,7 +976,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
     $('operationalView').hidden=!['agents','knowledge','approvals','analytics','integrations'].includes(currentView);
-    if(!$('operationalView').hidden)renderOperationalView(currentView);
+    if(!$('operationalView').hidden&&data)renderOperationalView(currentView);
     $('networkCaptionWrap').hidden=!network;
     $('networkLegend').hidden=!network;if($('networkMobileList'))$('networkMobileList').hidden=!network;
     ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
