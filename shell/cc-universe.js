@@ -96,14 +96,15 @@
       var ring = hub.querySelector('.project-ring'); if (!p || !ring) return;
       var hx = +ring.getAttribute('cx'), hy = +ring.getAttribute('cy'), hr = +ring.getAttribute('r');
       var color = getComputedStyle(hub).getPropertyValue('--node-color').trim() || '#3ff0b0';
-      var out = Math.atan2(hy - CY, hx - CX), RXa = hr + 44, RYa = hr + 30, shown = p.agents.slice(0, 6), used = [];
-      shown.forEach(function (id, i) {
-        var label = roleName(id), w = textWidth(g, 'cc-agent-name', label), best = null;
+      var out = Math.atan2(hy - CY, hx - CX), RXa = hr + 44, RYa = hr + 30, used = [], missing = p.agents.slice(6);
+      // Best free spot on the ring around the planet; relaxed = also under the planet and close to other satellites.
+      function place(w, relaxed) {
+        var best = null;
         for (var k = 0; k < 48; k++) {
           var far = k >= 24 ? 22 : 0; // second, wider ring when the first has no free spot
           var kk = k % 24, ang = out + (kk % 2 ? 1 : -1) * Math.ceil(kk / 2) * Math.PI / 12, norm = ((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-          if (norm > .7 && norm < 2.45) continue; // under the planet: that is where its name sits
-          if (used.some(function (u) { return Math.abs(Math.atan2(Math.sin(u - ang), Math.cos(u - ang))) < .62; })) continue;
+          if (!relaxed && norm > .7 && norm < 2.45) continue; // under the planet: that is where its name sits
+          if (used.some(function (u) { return Math.abs(Math.atan2(Math.sin(u - ang), Math.cos(u - ang))) < (relaxed ? .3 : .62); })) continue;
           var x = hx + Math.cos(ang) * (RXa + far), y = hy + Math.sin(ang) * (RYa + far), L = labelBox(x, y, ang, 7, w, 11);
           var dot = { x: x - 9, y: y - 9, w: 18, h: 18 };
           if (hitsCore(dot) || hitsCore(L.box)) continue; // never on the RADIX core or its ring
@@ -111,16 +112,29 @@
           if (!best || c < best.c) best = { c: c, ang: ang, x: x, y: y, L: L, dot: dot };
           if (c === 0) break;
         }
-        if (!best) return;
-        used.push(best.ang); taken.push(best.dot, best.L.box);
-        var a = el('a', { class: 'cc-agent', href: '/agents.html?agent=' + encodeURIComponent(id) + '&project=' + encodeURIComponent(p.id), style: '--pl:' + color });
-        var t = el('title', {}); t.textContent = label + ' · ha lavorato su questo progetto (conversazioni salvate)'; a.append(t);
+        if (best) { used.push(best.ang); taken.push(best.dot, best.L.box); }
+        return best;
+      }
+      function satellite(best, label, title, href, cls) {
+        var a = el('a', { class: 'cc-agent' + (cls ? ' ' + cls : ''), href: href, style: '--pl:' + color });
+        var t = el('title', {}); t.textContent = title; a.append(t);
         a.append(el('line', { class: 'cc-agent-tether', x1: hx + Math.cos(best.ang) * (hr + 2), y1: hy + Math.sin(best.ang) * (hr + 2), x2: best.x, y2: best.y }));
         a.append(el('circle', { class: 'cc-agent-dot', cx: best.x, cy: best.y, r: 6.5 }));
         a.append(el('circle', { class: 'cc-agent-core', cx: best.x, cy: best.y, r: 2.4 }));
         var tx = el('text', { class: 'cc-agent-name', x: best.L.x, y: best.L.y + 9, 'text-anchor': best.L.anchor }); tx.textContent = label; a.append(tx);
         g.append(a);
+      }
+      p.agents.slice(0, 6).forEach(function (id) {
+        var label = roleName(id), best = place(textWidth(g, 'cc-agent-name', label), false);
+        if (!best) { missing.push(id); return; }
+        satellite(best, label, label + ' · ha lavorato su questo progetto (conversazioni salvate)', '/agents.html?agent=' + encodeURIComponent(id) + '&project=' + encodeURIComponent(p.id));
       });
+      // Agents with no free spot are not dropped: one «+N» satellite names them all in its tooltip.
+      if (missing.length) {
+        var more = '+' + missing.length, spot = place(textWidth(g, 'cc-agent-name', more), true);
+        if (!spot) { var ang = -Math.PI / 4, x = hx + Math.cos(ang) * (hr + 16), y = hy + Math.sin(ang) * (hr + 16); spot = { ang: ang, x: x, y: y, L: labelBox(x, y, ang, 7, 20, 11) }; }
+        satellite(spot, more, 'Altri agenti su questo progetto: ' + missing.map(roleName).join(', '), '/agents.html?project=' + encodeURIComponent(p.id), 'cc-agent-more');
+      }
     });
   }
 
