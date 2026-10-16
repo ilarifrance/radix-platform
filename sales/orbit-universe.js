@@ -2,7 +2,7 @@
 /* Sales Orbit «Il tuo universo commerciale» (sales-orbit-mockup-pianeti.png): the RADIX core with the five CRM areas
    in orbit, the four KPI tiles with their bars, the list view and the Copilota rail. Everything is counted from the rows
    crm-data.js loads (first 100 per entity: a full page is shown as «100+»). Nothing is estimated:
-   - Opportunità attive: opportunities whose stage is not won or lost (stage title vinto/perso/won/lost).
+   - Opportunità attive: outcome «open» when the CRM records it, otherwise a stage not named vinto/perso/won/lost.
    - Attività in scadenza: open tasks due within 7 days, overdue included.
    - Copertura clienti: companies with at least one interaction in the last 90 days, over all companies.
    - A rischio (same rule as the CRM Panoramica): expected close passed (Alto), or within 14 days with no open task (Medio).
@@ -17,6 +17,8 @@ const it=n=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(n);
 const eur=c=>{const v=c/100;return '€ '+(v>=1e6?new Intl.NumberFormat('it-IT',{maximumFractionDigits:1}).format(v/1e6)+'M':v>=1e4?new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(v/1e3)+'k':it(v))};
 const OPEN=t=>!['done','completed','closed'].includes(String(t.status||'').toLowerCase());
 const CLOSED=/vint|won|pers|lost/i;
+/* outcome (open/won/lost) when the CRM has it, otherwise the stage name */
+const isOpen=(o,stages)=>o.outcome?o.outcome==='open':!CLOSED.test((stages.get(o.stage_id)||{}).title||'');
 const t0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
 const day=v=>{const d=new Date(v);return Number.isFinite(+d)?d:null};
 const total=(rows,partial)=>rows.length>=100&&partial?'100+':it(rows.length);
@@ -40,7 +42,7 @@ ask?.addEventListener('click',()=>{const open=assist.hidden;assist.hidden=!open;
 function model(d){
   const today=t0(),stages=new Map((d.stages||[]).map(s=>[s.id,s])),opps=d.opportunities||[],tasks=d.tasks||[],inter=d.interactions||[];
   const companies=new Map((d.companies||[]).map(c=>[c.id,c])),contacts=new Map((d.contacts||[]).map(c=>[c.id,c]));
-  const active=opps.filter(o=>!CLOSED.test((stages.get(o.stage_id)||{}).title||''));
+  const active=opps.filter(o=>isOpen(o,stages));
   const open=tasks.filter(OPEN);
   const due=open.filter(t=>{const x=day(t.due_at);return x&&x-today<8*DAY});
   const overdue=open.filter(t=>{const x=day(t.due_at);return x&&x<today});

@@ -38,8 +38,11 @@ function donutPanel(d){
   const p=H('article','so-panel');const hd=H('div','so-panel-head');hd.append(H('h2','','Distribuzione opportunità'),H('span','so-chip','Per fase'));p.append(hd,H('p','so-sub','Tutte le opportunità registrate, per fase della pipeline'));
   const stages=(d.stages||[]).slice().sort((a,b)=>num(a.position)-num(b.position)),opps=d.opportunities||[];
   if(!opps.length){p.append(H('p','so-empty','Nessuna opportunità nel workspace.'));return p}
-  const rows=stages.map((s,i)=>{const o=opps.filter(x=>x.stage_id===s.id);return {label:s.title||'Fase '+(i+1),n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c:/pers|lost/i.test(s.title||'')?'#ff6b7a':/vint|won/i.test(s.title||'')?'#8fe36b':COLORS[i%COLORS.length]}});
-  const other=opps.filter(x=>!stages.some(s=>s.id===x.stage_id));if(other.length)rows.push({label:'Senza fase',n:other.length,v:other.reduce((a,x)=>a+num(x.amount_cents),0),c:'#5b7a70'});
+  const closed=o=>o.outcome==='won'||o.outcome==='lost',live=opps.filter(o=>!closed(o));
+  const rows=stages.map((s,i)=>{const o=live.filter(x=>x.stage_id===s.id);return {label:s.title||'Fase '+(i+1),n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c:/pers|lost/i.test(s.title||'')?'#ff6b7a':/vint|won/i.test(s.title||'')?'#8fe36b':COLORS[i%COLORS.length]}});
+  /* outcome won/lost, when recorded, goes to Vinte / Perse whatever the stage */
+  [['won','Vinte','#8fe36b'],['lost','Perse','#ff6b7a']].forEach(([k,label,c])=>{const o=opps.filter(x=>x.outcome===k);if(o.length)rows.push({label,n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c})});
+  const other=live.filter(x=>!stages.some(s=>s.id===x.stage_id));if(other.length)rows.push({label:'Senza fase',n:other.length,v:other.reduce((a,x)=>a+num(x.amount_cents),0),c:'#5b7a70'});
   const wrap=H('div','so-donut-wrap'),R=58,C=2*Math.PI*R,svg=S('svg',{class:'so-donut',viewBox:'0 0 160 160',role:'img','aria-label':'Opportunità per fase'});
   svg.append(S('circle',{cx:80,cy:80,r:R,class:'so-donut-track'}));
   let off=0;rows.filter(r=>r.n).forEach(r=>{const len=C*r.n/opps.length;const c=S('circle',{cx:80,cy:80,r:R,stroke:r.c,class:'so-donut-seg','stroke-dasharray':`${Math.max(0,len-2)} ${C}`,'stroke-dashoffset':-off,transform:'rotate(-90 80 80)'});const t=S('title',{});t.textContent=r.label+': '+r.n;c.append(t);svg.append(c);off+=len});
@@ -51,7 +54,7 @@ let box=null;
 const CLOSED=/vint|won|pers|lost/i;
 function render(d){
   if(!d)return;
-  const st=new Map((d.stages||[]).map(s=>[s.id,s])),active=(d.opportunities||[]).filter(o=>!CLOSED.test((st.get(o.stage_id)||{}).title||''));
+  const st=new Map((d.stages||[]).map(s=>[s.id,s])),active=(d.opportunities||[]).filter(o=>o.outcome?o.outcome==='open':!CLOSED.test((st.get(o.stage_id)||{}).title||''));
   box?.remove();box=H('section','so-charts');box.setAttribute('aria-label','Andamento e distribuzione della pipeline');
   box.append(trendPanel(byMonth(active,'expected_close',o=>num(o.amount_cents))),donutPanel(d));stats.after(box)}
 function load(){RadixCrmData.load().then(render)}
