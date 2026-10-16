@@ -36,7 +36,15 @@ document.querySelectorAll('.so-toggle [data-view]').forEach(b=>b.addEventListene
 
 /* ---- Chiedi a RADIX AI opens the assistant box ---- */
 const ask=$('so-ask'),assist=$('so-assist');
-ask?.addEventListener('click',()=>{const open=assist.hidden;assist.hidden=!open;ask.setAttribute('aria-expanded',String(open));if(open)$('command')?.focus()});
+/* With the CRM Copilot loaded (sales/crm-copilot.js, PR #43) the button asks the model on the workspace data;
+   without it, it opens the keyword router. The footnote says which of the two is in use. */
+const copilot=()=>window.RadixCrmCopilot&&typeof window.RadixCrmCopilot.open==='function';
+function askMode(){if(!copilot()||!ask)return;ask.removeAttribute('aria-controls');ask.removeAttribute('aria-expanded');
+  const sub=ask.querySelector('small');if(sub)sub.textContent='Domande sui dati del tuo CRM';
+  const foot=document.querySelector('.so-foot');if(foot)foot.textContent='Priorità, rischi e azioni sono dati del CRM e regole dichiarate. «Chiedi a RADIX AI» risponde con un modello AI sui dati del workspace.'}
+ask?.addEventListener('click',()=>{if(copilot()){assist.hidden=true;window.RadixCrmCopilot.open();return}
+  const open=assist.hidden;assist.hidden=!open;ask.setAttribute('aria-expanded',String(open));if(open)$('command')?.focus()});
+askMode();window.addEventListener('load',askMode);
 
 /* ---- the model ---- */
 function model(d){
