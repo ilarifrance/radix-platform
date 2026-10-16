@@ -514,3 +514,37 @@ td.late{color:#ff8f80}
 @media(max-width:900px){.an-two,.an-three{grid-template-columns:1fr}.an-kpis{grid-template-columns:1fr 1fr}.an-q-grid{grid-template-columns:1fr 1fr}.an-top th:nth-child(2),.an-top td:nth-child(2),.an-top th:nth-child(6),.an-top td:nth-child(6){display:none}}
 /* Build notes are not for users: hide the "Foundation da validare" badge and the "Sviluppi futuri" panel */
 body>header>.badge,#content+section.panel{display:none!important}
+
+/* ---------- Sequenze e campagne (crm-campaigns.js), same look as the Contatti panels ---------- */
+details.crm-campaigns{padding:0;overflow:hidden}
+details.crm-campaigns>summary{cursor:pointer;padding:16px 20px;font-weight:600;color:#e6f6f2;list-style-position:inside}
+details.crm-campaigns[open]>summary{border-bottom:1px solid #18444a}
+/* two columns: sequences | campaign (the children sit in the details content box) */
+details.crm-campaigns[open]::details-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start}
+.crm-sequence,.crm-campaign{padding:18px 20px;min-width:0}
+.crm-sequence{border-right:1px solid #18444a;align-self:stretch}
+.crm-sequence h3,.crm-campaign h3{margin:0 0 12px;font-size:15px;color:#fff}
+.crm-sequence>.actions{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
+.crm-sequence select{width:100%;min-height:40px;font-size:13px}
+.crm-sequence>.actions button{justify-self:start}
+.crm-sequence>label{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:12.5px;color:#cfe6e1;cursor:pointer}
+.crm-sequence>label input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0;flex:none;accent-color:#3fe8bd}
+.crm-campaign>label{display:block;font-size:12px;color:var(--muted);margin:0 0 10px}
+.crm-campaign>label input,.crm-campaign>label textarea{display:block;width:100%;margin-top:5px;font-size:13px}
+.crm-campaign>label textarea{min-height:120px;resize:vertical}
+.crm-campaign>.actions{margin:4px 0 0;justify-content:flex-start}
+.crm-campaign button,.crm-sequence button{min-height:36px;padding:6px 14px;font-size:13px}
+.crm-campaign-queue{display:grid;gap:10px;margin-top:14px}
+.crm-campaign-queue:empty{display:none}
+.crm-campaign-queue>p{margin:0;font-size:12.5px;color:#9fbdc0}
+.crm-campaign-queue>button{justify-self:start}
+.crm-campaign-item{display:grid;gap:4px;padding:12px 14px;border:1px solid #1f5a5c;border-radius:12px;background:#071f29cc}
+.crm-campaign-item strong{font-size:13.5px;color:#e6f6f2;overflow-wrap:anywhere}
+.crm-campaign-item>p.muted{margin:0;font-size:12.5px}
+.crm-campaign-item details>summary{cursor:pointer;font-size:12px;color:#7fd6c0}
+.crm-campaign-item .interaction-body{white-space:pre-wrap;font-size:12.5px;margin:6px 0 0;padding:10px;border-radius:8px;background:#0a2833}
+.crm-campaign-item>.actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:6px 0 0;justify-content:flex-start}
+.crm-campaign-item>.actions a{font-size:12.5px;color:#3fe8bd}
+.crm-campaign-item>.actions button{min-height:32px;padding:4px 12px;font-size:12.5px}
+.crm-campaign>p.muted,.crm-sequence>p.muted{font-size:12px;margin:12px 0 0}
+@media(max-width:900px){details.crm-campaigns[open]::details-content{grid-template-columns:1fr}.crm-sequence{border-right:0;border-bottom:1px solid #18444a}}
