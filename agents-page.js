@@ -88,9 +88,12 @@ function sourcesEl(sources){
 function renderFlow(flow,msg){
  const box=node('div',undefined,'flow');
  const done=flow.nodes.filter(n=>n.status==='done').length;
- box.append(node('h3','Flusso di lavoro · giro '+(flow.round||1)+' · '+done+'/'+flow.nodes.length+' compiti completati'+(flow.status==='halted'?' · fermato':'')));
+ box.append(node('h3',(flow.pipeline?'Pipeline post':'Flusso di lavoro · giro '+(flow.round||1))+' · '+done+'/'+flow.nodes.length+' compiti completati'+(flow.status==='halted'?' · fermato':'')));
+ const timing=[rt.flowElapsed(flow)&&'tempo '+rt.flowElapsed(flow),rt.flowEta(flow,flow.pipeline?1:rt.FLOW_CONCURRENCY)].filter(Boolean).join(' · ');
+ if(timing)box.append(node('p',timing,'meta flow-time'));
+ if(flow.pipeline){const map=node('div',undefined,'flow-map');flow.nodes.forEach((n,i)=>{if(i)map.append(node('span','→','arrow'));map.append(node('span',n.label,'st '+n.status))});box.append(map)}
  flow.nodes.forEach((n,i)=>{
-  const row=node('div',undefined,'node'),head=node('div',undefined,'row');
+  const row=node('div',undefined,'node'),head=node('div',undefined,'row');row.dataset.step=i;
   head.append(node('strong','#'+(i+1)+' '+n.label),node('span',{done:n.editedBy?'modificato da '+n.editedBy:'consegnato',stale:'da aggiornare',running:'al lavoro'+(n.progress?' · '+n.progress:''),error:'non riuscito',pending:'in attesa'}[n.status]||n.status,'st '+n.status));
   if(n.deps&&n.deps.length)head.append(node('small','usa il risultato di '+n.deps.map(d=>'#'+d).join(', '),'meta'));
   row.append(head,node('small',n.subtask,'meta'));
@@ -100,16 +103,55 @@ function renderFlow(flow,msg){
    const note=media.stripSlides(rt.stripDocuments(n.output));
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
+   const src=sourcesEl(n.sources);if(src)row.append(src);
    media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>row.append(t));
    if(!busy)row.append(stepTools(msg,i));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
  });
+ if(flow.pipeline&&flow.nodes.every(n=>n.status==='done')){const p=readyPanel(flow,box);if(p)box.append(p)}
+ if(flow.nodes.some(n=>(n.status==='done'||n.status==='stale')&&n.output)){
+  const full=()=>rt.flowFullText(flow,media.stripSlides),title=(flow.pipeline?'Pipeline post':'Flusso di lavoro')+' · '+project.name;
+  const a=node('div',undefined,'actions flow-all');
+  a.append(btn('Copia tutto',()=>navigator.clipboard.writeText(full()).then(()=>say('Risultato completo copiato.'),()=>say('Copia non riuscita: il browser non ha dato il permesso.'))),btn('Scarica tutto (Word)',()=>rt.exportWord(title,full())),btn('Scarica tutto (Markdown)',()=>rt.exportMarkdown(title,full())));
+  box.append(a);
+ }
  if(flow.nodes.some(n=>n.status==='stale')&&!busy){const a=node('div',undefined,'actions');a.append(btn('Aggiorna i passi successivi',()=>updateStale(msg)));box.append(a)}
  if(flow.nodes.some(n=>n.status==='error')&&!busy){const a=node('div',undefined,'actions');a.append(btn('Riprova i compiti non riusciti',()=>retryFlow(msg)));box.append(a)}
  if(flow.log&&flow.log.length){const det=node('details');det.append(node('summary','Registro del flusso ('+flow.log.length+')'));const log=node('div',undefined,'log');
   log.textContent=flow.log.map(l=>new Date(l.t).toLocaleTimeString('it-IT')+'  '+l.x).join('\n');log.style.whiteSpace='pre-wrap';det.append(log);box.append(det)}
  return box;
+}
+// v3.7 "cosa creare ora": the Social Media Manager's "Formato:" decides the main button; the other
+// formats stay one click away. Buttons open the tool under the step that has the material (nothing is sent yet).
+function readyPanel(flow,box){
+ const d=rt.pipelineDecision(flow);if(!d)return null;
+ const p=node('div',undefined,'ready-panel');p.append(node('strong','Deciso dal Social Media Manager · cosa creare ora'));
+ if(d.format)p.append(node('p','Formato: '+d.format,'ready-decision'));
+ const acts=node('div',undefined,'actions'),go=(i,what)=>()=>{const row=box.querySelector('.node[data-step="'+i+'"]');if(!row)return;const t=row.querySelector('.tool button.primary');row.scrollIntoView({behavior:'smooth',block:'center'});row.classList.add('focus');setTimeout(()=>row.classList.remove('focus'),1600);if(t&&!t.disabled)t.click();say(what)};
+ const add=(i,text,what,primary)=>{if(i<0)return false;const b=btn(text,go(i,what));if(primary)b.className='primary';acts.append(b);return true};
+ let main=false;
+ if(d.video)main=add(d.ai,'🎬 Crea il video','Video: usa lo strumento sotto AI Specialist.',true)||main;
+ if(d.carousel)main=add(d.art,'🖼 Crea il carosello','Carosello: usa lo strumento sotto Art Director.',true)||main;
+ if(!main)p.append(node('p',d.video||d.carousel?'Il passo indicato non ha ancora un risultato da cui generare il file.':'Post testuale o immagine singola: il testo del Copywriter è pronto, non serve altro da creare.','meta'));
+ if(!d.video)add(d.ai,'Video','Video: usa lo strumento sotto AI Specialist.');
+ if(!d.carousel)add(d.art,'Carosello','Carosello: usa lo strumento sotto Art Director.');
+ add(d.copy,'📅 Programma in Buffer','Buffer: usa lo strumento sotto Copywriter.');
+ p.append(acts);return p;
+}
+// Hub replies without a flow (e.g. v3.7 conversations copied from the Archive): open each routed task with its specialist.
+function routingButtons(text){
+ const items=rt.parseRouting(text);if(!items.length)return null;
+ const wrap=node('div',undefined,'actions routing-list');wrap.append(node('small','Smistato a:','meta'));
+ items.forEach(it=>{const a=rt.agent(it.role);if(!a)return;const b=btn(a.icon+' '+a.name+' → apri con questo compito',()=>{selectAgent(a.id);$('input').value=it.subtask;$('input').focus()},it.subtask);wrap.append(b)});
+ return wrap;
+}
+function deliverablesPanel(hist){
+ const docs=rt.collectDocuments(hist,rt.label(agentId));if(!docs.length)return null;
+ const det=node('details',undefined,'deliverables');det.open=docs.length<=6;
+ det.append(node('summary','📁 Documenti prodotti in questa conversazione · '+docs.length+(docs.length===1?' documento':' documenti')));
+ docs.forEach(e=>det.append(docCard(e.doc,e.by)));
+ return det;
 }
 function render(){
  const box=$('thread');box.replaceChildren();
@@ -135,6 +177,7 @@ function render(){
    rt.parseDocuments(m.content).forEach(d=>el.append(docCard(d,a&&a.name)));
    const s=sourcesEl(m.sources);if(s)el.append(s);
    if(m.flow)el.append(renderFlow(m.flow,m));
+   else if(rt.isHub(m.agent||agentId)){const r=routingButtons(m.content);if(r)el.append(r)}
    const acts=node('div',undefined,'actions');
    acts.append(btn('Copia',()=>navigator.clipboard.writeText(m.content).then(()=>say('Testo copiato.'))),btn('Word',()=>rt.exportWord((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('PDF',()=>rt.exportPdf((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Markdown',()=>rt.exportMarkdown((a?a.name:'Risposta')+' · '+project.name,m.content)),btn('Proponi in memoria',()=>remember(m.agent||agentId,(a?a.name:'Agente')+' · '+project.name,m.content)));
    if((m.agent||agentId)==='copywriter')acts.append(node('small',m.content.length+' caratteri','char-count'));
@@ -144,6 +187,7 @@ function render(){
   }
   box.append(el);
  }
+ const dp=deliverablesPanel(hist);if(dp)box.append(dp);
  box.scrollTop=box.scrollHeight;
  const has=forModel(hist).length>0;
  $('send').disabled=busy;$('input').disabled=false;$('attach').disabled=busy;$('reset').disabled=busy||!hist.length;
@@ -235,9 +279,9 @@ async function retryFlow(msg){
 }
 // "Pipeline post": five specialists in a row, each working on everything produced before.
 async function runPipelineFlow(msg){
- const flow=msg.flow;flow.status='running';
+ const flow=msg.flow;flow.status='running';flow.startedAt=flow.startedAt||Date.now();delete flow.endedAt;
  await rt.runNodes(flow,{call:(role,text,onP)=>callOne(role,text,onP),concurrency:1,onUpdate:()=>{render();persist()}});
- flow.status=flow.nodes.every(n=>n.status==='done')?'done':flow.halted?'halted':'error';
+ flow.status=flow.nodes.every(n=>n.status==='done')?'done':flow.halted?'halted':'error';flow.endedAt=Date.now();
 }
 async function runPipeline(task){
  const hist=conv(),items=rt.PIPELINE.map((role,i)=>({role,subtask:'Brief del post: '+task+'\n\nIl tuo compito in questa pipeline: '+PIPELINE_STEPS[role],deps:Array.from({length:i},(_,k)=>k+1)}));

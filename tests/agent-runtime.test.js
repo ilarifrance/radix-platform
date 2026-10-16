@@ -108,3 +108,18 @@ test('pipeline steps: edit or regenerate one step and mark the later ones to upd
  assert.equal(flow.nodes[2].status,'stale');assert.equal(flow.nodes[3].status,'done');
  await rt.rerunNode(flow,3,{call:async()=>{throw Error('rete')}});assert.equal(flow.nodes[3].status,'error');
 });
+test('flow summaries: time left, full text, all documents and the "cosa creare ora" decision',()=>{
+ assert.equal(rt.fmtDur(42000),'42 s');assert.equal(rt.fmtDur(125000),'2 min 05 s');
+ const flow=rt.makeFlow(rt.PIPELINE.map((role,i)=>({role,subtask:'s'+i})),1);flow.pipeline=true;
+ assert.equal(rt.flowEta(flow,1),'stima disponibile dopo il primo compito');
+ flow.nodes[0].status='done';flow.nodes[0].startedAt=1000;flow.nodes[0].endedAt=61000;flow.nodes[0].output='Direzione\n---DOCUMENTO: Strategia---\nTesto\n---FINE DOCUMENTO---';
+ assert.equal(rt.flowEta(flow,1),'circa 4 min 00 s ancora');
+ assert.equal(rt.flowElapsed({startedAt:1000,endedAt:31000}),'30 s');assert.equal(rt.flowElapsed({}),'');
+ flow.nodes.forEach((n,i)=>{if(i){n.status='done';n.output=n.role==='social-media-manager'?'**Formato:** Carosello 6 slide\nMotivo: il video resta in riserva':'out '+n.role}});
+ assert.equal(rt.flowEta(flow,1),'');
+ const full=rt.flowFullText(flow,t=>t.replace('out','OUT'));assert.match(full,/^STRATEGIST|^[A-ZÀ-Ü ]+\n/);assert.match(full,/OUT copywriter/);assert.equal(full.split('\n\n').length>=5,true);
+ const d=rt.pipelineDecision(flow);assert.equal(d.format,'Carosello 6 slide');assert.equal(d.carousel,true);assert.equal(d.video,false);assert.equal(d.art,2);assert.equal(d.copy,1);
+ assert.equal(rt.pipelineDecision(rt.makeFlow([{role:'copywriter',subtask:'x'}],1)),null);
+ const docs=rt.collectDocuments([{role:'assistant',agent:'legal-contracts',content:'---DOCUMENTO: NDA---\nCorpo\n---FINE DOCUMENTO---'},{role:'assistant',pending:true,content:'---DOCUMENTO: X---\nno\n---FINE DOCUMENTO---'},{role:'assistant',content:'ok',flow}]);
+ assert.deepEqual(docs.map(x=>x.doc.title),['NDA','Strategia']);assert.equal(docs[1].by,flow.nodes[0].label);
+});
