@@ -165,7 +165,14 @@ function renderReceiver(){
  $('receiver-summary').textContent=filtered.length+' contatti visualizzabili su '+receiverRecords.length+' · solo consultazione';
 }
 async function loadReceiver(id){
+ const previousJob=receiverSelected;
  receiverSelected=id;receiverBusy=true;
+ if(previousJob&&previousJob!==id){
+  $('free-bulk-rows').replaceChildren();
+  $('free-reconcile-status').textContent='Lavoro cambiato: esegui un nuovo controllo prima di approvare.';
+  $('free-bulk-counter').textContent='0 / 0';
+  $('free-bulk-progress').value=0;
+ }
  try{
   const res=await fetch('/api/contacts?id='+encodeURIComponent(id||''),{cache:'no-store'});
   if(!res.ok)throw Error('Impossibile leggere il lavoro');
@@ -266,7 +273,7 @@ $('free-bulk').onclick=async()=>{
  if(!engine){$('free-bulk-status').textContent='Modulo di riconciliazione non disponibile.';return}
  const id=receiverSelected,records=receiverRecords.slice();
  freeBulkRunning=true;freeBulkStop=false;
- $('free-bulk').disabled=true;$('free-stop').disabled=false;
+ $('free-bulk').disabled=true;$('free-stop').disabled=false;$('free-lookup').disabled=true;
  $('free-bulk-rows').replaceChildren();
  $('free-reconcile-status').textContent='Ricerca in corso. Nessun salvataggio automatico.';
  // Search once per company-and-country; unknown country remains a human-review case.
@@ -314,7 +321,7 @@ $('free-bulk').onclick=async()=>{
   $('free-reconcile-status').textContent='Riconciliazione offline: '+review.totalCompanies+' aziende nel lotto, '+reviewable+' proposte verificabili, '+conflicts+' conflitti, '+review.invalidEvidence+' fonti non valide. Nessun dato applicato senza conferma.';
   $('free-bulk-status').textContent=(freeBulkStop?'Interrotto. ':'Completato. ')+done+' aziende controllate, '+proposed+' proposte, nessun dato salvato automaticamente.'+(groups.size>50?' Limite: prime 50 aziende.':'');
  }catch(error){$('free-reconcile-status').textContent='Riconciliazione non riuscita: '+error.message}
- finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false}
+ finally{freeBulkRunning=false;$('free-stop').disabled=true;$('free-bulk').disabled=false;$('free-lookup').disabled=false}
 };
 $('waterfall-plan').onclick=()=>{
  try{
