@@ -109,6 +109,8 @@ html.rx-shell .shell,html.rx-shell .app{min-height:calc(100vh - var(--rx-topbar)
 @media (prefers-reduced-motion:reduce){.rx-sidebar,.rx-chev{transition:none}}
 /* Guard the shell against generic page rules (aside{}, nav{}, a{}) */
 .rx-user[hidden]{display:none}
+html.rx-shell button.rx-logout{min-height:32px;margin:0 0 0 4px;padding:4px 10px;border:1px solid var(--rx-border);border-radius:8px;background:transparent;color:var(--rx-muted);font:500 12px var(--rx-font);cursor:pointer}
+html.rx-shell button.rx-logout:hover{border-color:var(--rx-border-strong);color:var(--rx-text)}
 html.rx-shell aside.rx-sidebar{padding:18px 12px 14px;border-bottom:0;margin:0}
 html.rx-shell .rx-sidebar nav.rx-nav{display:flex;flex-direction:column;gap:2px;margin:0;padding:0;overflow:visible;white-space:normal;border:0}
 html.rx-shell .rx-sidebar nav.rx-foot{margin-top:auto;padding-top:14px;border-top:1px solid var(--rx-border)}
