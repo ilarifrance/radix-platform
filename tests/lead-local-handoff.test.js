@@ -37,3 +37,10 @@ test('name-only company may be reviewed but identity is marked uncertain',()=>{
 });
 
 test('superseded public-domain evidence no longer counts as reviewed',()=>{const x=job([person()]);x.freeEnrichment=[{field:'companyDomain',source:'https://www.wikidata.org/wiki/Q12',confirmedAt:'2026-10-16T12:00:00Z',supersededAt:'2026-10-16T13:00:00Z'}];assert.equal(Bridge.parse(x).report.reviewedDomainCount,0)});
+
+test('archive splits a 5000-person work into DB-sized independent backups without data loss',()=>{
+ const rows=Array.from({length:5000},(_,i)=>({...person('x'+i),fullName:'Person '+i,profileUrl:'https://www.linkedin.com/in/unique-'+i}));
+ const parsed=Bridge.parse(job(rows));const parts=Bridge.archiveParts(parsed.job);
+ assert.ok(parts.length>1);assert.equal(parts.reduce((n,p)=>n+p.records.length,0),5000);
+ for(const part of parts){assert.ok(part.records.length<=4000);assert.ok(new TextEncoder().encode(JSON.stringify(part)).length<=1500000);assert.equal(part.total,part.records.length)}
+});
