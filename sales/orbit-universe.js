@@ -117,33 +117,25 @@ document.addEventListener('radix:crm-error',e=>{clearInterval(wait);const msg=St
   stage.querySelectorAll('.so-planet small').forEach(s=>s.textContent='—');$('so-callout-a').textContent=msg;
   for(const id of ['priorities','so-risk','so-actions'])$(id).replaceChildren(H('p','so-muted',msg))});
 
-/* ---- the sky: stars, orbits, links from the core to each planet, the RADIX sphere ---- */
+/* ---- the sky: stars, the horizon, links from the core to each planet, the RADIX earth with its orbits ---- */
 const cv=stage.querySelector('.so-sky'),ctx=cv&&cv.getContext&&cv.getContext('2d');if(!ctx)return;
 const reduce=matchMedia('(prefers-reduced-motion: reduce)');let W=0,Ht=0,dpr=1,stars=[];
 function size(){const r=cv.getBoundingClientRect();if(!r.width)return;dpr=Math.min(2,devicePixelRatio||1);W=r.width;Ht=r.height;cv.width=Math.round(W*dpr);cv.height=Math.round(Ht*dpr);
   let s=7;const rnd=()=>{s=(s*16807)%2147483647;return s/2147483647};stars=Array.from({length:Math.round(W*Ht/2600)},()=>[rnd()*W,rnd()*Ht,rnd()*1.2+.2,rnd()]);if(reduce.matches)frame(0)}
-const ORB=[{rx:.36,ry:.2,a:-.12,c:'84,240,210',s:.00012},{rx:.3,ry:.27,a:.5,c:'110,170,255',s:-.00009},{rx:.44,ry:.25,a:.18,c:'242,184,75',s:.00007}];
 function geo(){const r=stage.querySelector('.so-core').getBoundingClientRect(),c=cv.getBoundingClientRect();return{cx:r.left+r.width/2-c.left,cy:r.top+r.height/2-c.top,R:r.width/2}}
-function frame(t){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,Ht);const g=geo(),{cx,cy,R}=g,M=Math.min(W,Ht*1.6);
+function frame(t){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,Ht);const g=geo(),{cx,cy,R}=g;
   for(const[x,y,r,f]of stars){ctx.globalAlpha=.35+.5*Math.abs(Math.sin(t*.0006+f*9));ctx.fillStyle=f>.85?'#ffe2a8':'#bfffee';ctx.fillRect(x,y,r,r)}ctx.globalAlpha=1;
   /* the planet horizon at the bottom left, as in the photo */
   const hx=W*.1,hy=Ht*1.62,hr=Ht*.95,hz=ctx.createRadialGradient(hx-hr*.2,hy-hr*.4,hr*.2,hx,hy,hr);hz.addColorStop(0,'#0a3a44');hz.addColorStop(.7,'#05212b');hz.addColorStop(1,'#031820');
   ctx.fillStyle=hz;ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fill();ctx.save();ctx.lineWidth=1.6;ctx.strokeStyle='rgba(140,255,235,.55)';ctx.shadowColor='rgba(80,255,220,.9)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(hx,hy,hr,-Math.PI*.95,-Math.PI*.12);ctx.stroke();ctx.restore();
-  for(const o of ORB){ctx.save();ctx.translate(cx,cy);ctx.rotate(o.a);ctx.beginPath();ctx.ellipse(0,0,o.rx*M,o.ry*M,0,0,Math.PI*2);ctx.strokeStyle='rgba('+o.c+',.3)';ctx.lineWidth=1;ctx.setLineDash([2,5]);ctx.stroke();ctx.setLineDash([]);
-    for(let k=0;k<3;k++){const a=t*o.s+k*2.1,x=Math.cos(a)*o.rx*M,y=Math.sin(a)*o.ry*M,gr=ctx.createRadialGradient(x,y,0,x,y,7);gr.addColorStop(0,'rgba(255,245,215,.95)');gr.addColorStop(.3,'rgba('+o.c+',.8)');gr.addColorStop(1,'rgba('+o.c+',0)');ctx.fillStyle=gr;ctx.fillRect(x-7,y-7,14,14)}ctx.restore()}
+  const G=window.RadixGlobe,rot=.35+t*.00006;if(G)G.orbits(ctx,g,t,false);
   const cr=cv.getBoundingClientRect();
   for(const p of stage.querySelectorAll('.so-planet i')){const r=p.getBoundingClientRect();if(!r.width)continue;const x=r.left+r.width/2-cr.left,y=r.top+r.height/2-cr.top,dx=x-cx,dy=y-cy,d=Math.hypot(dx,dy)||1;
     const sx=cx+dx/d*R*1.02,sy=cy+dy/d*R*1.02,ex=x-dx/d*r.width*.62,ey=y-dy/d*r.width*.62,col=getComputedStyle(p).color;
     const lg=ctx.createLinearGradient(sx,sy,ex,ey);lg.addColorStop(0,'rgba(120,255,230,.05)');lg.addColorStop(1,col);ctx.globalAlpha=.75;ctx.strokeStyle=lg;ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();
     const k=(t*.00025+d*.01)%1;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx+(ex-sx)*k,sy+(ey-sy)*k,1.8,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
-  /* the RADIX sphere: glow, glassy body, a rotating dotted grid */
-  const at=ctx.createRadialGradient(cx,cy,R*.8,cx,cy,R*1.7);at.addColorStop(0,'rgba(80,255,220,.45)');at.addColorStop(1,'rgba(80,255,220,0)');ctx.fillStyle=at;ctx.beginPath();ctx.arc(cx,cy,R*1.7,0,Math.PI*2);ctx.fill();
-  const body=ctx.createRadialGradient(cx-R*.3,cy-R*.35,R*.05,cx,cy,R);body.addColorStop(0,'#2bb7a6');body.addColorStop(.45,'#0b5a63');body.addColorStop(1,'#03222c');ctx.fillStyle=body;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
-  const rot=t*.00012;ctx.fillStyle='rgba(170,255,235,.7)';
-  for(let la=-75;la<=75;la+=15){const f=la*Math.PI/180,cf=Math.cos(f),n=Math.max(6,Math.round(36*cf));for(let i=0;i<n;i++){const l=i/n*Math.PI*2+rot,z=cf*Math.cos(l);if(z<0)continue;
-    const x=cx+cf*Math.sin(l)*R,y=cy-Math.sin(f)*R*.98;ctx.globalAlpha=.15+.7*z;ctx.fillRect(x-.8,y-.8,1.6,1.6)}}ctx.globalAlpha=1;
-  const sh=ctx.createRadialGradient(cx-R*.4,cy-R*.45,0,cx,cy,R);sh.addColorStop(0,'rgba(220,255,248,.3)');sh.addColorStop(.5,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(0,12,18,.5)');ctx.fillStyle=sh;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.fill();
-  ctx.lineWidth=2;ctx.strokeStyle='rgba(140,255,230,.9)';ctx.shadowColor='rgba(80,255,220,1)';ctx.shadowBlur=22;ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);ctx.stroke();ctx.shadowBlur=0}
+  /* the RADIX earth (sales/orbit-globe.js), the front half of its orbits over it */
+  if(G){G.draw(ctx,g,rot);G.orbits(ctx,g,t,true)}}
 function loop(t){if(stage.hidden){requestAnimationFrame(loop);return}if(!W)size();frame(t);if(!reduce.matches)requestAnimationFrame(loop)}
 size();requestAnimationFrame(loop);new ResizeObserver(size).observe(cv);
 reduce.addEventListener?.('change',()=>requestAnimationFrame(loop));
