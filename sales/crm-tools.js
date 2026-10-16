@@ -89,7 +89,24 @@ function segmentPanel(){
   out.replaceChildren(E('p',rows.length+' contatti nel segmento'+(rows.length?': ':'.')+rows.slice(0,15).map(r=>r.name+(r.company?' ('+r.company+')':'')).join(', ')+(rows.length>15?' …':'')));app().notice('Segmento calcolato.')}));
  const exp=B('Esporta segmento CSV',async()=>{let f;try{f=await filterOf()}catch(e){app().error(e.message);return}exportCsv('contacts',f)});
  const a=E('div',undefined,'actions');a.append(show,exp);
- box.append(form,a,out,E('p','«Non sentiti da» usa le interazioni caricate nella pagina. Per campagne email esporta solo contatti con consenso.','muted'));
+ // Saved segments (sales_segments): the same five filters, shared by the workspace.
+ const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}return f};
+ const saved=E('select');saved.setAttribute('aria-label','Segmenti salvati');const savedRows=new Map();
+ const fillSaved=rows=>{savedRows.clear();saved.replaceChildren();const o=E('option',rows.length?'Segmenti salvati…':'Nessun segmento salvato');o.value='';saved.append(o);for(const r of rows){savedRows.set(r.id,r);const x=E('option',r.name);x.value=r.id;saved.append(x)}};
+ const loadSaved=async()=>{try{fillSaved((await app().api('segments')).rows||[])}catch(e){fillSaved([]);out.replaceChildren(E('p','Segmenti salvati non disponibili: '+e.message,'notice'))}};
+ saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
+ const keep=E('div',undefined,'actions crm-saved');keep.append(saved);
+ if(app().writable('contacts')){
+  keep.append(B('Salva segmento',async()=>{let filters;try{filters=current()}catch(e){app().error(e.message);return}
+   if(!Object.keys(filters).length){app().error('Imposta almeno un filtro prima di salvare.');return}
+   const name=(window.prompt('Nome del segmento (visibile a tutto il workspace):','')||'').trim();if(!name)return;if(name.length>200){app().error('Nome troppo lungo: massimo 200 caratteri.');return}
+   if(await run('Salvo il segmento…',()=>post('segments','create',{name,filters}))){await loadSaved();app().notice('Segmento «'+name+'» salvato.')}}),
+  B('Elimina segmento',async()=>{const r=savedRows.get(saved.value);if(!r){app().error('Scegli prima un segmento salvato.');return}
+   if(!window.confirm('Eliminare il segmento «'+r.name+'»? I contatti non vengono toccati.'))return;
+   if(await run('Elimino il segmento…',()=>post('segments','delete',{id:r.id,version:r.version}))){await loadSaved();app().notice('Segmento eliminato.')}},'danger'));
+ }
+ box.addEventListener('toggle',()=>{if(box.open&&!box.dataset.loaded){box.dataset.loaded='1';loadSaved()}});
+ box.append(keep,form,a,out,E('p','«Non sentiti da» usa le interazioni caricate nella pagina. Per campagne email esporta solo contatti con consenso.','muted'));
  return box;
 }
 // Follow-up rule: open deal with no interaction for N days and no open task -> one task, after confirmation.
@@ -118,11 +135,12 @@ async function gdprExport(row){
 }
 async function gdprErase(row){
  const a=app();
- if(!window.confirm('Anonimizzare «'+row.name+'»?\nNome, email, telefono, ruolo, LinkedIn, note e consenso vengono cancellati, e il testo delle interazioni collegate viene svuotato. Trattative e attività restano per lo storico. Non si può annullare.'))return;
+ if(!window.confirm('Anonimizzare «'+row.name+'»?\nNome, email, telefono, ruolo, LinkedIn, note e consenso vengono cancellati, e il testo delle interazioni e dei ticket collegati viene svuotato. Trattative e attività restano per lo storico. Non si può annullare.'))return;
  const failed=[];
  await run('Anonimizzo il contatto…',async()=>{
   const d=await a.api('customer360',{subject:'contacts',id:row.id,offset:0});
   for(const x of (d.rows||[]).filter(r=>r.entity==='interactions').map(r=>r.record)){if(x.contact_id!==row.id)continue;try{await post('interactions','update',{id:x.id,version:x.version,title:'Interazione anonimizzata',body:''})}catch(e){failed.push(e.message)}}
+  for(const x of (d.rows||[]).filter(r=>r.entity==='tickets').map(r=>r.record)){if(x.contact_id!==row.id)continue;try{await post('tickets','update',{id:x.id,version:x.version,title:'Ticket anonimizzato',body:'',resolution:null})}catch(e){failed.push(e.message)}}
   await post('contacts','update',{id:row.id,version:row.version,name:'Contatto anonimizzato',email:null,phone:null,role:null,linkedin_url:null,notes:null,marketing_consent:false,consent_at:null});
  });
  await a.refresh(false);a.notice('Contatto anonimizzato.');if(failed.length)a.error('Alcune interazioni non sono state svuotate: '+failed.join(' · '));

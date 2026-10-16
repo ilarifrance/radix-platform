@@ -12,7 +12,7 @@ async function snapshot(sql,uid,workspace){
  const member=await sql('SELECT m.role,w.name FROM sales_memberships m JOIN sales_workspaces w ON w.id=m.workspace_id WHERE m.workspace_id=$1 AND m.user_id=$2',[workspace,uid]);
  if(!member[0])return null;
  const q=(text)=>sql(text,[workspace]);
- const [opps,tasks,contacts,inter,closed,members]=await Promise.all([
+ const [opps,tasks,contacts,inter,closed,members,tickets]=await Promise.all([
   q(`SELECT o.title,o.amount_cents,o.probability,o.expected_close::text AS expected_close,s.title AS stage,s.probability AS stage_probability,c.name AS company,k.name AS contact,u.name AS owner
      FROM sales_opportunities o LEFT JOIN sales_stages s ON s.workspace_id=o.workspace_id AND s.id=o.stage_id LEFT JOIN sales_companies c ON c.workspace_id=o.workspace_id AND c.id=o.company_id
      LEFT JOIN sales_contacts k ON k.workspace_id=o.workspace_id AND k.id=o.contact_id LEFT JOIN users u ON u.id=o.owner_id
@@ -24,7 +24,10 @@ async function snapshot(sql,uid,workspace){
   q(`SELECT i.kind,i.title,i.body,i.occurred_at,c.name AS company,k.name AS contact FROM sales_interactions i LEFT JOIN sales_companies c ON c.workspace_id=i.workspace_id AND c.id=i.company_id
      LEFT JOIN sales_contacts k ON k.workspace_id=i.workspace_id AND k.id=i.contact_id WHERE i.workspace_id=$1 ORDER BY i.occurred_at DESC LIMIT 15`),
   q(`SELECT outcome,count(*)::int AS n,COALESCE(sum(amount_cents),0)::text AS cents,array_remove(array_agg(lost_reason),NULL) AS reasons FROM sales_opportunities WHERE workspace_id=$1 AND outcome<>'open' GROUP BY outcome`),
-  q(`SELECT u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 ORDER BY u.name LIMIT 30`)
+  q(`SELECT u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 ORDER BY u.name LIMIT 30`),
+  // Older databases without migration 009 simply have no support queue.
+  q(`SELECT t.title,t.status,t.priority,t.due_at,c.name AS company,k.name AS contact,u.name AS assignee FROM sales_tickets t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id
+     LEFT JOIN sales_contacts k ON k.workspace_id=t.workspace_id AND k.id=t.contact_id LEFT JOIN users u ON u.id=t.assignee_id WHERE t.workspace_id=$1 AND t.status IN('open','pending') ORDER BY t.due_at NULLS LAST LIMIT 20`).catch(()=>[])
  ]);
  const L=[];
  L.push('Workspace: '+clip(member[0].name,120)+' · data di riferimento '+new Date().toISOString().slice(0,10)+' (UTC).');
@@ -35,6 +38,8 @@ async function snapshot(sql,uid,workspace){
  for(const c of closed)L.push((c.outcome==='won'?'Vinte: ':'Perse: ')+c.n+' per '+eur(c.cents)+(c.outcome==='lost'&&c.reasons?.length?' · motivi: '+c.reasons.slice(0,8).map(r=>clip(r,60)).join('; '):''));
  L.push('\nATTIVITÀ APERTE ('+tasks.length+'):');
  for(const t of tasks)L.push('- '+clip(t.title,90)+' · scadenza '+day(t.due_at)+' · '+t.priority+' · '+clip(t.assignee||'non assegnata',40)+(t.company?' · '+clip(t.company,60):''));
+ L.push('\nTICKET DI ASSISTENZA APERTI ('+tickets.length+'):');
+ for(const t of tickets)L.push('- '+clip(t.title,90)+' · '+(t.status==='pending'?'in attesa':'aperto')+' · '+t.priority+' · scadenza '+day(t.due_at)+(t.company||t.contact?' · '+clip([t.company,t.contact].filter(Boolean).join(' / '),80):'')+' · '+clip(t.assignee||'non assegnato',40));
  L.push('\nCONTATTI, dal meno sentito:');
  for(const k of contacts)L.push('- '+clip(k.name,60)+(k.role?' ('+clip(k.role,40)+')':'')+(k.company?' · '+clip(k.company,60):'')+' · ultima interazione '+day(k.last_touch));
  L.push('\nULTIME INTERAZIONI:');

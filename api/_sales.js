@@ -6,7 +6,7 @@ const growthProjects=require('./_lead_growth_projects');
 const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
 const providerCallback=require('./_lead_provider_callback');
-const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id']});
+const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
@@ -19,7 +19,13 @@ function timestamp(v){
 // Calendar date, not an instant: no timezone conversion or inferred close time.
 function calendarDate(v){return typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && timestamp(v+'T00:00:00Z');}
 // Optional record fields (phase A): empty string clears them, as NULL does.
-const TEXT_LIMITS=Object.freeze({website:300,industry:120,email:254,phone:40,city:120,notes:4000,role:120,linkedin_url:300,lost_reason:500});
+const TEXT_LIMITS=Object.freeze({website:300,industry:120,email:254,phone:40,city:120,notes:4000,role:120,linkedin_url:300,lost_reason:500,resolution:4000});
+// Saved segment filters: the same fields as the contact segment panel, nothing else.
+const SEGMENT_FILTERS=Object.freeze({role:'text',industry:'text',city:'text',consent:['yes','no'],silent_days:'days'});
+function segmentFilters(v){
+ if(!object(v)||Object.keys(v).some(k=>!Object.hasOwn(SEGMENT_FILTERS,k)))return false;
+ return Object.entries(v).every(([k,x])=>{const t=SEGMENT_FILTERS[k];if(t==='text')return typeof x==='string'&&x.length<=80&&!/[\u0000-\u001f\u007f]/.test(x);if(t==='days')return Number.isInteger(x)&&x>=0&&x<=3650;return t.includes(x)});
+}
 function command(body){
  if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k)))fail(400,'Comando non valido.');
  const {workspace,entity,action}=body; let d=body.data;
@@ -48,11 +54,13 @@ function command(body){
    else if(k==='amount_cents'){if(!Number.isSafeInteger(v)||v<0||v>9000000000000)fail(400,'Importo non valido.');}
    else if(k==='position'){if(!Number.isInteger(v)||v<0||v>10000)fail(400,'Posizione non valida.');}
    else if(k==='kind'&&!(entity==='interactions'?['note','call','meeting','email']:['opportunity','task']).includes(v))fail(400,'Tipo processo non valido.');
-   else if(k==='status'&&!['todo','doing','done'].includes(v))fail(400,'Stato non valido.');
+   else if(k==='status'&&!(entity==='tickets'?['open','pending','resolved','closed']:['todo','doing','done']).includes(v))fail(400,'Stato non valido.');
+   else if(k==='channel'&&!['email','phone','chat','web','other'].includes(v))fail(400,'Canale non valido.');
+   else if(k==='filters'){if(!segmentFilters(v))fail(400,'Filtri del segmento non validi.');}
  }
  if(action!=='create'&&(!d.id||!d.version))fail(400,'Identificativo e versione obbligatori.');
  if(action==='create'){
-   const required=[entity==='companies'||entity==='contacts'?'name':'title'];
+   const required=[['companies','contacts','segments'].includes(entity)?'name':'title'];if(entity==='segments')required.push('filters');
    if(entity==='interactions')required.push('kind','occurred_at');if(entity==='processes')required.push('kind');if(entity==='stages')required.push('process_id','position');if(entity==='opportunities')required.push('process_id','stage_id');
    if(required.some(k=>d[k]===undefined||d[k]===null))fail(400,'Campi obbligatori mancanti.');
  }
@@ -132,9 +140,9 @@ function createHandler({getSessionUser,getStore}){
    }
    return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
  }catch(e){
-   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-008 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
+   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-009 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
    const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
  }
  };
 }
-module.exports={createHandler,command,memberCommand,uuid,fields,timestamp,calendarDate};
+module.exports={createHandler,command,memberCommand,segmentFilters,uuid,fields,timestamp,calendarDate};
