@@ -40,3 +40,16 @@
 /* Knowledge cards: team memory counts (PR #14) */
 .rx-cc small.knowledge-memory{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--rx-muted)}
 .rx-cc small.knowledge-memory::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-agency)}
+
+/* Integrations view: service cards say plainly whether the key is there (data-state from integrationStatusItems). */
+.operational-card[data-state]{position:relative;overflow:hidden}
+.operational-card[data-state]::after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0}
+.operational-card[data-state=configured]::after{background:#1ef28f}
+.operational-card[data-state=missing]::after{background:#f5b84a}
+.operational-card[data-state] span{display:inline-flex!important;align-items:center;gap:6px;width:max-content;max-width:100%;margin-top:6px!important;padding:2px 9px;border-radius:999px;font-weight:600;letter-spacing:.02em}
+.operational-card[data-state] span::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.operational-card[data-state=configured] span{color:#1ef28f!important;background:rgba(30,242,143,.09);border:1px solid rgba(30,242,143,.35)}
+.operational-card[data-state=missing] span{color:#f5b84a!important;background:rgba(245,184,74,.08);border:1px solid rgba(245,184,74,.4)}
+.operational-card[data-state=configured] i{color:#1ef28f;border-color:#1e7f53}
+.operational-card[data-state=missing] i{color:#f5b84a;border-color:rgba(245,184,74,.5);background:rgba(245,184,74,.07)}
+.operational-card[data-state=missing]{border-color:rgba(245,184,74,.28)}

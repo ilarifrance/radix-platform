@@ -862,7 +862,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       {icon:'⟲',name:'Orchestratori v3.7',meta:workflows.length+' workflow salvati',detail:agentCount+' agenti configurati · esecuzione live '+(quality.realtimeExecutionVerified===true?'verificata':'non verificata'),action:'view:command'},
       {icon:'↗',name:'Workspace v3.7',meta:'Disponibile',detail:'Chat e orchestratori esistenti · il progetto selezionato non viene trasferito',action:'workspace'},
     ].concat(services?services.map(function(i){
-      return {icon:i.configured?'✓':'○',name:i.label,meta:i.configured?'Chiave configurata':'Non collegato',detail:i.use+(i.configured?' · la chiave viene verificata al primo utilizzo':' · manca la chiave su Vercel: la funzione resta disattivata'),action:''};
+      return {icon:i.configured?'✓':'○',state:i.configured?'configured':'missing',name:i.label,meta:i.configured?'Chiave configurata':'Non collegato',detail:i.use+(i.configured?' · la chiave viene verificata al primo utilizzo':' · manca la chiave su Vercel: la funzione resta disattivata'),action:''};
     }):[{icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}]);
   }
   // Which external services have a key on this deployment (booleans only), read once per page view.
@@ -896,7 +896,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(view==='knowledge'){renderKnowledgeView();return}
     var host=$('operationalView'),workflows=data.workflows||[],projects=data.projects||[],states=data.agentStatus||{},html='',title='';
     function shell(name,meta,body){return '<div class="operational-head"><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="operational-grid">'+body+'</div>'}
-    function card(icon,name,meta,detail,action){return '<article class="operational-card">'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}
+    function card(icon,name,meta,detail,action,state){return '<article class="operational-card"'+(state?' data-state="'+esc(state)+'"':'')+'>'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}
     if(view==='agents'){
       title='Agenti';html=shell(title,AGENTS.length+' configurati · chat e flussi nella pagina Agenti AI',AGENTS.map(function(a){var state=states[a.id]||{status:'idle',task:''};return card('✣',a.name,a.group+' · '+(state.status||'idle'),state.task||'Nessuna attività salvata recente','agent:'+a.id)}).join(''));
     }else if(view==='knowledge'){
@@ -910,7 +910,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
     }else{
       title='Integrations';loadIntegrations();var items=integrationStatusItems(data,AGENTS.length,integrations);
-      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',items.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action)}).join(''));
+      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',items.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action,item.state)}).join(''));
     }
     host.innerHTML=html;host.setAttribute('aria-label',title);
     var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};
