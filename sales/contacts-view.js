@@ -13,13 +13,9 @@ const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(N
 const day=v=>{if(!v)return'';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):''};
 const ago=v=>{const d=new Date(v);if(!Number.isFinite(d.getTime()))return'';const n=Math.round((Date.now()-d)/864e5);return n<=0?'oggi':n===1?'ieri':n+' g fa'};
 const KIND={email:'Email',call:'Call',meeting:'Meeting',note:'Nota',linkedin:'LinkedIn'};
-const state={ws:null,data:null,loading:null,selected:null,gen:0};
+const state={selected:null};
 
-async function read(entity){const q=new URLSearchParams({entity,offset:'0',workspace:state.ws});const r=await fetch('/api/sales?'+q,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('CRM '+r.status);const d=await r.json();if(!Array.isArray(d.rows))throw Error('Formato non valido');return d.rows}
-async function load(){const ws=wsSelect.value;if(!ws)return null;if(state.ws===ws&&state.data)return state.data;if(state.ws===ws&&state.loading)return state.loading;
-  state.ws=ws;state.data=null;const gen=++state.gen;
-  state.loading=Promise.all(['contacts','companies','opportunities','tasks','interactions','stages'].map(read)).then(([contacts,companies,opportunities,tasks,interactions,stages])=>{if(gen!==state.gen)return null;state.data={contacts,companies,opportunities,tasks,interactions,stages};return state.data}).catch(()=>null).finally(()=>{if(gen===state.gen)state.loading=null});
-  return state.loading}
+const load=()=>window.RadixCrmData?window.RadixCrmData.load():Promise.resolve(null);
 
 function facts(d,c){const company=d.companies.find(x=>x.id===c.company_id);
   const inter=d.interactions.filter(i=>i.contact_id===c.id).sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at)));
@@ -82,7 +78,6 @@ async function render(){const section=document.getElementById('contacts');if(!se
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&n.classList?.contains('cx'))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
-wsSelect.addEventListener('change',()=>{state.data=null;state.selected=null});
-document.getElementById('refresh')?.addEventListener('click',()=>{state.data=null});
+wsSelect.addEventListener('change',()=>{state.selected=null});
 addEventListener('hashchange',later);later();
 })();
