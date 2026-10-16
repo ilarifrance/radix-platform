@@ -175,3 +175,9 @@ html.rx-has-project a[data-project-link],html.rx-has-project p:has(>a[data-proje
   .rx-project-name{max-width:150px}
   .rx-project-extra{margin-left:0}
 }
+/* Guard bar links against page link colours */
+html.rx-shell .rx-steps a,html.rx-shell .rx-project-extra a,html.rx-shell .rx-project-switch{color:var(--rx-subtle)}
+html.rx-shell .rx-steps a{color:var(--rx-muted)}
+html.rx-shell .rx-steps a:hover,html.rx-shell .rx-project-extra a:hover,html.rx-shell .rx-project-extra a[aria-current],
+html.rx-shell .rx-steps a[aria-current]:not([aria-current=false]){color:var(--rx-text)}
+html.rx-shell .rx-project-switch:hover{color:var(--rx-accent)}
