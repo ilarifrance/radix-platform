@@ -73,6 +73,10 @@
     var w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
     return w > 0 && h > 0 ? w * h : 0;
   }
+  function hitsCore(b) {
+    var nx = Math.max(b.x, Math.min(CX, b.x + b.w)), ny = Math.max(b.y, Math.min(CY, b.y + b.h));
+    return (nx - CX) * (nx - CX) + (ny - CY) * (ny - CY) < 88 * 88;
+  }
   function cost(boxes, list) { var c = 0; boxes.forEach(function (b) { list.forEach(function (o) { c += overlap(b, o); }); }); return c; }
   function textWidth(g, cls, str) { var t = el('text', { class: cls, x: -999, y: -999 }); t.textContent = str; g.append(t); var w = t.getComputedTextLength() || str.length * 7.5; t.remove(); return w; }
   // A label beside its dot, on the side facing away from the point it orbits.
@@ -95,12 +99,15 @@
       var out = Math.atan2(hy - CY, hx - CX), RXa = hr + 44, RYa = hr + 30, shown = p.agents.slice(0, 6), used = [];
       shown.forEach(function (id, i) {
         var label = roleName(id), w = textWidth(g, 'cc-agent-name', label), best = null;
-        for (var k = 0; k < 24; k++) {
-          var ang = out + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * Math.PI / 12, norm = ((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        for (var k = 0; k < 48; k++) {
+          var far = k >= 24 ? 22 : 0; // second, wider ring when the first has no free spot
+          var kk = k % 24, ang = out + (kk % 2 ? 1 : -1) * Math.ceil(kk / 2) * Math.PI / 12, norm = ((ang % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
           if (norm > .7 && norm < 2.45) continue; // under the planet: that is where its name sits
           if (used.some(function (u) { return Math.abs(Math.atan2(Math.sin(u - ang), Math.cos(u - ang))) < .62; })) continue;
-          var x = hx + Math.cos(ang) * RXa, y = hy + Math.sin(ang) * RYa, L = labelBox(x, y, ang, 7, w, 11);
-          var dot = { x: x - 9, y: y - 9, w: 18, h: 18 }, c = cost([dot, L.box], taken) + k * 4;
+          var x = hx + Math.cos(ang) * (RXa + far), y = hy + Math.sin(ang) * (RYa + far), L = labelBox(x, y, ang, 7, w, 11);
+          var dot = { x: x - 9, y: y - 9, w: 18, h: 18 };
+          if (hitsCore(dot) || hitsCore(L.box)) continue; // never on the RADIX core or its ring
+          var c = cost([dot, L.box], taken) + kk * 4 + far * 30;
           if (!best || c < best.c) best = { c: c, ang: ang, x: x, y: y, L: L, dot: dot };
           if (c === 0) break;
         }
