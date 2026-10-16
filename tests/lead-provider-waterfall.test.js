@@ -19,6 +19,7 @@ test('fallback budget never exceeds user ceiling and prices are user supplied',(
  const q=Waterfall.quote(rows,{hunter:0.04,dropcontact:0.03},0.13);
  assert.equal(q.coveredContacts,1);assert.ok(q.worstCaseBudget<=0.13);
  assert.equal(Waterfall.quote(rows,{},1).maxPlannedCalls,0);
+ assert.equal(Waterfall.quote(rows,{hunter:0.120001},0.12).coveredContacts,0);
  assert.equal(Waterfall.SERVICES.find(x=>x.id==='brave-search').status,'needs-api-key');
  assert.ok(Waterfall.SERVICES.filter(x=>x.kind==='email').every(x=>x.status==='disabled'));
 });
