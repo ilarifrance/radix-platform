@@ -5,7 +5,7 @@
 (function () {
   var cal = document.getElementById('calendar'), page = document.getElementById('pedPage');
   if (!cal || !page) return;
-  var H0 = 7, H1 = 23, ROW = 64; // visible hours and pixels per hour
+  var H0 = 7, H1 = 23, ROW = 92; // visible hours and pixels per hour
   var STATUS = { draft: 'Bozza', review: 'In revisione', approved: 'Approvato', queued: 'In coda', published: 'Pubblicato', scheduled: 'Programmato' };
   var root = document.documentElement;
   root.style.setProperty('--ped-row', ROW + 'px');
@@ -77,7 +77,7 @@
       timed.forEach(function (x) {
         var over = timed.filter(function (y) { return y.top < x.end - 1 && y.end > x.top + 1; });
         var n = Math.max.apply(null, over.map(function (y) { return y.lane; })) + 1;
-        x.ev.dataset.pedTop = x.top; x.ev.style.top = 'calc(var(--ped-off) + ' + x.top + 'px)'; x.ev.style.height = (ROW - 4) + 'px';
+        x.ev.dataset.pedTop = x.top; x.ev.style.top = 'calc(var(--ped-off) + ' + x.top + 'px)'; x.ev.style.height = (ROW - 6) + 'px';
         x.ev.style.left = 'calc(' + (x.lane / n * 100) + '% + 3px)'; x.ev.style.width = 'calc(' + (100 / n) + '% - 6px)';
       });
       var empty = col.querySelector('.calendar-empty'); if (empty) empty.hidden = true;
