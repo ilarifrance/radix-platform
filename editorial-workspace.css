@@ -9,3 +9,6 @@ fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 22px;padding
 [data-channel]{border-left-width:3px!important}[data-channel=linkedin]{border-left-color:#4a9fff!important}[data-channel=instagram]{border-left-color:#ff5fa2!important}[data-channel=facebook]{border-left-color:#5b7cff!important}[data-channel=tiktok]{border-left-color:#3ff0e6!important}[data-channel=youtube]{border-left-color:#ff4d4d!important}[data-channel=x]{border-left-color:#d8d8d8!important}[data-channel=blog]{border-left-color:#f4bd5f!important}[data-channel=newsletter]{border-left-color:#b68cff!important}
 .calendar-event.status-queued{border-color:#f4bd5f}.publish{margin-top:12px;padding:12px;border:1px solid #2a3a34;border-radius:12px}.publish .panel{display:grid;gap:8px}.publish label{display:grid;gap:4px}
 @media(max-width:900px){.ped-board{grid-template-columns:repeat(2,minmax(160px,1fr))}}
+/* Channel variants, comments and earlier versions (baseline; the design pass owns the final look) */
+.ped-extra{margin-top:18px;padding-top:14px;border-top:1px solid rgba(255,255,255,.08)}.ped-extra h3,.ped-extra summary{font-size:.95rem;margin:0 0 8px;cursor:default}.ped-extra summary{cursor:pointer}
+.ped-comments,.ped-versions{margin:0 0 10px;padding-left:18px}.ped-comments li,.ped-versions li{margin:0 0 10px}.ped-versions p{margin:4px 0}
