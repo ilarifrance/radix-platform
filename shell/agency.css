@@ -73,3 +73,14 @@ html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
 .rx-agency #projects .actions button[data-action=export]{margin-left:auto}
 .rx-agency #projects .actions button:hover{color:var(--rx-text)}
 .rx-agency #projects .actions button[data-action=delete]:hover{color:var(--rx-error)}
+
+/* Nuovo progetto: shorter intro, channels as toggles, plan column follows the form */
+.rx-agency .main>h1+p:has(+.cols){display:none}
+.rx-agency #channels{display:flex;flex-wrap:wrap;gap:8px}
+.rx-agency #channels label{display:inline-flex;align-items:center;gap:8px;min-height:0!important;height:auto;padding:7px 14px!important;margin:0;line-height:1.2;border:1px solid var(--rx-border-strong);border-radius:999px;background:transparent;font-size:13px;color:var(--rx-muted);cursor:pointer}
+.rx-agency #channels label:hover{border-color:var(--rx-accent);color:var(--rx-text)}
+.rx-agency #channels label:has(input:checked){background:color-mix(in srgb,var(--rx-accent) 18%,transparent);border-color:var(--rx-accent);color:var(--rx-text)}
+.rx-agency #channels input{accent-color:var(--rx-accent);margin:0;width:15px;height:15px!important;min-height:0!important;padding:0}
+.rx-agency input[type=file]{padding:8px;border-style:dashed!important;background:transparent!important;color:var(--rx-muted)}
+.rx-agency input[type=file]::file-selector-button{margin-right:12px;padding:6px 12px;border:1px solid var(--rx-border-strong);border-radius:8px;background:var(--rx-surface-2);color:var(--rx-text);font:inherit;cursor:pointer}
+@media (min-width:1100px){.rx-agency .cols>section.panel:nth-child(2){position:sticky;top:calc(var(--rx-topbar) + 16px);align-self:start}}
