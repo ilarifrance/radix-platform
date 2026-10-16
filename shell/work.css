@@ -207,3 +207,7 @@ html.rx-shell .rx-work.present .app>.main{grid-column:1!important}
 .rx-work .links .memory-info::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-agency)}
 .rx-work .links .memory-info:empty{display:none}
 .rx-work .links .memory-info a{padding:0;border:0;background:none;min-height:0;color:var(--rx-core-soft)}
+/* With the project bar the working area is shorter */
+html.rx-has-project .rx-work{--wk-h:calc(100dvh - var(--rx-topbar) - var(--rx-projectbar,61px))}
+html.rx-has-project .rx-work.present{--wk-h:100dvh}
+html.rx-has-project .rx-work.present .rx-project{display:none}

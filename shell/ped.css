@@ -153,3 +153,10 @@ html.rx-shell body.rx-ped{--ped-draft:#9B7BFF;--ped-review:var(--rx-projects);--
 .rx-ped #sendPublish{justify-self:start;background:var(--ped-queued);border-color:var(--ped-queued);color:#2A1A00}
 .rx-ped #publishStatus:empty{display:none}
 .rx-ped #publishStatus{margin:0;font-size:13px;color:var(--ped-queued)}
+
+/* Pruning: the project bar shows the flow; readiness becomes a compact chip set */
+.rx-ped footer,
+.rx-ped main>header .pill,.rx-ped nav.breadcrumb,.rx-ped #briefPage .hero .muted,
+.rx-ped section.panel:has(#readiness) h3,.rx-ped section.panel:has(#readiness) h3+ol,.rx-ped section.panel:has(#readiness) h3+ol+p{display:none!important}
+.rx-ped #readiness{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}
+.rx-ped #readiness p{margin:0;padding:4px 10px;border-radius:999px;font-size:12px;line-height:1.3;border:1px solid color-mix(in srgb,var(--rx-success) 35%,transparent);color:var(--rx-muted);background:color-mix(in srgb,var(--rx-success) 7%,transparent)}

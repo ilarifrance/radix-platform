@@ -135,3 +135,43 @@ html.rx-shell .rx-topbar .rx-search>span{overflow:hidden;text-overflow:ellipsis}
 html.rx-shell .rx-topbar button.rx-iconbtn{min-height:40px;padding:0}
 html.rx-shell .rx-topbar button.rx-search{background:var(--rx-surface);color:var(--rx-subtle);border:1px solid var(--rx-border);width:auto;margin:0;font-family:var(--rx-font);font-size:14px;opacity:1}
 html.rx-shell .rx-topbar button.rx-iconbtn{background:var(--rx-surface);color:var(--rx-text);border:1px solid var(--rx-border);width:40px;margin:0}
+
+/* Project bar: the same five steps on every page of a project */
+html.rx-has-project .rx-tabs{display:none}
+.rx-project{display:flex;align-items:center;gap:18px 28px;flex-wrap:wrap;padding:12px 24px;border-bottom:1px solid var(--rx-border);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--rx-accent) 9%,transparent),transparent 60%);font-family:var(--rx-font);color:var(--rx-text)}
+.rx-project-id{display:flex;align-items:baseline;gap:10px;min-width:0}
+.rx-project-id small{font:600 10px/1 var(--rx-font);letter-spacing:.16em;text-transform:uppercase;color:var(--rx-subtle)}
+.rx-project-name{font:600 16px/1.2 var(--rx-display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px}
+.rx-project-switch{font-size:12px;color:var(--rx-subtle);text-decoration:none}
+.rx-project-switch:hover{color:var(--rx-accent)}
+.rx-steps{display:flex;align-items:center;gap:0;margin:0;padding:0;list-style:none;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
+.rx-steps li{display:flex;align-items:center;flex:0 0 auto}
+.rx-steps li+li::before{content:"";width:22px;height:1px;background:var(--rx-border-strong);margin:0 4px}
+.rx-steps a{display:flex;align-items:center;gap:8px;padding:6px 10px 6px 6px;border-radius:999px;border:1px solid transparent;color:var(--rx-muted);
+  text-decoration:none;font:500 13px/1 var(--rx-font);white-space:nowrap}
+.rx-steps a i{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--rx-border-strong);font:600 11px/1 var(--rx-font);font-style:normal;color:var(--rx-subtle)}
+.rx-steps a:hover{color:var(--rx-text);background:var(--rx-surface-2)}
+.rx-steps li[data-saved] a i{border-color:color-mix(in srgb,var(--rx-accent) 60%,transparent);color:var(--rx-accent)}
+.rx-steps a[aria-current]:not([aria-current=false]){color:var(--rx-text);background:color-mix(in srgb,var(--rx-accent) 14%,transparent);border-color:color-mix(in srgb,var(--rx-accent) 45%,transparent)}
+.rx-steps a[aria-current]:not([aria-current=false]) i{background:var(--rx-accent);border-color:var(--rx-accent);color:#04100e}
+.rx-steps a:focus-visible,.rx-project-extra a:focus-visible,.rx-project-switch:focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-project-extra{display:flex;gap:4px;margin-left:auto}
+.rx-project-extra a{padding:6px 10px;border-radius:8px;color:var(--rx-subtle);text-decoration:none;font:500 13px/1 var(--rx-font)}
+.rx-project-extra a:hover{color:var(--rx-text);background:var(--rx-surface-2)}
+.rx-project-extra a[aria-current]{color:var(--rx-text);background:var(--rx-surface-2)}
+@media (max-width:900px){
+  .rx-project{padding:10px 12px;gap:8px 14px}
+  .rx-steps{order:3;flex-basis:100%}
+  .rx-steps a span{display:none}
+  .rx-steps a[aria-current]:not([aria-current=false]) span{display:inline}
+  .rx-steps li+li::before{width:12px}
+}
+/* The bar replaces the per-page project links */
+html.rx-has-project a[data-project-link],html.rx-has-project p:has(>a[data-project-link]){display:none!important}
+@media (max-width:900px){
+  .rx-project-id{flex:1 1 0;min-width:0}
+  .rx-project-id small{display:none}
+  .rx-project-name{max-width:150px}
+  .rx-project-extra{margin-left:0}
+}

@@ -49,3 +49,27 @@ html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
 .rx-agency form.edit{display:grid;gap:10px}
 .rx-agency form.edit label{display:grid;gap:4px;font-size:12px;color:var(--rx-muted)}
 .rx-agency #context{background:var(--rx-bg);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:var(--rx-muted)}
+
+/* Pruning: explanations that repeat what the interface already says */
+.rx-agency .warning,
+.rx-agency .notice,
+.rx-agency .preview-note,
+.rx-agency section.panel:has(>h2+p.note):not(:has(button,input,a)),
+.rx-agency main>p.hint:first-child,
+.rx-agency p.hint[style*="margin-top:28px"]{display:none!important}
+
+/* Project library: one primary way into a project, secondary actions quieter */
+.rx-agency #projects .card{position:relative;gap:8px;padding:20px 20px 16px;transition:border-color .15s,transform .15s}
+.rx-agency #projects .card:hover{border-color:color-mix(in srgb,var(--rx-accent) 55%,transparent);transform:translateY(-1px)}
+.rx-agency #projects .card h2{font:600 19px/1.25 var(--rx-display)}
+.rx-agency #projects .card>p{color:var(--rx-muted);font-size:14px}
+.rx-agency #projects .card>small{font-size:12px;color:var(--rx-subtle)}
+.rx-agency #projects .card>small+small{margin-top:-6px}
+.rx-agency #projects .actions{gap:6px;flex-wrap:nowrap;padding-top:12px;margin-top:auto;border-top:1px solid var(--rx-border);align-items:center}
+.rx-agency #projects .actions a{background:transparent;border:1px solid var(--rx-border-strong);color:var(--rx-text);padding:7px 11px;font-size:13px;border-radius:8px}
+.rx-agency #projects .actions a:first-child{background:var(--rx-accent);border-color:var(--rx-accent);color:#0b0620;font-weight:600}
+.rx-agency #projects .actions a:hover{border-color:var(--rx-accent)}
+.rx-agency #projects .actions button{background:transparent;border:0;color:var(--rx-subtle);padding:7px 8px;font-size:12px;min-height:0}
+.rx-agency #projects .actions button[data-action=export]{margin-left:auto}
+.rx-agency #projects .actions button:hover{color:var(--rx-text)}
+.rx-agency #projects .actions button[data-action=delete]:hover{color:var(--rx-error)}
