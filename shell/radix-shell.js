@@ -288,7 +288,29 @@
         pr.textContent = j.progress + '%';
         pr.title = (j.done || 0) + ' di ' + (j.total || STEPS.length) + ' fasi completate';
       }
+      if (j && j.phases && j.phases.length) renderPhases(j.phases);
     }).catch(function () {});
+  }
+  // Agency workspace (UX flows 2.4): the nine work phases of the project, with their real state from journey.phases.
+  var PHASE_STATE = { done: 'Completata', active: 'In corso', waiting: 'In attesa di approvazione', todo: 'Da fare' };
+  function renderPhases(phases) {
+    if (!/project-workspace/.test(location.pathname)) return;
+    var after = document.getElementById('progress');
+    if (!after) return;
+    var box = document.querySelector('.rx-phases');
+    if (!box) { box = document.createElement('ol'); box.className = 'rx-phases'; box.setAttribute('aria-label', 'Fasi di lavoro'); after.parentNode.insertBefore(box, after.nextSibling); }
+    var done = 0;
+    box.innerHTML = phases.map(function (x, i) {
+      var st = /^(todo|active|waiting|done)$/.test(x.state) ? x.state : 'todo';
+      if (st === 'done') done++;
+      var count = typeof x.total === 'number' && x.total ? '<em>' + (x.done || 0) + '/' + x.total + '</em>' : '';
+      return '<li data-state="' + st + '" title="' + esc(PHASE_STATE[st] + (x.detail ? ' · ' + x.detail : '')) + '">' +
+        '<i>' + (i + 1) + '</i><b>' + esc(x.label || x.id) + '</b>' + count +
+        (x.detail ? '<small>' + esc(x.detail) + '</small>' : '<small>' + PHASE_STATE[st] + '</small>') + '</li>';
+    }).join('');
+    box.style.setProperty('--done', done / phases.length * 100 + '%');
+    var cur = box.querySelector('[data-state=active],[data-state=waiting]');
+    if (cur && box.scrollWidth > box.clientWidth) box.scrollLeft = cur.offsetLeft - (box.clientWidth - cur.offsetWidth) / 2;
   }
   buildBar(curProject);
   window.addEventListener('hashchange', markStep);
