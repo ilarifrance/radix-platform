@@ -19,7 +19,16 @@ The local agent attempts to paginate the visible search results, records profile
 
 ## Import to existing RADIX
 
-Download **Backup RADIX JSON** and open RADIX Preview lead-intelligence.html. In **Contatti individuali**, use **Ripristina backup**. Review all imported data; existing RADIX Preview persistence still requires LEAD_DATABASE_URL and migration 006_lead_contact_jobs.sql, neither configured nor modified here. No production database is accessed by this module.
+Download **Backup RADIX JSON** from the agent running at `http://127.0.0.1:4317`. Open the matching Lead Intelligence **Preview** page, navigate to **Importa il backup Sales Navigator dal tuo Mac**, and select the ORIGINAL local JSON checkpoint. The file is inspected and normalized **only in the browser**:
+1. Confirm the summary (raw records, unique people, missing companies, company-domain suggestions and identity conflicts).
+2. Click **Carica contatti nel motore** to stage the transformed, native RADIX `version:1` job in the existing contact workbench. Recheck the confirmation shown by the workbench.
+3. To persist the contact job, first select your authorized Preview workspace, then click **Salva contatti nel workspace** and confirm. This requires an operational isolated database and the Lead contact-job migration; opening a file alone does not upload anything.
+4. Optionally click **Porta aziende alla qualificazione ICP** to add deduplicated company candidates (up to 250 total). Check missing country/domain, review sources and approve prospect records individually before taking CRM actions.
+5. If the browser cannot pass the local File object to the native restore input, click **Scarica backup compatibile**, then use **Riprendi backup** with that downloaded converted file instead.
+
+**Important:** Older instructions told users to upload the ORIGINAL local checkpoint directly into **Riprendi backup**; that was incompatible. The local agent stores people in `data.records`; the native RADIX restorer expects `records` at the top level. Use this bridge or the converted download. Neither path verifies an email address or creates a CRM lead automatically. The normal CRM handoff always requires manual prospect validation and confirmation.
+
+The local JSON may contain personal data and the source's domain-approval evidence. The converter deliberately transfers only whitelisted contact fields; detailed original `freeEnrichment` provenance remains in the original local backup for audit and must be retained securely if required. Domain values do **not** certify the identity of a company.
 
 ## Technical / legal boundaries
 
