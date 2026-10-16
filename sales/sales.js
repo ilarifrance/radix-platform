@@ -3,7 +3,7 @@
 const $ = id => document.getElementById(id);
 const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
-const state = {workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
+const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
@@ -56,6 +56,7 @@ async function reload(){
 async function refresh(memberships=true){
  if(state.busy)return;lock(true);error('');notice('Caricamento dal server…');
  try{
+  if(memberships&&state.me===null){try{const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():null;state.me=Number.isInteger(d?.user?.id)?d.user.id:0;}catch{state.me=0;}}
   if(memberships){const generation=state.generation;const result=await api('workspaces');if(!current(generation))return;state.workspaces=result.rows;if(!result.rows.some(w=>w.id===state.workspace))state.workspace=result.rows[0]?.id || null;}
   renderWorkspace();
   if(!state.workspace){state.ready=false;state.rows={};$('content').replaceChildren();$('membership').textContent='Nessun workspace disponibile. Chiedi a un amministratore di assegnarti una membership. Nessun workspace viene creato automaticamente.';notice('Nessun dato da mostrare.');return;}
@@ -68,12 +69,16 @@ function selectControl(labelText, choices, value){const wrap=el('div');const lab
 function relation(entity,id){return rows(entity).find(r=>r.id===id)?title(rows(entity).find(r=>r.id===id)):id?'Riferimento non caricato':'Non assegnato';}
 function card(entity,row,readonly=false){
  const c=el('article',undefined,'card');c.append(el('h3',title(row)));
+ if(entity==='contacts'&&row.role)c.append(el('p',row.role,'muted'));
  if(row.company_id)c.append(el('p','Azienda: '+relation('companies',row.company_id),'muted'));
+ if(['contacts','companies'].includes(entity)){const reach=[row.email,row.phone,entity==='companies'?row.city:null].filter(Boolean).join(' · ');if(reach)c.append(el('p',reach,'muted'));if(entity==='companies'&&row.website)c.append(el('p',row.website,'muted'));if(entity==='contacts')c.append(el('p',row.marketing_consent?'Consenso marketing registrato'+(row.consent_at?' il '+row.consent_at.slice(0,10):''):'Nessun consenso marketing','muted'));}
+ if(entity==='opportunities'&&row.outcome&&row.outcome!=='open')c.append(el('p',row.outcome==='won'?'Vinta'+(row.closed_at?' il '+row.closed_at.slice(0,10):''):'Persa'+(row.lost_reason?' · '+row.lost_reason:''),'outcome outcome-'+row.outcome));
+ if(entity==='opportunities'&&(row.probability!=null||stageProbability(row)!=null))c.append(el('p','Probabilità: '+(row.probability??stageProbability(row))+'%'+(row.probability==null?' (dalla fase)':''),'muted'));
  if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
  if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close || 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
- if(!readonly && (entity==='opportunities' || (entity==='tasks' && row.process_id))){
+ if(!readonly && ((entity==='opportunities'&&(!row.outcome||row.outcome==='open')) || (entity==='tasks' && row.process_id))){
   const stageRows=rows('stages').filter(s=>s.process_id===row.process_id).sort((a,b)=>a.position-b.position);
   const options=[['', 'Seleziona fase'],...stageRows.map(s=>[s.id,s.title])];
   if(row.stage_id && !stageRows.some(s=>s.id===row.stage_id))options.push([row.stage_id,'Fase corrente non caricata']);
@@ -87,12 +92,12 @@ function card(entity,row,readonly=false){
  }
  if(row.contact_id)c.append(el('p','Contatto: '+relation('contacts',row.contact_id),'muted'));
  if(row.opportunity_id)c.append(el('p','Opportunità: '+relation('opportunities',row.opportunity_id),'muted'));
- if(entity==='members')c.append(el('p','Ruolo: '+row.role,'muted'));
+ if(entity==='members')c.append(...memberControls(row,readonly));
  if(entity==='tasks' && readonly)c.append(el('p','Stato: '+row.status+' · Fase: '+relation('stages',row.stage_id)));
  if(entity==='opportunities' && readonly)c.append(el('p','Fase: '+relation('stages',row.stage_id)));
  if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza UTC: '+(row.due_at || 'nessuna')));
  if(entity==='stages' && row.task_title)c.append(el('p','Regole esplicite: '+relation('members',row.task_assignee_id)+' · '+(row.task_priority || 'non impostata')+' · Giorni: '+(row.task_due_days ?? 'non impostati')));
- if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data UTC: '+row.occurred_at));if(row.body)c.append(el('p',row.body,'interaction-body'));}
+ if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data UTC: '+row.occurred_at+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
  if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button('Customer360',()=>openCustomer(entity,row)));
  if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.'),'danger'));c.append(a);}
  return c;
@@ -124,12 +129,56 @@ function taskDueControl(){
  });
  const box=el('div');box.append(control.wrap,el('p','Filtro su tutte le attività del workspace prima della paginazione. Ora del server; prossime = da adesso incluso a 168 ore escluse. Nessun invio automatico.','muted'));return box;
 }
+const stageProbability=row=>rows('stages').find(s=>s.id===row.stage_id)?.probability??null;
+const ROLE_NAMES={owner:'Owner',admin:'Admin',member:'Membro',viewer:'Sola lettura'};
+// Owners/admins manage members; only an owner grants owner/admin (the server enforces the same rules).
+function memberControls(row,readonly){
+ const out=[el('p','Ruolo: '+(ROLE_NAMES[row.role]||row.role)+(row.id===state.me?' · tu':''),'muted')];
+ const mine=role();if(readonly||!state.ready||!['owner','admin'].includes(mine)||row.id===state.me)return out;
+ if(mine!=='owner'&&['owner','admin'].includes(row.role))return out;
+ const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
+ const control=selectControl('Ruolo di '+title(row),choices,row.role);
+ const save=button('Cambia ruolo',()=>{if(control.select.value!==row.role)memberMutate('update',{user_id:row.id,role:control.select.value},'Cambiare il ruolo di «'+title(row)+'» in '+ROLE_NAMES[control.select.value]+'?');});
+ const remove=button('Rimuovi dal workspace',()=>memberMutate('remove',{user_id:row.id},'Rimuovere «'+title(row)+'» dal workspace? Le sue trattative e attività vanno prima riassegnate.'),'danger');
+ const a=el('div',undefined,'actions');a.append(save,remove);out.push(control.wrap,a);return out;
+}
+function inviteControl(){
+ const form=el('form',undefined,'invite');form.setAttribute('aria-label','Aggiungi un membro');
+ const email=el('input');email.type='email';email.required=true;email.maxLength=254;email.placeholder='email dell’account RADIX';email.setAttribute('aria-label','Email');
+ const mine=role();const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
+ const control=selectControl('Ruolo',choices,'member');const submit=el('button','Aggiungi membro','primary');submit.type='submit';
+ form.append(email,control.wrap,submit);form.append(el('p','La persona deve avere già un account RADIX: lo crea l’amministrazione. Nessuna email viene inviata.','muted'));
+ form.addEventListener('submit',event=>{event.preventDefault();memberMutate('add',{email:email.value.trim(),role:control.select.value},'Aggiungere '+email.value.trim()+' come '+ROLE_NAMES[control.select.value]+'?');});
+ return form;
+}
+async function memberMutate(action,data,confirmation){
+ if(state.busy||!window.confirm(confirmation))return;
+ lock(true);error('');notice('Salvataggio sul server…');
+ let ok=false;
+ try{await api('members',{body:{workspace:state.workspace,entity:'members',action,data}});ok=true;}
+ catch(e){error(e.message);notice('Operazione non completata.');}
+ finally{lock(false);}
+ if(ok){await refresh(true);notice('Membri aggiornati.');}
+}
+// In-app reminder: my open tasks that are overdue or due within 24 hours.
+function reminderPanel(){
+ if(!state.me)return null;const now=Date.now(),soon=now+864e5;
+ const mine=rows('tasks').filter(t=>t.assignee_id===state.me&&t.status!=='done'&&t.due_at);
+ const late=mine.filter(t=>Date.parse(t.due_at)<now),due=mine.filter(t=>{const d=Date.parse(t.due_at);return d>=now&&d<soon;});
+ if(!late.length&&!due.length)return null;
+ const box=el('aside',undefined,'panel reminder');box.setAttribute('role','status');
+ box.append(el('strong','Promemoria'),el('p',[late.length?late.length+(late.length===1?' attività scaduta':' attività scadute'):'',due.length?due.length+' in scadenza entro 24 ore':''].filter(Boolean).join(' · ')));
+ const list=el('ul');[...late,...due].slice(0,5).forEach(t=>{const li=el('li',title(t)+' · '+t.due_at.slice(0,16).replace('T',' ')+' UTC');list.append(li);});box.append(list);
+ const a=el('a','Apri le attività');a.href='#tasks';box.append(a);return box;
+}
 function render(){
  const root=$('content');root.replaceChildren();if(!state.workspace)return;
  if(customer)root.append(customerPanel());
+ const reminder=reminderPanel();if(reminder)root.append(reminder);
  for(const [entity,label] of Object.entries(names)){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
   if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
+  if(entity==='members'&&state.ready&&['owner','admin'].includes(role()))section.append(inviteControl());
   if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
   if(entity==='tasks')section.append(taskDueControl());
   if(state.search[entity])section.append(el('p','Filtro nome attivo: '+state.search[entity]+' · ricerca su tutte le anagrafiche del workspace, prima della paginazione.','muted'));
@@ -144,7 +193,10 @@ function render(){
     const groups=rows('processes').filter(p=>p.kind===kind).flatMap(p=>rows('stages').filter(s=>s.process_id===p.id).sort((a,b)=>a.position-b.position).map(s=>({name:title(p)+' / '+s.title,matches:r=>r.process_id===p.id && r.stage_id===s.id})));
     const configured=[...groups];
     if(entity==='tasks')groups.push({name:'Senza processo',matches:r=>!r.process_id && !r.stage_id});
-    groups.push({name:'Fase non assegnata / non caricata',matches:r=>!configured.some(g=>g.matches(r)) && !(entity==='tasks' && !r.process_id && !r.stage_id)});
+    const open=r=>entity!=='opportunities'||!r.outcome||r.outcome==='open';
+    groups.forEach(g=>{const m=g.matches;g.matches=r=>open(r)&&m(r);});
+    groups.push({name:'Fase non assegnata / non caricata',matches:r=>open(r)&&!configured.some(g=>g.matches(r)) && !(entity==='tasks' && !r.process_id && !r.stage_id)});
+    if(entity==='opportunities')groups.push({name:'Vinte',matches:r=>r.outcome==='won'},{name:'Perse',matches:r=>r.outcome==='lost'});
     groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
    }else rows(entity).forEach(r=>section.append(card(entity,r)));
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
@@ -200,6 +252,12 @@ function openEditor(entity,row=null){
  const priorities=[['low','Bassa'],['normal','Normale'],['high','Alta'],['urgent','Urgente']];
  const utcInput=(key,label,value,required=false)=>{const input=addInput(key,label,'text',value || '',required);input.placeholder='2026-10-10T14:30:00Z';fields.append(el('small','ISO UTC esplicito: YYYY-MM-DDTHH:mm:ssZ. Nessuna conversione locale.'));return input;};
  addInput(['companies','contacts'].includes(entity)?'name':'title','Nome / titolo *','text',row?title(row):'',true);
+ const addText=(key,label,max,type='text')=>{const input=addInput(key,label,type,row?.[key]||'');input.maxLength=max;return input;};
+ const addArea=(key,label,max)=>{const l=el('label',label);const t=el('textarea');t.name=key;t.maxLength=max;t.rows=4;t.value=row?.[key]||'';l.append(t);fields.append(l);return t;};
+ if(entity==='companies'){addText('industry','Settore',120);addText('website','Sito web',300,'url').placeholder='https://';addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('city','Città',120);addArea('notes','Note',4000);}
+ if(entity==='contacts'){addText('role','Ruolo',120);addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('linkedin_url','Profilo LinkedIn',300,'url').placeholder='https://';addArea('notes','Note',4000);
+  const l=el('label');const box=el('input');box.type='checkbox';box.name='marketing_consent';box.checked=Boolean(row?.marketing_consent);l.append(box,el('span',' Ha dato il consenso a ricevere comunicazioni marketing'));fields.append(l);
+  fields.append(el('small','Registra il consenso solo se la persona lo ha dato esplicitamente. Togliendo la spunta si registra la revoca.'));}
  if(['contacts','leads','opportunities','tasks','interactions'].includes(entity))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
  if(['leads','opportunities','tasks','interactions'].includes(entity))addSelect('contact_id','Contatto',references('contacts',row?.contact_id),row?.contact_id);
  if(['leads','opportunities','tasks','interactions'].includes(entity))fields.append(el('p','Se scegli un contatto, indica la sua azienda. Se colleghi un’opportunità, riporta esattamente la sua azienda e il suo contatto (anche i valori non assegnati). Il server rifiuta combinazioni incoerenti.','muted'));
@@ -212,6 +270,7 @@ function openEditor(entity,row=null){
   addSelect('task_assignee_id','Assegnatario attività automatica',references('members',row?.task_assignee_id),row?.task_assignee_id);
   addSelect('task_priority','Priorità attività automatica',[['','Non impostata'],...priorities],row?.task_priority);
   const days=addInput('task_due_days','Scadenza attività automatica (giorni 0–3650)','number',row?.task_due_days ?? '');days.max='3650';
+  const sp=addInput('probability','Probabilità di chiusura in questa fase %','number',row?.probability ?? '');sp.max='100';
   fields.append(el('p','Con un titolo automatico, specifica tutte e tre le regole. Senza titolo, lascia tutte le regole vuote.','muted'));
  }
  if(entity==='interactions'){
@@ -225,6 +284,8 @@ function openEditor(entity,row=null){
   addSelect('owner_id','Responsabile opportunità',references('members',row?.owner_id),row?.owner_id);
   const close=addInput('expected_close','Chiusura prevista (opzionale)','date',row?.expected_close || '');close.min='0001-01-01';close.max='9999-12-31';
   fields.append(el('small','Data di calendario YYYY-MM-DD, senza ora o fuso. Responsabile e data possono restare non impostati; nessun valore è dedotto.'));
+  const prob=addInput('probability','Probabilità di chiusura % (vuoto = quella della fase)','number',row?.probability ?? '');prob.max='100';
+  if(row){addSelect('outcome','Esito',[['open','Aperta'],['won','Vinta'],['lost','Persa']],row.outcome||'open',true);addText('lost_reason','Motivo della perdita (obbligatorio se persa)',500);}
  }
  if(entity==='tasks'){
   addSelect('assignee_id','Assegnatario',references('members',row?.assignee_id),row?.assignee_id);
@@ -258,6 +319,10 @@ $('editor-form').addEventListener('submit',event=>{
    const v=value.trim();if(!v && key==='due_at')data[key]=null;
    else if(!validUTC(v)){error('Usa una data reale ISO UTC esplicita, ad esempio 2026-10-10T14:30:00Z.');return;}else data[key]=v;
   }
+  else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason'].includes(key))data[key]=value.trim()||null;
+  else if(key==='marketing_consent')continue;
+  else if(key==='outcome')data[key]=value;
+  else if(key==='probability'){const v=value.trim();if(!v)data[key]=null;else{const n=Number(v);if(!/^\d+$/.test(v)||n>100){error('La probabilità è un numero da 0 a 100.');return;}data[key]=n;}}
   else if(key==='body'){data[key]=value.trim();if(data[key].length>4000){error('Il testo supera 4000 caratteri.');return;}}
   else if(key==='task_priority')data[key]=value || null;
   else if(key.endsWith('_id') || key==='task_title')data[key]=value.trim() || null;
@@ -267,6 +332,10 @@ $('editor-form').addEventListener('submit',event=>{
   const rules=[data.task_assignee_id,data.task_priority,data.task_due_days];
   if(data.task_title?rules.some(v=>v==null):rules.some(v=>v!=null)){error('Titolo automatico e tutte e tre le regole devono essere compilati insieme, oppure tutti vuoti.');return;}
  }
+ if(entity==='contacts'){const consent=Boolean(event.currentTarget.elements.marketing_consent?.checked);data.marketing_consent=consent;data.consent_at=consent?(row?.marketing_consent&&row.consent_at?row.consent_at:new Date().toISOString().slice(0,19)+'Z'):null;}
+ if(entity==='opportunities'&&row){if(data.outcome==='lost'&&!data.lost_reason){error('Indica il motivo della perdita.');return;}if(data.outcome!=='lost')delete data.lost_reason;
+  // Unchanged fields are not resent: the server rejects lost_reason on an open/won deal.
+  for(const k of ['outcome','lost_reason','probability'])if(Object.hasOwn(data,k)&&data[k]===(row[k]??null))delete data[k];}
  if(row){data.id=row.id;data.version=row.version;}
  mutate(entity,row?'update':'create',data,'Confermare il salvataggio di «'+(data.name || data.title)+'» nel workspace corrente?');
 });

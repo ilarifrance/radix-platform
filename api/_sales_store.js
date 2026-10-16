@@ -6,7 +6,7 @@ const {createGrowthProjectsStore}=require('./_lead_growth_projects_store');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
- if(['due_at','occurred_at','created_at','updated_at'].includes(key)){
+ if(['due_at','occurred_at','created_at','updated_at','consent_at','closed_at'].includes(key)){
   const date=new Date(value);if(!Number.isFinite(date.getTime()))throw new Error('invalid stored timestamp');return date.toISOString();
  }
  if(Array.isArray(value))return value.map(v=>normalize(v));
@@ -38,7 +38,7 @@ function createStore(rawSql){
  related AS (SELECT 'companies' AS entity,to_jsonb(t) AS record FROM companies t UNION ALL SELECT 'contacts',to_jsonb(t) FROM contacts t UNION ALL SELECT 'opportunities',to_jsonb(t) FROM opportunities t UNION ALL SELECT 'tasks',to_jsonb(t) FROM sales_tasks t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities)) UNION ALL SELECT 'interactions',to_jsonb(t) FROM sales_interactions t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities))) SELECT entity,record FROM related ORDER BY entity,record->>'id' LIMIT 100 OFFSET $5`,[c.workspace,u,c.id,c.subject,c.offset]);
 
    }
-   if(c.entity==='dashboard')return sql('SELECT (SELECT count(*) FROM sales_companies WHERE workspace_id=$1) AS companies, (SELECT count(*) FROM sales_contacts WHERE workspace_id=$1) AS contacts, (SELECT count(*) FROM sales_leads WHERE workspace_id=$1) AS leads, (SELECT count(*) FROM sales_opportunities WHERE workspace_id=$1) AS opportunities, (SELECT count(*) FROM sales_tasks WHERE workspace_id=$1) AS tasks, (SELECT COALESCE(sum(amount_cents),0)::text FROM sales_opportunities WHERE workspace_id=$1) AS open_amount_cents WHERE '+guard,[c.workspace,u]);
+   if(c.entity==='dashboard')return sql('SELECT (SELECT count(*) FROM sales_companies WHERE workspace_id=$1) AS companies, (SELECT count(*) FROM sales_contacts WHERE workspace_id=$1) AS contacts, (SELECT count(*) FROM sales_leads WHERE workspace_id=$1) AS leads, (SELECT count(*) FROM sales_opportunities WHERE workspace_id=$1) AS opportunities, (SELECT count(*) FROM sales_tasks WHERE workspace_id=$1) AS tasks, (SELECT COALESCE(sum(amount_cents),0)::text FROM sales_opportunities WHERE workspace_id=$1 AND outcome=\'open\') AS open_amount_cents WHERE '+guard,[c.workspace,u]);
    if(!Object.hasOwn(fields,c.entity))throw new Error('invalid entity');
    // Literal, case-insensitive substring search over all tenant rows before pagination.
    // strpos avoids treating user %, _ or backslashes as LIKE wildcard syntax.

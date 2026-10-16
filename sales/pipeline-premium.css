@@ -2,3 +2,5 @@
 /* Kanban: stages share the board width so every phase (Vinto included) is visible; below 1600px the advisor moves under the board */
 .stage{flex:1 1 0;min-width:180px}
 @media(min-width:1001px) and (max-width:1599px){.layout{grid-template-columns:minmax(0,1fr)}.advisor{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}.advisor h2{grid-column:1/-1;margin:0}.advisor .advice,.advisor .selection{margin:0}}
+/* Drag & drop between stages (pipeline-premium.js) */
+.deal[draggable=true]{cursor:grab}.deal.dragging{opacity:.5}.stage.drop-target{outline:2px dashed var(--teal);outline-offset:-2px}

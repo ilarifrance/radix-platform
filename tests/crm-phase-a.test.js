@@ -16,6 +16,7 @@ test('won/lost: a lost deal needs a reason, outcome is not settable at creation'
  assert.throws(()=>cmd('opportunities','update',{id:ID,version:1,outcome:'lost'}),/motivo/);
  assert.equal(cmd('opportunities','update',{id:ID,version:1,outcome:'lost',lost_reason:'Prezzo'}).data.outcome,'lost');
  assert.throws(()=>cmd('opportunities','update',{id:ID,version:1,outcome:'won',lost_reason:'Prezzo'}),/solo per le trattative perse/);
+ assert.equal(cmd('opportunities','update',{id:ID,version:1,lost_reason:'Tempi'}).data.lost_reason,'Tempi');
  assert.throws(()=>cmd('opportunities','create',{title:'T',process_id:ID,stage_id:ID,outcome:'won'}),/Campo non consentito/);
  assert.throws(()=>cmd('opportunities','update',{id:ID,version:1,probability:101}),/Probabilità/);
 });

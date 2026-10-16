@@ -58,7 +58,7 @@ function command(body){
  }
  if(action==='update'&&Object.keys(d).length===2)fail(400,'Nessuna modifica.');
  if(d.outcome==='lost'&&(typeof d.lost_reason!=='string'||!d.lost_reason.trim()))fail(400,'Indica il motivo della perdita.');
- if(Object.hasOwn(d,'lost_reason')&&d.lost_reason&&d.outcome!=='lost')fail(400,'Il motivo vale solo per le trattative perse.');
+ if(d.lost_reason&&Object.hasOwn(d,'outcome')&&d.outcome!=='lost')fail(400,'Il motivo vale solo per le trattative perse.');
  d={...d};for(const k of Object.keys(TEXT_LIMITS))if(d[k]==='')d[k]=null;
  if(entity==='tasks'&&((Object.hasOwn(d,'process_id')!==Object.hasOwn(d,'stage_id'))||(Object.hasOwn(d,'process_id')&&((d.process_id===null)!==(d.stage_id===null)))))fail(400,'Processo e fase devono essere coerenti.');
  if(action==='transition'&&(!d.key||!d.stage_id))fail(400,'Fase e chiave idempotenza obbligatorie.');

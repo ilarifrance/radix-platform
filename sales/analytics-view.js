@@ -1,9 +1,29 @@
 'use strict';
 /* Analisi commerciale: KPI, pipeline per mese e fase, funnel, team,
    attività e conversione, completezza dei dati e top opportunità, as in the
-   CRM "Analytics" mockup. Computed from CRM rows only (crm-data.js): no
-   forecast model, probabilities or scores the CRM does not store. */
-(()=>{
+   CRM "Analytics" mockup. Computed from CRM rows only (crm-data.js). The
+   "Previsione" panel is a plain weighted sum (amount × stored probability of
+   the opportunity, else of its stage) over open deals: no statistical model.
+   forecast() is pure and exported for tests. */
+(function(root){
+const isOpen=o=>!!o&&(o.outcome==null||o.outcome==='open');
+function forecast(opportunities,stages){
+  const byId=new Map((stages||[]).filter(Boolean).map(s=>[s.id,s]));
+  const amount=o=>{if(o.amount_cents==null||o.amount_cents==='')return 0;const v=Number(o.amount_cents);return Number.isFinite(v)?v:0};
+  const prob=v=>{if(v==null||v==='')return null;const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=100?n:null};
+  const r={open:{count:0,total:0,weighted:0,withProbability:0,withoutProbability:0},won:{count:0,total:0},lost:{count:0,total:0},closed:0,winRate:null,lostReasons:[]};
+  const reasons=new Map();
+  for(const o of opportunities||[]){if(!o)continue;const v=amount(o);
+    if(o.outcome==='won'){r.won.count++;r.won.total+=v}
+    else if(o.outcome==='lost'){r.lost.count++;r.lost.total+=v;const k=typeof o.lost_reason==='string'&&o.lost_reason.trim()?o.lost_reason.trim():'Motivo non indicato';reasons.set(k,(reasons.get(k)||0)+1)}
+    else if(isOpen(o)){r.open.count++;r.open.total+=v;const p=prob(o.probability)??prob(byId.get(o.stage_id)?.probability);if(p==null)r.open.withoutProbability++;else{r.open.withProbability++;r.open.weighted+=v*p/100}}}
+  r.open.weighted=Math.round(r.open.weighted);r.closed=r.won.count+r.lost.count;r.winRate=r.closed?r.won.count/r.closed:null;
+  r.lostReasons=[...reasons].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'it')).slice(0,3).map(([reason,count])=>({reason,count}));
+  return r}
+const core={isOpen,forecast};
+if(typeof module!=='undefined'&&module.exports)module.exports=core;
+root.RadixCrmForecast=core;
+if(typeof document==='undefined')return;
 const content=document.getElementById('content'),nav=document.getElementById('navigation');if(!content||!nav)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const NS='http://www.w3.org/2000/svg',S=(tag,a)=>{const n=document.createElementNS(NS,tag);for(const k in a)n.setAttribute(k,String(a[k]));return n};
@@ -19,16 +39,24 @@ function ensure(){if(!nav.querySelector('a[href="#analytics"]')){const a=E('a','
 
 const panel=(t,cls,sub)=>{const p=E('section',undefined,'an-panel '+(cls||''));p.append(E('h3',t));if(sub)p.append(E('p',sub,'an-sub'));return p};
 
-function build(d){const opps=d.opportunities,tasks=d.tasks,val=o=>Number(o.amount_cents||0),total=opps.reduce((s,o)=>s+val(o),0);
-  const stages=d.stages.filter(s=>opps.some(o=>o.process_id===s.process_id)).sort((a,b)=>a.position-b.position);const last=stages.at(-1);
+function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(all,d.stages),tasks=d.tasks,val=o=>Number(o.amount_cents||0),total=opps.reduce((s,o)=>s+val(o),0);
+  const stages=d.stages.filter(s=>all.some(o=>o.process_id===s.process_id)).sort((a,b)=>a.position-b.position);const last=stages.at(-1);
   const late=stages.slice(-2).map(s=>s.id),lateVal=opps.filter(o=>late.includes(o.stage_id)).reduce((s,o)=>s+val(o),0);
   const root=E('div',undefined,'an');const main=E('div',undefined,'an-main');
   /* KPI */
   const k=E('div',undefined,'an-kpis');const kpi=(l,v,s)=>{const a=E('article',undefined,'an-kpi');a.append(E('small',l),E('strong',v),E('span',s));k.append(a)};
-  kpi('Pipeline totale',eur(total),opps.length+' opportunità');kpi('Valore medio',eur(opps.length?total/opps.length:0),'per opportunità');
+  kpi('Pipeline aperta',eur(total),opps.length+' opportunità aperte');kpi('Valore medio',eur(opps.length?total/opps.length:0),'per opportunità aperta');
   kpi('Nelle ultime due fasi',pct(lateVal,total)+'%',eur(lateVal)+' in '+stages.slice(-2).map(s=>s.title.toLowerCase()).join(' e '));
-  kpi('Attività per opportunità',(opps.length?tasks.filter(t=>t.opportunity_id).length/opps.length:0).toLocaleString('it-IT',{maximumFractionDigits:1}),tasks.length+' attività totali');
+  kpi('Attività per opportunità',(all.length?tasks.filter(t=>t.opportunity_id).length/all.length:0).toLocaleString('it-IT',{maximumFractionDigits:1}),tasks.length+' attività totali');
   kpi('Interazioni registrate',d.interactions.length,d.contacts.length+' contatti nel CRM');main.append(k);
+  /* forecast: weighted open pipeline, won/lost, win rate, lost reasons */
+  const fp=panel('Previsione','an-forecast','Trattative aperte pesate per probabilità (dell’opportunità o, se assente, della fase)');const line=(a,b)=>{const r=E('p',undefined,'an-line');r.append(E('span',a),E('b',b));fp.append(r)};
+  line('Previsione ponderata',eur(fc.open.weighted));line('Pipeline aperta',eur(fc.open.total)+' · '+fc.open.count+' opp.');
+  line('Aperte senza probabilità',fc.open.withoutProbability+(fc.open.count?' su '+fc.open.count:''));if(fc.open.withoutProbability)fp.append(E('p','Escluse dalla previsione: imposta la probabilità sull’opportunità o sulla fase.','an-note'));
+  line('Vinte',fc.won.count+' · '+eur(fc.won.total));line('Perse',fc.lost.count+' · '+eur(fc.lost.total));
+  if(fc.closed)line('Tasso di vittoria',pct(fc.won.count,fc.closed)+'% ('+fc.won.count+' su '+fc.closed+' chiuse)');else fp.append(E('p','Nessuna trattativa chiusa (vinta o persa): tasso di vittoria non calcolabile.','an-note'));
+  if(fc.lostReasons.length){fp.append(E('h4','Principali motivi di perdita'));const ol=E('ol');for(const x of fc.lostReasons)ol.append(E('li',x.reason+' · '+x.count));fp.append(ol)}else if(fc.closed)fp.append(E('p','Nessuna trattativa persa.','an-note'));
+  main.append(fp);
   /* stacked bars by close month and stage */
   const two=E('div',undefined,'an-two');const vel=panel('Pipeline per mese di chiusura','an-bars','Valore per fase, in base alla chiusura prevista');
   const t0=new Date();const months=[...Array(6)].map((_,i)=>new Date(t0.getFullYear(),t0.getMonth()+i,1));
@@ -47,7 +75,7 @@ function build(d){const opps=d.opportunities,tasks=d.tasks,val=o=>Number(o.amoun
   [...owners.entries()].sort((a,b)=>b[1].v-a[1].v).forEach(([id,r])=>{const tr=E('tr');const bar=E('td');const i=E('i');i.style.width=Math.round(r.v/tmax*100)+'%';const track=E('span',undefined,'an-bar');track.append(i);bar.append(E('span',eur(r.v)),track);tr.append(E('td',d.members.find(m=>String(m.id)===id)?.name||'Non assegnato'),bar,E('td',r.n));body.append(tr)});tb.append(body);team.append(tb);
   const act=panel('Attività e conversione','an-act','Dalle attività alle opportunità');const linked=tasks.filter(t=>t.opportunity_id).length,done=tasks.filter(t=>t.status==='done').length;
   [['Attività totali',tasks.length],['Collegate a un’opportunità',pct(linked,tasks.length)+'%'],['Completate',pct(done,tasks.length)+'%'],['Valore medio opportunità',eur(opps.length?total/opps.length:0)]].forEach(([a,b])=>{const r=E('p',undefined,'an-line');r.append(E('span',a),E('b',b));act.append(r)});
-  const q=panel('Completezza dati','an-quality','Campi compilati nel CRM');const checks=[['Aziende',d.companies.length?pct(d.companies.filter(c=>d.contacts.some(x=>x.company_id===c.id)).length,d.companies.length):0,'con almeno un contatto'],['Contatti',pct(d.contacts.filter(c=>c.company_id).length,d.contacts.length),'con azienda'],['Opportunità',pct(opps.filter(o=>o.amount_cents&&o.expected_close&&o.contact_id).length,opps.length),'con valore, data e contatto'],['Attività',pct(tasks.filter(t=>t.due_at&&t.assignee_id).length,tasks.length),'con scadenza e assegnatario']];
+  const q=panel('Completezza dati','an-quality','Campi compilati nel CRM');const checks=[['Aziende',d.companies.length?pct(d.companies.filter(c=>d.contacts.some(x=>x.company_id===c.id)).length,d.companies.length):0,'con almeno un contatto'],['Contatti',pct(d.contacts.filter(c=>c.company_id).length,d.contacts.length),'con azienda'],['Opportunità',pct(all.filter(o=>o.amount_cents&&o.expected_close&&o.contact_id).length,all.length),'con valore, data e contatto'],['Attività',pct(tasks.filter(t=>t.due_at&&t.assignee_id).length,tasks.length),'con scadenza e assegnatario']];
   const avg=Math.round(checks.reduce((a,c)=>a+c[1],0)/checks.length);const big=E('div',undefined,'an-q-head');big.append(E('strong',avg+'%'));const pb=E('span',undefined,'an-q-bar');const pi=E('i');pi.style.width=avg+'%';pb.append(pi);big.append(pb);q.append(big);
   const qg=E('div',undefined,'an-q-grid');for(const [n,v,h] of checks){const c=E('div');c.title=h;c.append(E('small',n),E('b',v+'%'),E('span',h));qg.append(c)}q.append(qg);three.append(team,act,q);main.append(three);
   /* top opportunities */
@@ -56,8 +84,8 @@ function build(d){const opps=d.opportunities,tasks=d.tasks,val=o=>Number(o.amoun
   t2.append(b2);top.append(t2);const more=E('a','Vedi tutte le opportunità →','an-link');more.href='#opportunities';top.append(more);main.append(top);
   /* rail */
   const rail=E('aside',undefined,'an-rail');rail.append(E('h3','In sintesi'));const best=stages.map(s=>[s,opps.filter(o=>o.stage_id===s.id).reduce((a,o)=>a+val(o),0)]).sort((a,b)=>b[1]-a[1])[0];
-  const lines=[`La pipeline vale ${eur(total)} su ${opps.length} opportunità.`,best?`La fase con più valore è ${best[0].title} (${pct(best[1],total)}%).`:'',`${pct(linked,tasks.length)}% delle attività è collegato a un’opportunità.`,avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
-  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM, senza modelli previsionali. Probabilità e punteggi arriveranno quando il CRM li salverà.','an-note'));
+  const lines=[`La pipeline aperta vale ${eur(total)} su ${opps.length} opportunità.`,fc.open.withProbability?`Previsione ponderata: ${eur(fc.open.weighted)}${fc.open.withoutProbability?` (${fc.open.withoutProbability} aperte senza probabilità escluse)`:''}.`:'Nessuna trattativa aperta ha una probabilità: previsione non disponibile.',fc.closed?`Tasso di vittoria ${pct(fc.won.count,fc.closed)}% su ${fc.closed} trattative chiuse.`:'',best?`La fase con più valore è ${best[0].title} (${pct(best[1],total)}%).`:'',`${pct(linked,tasks.length)}% delle attività è collegato a un’opportunità.`,avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
+  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM. La previsione somma valore × probabilità salvata: nessun modello statistico.','an-note'));
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
 
@@ -66,4 +94,4 @@ async function render(){const s=ensure();if(!s)return;const d=await window.Radix
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal|an)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});addEventListener('hashchange',later);later();
-})();
+})(typeof window!=='undefined'?window:globalThis);
