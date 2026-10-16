@@ -31,8 +31,8 @@ body{background:radial-gradient(ellipse at 40% 0,#0a2a36 0,#03101b 55%) fixed,#0
   background:radial-gradient(ellipse at 52% 48%,#0c3c44 0,#06222c 38%,#030f18 75%);box-shadow:inset 0 0 80px #00d4ab1a}
 .so-universe[hidden],.so-list[hidden]{display:none}
 .so-sky{position:absolute;inset:0;width:100%;height:100%}
-.so-core{position:absolute;left:50%;top:51%;width:clamp(130px,15vw,190px);aspect-ratio:1;transform:translate(-50%,-50%);display:grid;place-items:center;pointer-events:none}
-.so-core span{font:600 clamp(15px,1.6vw,21px)/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.32em;padding-left:.32em;color:#f2fffb;text-shadow:0 0 12px #6fffe0,0 0 2px #fff}
+.so-core{position:absolute;left:50%;top:50%;width:clamp(170px,19vw,250px);aspect-ratio:1;transform:translate(-50%,-50%);pointer-events:none}
+.so-core span{position:absolute;left:50%;top:calc(100% + 14px);transform:translateX(-50%);font:600 13px/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.42em;padding-left:.42em;color:#e8fff9;text-shadow:0 0 10px #6fffe0,0 0 2px #000}
 .so-planet{--c:#36edd0;position:absolute;display:flex;align-items:center;gap:12px;transform:translate(-30px,-50%);color:var(--so-txt);text-decoration:none;z-index:2;animation:so-float 7s ease-in-out infinite alternate}
 .so-planet i{flex:none;width:60px;height:60px;border-radius:50%;position:relative;color:var(--c);
   background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 65%,#fff),color-mix(in srgb,var(--c) 55%,#000) 55%,color-mix(in srgb,var(--c) 25%,#000) 100%);
@@ -45,8 +45,8 @@ body{background:radial-gradient(ellipse at 40% 0,#0a2a36 0,#03101b 55%) fixed,#0
 .so-planet:focus-visible{outline:none}.so-planet:focus-visible b{text-decoration:underline}
 .so-planet[data-k=companies]{--c:#5ef2a0;--ic:var(--so-i-companies);left:31%;top:19%}
 .so-planet[data-k=contacts]{--c:#5aa2ff;--ic:var(--so-i-contacts);left:65%;top:19%;animation-delay:-2s}
-.so-planet[data-k=opportunities]{--c:#f5b544;--ic:var(--so-i-opportunities);left:15%;top:58%;animation-delay:-4s}
-.so-planet[data-k=tasks]{--c:#b07bff;--ic:var(--so-i-tasks);left:72%;top:60%;animation-delay:-1s}
+.so-planet[data-k=opportunities]{--c:#f5b544;--ic:var(--so-i-opportunities);left:12%;top:58%;animation-delay:-4s}
+.so-planet[data-k=tasks]{--c:#b07bff;--ic:var(--so-i-tasks);left:75%;top:60%;animation-delay:-1s}
 .so-planet[data-k=interactions]{--c:#36e3d6;--ic:var(--so-i-interactions);left:48%;top:86%;animation-delay:-3s}
 @keyframes so-float{from{margin-top:-4px}to{margin-top:4px}}
 .so-callout{position:absolute;max-width:210px;margin:0;padding:10px 12px 10px 34px;border:1px solid #23605c;border-radius:12px;background:#061d26d9;color:#b9e8df;font-size:11.5px;line-height:1.35;z-index:1;backdrop-filter:blur(6px)}
@@ -160,7 +160,7 @@ body{background:radial-gradient(ellipse at 40% 0,#0a2a36 0,#03101b 55%) fixed,#0
  .so-head-end{align-items:flex-start;flex-direction:row-reverse;justify-content:space-between;flex-wrap:wrap}
  .so-universe{height:440px}
  .so-callout{display:none}
- .so-core{width:120px}
+ .so-core{width:132px}.so-core span{font-size:11px;top:calc(100% + 8px)}
  .so-planet{flex-direction:column;gap:4px;text-align:center;transform:translate(-50%,-24px)}
  .so-planet i{width:46px;height:46px}.so-planet i::before{inset:12px}
  .so-planet span{align-items:center}.so-planet b{font-size:13px}.so-planet small{font-size:11px}
@@ -170,3 +170,5 @@ body{background:radial-gradient(ellipse at 40% 0,#0a2a36 0,#03101b 55%) fixed,#0
  .app #main .so-left .stats{grid-template-columns:1fr}
 }
 @media (prefers-reduced-motion:reduce){.so-planet{animation:none}}
+/* Sales Orbit asks the Copilot from «Chiedi a RADIX AI»: no floating button here */
+.cc-fab{display:none}

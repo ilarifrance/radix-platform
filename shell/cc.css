@@ -146,39 +146,45 @@
 .cc-core-row{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:12.5px;color:#a9c4b9}
 .cc-core-row b{min-width:22px;color:#3ff0b0;font:700 15px/1 Inter,system-ui,sans-serif}
 .cc-core-row:last-child b{color:#f5b544}
-/* ---- The world: rotating dotted earth with projects (outer orbit) and services (inner orbit) on the overview ---- */
+/* ---- The network overview: the RADIX earth as core, each project a constellation of its agents and workflows ---- */
 .network-stage.cc-world-on>svg{visibility:hidden}
 .cc-world{position:absolute;inset:0;z-index:3}
 .cc-world[hidden]{display:none}
 .cc-world-sky{position:absolute;inset:0;width:100%;height:100%}
 .cc-world-nodes{position:absolute;inset:0}
 .cc-world-core{position:absolute;transform:translate(-50%,0);text-align:center;pointer-events:none}
-.cc-world-core b{display:block;font:700 15px/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.34em;padding-left:.34em;color:#effffa;text-shadow:0 0 12px #3cf5c6}
-.cc-world-core small{display:block;margin-top:5px;font:600 8.5px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;color:#5fd9b8}
-.cc-proj{--c:#36edbd;position:absolute;display:flex;flex-direction:column;align-items:center;gap:6px;transform:translate(-50%,-22px);padding:0;border:0;background:none;color:#eafff7;cursor:pointer;font:inherit;max-width:190px}
-.cc-proj.cc-up{flex-direction:column-reverse;transform:translate(-50%,calc(-100% + 22px))}
-.cc-proj i{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font:700 16px/1 'Space Grotesk',Inter,system-ui,sans-serif;font-style:normal;color:#fff;
-  background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--c) 60%,#fff),color-mix(in srgb,var(--c) 55%,#000) 60%,color-mix(in srgb,var(--c) 20%,#000));
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 28%,transparent),0 0 22px var(--c);transition:transform .2s,box-shadow .2s}
-.cc-proj-t{display:flex;flex-direction:column;align-items:center;text-align:center;text-shadow:0 1px 6px #000}
-.cc-proj-t b{font:600 14px/1.2 'Space Grotesk',Inter,system-ui,sans-serif;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cc-proj-t small{font-size:11px;color:color-mix(in srgb,var(--c) 65%,#fff)}
-.cc-proj:hover i,.cc-proj:focus-visible i{transform:scale(1.1);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 45%,transparent),0 0 34px var(--c)}
-.cc-proj:focus-visible{outline:none}.cc-proj:focus-visible b{text-decoration:underline}
-.cc-svc{--c:#36edbd;position:absolute;display:flex;align-items:center;gap:8px;transform:translate(-7px,-50%);color:#d6efe8;text-decoration:none;font-size:12px;font-weight:500;white-space:nowrap}
-.cc-svc.cc-left{flex-direction:row-reverse;transform:translate(calc(-100% + 7px),-50%)}
-.cc-svc i{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 25%,transparent),0 0 12px var(--c)}
-.cc-svc span{padding:3px 8px;border-radius:999px;background:#04161acc;border:1px solid color-mix(in srgb,var(--c) 35%,transparent)}
-.cc-svc:hover span,.cc-svc:focus-visible span{border-color:var(--c);color:#fff}
-.cc-svc:focus-visible{outline:none}
-.cc-shared{position:absolute;right:14px;top:12px;padding:6px 12px;border-radius:999px;border:1px solid #2a6a5a;background:#04161acc;color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
-.cc-shared:hover,.cc-shared:focus-visible{border-color:#36edbd;color:#fff;outline:none}
-@media (prefers-reduced-motion:reduce){.cc-proj i{transition:none}}
-/* narrow map: smaller planets, service dots without their labels (named in the tooltip), one-line project names */
-.cc-world.cc-small .cc-proj i{width:34px;height:34px;font-size:13px}
-.cc-world.cc-small .cc-proj{transform:translate(-50%,-17px);gap:3px;max-width:120px}
-.cc-world.cc-small .cc-proj.cc-up{transform:translate(-50%,calc(-100% + 17px))}
-.cc-world.cc-small .cc-proj-t b{font-size:12px;max-width:120px}
-.cc-world.cc-small .cc-proj-t small,.cc-world.cc-small .cc-svc span,.cc-world.cc-small .cc-world-core small{display:none}
-.cc-world.cc-small .cc-svc i{width:11px;height:11px}
+.cc-world-core b{display:block;font:700 15px/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.38em;padding-left:.38em;color:#effffa;text-shadow:0 0 12px #3cf5c6}
+.cc-world-core small{display:block;margin-top:5px;font:600 9px/1 Inter,system-ui,sans-serif;letter-spacing:.32em;padding-left:.32em;color:#5fd9b8}
+.cc-planet-p{--c:#36edbd;--tw:200px;position:absolute;z-index:2;display:flex;align-items:center;gap:14px;padding:0;border:0;background:none;color:#eafff7;cursor:pointer;font:inherit;text-align:left}
+.cc-planet-p.cc-out-right{transform:translate(-27px,-50%)}
+.cc-planet-p.cc-out-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 27px),-50%)}
+.cc-planet-p>i{position:relative;flex:none;width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font:700 19px/1 'Space Grotesk',Inter,system-ui,sans-serif;font-style:normal;color:#fff;transition:transform .2s,box-shadow .2s;text-shadow:0 1px 4px #0008;
+  background:radial-gradient(circle at 34% 28%,#fff9 0 6%,color-mix(in srgb,var(--c) 85%,#fff) 16%,color-mix(in srgb,var(--c) 55%,#021512) 62%,#021512 100%);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 0 26px color-mix(in srgb,var(--c) 65%,transparent)}
+/* steps done in the project flow, as a ring around the planet */
+.cc-planet-p>i::after{content:"";position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(var(--c) var(--p,0%),color-mix(in srgb,var(--c) 18%,transparent) 0);-webkit-mask:radial-gradient(circle,transparent 30px,#000 31px);mask:radial-gradient(circle,transparent 30px,#000 31px)}
+.cc-pt{display:flex;flex-direction:column;gap:3px;max-width:var(--tw);text-shadow:0 1px 6px #000}
+.cc-out-left .cc-pt{align-items:flex-end}
+.cc-pt b{font:600 15px/1.2 'Space Grotesk',Inter,system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cc-pt small{font-size:11.5px;line-height:1.3}
+.cc-pt-step{color:color-mix(in srgb,var(--c) 70%,#fff)}
+.cc-pt-step.wait{color:#f5c56b}
+.cc-pt-step.wait::before{content:"● ";font-size:9px;vertical-align:1px}
+.cc-pt-count{color:#8fb3a8}
+.cc-planet-p:hover>i,.cc-planet-p:focus-visible>i{transform:scale(1.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 45%,transparent),0 0 40px var(--c)}
+.cc-planet-p:focus-visible{outline:none}.cc-planet-p:focus-visible b{text-decoration:underline}
+.cc-dot{--c:#36edbd;position:absolute;z-index:3;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 18%,var(--c) 45%,color-mix(in srgb,var(--c) 40%,#000));box-shadow:0 0 8px var(--c)}
+.cc-dot-wf{background:#04161a;border:2px solid var(--c);box-shadow:none;width:8px;height:8px;margin:-4px 0 0 -4px}
+@media (prefers-reduced-motion:reduce){.cc-planet-p>i{transition:none}}
+.cc-world.cc-small .cc-planet-p{flex-direction:column;align-items:center;gap:6px;text-align:center;transform:translate(-50%,-19px)}
+.cc-world.cc-small .cc-planet-p>i{width:38px;height:38px;font-size:14px}
+.cc-world.cc-small .cc-planet-p>i::after{inset:-5px;-webkit-mask:radial-gradient(circle,transparent 21px,#000 22px);mask:radial-gradient(circle,transparent 21px,#000 22px)}
+.cc-world.cc-small .cc-pt{align-items:center;max-width:150px}
+.cc-world.cc-small .cc-pt b{font-size:12.5px}
+.cc-world.cc-small .cc-pt small{font-size:10.5px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cc-world.cc-small .cc-pt small.cc-pt-count,.cc-world.cc-small .cc-world-core small{display:none}
 .cc-world.cc-small .cc-world-core b{font-size:11px}
+.cc-more{position:absolute;transform:translate(-50%,-100%);padding:5px 12px;border-radius:999px;border:1px solid #2a6a5a;background:#04161acc;color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
+.cc-shared{position:absolute;right:14px;top:12px;z-index:2;padding:6px 12px;border-radius:999px;border:1px solid #2a6a5a;background:#04161acc;color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
+.cc-shared:hover,.cc-shared:focus-visible,.cc-more:hover,.cc-more:focus-visible{border-color:#36edbd;color:#fff;outline:none}
+@media (max-width:640px){.network-wrap:has(.cc-world-on){height:auto!important;overflow:hidden}.network-stage.cc-world-on{height:560px!important}}

@@ -1,45 +1,37 @@
 // Command Center design layer (command-center-universo + layout mockups):
-// 1) the overview of the network view as the rotating dotted earth, projects on the outer orbit, services on the inner one
-//    (the CRM planets now live in Sales Orbit);
+// 1) the overview of the network view: the RADIX earth as core, each project a planet with its name, next step and counts
+//    (the CRM planets live in Sales Orbit);
 // 2) connected systems in the top bar, one icon per service, from /api/integrations/status (key present or not);
 // 3) projects and a RADIX CORE box in the sidebar, Rivedi on the attention rows, icons and status rings in the activity.
 // Presentation only: it adds its own layer over the map renderNetwork() draws and never changes the page's nodes or handlers.
 'use strict';
 (function () {
-  // ---- The world (Francesco, 16/10 evening): on the overview the network becomes the rotating dotted earth, with the
-  // projects on the outer orbit and the services on the inner one. Inside a project the page's own map comes back.
-  // Projects, colours and workflow counts are read from the map renderNetwork() just drew; a click on a project
-  // clicks its own hub, so the drill-down is the page's. Agents per project come from the project flow (saved conversations).
+  // ---- The network overview (Francesco, 16/10 night): the RADIX earth (sales/orbit-globe.js) is the core, each project a
+  // planet around it with its full name, where it stands in the project flow (next step and its detail) and a ring for the
+  // steps done. Agents with saved conversations and the project's own workflows are small dots on the planet's orbit, named
+  // only in their tooltip. Inside a project the page's own map comes back: a click on a planet clicks the project's hub.
+  // Projects, colours and workflows are read from the map renderNetwork() just drew; the flow from /api/workspace?journey=1.
   var svg = document.getElementById('networkSvg'), stage = document.getElementById('networkStage');
-  var SERVICES = [
-    { label: 'Marketing Agency', href: '/agency/index.html', color: '#ff8fc8', a: 198 },
-    { label: 'Sales Intelligence', href: '/sales-orbit-higgsfield.html', color: '#36edbd', a: 342 },
-    { label: 'Project Management', href: '/radix-pm-concept.html', color: '#ffc46b', a: 162 },
-    { label: 'Studio', href: '/legal/index.html', color: '#9fb4ff', a: 18 }
-  ];
-  var projectAgents = {};
-  function loadAgents() {
+  var AGENT_NAMES = { 'marketing-orchestrator': 'Orchestratore Marketing', 'brand-strategist': 'Stratega di Marca', strategist: 'Digital Strategist', copywriter: 'Copywriter', 'art-director': 'Art Director', 'ai-specialist': 'AI Specialist', 'social-media-manager': 'Social Media Manager', 'seo-geo': 'SEO e GEO', 'web-content': 'Content e UX Writer', 'video-producer': 'Video Producer', 'paid-media': 'Paid Media', analytics: 'Analytics e CRO', orchestrator: 'Pipeline post', partner: 'Orchestratore Studio', 'commercialista-senior': 'Commercialista Senior', 'commercialista-operativo': 'Commercialista Operativo', contabilita: 'Contabilità', 'lavoro-paghe': 'Lavoro e Paghe', 'segreteria-studio': 'Segreteria', 'web-developer': 'Web Developer', 'legal-orchestrator': 'Orchestratore Legale', 'legal-gdpr': 'Privacy e GDPR', 'legal-contracts': 'Contratti e IP', 'legal-banking': 'Diritto Bancario', 'legal-risk-analyst': 'Rischio Legale', 'comm-orchestrator': 'Orchestratore Commerciale', 'comm-market-analyst': 'Analista di Mercato', 'comm-contact-finder': 'Ricerca Contatti', 'comm-email-outreach': 'Email Outreach', 'comm-crm-manager': 'CRM e Sales Ops' };
+  function agentName(id) { return AGENT_NAMES[id] || String(id).replace(/[-_]+/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); }); }
+  var journeys = {};
+  function loadJourneys() {
     return fetch('/api/workspace?resource=projects&journey=1', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
       var out = {};
-      ((d && d.items) || []).forEach(function (p) {
-        var st = p.journey && p.journey.steps.find(function (x) { return x.id === 'agents'; });
-        out[String(p.name).trim().toLowerCase()] = (st && Array.isArray(st.agents)) ? st.agents.length : 0;
-      });
+      ((d && d.items) || []).forEach(function (p) { if (p.journey) out[String(p.name).trim().toLowerCase()] = p.journey; });
       return out;
     }).catch(function () { return {}; });
   }
-  function landPoints() {
-    var L = window.RadixGlobeLand; if (!L) return null;
-    var raw = atob(L.LAND), ga = Math.PI * (3 - Math.sqrt(5)), pts = [];
-    for (var i = 0; i < L.N; i += 2) {
-      if (!(raw.charCodeAt(i >> 3) >> (i & 7) & 1)) continue;
-      var y = 1 - (i + .5) / L.N * 2, r = Math.sqrt(1 - y * y), t = ga * i, h = Math.sin(i * 12.9898) * 43758.5453;
-      pts.push([Math.cos(t) * r, y, -Math.sin(t) * r, h - Math.floor(h) < .08 ? 1 : 0]);
-    }
-    return pts;
+  // the project's place in its flow, from the saved modules: next step and its detail, steps done, agents used
+  function flow(j) {
+    if (!j || !Array.isArray(j.steps)) return null;
+    var steps = j.steps, next = steps.find(function (s) { return s.id === j.next; }), ag = steps.find(function (s) { return s.id === 'agents'; });
+    var phases = steps.filter(function (s) { return s.id !== 'agents'; }), done = phases.filter(function (s) { return s.state === 'done'; }).length;
+    var line = !next ? 'Flusso completato' : (next.state === 'todo' && !done ? 'Da avviare · ' + next.label : next.label + ' · ' + next.detail);
+    return { line: line, wait: !!(next && next.state === 'waiting'), done: done, total: phases.length, agents: (ag && Array.isArray(ag.agents)) ? ag.agents : [] };
   }
 
-  var world = null, cv = null, ctx = null, nodes = null, pts = null, W = 0, H = 0, dpr = 1, geo = null, items = [];
+  var MAX = 8, DOTS = 8, world = null, cv = null, ctx = null, nodes = null, W = 0, H = 0, dpr = 1, core = null, items = [], small = false;
   var reduce = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   function atRoot() {
     var crumb = document.getElementById('networkBreadcrumb');
@@ -48,34 +40,48 @@
   function mapProjects() {
     var clusters = svg.querySelectorAll('.network-cluster'), out = [];
     svg.querySelectorAll('.project-hub[data-network-type=project]').forEach(function (h, i) {
-      var name = (h.getAttribute('aria-label') || '').split(' · ')[0];
-      out.push({ hub: h, name: name, color: (h.style.getPropertyValue('--node-color') || '#36edbd').trim(), wf: clusters[i] ? clusters[i].querySelectorAll('.scene-satellite').length : 0 });
+      var name = (h.getAttribute('aria-label') || '').split(' · ')[0], wf = [];
+      if (clusters[i]) clusters[i].querySelectorAll('.scene-satellite').forEach(function (s) { var l = (s.getAttribute('aria-label') || '').split(' · ')[0].trim(); if (l) wf.push(l); });
+      out.push({ hub: h, name: name, color: (h.style.getPropertyValue('--node-color') || '#36edbd').trim(), wf: wf });
     });
     return out;
   }
+  // Desktop: two columns of planets either side of the core, the text on the outer side of each planet.
+  // Phone: the core on top, planets in a two-column grid below it, the text under each planet.
   function size() {
     if (!cv) return; var r = stage.getBoundingClientRect(), z = stage.offsetWidth ? r.width / stage.offsetWidth : 1;
     W = stage.offsetWidth; H = stage.offsetHeight; dpr = Math.min(2, (window.devicePixelRatio || 1) * z);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
-    var small = W < 560, R = small ? Math.min(W * .17, H * .21) : Math.max(66, Math.min(W * .13, H * .2));
-    world.classList.toggle('cc-small', small);
-    geo = small ? { cx: W / 2, cy: H * .52, R: R, rx: W * .37, ry: H * .34, sx: R * 1.45, sy: R * .55 } : { cx: W / 2, cy: H * .47, R: R, rx: Math.min(W * .42, R * 3.6), ry: H * .31, sx: R * 1.8, sy: R * .62 };
+    small = W < 640; world.classList.toggle('cc-small', small);
+    var n = items.length;
+    if (small) {
+      var R0 = Math.min(W * .13, 50), top = 22 + R0 * 2 + 34, rows = Math.max(1, Math.ceil(n / 2)), rh = (H - top - 10) / rows;
+      core = { cx: W / 2, cy: 22 + R0, R: R0 };
+      items.forEach(function (it, i) { it.x = W * (i % 2 ? .74 : .26); it.y = top + rh * Math.floor(i / 2) + 34; it.out = 0; it.orb = 30; });
+    } else {
+      var top2 = 14, bottom = 40, R = Math.max(58, Math.min(W * .085, H * .15)), text = Math.min(220, W * .24);
+      core = { cx: W / 2, cy: top2 + (H - top2 - bottom) / 2, R: R };
+      var per = [Math.ceil(n / 2), Math.floor(n / 2)], dx = Math.max(R + 90, W / 2 - text - 58);
+      items.forEach(function (it, i) {
+        var right = i % 2 === 1, m = per[right ? 1 : 0], h = (H - top2 - bottom) / Math.max(1, m), row = Math.floor(i / 2);
+        it.x = W / 2 + (right ? dx : -dx); it.y = top2 + h * (row + .5); it.out = right ? 1 : -1; it.orb = 40; it.text = text;
+      });
+    }
+    layout();
   }
   function layout() {
-    if (!geo) return;
-    var n = items.length, top = Math.ceil(n / 2), bottom = n - top;
-    items.forEach(function (it, i) {
-      var up = i < top, k = up ? i : i - top, m = up ? top : bottom;
-      var deg = up ? (m === 1 ? 270 : 218 + k * (104 / (m - 1))) : (m === 1 ? 90 : 142 - k * (104 / (m - 1)));
-      var a = deg * Math.PI / 180;
-      it.x = geo.cx + Math.cos(a) * geo.rx; it.y = geo.cy + Math.sin(a) * geo.ry;
-      it.el.style.left = it.x + 'px'; it.el.style.top = it.y + 'px'; it.el.classList.toggle('cc-up', up);
+    if (!core) return;
+    items.forEach(function (it) {
+      it.el.style.left = it.x + 'px'; it.el.style.top = it.y + 'px';
+      it.el.classList.toggle('cc-out-left', it.out < 0); it.el.classList.toggle('cc-out-right', it.out > 0);
+      if (it.text) it.el.style.setProperty('--tw', it.text + 'px');
+      it.dots.forEach(function (d, k) {
+        var a = (-90 + k * 360 / Math.max(it.dots.length, 5)) * Math.PI / 180;
+        d.style.left = (it.x + Math.cos(a) * it.orb) + 'px'; d.style.top = (it.y + Math.sin(a) * it.orb) + 'px';
+      });
     });
-    nodes.querySelectorAll('.cc-svc').forEach(function (b, i) {
-      var a = SERVICES[i].a * Math.PI / 180, x = geo.cx + Math.cos(a) * geo.sx, y = geo.cy + Math.sin(a) * geo.sy;
-      b.style.left = x + 'px'; b.style.top = y + 'px'; b.classList.toggle('cc-left', Math.cos(a) < 0);
-    });
-    var core = nodes.querySelector('.cc-world-core'); if (core) { core.style.left = geo.cx + 'px'; core.style.top = (geo.cy + geo.R + 12) + 'px'; }
+    var cap = nodes.querySelector('.cc-world-core'); if (cap) { cap.style.left = core.cx + 'px'; cap.style.top = (core.cy + core.R + 14) + 'px'; }
+    var more = nodes.querySelector('.cc-more'); if (more) { more.style.left = core.cx + 'px'; more.style.top = '40px'; }
   }
   function build() {
     if (!svg || !stage) return;
@@ -86,27 +92,41 @@
       world = node('div', 'cc-world'); cv = node('canvas', 'cc-world-sky'); cv.setAttribute('aria-hidden', 'true');
       nodes = node('div', 'cc-world-nodes'); world.append(cv, nodes); stage.append(world);
       ctx = cv.getContext('2d');
-      if (window.ResizeObserver) new ResizeObserver(function () { size(); layout(); }).observe(stage);
+      if (window.ResizeObserver) new ResizeObserver(size).observe(stage);
       requestAnimationFrame(loop);
     }
     world.hidden = false; nodes.replaceChildren();
-    var core = node('div', 'cc-world-core'); core.append(node('b', '', 'RADIX'), node('small', '', 'AI OPERATING SYSTEM')); nodes.append(core);
-    SERVICES.forEach(function (s) {
-      var a = node('a', 'cc-svc'); a.href = s.href; a.style.setProperty('--c', s.color); a.title = 'Apri ' + s.label;
-      a.append(node('i'), node('span', '', s.label)); nodes.append(a);
+    var cap = node('div', 'cc-world-core'); cap.append(node('b', '', 'RADIX'), node('small', '', 'CORE')); nodes.append(cap);
+    var all = mapProjects();
+    items = all.slice(0, MAX).map(function (p) {
+      var f = flow(journeys[p.name.trim().toLowerCase()]), ag = f ? f.agents.map(agentName) : [];
+      var open = function () { p.hub.dispatchEvent(new MouseEvent('click', { bubbles: true })); };
+      var b = node('button', 'cc-planet-p'); b.type = 'button'; b.style.setProperty('--c', p.color);
+      var counts = [];
+      if (ag.length) counts.push(ag.length + (ag.length === 1 ? ' agente' : ' agenti'));
+      if (p.wf.length) counts.push(p.wf.length + ' workflow');
+      var t = node('span', 'cc-pt'); t.append(node('b', '', p.name));
+      if (f) { var st = node('small', 'cc-pt-step' + (f.wait ? ' wait' : ''), f.line); t.append(st); }
+      if (counts.length) t.append(node('small', 'cc-pt-count', counts.join(' · ')));
+      var ball = node('i', '', initial(p.name));
+      if (f && f.total) { ball.style.setProperty('--p', Math.round(f.done / f.total * 100) + '%'); ball.title = f.done + ' di ' + f.total + ' passi completati'; }
+      b.append(ball, t);
+      b.setAttribute('aria-label', 'Apri il progetto ' + p.name + (f ? '. ' + f.line + ', ' + f.done + ' di ' + f.total + ' passi' : '') + (counts.length ? '. ' + counts.join(', ') : ''));
+      b.addEventListener('click', open); nodes.append(b);
+      // agents and own workflows as dots on the planet's orbit, named in their tooltip
+      var list = ag.map(function (n) { return ['agent', 'Agente · ' + n]; }).concat(p.wf.map(function (n) { return ['wf', 'Workflow · ' + n]; }));
+      var dots = list.slice(0, DOTS).map(function (s, k) {
+        var d = node('span', 'cc-dot cc-dot-' + s[0]); d.style.setProperty('--c', p.color);
+        d.title = (k === DOTS - 1 && list.length > DOTS) ? s[1] + ' e altri ' + (list.length - DOTS) : s[1];
+        nodes.append(d); return d;
+      });
+      return { el: b, color: p.color, dots: dots };
     });
-    items = mapProjects().map(function (p) {
-      var b = node('button', 'cc-proj'); b.type = 'button'; b.style.setProperty('--c', p.color);
-      var ag = projectAgents[p.name.trim().toLowerCase()] || 0, meta = [];
-      if (p.wf) meta.push(p.wf + (p.wf === 1 ? ' workflow' : ' workflow'));
-      if (ag) meta.push(ag + (ag === 1 ? ' agente' : ' agenti'));
-      var t = node('span', 'cc-proj-t'); t.append(node('b', '', p.name), node('small', '', meta.length ? meta.join(' · ') : 'Profilo progetto'));
-      b.append(node('i', '', initial(p.name)), t);
-      b.setAttribute('aria-label', 'Apri il progetto ' + p.name + (meta.length ? ', ' + meta.join(', ') : ''));
-      b.addEventListener('click', function () { p.hub.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-      nodes.append(b);
-      return { el: b, color: p.color };
-    });
+    if (all.length > MAX) {
+      var m = node('button', 'cc-more'); m.type = 'button'; m.textContent = '+' + (all.length - MAX) + ' progetti · vedi la lista';
+      m.addEventListener('click', function () { var l = Array.prototype.find.call(document.querySelectorAll('button'), function (x) { return x.textContent.trim() === 'Lista'; }); if (l) l.click(); });
+      nodes.append(m);
+    }
     var un = svg.querySelector('.unassigned-node');
     if (un) {
       var u = node('button', 'cc-shared'); u.type = 'button';
@@ -114,53 +134,41 @@
       u.addEventListener('click', function () { un.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       nodes.append(u);
     }
-    size(); layout();
-    if (!pts && !window.RadixGlobeLand && !document.getElementById('cc-globe-land')) {
-      var s = document.createElement('script'); s.id = 'cc-globe-land'; s.src = '/sales/orbit-globe.js'; s.onload = function () { pts = landPoints(); }; document.head.appendChild(s);
-    } else if (!pts) pts = landPoints();
-  }
-  function frame(t) {
-    if (!ctx || !geo || !W) return;
-    var g = geo, cx = g.cx, cy = g.cy, R = g.R, rot = t * .00005 + .6, tilt = .36, ct = Math.cos(tilt), st = Math.sin(tilt);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-    // orbits: projects outside, services inside, a few glints moving along them
-    [[g.rx, g.ry, '84,240,210', .28, .00004], [g.sx, g.sy, '160,190,255', .32, -.00007]].forEach(function (o) {
-      ctx.beginPath(); ctx.ellipse(cx, cy, o[0], o[1], 0, 0, Math.PI * 2); ctx.strokeStyle = 'rgba(' + o[2] + ',' + o[3] + ')'; ctx.lineWidth = 1; ctx.setLineDash([2, 6]); ctx.stroke(); ctx.setLineDash([]);
-      for (var k = 0; k < 4; k++) { var a = t * o[4] + k * 1.57, x = cx + Math.cos(a) * o[0], y = cy + Math.sin(a) * o[1], gr = ctx.createRadialGradient(x, y, 0, x, y, 6);
-        gr.addColorStop(0, 'rgba(255,245,215,.9)'); gr.addColorStop(.35, 'rgba(' + o[2] + ',.7)'); gr.addColorStop(1, 'rgba(' + o[2] + ',0)'); ctx.fillStyle = gr; ctx.fillRect(x - 6, y - 6, 12, 12); }
-    });
-    // links from the earth to each project
-    items.forEach(function (it) {
-      var dx = it.x - cx, dy = it.y - cy, d = Math.hypot(dx, dy) || 1, sx = cx + dx / d * R * 1.04, sy = cy + dy / d * R * 1.04, ex = it.x - dx / d * 26, ey = it.y - dy / d * 26;
-      var lg = ctx.createLinearGradient(sx, sy, ex, ey); lg.addColorStop(0, 'rgba(120,255,230,.05)'); lg.addColorStop(1, it.color);
-      ctx.globalAlpha = .55; ctx.strokeStyle = lg; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo((sx + ex) / 2 + dy / d * 18, (sy + ey) / 2 - dx / d * 18, ex, ey); ctx.stroke();
-      var f = (t * .0003 + d * .01) % 1; ctx.globalAlpha = .9; ctx.fillStyle = it.color; ctx.beginPath(); ctx.arc(sx + (ex - sx) * f, sy + (ey - sy) * f, 1.8, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
-    });
-    // the earth
-    var at = ctx.createRadialGradient(cx, cy, R * .9, cx, cy, R * 1.55); at.addColorStop(0, 'rgba(70,255,215,.45)'); at.addColorStop(1, 'rgba(40,220,190,0)');
-    ctx.fillStyle = at; ctx.beginPath(); ctx.arc(cx, cy, R * 1.55, 0, Math.PI * 2); ctx.fill();
-    var sea = ctx.createRadialGradient(cx - R * .35, cy - R * .4, R * .05, cx, cy, R); sea.addColorStop(0, '#1d9c8c'); sea.addColorStop(.4, '#0b5c5e'); sea.addColorStop(.85, '#05303d'); sea.addColorStop(1, '#03202a');
-    ctx.fillStyle = sea; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-    if (pts) {
-      var cr = Math.cos(rot), sr = Math.sin(rot), s = Math.max(1, R / 110);
-      ctx.globalCompositeOperation = 'lighter';
-      for (var i = 0; i < pts.length; i++) {
-        var p = pts[i], x = p[0] * cr - p[2] * sr, z = p[0] * sr + p[2] * cr, y2 = p[1] * ct - z * st, z2 = p[1] * st + z * ct; if (z2 < 0) continue;
-        ctx.fillStyle = p[3] ? 'rgba(255,214,120,' + (.5 + .5 * z2) + ')' : 'rgba(110,255,215,' + (.25 + .75 * z2) + ')';
-        ctx.fillRect(cx + x * R - s * .7, cy - y2 * R - s * .7, s * 1.4, s * 1.4);
-      }
-      ctx.globalCompositeOperation = 'source-over';
+    size();
+    if (!window.RadixGlobe && !document.getElementById('cc-globe-land')) {
+      var s = document.createElement('script'); s.id = 'cc-globe-land'; s.src = '/sales/orbit-globe.js'; document.head.appendChild(s);
     }
-    var sh = ctx.createRadialGradient(cx - R * .45, cy - R * .5, R * .1, cx, cy, R * 1.02); sh.addColorStop(0, 'rgba(190,255,240,.14)'); sh.addColorStop(.55, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,10,16,.6)');
-    ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-    ctx.lineWidth = 1.6; ctx.strokeStyle = 'rgba(110,255,220,.85)'; ctx.shadowColor = 'rgba(70,255,210,1)'; ctx.shadowBlur = 16; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
+  }
+  function rgba(hex, a) { var h = hex.replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&'); var n = parseInt(h, 16); return isNaN(n) ? 'rgba(54,237,189,' + a + ')' : 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  function frame(t) {
+    if (!ctx || !core || !W) return;
+    var g = core, G = window.RadixGlobe;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    // one wide dotted orbit through the planets, as in Sales Orbit
+    ctx.strokeStyle = 'rgba(84,240,210,.16)'; ctx.lineWidth = 1; ctx.setLineDash([2, 6]);
+    if (!small && items.length) { var ox = Math.abs(items[0].x - g.cx); ctx.beginPath(); ctx.ellipse(g.cx, g.cy, ox, (H - 54) / 2, 0, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.setLineDash([]);
+    items.forEach(function (it) {
+      var halo = ctx.createRadialGradient(it.x, it.y, 0, it.x, it.y, it.orb * 1.9);
+      halo.addColorStop(0, rgba(it.color, .2)); halo.addColorStop(1, rgba(it.color, 0)); ctx.fillStyle = halo; ctx.fillRect(it.x - it.orb * 2, it.y - it.orb * 2, it.orb * 4, it.orb * 4);
+      if (it.dots.length) { ctx.strokeStyle = rgba(it.color, .35); ctx.setLineDash([2, 4]); ctx.beginPath(); ctx.arc(it.x, it.y, it.orb, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+      // the link from the core: a glowing curve with a pulse travelling out to the planet (not on a phone, where it would cross the grid)
+      if (small) return;
+      var dx = it.x - g.cx, dy = it.y - g.cy, d = Math.hypot(dx, dy) || 1, sx = g.cx + dx / d * g.R * 1.03, sy = g.cy + dy / d * g.R * 1.03, ex = it.x - dx / d * 31, ey = it.y - dy / d * 31;
+      var bend = (dx < 0 ? 1 : -1) * 22, mx = (sx + ex) / 2 - dy / d * bend, my = (sy + ey) / 2 + dx / d * bend;
+      var lg = ctx.createLinearGradient(sx, sy, ex, ey); lg.addColorStop(0, 'rgba(120,255,230,.5)'); lg.addColorStop(1, rgba(it.color, .85));
+      ctx.save(); ctx.strokeStyle = lg; ctx.lineWidth = 1.4; ctx.shadowColor = it.color; ctx.shadowBlur = 8; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke(); ctx.restore();
+      var f = (t * .00035 + it.y * .003) % 1, q = 1 - f, px = q * q * sx + 2 * q * f * mx + f * f * ex, py = q * q * sy + 2 * q * f * my + f * f * ey;
+      ctx.fillStyle = '#fff'; ctx.shadowColor = it.color; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
+    });
+    if (G) G.draw(ctx, g, .6 + t * .00006);
   }
   function loop(t) { if (world && !world.hidden) frame(reduce.matches ? 0 : t); requestAnimationFrame(loop); }
   if (svg && stage) {
     new MutationObserver(build).observe(svg, { childList: true });
     var crumb = document.getElementById('networkBreadcrumb'); if (crumb) new MutationObserver(build).observe(crumb, { childList: true, subtree: true, characterData: true });
     build();
-    loadAgents().then(function (a) { projectAgents = a; build(); });
+    loadJourneys().then(function (j) { journeys = j; build(); });
   }
 
   // Connected systems: one icon per service, lit when its key is configured on this deployment.
