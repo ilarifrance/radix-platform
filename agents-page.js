@@ -410,6 +410,8 @@ async function boot(){
   $('project').replaceChildren(...projects.map(p=>{const o=node('option',p.name+(p.client_name?' · '+p.client_name:''));o.value=p.id;return o}));$('project').disabled=false;
   if(params.get('agent'))agentId=(rt.agent(params.get('agent'))||rt.agent(agentId)).id;
   await openProject((params.get('project')||'').toLowerCase());
+  // «Ask RADIX» from the Command Center: the question is prefilled, never sent on its own.
+  const q=(params.get('q')||'').slice(0,2000);if(q&&!$('input').value){$('input').value=q;$('input').focus()}
  }catch(e){say(e.message)}
 }
 boot();
