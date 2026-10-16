@@ -108,3 +108,13 @@ test('agent work goes to review, keeps the last five results and feeds dependent
  assert.match(brief,/Tre post/);assert.match(brief,/- Post LinkedIn/);assert.match(brief,/=== Task t1 \(strategist\) ===\nv5/);
  assert.throws(()=>pm.validateState({...state,tasks:[{...state.tasks[0],agentWork:[{agent:'a',at:'ieri',text:'x'}]},state.tasks[1]]}),/Data lavoro/);
 });
+
+test('completion date is stamped, cleared on reopen, and drives the weekly portfolio deltas',()=>{
+ const state={projects:[{id:'p1',name:'X',note:'',synthetic:true,subprojects:[{id:'p1s1',name:'G'}]}],nextId:3,tasks:[T('t1',{history:[]}),T('t2',{history:[]})]};
+ pm.changeStatus(state,'t1','In corso');pm.changeStatus(state,'t1','Completato');
+ assert.ok(Date.parse(state.tasks[0].completedAt)>Date.now()-5000);assert.equal(pm.validateState(state).tasks[0].completedAt,state.tasks[0].completedAt);
+ pm.changeStatus(state,'t1','Da fare');assert.equal('completedAt' in state.tasks[0],false);
+ const at=Date.parse('2026-10-15T10:00:00Z'),plan=t=>({projects:state.projects,tasks:t,nextId:9});
+ const p=v.portfolio([{id:'a',name:'A',createdAt:'2026-10-14T09:00:00Z',state:plan([T('x',{status:'Completato',completedAt:'2026-10-13T09:00:00Z'}),T('y')])},{id:'b',name:'B',createdAt:'2026-09-01T09:00:00Z',state:plan([T('z',{status:'Completato',completedAt:'2026-09-20T09:00:00Z'}),T('w')])}],at);
+ assert.equal(p.doneWeek,1);assert.equal(p.newWeek,1);
+});
