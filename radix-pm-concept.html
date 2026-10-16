@@ -86,10 +86,24 @@ function moveTo(id,status){try{pm.changeStatus(state,id,status);persist();say('S
 // «Panoramica» shows Gantt, Kanban and workload together (the PM mockup); the other tabs show one view.
 function renderView(list){
  const box=$('pm-view'),board=$('pm-board');$('tasks').hidden=view!=='list';box.hidden=view==='list'||view==='board';board.hidden=view!=='board';box.replaceChildren();
+ const noPlan=!scoped().length;document.body?.classList.toggle('pm-no-plan',noPlan);
+ board.querySelector?.(':scope>.pm-empty-card')?.remove();board.classList?.toggle('pm-board-empty',noPlan&&view==='board');
+ if(noPlan&&view!=='list'){for(const kind of ['gantt','kanban','workload'])$('pm-board-'+kind).replaceChildren();if(view!=='board'){box.className='pm-empty-plan';box.append(emptyPlan());}else if(board.prepend)board.prepend(emptyPlan());return;}
  if(view==='board'){for(const kind of ['gantt','kanban','workload']){const b=$('pm-board-'+kind);b.replaceChildren();b.className=kind==='workload'?'pm-heatmap':'pm-'+kind;drawView(kind,b,list);}return;}
  for(const kind of ['gantt','kanban','workload'])$('pm-board-'+kind).replaceChildren();
  if(view==='list')return;
  box.className=view==='workload'?'pm-heatmap':'pm-'+view;drawView(view,box,list);
+}
+// A project with no activities: one clear invitation to build the plan instead of an empty Kanban, Gantt and workload.
+function emptyPlan(){
+ const p=project(),c=node('section',undefined,'pm-empty-card');c.setAttribute('aria-labelledby','pm-empty-title');
+ const h=node('h2','Il piano di «'+(p?p.name:'questo progetto')+'» non c’è ancora');h.id='pm-empty-title';
+ const steps=node('ol',undefined,'pm-empty-steps');
+ [['Crea le attività','Le prime attività del progetto, raggruppate in fasi.'],['Assegna responsabili e scadenze','Una persona o un agente per ogni attività, con la data di consegna.'],['Segui l’avanzamento','Kanban, Gantt per fasi e carico del team si riempiono da soli.']].forEach(([t,d])=>{const li=node('li');li.append(node('strong',t),node('span',d));steps.append(li);});
+ const act=node('div',undefined,'pm-empty-actions'),go=node('button','+ Crea la prima attività','pm-empty-go');go.type='button';go.onclick=()=>openTask(null);act.append(go);
+ if(p){const ped=node('a','Parti dal PED del progetto ↗','pm-empty-alt');ped.href='./project-editorial.html?project='+encodeURIComponent(p.id);act.append(ped);}
+ c.append(node('span','PIANO DI PROGETTO','pm-empty-kicker'),h,node('p','Kanban, Gantt e carico del team mostrano solo attività vere: appena ne crei una, il progetto prende forma qui.','muted'),steps,act);
+ return c;
 }
 function drawView(kind,box,list){
  if(kind==='kanban'){
