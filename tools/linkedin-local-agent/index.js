@@ -12,11 +12,21 @@ const Source = require('../../lib/salesnav-source');
 const PublicLookup = require('../../api/_lead_public_lookup');
 const ProfileReview = require('../../lib/linkedin-profile-review');
 const ContactReview = require('../../lib/linkedin-contact-review');
+const BraveLookup = require('../../lib/lead-brave-lookup');
+const ProviderBudget = require('../../lib/lead-provider-budget');
 const {visibleSearchCards,normalizeVisibleCards,visibleProfileDetails,csvExport} = require('../../lib/linkedin-browser-extract');
 const PORT = Number(process.env.RADIX_LINKEDIN_PORT || 4317);
 const HOME = path.join(os.homedir(), '.radix', 'linkedin-agent');
 const JOBS = path.join(HOME, 'jobs');
 const PROFILE = path.join(HOME, 'browser-profile');
+const BRAVE_USAGE=path.join(HOME,'brave-usage.json');
+let braveBusy=false;
+const braveLimit=()=>{const raw=process.env.RADIX_BRAVE_DAILY_LIMIT||'0';const n=Number(raw);return /^\d+$/.test(raw)&&Number.isSafeInteger(n)&&n>=0&&n<=100?n:0};
+const braveEnabled=()=>process.env.RADIX_BRAVE_ENABLED==='1'&&Boolean(process.env.BRAVE_SEARCH_API_KEY)&&braveLimit()>0;
+function braveStored(){try{const v=JSON.parse(fs.readFileSync(BRAVE_USAGE,'utf8'));return v&&typeof v==='object'&&!Array.isArray(v)?v:null}catch{return null}}
+function braveState(){const q=ProviderBudget.status(braveStored(),new Date().toISOString().slice(0,10),braveLimit());return {configured:Boolean(process.env.BRAVE_SEARCH_API_KEY),enabled:braveEnabled(),busy:braveBusy,...q}}
+function reserveBrave(){if(!braveEnabled())throw Error('Brave non abilitato: configura chiave, RADIX_BRAVE_ENABLED=1 e RADIX_BRAVE_DAILY_LIMIT');const current=ProviderBudget.reserve(braveStored(),new Date().toISOString().slice(0,10),braveLimit());fs.mkdirSync(HOME,{recursive:true,mode:0o700});const tmp=BRAVE_USAGE+'.tmp';fs.writeFileSync(tmp,JSON.stringify(current),{mode:0o600});fs.renameSync(tmp,BRAVE_USAGE);return current}
+
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const state = {phase:'idle', browser:null, page:null, active:null, stopping:false, error:'', lastUpdate:null};
 const json = (res,status,value) => send(res,status,JSON.stringify(value),{'Content-Type':'application/json; charset=utf-8'});
@@ -120,6 +130,7 @@ async function handler(req,res){
   const url = new URL(req.url,'http://127.0.0.1:'+PORT);
   if(req.method==='GET'&&url.pathname==='/')return send(res,200,fs.readFileSync(path.join(__dirname,'index.html'),'utf8'),{'Content-Type':'text/html; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/api/status')return json(res,200,snapshot());
+  if(req.method==='GET'&&url.pathname==='/api/brave-status')return json(res,200,braveState());
   if(req.method==='GET'&&url.pathname==='/lead-enrichment-plan.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-enrichment-plan.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/lead-domain-suggestions.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-domain-suggestions.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
   if(req.method==='GET'&&url.pathname==='/lead-provider-waterfall.js')return send(res,200,fs.readFileSync(path.join(__dirname,'../../lib/lead-provider-waterfall.js'),'utf8'),{'Content-Type':'application/javascript; charset=utf-8'});
