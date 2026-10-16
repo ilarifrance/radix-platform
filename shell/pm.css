@@ -1,0 +1,156 @@
+/* Project Management visual layer — approved ref: Gantt/Kanban/heatmap mockup (flat everyday version). Layout only; data and logic stay in the page script / lib/pm-*.js. */
+html.rx-shell body.rx-pm{
+  --bg:var(--rx-bg);--panel:var(--rx-surface);--line:var(--rx-border);--muted:var(--rx-muted);--ink:var(--rx-text);--green:var(--rx-projects);--amber:var(--rx-warning);
+  background:radial-gradient(ellipse at 85% -10%,color-mix(in srgb,var(--rx-projects) 14%,transparent),transparent 50%),var(--rx-bg);
+  color:var(--rx-text);font:14px/1.55 var(--rx-font)}
+.rx-pm>header:not(.rx-topbar){display:none} /* brand + demo tag now live in the shell (wordmark + Demo badge) */
+.rx-pm main{max-width:1680px;padding:24px 28px 40px}
+.rx-pm h1,.rx-pm h2,.rx-pm h3{font-family:var(--rx-display);letter-spacing:-.01em}
+.rx-pm h1{font-size:30px;letter-spacing:-.01em;margin:8px 0 6px}
+.rx-pm h2{font-size:18px}
+.rx-pm .eyebrow{color:var(--rx-projects);font-size:12px;letter-spacing:.14em}
+.rx-pm .muted,.rx-pm small{color:var(--rx-muted)}
+.rx-pm .hero{padding:4px 0 8px}
+.rx-pm .notice{border:1px solid var(--rx-border);border-left:3px solid var(--rx-warning);border-radius:12px;background:var(--rx-surface);color:var(--rx-muted);font-size:13px;padding:12px 16px;margin:16px 0}
+.rx-pm .notice strong{color:var(--rx-text)}
+.rx-pm .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:20px 22px;box-shadow:none}
+.rx-pm .future{background:transparent;border-style:dashed}
+/* KPI row */
+.rx-pm .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.rx-pm .stat{background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface));border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px}
+.rx-pm .stat strong{display:block;font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-pm .stat span{color:var(--rx-muted);font-size:12px}
+/* Controls */
+.rx-pm button{min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
+.rx-pm button:hover:not(:disabled){border-color:var(--rx-projects);background:var(--rx-surface-2)}
+.rx-pm button.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-pm button.primary:hover:not(:disabled){background:var(--rx-core-soft)}
+.rx-pm input,.rx-pm select,.rx-pm textarea{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
+.rx-pm input[type=checkbox]{min-height:0;accent-color:var(--rx-projects)}
+.rx-pm label{color:var(--rx-muted);font-size:13px}
+.rx-pm :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+/* Task cards: Kanban-style card language */
+.rx-pm .task{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px}
+.rx-pm .task:hover{border-color:var(--rx-border-strong)}
+.rx-pm .task[aria-pressed=true]{border-color:var(--rx-projects);background:color-mix(in srgb,var(--rx-projects) 10%,var(--rx-surface-2));box-shadow:0 0 0 1px var(--rx-projects) inset}
+.rx-pm .task strong{color:var(--rx-text)}
+.rx-pm .pill,.rx-pm .task .pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid var(--rx-border-strong);color:var(--rx-muted);background:transparent;font-size:12px}
+.rx-pm .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,var(--rx-border))}
+/* Detail panel */
+.rx-pm .detail-title{font:600 20px/1.25 var(--rx-display)}
+.rx-pm .meta dt{color:var(--rx-subtle);font-size:12px}
+.rx-pm .meta dd{color:var(--rx-text)}
+.rx-pm .approval{border:1px solid color-mix(in srgb,var(--rx-warning) 40%,var(--rx-border));background:color-mix(in srgb,var(--rx-warning) 6%,var(--rx-surface));border-radius:12px}
+.rx-pm dialog{background:var(--rx-bg-raised);color:var(--rx-text);border:1px solid var(--rx-border-strong);border-radius:16px}
+.rx-pm footer{color:var(--rx-subtle);font-size:12px}
+@media (max-width:767px){.rx-pm main{padding:16px 12px 32px}.rx-pm h1{font-size:26px}.rx-pm .stats{grid-template-columns:1fr 1fr}}
+/* ---- Plan views (Kanban, Gantt, workload): look of the PM mockup, flat for everyday use.
+   Hooks from the page script: .pm-tabs [data-view], #pm-view.pm-kanban|.pm-gantt|.pm-heatmap. ---- */
+html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--rx-projects);--pm-done:var(--rx-success);--pm-heat:#B06BFF}
+.rx-pm .pm-tabs{display:inline-flex;gap:4px;padding:4px;margin:8px 0 16px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-pm .pm-tabs button{min-height:36px;padding:6px 14px;border:0;border-radius:9px;background:transparent;color:var(--rx-muted);font-weight:500}
+.rx-pm .pm-tabs button:hover:not(:disabled){background:var(--rx-surface-2);color:var(--rx-text)}
+.rx-pm .pm-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--rx-projects) 18%,var(--rx-surface-2));color:var(--rx-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rx-projects) 55%,transparent);font-weight:600}
+/* Board views need width: the detail panel narrows instead of the board */
+@media (min-width:1280px){.rx-pm .layout:has(#pm-view:not([hidden])){grid-template-columns:minmax(0,1fr) 340px}}
+/* Kanban */
+.rx-pm .pm-kanban{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin-top:16px;overflow-x:auto;padding-bottom:4px}
+.rx-pm .pm-col{--c:var(--pm-todo);background:color-mix(in srgb,var(--c) 4%,var(--rx-bg-raised));border:1px solid color-mix(in srgb,var(--c) 30%,var(--rx-border));border-radius:14px;padding:10px;min-height:180px}
+.rx-pm .pm-col[aria-label="In corso"]{--c:var(--pm-doing)}
+.rx-pm .pm-col[aria-label="In revisione"]{--c:var(--pm-review)}
+.rx-pm .pm-col[aria-label="Completato"]{--c:var(--pm-done)}
+.rx-pm .pm-col.drop{border-style:dashed;border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--rx-bg-raised))}
+.rx-pm .pm-col h3{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:10px;font:600 13px/1.2 var(--rx-display);letter-spacing:.06em;text-transform:uppercase;color:var(--rx-text)}
+.rx-pm .pm-col h3 .pill{min-height:22px;border:0;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-pm button.pm-card{position:relative;display:block;width:100%;min-height:0;margin:0 0 8px;padding:16px 12px 12px;text-align:left;background:var(--rx-surface-2);border:1px solid color-mix(in srgb,var(--c) 28%,var(--rx-border));border-radius:12px;cursor:grab}
+.rx-pm button.pm-card::before{content:"";position:absolute;left:12px;top:8px;width:32px;height:3px;border-radius:3px;background:var(--c)}
+.rx-pm button.pm-card:hover:not(:disabled){border-color:color-mix(in srgb,var(--c) 70%,transparent);background:var(--rx-surface-2)}
+.rx-pm button.pm-card[aria-pressed=true]{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset,0 0 18px color-mix(in srgb,var(--c) 22%,transparent)}
+.rx-pm .pm-card strong{display:block;font-size:14px;line-height:1.35;color:var(--rx-text)}
+.rx-pm .pm-card small{display:block;margin:4px 0 6px;color:var(--rx-muted);font-size:12px}
+.rx-pm .pm-card .pill{margin:2px 4px 0 0}
+.rx-pm .pm-kanban>p{grid-column:1/-1;position:sticky;left:0;max-width:min(100%,calc(100vw - 64px));margin:4px 0 0;font-size:12px}
+/* Gantt */
+.rx-pm .pm-gantt{margin-top:16px;overflow-x:auto;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised);padding:4px 0 8px}
+.rx-pm .pm-gantt .g-row{display:grid;grid-template-columns:220px minmax(560px,1fr);align-items:center;min-height:40px;border-bottom:1px solid color-mix(in srgb,var(--rx-border) 60%,transparent)}
+.rx-pm .pm-gantt .g-row:not(.g-head):hover{background:var(--rx-surface)}
+.rx-pm .pm-gantt .g-head{min-height:34px;border-bottom-color:var(--rx-border)}
+.rx-pm .pm-gantt .g-label{padding:0 12px 0 16px;font-size:13px;color:var(--rx-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm .pm-gantt .g-head .g-label{color:var(--rx-subtle);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.rx-pm .pm-gantt .g-track{position:relative;height:40px;margin-right:16px}
+.rx-pm .pm-gantt .g-head .g-track{height:34px;overflow:hidden}
+.rx-pm .pm-gantt .g-week{position:absolute;top:9px;padding-left:6px;border-left:1px solid var(--rx-border);color:var(--rx-subtle);font-size:12px;white-space:nowrap}
+.rx-pm .pm-gantt button.g-bar{position:absolute;top:13px;height:14px;min-height:0;min-width:10px;padding:0;border:0;border-radius:999px;background:linear-gradient(90deg,var(--pm-todo),var(--pm-doing));box-shadow:0 0 12px color-mix(in srgb,var(--pm-doing) 35%,transparent);cursor:pointer}
+.rx-pm .pm-gantt button.g-bar:hover:not(:disabled){filter:brightness(1.15);background:linear-gradient(90deg,var(--pm-todo),var(--pm-doing))}
+.rx-pm .pm-gantt button.g-bar.done,.rx-pm .pm-gantt button.g-bar.done:hover{background:color-mix(in srgb,var(--pm-done) 55%,var(--rx-surface-2));box-shadow:none}
+.rx-pm .pm-gantt button.g-bar.late,.rx-pm .pm-gantt button.g-bar.late:hover{background:linear-gradient(90deg,color-mix(in srgb,var(--rx-error) 70%,var(--pm-doing)),var(--rx-error));box-shadow:0 0 12px color-mix(in srgb,var(--rx-error) 40%,transparent)}
+.rx-pm .pm-gantt button.g-bar.ms{top:13px;width:14px!important;height:14px;min-width:0;margin-left:-7px;border-radius:3px;transform:rotate(45deg);background:var(--pm-doing);box-shadow:0 0 14px color-mix(in srgb,var(--pm-doing) 60%,transparent)}
+.rx-pm .pm-gantt button.g-bar.ms.done{background:var(--pm-done);box-shadow:none}
+.rx-pm .pm-gantt button.g-bar:focus-visible{outline:2px solid var(--rx-core);outline-offset:3px}
+.rx-pm .pm-gantt .g-today{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--rx-core);opacity:.8}
+.rx-pm .pm-gantt>p{margin:10px 16px 2px;font-size:12px}
+/* Workload heatmap */
+.rx-pm .pm-heatmap{margin-top:16px;overflow-x:auto;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised)}
+.rx-pm .pm-heatmap table{width:100%;min-width:560px;border-collapse:separate;border-spacing:4px}
+.rx-pm .pm-heatmap th{padding:8px 6px;border:0;color:var(--rx-subtle);font-weight:500;font-size:12px;text-align:center;white-space:nowrap}
+.rx-pm .pm-heatmap td{height:38px;padding:6px;border:0;border-radius:8px;background:var(--rx-surface);color:var(--rx-text);text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
+.rx-pm .pm-heatmap th:first-child,.rx-pm .pm-heatmap td:first-child{text-align:left;background:transparent;padding-left:10px;white-space:nowrap}
+.rx-pm .pm-heatmap td:last-child{background:transparent;font-weight:600}
+/* cell intensity: --load (0–1) set by the page script */
+.rx-pm .pm-heatmap td[style*="--load"]{background:color-mix(in srgb,var(--pm-heat) calc(15% + var(--load) * 70%),var(--rx-surface))!important}
+.rx-pm .pm-heatmap>p{margin:6px 14px 12px;font-size:12px}
+@media (max-width:767px){.rx-pm .pm-tabs{display:flex;overflow-x:auto}.rx-pm .pm-kanban{grid-template-columns:repeat(4,minmax(240px,82vw));scroll-snap-type:x mandatory}.rx-pm .pm-col{scroll-snap-align:start}.rx-pm .pm-gantt .g-row{grid-template-columns:140px minmax(480px,1fr)}}
+/* Budget (F4): project budget field, over-budget tile (.stat.over set by the page script) */
+.rx-pm .pm-budget{display:inline-grid;gap:6px;margin:4px 0 12px;color:var(--rx-muted);font-size:13px}
+.rx-pm .pm-budget input{max-width:200px;font-variant-numeric:tabular-nums}
+.rx-pm .stat.over{border-color:color-mix(in srgb,var(--rx-error) 55%,var(--rx-border));background:linear-gradient(160deg,color-mix(in srgb,var(--rx-error) 10%,var(--rx-surface-2)),var(--rx-surface))}
+.rx-pm .stat.over strong{color:var(--rx-error)}
+/* Subtasks in the detail panel (ul.pm-subtasks, form.pm-subtask-form) */
+.rx-pm .pm-subtasks{padding-left:0;list-style:none}
+.rx-pm .pm-subtasks li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--rx-surface-2);color:var(--rx-text)}
+.rx-pm .pm-subtasks button.link{min-height:28px;padding:2px 8px;border:0;background:transparent;color:var(--rx-muted);font-size:12px;text-decoration:underline}
+.rx-pm .pm-subtasks button.link:hover:not(:disabled){color:var(--rx-error);background:transparent}
+.rx-pm .pm-subtask-form{display:flex;gap:8px;margin:8px 0 4px}
+.rx-pm .pm-subtask-form input{flex:1 1 auto;min-width:0}
+
+/* Pruning: the project bar and the views already explain the page */
+.rx-pm .notice,.rx-pm .future,.rx-pm main>footer,.rx-pm header:not(.rx-topbar){display:none!important}
+.rx-pm section[aria-label="Stato del salvataggio"]{background:none;border:0;padding:0;margin:0 0 6px;box-shadow:none}
+.rx-pm #storage-status{margin:0;font-size:12px;color:var(--rx-subtle)}
+.rx-pm #storage-status::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rx-success);margin-right:8px;vertical-align:middle}
+.rx-pm #project-note{font-size:12px;color:var(--rx-subtle);margin:4px 0 0}
+/* Filters on one line on wide screens */
+@media (min-width:1280px){
+  .rx-pm .filters{grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));align-items:end}
+  .rx-pm .filters .check,.rx-pm .filters #clear{grid-column:auto}
+  .rx-pm .filters .check{grid-column:1/3}
+  .rx-pm .filters #clear{grid-column:3/5;justify-self:end;width:auto}
+}
+.rx-pm #message:empty{display:none}
+.rx-pm #message{font-size:13px;color:var(--rx-subtle)}
+
+/* PM board (portfolio, Kanban cards, Gantt phases, workload) */
+.rx-pm .pm-portfolio .pm-kpis .stat{background:var(--rx-bg-raised)}
+.rx-pm .pm-projects a{background:var(--rx-bg-raised);border-color:var(--rx-border);border-radius:12px;padding:12px 14px;transition:border-color .15s}
+.rx-pm .pm-projects a:hover{border-color:var(--rx-border-strong)}
+.rx-pm .pm-projects a[aria-current]{border-color:var(--rx-accent);box-shadow:inset 3px 0 0 var(--rx-accent)}
+.rx-pm .pm-projects li.warn a{border-color:color-mix(in srgb,var(--rx-warning) 55%,transparent)}
+.rx-pm .pm-projects li.warn a[aria-current]{box-shadow:inset 3px 0 0 var(--rx-warning)}
+.rx-pm .pm-projects small{color:var(--rx-subtle);font-size:12px}
+.rx-pm .pm-progress{height:5px;border-radius:99px;background:var(--rx-surface-2);overflow:hidden}
+/* Board views need the full width: the task detail moves below them */
+.rx-pm .layout:has(#pm-view:not([hidden])){grid-template-columns:minmax(0,1fr)}
+.rx-pm .pm-card .pm-tags{gap:4px;margin-top:8px}
+.rx-pm .pm-card .pm-tags .pill,.rx-pm .pm-card .pm-tags>span{border-radius:6px;padding:2px 7px;font-size:11px;line-height:1.35;background:var(--rx-surface-2);border:1px solid var(--rx-border);color:var(--rx-muted)}
+.rx-pm .pm-card .pm-tags .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,transparent)}
+.rx-pm .pm-avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--rx-accent) 22%,var(--rx-surface-2));color:var(--rx-text);font:600 10.5px/1 var(--rx-font);border:1px solid var(--rx-border-strong)}
+.rx-pm .pm-gantt .g-phase{background:color-mix(in srgb,var(--rx-accent) 6%,transparent)}
+.rx-pm .pm-gantt .g-phase .g-label{font-weight:600;color:var(--rx-text)}
+.rx-pm .pm-gantt .g-phase .g-span{height:4px;border-radius:99px;background:color-mix(in srgb,var(--rx-accent) 55%,transparent)}
+.rx-pm .g-progress .g-prog-row .pm-progress{height:6px}
+.rx-pm .g-progress .g-prog-row .pm-progress>*{background:var(--rx-accent)}
+.rx-pm .pm-capacity{gap:12px;font-size:13px;color:var(--rx-muted)}
+.rx-pm .pm-capacity input{width:72px}
+.rx-pm .pm-load{font-variant-numeric:tabular-nums}
+.rx-pm td.over{outline:0;background:color-mix(in srgb,var(--rx-error) 16%,transparent)!important;color:var(--rx-error);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rx-error) 60%,transparent)}
+.rx-pm .g-progress{padding:4px 16px 0}

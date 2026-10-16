@@ -1,0 +1,42 @@
+/* Command Center visual layer — approved ref: Command Center mockup (M1). CSS only; ids and data hooks untouched. */
+/* Readability floor (DESIGN.md §3): every text class at 12px; graph labels inside the network keep their own scale. */
+.rx-cc :is(.action-sub,.action-title,.activity-text,.activity-time,.agent-filters label,.agent-filters output,.brand-sub,.cap-label,
+  .command-flow-main b,.command-flow-main small,.command-flow-main span,.command-task-links button,.command-view-card b,.command-view-card span,
+  .detail-label,.detail-status,.detail-value,.drawer-link,.empty-state,.empty-state b,.eyebrow,.hero-copy,.knowledge-search,.legend,
+  .metric-label,.metric-note,.network-caption,.network-pages span,.panel-meta,.panel-title,.project-type,.project-view-head b,.project-view-head span,
+  .project-view-info small,.project-view-summary,.resource-meta,.resource-name,.search-empty,.search-hit,.search-hit small,.sys-pill,.user-pill,
+  .team-disclaimer,.team-status,.team-sub,.team-title,.toast,.updated,.view-tab,.workflow-filter-count,.workflow-filters label,.workflow-foot,
+  .workflow-name,.workflow-state,.workflow-task,.operational-card small,.operational-card span,.operational-head span,.operational-section-label,
+  #networkMobileList small){font-size:12px}
+.rx-cc .panel-title{font-size:14px}
+.rx-cc .metric-label{letter-spacing:.08em;color:var(--rx-muted)}
+.rx-cc .metric-note{color:var(--rx-subtle)}
+/* KPI cards as in the mockup: icon tile + value + label */
+.rx-cc .metric{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;align-items:center;min-height:80px}
+.rx-cc .metric::before{content:"";grid-row:1/3;width:40px;height:40px;border-radius:11px;border:1px solid var(--rx-border-strong);
+  background:color-mix(in srgb,var(--rx-core) 12%,var(--rx-surface-2));
+  -webkit-mask:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.02)}
+.rx-cc .metric::after{content:"";position:absolute;left:24px;top:50%;width:20px;height:20px;transform:translateY(-50%);background:var(--rx-core-soft);
+  -webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.rx-cc .metric .metric-label,.rx-cc .metric .metric-main{grid-column:2}
+.rx-cc .metric .metric-main{margin-top:2px}
+.rx-cc .metrics .metric:nth-child(1){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Cpath d='M3 7h7l2 2h9v10H3z'/%3E%3C/svg%3E")}
+.rx-cc .metrics .metric:nth-child(2){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Ccircle cx='6' cy='6' r='2.5'/%3E%3Ccircle cx='18' cy='12' r='2.5'/%3E%3Ccircle cx='6' cy='18' r='2.5'/%3E%3Cpath d='M8.5 6h4l3 4M8.5 18h4l3-4'/%3E%3C/svg%3E")}
+.rx-cc .metrics .metric:nth-child(3){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='m8.5 12.2 2.4 2.4 4.8-5'/%3E%3C/svg%3E")}
+.rx-cc .metrics .metric:nth-child(4){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.6'%3E%3Crect x='5' y='8' width='14' height='11' rx='3'/%3E%3Cpath d='M12 4v4M9 13h.01M15 13h.01'/%3E%3C/svg%3E")}
+.rx-cc .metrics .metric:nth-child(3)::before{background:color-mix(in srgb,var(--rx-warning) 14%,var(--rx-surface-2))}
+.rx-cc .metrics .metric:nth-child(3)::after{background:var(--rx-warning)}
+.rx-cc .metrics .metric:nth-child(2)::after{background:var(--rx-info)}
+.rx-cc .metrics .metric:nth-child(4)::after{background:var(--rx-agency)}
+.rx-cc .metric .metric-label{letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-cc .metric .metric-main{display:flex;flex-direction:column;align-items:flex-start;gap:0}
+.rx-cc .metric .metric-value{font-size:26px;line-height:1.1}
+.rx-cc .metric .metric-note{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.rx-cc .metric{grid-template-rows:auto auto;padding:12px}
+.rx-cc .metric .metric-label{text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;color:var(--rx-muted)}
+.rx-cc .metric{grid-template-columns:36px minmax(0,1fr);column-gap:10px}
+.rx-cc .metric::before{width:36px;height:36px}
+.rx-cc .metric::after{left:20px;width:18px;height:18px}
+/* Knowledge cards: team memory counts (PR #14) */
+.rx-cc small.knowledge-memory{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--rx-muted)}
+.rx-cc small.knowledge-memory::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-agency)}
