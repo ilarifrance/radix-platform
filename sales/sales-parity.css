@@ -461,3 +461,54 @@ td.late{color:#ff8f80}
 @media(max-width:1500px){.cal{grid-template-columns:240px minmax(0,1fr)}.cal-rail{grid-column:1/-1;grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1000px){.cal{grid-template-columns:1fr}.cal-left{grid-template-columns:1fr 1fr}.cal-rail{grid-template-columns:1fr}.cal-week:not(.one){overflow-x:auto}.cal-week:not(.one)>*{min-width:760px}}
 @media(max-width:600px){.cal-left{grid-template-columns:1fr}.cal-filters{display:none}}
+
+/* ---------- Analisi commerciale (analytics-view.js) ---------- */
+.layout>nav a[href="#analytics"]{--ic:url(icons/chart.svg)}
+#analytics>.row:first-child>h2::after{content:"Andamento della pipeline, del team e della qualità dei dati.";display:block;font-size:14px;font-weight:400;letter-spacing:0;color:#9fbdc0;margin-top:6px}
+.an{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.an-main{display:grid;gap:16px;min-width:0}
+.an-panel,.an-kpi,.an-rail{background:linear-gradient(160deg,#0a2a33f0,#061b25f2);border:1px solid #1f5a5c;border-radius:14px;box-shadow:0 14px 34px #0005;min-width:0}
+.an-panel{padding:18px 20px}
+.an-panel h3,.an-rail h3{margin:0 0 4px;font-size:18px;font-weight:600}
+.an-sub{margin:0 0 12px;font-size:12px;color:#9fbdc0}
+.an-note{font-size:11px;color:#6f9496;margin:10px 0 0}
+.an-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.an-kpi{padding:16px 18px 18px;display:grid;gap:4px;position:relative;overflow:hidden}
+.an-kpi::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(180deg,transparent,#36edbd1f);clip-path:polygon(0 75%,12% 60%,24% 66%,36% 45%,48% 55%,60% 35%,72% 45%,84% 20%,100% 10%,100% 100%,0 100%)}
+.an-kpi small{font-size:12px;color:#a9c6c4}
+.an-kpi strong{font-size:30px;font-weight:600;line-height:1.15}
+.an-kpi span{font-size:12px;color:#7fe7cd;position:relative;z-index:1}
+.an-two{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+.an-three{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.25fr);gap:16px}
+.an-chart{width:100%;height:auto}
+.an-chart .grid{stroke:#1d4a50}.an-chart .ax{fill:#8fb3b5;font-size:13px}
+.an-legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:#cfe3e0;margin:4px 0 0}
+.an-legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--c);margin-right:8px;vertical-align:-1px}
+.an-fun{display:grid;gap:8px}
+.an-fun-row{display:grid;grid-template-columns:1fr 60px;align-items:center;gap:10px}
+.an-fun-bar{width:var(--w);margin:auto;min-height:62px;display:grid;place-content:center;text-align:center;border-radius:6px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 85%,#fff 0%),color-mix(in srgb,var(--c) 60%,#04151d));clip-path:polygon(0 0,100% 0,94% 100%,6% 100%);color:#04151d}
+.an-fun-bar b{font-size:14px}.an-fun-bar small{font-size:12px;color:#06303a}
+.an-fun-n{font-size:12px;color:#9fbdc0;text-align:right}
+.an-team table,.an-top table{width:100%;border-collapse:collapse;font-size:13px}
+.an-team th,.an-top th{text-align:left;font-weight:400;color:#9fbdc0;font-size:12px;padding:6px 8px;border-bottom:1px solid #1f5a5c}
+.an-team td,.an-top td{padding:10px 8px;border-bottom:1px solid #18444a}
+.an-team td:nth-child(2){display:flex;gap:10px;align-items:center}
+.an-bar{flex:1;height:8px;border-radius:8px;background:#0c3138;overflow:hidden;min-width:50px}
+.an-bar i{display:block;height:100%;background:linear-gradient(90deg,#26d796,#46f0c2)}
+.an-line{display:flex;justify-content:space-between;gap:10px;margin:0;padding:11px 0;border-bottom:1px solid #18444a;font-size:13px}
+.an-line span{color:#cfe3e0}.an-line b{font-weight:600}
+.an-q-head{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+.an-q-head strong{font-size:34px;font-weight:600;color:#46f0c2}
+.an-q-bar{flex:1;height:8px;border-radius:8px;background:#0c3138;overflow:hidden}
+.an-q-bar i{display:block;height:100%;background:linear-gradient(90deg,#26d796,#46f0c2)}
+.an-q-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.an-q-grid div{padding:10px;border:1px solid #1f4f55;border-radius:10px;background:#0a2833b0;display:grid;gap:2px}
+.an-q-grid small{font-size:11px;color:#9fbdc0}.an-q-grid b{font-size:20px;color:#46f0c2;font-weight:600}.an-q-grid span{font-size:10px;color:#7fa3a6;line-height:1.3}
+.an-stage{font-size:12px;padding:2px 8px;border-radius:6px;border:1px solid #2c8a72;color:#57f6d6;background:#0b3a33}
+.an-link{display:inline-block;margin-top:12px;font-size:13px;color:#3fe8bd}
+.an-rail{padding:20px;display:grid;gap:10px;position:sticky;top:14px}
+.an-rail p{margin:0;font-size:14px;line-height:1.55;color:#d6efea}
+.an-rail p.an-note{font-size:11px;color:#6f9496}
+.an-ask{display:block;text-align:center;padding:11px;border:1px solid #2f8a80;border-radius:10px;color:#57f6d6;text-decoration:none;font-size:13px;margin-top:6px}
+@media(max-width:1400px){.an{grid-template-columns:1fr}.an-rail{position:static}.an-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.an-three{grid-template-columns:1fr 1fr}.an-quality{grid-column:1/-1}}
+@media(max-width:900px){.an-two,.an-three{grid-template-columns:1fr}.an-kpis{grid-template-columns:1fr 1fr}.an-q-grid{grid-template-columns:1fr 1fr}.an-top th:nth-child(2),.an-top td:nth-child(2),.an-top th:nth-child(6),.an-top td:nth-child(6){display:none}}

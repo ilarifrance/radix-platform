@@ -105,6 +105,6 @@ async function render(){const sec=document.getElementById('dashboard');if(!sec||
   main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
   document.documentElement.classList.add('pv-on');requestAnimationFrame(()=>{busy=false})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains('pv')||n.classList?.contains('cx')))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+new MutationObserver(m=>{if(m.some(r=>![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains("pv")||n.classList?.contains("cx")))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 addEventListener('hashchange',later);later();
 })();
