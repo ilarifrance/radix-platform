@@ -205,3 +205,10 @@ html.so-globe .app #main .orbit-stage .hologram{display:none}
 .app #main .entity-node.at-risk small.so-type{color:#ff8a6e;font-weight:600}
 /* Copilota title on one line */
 .ai-title strong{letter-spacing:.06em!important;font-size:15px!important;white-space:nowrap}
+/* No CRM access notice (sales-nav.js) takes the row under the top bar */
+.app #main>.sx-access{grid-column:1;grid-row:2;margin:22px 0 0 25px}
+html.sx-no-crm .app #main>.heading{grid-row:3}
+html.sx-no-crm .app #main>.content{grid-row:4}
+html.sx-no-crm .app #main>.stats{grid-row:5}
+html.sx-no-crm .app #main>.ai-rail{grid-row:2/6}
+@media (max-width:900px){.app #main>.sx-access{margin:14px 12px 0}}
