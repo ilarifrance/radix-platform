@@ -3,8 +3,8 @@
    CRM "Contatti" mockup. Read-only view over /api/sales (same endpoint and
    workspace as sales.js). Edit, delete and Customer360 reuse the buttons that
    sales.js renders on each contact card, so every write still goes through
-   sales.js. Only fields the CRM really stores are shown: no invented role,
-   e-mail or scores. */
+   sales.js. Only fields the CRM really stores are shown: no invented role or
+   e-mail. The score is crm-score-core.js (CRM data only, explained by its parts). */
 (()=>{
 const content=document.getElementById('content'),wsSelect=document.getElementById('workspace');if(!content||!wsSelect)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
@@ -15,6 +15,8 @@ const ago=v=>{const d=new Date(v);if(!Number.isFinite(d.getTime()))return'';cons
 const KIND={email:'Email',call:'Call',meeting:'Meeting',note:'Nota',linkedin:'LinkedIn'};
 const state={selected:null};
 
+const scoreOf=(d,c)=>window.RadixCrmScore?window.RadixCrmScore.score(c,{interactions:d.interactions,opportunities:d.opportunities,stages:d.stages}):null;
+function badge(s){const b=E('span',undefined,'cx-score crm-score-'+s.band);b.dataset.score=String(s.total);b.title=window.RadixCrmScore.explain(s);b.append(E('b',s.total),E('small',s.band));return b}
 const load=()=>window.RadixCrmData?window.RadixCrmData.load():Promise.resolve(null);
 
 function facts(d,c){const company=d.companies.find(x=>x.id===c.company_id);
@@ -27,13 +29,13 @@ function facts(d,c){const company=d.companies.find(x=>x.id===c.company_id);
 function avatar(name,size){const a=E('span',initials(name),'cx-avatar');if(size)a.classList.add(size);a.setAttribute('aria-hidden','true');return a}
 
 function table(d,cards){const wrap=E('div','', 'cx-table');wrap.setAttribute('role','table');wrap.setAttribute('aria-label','Contatti');
-  const head=E('div',undefined,'cx-row cx-head');head.setAttribute('role','row');['Contatto','Azienda','Ultimo contatto','Prossimo passo'].forEach(t=>{const c=E('span',t);c.setAttribute('role','columnheader');head.append(c)});wrap.append(head);
+  const head=E('div',undefined,'cx-row cx-head');head.setAttribute('role','row');['Contatto','Punteggio','Azienda','Ultimo contatto','Prossimo passo'].forEach(t=>{const c=E('span',t);c.setAttribute('role','columnheader');head.append(c)});wrap.append(head);
   for(const {contact,card} of cards){const f=facts(d,contact);const row=E('button',undefined,'cx-row');row.type='button';row.setAttribute('role','row');row.dataset.id=contact.id;if(state.selected===contact.id)row.setAttribute('aria-current','true');
     const who=E('span',undefined,'cx-who');who.append(avatar(contact.name),E('b',contact.name));
-    const comp=E('span',f.company?.name||'—','cx-company');
+    const comp=E('span',f.company?.name||'—','cx-company');const s=scoreOf(d,contact),score=s?badge(s):E('small','—','cx-score');
     const last=E('span',undefined,'cx-last');if(f.inter[0]){last.append(E('b',ago(f.inter[0].occurred_at)),E('small',KIND[f.inter[0].kind]||f.inter[0].kind||''))}else last.append(E('small','Nessuna interazione'));
     const next=E('span',undefined,'cx-next');if(f.open[0]){next.append(E('b',f.open[0].title));const due=E('small',day(f.open[0].due_at)||'senza scadenza');if(f.open[0].due_at&&new Date(f.open[0].due_at)<new Date())due.className='late';next.append(due)}else next.append(E('small','Nessuna attività aperta'));
-    [who,comp,last,next].forEach(c=>{c.setAttribute('role','cell');row.append(c)});
+    [who,score,comp,last,next].forEach(c=>{c.setAttribute('role','cell');row.append(c)});
     row.addEventListener('click',()=>{state.selected=contact.id;render()});wrap.append(row)}
   return wrap}
 
@@ -52,6 +54,7 @@ function map(d,c,f){const box=E('section',undefined,'cx-panel cx-map');box.appen
 function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail');
   const top=E('section',undefined,'cx-panel cx-profile');const id=E('div',undefined,'cx-id');id.append(avatar(c.name,'xl'));
   const txt=E('div');if(f.opps.length)txt.append(E('span','Trattativa aperta','cx-chip'));txt.append(E('h2',c.name),E('p',f.company?.name||'Azienda non collegata','cx-sub'));
+  const sc=scoreOf(d,c);if(sc){const r=E('p',undefined,'cx-score-line');r.append(badge(sc),E('span',window.RadixCrmScore.explain(sc)));txt.append(r)}
   const tags=E('div',undefined,'cx-tags');tags.append(E('span',f.opps.length+' opportunità'),E('span',f.open.length+' attività aperte'),E('span',f.inter.length+' interazioni'));txt.append(tags);id.append(txt);top.append(id);
   const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=b.textContent.trim();if(!/^(Customer360|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
   const grid=E('div',undefined,'cx-grid');
@@ -68,6 +71,7 @@ async function render(){const section=document.getElementById('contacts');if(!se
   const d=await load();if(!d||!section.isConnected)return;
   const cards=[...section.querySelectorAll(':scope>article.card')].map(card=>{const name=card.querySelector('h3')?.textContent.trim();const comp=(card.querySelector('p.muted')?.textContent||'').replace(/^Azienda:\s*/,'').trim();
     const contact=d.contacts.find(c=>c.name===name&&(!comp||d.companies.find(x=>x.id===c.company_id)?.name===comp))||d.contacts.find(c=>c.name===name);return contact?{contact,card}:null}).filter(Boolean);
+  if(window.RadixCrmScore)cards.sort((a,b)=>scoreOf(d,b.contact).total-scoreOf(d,a.contact).total);
   busy=true;section.querySelector(':scope>.cx')?.remove();
   if(!cards.length){busy=false;document.documentElement.classList.remove('cx-on');return}
   if(!cards.some(x=>x.contact.id===state.selected))state.selected=cards[0].contact.id;

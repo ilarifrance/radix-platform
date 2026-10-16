@@ -65,8 +65,10 @@ function model(d){
       if(days<=14&&!open.some(t=>t.opportunity_id===o.id))return{o,level:'Medio',why:(days?'Chiude tra '+days+(days===1?' giorno':' giorni'):'Chiude oggi')+', nessuna attività aperta'};return null})
     .filter(Boolean).sort((a,b)=>(a.level===b.level?num(b.o.amount_cents)-num(a.o.amount_cents):a.level==='Alto'?-1:1));
   const withOpp=new Set(active.map(o=>o.contact_id).filter(Boolean));
-  const actions=[...contacts.values()].map(c=>{const x=lastContact.get(c.id);const gap=x?Math.floor((today-x)/DAY):null;return gap!==null&&gap<=21?null:{c,gap,hot:withOpp.has(c.id)}})
-    .filter(Boolean).sort((a,b)=>(b.hot-a.hot)||((b.gap??1e9)-(a.gap??1e9)));
+  // contacts to call back, highest contact score first (crm-score-core.js, same rule as the CRM cards) when it is loaded
+  const scoreOf=c=>window.RadixCrmScore?window.RadixCrmScore.score(c,{interactions:inter,opportunities:d.opportunities||[],stages:d.stages||[]}):null;
+  const actions=[...contacts.values()].map(c=>{const x=lastContact.get(c.id);const gap=x?Math.floor((today-x)/DAY):null;return gap!==null&&gap<=21?null:{c,gap,hot:withOpp.has(c.id),s:scoreOf(c)}})
+    .filter(Boolean).sort((a,b)=>((b.s?.total??0)-(a.s?.total??0))||(b.hot-a.hot)||((b.gap??1e9)-(a.gap??1e9)));
   const prio=open.filter(t=>{const x=day(t.due_at);return x&&x<new Date(+today+DAY)}).sort((a,b)=>String(a.due_at).localeCompare(String(b.due_at)));
   return{d,stages,companies,contacts,opps,active,open,due,overdue,year,covered,risk,actions,prio,who,inter}}
 
@@ -116,7 +118,7 @@ function render(d){if(!d)return;const m=model(d),P=d.partial;
   kpi('coverage',m.companies.size?Math.round(m.covered/m.companies.size*100)+'%':'—','sentite negli ultimi 90 giorni',byMonth(m.inter,'occurred_at',()=>1,true),'Interazioni registrate per mese, ultimi 6 mesi');
   fill('priorities','so-prio-n',m.prio.map(t=>row('/radix-sales.html#tasks','task',t.title||'Attività',m.who(t)||(m.opps.find(o=>o.id===t.opportunity_id)||{}).title||'Attività CRM',when(t))),'Nessuna attività in scadenza oggi.');
   fill('so-risk','so-risk-n',m.risk.map(r=>row('/sales-pipeline-premium.html','opp',m.who(r.o)||r.o.title||'Opportunità',r.why,eur(num(r.o.amount_cents)),r.level)),'Nessuna opportunità a rischio secondo la regola.');
-  fill('so-actions','so-act-n',m.actions.map(a=>row('/radix-sales.html#contacts','person','Ricontatta '+(a.c.name||'contatto'),(a.gap===null?'Nessuna interazione registrata':'Nessun contatto da '+a.gap+' giorni')+(a.hot?' · opportunità attiva':''),'')),'Tutti i contatti sentiti negli ultimi 21 giorni.');
+  fill('so-actions','so-act-n',m.actions.map(a=>row('/radix-sales.html#contacts','person','Ricontatta '+(a.c.name||'contatto'),(a.gap===null?'Nessuna interazione registrata':'Nessun contatto da '+a.gap+' giorni')+(a.hot?' · opportunità attiva':''),a.s?a.s.total+'/100':'',a.s?a.s.band[0].toUpperCase()+a.s.band.slice(1):'')),'Tutti i contatti sentiti negli ultimi 21 giorni.');
   listView(m);requestAnimationFrame(size)}
 function load(){RadixCrmData.load().then(render)}
 let tries=0;const wait=setInterval(()=>{if($('workspace')?.value&&!$('workspace').disabled){clearInterval(wait);load()}else if(++tries>60)clearInterval(wait)},250);
