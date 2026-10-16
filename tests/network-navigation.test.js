@@ -187,19 +187,20 @@ test('satellites orbit only their owning project and never show unassigned catal
  assert.equal(context.workflowTasks(context.networkDetail.workflow).length,100);
 });
 
-test('confirmed shared workflows appear around every project without changing stored ownership or status',()=>{
+test('overview shows only each project\'s own workflows; shared ones stay in their catalogue and inside a project',()=>{
  const original={id:'shared',orchestrator:'Team workflow',status:'done',nodes:[{id:'real-task',label:'Actual task',status:'done'}]};
  const {context,svg}=networkHarness([{id:'a',name:'Aura'},{id:'b',name:'Doc'}],[original,{id:'private',projectId:'a',nodes:[{id:'private-task',status:'pending'}]}]);
  context.data.workspace={sharedWorkflowCatalog:true};context.renderNetwork();
- assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,2);
- assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,1);
- assert.ok(svg.innerHTML.includes('Team workflow · condiviso · 1 attività'));
+ assert.equal((svg.innerHTML.match(/data-network-project="a"/g)||[]).length,1);
+ assert.equal((svg.innerHTML.match(/data-network-project="b"/g)||[]).length,0);
+ assert.ok(!svg.innerHTML.includes('Team workflow · condiviso'));
+ assert.ok(svg.innerHTML.includes('Workflow condivisi · 1 workflow'));
  assert.equal(context.projectItems('b')[0].workflow,original);
+ assert.equal(context.projectItems('b',true).length,0);
  assert.equal(original.projectId,undefined);assert.equal(original.status,'done');
  assert.equal(context.projectItems('unknown').length,0);
- const node=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite'&&el.getAttribute('data-network-project')==='b');
- node.click();assert.equal(context.focusedProjectId,'b');assert.equal(context.openedWorkflow,'shared');assert.equal(context.networkDetail.id,'shared');
- const task=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='item');task.click();assert.equal(context.networkDetail.id,'real-task');assert.equal(context.networkDetail.node,original.nodes[0]);assert.deepEqual(context.openedTask,{workflowId:'shared',taskId:'real-task'});
+ const node=svg.querySelectorAll('[data-network-type]').find(el=>el.getAttribute('data-network-type')==='satellite'&&el.getAttribute('data-network-project')==='a');
+ node.click();assert.equal(context.focusedProjectId,'a');assert.equal(context.openedWorkflow,'private');assert.equal(context.networkDetail.id,'private');
 });
 
 test('global search finds real saved tasks and opens the selected task identity',()=>{
