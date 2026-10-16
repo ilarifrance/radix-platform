@@ -39,6 +39,7 @@
     cog: '<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',
     search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+    clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     chev: '<path d="m9 6 6 6-6 6"/>'
   };
   function svg(name, cls) {
@@ -52,8 +53,6 @@
     { id: 'cc-projects', text: 'Progetti', href: '/control-center-v2.html#projects', icon: 'grid' },
     { id: 'cc-approvals', text: 'Approvazioni', href: '/control-center-v2.html#approvals', icon: 'check' },
     { id: 'agents', text: 'Agenti AI', href: '/agents.html', icon: 'bot', kw: 'chat orchestratore pipeline post' },
-    { id: 'project-profile', text: 'Profilo progetto', href: '/project-profile.html', icon: 'target', project: 'id', kw: 'profilo agenti brand tone of voice' },
-    { id: 'archive', text: 'Archivio v3.7', href: '/archive.html', icon: 'book', kw: 'archivio conversazioni vecchia piattaforma' },
     { label: 'Aree' },
     { group: 'agency', text: 'Marketing Agency', icon: 'spark', items: [
       { id: 'agency', text: 'Panoramica', href: '/agency/index.html' },
@@ -82,6 +81,7 @@
     { id: 'venture', text: 'Venture Studio', icon: 'rocket', soon: true },
     { label: 'Intelligence' },
     { id: 'cc-knowledge', text: 'Knowledge', href: '/control-center-v2.html#knowledge', icon: 'book' },
+    { id: 'archive', text: 'Archivio v3.7', href: '/archive.html', icon: 'clock', kw: 'archivio conversazioni vecchia piattaforma' },
     { id: 'cc-analytics', text: 'Analytics', href: '/control-center-v2.html#analytics', icon: 'chart' },
     { id: 'cc-integrations', text: 'Integrazioni', href: '/control-center-v2.html#integrations', icon: 'plug' }
   ];
@@ -204,6 +204,134 @@
     syncProjectLinks();
   }
 
+  // Project bar: every project-scoped page shows the same steps, so a project reads as one flow.
+  var STEPS = [
+    { id: 'brief', text: 'Brief e strategia', href: '/project-editorial.html?project={p}#brief', mod: 'editorial', local: 'briefNav' },
+    { id: 'ped', text: 'Piano editoriale', href: '/project-editorial.html?project={p}#ped', mod: 'editorial', local: 'pedNav' },
+    { id: 'tasks', text: 'Incarichi', href: '/agency/project-workspace.html?id={p}', mod: 'agency-workspace' },
+    { id: 'pm', text: 'Attività', href: '/radix-pm-concept.html?project={p}', mod: 'pm' },
+    { id: 'agents', text: 'Agenti AI', href: '/agents.html?agent=marketing-orchestrator&project={p}', mod: 'agents' }
+  ];
+  var EXTRA = [
+    { id: 'memory', text: 'Memoria', href: '/agency/memory.html?id={p}' },
+    { id: 'profile', text: 'Profilo', href: '/project-profile.html?id={p}' }
+  ];
+  var PATH_STEP = { 'project-workspace': 'tasks', 'radix-pm-concept': 'pm', agents: 'agents', memory: 'memory', 'project-profile': 'profile' };
+  var pbar = null, barProject = '';
+  function stepNow() {
+    var f = location.pathname.split('/').pop().replace('.html', '');
+    if (f === 'project-editorial') return location.hash === '#ped' ? 'ped' : 'brief';
+    return PATH_STEP[f] || '';
+  }
+  function markStep() {
+    if (!pbar) return;
+    var now = stepNow();
+    [].slice.call(pbar.querySelectorAll('[data-step]')).forEach(function (el) {
+      var a = el.tagName === 'A' ? el : el.querySelector('a');
+      if (el.getAttribute('data-step') === now) { if (!a.id) a.setAttribute('aria-current', 'step'); }
+      else if (!a.id) a.removeAttribute('aria-current');
+    });
+  }
+  function buildBar(id) {
+    if (!id || id === barProject || body.dataset.shellProject === 'off') return;
+    barProject = id;
+    var P = encodeURIComponent(id), fresh = !pbar;
+    var onPed = /project-editorial/.test(location.pathname);
+    var owns = STEPS.map(function (s) { return onPed && s.local && document.getElementById(s.local); });
+    if (fresh) {
+      pbar = document.createElement('nav');
+      pbar.className = 'rx-project';
+      pbar.setAttribute('aria-label', 'Fasi del progetto');
+    }
+    pbar.innerHTML = '<div class="rx-project-id"><small>Progetto</small><b class="rx-project-name">' + esc(id) + '</b>' +
+      '<a class="rx-project-switch" href="/agency/projects.html">Cambia</a></div>' +
+      '<ol class="rx-steps">' + STEPS.map(function (s, i) {
+        return '<li data-step="' + s.id + '"><a href="' + esc(s.href.replace('{p}', P)) + '"><i>' + (i + 1) + '</i><span>' + esc(s.text) + '</span></a></li>';
+      }).join('') + '</ol>' +
+      '<div class="rx-project-extra">' + EXTRA.map(function (s) {
+        return '<a data-step="' + s.id + '" href="' + esc(s.href.replace('{p}', P)) + '">' + esc(s.text) + '</a>';
+      }).join('') + '</div>';
+    // The PED page switches brief/plan in place: its own links (ids used by the page script) become those two steps.
+    STEPS.forEach(function (s, i) {
+      var own = owns[i];
+      if (!own) return;
+      var li = pbar.querySelector('[data-step="' + s.id + '"]'), a = li.querySelector('a');
+      own.className = ''; own.innerHTML = a.innerHTML; own.removeAttribute('data-rx-keep');
+      li.replaceChild(own, a);
+    });
+    markStep();
+    if (fresh) {
+      body.insertBefore(pbar, top.nextSibling); root.classList.add('rx-has-project');
+      var setH = function () { root.style.setProperty('--rx-projectbar', pbar.offsetHeight + 'px'); };
+      setH(); window.addEventListener('resize', setH);
+    }
+    // Name and which steps already hold saved work come from the shared registry.
+    // With journey=1 the server also returns each step's real state (todo/active/waiting/done); older servers ignore it.
+    if (window.fetch) fetch('/api/workspace?resource=projects&id=' + P + '&journey=1', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      var it = d && d.item; if (!it || id !== barProject) return;
+      pbar.querySelector('.rx-project-name').textContent = it.name || id;
+      var j = it.journey, steps = {};
+      if (j && j.steps) j.steps.forEach(function (x) { steps[x.id] = x; });
+      var mods = (it.documents || []).map(function (x) { return x.module; });
+      STEPS.forEach(function (s) {
+        var li = pbar.querySelector('[data-step="' + s.id + '"]'), x = steps[s.id];
+        if (x && /^(todo|active|waiting|done)$/.test(x.state)) {
+          li.setAttribute('data-state', x.state);
+          if (x.detail) li.querySelector('a').title = x.detail;
+          if (j.next === s.id) li.setAttribute('data-next', '');
+        } else if (mods.indexOf(s.mod) !== -1) li.setAttribute('data-saved', '');
+      });
+      if (j && typeof j.progress === 'number') {
+        var pr = pbar.querySelector('.rx-project-progress') || pbar.querySelector('.rx-project-id').appendChild(document.createElement('span'));
+        pr.className = 'rx-project-progress';
+        pr.style.setProperty('--p', Math.max(0, Math.min(100, j.progress)) + '%');
+        pr.textContent = j.progress + '%';
+        pr.title = (j.done || 0) + ' di ' + (j.total || STEPS.length) + ' fasi completate';
+      }
+      if (j && j.phases && j.phases.length) renderPhases(j.phases);
+    }).catch(function () {});
+  }
+  // Agency workspace (UX flows 2.4): the nine work phases of the project, with their real state from journey.phases.
+  var PHASE_STATE = { done: 'Completata', active: 'In corso', waiting: 'In attesa di approvazione', todo: 'Da fare' };
+  function renderPhases(phases) {
+    if (!/project-workspace/.test(location.pathname)) return;
+    var after = document.getElementById('progress');
+    if (!after) return;
+    var box = document.querySelector('.rx-phases');
+    if (!box) { box = document.createElement('ol'); box.className = 'rx-phases'; box.setAttribute('aria-label', 'Fasi di lavoro'); after.parentNode.insertBefore(box, after.nextSibling); }
+    var done = 0;
+    box.innerHTML = phases.map(function (x, i) {
+      var st = /^(todo|active|waiting|done)$/.test(x.state) ? x.state : 'todo';
+      if (st === 'done') done++;
+      var count = typeof x.total === 'number' && x.total ? '<em>' + (x.done || 0) + '/' + x.total + '</em>' : '';
+      return '<li data-state="' + st + '" title="' + esc(PHASE_STATE[st] + (x.detail ? ' · ' + x.detail : '')) + '">' +
+        '<i>' + (i + 1) + '</i><b>' + esc(x.label || x.id) + '</b>' + count +
+        (x.detail ? '<small>' + esc(x.detail) + '</small>' : '<small>' + PHASE_STATE[st] + '</small>') + '</li>';
+    }).join('');
+    box.style.setProperty('--done', done / phases.length * 100 + '%');
+    var cur = box.querySelector('[data-state=active],[data-state=waiting]');
+    if (cur && box.scrollWidth > box.clientWidth) box.scrollLeft = cur.offsetLeft - (box.clientWidth - cur.offsetWidth) / 2;
+  }
+  buildBar(curProject);
+  window.addEventListener('hashchange', markStep);
+  // Pages that switch project in place rewrite the URL; the bar (and project-aware sidebar links) follow.
+  if (/(project|editorial|pm-concept|agents|memory|profile)/.test(location.pathname) && history.replaceState) {
+    var rs = history.replaceState;
+    history.replaceState = function () {
+      var r = rs.apply(history, arguments);
+      var q = new URLSearchParams(location.search), id = q.get('project') || q.get('id') || '';
+      if (/^[a-z0-9-]{1,80}$/i.test(id) && id !== barProject) {
+        curProject = id;
+        [].slice.call(side.querySelectorAll('.rx-item[data-rx-id]')).forEach(function (a) {
+          var n = null; NAV.forEach(function (x) { (x.items || [x]).forEach(function (y) { if (y.id === a.getAttribute('data-rx-id')) n = y; }); });
+          if (n && n.project) a.setAttribute('href', href(n));
+        });
+        buildBar(id);
+      }
+      return r;
+    };
+  }
+
   // Mobile drawer
   var menuBtn = top.querySelector('.rx-menu');
   function setNav(open) {
@@ -216,7 +344,7 @@
 
   // Search palette over every navigable item
   var entries = [];
-  NAV.concat(FOOT).forEach(function (n) {
+  NAV.concat(FOOT, [{ text: 'Profilo progetto', href: curProject ? '/project-profile.html?id=' + encodeURIComponent(curProject) : '/agency/projects.html', kw: 'profilo agenti brand tone of voice' }]).forEach(function (n) {
     if (n.items) n.items.forEach(function (s) { entries.push({ text: s.text, href: href(s), where: n.text, kw: s.kw || '' }); });
     else if (n.href) entries.push({ text: n.text, href: href(n), where: '', kw: n.kw || '' });
   });

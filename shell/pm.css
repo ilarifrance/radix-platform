@@ -112,3 +112,45 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-subtasks button.link:hover:not(:disabled){color:var(--rx-error);background:transparent}
 .rx-pm .pm-subtask-form{display:flex;gap:8px;margin:8px 0 4px}
 .rx-pm .pm-subtask-form input{flex:1 1 auto;min-width:0}
+
+/* Pruning: the project bar and the views already explain the page */
+.rx-pm .notice,.rx-pm .future,.rx-pm main>footer,.rx-pm header:not(.rx-topbar){display:none!important}
+.rx-pm section[aria-label="Stato del salvataggio"]{background:none;border:0;padding:0;margin:0 0 6px;box-shadow:none}
+.rx-pm #storage-status{margin:0;font-size:12px;color:var(--rx-subtle)}
+.rx-pm #storage-status::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rx-success);margin-right:8px;vertical-align:middle}
+.rx-pm #project-note{font-size:12px;color:var(--rx-subtle);margin:4px 0 0}
+/* Filters on one line on wide screens */
+@media (min-width:1280px){
+  .rx-pm .filters{grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));align-items:end}
+  .rx-pm .filters .check,.rx-pm .filters #clear{grid-column:auto}
+  .rx-pm .filters .check{grid-column:1/3}
+  .rx-pm .filters #clear{grid-column:3/5;justify-self:end;width:auto}
+}
+.rx-pm #message:empty{display:none}
+.rx-pm #message{font-size:13px;color:var(--rx-subtle)}
+
+/* PM board (portfolio, Kanban cards, Gantt phases, workload) */
+.rx-pm .pm-portfolio .pm-kpis .stat{background:var(--rx-bg-raised)}
+.rx-pm .pm-projects a{background:var(--rx-bg-raised);border-color:var(--rx-border);border-radius:12px;padding:12px 14px;transition:border-color .15s}
+.rx-pm .pm-projects a:hover{border-color:var(--rx-border-strong)}
+.rx-pm .pm-projects a[aria-current]{border-color:var(--rx-accent);box-shadow:inset 3px 0 0 var(--rx-accent)}
+.rx-pm .pm-projects li.warn a{border-color:color-mix(in srgb,var(--rx-warning) 55%,transparent)}
+.rx-pm .pm-projects li.warn a[aria-current]{box-shadow:inset 3px 0 0 var(--rx-warning)}
+.rx-pm .pm-projects small{color:var(--rx-subtle);font-size:12px}
+.rx-pm .pm-progress{height:5px;border-radius:99px;background:var(--rx-surface-2);overflow:hidden}
+/* Board views need the full width: the task detail moves below them */
+.rx-pm .layout:has(#pm-view:not([hidden])){grid-template-columns:minmax(0,1fr)}
+.rx-pm .pm-card .pm-tags{gap:4px;margin-top:8px}
+.rx-pm .pm-card .pm-tags .pill,.rx-pm .pm-card .pm-tags>span{border-radius:6px;padding:2px 7px;font-size:11px;line-height:1.35;background:var(--rx-surface-2);border:1px solid var(--rx-border);color:var(--rx-muted)}
+.rx-pm .pm-card .pm-tags .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,transparent)}
+.rx-pm .pm-avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--rx-accent) 22%,var(--rx-surface-2));color:var(--rx-text);font:600 10.5px/1 var(--rx-font);border:1px solid var(--rx-border-strong)}
+.rx-pm .pm-gantt .g-phase{background:color-mix(in srgb,var(--rx-accent) 6%,transparent)}
+.rx-pm .pm-gantt .g-phase .g-label{font-weight:600;color:var(--rx-text)}
+.rx-pm .pm-gantt .g-phase .g-span{height:4px;border-radius:99px;background:color-mix(in srgb,var(--rx-accent) 55%,transparent)}
+.rx-pm .g-progress .g-prog-row .pm-progress{height:6px}
+.rx-pm .g-progress .g-prog-row .pm-progress>*{background:var(--rx-accent)}
+.rx-pm .pm-capacity{gap:12px;font-size:13px;color:var(--rx-muted)}
+.rx-pm .pm-capacity input{width:72px}
+.rx-pm .pm-load{font-variant-numeric:tabular-nums}
+.rx-pm td.over{outline:0;background:color-mix(in srgb,var(--rx-error) 16%,transparent)!important;color:var(--rx-error);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rx-error) 60%,transparent)}
+.rx-pm .g-progress{padding:4px 16px 0}
