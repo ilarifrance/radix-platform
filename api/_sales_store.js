@@ -38,6 +38,12 @@ function createStore(rawSql){
  related AS (SELECT 'companies' AS entity,to_jsonb(t) AS record FROM companies t UNION ALL SELECT 'contacts',to_jsonb(t) FROM contacts t UNION ALL SELECT 'opportunities',to_jsonb(t) FROM opportunities t UNION ALL SELECT 'tasks',to_jsonb(t) FROM sales_tasks t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities)) UNION ALL SELECT 'interactions',to_jsonb(t) FROM sales_interactions t WHERE t.workspace_id=$1 AND EXISTS(SELECT 1 FROM root) AND (($4='companies' AND t.company_id=$3::uuid) OR ($4='contacts' AND t.contact_id=$3::uuid) OR t.opportunity_id IN(SELECT id FROM opportunities))) SELECT entity,record FROM related ORDER BY entity,record->>'id' LIMIT 100 OFFSET $5`,[c.workspace,u,c.id,c.subject,c.offset]);
 
    }
+   // Full export (GDPR access, CSV): every row of the workspace up to 5000, with the company name.
+   if(c.entity==='export'){
+    if(c.subject==='contacts')return sql('SELECT t.id,t.name,t.role,t.email,t.phone,t.linkedin_url,t.marketing_consent,t.consent_at,t.notes,c.name AS company,t.created_at FROM sales_contacts t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]);
+    if(c.subject==='companies')return sql('SELECT t.id,t.name,t.industry,t.website,t.email,t.phone,t.city,t.notes,t.created_at FROM sales_companies t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]);
+    throw new Error('invalid export');
+   }
    if(c.entity==='dashboard')return sql('SELECT (SELECT count(*) FROM sales_companies WHERE workspace_id=$1) AS companies, (SELECT count(*) FROM sales_contacts WHERE workspace_id=$1) AS contacts, (SELECT count(*) FROM sales_leads WHERE workspace_id=$1) AS leads, (SELECT count(*) FROM sales_opportunities WHERE workspace_id=$1) AS opportunities, (SELECT count(*) FROM sales_tasks WHERE workspace_id=$1) AS tasks, (SELECT COALESCE(sum(amount_cents),0)::text FROM sales_opportunities WHERE workspace_id=$1 AND outcome=\'open\') AS open_amount_cents WHERE '+guard,[c.workspace,u]);
    if(!Object.hasOwn(fields,c.entity))throw new Error('invalid entity');
    // Literal, case-insensitive substring search over all tenant rows before pagination.
