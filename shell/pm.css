@@ -340,3 +340,23 @@ html.pm-detail-open:has(#pm-board:not([hidden])) .pm-detail-close{display:grid;p
 }
 #pm-board-kanban .pm-card>.pill{white-space:normal;overflow:visible;text-overflow:clip}
 #pm-board-kanban .pm-card strong{overflow-wrap:normal;word-break:normal;hyphens:auto}
+/* A project with no plan: one invitation to build it, instead of empty boards and zero KPIs (radix-pm-concept.html emptyPlan()) */
+body.pm-no-plan main#workspace>#stats{display:none}
+#pm-view.pm-empty-plan{display:block;padding:0;border:0;background:none;box-shadow:none}
+#pm-board.pm-board-empty>:not(.pm-empty-card){display:none!important}
+#pm-board.pm-board-empty{display:block!important}
+#pm-board[hidden]{display:none!important}
+.pm-empty-card{position:relative;max-width:980px;margin:6px auto 0;padding:34px 38px;border-radius:22px;border:1px solid #6d4bb7;background:radial-gradient(ellipse at 85% 0,#3a1f6d66,transparent 60%),linear-gradient(160deg,#1a1036f2,#0d0a22f2);box-shadow:0 0 0 1px #b07bff22,0 0 40px #7d4dff33;color:#efe8ff;overflow:hidden}
+.pm-empty-card::before{content:"";position:absolute;left:12%;right:12%;top:0;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#c58bff,#ff7ac8,transparent)}
+.pm-empty-kicker{display:block;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;color:#c9a8ff}
+.pm-empty-card h2{margin:10px 0 8px;font:700 clamp(22px,2.4vw,30px)/1.15 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:-.02em;color:#fff}
+.pm-empty-card>p{margin:0;max-width:640px;font-size:14px;color:#c8bde6}
+.pm-empty-steps{list-style:none;counter-reset:s;margin:24px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pm-empty-steps li{counter-increment:s;position:relative;padding:16px 16px 16px 58px;border-radius:14px;border:1px solid #4a3784;background:#140d2ccc;display:flex;flex-direction:column;gap:4px}
+.pm-empty-steps li::before{content:counter(s);position:absolute;left:16px;top:16px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 'Space Grotesk',Inter,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#9b5cff,#ff6fb5);box-shadow:0 0 14px #b07bff88}
+.pm-empty-steps strong{font-size:14px;color:#fff}.pm-empty-steps span{font-size:12.5px;color:#b9add9;line-height:1.4}
+.pm-empty-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rx-pm .pm-empty-go,.pm-empty-go{padding:12px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,#25e3b0,#1fc6d8);color:#04131a;font:700 14px/1 Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 0 22px #25e3b066}
+.pm-empty-go:hover,.pm-empty-go:focus-visible{box-shadow:0 0 30px #25e3b0aa;outline:2px solid #bffff0;outline-offset:2px}
+.pm-empty-alt{color:#c9a8ff;font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:760px){.pm-empty-card{padding:24px 18px}.pm-empty-steps{grid-template-columns:1fr}}
