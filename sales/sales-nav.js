@@ -73,6 +73,45 @@
     nav.append(frag);
   }
 
+  // Without a CRM workspace every Sales page is empty: say so once, at the top, in plain words.
+  function accessNotice() {
+    if (!window.fetch) return;
+    fetch('/api/sales?entity=workspaces&offset=0', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) {
+      if (r.status === 401) return { login: true };
+      return r.ok ? r.json() : null;
+    }).then(function (d) {
+      if (!d || (!d.login && Array.isArray(d.rows) && d.rows.length)) return;
+      if (!d.login && !Array.isArray(d.rows)) return;
+      var main = document.getElementById('main'); if (!main || main.querySelector('.sx-access')) return;
+      document.documentElement.classList.add('sx-no-crm');
+      var box = document.createElement('section'); box.className = 'sx-access'; box.setAttribute('role', 'status');
+      var orb = document.createElement('span'); orb.className = 'sx-access-orb'; orb.setAttribute('aria-hidden', 'true');
+      var txt = document.createElement('div');
+      var h = document.createElement('h2'); h.textContent = d.login ? 'Accedi per vedere il CRM' : 'Il tuo account non è ancora collegato al CRM';
+      var p = document.createElement('p');
+      p.textContent = d.login ? 'Le pagine Sales mostrano i dati del tuo workspace dopo l’accesso a RADIX.'
+        : 'Le pagine Sales mostrano solo i dati del workspace commerciale a cui appartieni, e oggi il tuo account non ne ha nessuno. Chiedi a un amministratore di aggiungerti: da quel momento qui trovi aziende, contatti, opportunità e attività.';
+      txt.append(h, p);
+      var act = document.createElement('div'); act.className = 'sx-access-actions';
+      var home = document.createElement('a'); home.href = '/control-center-v2.html'; home.textContent = 'Torna al Command Center';
+      act.append(home);
+      if (!d.login && navigator.clipboard) {
+        var copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copia la richiesta di accesso';
+        copy.onclick = function () {
+          fetch('/api/auth/me', { credentials: 'same-origin' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (me) {
+            var u = me && (me.user || me), who = u && (u.email || u.name) ? ' (' + (u.email || u.name) + ')' : '';
+            return navigator.clipboard.writeText('Ciao, puoi aggiungere il mio account' + who + ' al workspace CRM di RADIX? Grazie.');
+          }).then(function () { copy.textContent = 'Richiesta copiata'; }, function () { copy.textContent = 'Copia non riuscita'; });
+        };
+        act.append(copy);
+      }
+      box.append(orb, txt, act);
+      var first = main.firstElementChild;
+      if (first && (first.tagName === 'HEADER' || first.classList.contains('skip'))) first.after(box); else main.prepend(box);
+    }).catch(function () {});
+  }
+  accessNotice();
+
   if (!onCrm) {
     // Static Sales pages: the menu lives in the page's own <aside>; this script runs right after it, before paint.
     var side = document.currentScript && document.currentScript.previousElementSibling;
@@ -120,6 +159,11 @@
     var links = crmNav.querySelectorAll(':scope > a.sx-link');
     for (var i = 1; i < links.length; i++) links[i].remove();
     crmNav.classList.add('sx-nav');
+    if (!crmNav.querySelector(':scope > .sx-brand')) {
+      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = '/sales-orbit-higgsfield.html';
+      brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
+      crmNav.prepend(brand);
+    }
     mark(crmNav);
     busy = false;
   }

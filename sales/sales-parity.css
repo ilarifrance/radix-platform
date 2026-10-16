@@ -512,3 +512,5 @@ td.late{color:#ff8f80}
 .an-ask{display:block;text-align:center;padding:11px;border:1px solid #2f8a80;border-radius:10px;color:#57f6d6;text-decoration:none;font-size:13px;margin-top:6px}
 @media(max-width:1400px){.an{grid-template-columns:1fr}.an-rail{position:static}.an-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.an-three{grid-template-columns:1fr 1fr}.an-quality{grid-column:1/-1}}
 @media(max-width:900px){.an-two,.an-three{grid-template-columns:1fr}.an-kpis{grid-template-columns:1fr 1fr}.an-q-grid{grid-template-columns:1fr 1fr}.an-top th:nth-child(2),.an-top td:nth-child(2),.an-top th:nth-child(6),.an-top td:nth-child(6){display:none}}
+/* Build notes are not for users: hide the "Foundation da validare" badge and the "Sviluppi futuri" panel */
+body>header>.badge,#content+section.panel{display:none!important}

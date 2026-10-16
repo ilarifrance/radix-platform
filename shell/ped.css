@@ -294,3 +294,8 @@ html.ped-grid .rx-ped .calendar-empty{display:none}
   .rx-ped #pedPage.ped-has-rail>.hero{order:3;margin-top:14px}
   .rx-ped #pedPage.ped-has-rail>*{order:4}
 }
+/* Read-only PED (strategy not approved yet): say it clearly and make the locked actions look locked */
+.rx-ped #pedPage .hero:has(#newContent:disabled) #briefSummary{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border:1px solid color-mix(in srgb,var(--rx-warning) 50%,transparent);border-radius:10px;background:color-mix(in srgb,var(--rx-warning) 10%,transparent);color:var(--rx-text)}
+.rx-ped #pedPage .hero:has(#newContent:disabled) #briefSummary::before{content:"";width:8px;height:8px;flex:none;border-radius:50%;background:var(--rx-warning);box-shadow:0 0 8px var(--rx-warning)}
+.rx-ped #pedPage .hero button:disabled{opacity:1;background:transparent!important;border-color:var(--rx-border)!important;color:var(--rx-subtle)!important;cursor:not-allowed}
+.rx-ped .ped-rail-label:has(+.ped-rail-channels:empty){display:none}
