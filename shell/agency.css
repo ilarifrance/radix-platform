@@ -116,3 +116,42 @@ html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
   .rx-phases::before{display:none}
   .rx-phases li{flex:0 0 96px}
 }
+
+/* ---- Overview fidelity (agenzia-mockup.png), with shell/agency-layer.js ---- */
+/* hero: dotted earth with a blue-violet rim instead of the striped sphere */
+html.ag-has-globe .rx-agency .planet-wrap .planet{background:radial-gradient(circle at 34% 30%,rgba(60,90,200,.35),rgba(16,10,50,.92) 62%,#060520 100%)!important;box-shadow:0 0 0 1px rgba(150,170,255,.35),0 0 40px rgba(110,90,255,.55),inset -18px -10px 40px rgba(170,80,255,.35),inset 10px 8px 30px rgba(80,200,255,.25)!important;overflow:hidden}
+html.ag-has-globe .rx-agency .planet-wrap .planet::before,html.ag-has-globe .rx-agency .planet-wrap .planet::after{display:none!important}
+.rx-agency .ag-globe{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}
+/* divisions: outline icon on top, number beside it, two-line description; the work line stays but quieter */
+.rx-agency .division-card{min-height:148px!important;padding:16px 15px!important;border-radius:12px!important;border-color:#1d2d58!important;background:linear-gradient(160deg,rgba(18,22,60,.92),rgba(8,12,34,.96))!important}
+.rx-agency .division-card .symbol{font-size:26px!important;height:30px!important}
+.rx-agency .division-card .number{left:56px;right:auto!important;top:24px!important;color:#8f8fd0}
+.rx-agency .division-card strong{font-size:14px!important;min-height:0!important;margin:12px 0 6px!important}
+.rx-agency .division-card p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#a9b2d4!important}
+.rx-agency .division-card .live{margin-top:auto!important;padding-top:8px;font-size:10.5px!important;color:#6f7bb0!important}
+.rx-agency .division-card .live::before{display:none}
+.rx-agency .division-card.ag-custom{justify-content:flex-start;gap:6px;border-color:rgba(140,120,255,.75)!important;background:linear-gradient(135deg,rgba(70,60,190,.55),rgba(30,24,90,.7) 55%,rgba(60,40,150,.5))!important;box-shadow:0 0 26px rgba(120,90,255,.35)}
+.rx-agency .division-card.ag-custom .ag-plus{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1.5px solid #b9a8ff;color:#e6dfff;font:300 28px/1 Inter,system-ui,sans-serif;box-shadow:0 0 16px rgba(160,130,255,.6)}
+.rx-agency .division-card.ag-custom b{margin-top:10px;font-size:14px;color:#fff}
+.rx-agency .division-card.ag-custom small{color:#cfc8ff;font-size:11px;line-height:1.45}
+/* workflow: filled numbered dots joined by a line */
+.rx-agency .timeline{position:relative}
+.rx-agency .timeline-item{position:relative}
+.rx-agency .timeline-item:not(:last-child)::after{content:"";position:absolute;left:14px;top:32px;bottom:-12px;width:2px;background:linear-gradient(#4fd8ff,#8b6bff);opacity:.55}
+.rx-agency .timeline-item .count{background:radial-gradient(circle at 35% 30%,#7fe3ff,#3a7bff 55%,#6a4dff)!important;border:2px solid rgba(160,220,255,.7)!important;color:#fff!important;font-weight:700;box-shadow:0 0 14px rgba(80,170,255,.55)}
+.rx-agency .timeline-item:nth-child(n+4) .count{background:radial-gradient(circle at 35% 30%,#b9a2ff,#6a4dff 55%,#4a2fd0)!important;border-color:rgba(200,180,255,.7)!important}
+/* agents: division under the name, deliverable tags, compact open link */
+.rx-agency .agent-row{gap:12px}
+.rx-agency .agent-copy small{color:#8f98c4}
+.rx-agency .ag-tags{display:flex;gap:6px;margin-left:auto;min-width:0}
+.rx-agency .ag-tags i{font-style:normal;font-size:10.5px;line-height:1;padding:5px 8px;border-radius:6px;border:1px solid #2a3768;background:rgba(40,50,110,.45);color:#c9d0f2;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.rx-agency .agent-row .role{flex:none}
+@media (max-width:1280px){.rx-agency .ag-tags i:nth-child(2){display:none}}
+@media (max-width:720px){.rx-agency .ag-tags{display:none}}
+html.ag-has-globe .rx-agency .planet-wrap{height:190px;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
+.rx-agency .agent-copy{flex:1 1 auto;min-width:120px}
+.rx-agency .agent-copy b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rx-agency .agent-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rx-agency .ag-tags{flex:0 1 auto}
+.rx-agency .ag-tags i:nth-child(2){display:none}
+@media (min-width:1700px){.rx-agency .ag-tags i:nth-child(2){display:inline-block}}

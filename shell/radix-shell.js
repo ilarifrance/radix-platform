@@ -415,6 +415,10 @@
   if (/control-center-v2/.test(location.pathname) && document.getElementById('networkSvg')) {
     var ccJs = document.createElement('script'); ccJs.src = '/shell/cc-universe.js'; document.body.appendChild(ccJs);
   }
+  // Agency overview: dotted earth, custom-project tile, agent divisions (design layer).
+  if (/\/agency\/(index\.html)?$/.test(location.pathname) && document.getElementById('divisions')) {
+    var agJs = document.createElement('script'); agJs.src = '/shell/agency-layer.js'; document.body.appendChild(agJs);
+  }
   // PED: the week calendar as an hour grid with the left rail (design layer, no change to the page's own scripts).
   if (/project-editorial/.test(location.pathname) && document.getElementById('calendar')) {
     var pedJs = document.createElement('script'); pedJs.src = '/shell/ped-calendar.js'; document.body.appendChild(pedJs);
