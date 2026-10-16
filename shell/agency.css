@@ -84,3 +84,10 @@ html.rx-shell[data-rx-area="agency"] .rx-topbar{background:rgba(5,10,28,.86)}
 .rx-agency input[type=file]{padding:8px;border-style:dashed!important;background:transparent!important;color:var(--rx-muted)}
 .rx-agency input[type=file]::file-selector-button{margin-right:12px;padding:6px 12px;border:1px solid var(--rx-border-strong);border-radius:8px;background:var(--rx-surface-2);color:var(--rx-text);font:inherit;cursor:pointer}
 @media (min-width:1100px){.rx-agency .cols>section.panel:nth-child(2){position:sticky;top:calc(var(--rx-topbar) + 16px);align-self:start}}
+/* Incarichi: a project without tasks gets a clear first step */
+.rx-agency #setup.setup{display:grid;justify-items:start;gap:14px;padding:28px;border:1px dashed var(--rx-border-strong);border-radius:14px;background:color-mix(in srgb,var(--rx-accent) 6%,transparent);color:var(--rx-muted);font-size:14px;line-height:1.5}
+.rx-agency #setup.setup :is(p,div){margin:0;max-width:56ch}
+.rx-agency #setup #createTasks{background:var(--rx-accent);border-color:var(--rx-accent);color:#0b0620;font-weight:600;padding:10px 16px;border-radius:10px}
+.rx-agency #setup #setupBrief{color:var(--rx-text);text-decoration:none;border:1px solid var(--rx-border-strong);padding:9px 14px;border-radius:10px}
+.rx-agency #setup #setupBrief:hover{border-color:var(--rx-accent)}
+.rx-agency #setup:has(#createTasks) #setupBrief{border-color:transparent;padding-left:0;color:var(--rx-muted)}

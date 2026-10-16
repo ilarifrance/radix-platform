@@ -208,3 +208,6 @@ html.rx-shell body.rx-ped{--ped-draft:#9B7BFF;--ped-review:var(--rx-projects);--
 .rx-ped .attention-list button:hover{border-color:var(--rx-border-strong);background:var(--rx-surface-2)}
 .rx-ped .attention-list button:focus-visible{outline:2px solid var(--rx-core);outline-offset:1px}
 @media (max-width:900px){.rx-ped .ped-analytics .two{grid-template-columns:1fr}.rx-ped .week-chart{gap:3px}.rx-ped .wk small{font-size:9.5px;letter-spacing:-.02em}.rx-ped .ped-analytics>:not(summary){margin-left:14px;margin-right:14px}.rx-ped .kpi-tiles{margin:12px 14px 18px}.rx-ped .ped-analytics>h3{margin-left:14px}.rx-ped .channel-table{display:block;overflow-x:auto}}
+/* Readiness: missing items stand out, completed ones stay quiet */
+.rx-ped #readiness p[data-ok=false]{order:-1;border-color:color-mix(in srgb,var(--rx-warning) 55%,transparent);background:color-mix(in srgb,var(--rx-warning) 12%,transparent);color:var(--rx-text)}
+.rx-ped #readiness p[data-ok=true]{border-color:var(--rx-border);background:transparent;color:var(--rx-subtle)}
