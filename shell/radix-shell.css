@@ -102,7 +102,7 @@ html.rx-shell .shell,html.rx-shell .app{min-height:calc(100vh - var(--rx-topbar)
   .rx-tabs{padding:6px 12px 0}
   .rx-iconbtn.rx-menu{display:grid;flex:0 0 40px}
   .rx-pagetop{display:flex;align-items:center;gap:8px}
-  .rx-search{flex:1;min-width:0}
+  .rx-search,html.rx-shell .rx-topbar button.rx-search{flex:1 1 auto;min-width:0}
   .rx-search kbd,.rx-user span{display:none}
   .rx-state{padding:0 9px}.rx-state span{display:none}
 }
@@ -125,3 +125,7 @@ html.rx-shell .rx-sidebar a.rx-item[aria-current="page"]{background:color-mix(in
 html.rx-shell .rx-sidebar a.rx-item[aria-disabled="true"]:hover{background:transparent;color:var(--rx-muted)}
 html.rx-shell .rx-palette input{border:0;border-bottom:1px solid var(--rx-border);border-radius:0;background:transparent;box-shadow:none;min-height:52px}
 html.rx-shell .rx-palette ul{margin:0;padding:6px}
+html.rx-shell header.rx-topbar{flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:nowrap;margin:0}
+html.rx-shell .rx-topbar button.rx-search{min-height:40px;height:40px;padding:0 12px;border-radius:12px;white-space:nowrap;overflow:hidden;font-weight:400}
+html.rx-shell .rx-topbar .rx-search>span{overflow:hidden;text-overflow:ellipsis}
+html.rx-shell .rx-topbar button.rx-iconbtn{min-height:40px;padding:0}

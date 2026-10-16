@@ -1,0 +1,106 @@
+/* PED (Piano editoriale) visual layer — approved ref: Orbitly calendar mockup. Layout only; data and logic live in editorial-*.js. */
+html.rx-shell body.rx-ped{
+  --bg:var(--rx-bg);--panel:var(--rx-surface);--line:var(--rx-border);--green:var(--rx-agency);--muted:var(--rx-muted);
+  background:radial-gradient(ellipse at 85% -10%,color-mix(in srgb,var(--rx-agency) 16%,transparent),transparent 50%),var(--rx-bg);
+  color:var(--rx-text);font:14px/1.55 var(--rx-font)}
+.rx-ped main{max-width:1680px;padding:24px 28px 40px}
+.rx-ped h1,.rx-ped h2{font-family:var(--rx-display);letter-spacing:-.01em}
+.rx-ped h1{font-size:30px}
+.rx-ped a{color:var(--rx-core-soft)}
+.rx-ped .eyebrow{color:var(--rx-agency);font-size:12px;letter-spacing:.14em}
+.rx-ped .pill{color:var(--rx-muted);border-color:var(--rx-border);font-size:12px}
+.rx-ped #message{color:var(--rx-muted);font-size:13px;margin:6px 0 0}
+.rx-ped .breadcrumb{font-size:13px;margin:10px 0 18px}
+.rx-ped .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;box-shadow:none}
+.rx-ped .hero{background:linear-gradient(120deg,color-mix(in srgb,var(--rx-agency) 12%,var(--rx-surface)),var(--rx-surface) 60%)}
+/* Controls */
+.rx-ped button,.rx-ped .button{min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
+.rx-ped button:hover:not(:disabled),.rx-ped .button:hover{border-color:var(--rx-agency);background:var(--rx-surface-2)}
+.rx-ped .primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-ped .primary:hover:not(:disabled){background:var(--rx-core-soft)}
+.rx-ped input,.rx-ped select,.rx-ped textarea{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
+.rx-ped :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-ped label{color:var(--rx-muted);font-size:13px}
+/* Calendar toolbar: Orbitly-style segmented switch */
+.rx-ped .calendar-toolbar{margin:24px 0 12px;gap:12px}
+.rx-ped .view-switch{gap:0;padding:4px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-ped .view-switch button{border:0;min-height:34px;padding:6px 16px;border-radius:8px;color:var(--rx-muted)}
+.rx-ped .view-switch button[aria-pressed=true]{background:var(--rx-surface-2);color:var(--rx-text);box-shadow:inset 0 0 0 1px var(--rx-border-strong)}
+.rx-ped .period-nav{gap:6px}
+.rx-ped .period-nav button{min-width:40px;padding:6px 10px}
+.rx-ped #calendarLabel{font:600 16px var(--rx-display);padding:0 8px;min-width:150px;text-align:center}
+.rx-ped .calendar-toolbar>span{color:var(--rx-subtle);font-size:12px}
+/* Calendar grid */
+.rx-ped .calendar{gap:0;padding:0;border:1px solid var(--rx-border);border-radius:16px;background:var(--rx-bg-raised);min-height:420px}
+.rx-ped .calendar-column{border:0;border-right:1px solid var(--rx-border);border-radius:0;background:transparent;padding:12px 10px;min-height:400px}
+.rx-ped .calendar-column:last-child{border-right:0}
+.rx-ped .calendar-column h3{margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--rx-border);font:600 13px var(--rx-font);color:var(--rx-muted);letter-spacing:.02em}
+.rx-ped .calendar.view-week .calendar-column:nth-child(n+6){background:rgba(255,255,255,.012)}
+.rx-ped .calendar-empty{color:var(--rx-subtle);font-size:12px;padding:6px 2px}
+.rx-ped .calendar-event{position:relative;gap:4px;margin:0 0 8px;padding:10px 12px 10px 14px;border-radius:12px;border:1px solid var(--rx-border-strong);
+  background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface));box-shadow:none;overflow:hidden}
+.rx-ped .calendar-event::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--rx-subtle)}
+.rx-ped .calendar-event small{order:2;color:var(--rx-muted);font-size:12px}
+.rx-ped .calendar-event strong{order:1;font-size:14px;line-height:1.3;color:var(--rx-text)}
+.rx-ped .calendar-event span{order:3;color:var(--rx-subtle);font-size:12px}
+.rx-ped .calendar-event:hover:not(:disabled){border-color:var(--rx-agency);background:var(--rx-surface-2)}
+.rx-ped .calendar-event.status-draft::before{background:var(--rx-subtle)}
+.rx-ped .calendar-event.status-review{border-color:color-mix(in srgb,var(--rx-warning) 45%,var(--rx-border))}
+.rx-ped .calendar-event.status-review::before{background:var(--rx-warning)}
+.rx-ped .calendar-event.status-approved{border-color:color-mix(in srgb,var(--rx-success) 40%,var(--rx-border));background:linear-gradient(160deg,color-mix(in srgb,var(--rx-success) 8%,var(--rx-surface-2)),var(--rx-surface))}
+.rx-ped .calendar-event.status-approved::before{background:var(--rx-success)}
+/* Status, metrics, list */
+.rx-ped .plan-status{border-radius:12px;border:1px solid var(--rx-border);background:var(--rx-surface);color:var(--rx-muted);padding:12px 16px;margin-top:16px}
+.rx-ped .metrics{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.rx-ped .metric{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px;color:var(--rx-muted);font-size:12px}
+.rx-ped .metric strong{font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-ped .content-card{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px}
+.rx-ped .content-card small{font-size:12px;color:var(--rx-muted)}
+.rx-ped .content-card[aria-pressed=true]{border-color:var(--rx-agency);box-shadow:0 0 0 1px var(--rx-agency) inset}
+.rx-ped .muted,.rx-ped footer{color:var(--rx-muted);font-size:12px}
+@media (max-width:767px){
+  .rx-ped main{padding:16px 12px 32px}
+  .rx-ped .calendar-toolbar{flex-direction:column;align-items:stretch}
+  .rx-ped .view-switch{justify-content:space-between}.rx-ped .view-switch button{flex:1;padding:6px 8px}
+  .rx-ped .period-nav{justify-content:space-between}
+  .rx-ped .calendar.view-week{grid-template-columns:repeat(7,minmax(78vw,1fr));scroll-snap-type:x mandatory}
+  .rx-ped .calendar.view-week .calendar-column{scroll-snap-align:start}
+  .rx-ped .hero .actions{display:grid;grid-template-columns:1fr 1fr}
+  .rx-ped .hero .actions .primary{grid-column:1/-1;order:-1}
+}
+/* The page title already says "Piano editoriale": keep the hero for summary and actions only */
+.rx-ped #pedPage .hero>.eyebrow,.rx-ped #pedPage .hero>h2{display:none}
+.rx-ped #pedPage .hero #briefSummary{margin-top:0}
+@media (max-width:767px){.rx-ped .calendar,.rx-ped .calendar-column{min-height:0}.rx-ped .calendar-column{padding-bottom:16px}}
+/* ---- Board by state, channel marks, publishing (hooks: #contentViews [data-list], #board.ped-board section[data-column], [data-channel], .status-queued, #publish) ---- */
+html.rx-shell body.rx-ped{--ped-draft:#9B7BFF;--ped-review:var(--rx-projects);--ped-approved:var(--rx-success);--ped-queued:var(--rx-warning)}
+.rx-ped [data-channel]{--ch:var(--rx-border-strong)}
+.rx-ped [data-channel=linkedin]{--ch:#4A9FFF}.rx-ped [data-channel=instagram]{--ch:#FF5FA2}.rx-ped [data-channel=facebook]{--ch:#5B7CFF}.rx-ped [data-channel=tiktok]{--ch:#3FF0E6}
+.rx-ped [data-channel=youtube]{--ch:#FF4D4D}.rx-ped [data-channel=x]{--ch:#D8D8D8}.rx-ped [data-channel=blog]{--ch:var(--rx-studio)}.rx-ped [data-channel=newsletter]{--ch:var(--rx-agency)}
+.rx-ped [data-channel]{border-left:3px solid var(--ch)!important}
+.rx-ped #contentViews{display:inline-flex;gap:4px;padding:4px;margin:0 0 12px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-bg-raised)}
+@media (min-width:1280px){.rx-ped .layout:has(#board:not([hidden])){grid-template-columns:minmax(0,1fr) 340px}}
+.rx-ped .ped-board{grid-template-columns:repeat(4,minmax(170px,1fr));gap:10px;padding-bottom:4px}
+.rx-ped .ped-board section{--c:var(--ped-draft);min-height:200px;padding:10px;border:1px solid color-mix(in srgb,var(--c) 30%,var(--rx-border));border-radius:14px;background:color-mix(in srgb,var(--c) 4%,var(--rx-bg-raised))}
+.rx-ped .ped-board section[data-column=review]{--c:var(--ped-review)}
+.rx-ped .ped-board section[data-column=approved]{--c:var(--ped-approved)}
+.rx-ped .ped-board section[data-column=queued]{--c:var(--ped-queued)}
+.rx-ped .ped-board h3{margin:0 0 10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:10px;color:var(--rx-text);font:600 12px/1.3 var(--rx-display);letter-spacing:.06em;text-transform:uppercase}
+.rx-ped .ped-board .content-card{width:100%;margin:0 0 8px;text-align:left}
+.rx-ped .ped-board .content-card:hover{border-color:color-mix(in srgb,var(--c) 60%,var(--rx-border))}
+.rx-ped .calendar-event.status-queued{border-color:color-mix(in srgb,var(--ped-queued) 70%,transparent)}
+.rx-ped .publish{margin-top:14px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--ped-queued) 40%,var(--rx-border));border-radius:14px;background:color-mix(in srgb,var(--ped-queued) 5%,var(--rx-surface))}
+.rx-ped #publishState{color:var(--rx-muted);font-size:13px}
+@media (max-width:767px){.rx-ped .ped-board{grid-template-columns:repeat(4,minmax(220px,78vw));scroll-snap-type:x mandatory}.rx-ped .ped-board section{scroll-snap-align:start}}
+/* Variants, comments, versions in the content detail (.ped-extra: #variants, #commentsBox, #versions) */
+.rx-ped .ped-extra{margin-top:14px;padding:14px 16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-surface)}
+.rx-ped .ped-extra h3,.rx-ped .ped-extra summary{margin:0 0 10px;color:var(--rx-text);font:600 14px/1.3 var(--rx-display)}
+.rx-ped details.ped-extra summary{cursor:pointer;margin:0}
+.rx-ped details.ped-extra[open] summary{margin-bottom:10px}
+.rx-ped #variantList{display:grid;gap:8px;margin-bottom:10px}
+.rx-ped .ped-comments,.rx-ped .ped-versions{display:grid;gap:8px;margin:0 0 10px;padding:0;list-style:none}
+.rx-ped .ped-comments li{padding:10px 12px;border-radius:10px;background:var(--rx-surface-2);font-size:13px}
+.rx-ped .ped-comments li small{display:block;margin-bottom:4px;color:var(--rx-subtle)}
+.rx-ped .ped-versions li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-bottom:1px solid var(--rx-border);font-size:13px;color:var(--rx-muted)}
+.rx-ped .ped-versions li:last-child{border-bottom:0}
+.rx-ped .ped-versions button{min-height:32px;padding:4px 10px;font-size:12px}
