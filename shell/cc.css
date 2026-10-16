@@ -201,3 +201,9 @@
 .rx-cc .search-hit.cc-ask-row small{border:1px solid rgba(61,255,181,.35);border-radius:5px;padding:1px 5px;color:#7dffc8}
 .rx-cc .metrics .metric .metric-label,.rx-cc .metrics .metric .metric-note{white-space:normal;overflow:visible;line-height:1.2}
 @media (max-width:1360px){.rx-cc .topbar{grid-template-columns:minmax(240px,1fr) auto}.rx-cc .cc-systems-text small{display:none}.rx-cc .cc-systems-icons{gap:3px}}
+.rx-cc .cc-know{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.rx-cc .cc-know-n{border:1px solid rgba(61,255,181,.14);border-radius:9px;padding:7px 6px;background:rgba(10,30,22,.55);text-align:center;min-width:0}
+.rx-cc .cc-know-n b{display:block;font-size:17px;color:#e8fff4;line-height:1.1}
+.rx-cc .cc-know-n span{display:block;font-size:10px;color:var(--rx-subtle);line-height:1.2;margin-top:2px}
+.rx-cc .cc-know-n.warn b{color:#f5b544}
+.rx-cc .team-card.cc-team.on .team-sub{color:#3dffb5}

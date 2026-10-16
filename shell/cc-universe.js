@@ -123,9 +123,12 @@
     items = all.slice(0, MAX).map(function (p) {
       var j = journeys[p.name.trim().toLowerCase()], agStep = j && j.steps && j.steps.find(function (s) { return s.id === 'agents'; });
       var agents = (agStep && Array.isArray(agStep.agents)) ? agStep.agents : [];
+      // the dashboard's own per-project roster (most used first) and orchestrator, when the API sends them
+      var sp = snap && (snap.projects || []).find(function (x) { return String(x.name || '').trim() === p.name.trim(); });
+      if (sp && Array.isArray(sp.agents)) agents = sp.agents.map(function (a) { if (a.name && !AGENT_NAMES[a.id]) AGENT_NAMES[a.id] = a.name; return a.id; });
       var open = function () { p.hub.dispatchEvent(new MouseEvent('click', { bubbles: true })); };
       var b = node('button', 'cc-hub'); b.type = 'button'; b.style.setProperty('--c', p.color);
-      var sub = subtitle(j, agents), t = node('span', 'cc-hub-t'); t.append(node('b', '', p.name), node('small', '', sub));
+      var sub = sp && sp.orchestrator && sp.orchestrator.name ? sp.orchestrator.name : subtitle(j, agents), t = node('span', 'cc-hub-t'); t.append(node('b', '', p.name), node('small', '', sub));
       b.append(node('i'), t); b.setAttribute('aria-label', 'Apri il progetto ' + p.name + ' · ' + sub);
       b.addEventListener('click', open); nodes.append(b);
       // satellites: the flow steps (state as colour) then the agents used (by function), then the project's own workflows
@@ -288,7 +291,7 @@
   function activity(d) {
     var events = (d && d.activity || []).slice(0, 10);
     document.querySelectorAll('#activityList .activity-item').forEach(function (row, i) {
-      if (row.querySelector('.cc-act-icon')) return;
+      if (row.querySelector('.cc-act-icon') || row.hasAttribute('data-cc-agent')) return;
       var e = events[i], who = row.querySelector('.activity-text b'), name = who ? who.textContent : '';
       if (e && (e.orchestrator || 'RADIX') !== name) e = null; // a different snapshot: no guess
       var pi = (d.projects || []).findIndex(function (p) { return p.name === name; });
@@ -319,15 +322,61 @@
     badge('#approvals', document.querySelectorAll('#attentionList .workflow-card').length);
   }
 
+
+  // Live Activity per agent (mockup): the latest saved steps with done / in progress, when the API sends agentActivity.
+  var STATE = { done: ['done', 'Completato'], running: ['run', 'In corso'], error: ['err', 'Errore'], pending: ['info', 'In attesa'] };
+  function hhmm(at) { var d = new Date(at); return isNaN(d) ? '' : ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+  function liveAgents() {
+    var box = document.getElementById('activityList'), rows = snap && Array.isArray(snap.agentActivity) ? snap.agentActivity : [];
+    if (!box || !rows.length || box.querySelector('[data-cc-agent]')) return;
+    box.replaceChildren.apply(box, rows.slice(0, 10).map(function (a) {
+      var row = node('div', 'activity-item cc-act'); row.setAttribute('data-cc-agent', a.agentId || '');
+      var txt = node('div', 'activity-text'); txt.append(node('b', '', a.agentName || agentName(a.agentId)), node('br'), document.createTextNode(a.task || ''));
+      var pi = (snap.projects || []).findIndex(function (p) { return p.id === a.projectId; });
+      var ic = node('i', 'cc-act-icon agent', '✦'); ic.style.setProperty('--ac', pi === -1 ? '#9a6bff' : hubColor(snap.projects[pi].name, pi));
+      if (pi !== -1) ic.title = snap.projects[pi].name;
+      var k = STATE[a.state] || STATE.pending, r = node('i', 'cc-ring ' + k[0]); r.title = k[1];
+      row.append(node('div', 'activity-time', hhmm(a.at)), txt, ic, r);
+      return row;
+    }));
+  }
+
+  // Digital Team by function (mockup): configured agents, how many run now, last step seen; from snap.team.
+  function teamCards() {
+    var grid = document.getElementById('teamGrid'), team = snap && Array.isArray(snap.team) ? snap.team : [];
+    if (!grid || !team.length || grid.querySelector('.cc-team')) return;
+    var note = grid.querySelector('.team-disclaimer');
+    grid.replaceChildren.apply(grid, team.map(function (g) {
+      var c = node('div', 'team-card cc-team' + (g.active ? ' on' : '')); c.dataset.group = g.group;
+      var st = g.active ? g.active + ' in corso' : g.lastAt ? 'Ultimo passo ' + new Date(g.lastAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) : 'Nessun passo salvato';
+      c.title = st; c.append(node('div', 'team-title', g.label), node('div', 'team-count', String(g.configured)), node('div', 'team-sub', g.active ? 'configurati · ' + g.active + ' in corso' : 'agenti configurati'), node('div', 'team-status', st));
+      return c;
+    }).concat(note ? [note] : []));
+  }
+
+  // Knowledge & Resources (mockup): the counts on top of the page's resource list; unknown numbers stay «—».
+  function knowledgeCounts() {
+    var list = document.getElementById('knowledgeList'), k = snap && snap.knowledge;
+    if (!list || !k || list.querySelector('.cc-know')) return;
+    var box = node('div', 'cc-know');
+    [['documents', 'Documenti'], ['conversations', 'Messaggi agenti'], ['memoryConfirmed', 'Memoria confermata'], ['memoryPending', 'Da confermare']].forEach(function (r) {
+      var v = k[r[0]], c = node('div', 'cc-know-n' + (r[0] === 'memoryPending' && v ? ' warn' : ''));
+      c.append(node('b', '', v == null ? '—' : String(v)), node('span', '', r[1])); box.append(c);
+    });
+    list.insertBefore(box, list.firstChild);
+  }
+
   var snap = null;
   if (document.getElementById('activityList')) {
     fetch('/api/state?view=dashboard', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-      if (!d) return; snap = d; sidebar(d); activity(d); counts();
+      if (!d) return; snap = d; sidebar(d); liveAgents(); activity(d); counts(); teamCards(); knowledgeCounts(); build();
     }).catch(function () {});
     attention();
     new MutationObserver(function () { attention(); counts(); }).observe(document.getElementById('attentionList'), { childList: true });
     steppers(); var wl = document.getElementById('workflowList'); if (wl) new MutationObserver(steppers).observe(wl, { childList: true });
-    new MutationObserver(function () { if (snap) activity(snap); }).observe(document.getElementById('activityList'), { childList: true });
+    new MutationObserver(function () { if (snap) { liveAgents(); activity(snap); } }).observe(document.getElementById('activityList'), { childList: true });
+    var tg = document.getElementById('teamGrid'); if (tg) new MutationObserver(teamCards).observe(tg, { childList: true });
+    var kl = document.getElementById('knowledgeList'); if (kl) new MutationObserver(knowledgeCounts).observe(kl, { childList: true });
   }
 
   // 4th KPI: «Sistemi connessi» from /api/integrations/status (configured keys / services RADIX integrates).
