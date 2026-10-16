@@ -171,21 +171,21 @@ html.so-globe .app #main .orbit-stage .hologram{display:none}
 
 /* ---------- sidebar: line icons like the mockup ---------- */
 @media (min-width:1100px){.app{grid-template-columns:200px minmax(0,1fr)}}
-.app .sidebar{background:#03121b}
-.app .sidebar nav{gap:4px;padding:6px 10px}
-.app .sidebar nav a{min-height:50px;font-size:15px;gap:14px;padding:10px 12px}
-.app .sidebar nav a.selected{box-shadow:0 0 18px #2ff0c724}
-.app .sidebar nav a small{font-size:11px}
-.app .sidebar nav a i{position:relative;width:22px;height:22px;flex:none;font-size:0;color:transparent}
-.app .sidebar nav a i::before{content:"";position:absolute;inset:0;background:#a9c9c9;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
-.app .sidebar nav a.selected i::before,.app .sidebar nav a:hover i::before{background:#57f6d6}
-.app .sidebar nav a:nth-child(1){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(2){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cellipse cx='10' cy='6' rx='6' ry='2.5'/%3E%3Cpath d='M4 6v4c0 1.4 2.7 2.5 6 2.5M4 10v4c0 1.4 2.7 2.5 6 2.5M16 6v3'/%3E%3Cellipse cx='15' cy='13' rx='5' ry='2.2'/%3E%3Cpath d='M10 13v5c0 1.2 2.2 2.2 5 2.2s5-1 5-2.2v-5'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(3){--ic:var(--so-i-building)}
-.app .sidebar nav a:nth-child(4){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c.8-4.2 3.9-6.5 8-6.5s7.2 2.3 8 6.5'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(5){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3.5 6l8.5 7 8.5-7'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(6){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4M7.5 14h1M11.5 14h1M15.5 14h1M7.5 17.5h1M11.5 17.5h1'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(7){--ic:var(--so-i-check)}
-.app .sidebar nav a:nth-child(8){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='7'/%3E%3Cpath d='M15.5 15.5L21 21M8 12.5c1.4 1.3 3.6 1.3 5 0M8.5 8.5h.01M12.5 8.5h.01'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(9){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E")}
-.app .sidebar nav a:nth-child(10){--ic:var(--so-i-chart)}
+.app .sidebar:not(.sx-side){background:#03121b}
+.app .sidebar:not(.sx-side) nav{gap:4px;padding:6px 10px}
+.app .sidebar:not(.sx-side) nav a{min-height:50px;font-size:15px;gap:14px;padding:10px 12px}
+.app .sidebar:not(.sx-side) nav a.selected{box-shadow:0 0 18px #2ff0c724}
+.app .sidebar:not(.sx-side) nav a small{font-size:11px}
+.app .sidebar:not(.sx-side) nav a i{position:relative;width:22px;height:22px;flex:none;font-size:0;color:transparent}
+.app .sidebar:not(.sx-side) nav a i::before{content:"";position:absolute;inset:0;background:#a9c9c9;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}
+.app .sidebar:not(.sx-side) nav a.selected i::before,.app .sidebar:not(.sx-side) nav a:hover i::before{background:#57f6d6}
+.app .sidebar:not(.sx-side) nav a:nth-child(1){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(2){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5'%3E%3Cellipse cx='10' cy='6' rx='6' ry='2.5'/%3E%3Cpath d='M4 6v4c0 1.4 2.7 2.5 6 2.5M4 10v4c0 1.4 2.7 2.5 6 2.5M16 6v3'/%3E%3Cellipse cx='15' cy='13' rx='5' ry='2.2'/%3E%3Cpath d='M10 13v5c0 1.2 2.2 2.2 5 2.2s5-1 5-2.2v-5'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(3){--ic:var(--so-i-building)}
+.app .sidebar:not(.sx-side) nav a:nth-child(4){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c.8-4.2 3.9-6.5 8-6.5s7.2 2.3 8 6.5'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(5){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M3.5 6l8.5 7 8.5-7'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(6){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4M7.5 14h1M11.5 14h1M15.5 14h1M7.5 17.5h1M11.5 17.5h1'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(7){--ic:var(--so-i-check)}
+.app .sidebar:not(.sx-side) nav a:nth-child(8){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='7'/%3E%3Cpath d='M15.5 15.5L21 21M8 12.5c1.4 1.3 3.6 1.3 5 0M8.5 8.5h.01M12.5 8.5h.01'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(9){--ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.4 1.1 2.2h5c0-.8.4-1.6 1.1-2.2A6 6 0 0 0 12 3z'/%3E%3C/svg%3E")}
+.app .sidebar:not(.sx-side) nav a:nth-child(10){--ic:var(--so-i-chart)}
