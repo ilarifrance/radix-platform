@@ -1,6 +1,6 @@
 # Collaudo F2 · funzioni della v3.7 nelle nuove pagine
 
-Aggiornato il 16/10/2026 (PR #12). Stato: 31 portate, 6 parziali, 9 mancanti.
+Aggiornato il 16/10/2026 (PR #12). Stato: 34 portate, 6 parziali, 6 mancanti.
 Ogni riga è verificata sul codice; le funzioni con un test automatico sono coperte dalle suite in `tests/` e dai collaudi Playwright locali descritti nella PR.
 
 
@@ -24,9 +24,9 @@ Verificato con grep su: lib/radix-agent-runtime.js, lib/radix-agent-media.js, ag
 | 14 | Riprova i compiti non riusciti | retryFlow | agents-page.js:retryFlow (pulsante in renderFlow) | PORTED | Vale sia per flussi hub sia per la pipeline. |
 | 15 | Pipeline post a 5 agenti in fila | runPipeline, runFrom, callAgent, PIPELINE[i].prompt | agents-page.js:runPipeline, runPipelineFlow (PIPELINE_STEPS); lib/radix-agent-runtime.js PIPELINE | PORTED | Gira come flusso a concorrenza 1; ogni passo riceve tutti i precedenti. Prompt per passo riscritti in PIPELINE_STEPS. |
 | 16 | Mappa orizzontale della pipeline | renderFlowMap, renderPipeline (rail/dot) | agents-page.js:renderFlow (lista di nodi) | PARTIAL | Lo stato e visibile come elenco; manca la mappa a frecce agente->agente. |
-| 17 | Modificare a mano un passo della pipeline | startEditStep, saveEditStep, cancelEditStep | nessuna | MISSING | Nessun pulsante "Modifica" sui nodi del flusso. |
-| 18 | Rigenerare un singolo passo / rispondere a un passo | regenerateStep, replyToStep, runSingleStep, outputsBeforeIndex | nessuna | MISSING | Si puo solo rigenerare tutta la pipeline (#regenerate) o riprovare i nodi in errore. |
-| 19 | Segnare "da aggiornare" i passi successivi | markDownstreamStale (status "stale") | nessuna | MISSING | Serve solo insieme a #17/#18. |
+| 17 | Modificare a mano un passo della pipeline | startEditStep, saveEditStep, cancelEditStep | agents.html (RadixAgents.editNode) | PORTED | Pulsante "Modifica" sui passi completati; il testo salvato registra chi l'ha modificato. |
+| 18 | Rigenerare un singolo passo / rispondere a un passo | regenerateStep, replyToStep, runSingleStep, outputsBeforeIndex | agents.html (RadixAgents.rerunNode) | PORTED | "Rigenera" e "Rispondi" su un singolo passo; la risposta del team e la versione precedente entrano nel prompt. |
+| 19 | Segnare "da aggiornare" i passi successivi | markDownstreamStale (status "stale") | agents.html (RadixAgents.markStale, requeueStale) | PORTED | I passi dipendenti diventano "da aggiornare"; il pulsante "Aggiorna i passi successivi" li rilancia. |
 | 20 | Pannello finale "cosa creare ora" (decisione del Social Media Manager -> video/carosello/Buffer) | renderReadyPanel | nessuna (gli strumenti compaiono sotto ogni nodo via lib/radix-agent-media.js:toolsFor) | MISSING | Carosello, video e Buffer restano raggiungibili sotto i nodi Art Director / AI Specialist / Copywriter, ma senza il pannello che legge "Formato:" e propone il pulsante giusto. |
 | 21 | Copia tutto / scarica tutto il risultato della pipeline | pipelineFullText, #pipelineCopyAll, #pipelineDownloadAll | nessuna | MISSING | Solo Word per singolo nodo (renderFlow, nodi senza documenti). |
 | 22 | Documenti come schede (Apri, Word, Markdown, Copia) e visualizzatore | parseDocuments, stripDocuments, buildDocCard, docActionButtons, openDocumentViewer | lib/radix-agent-runtime.js:parseDocuments, stripDocuments; agents-page.js:docCard, openViewer; agents.html #viewer, #viewer-word, #viewer-md, #viewer-copy | PORTED | Schede e visualizzatore con Word, PDF, Markdown, Excel (se ci sono tabelle) e Testo. |

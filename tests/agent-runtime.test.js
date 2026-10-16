@@ -95,3 +95,16 @@ test('Markdown tables become Excel sheets with numbers kept as numbers',()=>{
  const x=rt.excelXml('Piano / Q4',md);assert.match(x,/<Worksheet ss:Name="1 Piano   Q4">/);assert.match(x,/<Data ss:Type="Number">1200.5<\/Data>/);assert.match(x,/<Data ss:Type="String">da definire/);assert.match(x,/&lt;x&gt;/);
  assert.equal(rt.excelXml('Nessuna','solo testo'),null);
 });
+test('pipeline steps: edit or regenerate one step and mark the later ones to update',async()=>{
+ const flow=rt.makeFlow([{role:'strategist',subtask:'A'},{role:'copywriter',subtask:'B',deps:[1]},{role:'art-director',subtask:'C',deps:[1,2]},{role:'analytics',subtask:'D'}],1);
+ flow.nodes.forEach((n,i)=>{n.status='done';n.output='out'+i});
+ assert.equal(rt.editNode(flow,0,' Nuova direzione ','Anna'),2);assert.deepEqual(flow.nodes.map(n=>n.status),['done','stale','stale','done']);assert.equal(flow.nodes[0].output,'Nuova direzione');
+ assert.throws(()=>rt.editNode(flow,0,'  '),/vuoto/);
+ await assert.rejects(rt.rerunNode(flow,2,{call:async()=>({text:'x'})}),/Aggiorna prima/);
+ const prompts=[];const call=async(role,text)=>{prompts.push(text);return {text:'nuovo '+role}};
+ assert.equal(rt.requeueStale(flow),2);await rt.runNodes(flow,{call,concurrency:1});assert.deepEqual(flow.nodes.map(n=>n.status),['done','done','done','done']);
+ assert.match(prompts[0],/Nuova direzione/);
+ prompts.length=0;const stale=await rt.rerunNode(flow,1,{call,note:'Più breve'});assert.equal(stale,1);assert.match(prompts[0],/Più breve/);assert.match(prompts[0],/LA TUA VERSIONE PRECEDENTE:\nnuovo copywriter/);
+ assert.equal(flow.nodes[2].status,'stale');assert.equal(flow.nodes[3].status,'done');
+ await rt.rerunNode(flow,3,{call:async()=>{throw Error('rete')}});assert.equal(flow.nodes[3].status,'error');
+});

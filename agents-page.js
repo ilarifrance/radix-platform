@@ -91,18 +91,21 @@ function renderFlow(flow,msg){
  box.append(node('h3','Flusso di lavoro · giro '+(flow.round||1)+' · '+done+'/'+flow.nodes.length+' compiti completati'+(flow.status==='halted'?' · fermato':'')));
  flow.nodes.forEach((n,i)=>{
   const row=node('div',undefined,'node'),head=node('div',undefined,'row');
-  head.append(node('strong','#'+(i+1)+' '+n.label),node('span',{done:'consegnato',running:'al lavoro'+(n.progress?' · '+n.progress:''),error:'non riuscito',pending:'in attesa'}[n.status]||n.status,'st '+n.status));
+  head.append(node('strong','#'+(i+1)+' '+n.label),node('span',{done:n.editedBy?'modificato da '+n.editedBy:'consegnato',stale:'da aggiornare',running:'al lavoro'+(n.progress?' · '+n.progress:''),error:'non riuscito',pending:'in attesa'}[n.status]||n.status,'st '+n.status));
   if(n.deps&&n.deps.length)head.append(node('small','usa il risultato di '+n.deps.map(d=>'#'+d).join(', '),'meta'));
   row.append(head,node('small',n.subtask,'meta'));
-  if(n.status==='done'&&n.output){
+  if(n.status==='stale')row.append(node('small','Usa un risultato che è cambiato: aggiornalo per allinearlo.','meta'));
+  if((n.status==='done'||n.status==='stale')&&n.output){
    const docs=rt.parseDocuments(n.output);docs.forEach(d=>row.append(docCard(d,n.label)));
    const note=media.stripSlides(rt.stripDocuments(n.output));
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
    media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id}).forEach(t=>row.append(t));
+   if(!busy)row.append(stepTools(msg,i));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
  });
+ if(flow.nodes.some(n=>n.status==='stale')&&!busy){const a=node('div',undefined,'actions');a.append(btn('Aggiorna i passi successivi',()=>updateStale(msg)));box.append(a)}
  if(flow.nodes.some(n=>n.status==='error')&&!busy){const a=node('div',undefined,'actions');a.append(btn('Riprova i compiti non riusciti',()=>retryFlow(msg)));box.append(a)}
  if(flow.log&&flow.log.length){const det=node('details');det.append(node('summary','Registro del flusso ('+flow.log.length+')'));const log=node('div',undefined,'log');
   log.textContent=flow.log.map(l=>new Date(l.t).toLocaleTimeString('it-IT')+'  '+l.x).join('\n');log.style.whiteSpace='pre-wrap';det.append(log);box.append(det)}
@@ -202,6 +205,29 @@ async function orchestrate(id,hist,msg,round){
   const more=round<rt.MAX_ORCH_ROUNDS?rt.parseRouting(next.content):[];
   if(more.length){next.flow=rt.makeFlow(more,round+1);next.flow.task=flow.task;persist();await orchestrate(id,hist,next,round+1)}
  }catch(e){if(hist.length&&hist[hist.length-1].pending)hist.pop();hist.push({role:'error',content:'Sintesi non riuscita: '+e.message});flow.status='error'}
+}
+// ---- one step of a finished flow: edit by hand, regenerate, or reply to that specialist (v3.7 pipeline) ----
+let stepUi=null;// {flow, i, mode:'edit'|'reply'}
+function stepTools(msg,i){
+ const n=msg.flow.nodes[i],wrap=node('div',undefined,'step-tools');
+ if(stepUi&&stepUi.flow===msg.flow&&stepUi.i===i){
+  const ta=node('textarea');ta.rows=stepUi.mode==='edit'?10:3;ta.value=stepUi.mode==='edit'?n.output:'';ta.placeholder=stepUi.mode==='reply'?'Rispondi a '+n.label+': cosa cambiare o le informazioni che chiedeva':'';ta.setAttribute('aria-label',stepUi.mode==='edit'?'Testo del passo':'Risposta a '+n.label);
+  const ok=btn(stepUi.mode==='edit'?'Salva modifica':'Invia e rigenera',async()=>{const v=ta.value;if(stepUi.mode==='edit'){try{const k=rt.editNode(msg.flow,i,v,user&&user.name);stepUi=null;render();await persist();say('Passo modificato'+(k?': '+k+(k===1?' passo successivo da aggiornare.':' passi successivi da aggiornare.'):'.'))}catch(e){say(e.message)}}else{if(!v.trim()){say('Scrivi la risposta per '+n.label+'.');return}stepUi=null;await runStep(msg,i,v)}});
+  const no=btn('Annulla',()=>{stepUi=null;render()});wrap.append(ta,ok,no);setTimeout(()=>ta.focus(),0);return wrap;
+ }
+ wrap.append(btn('Modifica',()=>{stepUi={flow:msg.flow,i,mode:'edit'};render()}),btn('Rigenera',()=>runStep(msg,i,'')),btn('Rispondi',()=>{stepUi={flow:msg.flow,i,mode:'reply'};render()}));
+ return wrap;
+}
+async function runStep(msg,i,note){
+ if(busy)return;const n=msg.flow.nodes[i];if(!note&&!confirm('Rigenerare il lavoro di '+n.label+'? La chiamata consuma crediti e sostituisce la versione attuale.'))return;
+ busy=true;render();
+ try{const k=await rt.rerunNode(msg.flow,i,{call:(role,text,onP)=>callOne(role,text,onP),note,onUpdate:()=>{render()}});say(n.status==='done'?n.label+' ha consegnato una nuova versione'+(k?'; '+k+(k===1?' passo successivo da aggiornare.':' passi successivi da aggiornare.'):'.'):n.label+' non è riuscito: '+n.output)}
+ catch(e){say(e.message)}finally{busy=false;render();await persist()}
+}
+async function updateStale(msg){
+ if(busy)return;const k=rt.requeueStale(msg.flow);if(!k)return;busy=true;say('Aggiorno '+k+(k===1?' passo':' passi')+' con il nuovo materiale…');render();
+ try{await rt.runNodes(msg.flow,{call:(role,text,onP)=>callOne(role,text,onP),concurrency:msg.flow.pipeline?1:rt.FLOW_CONCURRENCY,onUpdate:()=>{render();persist()}});msg.flow.status=msg.flow.nodes.every(n=>n.status==='done')?'done':'error';say('Passi aggiornati.')}
+ finally{busy=false;render();await persist()}
 }
 async function retryFlow(msg){
  if(busy)return;busy=true;msg.flow.nodes.forEach(n=>{if(n.status==='error'){n.status='pending';n.output=null}});
