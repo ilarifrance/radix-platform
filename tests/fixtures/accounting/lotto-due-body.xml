@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2">
+<FatturaElettronicaHeader>
+<DatiTrasmissione><IdTrasmittente><IdPaese>IT</IdPaese><IdCodice>01234567890</IdCodice></IdTrasmittente><ProgressivoInvio>LOT01</ProgressivoInvio><FormatoTrasmissione>FPR12</FormatoTrasmissione><CodiceDestinatario>M5UXCR1</CodiceDestinatario></DatiTrasmissione>
+<CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>01234567890</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>Rossi &amp; Bianchi S.r.l.</Denominazione></Anagrafica><RegimeFiscale>RF01</RegimeFiscale></DatiAnagrafici><Sede><Indirizzo>Via Giuseppe Verdi</Indirizzo><NumeroCivico>12</NumeroCivico><CAP>20121</CAP><Comune>Milano</Comune><Provincia>MI</Provincia><Nazione>IT</Nazione></Sede></CedentePrestatore>
+<CessionarioCommittente><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>09876543210</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>Radix Studio S.r.l.</Denominazione></Anagrafica></DatiAnagrafici><Sede><Indirizzo>Corso Vittorio Emanuele II</Indirizzo><CAP>10121</CAP><Comune>Torino</Comune><Provincia>TO</Provincia><Nazione>IT</Nazione></Sede></CessionarioCommittente>
+</FatturaElettronicaHeader>
+<FatturaElettronicaBody>
+<DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Divisa>EUR</Divisa><Data>2026-07-31</Data><Numero>A/1</Numero><ImportoTotaleDocumento>122.00</ImportoTotaleDocumento></DatiGeneraliDocumento></DatiGenerali>
+<DatiBeniServizi><DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Hosting luglio</Descrizione><PrezzoUnitario>100.00</PrezzoUnitario><PrezzoTotale>100.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>
+<DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>100.00</ImponibileImporto><Imposta>22.00</Imposta></DatiRiepilogo></DatiBeniServizi>
+</FatturaElettronicaBody>
+<FatturaElettronicaBody>
+<DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD24</TipoDocumento><Divisa>EUR</Divisa><Data>2026-07-31</Data><Numero>A/2</Numero><ImportoTotaleDocumento>55.00</ImportoTotaleDocumento><DatiBollo><BolloVirtuale>SI</BolloVirtuale><ImportoBollo>2.00</ImportoBollo></DatiBollo></DatiGeneraliDocumento>
+<DatiDDT><NumeroDDT>DDT-55</NumeroDDT><DataDDT>2026-07-10</DataDDT></DatiDDT></DatiGenerali>
+<DatiBeniServizi><DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Materiale di consumo</Descrizione><Quantita>5.00</Quantita><PrezzoUnitario>10.00</PrezzoUnitario><PrezzoTotale>50.00</PrezzoTotale><AliquotaIVA>10.00</AliquotaIVA></DettaglioLinee>
+<DatiRiepilogo><AliquotaIVA>10.00</AliquotaIVA><ImponibileImporto>50.00</ImponibileImporto><Imposta>5.00</Imposta></DatiRiepilogo></DatiBeniServizi>
+</FatturaElettronicaBody>
+</p:FatturaElettronica>
