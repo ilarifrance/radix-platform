@@ -264,7 +264,7 @@ for(const zone of [$('thread'),$('composer')]){
 function projectLinks(){
  const box=$('project-links');box.replaceChildren();const id=encodeURIComponent(project.id);
  const links=[];if(project.kind==='agency')links.push(['/agency/project-workspace.html?id='+id,'Workspace Agency']);
- links.push(['/project-editorial.html?project='+id,'Piano editoriale'],['/radix-pm-concept.html?project='+id,'Project manager'],['/agency/memory.html?id='+id,'Memoria del progetto']);
+ links.push(['/project-editorial.html?project='+id,'Piano editoriale'],['/radix-pm-concept.html?project='+id,'Project manager'],['/agency/memory.html?id='+id,'Memoria del progetto'],['/project-profile.html?id='+id,'Profilo per gli agenti']);
  for(const [href,text] of links){const a=node('a',text+' ↗');a.href=href;a.dataset.projectLink='1';box.append(a)}
  $('nav-ped').href='/project-editorial.html?project='+id;$('nav-pm').href='/radix-pm-concept.html?project='+id;$('nav-memory').href='/agency/memory.html?id='+id;
 }
