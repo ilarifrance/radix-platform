@@ -24,3 +24,26 @@ test('channel variants are linked drafts, one per channel, and restore saves an 
  assert.throws(()=>core.addVariant(s,'2','linkedin','3'),/già/);const w=core.addVariant(s,'2','Facebook','3');assert.equal(w.variantOf,'1');
  assert.deepEqual(core.variantsOf(s,'2').map(x=>x.id).sort(),['1','3']);core.updateContent(s,{id:'2',title:'Lancio',channel:'Instagram',date:'2026-11-04',copy:'Testo IG'});assert.equal(s.contents.find(x=>x.id==='2').variantOf,'1');
  core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-04',copy:'Seconda'});const r=core.restoreVersion(s,'1',1);assert.equal(r.revision,3);assert.equal(r.copy,'Testo LinkedIn');assert.equal(r.status,'draft');assert.throws(()=>core.restoreVersion(s,'1',9),/Versione/)});
+
+test('campaigns and rubrics group contents without touching versions or approvals',()=>{
+ const s=ready();core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-03',copy:'Testo'});core.review(s,'1','request');core.review(s,'1','approve');
+ assert.throws(()=>core.saveCampaign(s,{id:'c1',name:' '}),/nome/);assert.throws(()=>core.saveCampaign(s,{id:'c1',name:'Q4',start:'2026-11-30',end:'2026-11-01'}),/finisce prima/);
+ const c=core.saveCampaign(s,{id:'c1',name:'Lancio Q4',start:'2026-11-01',end:'2026-11-02',channels:'LinkedIn'});assert.throws(()=>core.saveCampaign(s,{id:'c2',name:'lancio q4'}),/già/);
+ core.saveRubric(s,{id:'r1',name:'Casi studio',cadence:'Ogni martedì'});
+ const before=JSON.stringify({rev:s.contents[0].revision,status:s.contents[0].status,fp:core.planFingerprint(s)});
+ core.tagContent(s,'1',{campaignId:'c1',rubricId:'r1'});assert.equal(s.contents[0].campaignId,'c1');
+ assert.equal(JSON.stringify({rev:s.contents[0].revision,status:s.contents[0].status,fp:core.planFingerprint(s)}),before);
+ assert.throws(()=>core.tagContent(s,'1',{campaignId:'x'}),/Campagna non trovata/);
+ const st=core.campaignStats(s)[0];assert.equal(st.total,1);assert.equal(st.byStatus.approved,1);assert.equal(st.outside,1,'3 Nov is after the campaign end');assert.deepEqual(st.channels,['LinkedIn']);
+ // a new version and a channel variant keep the labels
+ core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-01',copy:'Testo 2'});assert.equal(s.contents[0].rubricId,'r1');assert.equal(core.campaignStats(s)[0].outside,0);
+ const v=core.addVariant(s,'1','Instagram','2');assert.equal(v.campaignId,'c1');assert.equal(v.rubricId,'r1');
+ core.tagContent(s,'2',{rubricId:''});assert.equal(s.contents[1].rubricId,undefined);
+ assert.equal(core.removeGroup(s,'campaign','c1'),2);assert.equal(s.contents.some(x=>x.campaignId),false);assert.equal(s.contents.length,2);
+ assert.equal(c.name,'Lancio Q4');
+});
+test('rubric suggestions come from the brief topics and skip existing ones',()=>{
+ const s=ready();s.brief.topics='- Metodo RADIX\n2. Casi studio, Dietro le quinte;\nCasi studio';core.saveRubric(s,{id:'r',name:'metodo radix'});
+ assert.deepEqual(core.rubricsFromBrief(s),['Casi studio','Dietro le quinte']);
+ const r=core.restore(JSON.stringify({...s,campaigns:undefined}),'aura');assert.deepEqual(r.campaigns,[]);assert.equal(r.rubrics.length,1);
+});
