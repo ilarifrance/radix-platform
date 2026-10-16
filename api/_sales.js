@@ -21,10 +21,10 @@ function calendarDate(v){return typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.tes
 // Optional record fields (phase A): empty string clears them, as NULL does.
 const TEXT_LIMITS=Object.freeze({website:300,industry:120,email:254,phone:40,city:120,notes:4000,role:120,linkedin_url:300,lost_reason:500,resolution:4000});
 // Saved segment filters: the same fields as the contact segment panel, nothing else.
-const SEGMENT_FILTERS=Object.freeze({role:'text',industry:'text',city:'text',consent:['yes','no'],silent_days:'days'});
+const SEGMENT_FILTERS=Object.freeze({role:'text',industry:'text',city:'text',consent:['yes','no'],silent_days:'days',min_score:'score'});
 function segmentFilters(v){
  if(!object(v)||Object.keys(v).some(k=>!Object.hasOwn(SEGMENT_FILTERS,k)))return false;
- return Object.entries(v).every(([k,x])=>{const t=SEGMENT_FILTERS[k];if(t==='text')return typeof x==='string'&&x.length<=80&&!/[\u0000-\u001f\u007f]/.test(x);if(t==='days')return Number.isInteger(x)&&x>=0&&x<=3650;return t.includes(x)});
+ return Object.entries(v).every(([k,x])=>{const t=SEGMENT_FILTERS[k];if(t==='text')return typeof x==='string'&&x.length<=80&&!/[\u0000-\u001f\u007f]/.test(x);if(t==='days')return Number.isInteger(x)&&x>=0&&x<=3650;if(t==='score')return Number.isInteger(x)&&x>=0&&x<=100;return t.includes(x)});
 }
 function command(body){
  if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k)))fail(400,'Comando non valido.');

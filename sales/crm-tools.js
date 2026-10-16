@@ -73,28 +73,31 @@ function segmentPanel(){
  const city=field('Città azienda contiene',Object.assign(E('input'),{maxLength:80}));
  const consent=field('Consenso marketing',E('select'));[['','Tutti'],['yes','Solo con consenso'],['no','Senza consenso']].forEach(([v,t])=>{const o=E('option',t);o.value=v;consent.append(o)});
  const silent=field('Non sentiti da almeno (giorni)',Object.assign(E('input'),{type:'number',min:'0',max:'3650'}));
+ const minScore=field('Punteggio minimo (0–100)',Object.assign(E('input'),{type:'number',min:'0',max:'100'}));
  const out=E('div',undefined,'muted');
  const filterOf=async()=>{
   const companies=new Map((await exportRows('companies')).map(c=>[low(c.name),c]));
   const last=new Map();for(const i of app().rows('interactions')){const t=Date.parse(i.occurred_at);if(i.contact_id&&(!last.has(i.contact_id)||last.get(i.contact_id)<t))last.set(i.contact_id,t)}
-  const days=silent.value===''?null:Number(silent.value);
+  const days=silent.value===''?null:Number(silent.value),min=minScore.value===''?null:Number(minScore.value);
+  const data=scoreData(),now=Date.now();
   return r=>{const c=companies.get(low(r.company))||{};
    if(role.value&&!low(r.role).includes(low(role.value)))return false;
    if(industry.value&&!low(c.industry).includes(low(industry.value)))return false;
    if(city.value&&!low(c.city).includes(low(city.value)))return false;
    if(consent.value==='yes'&&!r.marketing_consent)return false;if(consent.value==='no'&&r.marketing_consent)return false;
    if(days!=null){const t=last.get(r.id);if(t&&Date.now()-t<days*DAY)return false}
+   if(min!=null&&window.RadixCrmScore&&RadixCrmScore.score(r,data,now).total<min)return false;
    return true}};
  const show=B('Mostra segmento',()=>run('Calcolo il segmento…',async()=>{const f=await filterOf();const rows=(await exportRows('contacts')).filter(f);
   out.replaceChildren(E('p',rows.length+' contatti nel segmento'+(rows.length?': ':'.')+rows.slice(0,15).map(r=>r.name+(r.company?' ('+r.company+')':'')).join(', ')+(rows.length>15?' …':'')));app().notice('Segmento calcolato.')}));
  const exp=B('Esporta segmento CSV',async()=>{let f;try{f=await filterOf()}catch(e){app().error(e.message);return}exportCsv('contacts',f)});
  const a=E('div',undefined,'actions');a.append(show,exp);
  // Saved segments (sales_segments): the same five filters, shared by the workspace.
- const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}return f};
+ const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}if(minScore.value!==''){const n=Number(minScore.value);if(!Number.isInteger(n)||n<0||n>100)throw new Error('Punteggio minimo: un numero intero da 0 a 100.');f.min_score=n}return f};
  const saved=E('select');saved.setAttribute('aria-label','Segmenti salvati');const savedRows=new Map();
  const fillSaved=rows=>{savedRows.clear();saved.replaceChildren();const o=E('option',rows.length?'Segmenti salvati…':'Nessun segmento salvato');o.value='';saved.append(o);for(const r of rows){savedRows.set(r.id,r);const x=E('option',r.name);x.value=r.id;saved.append(x)}};
  const loadSaved=async()=>{try{fillSaved((await app().api('segments')).rows||[])}catch(e){fillSaved([]);out.replaceChildren(E('p','Segmenti salvati non disponibili: '+e.message,'notice'))}};
- saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
+ saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';minScore.value=f.min_score??'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
  const keep=E('div',undefined,'actions crm-saved');keep.append(saved);
  if(app().writable('contacts')){
   keep.append(B('Salva segmento',async()=>{let filters;try{filters=current()}catch(e){app().error(e.message);return}
@@ -109,6 +112,8 @@ function segmentPanel(){
  box.append(keep,form,a,out,E('p','«Non sentiti da» usa le interazioni caricate nella pagina. Per campagne email esporta solo contatti con consenso.','muted'));
  return box;
 }
+// Score inputs: the rows sales.js already loaded (interactions, opportunities, stages).
+const scoreData=()=>({interactions:app().rows('interactions'),opportunities:app().rows('opportunities'),stages:app().rows('stages')});
 // Follow-up rule: open deal with no interaction for N days and no open task -> one task, after confirmation.
 function followUpBar(){
  const bar=E('div',undefined,'actions crm-tools');const n=Object.assign(E('input'),{type:'number',min:'1',max:'365',value:'14'});n.setAttribute('aria-label','Giorni senza contatto');
@@ -153,7 +158,11 @@ window.RadixCrmTools={
   else if(entity==='tasks'&&app().writable('tasks'))(section.querySelector(':scope>.row')||section).append(followUpBar());
  },
  card(entity,row,c,readonly){
-  if(entity!=='contacts'||readonly)return;const bar=E('div',undefined,'actions crm-gdpr');
+  if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');
+   bar.append(B('Bozza di risposta con AI',()=>RadixCrmCopilot.open('Scrivi una bozza di risposta cortese e concreta per il ticket di assistenza «'+row.title+'»'+(row.body?'. Richiesta del cliente: «'+String(row.body).slice(0,1500)+'»':'')+'. Usa solo i dati del CRM, indica cosa verificare prima di inviarla e non promettere nulla che non risulti dai dati.')));c.append(bar);return}
+  if(entity!=='contacts'||readonly)return;
+  if(window.RadixCrmScore){const s=RadixCrmScore.score(row,scoreData());const p=E('p','Punteggio '+s.total+' · '+s.band+' — '+RadixCrmScore.explain(s),'crm-score crm-score-'+s.band);p.dataset.score=String(s.total);c.append(p)}
+  const bar=E('div',undefined,'actions crm-gdpr');
   bar.append(B('Esporta dati (GDPR)',()=>gdprExport(row)));
   if(app().writable('contacts')&&row.name!=='Contatto anonimizzato')bar.append(B('Anonimizza (GDPR)',()=>gdprErase(row),'danger'));
   c.append(bar);
