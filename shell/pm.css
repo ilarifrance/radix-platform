@@ -360,3 +360,10 @@ body.pm-no-plan main#workspace>#stats{display:none}
 .pm-empty-go:hover,.pm-empty-go:focus-visible{box-shadow:0 0 30px #25e3b0aa;outline:2px solid #bffff0;outline-offset:2px}
 .pm-empty-alt{color:#c9a8ff;font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
 @media (max-width:760px){.pm-empty-card{padding:24px 18px}.pm-empty-steps{grid-template-columns:1fr}}
+/* "Ripianifica i ritardi": amber outline action next to + Nuovo progetto, only shown when tasks are late */
+.rx-pm #replan{display:inline-flex;margin-left:auto;align-items:center;gap:6px;color:var(--rx-warning);background:color-mix(in srgb,var(--rx-warning) 10%,transparent);border:1px solid color-mix(in srgb,var(--rx-warning) 55%,transparent);white-space:nowrap}
+.rx-pm #replan::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rx-warning);box-shadow:0 0 8px var(--rx-warning)}
+.rx-pm #replan:hover{background:color-mix(in srgb,var(--rx-warning) 18%,transparent);border-color:var(--rx-warning)}
+.rx-pm #replan[hidden]{display:none}
+.rx-pm .pm-projectbar:has(#replan:not([hidden])) #new-project{margin-left:0}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #replan{height:38px;min-height:0;padding:0 12px}
