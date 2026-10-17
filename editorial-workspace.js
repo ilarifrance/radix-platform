@@ -123,12 +123,21 @@ function renderFillBrief(){const n=approvedAgency().length;$('fillBriefBox').hid
 async function fillBrief(){if(writing||!rt)return;const tasks=approvedAgency();if(!tasks.length)return;
  if(!confirm('Compilare il brief con l’AI partendo da '+tasks.length+' incarichi approvati? La chiamata consuma crediti API; nulla viene salvato finché non lo approvi.'))return;
  writing=true;$('fillBrief').disabled=true;notify('Compilazione del brief dagli incarichi approvati…');
- try{const r=await rt.reply({role:'marketing-orchestrator',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'marketing-orchestrator'},messages:[{role:'user',content:pv.briefPrompt(labels,registryProject&&registryProject.profile?Object.assign({name:registryProject.name},registryProject.profile):{name:project.name},tasks)}]},{onProgress:n=>notify('Compilazione del brief: parte '+n+'…')});
-  const limits=Object.fromEntries(Object.keys(labels).map(k=>[k,$(k).maxLength>0?$(k).maxLength:2000])),fill=pv.parseBrief(r.text,labels,limits);
-  Object.entries(fill).forEach(([k,v])=>{$(k).value=v});briefDirty=true;
+ const limits=Object.fromEntries(Object.keys(labels).map(k=>[k,$(k).maxLength>0?$(k).maxLength:2000])),profile=registryProject&&registryProject.profile?Object.assign({name:registryProject.name},registryProject.profile):{name:project.name};
+ let filled=0,error='';
+ try{
+  // Two passes at most: the second asks only for the fields the first answer left out.
+  for(let pass=1;pass<=2;pass++){
+   const todo=pass===1?labels:Object.fromEntries(Object.keys(labels).filter(k=>!$(k).value.trim()).map(k=>[k,labels[k]]));
+   if(!Object.keys(todo).length)break;
+   try{const r=await rt.reply({role:'brand-strategist',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'brand-strategist'},messages:[{role:'user',content:pv.briefPrompt(todo,profile,tasks)}]},{onProgress:n=>notify('Compilazione del brief: parte '+n+'…')});
+    const fill=pv.parseBrief(r.text,todo,limits);Object.entries(fill).forEach(([k,v])=>{$(k).value=v});filled+=Object.keys(fill).length;briefDirty=true}
+   catch(e){error=e.message;if(pass===1&&!filled)continue}
+  }
   const empty=Object.keys(labels).filter(k=>!$(k).value.trim()).map(k=>labels[k]);
-  notify('Brief compilato: '+Object.keys(fill).length+' campi. '+(empty.length?'Da completare: '+empty.join(', ')+'. ':'')+'Controllalo e premi «Approva strategia e apri PED».');$('briefForm').scrollIntoView({behavior:'smooth'})}
- catch(e){notify('Compilazione non riuscita: '+e.message)}finally{writing=false;$('fillBrief').disabled=false}}
+  notify(filled?'Brief compilato: '+filled+' campi. '+(empty.length?'Ancora vuoti: '+empty.join(', ')+'. ':'')+'Controllalo e premi «Approva strategia e apri PED».':'Compilazione non riuscita: '+(error||'nessun campo compilato')+'.');
+  if(filled)$('briefForm').scrollIntoView({behavior:'smooth'})}
+ finally{writing=false;$('fillBrief').disabled=false}}
 async function proposePlan(){if(writing||!rt)return;if(!state.briefApproved){notify('Approva prima la strategia al passo 1.');return}
  if(!confirm('Chiedere al Social Media Manager AI una proposta di calendario? La chiamata consuma crediti API; nulla entra nel PED finché non scegli i contenuti.'))return;
  writing=true;$('proposePlan').disabled=true;notify('Social Media Manager AI al lavoro sul calendario…');

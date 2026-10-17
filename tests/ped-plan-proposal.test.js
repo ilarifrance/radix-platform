@@ -61,3 +61,7 @@ test('brief prompt uses only approved drafts and the project profile; parseBrief
  assert.throws(()=>pv.parseBrief('niente',labels),/non è leggibile/);
  assert.throws(()=>pv.parseBrief('{"other":"x"}',labels),/nessun campo/);
 });
+
+test('parseBrief also accepts the field labels as keys',()=>{
+ assert.deepEqual(pv.parseBrief('{"Obiettivo":"A","frequency":"B"}',{goal:'Obiettivo',frequency:'Frequenza'}),{goal:'A',frequency:'B'});
+});
