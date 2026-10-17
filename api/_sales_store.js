@@ -20,6 +20,7 @@ function createStore(rawSql){
  const allowedRoles="m.role IN ('owner','admin','member','viewer')";
  const membership=(w,u)=>sql('SELECT m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2',[w,u]).then(r=>r[0]||null);
  return {
+ sql,
  membership,
  leadLists:createLeadListStore(leadSql),
  leadContactJobs:createLeadContactJobsStore(leadSql),

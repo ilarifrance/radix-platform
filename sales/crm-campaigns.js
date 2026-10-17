@@ -3,7 +3,7 @@
    filter of crm-tools.js. Sequences create real CRM tasks (one per step and contact). Campaigns
    prepare one personalised email per contact with marketing consent; each email is sent one at a
    time after its own confirmation (/api/send-email requires it) or opened in the mail client,
-   and is then recorded as an «email» interaction. Nothing is sent automatically. */
+   always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent automatically. */
 (function(root){
 const DAY=864e5;
 const SEQUENCES=Object.freeze([
@@ -34,7 +34,16 @@ function planCampaign(subject,body,contacts){
   ok.push({contact:c,to:c.email,subject:fill(subject,c).slice(0,200),body:fill(body,c).slice(0,4000)})}
  return {emails:ok,skipped};
 }
-const core={SEQUENCES,planSequence,planCampaign,fill};
+// Pure: every marketing email ends with the contact's own unsubscribe link (links: {contactId: token}).
+// An email whose link is missing is left out rather than sent without a way to opt out.
+const UNSUB='\n\n—\nNon vuoi più ricevere queste email? Disiscriviti qui: ';
+function withUnsubscribe(plan,links,origin){
+ const emails=[];let missing=0;
+ for(const e of plan.emails){const t=links&&links[e.contact.id];if(!t){missing++;continue}
+  const url=origin+'/api/sales?unsubscribe='+t,foot=UNSUB+url;emails.push({...e,body:e.body.slice(0,4000-foot.length)+foot,unsubscribeUrl:url})}
+ return {emails,skipped:{...plan.skipped,link:missing}};
+}
+const core={SEQUENCES,planSequence,planCampaign,withUnsubscribe,fill};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmCampaignCore=core;
 
@@ -77,12 +86,15 @@ function campaignPanel(filterOf){
  const ai=B('Scrivi con l’AI',()=>{if(!window.RadixCrmCopilot){app().error('Copilota non disponibile su questa pagina.');return}RadixCrmCopilot.open('Scrivi una email commerciale breve per una campagna ai contatti del segmento che ho selezionato. Dammi oggetto e testo, usa i segnaposto {nome} e {azienda}, tono professionale e concreto, una sola call to action.'+(body.value.trim()?' Parti da questa bozza: «'+body.value.trim().slice(0,1500)+'»':''))});
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
- box.append(ls,lb,row,out,E('p','Si invia una email alla volta, ognuna con la sua conferma. Solo contatti con consenso marketing ed email valida. Ogni invio viene registrato come interazione.','muted'));
+ box.append(ls,lb,row,out,E('p','Si invia una email alla volta, ognuna con la sua conferma. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
  async function prepare(){
   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
   let plan,configured=false;
-  if(!await run('Preparo gli invii…',async()=>{plan=planCampaign(subject.value.trim(),body.value.trim(),await segmentContacts(filterOf));configured=await emailConfigured()}))return;
-  out.replaceChildren(E('p',plan.emails.length+' email pronte'+(plan.skipped.consent?' · '+plan.skipped.consent+' senza consenso escluse':'')+(plan.skipped.email?' · '+plan.skipped.email+' senza email valida':'')+(configured?'':' · invio diretto non configurato (manca Gmail): usa «Apri nel programma email»'),'muted'));
+  if(!await run('Preparo gli invii…',async()=>{plan=planCampaign(subject.value.trim(),body.value.trim(),await segmentContacts(filterOf));
+   const ids=plan.emails.map(e=>e.contact.id),links={};
+   for(let i=0;i<ids.length;i+=300)Object.assign(links,(await app().api('unsubscribe_links',{body:{workspace:app().state.workspace,entity:'unsubscribe_links',action:'create',data:{contacts:ids.slice(i,i+300)}}})).links||{});
+   plan=withUnsubscribe(plan,links,location.origin);configured=await emailConfigured()}))return;
+  out.replaceChildren(E('p',plan.emails.length+' email pronte'+(plan.skipped.consent?' · '+plan.skipped.consent+' senza consenso escluse':'')+(plan.skipped.email?' · '+plan.skipped.email+' senza email valida':'')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(configured?'':' · invio diretto non configurato (manca Gmail): usa «Apri nel programma email»'),'muted'));
   const csv=B('Esporta per stampa unione (CSV)',()=>{const C=window.RadixCrmCsv;if(!C)return;const t=C.toCsv(plan.emails.map(e=>({to:e.to,name:e.contact.name,subject:e.subject,body:e.body})),[{label:'Email',key:'to'},{label:'Nome',key:'name'},{label:'Oggetto',key:'subject'},{label:'Testo',key:'body'}]);const a=E('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='campagna-'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)});
   out.append(csv);
   for(const e of plan.emails){
@@ -91,7 +103,7 @@ function campaignPanel(filterOf){
    const acts=E('div',undefined,'actions');
    const record=async()=>{await post('interactions','create',{title:('Email: '+e.subject).slice(0,200),kind:'email',occurred_at:new Date().toISOString().slice(0,19)+'Z',body:e.body.slice(0,4000),contact_id:e.contact.id,company_id:e.contact.company_id||null});acts.replaceChildren(E('span','Registrata come inviata','muted'))};
    if(configured)acts.append(B('Invia',async()=>{if(!window.confirm('Inviare ora a '+e.to+'?\nOggetto: '+e.subject))return;
-    await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:e.to,subject:e.subject,body:e.body,confirm:true})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record()});app().notice('Email inviata a '+e.to+'.')}));
+    await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:e.to,subject:e.subject,body:e.body,unsubscribeUrl:e.unsubscribeUrl,confirm:true})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record()});app().notice('Email inviata a '+e.to+'.')}));
    const mail=E('a','Apri nel programma email');mail.href='mailto:'+encodeURIComponent(e.to)+'?subject='+encodeURIComponent(e.subject)+'&body='+encodeURIComponent(e.body);
    acts.append(mail,B('Segna come inviata',async()=>{if(await run('Registro l’invio…',record))app().notice('Invio registrato per '+e.contact.name+'.')}));
    item.append(acts);out.append(item);
