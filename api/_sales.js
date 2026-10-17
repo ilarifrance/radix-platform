@@ -7,6 +7,7 @@ const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
 const providerCallback=require('./_lead_provider_callback');
 const unsubscribe=require('./_sales_unsubscribe');
+const clicks=require('./_sales_clicks');
 const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
@@ -94,6 +95,8 @@ function createHandler({getSessionUser,getStore}){
    }
    // Public unsubscribe link from a campaign email: no session, the signed token is the permission.
    if(req.query?.unsubscribe!==undefined)return await unsubscribe.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
+   // Public tracked link from a campaign email: counts the click, then redirects where the email pointed.
+   if(req.query?.click!==undefined)return await clicks.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}
    let user;try{user=getSessionUser(req);}catch{user=null;}
    if(!user||!Number.isInteger(user.uid)||user.uid<1||user.uid>2147483647)fail(401,'Accedi con il tuo account RADIX.');
@@ -110,14 +113,21 @@ function createHandler({getSessionUser,getStore}){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='suggest'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).some(k=>!['name','domain'].includes(k)))fail(400,'Richiesta ricerca pubblica non valida.');
        c={workspace:body.workspace,entity:'lead_public_lookup',data:body.data};
      }else if(body?.entity==='unsubscribe_links'){
-       const ids=body?.data?.contacts;
-       if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).some(k=>k!=='contacts')||!Array.isArray(ids)||!ids.length||ids.length>300||!ids.every(uuid))fail(400,'Richiesta link di disiscrizione non valida (massimo 300 contatti).');
-       c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)]}};
+       const ids=body?.data?.contacts,d=body?.data||{};
+       if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).some(k=>!['contacts','campaign','urls'].includes(k))||!Array.isArray(ids)||!ids.length||ids.length>300||!ids.every(uuid))fail(400,'Richiesta link di disiscrizione non valida (massimo 300 contatti).');
+       // Optional tracked links: up to 10 distinct urls of the email, signed per contact.
+       if(d.urls!==undefined&&(!Array.isArray(d.urls)||d.urls.length>10||!d.urls.every(clicks.validUrl)||!clicks.validCampaign(d.campaign)))fail(400,'Link tracciati non validi: massimo 10 indirizzi http(s) e un nome campagna fino a 80 caratteri.');
+       c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)],...(d.urls?.length?{campaign:d.campaign.trim(),urls:[...new Set(d.urls)]}:{})}};
      }else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)))fail(400,'Parametro non consentito.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
      if(q.due!==undefined && (q.entity!=='tasks'||!['all','overdue','upcoming','unscheduled'].includes(q.due)))fail(400,'Filtro scadenza non valido.');
+     if(q.entity==='email_clicks'){
+       if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||!uuid(q.workspace))fail(400,'Parametri clic non validi.');
+       const store=getStore(),m=await store.membership(q.workspace,user.uid);if(!m||!['owner','admin','member','viewer'].includes(m.role))fail(403,'Membership esplicita richiesta per questo workspace.');
+       return res.status(200).json(await clicks.report(store.sql,q.workspace));
+     }
      if(q.entity==='workspaces'){const store=getStore();return res.status(200).json({rows:await store.workspaces(user.uid)});}
      if(q.entity==='lead_workspaces'){
        if(Object.keys(q).some(k=>k!=='entity'))fail(400,'Parametri archivio non validi.');
@@ -143,12 +153,12 @@ function createHandler({getSessionUser,getStore}){
    }
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
-     if(c.entity==='unsubscribe_links')return res.status(200).json({links:await unsubscribe.links(store.sql,c.workspace,c.data.contacts,unsubscribe.secretOf(process.env))});
+     if(c.entity==='unsubscribe_links'){const secret=unsubscribe.secretOf(process.env);return res.status(200).json({links:await unsubscribe.links(store.sql,c.workspace,c.data.contacts,secret),...(c.data.urls?{clicks:await clicks.links(store.sql,c.workspace,c.data.contacts,c.data.campaign,c.data.urls,secret),urls:c.data.urls}:{})})}
      return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):c.entity==='members'?store.memberCommand(c,user.uid):store.command(c,user.uid))]});
    }
    return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
  }catch(e){
-   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-009 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
+   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-010 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
    const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
  }
  };
