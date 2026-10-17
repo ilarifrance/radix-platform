@@ -132,14 +132,25 @@ async function produceSlides(item){
  const r=await rt.reply({role:'art-director',project:rt.profileFor(registryProject),memoryScope:scope('art-director'),messages:[{role:'user',content:pv.slidesPrompt(item,state.brief)}]});
  const m=/---SLIDES---[\s\S]*?---FINE---/.exec(r.text||'');if(!m||!media.parseSlides(m[0]).length)throw Error('L’Art Director non ha restituito slide valide');return m[0];
 }
+// Stores the graphics of a content on the server (one JPEG per slide) so the approved post goes to Buffer with them.
+async function api(method,query,body){const r=await fetch('/api/workspace?resource=media&'+query,{method,credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'HTTP '+r.status);return d}
+async function attachCanvases(item,canvases){const q='projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id);
+ for(let i=0;i<canvases.length;i++)await api('POST','',{projectId,contentId:item.id,slot:i,dataUrl:canvases[i].toDataURL('image/jpeg',0.9)});
+ await api('DELETE',q+'&from='+canvases.length);return canvases.length}
+async function attachSlides(item){const slides=media.parseSlides(item.slides||''),project=rt&&rt.profileFor(registryProject);if(!slides.length)return 0;
+ try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
+ return attachCanvases(item,slides.map((x,i)=>media.renderSlide(x,i,slides.length,null,project)))}
+async function renderAttached(item,box){try{const d=await api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id));const p=document.createElement('p');p.className='muted';
+  p.textContent=d.items.length?'📎 '+d.items.length+(d.items.length===1?' immagine allegata':' immagini allegate')+': partono con il post su Buffer.':'Nessuna immagine allegata al post.';box.append(p)}catch(e){}}
 function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!item||!media)return;const kind=pv.mediaKind(item);
  const head=document.createElement('p');head.className='muted';box.append(head);
  if(kind==='video'){head.textContent='Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';const t=item.copy.trim()&&media.videoTool(item.copy,{});if(t)box.append(t);return}
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'🎨 Rigenera la grafica':(kind==='carousel'?'🎨 Crea le slide del carosello':'🎨 Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
  b.onclick=async()=>{if(writing||!rt)return;if(!confirm('Chiedere la grafica all’Art Director AI? Consuma crediti API.'))return;writing=true;b.disabled=true;notify('Art Director AI al lavoro…');
-  try{const slides=await produceSlides(item);core.updateContent(state,Object.assign({},item,{slides}));persist('Grafica salvata nel contenuto.');openContent(item.id)}catch(e){notify('Grafica non disponibile: '+e.message)}finally{writing=false;b.disabled=false}};
- box.append(b);if(item.slides){const t=media.carouselTool(item.slides,{project:rt&&rt.profileFor(registryProject),prefix:'ped-'+item.date});if(t){box.append(t);const open=t.querySelector('button');if(open)open.click()}}}
+  try{const slides=await produceSlides(item);core.updateContent(state,Object.assign({},item,{slides}));persist('Grafica salvata nel contenuto.');try{await attachSlides(Object.assign({},item,{slides}))}catch(e){notify('Grafica salvata, ma non allegata al post: '+e.message)}openContent(item.id)}catch(e){notify('Grafica non disponibile: '+e.message)}finally{writing=false;b.disabled=false}};
+ box.append(b);if(item.slides){const t=media.carouselTool(item.slides,{project:rt&&rt.profileFor(registryProject),prefix:'ped-'+item.date});if(t){box.append(t);const open=t.querySelector('button');if(open)open.click()}
+  const att=document.createElement('button');att.type='button';att.textContent='📎 Allega al post le immagini mostrate';att.title='Usa le slide come le vedi ora, anche con gli sfondi AI';att.onclick=async()=>{const cs=[...box.querySelectorAll('canvas')];if(!cs.length)return;att.disabled=true;try{const n=await attachCanvases(item,cs);notify(n+' immagini allegate al post.');openContent(item.id)}catch(e){notify('Immagini non allegate: '+e.message)}finally{att.disabled=false}};box.append(att);renderAttached(item,box)}}
 // One click for the next 31 days: text, automatic check and graphics for every content still at the idea stage.
 // Clean texts go to review for the person's approval; texts with figures to verify stay as drafts. Nothing is published.
 const pendingCopy=()=>{const today=pv.localToday(Date.now(),core.timeZoneOf(state)),limit=new Date(Date.parse(today+'T12:00:00Z')+31*864e5).toISOString().slice(0,10);
@@ -149,7 +160,7 @@ async function writeAll(){if(writing||!rt)return;const list=pendingCopy();if(!li
  writing=true;$('writeAll').disabled=true;let done=0;const check=[],failed=[];
  try{for(const item of list){notify('Scrivo '+(done+1)+' di '+list.length+': '+item.title+'…');
    try{const res=await produceCopy(item);const next={...item,copy:res.text};
-    if(pv.mediaKind(next)!=='video'){try{next.slides=await produceSlides(next)}catch(e){}}
+    if(pv.mediaKind(next)!=='video'){try{next.slides=await produceSlides(next);await attachSlides(next)}catch(e){}}
     core.updateContent(state,next);if(!res.numbers.length)core.review(state,item.id,'request');else check.push(item.title);
     persist();done++}catch(e){failed.push(item.title)}}}
  finally{writing=false;$('writeAll').disabled=false;renderPed();if(selected)openContent(selected)}

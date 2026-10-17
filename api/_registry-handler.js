@@ -242,7 +242,9 @@ async function publications(req,res,db,uid,deps){
  const failed=async(code,message)=>{const rows=await db`UPDATE rx_publications SET status='failed',error=${core.clean(message,500)},updated_at=now() WHERE id=${id} RETURNING *`;return send(res,code,{error:message,item:rows[0]})};
  if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
  let post;
- try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt})}
+ const base='https://'+String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
+ const images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>base+mediaUrl(x.id));
+ try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,images})}
  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
  await log(db,uid,r.projectId,'publication.queued',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,revision:r.revision,mode:r.mode,scheduledAt,postId:String(post.postId)});
@@ -304,9 +306,40 @@ async function importData(req,res,db,uid){
  return send(res,200,{ok:true,...result});
 }
 
-const ROUTES={clients,projects,documents,approvals,activity,publications,import:importData};
+// Images of PED contents. POST stores one image (data URL, PNG or JPEG, at most ~3 MB) in a slot of a content and
+// returns its signed public link; DELETE removes the slots from `from` on. The link is what Buffer fetches.
+const crypto=require('crypto');
+const MEDIA_MAX=4000000;
+function mediaSig(id){const secret=process.env.JWT_SECRET;if(!secret)throw new Error('JWT_SECRET mancante');return crypto.createHmac('sha256',crypto.createHash('sha256').update('rx-media:'+secret).digest()).update(String(id)).digest('hex').slice(0,32)}
+const mediaUrl=id=>'/api/workspace?resource=file&id='+encodeURIComponent(id)+'&s='+mediaSig(id);
+async function media(req,res,db,uid){
+ const q=req.query||{},data=req.method==='POST'?bodyOf(req):q;
+ const projectId=core.clean(data.projectId,80),contentId=core.clean(data.contentId,120);
+ if(!core.validProjectId(projectId)||!contentId)throw new core.InputError('Progetto o contenuto non valido');
+ if(req.method==='GET'){const rows=await db`SELECT id,slot,mime,created_at FROM rx_media WHERE project_id=${projectId} AND content_id=${contentId} ORDER BY slot`;return send(res,200,{items:rows.map(r=>({...r,url:mediaUrl(r.id)}))})}
+ if(req.method==='DELETE'){const from=Math.max(0,Math.min(20,Number(q.from)||0));await db`DELETE FROM rx_media WHERE project_id=${projectId} AND content_id=${contentId} AND slot>=${from}`;return send(res,200,{ok:true})}
+ if(req.method!=='POST')return send(res,405,{error:'Metodo non consentito'});
+ const slot=Number(data.slot),m=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(String(data.dataUrl||''));
+ if(!Number.isInteger(slot)||slot<0||slot>19)throw new core.InputError('Posizione immagine non valida');
+ if(!m||m[2].length>MEDIA_MAX)throw new core.InputError('Immagine non valida o troppo grande');
+ const id=crypto.randomUUID();
+ await db`INSERT INTO rx_media(id,project_id,content_id,slot,mime,data_b64,created_by) VALUES(${id},${projectId},${contentId},${slot},${m[1]},${m[2]},${uid})
+  ON CONFLICT (project_id,content_id,slot) DO UPDATE SET id=EXCLUDED.id,mime=EXCLUDED.mime,data_b64=EXCLUDED.data_b64,created_by=EXCLUDED.created_by,created_at=now()`;
+ return send(res,201,{ok:true,id,url:mediaUrl(id)});
+}
+// Public, signed: lets Buffer (or a browser) fetch one stored image without a RADIX session.
+async function publicFile(req,res,db){
+ const q=req.query||{},id=String(q.id||'');
+ if(!/^[0-9a-f-]{36}$/.test(id)||String(q.s||'')!==mediaSig(id))return send(res,404,{error:'File non trovato'});
+ const rows=await db`SELECT mime,data_b64 FROM rx_media WHERE id=${id}`;if(!rows.length)return send(res,404,{error:'File non trovato'});
+ res.setHeader('Content-Type',rows[0].mime);res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+ return res.status(200).send(Buffer.from(rows[0].data_b64,'base64'));
+}
+
+const ROUTES={clients,projects,documents,approvals,activity,publications,media,import:importData};
 
 module.exports=async(req,res)=>{
+ if(String((req.query||{}).resource||'')==='file'&&req.method==='GET'){try{return await publicFile(req,res,sql())}catch(e){return send(res,503,{error:'File non disponibile'})}}
  res.setHeader('Cache-Control','no-store');
  const user=getSessionUser(req);
  if(!user||!user.uid)return send(res,401,{error:'Accesso RADIX richiesto'});
