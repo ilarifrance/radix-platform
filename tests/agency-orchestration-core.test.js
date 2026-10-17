@@ -62,3 +62,12 @@ test('flags speed promises that no source states',()=>{
  const flagged=route.unsupportedNumbers('Piano pronto in 2 minuti, video in 10 minuti, risposta in soli 10 secondi. Revisione in 1 ora.',['Il tempo di revisione è in 1 ora']).map(x=>x.claim);
  assert.deepEqual(flagged,['in 2 minuti','in 10 minuti','in soli 10 secondi']);
 });
+
+test('applies only the review fixes found verbatim in the draft',()=>{
+ const draft='Il commerciale mi ha chiamato giovedì. Preventivo più basso di 1.500 euro. Fine.';
+ const r=route.applyReview(draft,'Ecco:\n[{"trova":"Il commerciale mi ha chiamato giovedì.","sostituisci":"Succede spesso: il commerciale chiama.","motivo":"episodio inventato"},{"trova":"più basso di 1.500 euro","sostituisci":"più basso","motivo":"cifra non fornita"},{"trova":"testo assente","sostituisci":"x"},{"trova":"Fine.","sostituisci":"Fine."}]');
+ assert.equal(r.text,'Succede spesso: il commerciale chiama. Preventivo più basso. Fine.');
+ assert.equal(r.applied.length,2);assert.equal(r.skipped,2);assert.equal(r.applied[0].motivo,'episodio inventato');
+ assert.deepEqual(route.applyReview(draft,'non è JSON'),{text:draft,applied:[],skipped:0});
+ assert.match(route.reviewPrompt('BOZZA X','FATTI Y'),/FONTI:\nFATTI Y[\s\S]*BOZZA:\nBOZZA X/);
+});

@@ -121,5 +121,24 @@ function missingInfo(output){
  String(output||'').replace(/\[([^\]\n]{4,80})\]/g,(m,inner)=>{if(/fornire|inserire|da definire|completare|reale|tuo|tua/i.test(inner))add(m);return m});
  return out;
 }
-return Object.freeze({missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+// Quality pass: the reviewer answers with exact find/replace pairs; only text found verbatim in the draft changes.
+function applyReview(draft,reply){
+ const t=String(reply||''),a=t.indexOf('['),b=t.lastIndexOf(']');let list=[];
+ if(a>=0&&b>a){try{list=JSON.parse(t.slice(a,b+1))}catch(e){list=[]}}
+ let text=String(draft||'');const applied=[];let skipped=0;
+ (Array.isArray(list)?list:[]).slice(0,20).forEach(x=>{
+  const find=x&&typeof x.trova==='string'?x.trova:'',repl=x&&typeof x.sostituisci==='string'?x.sostituisci:null;
+  if(find.length<3||repl===null||find===repl||!text.includes(find)){skipped++;return}
+  text=text.split(find).join(repl);applied.push({trova:find.slice(0,300),sostituisci:repl.slice(0,300),motivo:String(x.motivo||'').slice(0,200)});
+ });
+ return {text,applied,skipped};
+}
+function reviewPrompt(draft,sources){
+ return ['Sei il revisore qualità di RADIX Agency. Controlla la BOZZA qui sotto rispetto a FATTI VERIFICATI, BRIEF e MATERIALI APPROVATI.',
+  'Correggi solo questi problemi: numeri, percentuali, cifre, clienti o casi che non compaiono nelle fonti; episodi raccontati in prima persona a nome del cliente che non compaiono nelle fonti (riscrivili come scenario tipico in terza persona, senza cifre); promesse di prestazioni (tempi, velocità, «perfetto», «garantito») non presenti nelle fonti; strumenti o fornitori esterni non previsti dalle fonti; giorni della settimana che non corrispondono alle date del calendario fornito.',
+  'Non riscrivere lo stile e non accorciare. Rispondi solo con un array JSON, senza testo prima o dopo: [{"trova":"testo copiato esattamente dalla bozza","sostituisci":"testo corretto","motivo":"breve"}]. Massimo 20 elementi; se non c\'è nulla da correggere rispondi [].',
+  'FONTI:\n'+String(sources||'').slice(0,40000),
+  'BOZZA:\n'+String(draft||'').slice(0,40000)].join('\n\n');
+}
+return Object.freeze({applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });
