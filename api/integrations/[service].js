@@ -7,6 +7,7 @@
 const handlers = Object.freeze({
   'buffer': () => require('../_buffer'),
   'heygen': () => require('../_heygen'),
+  'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),
   'send-email': () => require('../_send-email'),
   'status': () => require('../_integrations-status')
