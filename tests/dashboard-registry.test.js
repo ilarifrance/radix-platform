@@ -28,3 +28,20 @@ test('state API adds the registry when it exists and keeps working without it',(
  assert.match(src,/catch \(_\) \{ \/\* registry not migrated yet/);
  assert.match(fs.readFileSync('control-center-v2.html','utf8'),/Agenti AI sul progetto/);
 });
+
+test('Command Center data for the mockup: project orchestrator, team by function, agent activity, knowledge counts',()=>{
+ const base=dashboard({data:{projects:[],history:{}}},{name:'Anna'},now);
+ const reg={projects:[{id:'p1',name:'Aura',kind:'brand',modules:['agents']},{id:'p2',name:'Doc',kind:'agency',modules:[]}],approvals:[],activity:[],
+  agentDocs:[{project_id:'p1',data:{conversations:{'marketing-orchestrator':[{role:'user',content:'a'},{role:'assistant',content:'b',flow:{status:'running',task:'Lancio',startedAt:now-60000,nodes:[{role:'copywriter',status:'done',subtask:'Post',startedAt:now-50000,endedAt:now-40000,output:'PRIVATE_OUT'},{role:'art-director',status:'running',subtask:'Carosello',startedAt:now-30000}]}}],copywriter:[{role:'user',content:'c'}]}}}],
+  knowledge:{documents:7,memory_confirmed:2,memory_pending:1}};
+ const d=withRegistry(base,reg,now);
+ const aura=d.projects.find(p=>p.id==='p1');
+ assert.deepEqual(aura.orchestrator,{id:'marketing-orchestrator',name:'Orchestratore Marketing'});
+ assert.deepEqual(aura.agents.map(a=>a.id),['marketing-orchestrator','copywriter']);
+ assert.equal(d.projects.find(p=>p.id==='p2').orchestrator,null);
+ const mk=d.team.find(t=>t.group==='marketing');assert.equal(mk.label,'Marketing');assert.ok(mk.configured>=10);assert.equal(mk.active,1);
+ assert.deepEqual(d.agentActivity.map(a=>[a.agentName,a.state]),[['Art Director','running'],['Copywriter','done']]);
+ assert.deepEqual(d.knowledge,{documents:7,conversations:3,memoryConfirmed:2,memoryPending:1});
+ assert.doesNotMatch(JSON.stringify(d),/PRIVATE_/);
+ assert.equal(withRegistry(base,{...reg,knowledge:null},now).knowledge.documents,null);
+});

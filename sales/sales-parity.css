@@ -140,7 +140,7 @@ html.cx-on #contacts>article.card{display:none}
 .cx-avatar.lg{width:64px;height:64px;font-size:20px;box-shadow:0 0 0 2px #54a8ff,0 0 22px #54a8ff80}
 .cx-avatar.xl{width:118px;height:118px;font-size:36px;box-shadow:0 0 0 3px #36edbd,0 0 0 9px #36edbd1a,0 0 30px #36edbd70}
 .cx-table{background:#071f29cc;border:1px solid #1f5a5c;border-radius:14px;overflow:hidden}
-.cx-row{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(90px,1fr) 90px minmax(110px,1.2fr);gap:12px;align-items:center;width:100%;min-height:0;padding:12px 14px;border:0;border-bottom:1px solid #18444a;border-radius:0;background:transparent;text-align:left;color:var(--text);font-size:13px}
+.cx-row{display:grid;grid-template-columns:minmax(130px,1.25fr) 72px minmax(80px,.9fr) 78px minmax(100px,1.1fr);gap:10px;align-items:center;width:100%;min-height:0;padding:12px 14px;border:0;border-bottom:1px solid #18444a;border-radius:0;background:transparent;text-align:left;color:var(--text);font-size:13px}
 .cx-row:last-child{border-bottom:0}
 .cx-row.cx-head{font-size:12px;color:#9fbdc0;font-weight:600;padding:12px 14px;background:#0a2833}
 button.cx-row:hover{background:#0b2f38}
@@ -188,7 +188,7 @@ button.cx-node:hover .cx-avatar{box-shadow:0 0 0 2px #36edbd,0 0 18px #36edbd}
 .cx-legend span::before{content:"";display:inline-block;width:26px;height:0;border-top:2px solid #36edbd;vertical-align:middle;margin-right:8px}
 .cx-legend span.weak::before{border-top:2px dashed #54cbda}
 @media(max-width:1200px){.cx{grid-template-columns:1fr}}
-@media(max-width:640px){.cx-row{grid-template-columns:1fr 1fr}.cx-row.cx-head{display:none}.cx-grid{grid-template-columns:1fr}.cx-id{flex-direction:column;align-items:flex-start}.cx-avatar.xl{width:80px;height:80px;font-size:26px}}
+@media(max-width:640px){.cx-row{grid-template-columns:1fr auto}.cx-row.cx-head{display:none}.cx-grid{grid-template-columns:1fr}.cx-id{flex-direction:column;align-items:flex-start}.cx-avatar.xl{width:80px;height:80px;font-size:26px}}
 
 /* ---------- Panoramica commerciale (dashboard-view.js) ---------- */
 html.pv-on #dashboard>.metrics{display:none}
@@ -514,3 +514,79 @@ td.late{color:#ff8f80}
 @media(max-width:900px){.an-two,.an-three{grid-template-columns:1fr}.an-kpis{grid-template-columns:1fr 1fr}.an-q-grid{grid-template-columns:1fr 1fr}.an-top th:nth-child(2),.an-top td:nth-child(2),.an-top th:nth-child(6),.an-top td:nth-child(6){display:none}}
 /* Build notes are not for users: hide the "Foundation da validare" badge and the "Sviluppi futuri" panel */
 body>header>.badge,#content+section.panel{display:none!important}
+/* contact score (crm-score-core.js): number + band, colour by band */
+.cx-score{display:inline-flex;align-items:baseline;gap:5px;justify-self:start;border-radius:8px;padding:3px 8px;background:#0c3138;color:#9fbdc0;font-size:12px}
+.cx-score b{font-size:14px;color:#e6f6f2}.cx-score small{font-size:10.5px;text-transform:capitalize}
+.cx-score.crm-score-caldo{background:#3a1d14;box-shadow:inset 0 0 0 1px #ff8a5c55}.cx-score.crm-score-caldo small,.cx-score.crm-score-caldo b{color:#ffb08a}
+.cx-score.crm-score-tiepido{background:#3a3016;box-shadow:inset 0 0 0 1px #f5c66b44}.cx-score.crm-score-tiepido small{color:#f5c66b}
+.cx-score.crm-score-freddo{background:#0d2a3d;box-shadow:inset 0 0 0 1px #5fb4ff33}.cx-score.crm-score-freddo small{color:#8fc8ff}
+.cx-score-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 2px;font-size:12px;color:#9fbdc0}
+
+/* ---------- Sequenze e campagne (crm-campaigns.js), same look as the Contatti panels ---------- */
+details.crm-campaigns{padding:0;overflow:hidden}
+details.crm-campaigns>summary{cursor:pointer;padding:16px 20px;font-weight:600;color:#e6f6f2;list-style-position:inside}
+details.crm-campaigns[open]>summary{border-bottom:1px solid #18444a}
+/* two columns: sequences | campaign (the children sit in the details content box) */
+details.crm-campaigns[open]::details-content{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);align-items:start}
+.crm-sequence,.crm-campaign{padding:18px 20px;min-width:0}
+.crm-sequence{border-right:1px solid #18444a;align-self:stretch}
+.crm-sequence h3,.crm-campaign h3{margin:0 0 12px;font-size:15px;color:#fff}
+.crm-sequence>.actions{display:grid;grid-template-columns:1fr;gap:8px;margin:0}
+.crm-sequence select{width:100%;min-height:40px;font-size:13px}
+.crm-sequence>.actions button{justify-self:start}
+.crm-sequence>label{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:12.5px;color:#cfe6e1;cursor:pointer}
+.crm-sequence>label input[type=checkbox]{width:16px;height:16px;min-height:0;margin:0;flex:none;accent-color:#3fe8bd}
+.crm-campaign>label{display:block;font-size:12px;color:var(--muted);margin:0 0 10px}
+.crm-campaign>label input,.crm-campaign>label textarea{display:block;width:100%;margin-top:5px;font-size:13px}
+.crm-campaign>label textarea{min-height:120px;resize:vertical}
+.crm-campaign>.actions{margin:4px 0 0;justify-content:flex-start}
+.crm-campaign button,.crm-sequence button{min-height:36px;padding:6px 14px;font-size:13px}
+.crm-campaign-queue{display:grid;gap:10px;margin-top:14px}
+.crm-campaign-queue:empty{display:none}
+.crm-campaign-queue>p{margin:0;font-size:12.5px;color:#9fbdc0}
+.crm-campaign-queue>button{justify-self:start}
+.crm-campaign-item{display:grid;gap:4px;padding:12px 14px;border:1px solid #1f5a5c;border-radius:12px;background:#071f29cc}
+.crm-campaign-item strong{font-size:13.5px;color:#e6f6f2;overflow-wrap:anywhere}
+.crm-campaign-item>p.muted{margin:0;font-size:12.5px}
+.crm-campaign-item details>summary{cursor:pointer;font-size:12px;color:#7fd6c0}
+.crm-campaign-item .interaction-body{white-space:pre-wrap;font-size:12.5px;margin:6px 0 0;padding:10px;border-radius:8px;background:#0a2833}
+.crm-campaign-item>.actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:6px 0 0;justify-content:flex-start}
+.crm-campaign-item>.actions a{font-size:12.5px;color:#3fe8bd}
+.crm-campaign-item>.actions button{min-height:32px;padding:4px 12px;font-size:12.5px}
+.crm-campaign>p.muted,.crm-sequence>p.muted{font-size:12px;margin:12px 0 0}
+@media(max-width:900px){details.crm-campaigns[open]::details-content{grid-template-columns:1fr}.crm-sequence{border-right:0;border-bottom:1px solid #18444a}}
+
+/* ---------- Automazioni (crm-tools.js, header of Attività): one rule per row ---------- */
+details.crm-automations{flex:1 1 100%;width:100%;padding:0;overflow:hidden}
+details.crm-automations>summary{cursor:pointer;padding:14px 20px;font-weight:600;color:#e6f6f2}
+details.crm-automations[open]>summary{border-bottom:1px solid #18444a}
+details.crm-automations>p.muted{margin:12px 20px 4px;font-size:12px}
+.crm-automation-list{display:grid;padding:4px 12px 12px}
+.crm-automation{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"name count act" "desc count act";gap:2px 16px;align-items:center;padding:12px 8px;border-bottom:1px solid #18444a}
+.crm-automation:last-child{border-bottom:0}
+.crm-automation>strong{grid-area:name;font-size:14px;color:#e6f6f2}
+.crm-automation>span.muted{grid-area:desc;font-size:12.5px;line-height:1.4}
+.crm-automation>.crm-automation-count{grid-area:count;font-size:12px;white-space:nowrap;padding:3px 10px;border-radius:999px;background:#0a2833;color:#7fd6c0}
+.crm-automation:has(button:disabled)>.crm-automation-count{color:#6f9496;background:transparent}
+.crm-automation>button{grid-area:act;min-height:34px;padding:5px 14px;font-size:13px}
+@media(max-width:640px){.crm-automation{grid-template-columns:1fr auto;grid-template-areas:"name name" "desc desc" "count act"}.crm-automation>.crm-automation-count{justify-self:start}}
+
+/* ---------- Possibili doppioni (crm-tools.js dedupePanel), same look as the campaigns panel ---------- */
+details.crm-dedupe{flex:1 1 100%;width:100%;padding:0;overflow:hidden}
+details.crm-dedupe>summary{cursor:pointer;padding:16px 20px;font-weight:600;color:#e6f6f2;list-style-position:inside}
+details.crm-dedupe[open]>summary{border-bottom:1px solid #18444a}
+.crm-dedupe-body{display:grid;gap:12px;padding:16px 20px 20px}
+.crm-dedupe-body>p.muted{margin:0;font-size:12.5px;max-width:760px}
+.crm-dedupe-body>button{justify-self:start;min-height:36px;padding:6px 14px;font-size:13px}
+.crm-dedupe-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.crm-dedupe-list:empty{display:none}
+.crm-dedupe-list>p{grid-column:1/-1;margin:0;font-size:12.5px;color:#9fbdc0}
+.crm-dedupe-list>p.crm-dedupe-count{color:#f5c66b;font-weight:600}
+.crm-dedupe-group{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:12px 14px 14px;border:1px solid #1f5a5c;border-radius:12px;background:#071f29cc}
+.crm-dedupe-group>legend{padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f5c66b;background:#3a3016;box-shadow:inset 0 0 0 1px #f5c66b44}
+.crm-dedupe-group>label.check{display:flex;align-items:flex-start;gap:8px;margin:0;padding:8px 10px;border:1px solid transparent;border-radius:8px;font-size:12.5px;color:#cfe6e1;cursor:pointer;overflow-wrap:anywhere}
+.crm-dedupe-group>label.check:last-of-type{margin-bottom:6px}
+.crm-dedupe-group>label.check:hover{background:#0a2833}
+.crm-dedupe-group>label.check:has(input:checked){border-color:#3fe8bd66;background:#0b2e33;color:#fff}
+.crm-dedupe-group>label.check input[type=radio]{width:16px;height:16px;min-height:0;margin:1px 0 0;flex:none;accent-color:#3fe8bd}
+.crm-dedupe-group>button{align-self:flex-start;margin-top:auto;min-height:32px;padding:4px 12px;font-size:12.5px}

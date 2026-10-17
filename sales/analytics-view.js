@@ -4,7 +4,7 @@
    CRM "Analytics" mockup. Computed from CRM rows only (crm-data.js). The
    "Previsione" panel is a plain weighted sum (amount × stored probability of
    the opportunity, else of its stage) over open deals: no statistical model.
-   forecast() is pure and exported for tests. */
+   forecast() and closings() are pure and exported for tests. */
 (function(root){
 const isOpen=o=>!!o&&(o.outcome==null||o.outcome==='open');
 function forecast(opportunities,stages){
@@ -20,7 +20,22 @@ function forecast(opportunities,stages){
   r.open.weighted=Math.round(r.open.weighted);r.closed=r.won.count+r.lost.count;r.winRate=r.closed?r.won.count/r.closed:null;
   r.lostReasons=[...reasons].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'it')).slice(0,3).map(([reason,count])=>({reason,count}));
   return r}
-const core={isOpen,forecast};
+// Expected closes of open deals: past due, the current month and the next two, later, no date. Each bucket
+// carries count, total and weighted value (same probability rule as forecast()). Dates are compared as
+// YYYY-MM-DD strings against today's date in Italy, so no timezone shifts a deal into another month.
+function closings(opportunities,stages,now){
+  const byId=new Map((stages||[]).filter(Boolean).map(s=>[s.id,s]));
+  const prob=v=>{if(v==null||v==='')return null;const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=100?n:null};
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome'}).format(now instanceof Date?now:new Date(now??Date.now()));
+  const ym=today.slice(0,7),months=[ym];for(let i=1;i<3;i++){const [y,m]=months[i-1].split('-').map(Number);months.push(m===12?(y+1)+'-01':y+'-'+String(m+1).padStart(2,'0'))}
+  const b=()=>({count:0,total:0,weighted:0});const r={overdue:b(),months:months.map(month=>({month,...b()})),later:b(),undated:b()};
+  for(const o of opportunities||[]){if(!isOpen(o))continue;const v=Number(o.amount_cents)||0,p=prob(o.probability)??prob(byId.get(o.stage_id)?.probability)??0;
+    const d=typeof o.expected_close==='string'?o.expected_close.slice(0,10):'';
+    const k=!/^\d{4}-\d{2}-\d{2}$/.test(d)?r.undated:d<today?r.overdue:(r.months.find(x=>x.month===d.slice(0,7))||(d.slice(0,7)>months[2]?r.later:r.overdue));
+    k.count++;k.total+=v;k.weighted+=v*p/100}
+  for(const k of [r.overdue,...r.months,r.later,r.undated])k.weighted=Math.round(k.weighted);
+  return r}
+const core={isOpen,forecast,closings};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.RadixCrmForecast=core;
 if(typeof document==='undefined')return;
@@ -56,6 +71,10 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   line('Vinte',fc.won.count+' · '+eur(fc.won.total));line('Perse',fc.lost.count+' · '+eur(fc.lost.total));
   if(fc.closed)line('Tasso di vittoria',pct(fc.won.count,fc.closed)+'% ('+fc.won.count+' su '+fc.closed+' chiuse)');else fp.append(E('p','Nessuna trattativa chiusa (vinta o persa): tasso di vittoria non calcolabile.','an-note'));
   if(fc.lostReasons.length){fp.append(E('h4','Principali motivi di perdita'));const ol=E('ol');for(const x of fc.lostReasons)ol.append(E('li',x.reason+' · '+x.count));fp.append(ol)}else if(fc.closed)fp.append(E('p','Nessuna trattativa persa.','an-note'));
+  const cl=closings(all,d.stages,Date.now()),mon=m=>MN[Number(m.slice(5))-1]+' '+m.slice(0,4);
+  if(fc.open.count){fp.append(E('h4','Chiusure attese'));const row=(l,x)=>{if(x.count)line(l,x.count+' opp. · '+eur(x.total)+' · pesata '+eur(x.weighted))};
+    row('Data di chiusura superata',cl.overdue);cl.months.forEach(x=>row(mon(x.month),x));row('Più avanti',cl.later);row('Senza data di chiusura',cl.undated);
+    if(cl.overdue.count)fp.append(E('p','Aggiorna la data di chiusura delle trattative scadute: restano nella pipeline ma non in un mese preciso.','an-note'))}
   main.append(fp);
   /* stacked bars by close month and stage */
   const two=E('div',undefined,'an-two');const vel=panel('Pipeline per mese di chiusura','an-bars','Valore per fase, in base alla chiusura prevista');

@@ -47,5 +47,22 @@ function workspaceFromReply(brief,roles,reply,now){
  if(!tasks.length)throw Error('La risposta non contiene incarichi eseguibili: riprova');
  return {schemaVersion:1,createdAt:now||new Date().toISOString(),brief,roles,planText:stripRouting(reply),tasks};
 }
-return Object.freeze({parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS});
+// A person adds an incarico by hand: a specialist from the catalogue, an instruction, optional dependencies
+// on existing incarichi. It starts as «Da avviare» like the orchestrator's ones.
+function addTask(state,input,roles){
+ if(!state||!Array.isArray(state.tasks))throw Error('Piano non valido');
+ if(state.tasks.length>=MAX_TASKS)throw Error('Massimo '+MAX_TASKS+' incarichi per progetto');
+ const role=String(input&&input.role||'');
+ if(!roles||!Object.prototype.hasOwnProperty.call(roles,role)||role==='marketing-orchestrator'||role==='orchestrator')throw Error('Scegli uno specialista del catalogo');
+ const instruction=String(input.instruction||'').trim();
+ if(instruction.length<10)throw Error('Descrivi il compito (almeno 10 caratteri)');
+ if(instruction.length>MAX_INSTRUCTIONS)throw Error('Compito troppo lungo (massimo '+MAX_INSTRUCTIONS+' caratteri)');
+ const ids=new Set(state.tasks.map(t=>t.id)),dependsOn=[...new Set((input.dependsOn||[]).map(String))];
+ if(dependsOn.some(d=>!ids.has(d)))throw Error('Dipendenza non valida');
+ let n=state.tasks.length+1;while(ids.has('step-'+n))n++;
+ const task={id:'step-'+n,role,instruction,dependsOn,status:'proposed',addedBy:'manual'};
+ state.tasks.push(task);state.roles=Object.assign({},state.roles,{[role]:roles[role]});
+ return task;
+}
+return Object.freeze({addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });

@@ -2,7 +2,7 @@
 /* Calendario CRM: settimana / giorno / mese, as in the CRM "Calendario" mockup.
    Events come from CRM rows only (crm-data.js): tasks by due date,
    interactions by date and kind, opportunity closings as all-day items.
-   No external calendar is connected, and the page says so. */
+   No external calendar is connected, and the page says so; the rail exports an .ics file instead. */
 (()=>{
 const content=document.getElementById('content'),nav=document.getElementById('navigation');if(!content||!nav)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
@@ -61,7 +61,13 @@ function rail(d,all){const r=E('aside',undefined,'cal-rail');const t=E('section'
   for(const e of today.slice(0,5)){const row=E('a',undefined,'cal-agenda');row.href=e.href;row.append(E('time',e.allDay?'Tutto il giorno':hm(e.start)));const x=E('div');x.append(E('b',TYPES[e.type][0],TYPES[e.type][1]),E('span',e.title));row.append(x);t.append(row)}
   r.append(t);const nx=all.find(e=>!e.allDay&&+e.start>Date.now()&&!e.done);const n=E('section',undefined,'cal-card cal-next');n.append(E('h3','Prossimo impegno'));
   if(nx){const mins=Math.round((nx.start-Date.now())/6e4);n.append(E('p',(mins<60?'Tra '+mins+' min':mins<1440?'Tra '+Math.round(mins/60)+' ore':nx.start.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' alle '+hm(nx.start))+': '+nx.title+(nx.sub?' con '+nx.sub:'')));const a=E('a','Apri','cal-btn');a.href=nx.href;n.append(a)}else n.append(E('p','Nessun impegno in programma.','cal-empty'));
-  r.append(n);const s=E('section',undefined,'cal-card cal-sync');s.append(E('h3','Calendari esterni'),E('p','Google e Outlook non sono ancora collegati: qui vedi attività, interazioni e chiusure registrate nel CRM.','cal-empty'));r.append(s);return r}
+  r.append(n);const s=E('section',undefined,'cal-card cal-sync');s.append(E('h3','Calendari esterni'),E('p','Google e Outlook non sono ancora collegati: qui vedi attività, interazioni e chiusure registrate nel CRM.','cal-empty'));
+  const ics=window.RadixCrmIcs;if(ics){const b=E('button','Esporta per Google / Outlook (.ics)','cal-btn cal-ics');b.type='button';const note=E('p','','cal-empty cal-ics-note');note.setAttribute('aria-live','polite');
+   b.onclick=()=>{const f=ics.build(d,{owner:state.owner,base:location.origin+location.pathname});if(!f.count){note.textContent='Nessun impegno da esportare'+(state.owner?' per questo responsabile.':'.');return}
+    const a=E('a');a.href=URL.createObjectURL(new Blob([f.text],{type:'text/calendar;charset=utf-8'}));a.download='radix-crm-'+new Date().toISOString().slice(0,10)+'.ics';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+    note.textContent=f.count+' impegni esportati. Importa il file in Google Calendar (Impostazioni › Importa) o in Outlook (Aggiungi calendario › Carica da file); reimportarlo aggiorna gli stessi eventi.'};
+   s.append(b,note)}
+  r.append(s);return r}
 
 let busy=false;
 async function render(){ensureNav();if((location.hash||'')!=='#calendar'){document.getElementById('calendar')?.remove();return}

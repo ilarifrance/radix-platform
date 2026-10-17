@@ -24,6 +24,7 @@ $('projectName').textContent=state.brief.name||'Progetto Agency';$('projectGoal'
 $('progress').firstElementChild.style.width=(state.tasks.length?counts()/state.tasks.length*100:0)+'%';
 $('tasks').innerHTML=state.tasks.map((t,i)=>'<button type="button" class="item'+(i===selected?' active':'')+'" data-index="'+i+'"><span><strong>#'+(i+1)+' '+esc(roleName(t))+'</strong><small>'+esc(t.instruction.slice(0,110))+'</small></span><span class="status '+esc(t.status)+'">'+esc(statuses[t.status]||t.status)+'</span></button>').join('');
 $('tasks').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{selected=Number(b.dataset.index);render()}));
+renderAdd();
 $('planText').innerHTML=renderText(state.planText||'Piano del Marketing Manager non disponibile');
 const t=state.tasks[selected];if(!t){$('detail').innerHTML='<p>Non ci sono incarichi.</p>';return}
 const dep=t.dependsOn.map(id=>state.tasks.find(x=>x.id===id)).filter(Boolean),waiting=dep.filter(x=>x.status!=='approved');
@@ -35,6 +36,16 @@ $('runOne').addEventListener('click',runOne);$('toProduction').addEventListener(
 $('approve').addEventListener('click',async()=>{t.feedback=$('feedback').value.slice(0,3000);if(!confirm('Approvare questa bozza come base per gli incarichi successivi? Non autorizza pubblicazioni né azioni esterne.'))return;try{await recordDecision(t,'approve','')}catch(e){$('message').textContent='Approvazione non registrata: '+e.message;return}t.status='approved';save();render()});
 $('requestChanges').addEventListener('click',async()=>{const feedback=$('feedback').value.trim();if(!feedback){$('message').textContent='Scrivi prima le modifiche richieste.';return}t.feedback=feedback.slice(0,3000);if(t.output){try{await recordDecision(t,'revise',t.feedback.slice(0,1000))}catch(e){$('message').textContent='Richiesta non registrata: '+e.message;return}}t.status='changes_requested';invalidateDependents(t.id);save();render()});
 }
+// Manual incarico: any catalogue specialist, with optional dependencies. Opens with ?role= from a division page.
+let catalogRoles=null,wantedRole=new URLSearchParams(location.search).get('role')||'',addDraft={open:false,text:''};
+function renderAdd(){
+ const roles=Object.assign({},catalogRoles||{},state.roles||{}),ids=Object.keys(roles).filter(r=>r!=='marketing-orchestrator'&&r!=='orchestrator').sort((a,b)=>String(roles[a]).localeCompare(String(roles[b]),'it'));
+ const full=state.tasks.length>=RadixAgencyRouting.MAX_TASKS,box=document.createElement('details');box.id='addTask';box.className='add-task';if(addDraft.open||wantedRole||location.hash==='#addTask')box.open=true;box.addEventListener('toggle',()=>{addDraft.open=box.open});
+ box.innerHTML='<summary>＋ Aggiungi incarico</summary>'+(full?'<p class="muted">Il progetto ha già '+state.tasks.length+' incarichi, il massimo.</p>':'<label>Specialista<select id="addRole">'+ids.map(r=>'<option value="'+esc(r)+'"'+(r===wantedRole?' selected':'')+'>'+esc(roles[r])+'</option>').join('')+'</select></label><label>Compito<textarea id="addInstruction" maxlength="'+RadixAgencyRouting.MAX_INSTRUCTIONS+'" placeholder="Cosa deve produrre lo specialista, per chi e con quali vincoli…">'+esc(addDraft.text)+'</textarea></label>'+(state.tasks.length?'<fieldset><legend>Parte dopo l’approvazione di</legend>'+state.tasks.map((t,i)=>'<label><input type="checkbox" value="'+esc(t.id)+'"> #'+(i+1)+' '+esc(roleName(t))+'</label>').join('')+'</fieldset>':'')+'<button type="button" class="primary" id="addSave">Aggiungi al piano</button>');
+ $('tasks').append(box);if(full)return;$('addInstruction').addEventListener('input',e=>{addDraft.text=e.target.value});
+ $('addSave').onclick=()=>{if(busy)return;try{const t=RadixAgencyRouting.addTask(state,{role:$('addRole').value,instruction:$('addInstruction').value,dependsOn:[...box.querySelectorAll('fieldset input:checked')].map(x=>x.value)},roles);selected=state.tasks.indexOf(t);wantedRole='';addDraft={open:false,text:''};if(history.replaceState){const q=new URLSearchParams(location.search);q.delete('role');history.replaceState(null,'',location.pathname+'?'+q)}save();$('message').textContent='Incarico aggiunto al piano: avvialo quando sei pronto.';render()}catch(e){$('message').textContent=e.message}};
+}
+fetch('./catalog.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.roles){catalogRoles=c.roles;if(state)render()}}).catch(()=>{});
 async function createOperationalTask(t){
  if(t.status!=='approved'||busy)return;
  const ops=ws.bind(key,'agency-operations');let data;try{data=await ops.load()}catch(e){$('message').textContent='Board produzione non leggibile: '+e.message;return}
