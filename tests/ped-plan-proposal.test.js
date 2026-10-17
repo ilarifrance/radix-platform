@@ -42,3 +42,9 @@ test('PED page offers the proposal and wires it to the Social Media Manager',()=
  for(const id of ['proposePlan','planProposal','proposalList','acceptProposal','discardProposal'])assert.ok(html.includes('id="'+id+'"'),id);
  assert.ok(js.includes("role:'social-media-manager'"));assert.ok(js.includes('pv.parsePlan(r.text,state,today)'));assert.ok(js.includes('confirm('));
 });
+
+test('the plan prompt carries the real weekdays of the next 8 weeks',()=>{
+ const p=pv.planPrompt({brief:{}},'2026-10-17');
+ assert.match(p,/\nsab 2026-10-17, dom 2026-10-18\nlun 2026-10-19, mar 2026-10-20, mer 2026-10-21/);
+ assert.match(p,/mer 2026-10-28/);assert.match(p,/ven 2026-12-11/);assert.doesNotMatch(p,/2026-12-12/);
+});
