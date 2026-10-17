@@ -222,6 +222,8 @@ window.RadixCrmTools={
   else if(entity==='tasks'&&app().writable('tasks')){const head=section.querySelector(':scope>.row')||section;head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
  card(entity,row,c,readonly){
+  // The reply block has its own AI draft; the Copilota shortcut stays for roles that cannot record replies.
+  if(entity==='tickets'&&!readonly&&window.RadixCrmTicketReply?.mount&&RadixCrmTicketReply.mount(c,row))return;
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');
    bar.append(B('Bozza di risposta con AI',()=>RadixCrmCopilot.open('Scrivi una bozza di risposta cortese e concreta per il ticket di assistenza «'+row.title+'»'+(row.body?'. Richiesta del cliente: «'+String(row.body).slice(0,1500)+'»':'')+'. Usa solo i dati del CRM, indica cosa verificare prima di inviarla e non promettere nulla che non risulti dai dati.')));c.append(bar);return}
   if(entity!=='contacts'||readonly)return;
