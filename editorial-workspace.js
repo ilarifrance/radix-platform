@@ -148,6 +148,10 @@ async function renderAttached(item,box){try{const d=await api('GET','projectId='
   p.textContent=d.items.length?'📎 '+d.items.length+(d.items.length===1?' immagine allegata':' immagini allegate')+': partono con il post su Buffer.':'Nessuna immagine allegata al post.';box.append(p)}catch(e){}}
 function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!item||!media)return;const kind=pv.mediaKind(item);
  const head=document.createElement('p');head.className='muted';box.append(head);
+ if(kind==='email'){head.textContent='Newsletter via email: si invia dal CRM ai contatti con consenso marketing, con link tracciati e disiscrizione.';
+  const b=document.createElement('button');b.type='button';b.textContent='✉ Prepara la campagna nel CRM';b.disabled=!item.copy.trim();
+  b.onclick=()=>{try{localStorage.setItem('radix-crm-campaign-draft',JSON.stringify({subject:String(item.title||'').slice(0,200),body:String(item.copy||'').slice(0,4000),source:'PED · '+(project&&project.name||''),at:Date.now()}))}catch(e){notify('Il browser non permette di passare la bozza al CRM: copia il testo a mano.');return}location.href='/radix-sales.html#contacts'};
+  box.append(b);return}
  if(kind==='video'){head.textContent='Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';const t=item.copy.trim()&&media.videoTool(item.copy,{});if(t)box.append(t);return}
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'🎨 Rigenera la grafica':(kind==='carousel'?'🎨 Crea le slide del carosello':'🎨 Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
@@ -164,7 +168,7 @@ async function writeAll(){if(writing||!rt)return;const list=pendingCopy();if(!li
  writing=true;$('writeAll').disabled=true;let done=0;const check=[],failed=[];
  try{for(const item of list){notify('Scrivo '+(done+1)+' di '+list.length+': '+item.title+'…');
    try{const res=await produceCopy(item);const next={...item,copy:res.text};
-    if(pv.mediaKind(next)!=='video'){try{next.slides=await produceSlides(next);await attachSlides(next)}catch(e){}}
+    if(!['video','email'].includes(pv.mediaKind(next))){try{next.slides=await produceSlides(next);await attachSlides(next)}catch(e){}}
     core.updateContent(state,next);if(!res.numbers.length)core.review(state,item.id,'request');else check.push(item.title);
     persist();done++}catch(e){failed.push(item.title)}}}
  finally{writing=false;$('writeAll').disabled=false;renderPed();if(selected)openContent(selected)}

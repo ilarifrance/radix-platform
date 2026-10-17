@@ -97,6 +97,9 @@ function campaignPanel(filterOf){
  const ls=E('label','Oggetto');ls.append(subject);const lb=E('label','Testo');lb.append(body);
  const out=E('div',undefined,'crm-campaign-queue');
  const ai=B('Scrivi con l’AI',()=>{if(!window.RadixCrmCopilot){app().error('Copilota non disponibile su questa pagina.');return}RadixCrmCopilot.open('Scrivi una email commerciale breve per una campagna ai contatti del segmento che ho selezionato. Dammi oggetto e testo, usa i segnaposto {nome} e {azienda}, tono professionale e concreto, una sola call to action.'+(body.value.trim()?' Parti da questa bozza: «'+body.value.trim().slice(0,1500)+'»':''))});
+ // A newsletter written in the Piano Editoriale arrives here ready to send (editorial-workspace.js, «Prepara la campagna nel CRM»).
+ try{const d=JSON.parse(localStorage.getItem('radix-crm-campaign-draft')||'null');localStorage.removeItem('radix-crm-campaign-draft');
+  if(d&&Date.now()-Number(d.at)<864e5){subject.value=String(d.subject||'').slice(0,200);body.value=String(d.body||'').slice(0,4000);box.dataset.fromPed=String(d.source||'Piano Editoriale')}}catch{}
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
  const results=E('div',undefined,'crm-campaign-results');
@@ -134,5 +137,5 @@ async function showClicks(out){
  for(const c of d.campaigns)out.append(E('p','«'+c.campaign+'» · '+c.people+(c.people===1?' persona':' persone')+' · '+c.clicks+(c.clicks===1?' clic':' clic')+' · ultimo '+when(c.last_at)));
  const list=E('ul');for(const p of d.people||[])list.append(E('li',p.name+' · «'+p.campaign+'» · '+p.clicks+' clic · '+when(p.last_at)));out.append(list,E('p','Il primo clic di ogni persona su una campagna entra nella sua cronologia, alza il punteggio del contatto e crea un’attività «Richiama» per domani a chi gli ha scritto per ultimo. Alcuni filtri antivirus aprono i link da soli: un clic isolato subito dopo l’invio può non essere una persona.','muted'));app().notice('');
 }
-root.RadixCrmCampaigns={panel(filterOf){const box=E('details',undefined,'panel crm-campaigns');box.append(E('summary','Sequenze e campagne email sul segmento'));if(app().writable('tasks'))box.append(sequencePanel(filterOf));if(app().writable('interactions'))box.append(campaignPanel(filterOf));return box}};
+root.RadixCrmCampaigns={panel(filterOf){const box=E('details',undefined,'panel crm-campaigns');box.append(E('summary','Sequenze e campagne email sul segmento'));if(app().writable('tasks'))box.append(sequencePanel(filterOf));if(app().writable('interactions')){const c=campaignPanel(filterOf);box.append(c);if(c.dataset.fromPed){box.open=true;c.insertBefore(E('p','Newsletter arrivata dal '+c.dataset.fromPed+': scegli il segmento qui sopra (ad esempio «Solo con consenso») e premi «Prepara gli invii». I link vengono tracciati.','notice'),c.children[1]||null)}}return box}};
 })(typeof globalThis!=='undefined'?globalThis:this);

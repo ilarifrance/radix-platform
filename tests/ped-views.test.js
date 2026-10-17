@@ -40,7 +40,7 @@ test('copy is cleaned of notes, media kind follows the channel, slides prompt as
  assert.equal(pv.cleanCopy('```\n# Post\n**Obiettivo:** x\n\n---\n\nTesto del post vero e proprio.\n\n---\n\n**Hashtag:** #PMI\n```'),'Testo del post vero e proprio.\n\n#PMI');
  assert.equal(pv.cleanCopy('Solo testo'),'Solo testo');
  assert.equal(pv.mediaKind({channel:'YouTube'}),'video');assert.equal(pv.mediaKind({channel:'Instagram',title:'Reel'}),'video');
- assert.equal(pv.mediaKind({channel:'Instagram'}),'carousel');assert.equal(pv.mediaKind({channel:'LinkedIn'}),'image');
+ assert.equal(pv.mediaKind({channel:'Instagram'}),'carousel');assert.equal(pv.mediaKind({channel:'LinkedIn'}),'image');assert.equal(pv.mediaKind({channel:'Newsletter email'}),'email');assert.equal(pv.mediaKind({channel:'Email'}),'email');assert.equal(pv.mediaKind({channel:'Newsletter'}),'email');assert.equal(pv.mediaKind({channel:'Newsletter LinkedIn'}),'image');
  assert.match(pv.copyPrompt({},{channel:'YouTube',title:'T'}),/script parlato/);
  const sp=pv.slidesPrompt({channel:'Instagram',title:'T',copy:'Testo'},{brand:'verde'});assert.match(sp,/da 5 a 8 slide/);assert.match(sp,/---SLIDES---/);assert.match(sp,/verde/);
  assert.match(pv.slidesPrompt({channel:'LinkedIn',copy:'x'},{}),/una sola immagine/);
