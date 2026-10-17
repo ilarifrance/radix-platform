@@ -90,3 +90,12 @@ test('agency flow phases follow plan tasks, PED contents and publications',()=>{
  assert.equal(at('publishing').state,'waiting');
  ph=journey({}).phases;assert.ok(ph.every(p=>p.state==='todo'));
 });
+
+test('agency project: the brief saved by new-project counts before a PED exists',()=>{
+ const w={brief:{name:'Personal branding',goal:'Clienti consulenza',audience:'PMI'},tasks:[{id:'step-1',status:'proposed'}]};
+ let j=journey({'agency-workspace':w});
+ assert.equal(step(j,'brief').state,'done');assert.equal(j.phases.find(p=>p.id==='brief').state,'done');
+ assert.equal(j.next,'tasks');
+ j=journey({'agency-workspace':{brief:{name:'x'},tasks:[]}});
+ assert.equal(step(j,'brief').state,'todo');
+});

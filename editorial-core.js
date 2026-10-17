@@ -3,7 +3,7 @@
   const fields=['goal','audience','channels','period','voice','brand','offer','positioning','messages','topics','frequency','kpis','materials','gaps'];
   function missing(brief){return fields.filter(key=>!String(brief[key]||'').trim())}
   function key(owner,project){if(!owner||!project)throw Error('Account e progetto richiesti');return 'radix-editorial:v1:'+encodeURIComponent(owner)+':'+encodeURIComponent(project)}
-  function create(project){return {schemaVersion:1,projectId:String(project.id),brief:{goal:project.summary||'',audience:'',channels:'',period:'',voice:''},briefApproved:false,planApproval:null,contents:[],campaigns:[],rubrics:[]}}
+  function create(project){return {schemaVersion:1,projectId:String(project.id),brief:{goal:project.summary||'',audience:String(project.audience||'').slice(0,500),channels:String(project.channels||'').slice(0,500),period:'',voice:String(project.voice||'').slice(0,2000)},briefApproved:false,planApproval:null,contents:[],campaigns:[],rubrics:[]}}
   function revise(state,brief){
     const next=Object.fromEntries(fields.map(k=>[k,String(brief[k]||'').trim()]));
     const changed=fields.some(k=>(state.brief[k]||'')!==next[k]);

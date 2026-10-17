@@ -67,7 +67,7 @@ if(!confirm('Eseguire '+roleName(t)+'? La chiamata consuma crediti Claude e prod
 busy=true;t.status='running';$('message').textContent='Specialista '+roleName(t)+' in elaborazione…';save();render();
 try{
 const prior=dependencies.map(x=>'## Output approvato da '+roleName(x)+'\n'+String(x.output||'').slice(0,7000)).join('\n\n');
-const p=state.brief;const profile={id:'agency-workspace',name:p.name,kind:p.industry||'Servizi',summary:p.goal,audience:p.audience,positioning:'',voice:p.brandRules||'',channels:(p.channels||[]).join(', '),visual:'',links:'',notes:[p.constraints,p.market,p.budget!==null?'Budget EUR: '+p.budget:''].filter(Boolean).join('\n')};
+const p=state.brief;const profile={id:'agency-workspace',name:p.name,kind:p.industry||'Servizi',summary:p.goal,audience:p.audience,positioning:'',voice:p.brandRules||'',channels:(p.channels||[]).concat(p.platforms||[]).join(', '),visual:'',links:'',notes:[p.constraints,p.market,p.budget!==null?'Budget EUR: '+p.budget:''].filter(Boolean).join('\n')};
 
 const prompt='Sei lo specialista incaricato nel progetto RADIX Agency. Produci un deliverable strutturato e utilizzabile, esclusivamente in bozza. NON eseguire azioni esterne, non pubblicare, non inviare email, non fare deploy, non spendere budget. Non inventare risultati verificati.\nCOMPITO: '+t.instruction+'\n\nFEEDBACK DEL REVISORE: '+(t.feedback||'nessuno')+'\n\nCONTESTO DI PROGETTO: '+state.planText.slice(0,7000)+'\n\nMATERIALI PRECEDENTI APPROVATI:\n'+prior;
 // Long deliverables continue automatically (v3.7 engine); only a reply still cut after every part is an error.
