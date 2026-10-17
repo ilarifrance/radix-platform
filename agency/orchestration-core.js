@@ -90,5 +90,15 @@ function unsupportedNumbers(output,sources){
  }
  return found;
 }
-return Object.freeze({unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+// Calendar of the coming weeks (Europe/Rome), so specialists copy real dates instead of computing weekdays.
+const DAYS=['dom','lun','mar','mer','gio','ven','sab'];
+function calendarWeeks(now,weeks){
+ const ymd=new Date(now||Date.now()).toLocaleDateString('en-CA',{timeZone:'Europe/Rome'}).split('-').map(Number);
+ const d=new Date(Date.UTC(ymd[0],ymd[1]-1,ymd[2]));d.setUTCDate(d.getUTCDate()+((8-d.getUTCDay())%7||7));
+ const fmt=x=>DAYS[x.getUTCDay()]+' '+String(x.getUTCDate()).padStart(2,'0')+'/'+String(x.getUTCMonth()+1).padStart(2,'0')+'/'+x.getUTCFullYear();
+ const out=[];
+ for(let w=1;w<=(weeks||8);w++){const days=[];for(let i=0;i<7;i++){days.push(fmt(d));d.setUTCDate(d.getUTCDate()+1)}out.push('Settimana '+w+': '+days.join(', '))}
+ return out.join('\n');
+}
+return Object.freeze({calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });

@@ -41,3 +41,13 @@ test('flags numeric claims in a draft that no given source contains',()=>{
  assert.deepEqual(route.unsupportedNumbers('+4 milioni in 3 anni e 1M€',sources),[]);
  assert.deepEqual(route.unsupportedNumbers('',sources),[]);
 });
+
+test('calendar weeks start next Monday with correct weekdays in Europe/Rome',()=>{
+ const c=route.calendarWeeks(Date.parse('2026-10-17T16:00:00Z'),8).split('\n');
+ assert.equal(c.length,8);
+ assert.equal(c[0],'Settimana 1: lun 19/10/2026, mar 20/10/2026, mer 21/10/2026, gio 22/10/2026, ven 23/10/2026, sab 24/10/2026, dom 25/10/2026');
+ assert.match(c[1],/^Settimana 2: lun 26\/10\/2026/);
+ assert.match(c[2],/^Settimana 3: lun 02\/11\/2026/);
+ assert.match(route.calendarWeeks(Date.parse('2026-10-18T23:30:00Z'),1),/^Settimana 1: lun 26\/10/);
+ assert.match(route.calendarWeeks(Date.parse('2026-10-19T08:00:00Z'),1),/^Settimana 1: lun 26\/10/);
+});
