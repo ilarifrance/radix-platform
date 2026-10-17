@@ -1445,6 +1445,21 @@ const AGENTS = {
       "ripeti il formato Oggetto/Corpo per ciascuna, una sotto l'altra, con una riga di titolo prima." +
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
   },
+  // CRM copilot: answers on the live CRM snapshot (crmScope) of a workspace the user belongs to.
+  "crm-copilot": {
+    name: "Copilota commerciale",
+    maxTokens: 1800,
+    temperature: 0.2,
+    enforceStyle: false,
+    system:
+      "Sei il Copilota commerciale di RADIX. Lavori sui dati CRM del workspace che trovi in fondo a questo prompt " +
+      "(trattative, attività, contatti, interazioni), aggiornati al momento della domanda.\n\n" +
+      "Come rispondi: in italiano, diretto, breve. Prima la risposta, poi al massimo 5 punti concreti. " +
+      "Quando indichi priorità o rischi spiega il perché con il dato (importo, data, giorni senza contatto). " +
+      "Quando proponi un'azione, scrivi a chi, cosa e entro quando; se serve una bozza di email o di messaggio " +
+      "scrivila pronta da copiare. Non inventare dati che non sono nel CRM: se manca qualcosa dillo e suggerisci " +
+      "quale campo compilare. Non puoi modificare il CRM né inviare messaggi: le azioni le fa la persona.",
+  },
   "comm-crm-manager": {
     name: "Responsabile CRM / Sales Ops",
     maxTokens: 2000,
@@ -1668,13 +1683,24 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { role, messages, brand, project, memoryScope } = body || {};
+  const { role, messages, brand, project, memoryScope, crmScope } = body || {};
   const agent = AGENTS[role] || AGENTS[AGENT_ALIASES[role]] || AGENTS.strategist;
   let system = systemPromptFor(agent, brand, project);
   // Team memory: confirmed decisions, preferences and outcomes for this project and client,
   // read on the server so every agent works from the same memory.
   const memoryBlock = await teamMemoryBlock(memoryScope);
   if (memoryBlock) system += memoryBlock;
+  // CRM copilot: a snapshot of the workspace, read on the server only for its members.
+  if (crmScope) {
+    const { crmContextBlock } = require("./_crm-context");
+    const { sql } = require("./_db");
+    const crmBlock = await crmContextBlock(sql(), req.user && req.user.uid, crmScope);
+    if (!crmBlock && agent === AGENTS["crm-copilot"]) {
+      res.status(403).json({ error: "Non hai accesso a questo workspace CRM, oppure il CRM non è disponibile." });
+      return;
+    }
+    system += crmBlock;
+  }
 
   // Un modello che in una conversazione lunga ha già detto (erroneamente, con un verbo qualsiasi:
   // "creare"/"generare"/"produrre" file scaricabili, "non ho questa/la capacità tecnica", ecc.) tende a

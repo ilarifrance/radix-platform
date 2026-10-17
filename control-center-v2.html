@@ -188,6 +188,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 .command-view-card{border:1px solid #1c4b35;background:#081810;border-radius:11px;padding:13px;cursor:pointer;text-align:left;min-height:94px}.command-view-card:hover{border-color:#2c9660}.command-view-card b{display:block;font-size:11px;margin-bottom:6px}.command-view-card span{display:block;color:#7ba592;font-size:9px;line-height:1.45}
 .lower-grid{grid-template-columns:1.42fr 1fr 1fr .8fr}.quick-panel{grid-column:auto}.quick-actions{display:flex;flex-direction:column;gap:7px;padding:10px}.action{height:39px;display:flex;align-items:center;gap:10px;padding:8px 10px}.action-icon{font-size:13px}.action-title{margin:0;font-size:9px}.action-sub{display:none}
 .search-results{position:absolute;top:49px;left:0;right:0;background:#071710;border:1px solid #2b6a4d;border-radius:11px;padding:7px;z-index:90;box-shadow:0 20px 55px rgba(0,0,0,.65);max-height:360px;overflow:auto}.command{position:relative}.search-hit{display:flex;width:100%;text-align:left;align-items:center;justify-content:space-between;padding:10px;border:0;border-radius:7px;background:transparent;cursor:pointer;color:#d2eddd;font-size:11px}.search-hit:hover,.search-hit:focus{background:#103021}.search-hit small{font-size:9px;color:#6d9981}.search-empty{padding:10px;font-size:10px;color:#6d9981}
+.journey-card{display:block;text-decoration:none;color:inherit}.journey-dots{display:inline-flex;gap:3px}.journey-dot{width:7px;height:7px;border-radius:50%;border:1px solid #2a634a;background:transparent}.journey-dot.done{background:#6ac493;border-color:#6ac493}.journey-dot.active{background:#1e7f53}.journey-dot.waiting{background:#f4d18c;border-color:#f4d18c}
 .attention-list .workflow-card{cursor:pointer}.attention-list .workflow-card .workflow-task{white-space:normal}
 @media(max-width:1250px){.welcome-bar{grid-template-columns:1fr}.lower-grid{grid-template-columns:1.2fr 1fr}.quick-panel{grid-column:auto}.knowledge{grid-column:auto}}
 @media(max-width:860px){.lower-grid{grid-template-columns:1fr 1fr}.welcome-bar .metrics{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -301,8 +302,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 <link rel="stylesheet" href="./command-center-visual-pass-15.css">
 <link rel="stylesheet" href="./command-center-network-refinement.css">
 <link rel="stylesheet" href="./command-center-master.css">
-</head>
-<body>
+<link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/cc.css"><script src="/shell/radix-shell.js" defer></script></head>
+<body class="rx-cc" data-shell-area="cc" data-shell-top="page" data-shell-page="cc">
 <div class="app loading" id="app">
   <aside class="sidebar">
     <div class="brand">
@@ -382,8 +383,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         </div>
         <div class="metrics">
           <article class="metric good"><div class="metric-label">Progetti</div><div class="metric-main"><div class="metric-value" id="metricProjects">—</div><div class="metric-note">registrati</div></div></article>
-          <article class="metric"><div class="metric-label">Workflow</div><div class="metric-main"><div class="metric-value" id="metricWorkflows">—</div><div class="metric-note">in corso nello snapshot</div></div></article>
-          <article class="metric"><div class="metric-label">Approvazioni</div><div class="metric-main"><div class="metric-value" id="metricApprovals">—</div><div class="metric-note">modulo futuro</div></div></article>
+          <article class="metric"><div class="metric-label">Workflow</div><div class="metric-main"><div class="metric-value" id="metricWorkflows">—</div><div class="metric-note">in corso</div></div></article>
+          <article class="metric"><div class="metric-label">Approvazioni</div><div class="metric-main"><div class="metric-value" id="metricApprovals">—</div><div class="metric-note">non ancora attive</div></div></article>
           <article class="metric"><div class="metric-label">Agenti</div><div class="metric-main"><div class="metric-value" id="metricAgents">—</div><div class="metric-note">attività registrata</div></div></article>
         </div>
       </section>
@@ -545,6 +546,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       var next=response.body;
       if(!next||!Array.isArray(next.projects)||!Array.isArray(next.workflows)||!next.metrics)throw new Error('Snapshot RADIX non valido. Riprova.');
       data=next;render();
+      if(typeof currentView==='string'&&currentView!=='network'&&typeof setView==='function')setView(currentView); // a #view link opened before the snapshot arrived
       $('systemStatus').textContent='SNAPSHOT CARICATO';$('syncNotice').hidden=true;$('fatal').classList.remove('show');
       $('app').classList.remove('loading');$('app').inert=false;
     }catch(err){
@@ -602,8 +604,9 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   }
   $('expandNetwork').addEventListener('click',function(){setNetworkExpanded(!$('networkPanel').classList.contains('network-expanded'))});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('networkPanel').classList.contains('network-expanded')){setNetworkExpanded(false);$('expandNetwork').focus()}});
-  function projectItems(id){
-    var shared=!!(data.workspace&&data.workspace.sharedWorkflowCatalog),known=(data.projects||[]).some(function(p){return String(p.id)===String(id)});
+  // ownOnly: the overview shows only the project's own workflows; the shared catalogue has its own node.
+  function projectItems(id,ownOnly){
+    var shared=!ownOnly&&!!(data.workspace&&data.workspace.sharedWorkflowCatalog),known=(data.projects||[]).some(function(p){return String(p.id)===String(id)});
     return (data.workflows||[]).filter(function(w){return id===UNASSIGNED?w.projectId==null:(w.projectId!=null?String(w.projectId)===String(id):known&&shared)}).map(function(w){var common=shared&&w.projectId==null;return {id:w.id,label:(w.orchestrator||'Workflow')+(common?' · condiviso':''),status:w.status,shared:common,workflow:w}});
   }
   function workflowTasks(w){var shared=!!(data.workspace&&data.workspace.sharedWorkflowCatalog&&w.projectId==null);return (w.nodes||[]).map(function(n){return {id:n.id,label:(n.label||n.agentId||'Attività')+(shared?' · condivisa':''),status:n.status,shared:shared,node:n,workflow:w}})}
@@ -613,7 +616,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     return {x:450+Math.cos(angle)*(230+ring*160),y:245+Math.sin(angle)*(155+ring*110)};
   }
   function enterProject(id){focusedProjectId=id;networkDetail=null;networkPage=0;pan={x:0,y:0};zoom=1;setView('network');renderNetwork();applyZoom()}
-  function renderNetwork(){
+  function renderNetwork(){if(!data)return;
     var svg=$('networkSvg'),projects=orderedProjects(),unassigned=projectItems(UNASSIGNED),focused=projects.find(function(p){return String(p.id)===String(focusedProjectId)});
     if(focusedProjectId===UNASSIGNED)focused={id:UNASSIGNED,name:data.workspace&&data.workspace.sharedWorkflowCatalog?'Workflow condivisi':'Attività senza progetto'};
     if(!focused){focusedProjectId=null;networkDetail=null}
@@ -645,7 +648,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         var aura=/aura/i.test(label),clusterRx=aura?178:[151,160,146,156,138][i%5],clusterRy=aura?96:[82,88,78,84,66][i%5],orbitRx=aura?122:[104,113,98,108,92][i%5],orbitRy=aura?68:[54,61,52,58,45][i%5],tilt=[-21,17,14,-16,5][i%5];
         orbits+='<g class="network-cluster" style="--node-color:'+color+'"><ellipse class="cluster-orbit outer" cx="'+c.x+'" cy="'+c.y+'" rx="'+clusterRx+'" ry="'+clusterRy+'" stroke="'+color+'"/><ellipse class="cluster-orbit inner" cx="'+c.x+'" cy="'+c.y+'" rx="'+Math.round(clusterRx*.68)+'" ry="'+Math.round(clusterRy*.7)+'" stroke="'+color+'"/><ellipse class="cluster-orbit tilted" cx="'+c.x+'" cy="'+c.y+'" rx="'+Math.round(clusterRx*.9)+'" ry="'+Math.round(clusterRy*.62)+'" stroke="'+color+'" transform="rotate('+tilt+' '+c.x+' '+c.y+')"/>';
         // One satellite per saved workflow: tasks remain available through drill-down.
-        var items=projectItems(item.id);
+        var items=projectItems(item.id,true);
         items.forEach(function(child,j){var angle=2*Math.PI*j/items.length+.31*i+.17*(j%2),rx=orbitRx+(j%3)*5,ry=orbitRy+(j%2)*5,ax=c.x+Math.cos(angle)*rx,ay=c.y+Math.sin(angle)*ry,key=entries.length;entries.push(child);var taskCount=(child.workflow.nodes||[]).length,satelliteLabel=child.label+' · '+taskCount+' attività · stato salvato: '+(child.status||'non disponibile');
           orbits+='<path class="satellite-tether" data-tether="'+key+'" fill="none" stroke="'+color+'"/><g class="network-target satellite scene-satellite" data-orbit-tether="'+key+'" data-orbit-x="'+c.x+'" data-orbit-y="'+(c.y-15)+'" data-orbit-rx="'+rx+'" data-orbit-ry="'+ry+'" data-orbit-phase="'+angle+'" data-orbit-tilt="'+tilt+'" data-orbit-speed="'+(aura?.2:.16+(i%3)*.012)+'" style="--orbit-x:'+c.x+'px;--orbit-y:'+c.y+'px;--static-x:'+ax+'px;--static-y:'+ay+'px;--orbit-delay:'+(-j*28/Math.max(1,items.length))+'s;--node-color:'+color+'" role="button" tabindex="0" data-network-type="satellite" data-network-project="'+esc(item.id)+'" data-network-key="'+key+'" aria-label="'+esc(satelliteLabel)+'"><title>'+esc(satelliteLabel)+'</title><circle cx="0" cy="0" r="10" fill="url(#sphereLight)" stroke="'+color+'"/><circle cx="0" cy="0" r="3" fill="'+color+'"/><text class="satellite-count" x="14" y="4">'+taskCount+'</text><circle class="satellite-hit" cx="0" cy="0" r="12" fill="transparent" stroke="none"/></g>';
         });
@@ -679,7 +682,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('networkBreadcrumb').innerHTML='<button data-level="root">RADIX</button>'+(focused?' <span>›</span> <button data-level="project">'+esc(focused.name)+'</button>':'')+(networkDetail?' <span>›</span> <button data-level="workflow">'+esc(networkDetail.workflow.orchestrator)+'</button>':'')+(networkDetail&&networkDetail.node?' <span>›</span> <span>'+esc(networkDetail.label)+'</span>':'')+(pages>1?'<span class="network-pagination"><button data-page="-1" '+(networkPage===0?'disabled':'')+'>Precedente</button><span>'+(networkPage+1)+' / '+pages+'</span><button data-page="1" '+(networkPage===pages-1?'disabled':'')+'>Successiva</button></span>':'');
     $('networkBreadcrumb').querySelectorAll('button[data-level]').forEach(function(el){el.onclick=function(){if(el.dataset.level==='root'){focusedProjectId=null;networkDetail=null}else if(el.dataset.level==='project')networkDetail=null;else networkDetail={id:networkDetail.workflow.id,label:networkDetail.workflow.orchestrator,workflow:networkDetail.workflow};networkPage=0;resetNetworkCamera();renderNetwork()}});
     $('networkBreadcrumb').querySelectorAll('button[data-page]').forEach(function(el){el.onclick=function(){networkPage+=Number(el.dataset.page);resetNetworkCamera();renderNetwork()}});
-    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · satelliti: workflow '+(data.workspace&&data.workspace.sharedWorkflowCatalog?'di progetto e condivise':'con progetto assegnato');
+    $('networkCaption').textContent=focused?(visible.length?allVisible.length+' elementi salvati · stato salvato':'Nessun agente o workflow attribuito a questo progetto'):projects.length+' progetti · satelliti: workflow del progetto'+(data.workspace&&data.workspace.sharedWorkflowCatalog?' (quelli condivisi sono in «Workflow condivisi»)':'');
     $('projectTools').hidden=!focused||focused.id===UNASSIGNED||currentView!=='network';
     if(focused&&focused.id!==UNASSIGNED)$('projectTools').innerHTML=['PED','PM','CRM','DOC'].map(function(module){return '<button data-module="'+module+'">'+module+'</button>'}).join('');
     $('projectTools').querySelectorAll('button').forEach(function(el){el.onclick=function(){if(el.dataset.module==='PED'){location.href='/project-editorial.html?project='+encodeURIComponent(focused.id);return}openProject(focused.id);toast(el.dataset.module+' · workspace dedicato in preparazione')}});
@@ -769,7 +772,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
       document.querySelectorAll('[data-blocked]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-blocked'))})});return;
     }
     // Only what still needs someone: blocked workflows and approvals awaiting a decision.
-    var waiting=(data.approvals||[]).filter(function(a){return a.awaiting});
+    var waiting=(data.approvals||[]).filter(function(a){return a.awaiting}).concat(journeyAttention());
     $('approvalMeta').textContent=waiting.length+' da decidere';
     $('attentionList').innerHTML=blocked.filter(function(b){return b.workflowId}).map(function(b){return '<div class="workflow-card" data-blocked="'+esc(b.workflowId)+'"><div class="workflow-name">⚠ '+esc(b.title||'Workflow bloccato')+'</div><div class="workflow-task">'+esc(b.reason||'Verificare nel workspace')+'</div></div>'}).join('')+waiting.map(function(a){return '<a class="workflow-card" href="'+esc(a.href||'#')+'"><div class="workflow-name">'+esc(a.title)+'</div><div class="workflow-task">'+esc(a.reason||'')+'</div></a>'}).join('')||'<div class="empty-state"><b>Niente da approvare</b>Nessuna richiesta aperta e nessun workflow bloccato.</div>';
     document.querySelectorAll('[data-blocked]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-blocked'))})});
@@ -779,9 +782,32 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('activityList').innerHTML=list.map(function(a){return '<div class="activity-item"><div class="activity-time">'+fmtTime(a.at)+'</div><div class="activity-text"><b>'+esc(a.orchestrator||'RADIX')+'</b><br>'+esc(a.text)+'</div></div>'}).join('')||'<div class="empty-state"><b>Nessuna attività recente</b>Gli eventi reali dei workflow appariranno qui.</div>'
   }
   function pct(w){var p=w.progress||{},total=p.total||0;return total?Math.round(((p.done||0)/total)*100):0}
+  // Project flows: each registry project's step states (brief, piano, incarichi, attività), read once per page view.
+  var journeys=null,journeysLoading=false;
+  var STEP_HREF={brief:'/project-editorial.html?project={p}#brief',ped:'/project-editorial.html?project={p}#ped',tasks:'/agency/project-workspace.html?id={p}',pm:'/radix-pm-concept.html?project={p}',agents:'/agents.html?agent=marketing-orchestrator&project={p}'};
+  var STEP_STATE={todo:'pending',active:'running',waiting:'blocked',done:'done'},STEP_WORD={todo:'da fare',active:'in corso',waiting:'da approvare',done:'completato'};
+  function loadJourneys(){
+    if(journeys||journeysLoading||!window.fetch)return;journeysLoading=true;
+    fetch('/api/workspace?resource=projects&journey=1',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){journeys=d.items.filter(function(p){return p.journey&&p.status!=='archived'&&p.journey.steps.some(function(s){return s.state!=='todo'})});renderWorkflows();if(data)renderApprovals()}}).catch(function(){}).then(function(){journeysLoading=false});
+  }
+  // Project steps waiting for a person (strategy to approve, contents or tasks in review), from the journey.
+  function journeyAttention(){
+    var out=[];(journeys||[]).forEach(function(p){(p.journey.steps||[]).forEach(function(s){if(s.state==='waiting'&&STEP_HREF[s.id])out.push({title:p.name+' · '+s.label,reason:s.detail,href:STEP_HREF[s.id].replace('{p}',encodeURIComponent(p.id))})})});
+    return out.slice(0,12);
+  }
+  function journeyCards(){
+    // Projects waiting on a person first, then those in progress; finished ones last.
+    var rank=function(p){var j=p.journey;return j.waiting.length?0:j.next?1:2};
+    return (journeys||[]).slice().sort(function(a,b){return rank(a)-rank(b)}).slice(0,6).map(function(p){
+      var j=p.journey,step=j.steps.find(function(s){return s.id===j.next})||j.steps[j.steps.length-1],href=STEP_HREF[step.id].replace('{p}',encodeURIComponent(p.id));
+      var dots=j.steps.filter(function(s){return s.id!=='agents'}).map(function(s){return '<i class="journey-dot '+esc(s.state)+'" title="'+esc(s.label+': '+s.detail)+'"></i>'}).join('');
+      return '<a class="workflow-card journey-card" data-journey="'+esc(p.id)+'" href="'+esc(href)+'"><div class="workflow-top"><div class="workflow-name">'+esc(p.name)+'</div><div class="workflow-state '+(j.next?STEP_STATE[step.state]:'done')+'">'+esc(j.next?STEP_WORD[step.state]:'completato')+'</div></div><div class="workflow-task">'+esc(j.next?step.label+' · '+step.detail:'Tutte le fasi completate')+'</div><div class="progress"><span style="width:'+j.progress+'%"></span></div><div class="workflow-foot"><span class="journey-dots">'+dots+'</span><span>'+j.done+' / '+j.total+' fasi</span></div></a>';
+    });
+  }
   function renderWorkflows(){
-    var list=(data.workflows||[]).slice(0,6);$('workflowMeta').textContent=list.length+' registrati';
-    $('workflowList').innerHTML=list.map(function(w){return '<div class="workflow-card" data-workflow="'+esc(w.id)+'"><div class="workflow-top"><div class="workflow-name">'+esc(w.orchestrator)+'</div><div class="workflow-state '+esc(w.status)+'">'+esc(w.status)+'</div></div><div class="workflow-task">'+esc(w.task)+'</div><div class="progress"><span style="width:'+pct(w)+'%"></span></div><div class="workflow-foot"><span>'+((w.progress&&w.progress.done)||0)+' / '+((w.progress&&w.progress.total)||0)+' tasks</span><span>'+pct(w)+'%</span></div></div>'}).join('')||'<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un orchestratore dal workspace per alimentare questa vista.</div>';
+    loadJourneys();
+    var flows=journeyCards(),list=(data.workflows||[]).slice(0,Math.max(0,6-flows.length));$('workflowMeta').textContent=(flows.length?flows.length+' progetti · ':'')+list.length+' registrati';
+    $('workflowList').innerHTML=flows.join('')+list.map(function(w){return '<div class="workflow-card" data-workflow="'+esc(w.id)+'"><div class="workflow-top"><div class="workflow-name">'+esc(w.orchestrator)+'</div><div class="workflow-state '+esc(w.status)+'">'+esc(w.status)+'</div></div><div class="workflow-task">'+esc(w.task)+'</div><div class="progress"><span style="width:'+pct(w)+'%"></span></div><div class="workflow-foot"><span>'+((w.progress&&w.progress.done)||0)+' / '+((w.progress&&w.progress.total)||0)+' tasks</span><span>'+pct(w)+'%</span></div></div>'}).join('')||(flows.length?'':'<div class="empty-state"><b>Nessun workflow salvato</b>Avvia un progetto o un orchestratore dal workspace per alimentare questa vista.</div>');
     document.querySelectorAll('[data-workflow]').forEach(function(el){el.addEventListener('click',function(){openWorkflow(el.getAttribute('data-workflow'))})})
   }
   function renderTeams(){
@@ -836,14 +862,21 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     var host=$('operationalView');
     if(host&&!host.hidden&&['agents','knowledge','approvals','analytics','integrations'].includes(currentView))renderOperationalView(currentView);
   }
-  function integrationStatusItems(snapshot,agentCount){
+  function integrationStatusItems(snapshot,agentCount,services){
     var quality=snapshot.dataQuality||{},workflows=snapshot.workflows||[],user=snapshot.user||{};
     return [
       {icon:'●',name:'Sessione e snapshot RADIX',meta:user.name||user.email?'Connesso':'Identità non disponibile',detail:(quality.source||'sorgente non dichiarata')+' · dati caricati in sola lettura',action:''},
       {icon:'⟲',name:'Orchestratori v3.7',meta:workflows.length+' workflow salvati',detail:agentCount+' agenti configurati · esecuzione live '+(quality.realtimeExecutionVerified===true?'verificata':'non verificata'),action:'view:command'},
       {icon:'↗',name:'Workspace v3.7',meta:'Disponibile',detail:'Chat e orchestratori esistenti · il progetto selezionato non viene trasferito',action:'workspace'},
-      {icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}
-    ];
+    ].concat(services?services.map(function(i){
+      return {icon:i.configured?'✓':'○',state:i.configured?'configured':'missing',name:i.label,meta:i.configured?'Chiave configurata':'Non collegato',detail:i.use+(i.configured?' · la chiave viene verificata al primo utilizzo':' · manca la chiave su Vercel: la funzione resta disattivata'),action:''};
+    }):[{icon:'⛓',name:'Sistemi esterni',meta:quality.integrationsVerified===true?'Connessioni verificate':'Stato non disponibile',detail:quality.integrationsVerified===true?'Stato fornito dalla sorgente operativa':'Nessuna connessione esterna viene dichiarata senza dati verificabili',action:''}]);
+  }
+  // Which external services have a key on this deployment (booleans only), read once per page view.
+  var integrations=null,integrationsLoading=false;
+  function loadIntegrations(){
+    if(integrations||integrationsLoading||!window.fetch)return;integrationsLoading=true;
+    fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&Array.isArray(d.items)){integrations=d.items;if(currentView==='integrations')renderOperationalView('integrations')}}).catch(function(){}).then(function(){integrationsLoading=false});
   }
   function filterAgentRoster(roster,states,filters){
     var query=String(filters.query||'').trim().toLocaleLowerCase('it-IT');
@@ -870,7 +903,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     if(view==='knowledge'){renderKnowledgeView();return}
     var host=$('operationalView'),workflows=data.workflows||[],projects=data.projects||[],states=data.agentStatus||{},html='',title='';
     function shell(name,meta,body){return '<div class="operational-head"><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span></div><button type="button" data-return-network>Apri Network View</button></div><div class="operational-grid">'+body+'</div>'}
-    function card(icon,name,meta,detail,action){return '<article class="operational-card">'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}
+    function card(icon,name,meta,detail,action,state){return '<article class="operational-card"'+(state?' data-state="'+esc(state)+'"':'')+'>'+(action?'<button type="button" data-operational-action="'+esc(action)+'" aria-label="Apri '+esc(name)+'">':'')+'<i>'+icon+'</i><div><strong>'+esc(name)+'</strong><span>'+esc(meta)+'</span><small>'+esc(detail)+'</small></div>'+(action?'<b>↗</b></button>':'')+'</article>'}
     if(view==='agents'){
       title='Agenti';html=shell(title,AGENTS.length+' configurati · chat e flussi nella pagina Agenti AI',AGENTS.map(function(a){var state=states[a.id]||{status:'idle',task:''};return card('✣',a.name,a.group+' · '+(state.status||'idle'),state.task||'Nessuna attività salvata recente','agent:'+a.id)}).join(''));
     }else if(view==='knowledge'){
@@ -883,8 +916,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     }else if(view==='analytics'){
       title='Analytics';var taskTotal=workflows.reduce(function(n,w){return n+(w.nodes||[]).length},0),done=workflows.filter(function(w){return w.status==='done'}).length,errors=workflows.filter(function(w){return w.status==='error'||w.status==='blocked'}).length;html=shell(title,'Metriche derivate dallo snapshot · non telemetria live',card('◈','Progetti',String(projects.length),'Profili registrati','')+card('⟲','Workflow salvati',String(workflows.length),done+' completati · '+errors+' con errore/blocco','')+card('✣','Attività salvate',String(taskTotal),'Identità originali, incluse quelle condivise',''));
     }else{
-      title='Integrations';var integrations=integrationStatusItems(data,AGENTS.length);
-      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',integrations.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action)}).join(''));
+      title='Integrations';loadIntegrations();var items=integrationStatusItems(data,AGENTS.length,integrations);
+      html=shell(title,'Diagnostica in sola lettura · nessuna connessione viene modificata',items.map(function(item){return card(item.icon,item.name,item.meta,item.detail,item.action,item.state)}).join(''));
     }
     host.innerHTML=html;host.setAttribute('aria-label',title);
     var back=host.querySelector('[data-return-network]');if(back)back.onclick=function(){setView('network')};
@@ -944,7 +977,7 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
     $('commandView').hidden=currentView!=='command';
     $('projectView').hidden=currentView!=='projects';
     $('operationalView').hidden=!['agents','knowledge','approvals','analytics','integrations'].includes(currentView);
-    if(!$('operationalView').hidden)renderOperationalView(currentView);
+    if(!$('operationalView').hidden&&data)renderOperationalView(currentView);
     $('networkCaptionWrap').hidden=!network;
     $('networkLegend').hidden=!network;if($('networkMobileList'))$('networkMobileList').hidden=!network;
     ['zoomIn','zoomOut','zoomReset','expandNetwork'].forEach(function(id){$(id).hidden=!network});
@@ -1041,5 +1074,5 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
   setInterval(function(){if(document.visibilityState==='visible')load()},30000);
 })();
 </script>
-<a href="/radix-ecosystem.html" aria-label="Apri tutte le aree RADIX" style="position:fixed;right:20px;bottom:20px;z-index:40;background:#0d3936;border:1px solid #4ef0c6;color:#d5fff6;border-radius:30px;padding:11px 17px;font:600 13px system-ui;text-decoration:none;box-shadow:0 0 20px #26dcb455">↗ Ecosistema RADIX</a></body>
+</body>
 </html>

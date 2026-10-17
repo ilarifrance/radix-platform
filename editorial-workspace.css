@@ -20,3 +20,27 @@ fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 22px;padding
 .publish-form{display:grid;gap:.6rem;margin-top:.6rem}
 .publish-modes{border:1px solid currentColor;border-radius:8px;padding:.5rem .75rem;display:grid;gap:.3rem}
 .publish-modes label{display:flex;gap:.4rem;align-items:center}
+/* Plan analytics (baseline; restyled by the design layer) */
+.ped-analytics summary{font-weight:700;font-size:1.1rem;cursor:pointer}
+.kpi-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin:.8rem 0}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:.7rem;display:grid;gap:.15rem}
+.kpi strong{font-size:1.5rem}.kpi small{color:var(--muted)}
+.week-figure{margin:0}.week-figure figcaption{font-weight:600;margin-bottom:.5rem}
+.week-chart{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;height:160px;align-items:end}
+.wk{display:grid;grid-template-rows:auto 1fr auto;height:100%;text-align:center;cursor:pointer;border-radius:6px}
+.wk span{align-self:end;display:block;background:var(--green);border-radius:4px 4px 0 0;min-height:2px}
+.wk.is-empty span{background:var(--line)}
+.wk b{font-size:.8rem}.wk small{font-size:.7rem;color:var(--muted)}
+.wk:hover,.wk:focus-visible{outline:1px solid var(--line)}
+.channel-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.channel-table th,.channel-table td{padding:.3rem .4rem;border-bottom:1px solid var(--line);text-align:right}
+.channel-table th:first-child,.channel-table td:first-child{text-align:left}
+.attention-list{list-style:none;padding:0;display:grid;gap:.35rem}
+.attention-list button{width:100%;text-align:left}
+.attention-list [data-kind=failed] button,.attention-list [data-kind=late] button{border-left:3px solid #e0566b}
+.attention-list [data-kind=soon] button{border-left:3px solid #e8a33d}
+/* Calendar proposed by the AI: one row per item with its checkbox (functional layout; visual style is the UX thread's). */
+.ped-proposal{margin-bottom:20px}.proposal-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}.proposal-list label{display:flex;gap:10px;align-items:baseline;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.proposal-list input{width:auto;flex:none;margin:0}.proposal-list .muted{font-size:12px}
+
+#fillBriefBox{border:1px solid #4fd1a5;background:#0d2a2a;color:#c9fbe9;border-radius:12px;padding:14px 16px;margin:0 0 16px}#fillBriefBox p{margin:0 0 10px}
+.copy-check{border:1px solid #8a6a3c;background:#2a2112;color:#f4dcc0;border-radius:10px;padding:10px 12px;margin:10px 0}.copy-check.ok{border-color:#4fd1a5;background:#0d2a2a;color:#c9fbe9}.copy-check ul{margin:6px 0 0;padding-left:18px}.media-tools{margin:10px 0}.media-tools .gallery canvas{max-width:180px;height:auto;border-radius:8px}.media-tools .thumbs{display:flex;flex-wrap:wrap;gap:10px}
