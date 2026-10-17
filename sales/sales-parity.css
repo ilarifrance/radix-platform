@@ -555,3 +555,18 @@ details.crm-campaigns[open]::details-content{display:grid;grid-template-columns:
 .crm-campaign-item>.actions button{min-height:32px;padding:4px 12px;font-size:12.5px}
 .crm-campaign>p.muted,.crm-sequence>p.muted{font-size:12px;margin:12px 0 0}
 @media(max-width:900px){details.crm-campaigns[open]::details-content{grid-template-columns:1fr}.crm-sequence{border-right:0;border-bottom:1px solid #18444a}}
+
+/* ---------- Automazioni (crm-tools.js, header of Attività): one rule per row ---------- */
+details.crm-automations{flex:1 1 100%;width:100%;padding:0;overflow:hidden}
+details.crm-automations>summary{cursor:pointer;padding:14px 20px;font-weight:600;color:#e6f6f2}
+details.crm-automations[open]>summary{border-bottom:1px solid #18444a}
+details.crm-automations>p.muted{margin:12px 20px 4px;font-size:12px}
+.crm-automation-list{display:grid;padding:4px 12px 12px}
+.crm-automation{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-areas:"name count act" "desc count act";gap:2px 16px;align-items:center;padding:12px 8px;border-bottom:1px solid #18444a}
+.crm-automation:last-child{border-bottom:0}
+.crm-automation>strong{grid-area:name;font-size:14px;color:#e6f6f2}
+.crm-automation>span.muted{grid-area:desc;font-size:12.5px;line-height:1.4}
+.crm-automation>.crm-automation-count{grid-area:count;font-size:12px;white-space:nowrap;padding:3px 10px;border-radius:999px;background:#0a2833;color:#7fd6c0}
+.crm-automation:has(button:disabled)>.crm-automation-count{color:#6f9496;background:transparent}
+.crm-automation>button{grid-area:act;min-height:34px;padding:5px 14px;font-size:13px}
+@media(max-width:640px){.crm-automation{grid-template-columns:1fr auto;grid-template-areas:"name name" "desc desc" "count act"}.crm-automation>.crm-automation-count{justify-self:start}}
