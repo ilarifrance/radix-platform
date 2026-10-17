@@ -60,6 +60,19 @@
   function publishSchedule(state,item,now){const tz=timeZoneOf(state),at=item?zonedTime(item.date,item.time,tz):null,t=now==null?Date.now():now;if(!at)return {mode:'queue',timezone:tz,scheduledAt:null,reason:'missing'};if(Date.parse(at)<=t+5*60000)return {mode:'queue',timezone:tz,scheduledAt:at,reason:'past'};return {mode:'scheduled',timezone:tz,scheduledAt:at,reason:''}}
   // What an approval of a content covers; the server checks the same fields before publishing.
   function approvalPayload(item){return {title:item.title,channel:item.channel,date:item.date,time:item.time||'',copy:item.copy,revision:item.revision}}
-  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats,DEFAULT_TIMEZONE,validTimeZone,timeZoneOf,setTimeZone,zonedTime,publishSchedule,approvalPayload};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
+  // Publishing calendar as .ics (RFC 5545) for Google Calendar or Outlook: one event per dated content, at its
+  // wall-clock time in the PED time zone (30 minutes) or all day when it has no time. Stable UIDs per content,
+  // so importing again updates the same events. Built locally: nothing is published or sent.
+  function calendarIcs(state,opts){const o=opts||{},tz=timeZoneOf(state),now=o.now==null?Date.now():o.now,base=o.base||'',L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//RADIX//PED//IT','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:'+icsText('PED '+(o.name||'RADIX')),'X-WR-TIMEZONE:'+tz];let count=0;
+    const label={draft:'Bozza',review:'In revisione',approved:'Approvato'},utc=t=>new Date(t).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,''),day=d=>d.replace(/-/g,'');
+    for(const c of (state&&state.contents)||[]){if(!/^\d{4}-\d{2}-\d{2}$/.test(c.date||''))continue;const at=c.time?zonedTime(c.date,c.time,tz):null;count++;
+      L.push('BEGIN:VEVENT','UID:ped-'+String(state.projectId||'')+'-'+c.id+'@radix-ped','DTSTAMP:'+utc(now));
+      if(at)L.push('DTSTART:'+utc(at),'DTEND:'+utc(Date.parse(at)+30*60000));else{const next=new Date(Date.parse(c.date+'T00:00:00Z')+864e5).toISOString().slice(0,10);L.push('DTSTART;VALUE=DATE:'+day(c.date),'DTEND;VALUE=DATE:'+day(next),'TRANSP:TRANSPARENT')}
+      L.push('SUMMARY:'+icsText((c.channel?c.channel+' · ':'')+(c.title||'Contenuto')),'DESCRIPTION:'+icsText('Stato: '+(label[c.status]||c.status||'')+(c.copy?'\n\n'+String(c.copy).slice(0,1500):'')));if(base)L.push('URL:'+base);L.push('END:VEVENT')}
+    L.push('END:VCALENDAR');return {count,text:L.map(icsFold).join('\r\n')+'\r\n'}}
+  function icsText(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}
+  // Lines over 75 octets continue after CRLF + space, never splitting a character.
+  function icsFold(line){const size=ch=>{const c=ch.codePointAt(0);return c<128?1:c<2048?2:c<65536?3:4};let n=0,limit=75,cur='';const out=[];for(const ch of line){const b=size(ch);if(n+b>limit){out.push(cur);cur='';n=0;limit=74}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')}
+  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats,DEFAULT_TIMEZONE,validTimeZone,timeZoneOf,setTimeZone,zonedTime,publishSchedule,approvalPayload,calendarIcs,icsFold};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
 })(typeof window==='undefined'?globalThis:window);
 
