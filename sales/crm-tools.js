@@ -172,9 +172,51 @@ async function gdprErase(row){
  });
  await a.refresh(false);a.notice('Contatto anonimizzato.');if(failed.length)a.error('Alcune interazioni non sono state svuotate: '+failed.join(' · '));
 }
+// Duplicate contacts: list likely duplicates (the full export, up to 5000 contacts) and merge on confirm.
+function dedupePanel(){
+ const D=window.RadixCrmDedupe,box=E('details',undefined,'panel crm-dedupe');box.append(E('summary','Possibili doppioni'));
+ const body=E('div',undefined,'crm-dedupe-body');body.append(E('p','Cerca contatti con la stessa email, lo stesso telefono o lo stesso nome nella stessa azienda. L’unione sposta attività, interazioni, ticket, lead e trattative sul contatto che tieni, poi elimina l’altro.','muted'));
+ const list=E('div',undefined,'crm-dedupe-list');
+ const search=B('Cerca doppioni',async()=>{let found,total=0;const ok=await run('Cerco i doppioni…',async()=>{const rows=await exportRows('contacts');total=rows.length;found=D.groups(rows)});if(!ok)return;list.replaceChildren();
+  if(!found.length){list.append(E('p','Nessun possibile doppione.'+(total>=5000?' Controllati i primi 5000 contatti in ordine alfabetico.':''),'muted'));return}
+  list.append(E('p',found.length+(found.length===1?' gruppo da controllare':' gruppi da controllare')+(found.length>50?': qui i primi 50, unisci questi e cerca di nuovo per gli altri.':'.')+(total>=5000?' Controllati i primi 5000 contatti in ordine alfabetico.':''),'crm-dedupe-count'));
+  found.slice(0,50).forEach((g,i)=>{const f=E('fieldset',undefined,'crm-dedupe-group');f.append(E('legend','Stesso '+g.reasons.join(', ')));
+   g.contacts.forEach((c,j)=>{const l=E('label',undefined,'check');const r=E('input');r.type='radio';r.name='keep-'+i;r.value=c.id;r.checked=j===0;l.append(r,E('span',' Tieni «'+c.name+'»'+[c.company,c.email,c.phone].filter(Boolean).map(x=>' · '+x).join('')));f.append(l)});
+   f.append(B('Unisci gli altri in quello scelto',()=>mergeGroup(g,f.querySelector('input:checked').value)));list.append(f)})});
+ body.append(search,list);box.append(body);return box;
+}
+async function pages(fn){const all=[];let offset=0;for(let i=0;i<50;i++){const r=(await fn(offset)).rows||[];all.push(...r);if(r.length<100)break;offset+=r.length}return all}
+async function mergeGroup(group,keepId){
+ const a=app(),D=window.RadixCrmDedupe,skipped=[];
+ const c360=id=>pages(offset=>a.api('customer360',{subject:'contacts',id,offset}));
+ // Leads are not in customer360, and one left behind would block the delete: read them too.
+ const leadsOf=async id=>(await pages(offset=>a.api('leads',{offset}))).filter(x=>x.contact_id===id).map(record=>({entity:'leads',record}));
+ const self=(rows,id)=>(rows.find(r=>r.entity==='contacts'&&r.record.id===id)||{}).record;
+ for(const other of group.contacts.filter(c=>c.id!==keepId)){
+  let keep,drop,plan;
+  const ok=await run('Preparo l’unione…',async()=>{keep=self(await c360(keepId),keepId);const rel=await c360(other.id);drop=self(rel,other.id);if(keep&&drop)plan=D.mergePlan(keep,drop,[...rel,...await leadsOf(other.id)])});
+  if(!ok)break;
+  if(!keep){a.error('Il contatto da tenere non esiste più: cerca di nuovo i doppioni.');return}
+  if(!drop)continue;// already merged by an earlier click
+  if(plan.blocked){skipped.push('«'+drop.name+'»: '+plan.blocked);continue}
+  const n=e=>plan.moves.filter(m=>m.entity===e).length,parts=[['tasks','attività'],['interactions','interazioni'],['tickets','ticket'],['leads','lead'],['opportunities','trattative']].filter(([e])=>n(e)).map(([e,l])=>n(e)+' '+l);
+  if(!window.confirm('Unire «'+drop.name+'» in «'+keep.name+'»?\n\n'+(parts.length?'Passano a «'+keep.name+'»: '+parts.join(', ')+'.\n':'')+(Object.keys(plan.fill).length?'Campi completati: '+Object.keys(plan.fill).join(', ')+'.\n':'')+(plan.consentLost?'Il consenso marketing di «'+drop.name+'» non viene copiato: registralo a mano se vale anche per «'+keep.name+'».\n':'')+'\n«'+drop.name+'» viene poi eliminato. Non si può annullare.'))continue;
+  const failed=[];
+  await run('Unisco i contatti…',async()=>{
+   for(const m of plan.moves){try{await post(m.entity,'update',{id:m.record.id,version:m.record.version,contact_id:keep.id})}catch(e){failed.push((m.record.title||m.entity)+': '+e.message)}}
+   // Fields and delete only once everything moved: a retry then starts from a clean plan.
+   if(!failed.length&&Object.keys(plan.fill).length)try{await post('contacts','update',{id:keep.id,version:keep.version,...plan.fill})}catch(e){failed.push('campi di «'+keep.name+'»: '+e.message)}
+   if(!failed.length)try{await post('contacts','delete',{id:drop.id,version:drop.version})}catch(e){failed.push('eliminazione di «'+drop.name+'»: '+e.message)}
+  });
+  await a.refresh(false);
+  if(failed.length){a.error('Unione incompleta, «'+drop.name+'» non è stato eliminato: '+failed.join(' · ')+'. Quello che è già passato a «'+keep.name+'» resta lì: puoi riprovare.');return}
+  a.notice('«'+drop.name+'» unito in «'+keep.name+'».');
+ }
+ if(skipped.length)a.error('Non uniti: '+skipped.join(' · '));
+}
 window.RadixCrmTools={
  section(entity,section){
-  if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf))}
+  if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf));if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
   else if(entity==='companies')section.append(ioBar('companies'));
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks')){const head=section.querySelector(':scope>.row')||section;head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
