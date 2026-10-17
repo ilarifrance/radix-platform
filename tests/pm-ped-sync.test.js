@@ -40,3 +40,8 @@ test('incarichi added to the Agency plan later get their PM task, after their de
  assert.equal(v.addFromAgency(pm,s,agency,'2026-10-16').length,0);
  assert.equal(v.addFromAgency(pm,base(),agency,'2026-10-16').length,0,'hand-made plans are not touched');
 });
+test('workload counts an agent once when it is also the owner',()=>{
+ const T=(id,o)=>({id,project:'p1',subproject:'p1s1',title:id,owner:'Anna',start:'',due:'2026-10-20',assignedAgents:[],dependencies:[],status:'Da fare',...o});
+ const w=v.workload([T('a',{owner:'Copywriter',assignedAgents:['copywriter']}),T('b',{owner:'Social media manager',assignedAgents:['social-media-manager']}),T('c',{owner:'Anna',assignedAgents:['seo-geo']})],Date.parse('2026-10-15T10:00:00Z'));
+ assert.deepEqual(w.rows.map(r=>r.owner).sort(),['Agente seo geo','Anna','Copywriter','Social media manager']);
+});
