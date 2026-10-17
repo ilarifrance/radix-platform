@@ -32,8 +32,18 @@ test('brief channels come first in the channel suggestions',()=>{
 test('the copywriter prompt carries the strategy and the content, not empty fields',()=>{
  const p=pv.copyPrompt({goal:'Più lead',audience:'PMI',voice:'Diretto',messages:'',topics:'Casi studio'},{title:'Caso Acme',channel:'LinkedIn',date:'2026-11-02',time:'09:30',copy:''});
  assert.match(p,/Canale: LinkedIn/);assert.match(p,/Data prevista: 2026-11-02 alle 09:30/);assert.match(p,/Pubblico: PMI/);assert.match(p,/Messaggi chiave: —/);
- assert.doesNotMatch(p,/Bozza attuale/);
- assert.match(pv.copyPrompt({}, {title:'T',channel:'X',copy:'vecchio testo'}),/Bozza attuale da migliorare:\nvecchio testo/);
+ assert.doesNotMatch(p,/Bozza o spunto/);assert.match(p,/Non inventare numeri/);assert.match(p,/solo con il testo da pubblicare/);
+ assert.match(pv.copyPrompt({}, {title:'T',channel:'X',copy:'vecchio testo'}),/Bozza o spunto di partenza:\nvecchio testo/);
+});
+
+test('copy is cleaned of notes, media kind follows the channel, slides prompt asks for the SLIDES block',()=>{
+ assert.equal(pv.cleanCopy('```\n# Post\n**Obiettivo:** x\n\n---\n\nTesto del post vero e proprio.\n\n---\n\n**Hashtag:** #PMI\n```'),'Testo del post vero e proprio.\n\n#PMI');
+ assert.equal(pv.cleanCopy('Solo testo'),'Solo testo');
+ assert.equal(pv.mediaKind({channel:'YouTube'}),'video');assert.equal(pv.mediaKind({channel:'Instagram',title:'Reel'}),'video');
+ assert.equal(pv.mediaKind({channel:'Instagram'}),'carousel');assert.equal(pv.mediaKind({channel:'LinkedIn'}),'image');
+ assert.match(pv.copyPrompt({},{channel:'YouTube',title:'T'}),/script parlato/);
+ const sp=pv.slidesPrompt({channel:'Instagram',title:'T',copy:'Testo'},{brand:'verde'});assert.match(sp,/da 5 a 8 slide/);assert.match(sp,/---SLIDES---/);assert.match(sp,/verde/);
+ assert.match(pv.slidesPrompt({channel:'LinkedIn',copy:'x'},{}),/una sola immagine/);
 });
 
 test('plan analytics: weeks, channels and what needs attention, in the plan time zone',()=>{
