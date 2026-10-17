@@ -3,8 +3,9 @@
    attività e conversione, completezza dei dati e top opportunità, as in the
    CRM "Analytics" mockup. Computed from CRM rows only (crm-data.js). The
    "Previsione" panel is a plain weighted sum (amount × stored probability of
-   the opportunity, else of its stage) over open deals: no statistical model.
-   forecast() and closings() are pure and exported for tests. */
+   the opportunity, else of its stage) over open deals; predict() adds a small
+   naive Bayes estimate from the workspace's own closed deals.
+   forecast(), closings() and predict() are pure and exported for tests. */
 (function(root){
 const isOpen=o=>!!o&&(o.outcome==null||o.outcome==='open');
 function forecast(opportunities,stages){
@@ -35,7 +36,36 @@ function closings(opportunities,stages,now){
     k.count++;k.total+=v;k.weighted+=v*p/100}
   for(const k of [r.overdue,...r.months,r.later,r.undated])k.weighted=Math.round(k.weighted);
   return r}
-const core={isOpen,forecast,closings};
+// Win chance from this workspace's own history: a small naive Bayes over the closed deals (won/lost), with three
+// plain features: deal size (above the median closed amount or not), age (open longer than the typical winning
+// cycle or not) and recent contact (an interaction with the deal's contact in the 30 days before it closed, or
+// before now). Laplace smoothing; nothing leaves the browser. Needs MIN_CLOSED closed deals with both outcomes,
+// else ready=false. Each open deal gets histP (0–100) next to its stage probability and the reasons behind it.
+const MIN_CLOSED=8,DAY=864e5;
+function predict(opportunities,interactions,stages,now){
+  const t=now instanceof Date?now.getTime():(now??Date.now()),byId=new Map((stages||[]).filter(Boolean).map(s=>[s.id,s]));
+  const amount=o=>{const v=Number(o.amount_cents);return Number.isFinite(v)&&v>0?v:0};
+  const ms=v=>{const x=Date.parse(v||'');return Number.isFinite(x)?x:null};
+  const touches=new Map();for(const i of interactions||[]){const at=i&&ms(i.occurred_at);if(i&&i.contact_id&&at!=null){const l=touches.get(i.contact_id)||[];l.push(at);touches.set(i.contact_id,l)}}
+  const closed=(opportunities||[]).filter(o=>o&&(o.outcome==='won'||o.outcome==='lost')&&ms(o.created_at)!=null&&ms(o.closed_at)!=null);
+  const won=closed.filter(o=>o.outcome==='won'),out={ready:false,closed:closed.length,won:won.length,min:MIN_CLOSED,baseRate:null,cycleDays:null,expected:0,items:[]};
+  if(closed.length<MIN_CLOSED||!won.length||won.length===closed.length)return out;
+  const median=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length;return n?(n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2):0};
+  const amountMid=median(closed.map(amount)),cycle=median(won.map(o=>(ms(o.closed_at)-ms(o.created_at))/DAY));
+  const feats=(o,at)=>{const age=(at-ms(o.created_at))/DAY,l=o.contact_id?touches.get(o.contact_id)||[]:[];
+    return {big:amount(o)>amountMid,old:age>Math.max(cycle,1),active:l.some(x=>x<=at&&x>at-30*DAY)}};
+  const rows=closed.map(o=>({w:o.outcome==='won',f:feats(o,ms(o.closed_at))})),nw=won.length,nl=closed.length-nw;
+  const like=(k,v,w)=>(rows.filter(r=>r.w===w&&r.f[k]===v).length+1)/((w?nw:nl)+2);
+  out.ready=true;out.baseRate=Math.round(100*nw/closed.length);out.cycleDays=Math.round(cycle);
+  const label={big:['importo sopra la media','importo nella media o sotto'],old:['aperta da più del ciclo tipico','entro il ciclo tipico'],active:['contatto sentito negli ultimi 30 giorni','nessun contatto negli ultimi 30 giorni']};
+  for(const o of (opportunities||[]).filter(isOpen)){if(ms(o.created_at)==null)continue;const f=feats(o,t);let lw=Math.log(nw/closed.length),ll=Math.log(nl/closed.length);
+    for(const k of ['big','old','active']){lw+=Math.log(like(k,f[k],true));ll+=Math.log(like(k,f[k],false))}
+    const p=Math.round(100/(1+Math.exp(ll-lw))),sp=o.probability!=null&&o.probability!==''?Number(o.probability):byId.get(o.stage_id)?.probability;
+    out.expected+=amount(o)*p/100;
+    out.items.push({id:o.id,title:o.title,amount:amount(o),histP:p,stageP:Number.isFinite(Number(sp))&&sp!==null?Number(sp):null,why:['big','old','active'].map(k=>label[k][f[k]?0:1])})}
+  out.expected=Math.round(out.expected);out.items.sort((a,b)=>Math.abs((b.stageP??b.histP)-b.histP)-Math.abs((a.stageP??a.histP)-a.histP)||b.amount-a.amount);
+  return out}
+const core={isOpen,forecast,closings,predict};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.RadixCrmForecast=core;
 if(typeof document==='undefined')return;
@@ -75,6 +105,13 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   if(fc.open.count){fp.append(E('h4','Chiusure attese'));const row=(l,x)=>{if(x.count)line(l,x.count+' opp. · '+eur(x.total)+' · pesata '+eur(x.weighted))};
     row('Data di chiusura superata',cl.overdue);cl.months.forEach(x=>row(mon(x.month),x));row('Più avanti',cl.later);row('Senza data di chiusura',cl.undated);
     if(cl.overdue.count)fp.append(E('p','Aggiorna la data di chiusura delle trattative scadute: restano nella pipeline ma non in un mese preciso.','an-note'))}
+  /* history-based win chance (predict): only with enough closed deals of this workspace */
+  const pr=predict(all,d.interactions,d.stages,Date.now());fp.append(E('h4','Previsione dallo storico'));
+  if(!pr.ready)fp.append(E('p','Servono almeno '+pr.min+' trattative chiuse, vinte e perse, per stimare le probabilità dallo storico (oggi '+pr.closed+').','an-note'));
+  else{line('Valore atteso dallo storico',eur(pr.expected));line('Tasso storico di vittoria',pr.baseRate+'% su '+pr.closed+' chiuse · ciclo tipico '+pr.cycleDays+' giorni');
+    const ol=E('ol',undefined,'an-predict');for(const x of pr.items.slice(0,5)){const li=E('li');li.append(E('b',x.title),E('span',' · storico '+x.histP+'%'+(x.stageP!=null?' · fase '+x.stageP+'%':'')),E('small',' '+x.why.join(', ')));ol.append(li)}
+    if(pr.items.length){fp.append(E('p','Dove lo storico e la probabilità della fase differiscono di più:','an-note'),ol)}
+    fp.append(E('p','Modello statistico semplice sulle trattative chiuse di questo workspace (importo, durata, contatti recenti): è una stima, non cambia le probabilità salvate.','an-note'))}
   main.append(fp);
   /* stacked bars by close month and stage */
   const two=E('div',undefined,'an-two');const vel=panel('Pipeline per mese di chiusura','an-bars','Valore per fase, in base alla chiusura prevista');
@@ -104,7 +141,7 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   /* rail */
   const rail=E('aside',undefined,'an-rail');rail.append(E('h3','In sintesi'));const best=stages.map(s=>[s,opps.filter(o=>o.stage_id===s.id).reduce((a,o)=>a+val(o),0)]).sort((a,b)=>b[1]-a[1])[0];
   const lines=[`La pipeline aperta vale ${eur(total)} su ${opps.length} opportunità.`,fc.open.withProbability?`Previsione ponderata: ${eur(fc.open.weighted)}${fc.open.withoutProbability?` (${fc.open.withoutProbability} aperte senza probabilità escluse)`:''}.`:'Nessuna trattativa aperta ha una probabilità: previsione non disponibile.',fc.closed?`Tasso di vittoria ${pct(fc.won.count,fc.closed)}% su ${fc.closed} trattative chiuse.`:'',best?`La fase con più valore è ${best[0].title} (${pct(best[1],total)}%).`:'',`${pct(linked,tasks.length)}% delle attività è collegato a un’opportunità.`,avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
-  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM. La previsione somma valore × probabilità salvata: nessun modello statistico.','an-note'));
+  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM. La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
 
