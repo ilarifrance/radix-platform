@@ -118,3 +118,22 @@ test('completion date is stamped, cleared on reopen, and drives the weekly portf
  const p=v.portfolio([{id:'a',name:'A',createdAt:'2026-10-14T09:00:00Z',state:plan([T('x',{status:'Completato',completedAt:'2026-10-13T09:00:00Z'}),T('y')])},{id:'b',name:'B',createdAt:'2026-09-01T09:00:00Z',state:plan([T('z',{status:'Completato',completedAt:'2026-09-20T09:00:00Z'}),T('w')])}],at);
  assert.equal(p.doneWeek,1);assert.equal(p.newWeek,1);
 });
+
+test('statusReport: weekly progress text from the plan, with budget, late and upcoming work',()=>{
+ const views=require('../lib/pm-views.js');
+ const P={id:'p1',name:'Campagna',budget:1000,subprojects:[{id:'s1',name:'Generale'},{id:'s2',name:'Contenuti PED'}]};
+ const T=[{title:'A',owner:'Anna',due:'2026-10-10',status:'Completato',completedAt:'2026-10-15T10:00:00Z',subproject:'s1',actual:200},
+  {title:'Vecchia',due:'2026-09-01',status:'Completato',completedAt:'2026-09-02T10:00:00Z',subproject:'s1'},
+  {title:'B',owner:'Bruno',due:'2026-10-12',status:'In corso',subproject:'s1'},
+  {title:'C',due:'2026-10-20',status:'In revisione',approvalRequired:true,subproject:'s2'},
+  {title:'D',due:'2026-10-25',status:'Da fare',milestone:true,subproject:'s2'},{title:'Lontana',due:'2026-12-25',status:'Da fare',subproject:'s1'}];
+ const r=views.statusReport(T,P,Date.parse('2026-10-17T09:00:00Z'),{note:'Ok dal cliente sul brief.'});
+ assert.deepEqual(r.counts,{done:1,active:1,late:1,next:1,approvals:1});
+ assert.match(r.text,/^Report di avanzamento · Campagna\nSettimana dal 11 ott al 17 ott/);
+ assert.match(r.text,/attività completate: 2 di 6/);assert.match(r.text,/Puntualità sulle scadenze passate: 67%/);
+ assert.match(r.text,/prossima milestone: D \(25 ott\)/);assert.match(r.text,/Budget: speso 200\s€ di 1000\s€ \(20%\)/);
+ assert.match(r.text,/In ritardo \(1\)\n• B · Bruno · 12 ott · Generale/);assert.match(r.text,/• D · 25 ott · milestone · Contenuti PED/);
+ assert.doesNotMatch(r.text,/Vecchia|Lontana/);assert.match(r.text,/Note\nOk dal cliente sul brief\.\n$/);
+ const empty=views.statusReport([],{name:'X',subprojects:[{id:'s1',name:'Generale'}]},Date.parse('2026-10-17T09:00:00Z')).text;
+ assert.match(empty,/nessuna scadenza ancora passata/);assert.match(empty,/il piano è in linea/);assert.doesNotMatch(empty,/Budget|\n\n\n/);
+});
