@@ -48,3 +48,11 @@ test('demo copilot has a daily allowance per user',async()=>{
  for(let i=0;i<20;i++)assert.equal((await call(H,body)).status,200);
  const r=await call(H,body);assert.equal(r.status,429);assert.match(r.body.error,/prova/);
 });
+
+test('public page reads price, limits and partner from the pricing module',()=>{
+ const html=fs.readFileSync(__dirname+'/../contabilita/index.html','utf8'),js=fs.readFileSync(__dirname+'/../contabilita/contabilita.js','utf8');
+ assert.match(html,/\/lib\/accounting\/pricing\.js/);assert.match(html,/href="\/accounting\/"/);
+ for(const k of Object.keys(pricing.INCLUDED))assert.match(html,new RegExp('data-inc="'+k+'"'));
+ assert.match(js,/P\.PARTNER\.name/);assert.match(js,/P\.PRICE_CENTS/);
+ assert.doesNotMatch(html,/Nessun costo di attivazione/);
+});
