@@ -17,3 +17,17 @@ test('a project without incarichi gets them from its approved PED brief or its p
  assert.equal(ws.planText,'Piano');assert.deepEqual(ws.tasks.map(t=>t.role+':'+t.dependsOn.join()),['strategist:','copywriter:step-1']);assert.equal(ws.schemaVersion,1);assert.equal(ws.brief,b);
  assert.throws(()=>route.workspaceFromReply(b,roles,'nessun routing'),/incarichi eseguibili/);
 });
+
+test('addTask appends a manual incarico with valid role and dependencies',()=>{
+ const core=require('../agency/orchestration-core.js');
+ const roles={copywriter:'Copywriter','seo-specialist':'SEO Specialist','marketing-orchestrator':'Orchestratore'};
+ const s={tasks:[{id:'step-1',role:'copywriter',instruction:'Scrivi i testi',dependsOn:[],status:'approved'}],roles:{copywriter:'Copywriter'}};
+ const t=core.addTask(s,{role:'seo-specialist',instruction:'Analizza le keyword del settore',dependsOn:['step-1','step-1']},roles);
+ assert.deepEqual(t,{id:'step-2',role:'seo-specialist',instruction:'Analizza le keyword del settore',dependsOn:['step-1'],status:'proposed',addedBy:'manual'});
+ assert.equal(s.roles['seo-specialist'],'SEO Specialist');
+ assert.throws(()=>core.addTask(s,{role:'marketing-orchestrator',instruction:'Coordina tutto il lavoro'},roles),/specialista/);
+ assert.throws(()=>core.addTask(s,{role:'copywriter',instruction:'corto'},roles),/almeno 10/);
+ assert.throws(()=>core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi',dependsOn:['step-9']},roles),/Dipendenza/);
+ while(s.tasks.length<core.MAX_TASKS)core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles);
+ assert.throws(()=>core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles),/Massimo/);
+});

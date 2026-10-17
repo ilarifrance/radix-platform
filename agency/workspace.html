@@ -18,10 +18,10 @@ function append(target,tag,cls,text){const n=document.createElement(tag);n.class
 let catalog,division;
 function agentHref(agent,project){return '/agents.html?agent='+encodeURIComponent(agent)+(project?'&project='+encodeURIComponent(project):'')}
 function renderWork(work){
- const lead=division.agentIds[0];
+ const lead=division.agentIds[0],spec=division.agentIds.find(a=>a!=='orchestrator'&&a!=='marketing-orchestrator')||lead;
  $('workStatus').textContent=work.length?dv.summaryLine({projects:work.length,open:work.reduce((a,w)=>a+w.open,0),review:work.reduce((a,w)=>a+w.review,0)}):'';
  $('work').innerHTML=work.length?work.map(w=>{const pid=encodeURIComponent(w.project.id);
-  return '<article><h3>'+esc(w.project.name)+'</h3><div class="muted">Cliente: '+esc(w.project.client||'Progetto interno')+' · '+w.approved+'/'+w.tasks.length+' bozze approvate</div><ul>'+w.tasks.map(t=>'<li><span class="st '+esc(t.status)+'">'+esc(dv.STATUS[t.status]||t.status)+'</span><span>'+esc((catalog.roles[t.role]||t.role)+': '+t.title)+'</span></li>').join('')+'</ul><div class="links"><a href="./project-workspace.html?id='+pid+'">Apri workspace ↗</a><a href="'+esc(agentHref(lead,w.project.id))+'">Chat con '+esc(catalog.roles[lead]||lead)+' ↗</a><a href="/project-editorial.html?project='+pid+'">PED ↗</a><a href="/radix-pm-concept.html?project='+pid+'">Project manager ↗</a></div></article>'}).join(''):'<div class="empty">Nessun progetto ha incarichi per questa divisione. <a href="./new-project.html">Crea un brief</a> e l’orchestratore assegnerà gli agenti adatti.</div>';
+  return '<article><h3>'+esc(w.project.name)+'</h3><div class="muted">Cliente: '+esc(w.project.client||'Progetto interno')+' · '+w.approved+'/'+w.tasks.length+' bozze approvate</div><ul>'+w.tasks.map(t=>'<li><span class="st '+esc(t.status)+'">'+esc(dv.STATUS[t.status]||t.status)+'</span><span>'+esc((catalog.roles[t.role]||t.role)+': '+t.title)+'</span></li>').join('')+'</ul><div class="links"><a href="./project-workspace.html?id='+pid+'">Apri workspace ↗</a><a href="./project-workspace.html?id='+pid+'&role='+encodeURIComponent(spec)+'#addTask">Nuovo incarico ↗</a><a href="'+esc(agentHref(lead,w.project.id))+'">Chat con '+esc(catalog.roles[lead]||lead)+' ↗</a><a href="/project-editorial.html?project='+pid+'">PED ↗</a><a href="/radix-pm-concept.html?project='+pid+'">Project manager ↗</a></div></article>'}).join(''):'<div class="empty">Nessun progetto ha incarichi per questa divisione. <a href="./new-project.html">Crea un brief</a> e l’orchestratore assegnerà gli agenti adatti.</div>';
 }
 async function loadWork(){
  const user=await ws.ready();if(!user)throw Error('Accesso richiesto');
@@ -29,6 +29,15 @@ async function loadWork(){
  const projects=(await ws.projects.list()).filter(p=>p.kind==='agency'&&p.status!=='archived'),plans=new Map();
  await Promise.all(projects.slice(0,40).map(p=>ws.documents.load(p.id,'agency-workspace').then(d=>{if(d&&d.data)plans.set(p.id,d.data)}).catch(()=>{})));
  renderWork(dv.divisionWork(division,projects,plans));
+ assignBox(projects.filter(p=>plans.has(p.id)));
+}
+// Give this division's lead specialist a new incarico in any Agency project that already has a plan.
+function assignBox(projects){
+ if(!projects.length||division.id==='approvals')return;const lead=division.agentIds.find(a=>a!=='orchestrator'&&a!=='marketing-orchestrator');if(!lead)return;
+ const f=document.createElement('form');f.className='assign';f.id='assign';
+ f.innerHTML='<label>Assegna un incarico a '+esc(catalog.roles[lead]||lead)+' nel progetto <select id="assignProject">'+projects.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('')+'</select></label> <button type="submit" class="action">Continua</button>';
+ f.addEventListener('submit',e=>{e.preventDefault();location.href='./project-workspace.html?id='+encodeURIComponent($('assignProject').value)+'&role='+encodeURIComponent(lead)+'#addTask'});
+ $('work').after(f);
 }
 fetch('./catalog.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(c=>{
  if(!Array.isArray(c.divisions)||!c.roles)throw Error('Catalogo non valido');catalog=c;division=c.divisions.find(x=>x.id===id);
