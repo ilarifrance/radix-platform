@@ -48,3 +48,16 @@ test('the plan prompt carries the real weekdays of the next 8 weeks',()=>{
  assert.match(p,/\nsab 2026-10-17, dom 2026-10-18\nlun 2026-10-19, mar 2026-10-20, mer 2026-10-21/);
  assert.match(p,/mer 2026-10-28/);assert.match(p,/ven 2026-12-11/);assert.doesNotMatch(p,/2026-12-12/);
 });
+
+test('brief prompt uses only approved drafts and the project profile; parseBrief keeps known keys within limits',()=>{
+ const labels={goal:'Obiettivo',frequency:'Frequenza'};
+ const p=pv.briefPrompt(labels,{name:'FI',brief:{goal:'Richieste qualificate',facts:'+1M€'}},[
+  {id:'step-1',role:'brand',roleName:'Stratega',status:'approved',output:'Posizionamento: consulente PMI',feedback:'ok'},
+  {id:'step-2',role:'copy',status:'done',output:'BOZZA NON APPROVATA'}]);
+ assert.match(p,/### Stratega/);assert.match(p,/Posizionamento: consulente PMI/);assert.doesNotMatch(p,/BOZZA NON APPROVATA/);
+ assert.match(p,/- frequency: Frequenza/);assert.match(p,/Non inventare/);assert.match(p,/\+1M€/);
+ const b=pv.parseBrief('Ecco: {"goal":"10 richieste","frequency":["LinkedIn 3/sett","Instagram 2/sett"],"extra":"x","kpis":{"a":1}}',labels,{goal:5});
+ assert.deepEqual(b,{goal:'10 ri',frequency:'LinkedIn 3/sett\nInstagram 2/sett'});
+ assert.throws(()=>pv.parseBrief('niente',labels),/non è leggibile/);
+ assert.throws(()=>pv.parseBrief('{"other":"x"}',labels),/nessun campo/);
+});
