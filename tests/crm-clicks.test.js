@@ -63,3 +63,11 @@ test('migration 010 adds only the click table',()=>{
  assert.deepEqual([...s.matchAll(/CREATE TABLE IF NOT EXISTS (\w+)/g)].map(m=>m[1]),['sales_email_clicks']);
  assert.match(s,/ON DELETE CASCADE/);assert.doesNotMatch(s,/DROP|ALTER TABLE/);
 });
+
+test('segments can filter on clicks; the report lists every contact who clicked',async()=>{
+ const {segmentFilters}=require('../api/_sales');
+ assert.equal(segmentFilters({clicked:'yes'}),true);assert.equal(segmentFilters({clicked:'maybe'}),false);
+ const sql=async q=>/DISTINCT contact_id/.test(q)?[{contact_id:C}]:[];
+ assert.deepEqual((await k.report(sql,W)).contacts,[C]);
+ const src=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');assert.match(src,/f\.clicked=clicked\.value/);assert.match(src,/api\('email_clicks'/);
+});
