@@ -88,6 +88,14 @@ function unsupportedNumbers(output,sources){
   const a=Math.max(0,m.index-50),b=Math.min(text.length,m.index+m[0].length+50);
   found.push({claim,value:v,context:(a?'…':'')+text.slice(a,b).replace(/\s+/g,' ').trim()+(b<text.length?'…':'')});
  }
+ // Speed promises («in 2 minuti», «in 10 secondi») count as claims unless a source says the same.
+ const SPEED=/\bin\s+(?:soli\s+|appena\s+)?\d+(?:[.,]\d+)?\s*(?:secondi|minuti|ore)\b/gi;
+ while((m=SPEED.exec(text))&&found.length<12){
+  const claim=m[0].trim(),key=claim.toLowerCase();
+  if(seen.has(key)||all.toLowerCase().includes(key))continue;seen.add(key);
+  const a=Math.max(0,m.index-50),b=Math.min(text.length,m.index+m[0].length+50);
+  found.push({claim,value:numberValue(claim),context:(a?'…':'')+text.slice(a,b).replace(/\s+/g,' ').trim()+(b<text.length?'…':'')});
+ }
  return found;
 }
 // Calendar of the coming weeks (Europe/Rome), so specialists copy real dates instead of computing weekdays.

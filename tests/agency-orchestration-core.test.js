@@ -57,3 +57,8 @@ test('collects the questions a draft leaves to the reviewer',()=>{
  assert.deepEqual(route.missingInfo(out),['Settore del cliente del caso','Tempo che puoi dedicare','[caso reale da fornire]','[tuo link Calendly]']);
  assert.deepEqual(route.missingInfo('Solo testo [nota]'),[]);
 });
+
+test('flags speed promises that no source states',()=>{
+ const flagged=route.unsupportedNumbers('Piano pronto in 2 minuti, video in 10 minuti, risposta in soli 10 secondi. Revisione in 1 ora.',['Il tempo di revisione è in 1 ora']).map(x=>x.claim);
+ assert.deepEqual(flagged,['in 2 minuti','in 10 minuti','in soli 10 secondi']);
+});
