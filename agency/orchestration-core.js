@@ -64,5 +64,31 @@ function addTask(state,input,roles){
  state.tasks.push(task);state.roles=Object.assign({},state.roles,{[role]:roles[role]});
  return task;
 }
-return Object.freeze({addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+// Numeric claims in a draft (percentages, money, multipliers, result counts) that no source the specialist was given contains.
+const RESULT_WORDS='lead|clienti|client|follower|impression|visualizzazion|iscritt|contatti|appuntament|call|vendit|conversion|download|utenti|commenti|like|reazioni|risposte|demo|trattative|opportunità';
+const CLAIM=new RegExp('[+−-]?(?:€\\s?)?\\d[\\d.,]*\\s*(?:%|€|euro\\b|x\\b|k\\b|mila\\b|milion[ei]\\b|mln\\b|M\\b|M€|(?:nuovi\\s+|di\\s+|in\\s+più\\s+)?(?:'+RESULT_WORDS+'))','gi');
+function numberValue(raw){
+ let s=String(raw).toLowerCase(),m=/\d[\d.,]*/.exec(s);if(!m)return null;
+ let n=m[0].replace(/[.,]$/,'');
+ n=/^\d{1,3}(\.\d{3})+$/.test(n)?n.replace(/\./g,''):n.replace(/\.(?=\d{3}\b)/g,'');
+ let v=Number(n.replace(',','.'));if(!isFinite(v))return null;
+ const rest=s.slice(m.index+m[0].length).trim();
+ if(/^(k\b|mila\b)/.test(rest))v*=1e3;else if(/^(m\b|m€|mln\b|milion)/.test(rest))v*=1e6;
+ return Math.round(v*100)/100;
+}
+function sourceValues(text){const out=new Set();String(text||'').replace(/\d[\d.,]*\s*(?:k\b|mila\b|milion[ei]\b|mln\b|M\b|M€)?/gi,x=>{const v=numberValue(x);if(v!=null)out.add(v);return x});return out}
+function unsupportedNumbers(output,sources){
+ const all=[].concat(sources||[]).join('\n'),known=sourceValues(all),seen=new Set(),found=[];
+ const multipliers=new Set();all.replace(/(\d+(?:[.,]\d+)?)\s*(?:x\b|volte\b)/gi,(x,n)=>{multipliers.add(Number(n.replace(',','.')));return x});
+ const text=String(output||'');let m;CLAIM.lastIndex=0;
+ while((m=CLAIM.exec(text))&&found.length<12){
+  const claim=m[0].trim(),v=numberValue(claim);
+  if(v==null||v===0||(/x$/i.test(claim)?multipliers.has(v):known.has(v))||(/^\d{4}$/.test(String(v))&&v>=1990&&v<=2100))continue;
+  const key=claim.toLowerCase();if(seen.has(key))continue;seen.add(key);
+  const a=Math.max(0,m.index-50),b=Math.min(text.length,m.index+m[0].length+50);
+  found.push({claim,value:v,context:(a?'…':'')+text.slice(a,b).replace(/\s+/g,' ').trim()+(b<text.length?'…':'')});
+ }
+ return found;
+}
+return Object.freeze({unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });

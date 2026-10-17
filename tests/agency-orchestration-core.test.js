@@ -31,3 +31,13 @@ test('addTask appends a manual incarico with valid role and dependencies',()=>{
  while(s.tasks.length<core.MAX_TASKS)core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles);
  assert.throws(()=>core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles),/Massimo/);
 });
+
+test('flags numeric claims in a draft that no given source contains',()=>{
+ const sources=['15 anni nel B2B, +1M€ di fatturato annuo, +4 milioni in 3 anni','LinkedIn: 1.000 follower, circa 2.000 impression'];
+ const draft='Con 15 anni di esperienza ho portato +1M€ annuo. Oggi ho 1.000 follower e 2.000 impression. Un cliente ha ottenuto +38% di lead e 120 nuovi clienti, ROI 3x, con 4.500 € di budget. Nel 2026, alle 9:00.';
+ const flagged=route.unsupportedNumbers(draft,sources).map(x=>x.claim);
+ assert.deepEqual(flagged,['+38%','120 nuovi clienti','3x','4.500 €']);
+ assert.match(route.unsupportedNumbers(draft,sources)[0].context,/cliente ha ottenuto \+38% di lead/);
+ assert.deepEqual(route.unsupportedNumbers('+4 milioni in 3 anni e 1M€',sources),[]);
+ assert.deepEqual(route.unsupportedNumbers('',sources),[]);
+});
