@@ -100,5 +100,18 @@ function calendarWeeks(now,weeks){
  for(let w=1;w<=(weeks||8);w++){const days=[];for(let i=0;i<7;i++){days.push(fmt(d));d.setUTCDate(d.getUTCDate()+1)}out.push('Settimana '+w+': '+days.join(', '))}
  return out.join('\n');
 }
-return Object.freeze({calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+// Questions a draft leaves to the reviewer: items under a "dati mancanti / da fornire / domande" heading and every
+// [placeholder] the specialist wrote, so the revision notes can start from them.
+function missingInfo(output){
+ const lines=String(output||'').split(/\r?\n/),out=[],seen=new Set();let inSection=false;
+ const add=x=>{x=x.replace(/^\s*([-*•]|\d+[.)])\s*/,'').replace(/\*\*/g,'').trim();const k=x.toLowerCase();if(x.length>3&&!seen.has(k)&&out.length<15){seen.add(k);out.push(x.slice(0,240))}};
+ for(const raw of lines){const x=raw.trim();
+  const heading=/^#{1,4}\s|^\*\*[^*]+\*\*:?$|^[A-ZÀ-Ü][^.!?]{2,60}:$/.test(x);
+  if(heading){inSection=/dati mancanti|informazioni mancanti|da fornire|da completare|domande|da verificare|serve sapere/i.test(x);continue}
+  if(inSection&&/^([-*•]|\d+[.)])\s/.test(x))add(x);
+ }
+ String(output||'').replace(/\[([^\]\n]{4,80})\]/g,(m,inner)=>{if(/fornire|inserire|da definire|completare|reale|tuo|tua/i.test(inner))add(m);return m});
+ return out;
+}
+return Object.freeze({missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });

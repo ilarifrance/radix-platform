@@ -51,3 +51,9 @@ test('calendar weeks start next Monday with correct weekdays in Europe/Rome',()=
  assert.match(route.calendarWeeks(Date.parse('2026-10-18T23:30:00Z'),1),/^Settimana 1: lun 26\/10/);
  assert.match(route.calendarWeeks(Date.parse('2026-10-19T08:00:00Z'),1),/^Settimana 1: lun 26\/10/);
 });
+
+test('collects the questions a draft leaves to the reviewer',()=>{
+ const out='# Strategia\nTesto [caso reale da fornire] e ancora [caso reale da fornire].\n## Dati mancanti\n- Settore del cliente del caso\n2. **Tempo** che puoi dedicare\n## Calendario\n- Lunedì post\nFirma: [tuo link Calendly]';
+ assert.deepEqual(route.missingInfo(out),['Settore del cliente del caso','Tempo che puoi dedicare','[caso reale da fornire]','[tuo link Calendly]']);
+ assert.deepEqual(route.missingInfo('Solo testo [nota]'),[]);
+});
