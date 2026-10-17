@@ -13,6 +13,7 @@ const vat=require('../lib/accounting/vat');
 const reconcile=require('../lib/accounting/reconcile');
 const assets=require('../lib/accounting/assets');
 const copilot=require('../lib/accounting/copilot');
+const pricing=require('../lib/accounting/pricing');
 
 class AccError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(s,m)=>{throw new AccError(s,m);};
@@ -63,6 +64,7 @@ function ensureAccounts(c,codes){const list=coa.STANDARD.filter(a=>codes.include
 const withStandard=(accounts,codes)=>accounts.concat(coa.STANDARD.filter(a=>codes.includes(a.code)&&!accounts.some(x=>x.code===a.code)));
 const linesCodes=e=>[...new Set(e.lines.map(l=>l.account))];
 const COPILOT_UNAVAILABLE='Il copilota non risponde in questo momento: riprova tra poco.';
+const DEMO_ASKS=new Map(),DEMO_DAILY=20;
 async function askCopilot(deps,snap,d){
  const question=text(d.question,1000,true);
  if(d.history!==undefined&&(!Array.isArray(d.history)||d.history.length>12||d.history.some(h=>!obj(h)||!['user','assistant'].includes(h.role)||typeof h.content!=='string'||h.content.length>4000)))fail(400,'Cronologia non valida.');
@@ -89,6 +91,9 @@ async function command(store,u,body,deps){
  // Demonstration company: the page sends the snapshot it computed in the browser (fictional data, nothing stored).
  if(action==='copilot.ask'&&c===undefined){
   if(!obj(d.context)||JSON.stringify(d.context).length>80000)fail(400,'Situazione dell\'azienda mancante o troppo grande.');
+  // The demonstration company has no audit log: a per-instance daily allowance keeps its AI cost bounded.
+  const k=u+':'+today(),n=(DEMO_ASKS.get(k)||0)+1;if(n>DEMO_DAILY)fail(429,'Hai usato le domande di prova di oggi: crea la tua azienda per continuare.');
+  if(DEMO_ASKS.size>5000)DEMO_ASKS.clear();DEMO_ASKS.set(k,n);
   return askCopilot(deps,d.context,d);
  }
  if(!uuid(c))fail(400,'Azienda non valida.');
@@ -96,7 +101,14 @@ async function command(store,u,body,deps){
  case 'copilot.ask':{
   const year=d.year===undefined?+today().slice(0,4):int(d.year,2000,2100,'Anno non valido.');
   const b=await bundle(store,c,u,year);b.accounts=b.accounts.map(a=>({...a,group:a.group||a.grp}));
-  return askCopilot(deps,copilot.snapshot(b,{year,today:today()}),d);
+  // Questions included in the plan, counted per company and calendar month through the audit log.
+  const limit=pricing.INCLUDED.copilot_questions;
+  await store.tx([role(c,u,READ),
+   q("SELECT acc_assert((SELECT count(*) FROM acc_audit WHERE company_id=$1 AND action='copilot.ask' AND at>=date_trunc('month',now()))<$2,'Hai usato tutte le domande al copilota incluse questo mese.','P0429')",[c,limit]),
+   audit(c,u,action,null,{year})]);
+  const r=await askCopilot(deps,copilot.snapshot(b,{year,today:today()}),d);
+  const used=await store.json("SELECT count(*)::int AS v FROM acc_audit WHERE company_id=$1 AND action='copilot.ask' AND at>=date_trunc('month',now())",[c]);
+  return {...r,used:Math.min(used||0,limit),limit};
  }
  case 'closing.depreciation':{
   const year=int(d.year,2000,2100,'Anno non valido.'),rates={};
@@ -343,10 +355,10 @@ function createHandler({getSessionUser,getStore,ask}){
    }
    fail(400,'Risorsa non valida.');
   }catch(e){
-   const codes={'P0001':[400,null],'42P01':[503,'Archivio Accounting non ancora attivo: va applicata la migrazione accounting/001 a questo database.'],'42501':[403,null],'40001':[409,'Dati cambiati nel frattempo: ricarica e riprova.'],'23505':[409,'Elemento già presente.'],'23503':[409,'Riferimento non valido (conto, scadenza o documento).'],'23514':[400,null],'22023':[400,null],'22P02':[400,'Formato non valido.'],'22007':[400,'Data non valida.'],'22008':[400,'Data fuori intervallo.']};
+   const codes={'P0001':[400,null],'P0429':[429,null],'42P01':[503,'Archivio Accounting non ancora attivo: va applicata la migrazione accounting/001 a questo database.'],'42501':[403,null],'40001':[409,'Dati cambiati nel frattempo: ricarica e riprova.'],'23505':[409,'Elemento già presente.'],'23503':[409,'Riferimento non valido (conto, scadenza o documento).'],'23514':[400,null],'22023':[400,null],'22P02':[400,'Formato non valido.'],'22007':[400,'Data non valida.'],'22008':[400,'Data fuori intervallo.']};
    const m=codes[e.code];
    // Named database errors (acc_assert, triggers) carry an Italian message; constraint violations get the generic one.
-   const own=['P0001','42501','23514','23505','22023'].includes(e.code)&&!e.constraint&&!['forbidden','conflict'].includes(e.message)?e.message:null;
+   const own=['P0001','P0429','42501','23514','23505','22023'].includes(e.code)&&!e.constraint&&!['forbidden','conflict'].includes(e.message)?e.message:null;
    const msg=e.status?e.message:e.message==='forbidden'?'Permessi insufficienti per questa azione.':own||(m?m[1]||'Dati non validi.':'Accounting non disponibile in questo momento.');
    if(!e.status&&!m)console.error('accounting',e);
    res.status(e.status||(m?m[0]:503)).json({error:msg});

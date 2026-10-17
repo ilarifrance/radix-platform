@@ -121,7 +121,8 @@ test('copilot: live companies use the server snapshot, demo sends its own, error
  assert.equal(boom.status,503);assert.doesNotMatch(boom.body.error,/secret/);
  assert.equal((await call(H(async()=>({refused:true})),{company:C,action:'copilot.ask',data:{question:'?'}})).body.refused,true);
  assert.equal((await call(H(async()=>({text:'x'})),{company:C,action:'copilot.ask',data:{question:'?',history:[{role:'system',content:'x'}]}})).status,400);
- assert.equal(st.txs.length,0,'the copilot never writes');
+ // Each live question writes only its audit row (the monthly allowance), never an entry.
+ assert.ok(st.txs.length>0&&st.txs.every(t=>t.length===3&&/acc_role/.test(t[0][0])&&/copilot\.ask/.test(t[1][0])&&/INSERT INTO acc_audit/.test(t[2][0])),'the copilot only logs its questions');
 });
 
 test('bank import accepts CAMT.053 with the same rows as CSV',async()=>{

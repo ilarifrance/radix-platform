@@ -85,6 +85,7 @@ body.acc{margin:0;background:radial-gradient(ellipse at 85% -10%,color-mix(in sr
 .acc-steps li::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:22px;height:22px;margin-right:8px;border-radius:50%;background:color-mix(in srgb,var(--rx-studio,#F4BD5F) 20%,transparent);color:var(--rx-studio,#F4BD5F);font-weight:700}
 .acc-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
 .acc-plan{padding:14px;border:1px solid var(--rx-border,#133C3D);border-radius:12px}
+.acc-plan .acc-price{color:var(--rx-text,#E8F1F2);font-size:18px;font-weight:600}
 .acc-plan b{display:block;font-size:15px}.acc-plan p{margin:6px 0 0;color:var(--rx-muted,#9BB4BD);font-size:13px}
 .acc-dialog{max-width:min(720px,94vw);width:100%;color:var(--rx-text,#F1FAFB);background:var(--rx-surface,#041115);border:1px solid var(--rx-border-strong,#1B5654);border-radius:14px;padding:20px}
 .acc-dialog::backdrop{background:rgba(0,0,0,.6)}

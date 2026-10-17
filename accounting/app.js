@@ -3,7 +3,7 @@
    Every figure is computed by lib/accounting from the company's entries; nothing is invented. */
 (function(){
 'use strict';
-const COA=window.RadixChartOfAccounts,LED=window.RadixLedger,FPA=window.RadixFatturaPA,BANK=window.RadixBankCSV,POST=window.RadixPosting,VAT=window.RadixVAT,MGMT=window.RadixManagement,REC=window.RadixReconcile,DEMO=window.RadixAccDemo,P7M=window.RadixP7M,CAMT=window.RadixCAMT,ASSETS=window.RadixAssets,COP=window.RadixCopilot;
+const COA=window.RadixChartOfAccounts,LED=window.RadixLedger,FPA=window.RadixFatturaPA,BANK=window.RadixBankCSV,POST=window.RadixPosting,VAT=window.RadixVAT,MGMT=window.RadixManagement,REC=window.RadixReconcile,DEMO=window.RadixAccDemo,P7M=window.RadixP7M,CAMT=window.RadixCAMT,ASSETS=window.RadixAssets,COP=window.RadixCopilot,PRICE=window.RadixPricing;
 const $=id=>document.getElementById(id);
 const view=$('accView');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -16,7 +16,8 @@ const today=new Date().toISOString().slice(0,10);
 const TABS=['panoramica','fatture','prima-nota','banca','iva','bilancio','gestione','chiusure','copilota','impostazioni'];
 const SHELL_IDS={panoramica:'accounting',fatture:'acc-invoices','prima-nota':'acc-journal',banca:'acc-bank',iva:'acc-vat',bilancio:'acc-reports',gestione:'acc-control',chiusure:'acc-close',copilota:'acc-copilot',impostazioni:'accounting'};
 const ROLE={owner:'Titolare',admin:'Amministratore',accountant:'Commercialista',member:'Collaboratore',viewer:'Sola lettura'};
-const PLAN={base:'Base',controllo:'Controllo di gestione',professionista:'Con professionista'};
+const PLAN={base:'RADIX Contabilità',controllo:'RADIX Contabilità',professionista:'Con commercialista'};
+const PLAN_OPTS=[['base','RADIX Contabilità, '+eur0(PRICE.PRICE_CENTS)+' al mese'],['professionista','Con commercialista']];
 const S={store:null,demo:false,companies:[],company:null,year:+today.slice(0,4),data:null,calc:null,tab:'panoramica',ui:{docFilter:'to_review',doc:null,pct:100,editor:null,ledger:null,itemKind:'receivable',dimension:'project',ivaPeriod:null,journalFilter:'',closeMonth:null,rates:{},accrual:{kind:'risconto_attivo',account:'',amount:'',from:'',to:'',description:''},chat:[],asking:false},busy:false};
 
 // ---------- data access ----------
@@ -307,7 +308,7 @@ function copilota(d,c){
  const checks=c.checks.length?'<ul class="acc-checks">'+c.checks.map(x=>'<li><span class="acc-chip '+LEVEL[x.level][0]+'">'+LEVEL[x.level][1]+'</span><div><b>'+esc(x.title)+'</b><div class="acc-subtle">'+esc(x.detail)+'</div></div><a class="acc-btn small ghost" href="#'+x.tab+'">Apri</a></li>').join('')+'</ul>':empty('Nessuna anomalia trovata nei conti del '+S.year+'.');
  const chat=S.ui.chat.map(m=>'<div class="acc-msg '+m.role+'">'+(m.role==='assistant'?md(m.content):'<p>'+esc(m.content)+'</p>')+'</div>').join('')+(S.ui.asking?'<div class="acc-msg assistant"><p class="acc-muted">Sto leggendo i conti…</p></div>':'');
  const sugg=COP.SUGGESTED.map(q=>'<button class="acc-btn small ghost" type="button" data-act="askq" data-v="'+esc(q)+'"'+(S.ui.asking?' disabled':'')+'>'+esc(q)+'</button>').join('');
- return '<div class="acc-grid two">'+panel('Chiedi al copilota','<div class="acc-chat" id="accChat">'+(chat||'<p class="acc-muted">Fai una domanda sui conti di '+esc(d.company.name)+': risponde con i numeri di questa pagina.</p>')+'</div><div class="acc-suggest">'+sugg+'</div><form class="acc-ask" data-act="askform"><textarea id="accQ" rows="2" maxlength="1000" placeholder="Es. Perché il margine di settembre è sceso?" aria-label="Domanda al copilota"'+(S.ui.asking?' disabled':'')+'></textarea><button class="acc-btn" type="submit"'+(S.ui.asking?' disabled':'')+'>Chiedi</button></form><p class="acc-subtle">Il copilota legge solo i dati calcolati da RADIX su questa azienda e non modifica nulla. Le scelte fiscali vanno confermate con il commercialista.</p>',S.ui.chat.length?'<button class="acc-btn small ghost" type="button" data-act="clearchat">Nuova conversazione</button>':'')+
+ return '<div class="acc-grid two">'+panel('Chiedi al copilota','<div class="acc-chat" id="accChat">'+(chat||'<p class="acc-muted">Fai una domanda sui conti di '+esc(d.company.name)+': risponde con i numeri di questa pagina.</p>')+'</div><div class="acc-suggest">'+sugg+'</div><form class="acc-ask" data-act="askform"><textarea id="accQ" rows="2" maxlength="1000" placeholder="Es. Perché il margine di settembre è sceso?" aria-label="Domanda al copilota"'+(S.ui.asking?' disabled':'')+'></textarea><button class="acc-btn" type="submit"'+(S.ui.asking?' disabled':'')+'>Chiedi</button></form><p class="acc-subtle">Il copilota legge solo i dati calcolati da RADIX su questa azienda e non modifica nulla. Le scelte fiscali vanno confermate con il commercialista.'+(S.ui.usage&&!S.demo?' Domande usate questo mese: '+S.ui.usage.used+' di '+S.ui.usage.limit+'.':'')+'</p>',S.ui.chat.length?'<button class="acc-btn small ghost" type="button" data-act="clearchat">Nuova conversazione</button>':'')+
   panel('Controlli automatici',checks+'<p class="acc-subtle">Controlli che RADIX ripete a ogni modifica: quadratura, saldi anomali, documenti e movimenti fermi, scadenze IVA, crediti scaduti, cassa, fatture doppie, ammortamenti.</p>')+'</div>';
 }
 async function ask(question){
@@ -317,7 +318,7 @@ async function ask(question){
   let r;
   if(S.demo){const ctx=COP.snapshot(S.data,{year:S.year,today});r=await liveStore().commandRaw({action:'copilot.ask',data:{question,history,context:ctx}});}
   else r=await S.store.command('copilot.ask',{question,history,year:S.year});
-  S.ui.chat.push({role:'assistant',content:r.answer});
+  S.ui.chat.push({role:'assistant',content:r.answer});if(r.limit)S.ui.usage={used:r.used,limit:r.limit};
  }catch(e){S.ui.chat.pop();flash(e.status===401?'Accedi a RADIX per usare il copilota.':e.message||'Il copilota non risponde.','error');if($('accQ'))$('accQ').value=question;}
  finally{S.ui.asking=false;if(S.tab==='copilota')render();const box=$('accChat');if(box)box.scrollTop=box.scrollHeight;}
 }
@@ -335,7 +336,7 @@ function impostazioni(d){
   sel('coForm','Forma giuridica',co.legal_form,[['srl','S.r.l.'],['srls','S.r.l.s.'],['spa','S.p.A.'],['snc','S.n.c.'],['sas','S.a.s.'],['ditta','Ditta individuale'],['professionista','Professionista'],['altro','Altro']])+
   sel('coRegime','Regime contabile',co.regime,[['ordinario','Ordinario'],['semplificato','Semplificato'],['forfettario','Forfettario']])+
   sel('coPer','Liquidazione IVA',co.vat_periodicity,[['quarterly','Trimestrale'],['monthly','Mensile']])+
-  sel('coPlan','Piano del servizio',co.plan,[['base','Base'],['controllo','Controllo di gestione'],['professionista','Con professionista']])+'</div>'+
+  sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS)+'</div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="savecompany"'+dis(canManage())+'>Salva anagrafica</button></div>'+
   '<h3 style="margin-top:18px">Chiusura del periodo</h3><div class="acc-row"><label style="flex:0 0 200px">Nessuna registrazione fino al<input type="date" id="coLock" value="'+esc(co.lock_date||'')+'"></label><button class="acc-btn ghost" type="button" data-act="savelock"'+dis(canManage())+'>Aggiorna blocco</button></div><p class="acc-subtle">Dopo l\'invio delle dichiarazioni il commercialista blocca il periodo: nessuno può più registrare o modificare scritture con data precedente.</p>')+
  panel('Persone con accesso',(members?'<div class="acc-tablewrap"><table><thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th></th></tr></thead><tbody>'+members+'</tbody></table></div>':'')+
@@ -352,9 +353,9 @@ function onboarding(reason){
   '<ol class="acc-steps"><li>Crea l\'azienda con partita IVA e regime</li><li>Carica le fatture XML: RADIX propone le scritture</li><li>Carica l\'estratto conto: RADIX abbina incassi e pagamenti</li><li>Guarda IVA, margini, budget e cassa sempre aggiornati</li></ol>'+
   (reason?'<p class="acc-banner">'+reason+'</p>':'')+
   '<div class="acc-row">'+'<label>Ragione sociale<input id="nName" maxlength="200" placeholder="Rossi Srl"></label><label>Partita IVA<input id="nVat" maxlength="16" placeholder="IT01234567890"></label><label>Codice fiscale (se diverso)<input id="nCf" maxlength="16"></label></div>'+
-  '<div class="acc-row" style="margin-top:10px"><label>Regime<select id="nRegime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label><label>Liquidazione IVA<select id="nPer"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label><label>Piano<select id="nPlan"><option value="base">Base</option><option value="controllo">Controllo di gestione</option><option value="professionista">Con professionista</option></select></label></div>'+
+  '<div class="acc-row" style="margin-top:10px"><label>Regime<select id="nRegime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label><label>Liquidazione IVA<select id="nPer"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label><label>Piano<select id="nPlan">'+PLAN_OPTS.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('')+'</select></label></div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="createcompany"'+(S.store&&!S.demo&&S.live?'':' disabled')+'>Crea l\'azienda</button><button class="acc-btn ghost" type="button" data-act="startdemo">Prova con l\'azienda dimostrativa</button></div>'+
-  '<h3 style="margin-top:20px">Piani del servizio (proposta)</h3><div class="acc-plans"><div class="acc-plan"><b>Base</b><p>Fatture, prima nota assistita, IVA, banca e cruscotto.</p></div><div class="acc-plan"><b>Controllo di gestione</b><p>Budget, margini per progetto e centro di costo, cassa prevista.</p></div><div class="acc-plan"><b>Con professionista</b><p>Revisione mensile e adempimenti telematici tramite lo studio partner.</p></div></div></div>';
+  '<h3 style="margin-top:20px">Piani del servizio</h3><div class="acc-plans">'+'<div class="acc-plan"><b>'+esc(PRICE.PLANS.base.label)+'</b><p class="acc-price">'+eur0(PRICE.PRICE_CENTS)+' al mese + IVA</p><p>'+esc(PRICE.PLANS.base.summary)+' Controllo di gestione incluso: budget, margini per progetto e centro di costo, cassa prevista.</p><p>Fino a '+PRICE.INCLUDED.invoices+' fatture al mese, '+PRICE.INCLUDED.bank_accounts+' conto bancario, '+PRICE.INCLUDED.copilot_questions+' domande al copilota, '+PRICE.INCLUDED.users+' utenti.</p></div>'+'<div class="acc-plan"><b>'+esc(PRICE.PLANS.professionista.label)+'</b><p class="acc-price">'+eur0(PRICE.PRICE_CENTS)+' al mese + onorario dello studio</p><p>'+esc(PRICE.PLANS.professionista.summary)+' Studio: '+esc(PRICE.PARTNER.name)+'.</p></div></div></div>';
 }
 
 // ---------- events ----------
