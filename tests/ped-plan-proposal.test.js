@@ -7,7 +7,7 @@ const state={brief:{channels:'LinkedIn, Instagram',period:'Novembre',frequency:'
 test('plan prompt carries the strategy, today, the plan to avoid and the JSON format',()=>{
  const p=pv.planPrompt(state,'2026-10-17');
  assert.match(p,/a partire da oggi, 2026-10-17/);assert.match(p,/Frequenza per canale: LinkedIn 2\/sett/);assert.match(p,/Casi studio \(ogni martedì\)/);
- assert.match(p,/- 2026-10-20 · LinkedIn · Lancio/);assert.match(p,/solo con un array JSON/);assert.match(p,/al massimo 30 contenuti/);
+ assert.match(p,/- 2026-10-20 · LinkedIn · Lancio/);assert.match(p,/solo con un array JSON/);assert.match(p,/al massimo 60 contenuti/);
 });
 
 test('parsePlan keeps valid future items, matches rubrics, drops duplicates and junk',()=>{
@@ -26,8 +26,8 @@ test('parsePlan keeps valid future items, matches rubrics, drops duplicates and 
  assert.deepEqual(r.skipped,{invalid:4,past:2,duplicate:2,extra:0});
  assert.throws(()=>pv.parsePlan('Non posso aiutarti',state,'2026-10-17'),/non è leggibile/);
  assert.throws(()=>pv.parsePlan('{"a":1}',state,'2026-10-17'),/non è leggibile/);
- const many=Array.from({length:35},(_,i)=>({date:'2026-11-'+String(i%28+1).padStart(2,'0'),channel:'Blog',title:'Post '+i}));
- const m=pv.parsePlan(JSON.stringify(many),state,'2026-10-17');assert.equal(m.items.length,30);assert.equal(m.skipped.extra,5);
+ const many=Array.from({length:65},(_,i)=>({date:'2026-11-'+String(i%28+1).padStart(2,'0'),channel:'Blog',title:'Post '+i}));
+ const m=pv.parsePlan(JSON.stringify(many),state,'2026-10-17');assert.equal(m.items.length,60);assert.equal(m.skipped.extra,5);
 });
 
 test('picked items become drafts of the current strategy, with rubric and the angle as starting text',()=>{
