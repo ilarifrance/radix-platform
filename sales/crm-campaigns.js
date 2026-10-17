@@ -132,7 +132,7 @@ async function showClicks(out){
  out.replaceChildren(E('h4','Clic sulle campagne'));
  if(!(d.campaigns||[]).length){out.append(E('p','Ancora nessun clic. I link delle prossime campagne vengono tracciati in automatico.','muted'));app().notice('');return}
  for(const c of d.campaigns)out.append(E('p','«'+c.campaign+'» · '+c.people+(c.people===1?' persona':' persone')+' · '+c.clicks+(c.clicks===1?' clic':' clic')+' · ultimo '+when(c.last_at)));
- const list=E('ul');for(const p of d.people||[])list.append(E('li',p.name+' · «'+p.campaign+'» · '+p.clicks+' clic · '+when(p.last_at)));out.append(list,E('p','Il primo clic di ogni persona su una campagna entra anche nella sua cronologia e alza il punteggio del contatto. Alcuni filtri antivirus aprono i link da soli: un clic isolato subito dopo l’invio può non essere una persona.','muted'));app().notice('');
+ const list=E('ul');for(const p of d.people||[])list.append(E('li',p.name+' · «'+p.campaign+'» · '+p.clicks+' clic · '+when(p.last_at)));out.append(list,E('p','Il primo clic di ogni persona su una campagna entra nella sua cronologia, alza il punteggio del contatto e crea un’attività «Richiama» per domani a chi gli ha scritto per ultimo. Alcuni filtri antivirus aprono i link da soli: un clic isolato subito dopo l’invio può non essere una persona.','muted'));app().notice('');
 }
 root.RadixCrmCampaigns={panel(filterOf){const box=E('details',undefined,'panel crm-campaigns');box.append(E('summary','Sequenze e campagne email sul segmento'));if(app().writable('tasks'))box.append(sequencePanel(filterOf));if(app().writable('interactions'))box.append(campaignPanel(filterOf));return box}};
 })(typeof globalThis!=='undefined'?globalThis:this);
