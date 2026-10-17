@@ -16,7 +16,12 @@ test('39 € a month stays above cost: every scenario under the 15 € ceiling',
 });
 
 test('the partner firm is a declared placeholder and the page shows the price',()=>{
- assert.equal(pricing.PARTNER.fictitious,true);assert.match(pricing.PARTNER.name,/fittizio/);
+ assert.equal(pricing.PARTNER.fictitious,true);
+ // The partner fee is included: every plan costs 39 € and the budget left for the firm is what the ceiling allows.
+ for(const p of Object.values(pricing.PLANS))assert.equal(p.price_cents,3900);
+ assert.equal(pricing.PLANS.professionista.partner,true);
+ for(const s of Object.values(pricing.SCENARIOS))assert.equal(pricing.partnerBudget(s),1500-pricing.monthly(s).total_cents);
+ assert.equal(pricing.monthly(pricing.SCENARIOS.tipico,{...pricing.UNIT,partner:500}).total_cents,pricing.monthly(pricing.SCENARIOS.tipico).total_cents+500);assert.match(pricing.PARTNER.name,/fittizio/);
  const html=fs.readFileSync(__dirname+'/../accounting/index.html','utf8'),app=fs.readFileSync(__dirname+'/../accounting/app.js','utf8');
  assert.match(html,/\/lib\/accounting\/pricing\.js/);assert.match(app,/PRICE\.PARTNER\.name/);assert.match(app,/PRICE\.PRICE_CENTS/);
 });
