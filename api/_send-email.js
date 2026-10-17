@@ -49,7 +49,24 @@ module.exports = async function handler(req, res) {
       payload = {};
     }
   }
-  const { to, subject, body: emailBody, confirm } = payload || {};
+  const { to, subject, body: emailBody, confirm, unsubscribeUrl } = payload || {};
+
+  // Email commerciali del CRM: link personale di disiscrizione, anche come intestazione
+  // List-Unsubscribe (RFC 8058) perché i client mostrino il pulsante «Annulla iscrizione».
+  // Si accetta solo un link a questo stesso sito.
+  let unsubscribe = null;
+  if (unsubscribeUrl !== undefined) {
+    try {
+      const u = new URL(String(unsubscribeUrl));
+      const host = String((req.headers && (req.headers["x-forwarded-host"] || req.headers.host)) || "").split(",")[0].trim();
+      const token = u.searchParams.get("unsubscribe") || "";
+      if (!/^https?:$/.test(u.protocol) || u.host !== host || u.pathname !== "/api/sales" || !/^[A-Za-z0-9_-]{64}$/.test(token)) throw new Error("bad");
+      unsubscribe = u.origin + "/api/sales?unsubscribe=" + token;
+    } catch {
+      res.status(400).json({ error: "Link di disiscrizione non valido." });
+      return;
+    }
+  }
 
   if (!to || !subject || !emailBody) {
     res.status(400).json({ error: "Servono 'to', 'subject' e 'body'." });
@@ -73,6 +90,7 @@ module.exports = async function handler(req, res) {
       to,
       subject,
       text: emailBody,
+      ...(unsubscribe ? { list: { unsubscribe: unsubscribe }, headers: { "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } } : {}),
     });
     res.status(200).json({ ok: true, messageId: info.messageId });
   } catch (err) {
