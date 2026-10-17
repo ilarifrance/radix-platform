@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
+<title>RADIX Contabilità · La tua azienda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<link rel="stylesheet" href="/accounting/app.css">
+</head>
+<!-- Client version of /accounting/: same app, without the internal RADIX shell. Keep the markup in sync with accounting/index.html. -->
+<body class="acc acc-client">
+<header class="acc-clienttop">
+ <a class="acc-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span>RADIX</span><small>Contabilità</small></a>
+ <button type="button" class="acc-btn ghost small" data-act="clientlogout">Esci</button>
+</header>
+<main class="acc-main">
+ <header class="acc-head">
+  <div>
+   <p class="acc-eyebrow">La tua contabilità</p>
+   <h1 id="accTitle">Contabilità e controllo di gestione</h1>
+   <p class="acc-lead" id="accLead">Carichi le fatture elettroniche (anche .p7m) e l'estratto conto: RADIX propone le registrazioni in partita doppia, calcola l'IVA e ti mostra margini, budget e cassa. Ogni registrazione la confermi tu.</p>
+  </div>
+  <div class="acc-switch" id="accSwitch" hidden>
+   <label>Azienda <select id="accCompany" aria-label="Azienda"></select></label>
+   <label>Esercizio <select id="accYear" aria-label="Esercizio"></select></label>
+   <button type="button" class="acc-btn ghost" id="accNewCompany">+ Nuova azienda</button>
+  </div>
+ </header>
+ <p class="acc-banner" id="accBanner" role="status" aria-live="polite" hidden></p>
+ <nav class="acc-tabs" id="accTabs" aria-label="Sezioni Accounting" hidden>
+  <a href="#panoramica" data-tab="panoramica">Panoramica</a>
+  <a href="#fatture" data-tab="fatture">Fatture <span class="acc-count" id="cntDocs"></span></a>
+  <a href="#prima-nota" data-tab="prima-nota">Prima nota</a>
+  <a href="#banca" data-tab="banca">Banca e scadenze <span class="acc-count" id="cntBank"></span></a>
+  <a href="#iva" data-tab="iva">IVA</a>
+  <a href="#bilancio" data-tab="bilancio">Bilancio</a>
+  <a href="#gestione" data-tab="gestione">Controllo di gestione</a>
+  <a href="#chiusure" data-tab="chiusure">Chiusure</a>
+  <a href="#copilota" data-tab="copilota">Copilota <span class="acc-count" id="cntChecks"></span></a>
+  <a href="#impostazioni" data-tab="impostazioni">Azienda</a>
+ </nav>
+ <section id="accView" class="acc-view" aria-live="polite"><p class="acc-muted">Caricamento…</p></section>
+ <p class="acc-foot">RADIX prepara i dati; gli invii telematici (F24, LIPE, dichiarazioni) li fa il professionista abilitato. Le proposte automatiche vanno sempre verificate prima della conferma.</p>
+</main>
+<dialog id="accDialog" class="acc-dialog"><form method="dialog" id="accDialogForm"></form></dialog>
+<script src="/lib/accounting/chart-of-accounts.js" defer></script>
+<script src="/lib/accounting/ledger.js" defer></script>
+<script src="/lib/accounting/fatturapa.js" defer></script>
+<script src="/lib/accounting/bank-csv.js" defer></script>
+<script src="/lib/accounting/posting.js" defer></script>
+<script src="/lib/accounting/vat.js" defer></script>
+<script src="/lib/accounting/management.js" defer></script>
+<script src="/lib/accounting/reconcile.js" defer></script>
+<script src="/lib/accounting/assets.js" defer></script>
+<script src="/lib/accounting/copilot.js" defer></script>
+<script src="/lib/accounting/p7m.js" defer></script>
+<script src="/lib/accounting/camt.js" defer></script>
+<script src="/lib/accounting/pricing.js" defer></script>
+<script src="/accounting/demo-data.js" defer></script>
+<script src="/accounting/app.js" defer></script>
+</body></html>

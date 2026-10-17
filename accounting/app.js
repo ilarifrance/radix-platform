@@ -27,6 +27,7 @@ function liveStore(){
   companies:()=>call('/api/accounting?resource=companies').then(j=>j.rows),
   bundle:year=>call('/api/accounting?resource=bundle&company='+encodeURIComponent(S.company)+'&year='+year),
   command:(action,data)=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify({action,data,...(action==='company.create'?{}:{company:S.company})})}),
+  account:()=>call('/api/accounting?resource=account'),
   commandRaw:body=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify(body)})
  };
 }
@@ -336,15 +337,15 @@ function impostazioni(d){
   sel('coForm','Forma giuridica',co.legal_form,[['srl','S.r.l.'],['srls','S.r.l.s.'],['spa','S.p.A.'],['snc','S.n.c.'],['sas','S.a.s.'],['ditta','Ditta individuale'],['professionista','Professionista'],['altro','Altro']])+
   sel('coRegime','Regime contabile',co.regime,[['ordinario','Ordinario'],['semplificato','Semplificato'],['forfettario','Forfettario']])+
   sel('coPer','Liquidazione IVA',co.vat_periodicity,[['quarterly','Trimestrale'],['monthly','Mensile']])+
-  sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS)+'</div>'+
+  (S.client?'<label>Piano del servizio<input value="'+esc(PLAN[co.plan]||co.plan)+', '+eur0(PRICE.PRICE_CENTS)+' al mese" readonly></label>':sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS))+'</div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="savecompany"'+dis(canManage())+'>Salva anagrafica</button></div>'+
   '<h3 style="margin-top:18px">Chiusura del periodo</h3><div class="acc-row"><label style="flex:0 0 200px">Nessuna registrazione fino al<input type="date" id="coLock" value="'+esc(co.lock_date||'')+'"></label><button class="acc-btn ghost" type="button" data-act="savelock"'+dis(canManage())+'>Aggiorna blocco</button></div><p class="acc-subtle">Dopo l\'invio delle dichiarazioni il commercialista blocca il periodo: nessuno può più registrare o modificare scritture con data precedente.</p>')+
  panel('Persone con accesso',(members?'<div class="acc-tablewrap"><table><thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th></th></tr></thead><tbody>'+members+'</tbody></table></div>':'')+
-  '<div class="acc-row" style="margin-top:12px"><label>Email dell\'account RADIX<input id="mEmail" type="email" maxlength="254" placeholder="nome@azienda.it"></label>'+sel('mRole','Ruolo','accountant',[['accountant','Commercialista'],['member','Collaboratore'],['viewer','Sola lettura'],['admin','Amministratore']])+'<button class="acc-btn ghost" type="button" data-act="addmember"'+dis(['owner','admin'].includes(co.role)&&!S.demo)+'>Aggiungi</button></div><p class="acc-subtle">Il commercialista vede tutto, chiude le liquidazioni e blocca i periodi; il collaboratore registra; la sola lettura consulta.</p>')+'</div>'+
+  '<div class="acc-row" style="margin-top:12px"><label>Email dell\'account RADIX<input id="mEmail" type="email" maxlength="254" placeholder="nome@azienda.it"></label>'+sel('mRole','Ruolo','accountant',[['accountant','Commercialista'],['member','Collaboratore'],['viewer','Sola lettura'],['admin','Amministratore']])+'<button class="acc-btn ghost" type="button" data-act="addmember"'+dis(['owner','admin'].includes(co.role)&&!S.demo&&!S.client)+'>Aggiungi</button></div><p class="acc-subtle">Il commercialista vede tutto, chiude le liquidazioni e blocca i periodi; il collaboratore registra; la sola lettura consulta.</p>')+'</div>'+
  panel('Piano dei conti','<details><summary class="acc-muted">'+d.accounts.length+' conti · aggiungi o rinomina</summary><div class="acc-row" style="margin:12px 0">'+f('aCode','Codice (es. 61.12)','',' maxlength="8"')+f('aName','Nome','',' maxlength="120"')+sel('aKind','Tipo','C',Object.entries(COA.KINDS))+sel('aGroup','Gruppo','servizi',groups)+'<button class="acc-btn ghost" type="button" data-act="saveaccount"'+dis(canManage())+'>Salva conto</button></div><div class="acc-tablewrap"><table><thead><tr><th>Codice</th><th>Nome</th><th>Tipo</th><th>Gruppo</th><th></th></tr></thead><tbody>'+accRows+'</tbody></table></div></details>')+
  panel('Attività recenti',d.audit.length?'<ul class="acc-reasons">'+d.audit.slice(0,20).map(a=>'<li>'+esc(new Date(a.at).toLocaleString('it-IT'))+' · '+esc(a.actor||'')+' · '+esc(AUDIT[a.action]||a.action)+'</li>').join('')+'</ul>':empty('Nessuna attività.'));
 }
-const AUDIT={'company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto'};
+const AUDIT={'signup':'ha attivato il servizio','company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto'};
 
 // ---------- onboarding ----------
 function onboarding(reason){
@@ -388,13 +389,15 @@ document.addEventListener('click',async ev=>{
  else if(a==='dimension'){S.ui.dimension=v;render();}
  else if(a==='savebudget'){const rows=[];for(const inp of document.querySelectorAll('[data-budget]')){const c=cents(inp.value.trim());if(Number.isNaN(c)){flash('Importo non leggibile: '+inp.value,'error');return;}if(!c)continue;const k=inp.dataset.budget,sign=k==='ricavi'?1:-1,tot=Math.abs(c),base=Math.trunc(tot/12);for(let m=1;m<=12;m++)rows.push({key:k,month:m,amount_cents:sign*(base+(m===12?tot-base*12:0))});}
   await run('budget.save',{year:S.year,rows},'Budget '+S.year+' salvato.');}
- else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,plan:$('coPlan').value},'Anagrafica aggiornata.');}
+ else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,...($('coPlan')?{plan:$('coPlan').value}:{})},'Anagrafica aggiornata.');}
  else if(a==='savelock'){const co=d.company;await run('company.update',{version:co.version,lock_date:$('coLock').value||null},'Blocco del periodo aggiornato.');}
  else if(a==='addmember'){await run('member.add',{email:$('mEmail').value,role:$('mRole').value},'Persona aggiunta.');}
  else if(a==='rmmember'){if(confirm('Togliere l\'accesso a questa persona?'))await run('member.remove',{user_id:+idv},'Accesso rimosso.');}
  else if(a==='saveaccount'){await run('account.save',{code:$('aCode').value.trim(),name:$('aName').value,kind:$('aKind').value,group:$('aGroup').value},'Conto salvato.');}
  else if(a==='createcompany'){const r=await S.store.command('company.create',{name:$('nName').value,vat:$('nVat').value||null,tax_code:$('nCf').value||null,regime:$('nRegime').value,vat_periodicity:$('nPer').value,plan:$('nPlan').value}).catch(e=>{flash(e.message,'error');return null;});if(r){S.company=r.id;await loadCompanies();flash('Azienda creata: carica le prime fatture.','ok');location.hash='#fatture';}}
  else if(a==='startdemo'){await startDemo();}
+ else if(a==='paynow'){t.disabled=true;try{const r=await liveStore().commandRaw({action:'billing.checkout',data:{}});location.href=r.url;}catch(e){t.disabled=false;flash(e.message,'error');}}
+ else if(a==='clientlogout'){await liveStore().commandRaw({action:'client.logout',data:{}}).catch(()=>{});location.href='/contabilita/';}
  else if(a==='depreciate'){const dep=ASSETS.depreciation(d.entries,d.accounts,S.year,{rates:S.ui.rates});if(confirm('Registrare ammortamenti per '+eur(dep.total_cents)+' al 31/12/'+S.year+' su '+dep.rows.length+' cespiti?'))await run('closing.depreciation',{year:S.year,...(Object.keys(S.ui.rates).length?{rates:S.ui.rates}:{})},'Ammortamenti '+S.year+' registrati.');}
  else if(a==='accrue'){const x=S.ui.accrual,amount=cents(x.amount);if(!x.account||!amount||Number.isNaN(amount)||!x.from||!x.to){flash('Indica conto, importo e periodo di competenza.','error');return;}
   const r=await run('closing.accrual',{kind:x.kind,account:x.account,amount_cents:amount,from:x.from,to:x.to,closing:S.year+'-12-31',...(x.description.trim()?{description:x.description.trim()}:{})},r=>ASSETS.KINDS[x.kind].label+' di '+eur(r.amount_cents)+' registrato, con riapertura al 01/01/'+(S.year+1)+'.');if(r){S.ui.accrual={...S.ui.accrual,account:'',amount:'',from:'',to:'',description:''};render();}}
@@ -438,7 +441,7 @@ document.addEventListener('drop',ev=>{const z=ev.target.closest&&ev.target.close
 function fillSwitch(){
  const sel=$('accCompany');sel.innerHTML=S.companies.map(c=>'<option value="'+esc(c.id)+'"'+(c.id===S.company?' selected':'')+'>'+esc(c.name)+'</option>').join('')+(S.demo?'':'<option value="__demo">Azienda dimostrativa…</option>');
  const ys=$('accYear'),now=+today.slice(0,4);ys.innerHTML=[now+1,now,now-1,now-2,now-3].map(y=>'<option'+(y===S.year?' selected':'')+'>'+y+'</option>').join('');
- $('accNewCompany').hidden=S.demo||!S.live;
+ $('accNewCompany').hidden=S.demo||!S.live||S.client;
 }
 $('accNewCompany').addEventListener('click',()=>{S.data=null;onboarding();});
 async function loadCompanies(){
@@ -458,11 +461,25 @@ async function start(){
  S.store=liveStore();
  try{await S.store.companies();S.live=true;}
  catch(e){
-  if(e.status===401){S.live=false;banner('Per usare la contabilità della tua azienda <a href="/control-center-v2.html">accedi a RADIX</a>. Intanto puoi provare l\'azienda dimostrativa.','');onboarding();return;}
+  if(e.status===401){S.live=false;banner('Per usare la contabilità della tua azienda <a href="/contabilita/accedi.html">accedi</a> o <a href="/contabilita/iscrizione.html">attiva il servizio</a>. Intanto puoi provare l\'azienda dimostrativa.','');onboarding();return;}
+  if(e.status===402){if(!location.pathname.startsWith('/contabilita/')){location.replace('/contabilita/app/'+location.search+location.hash);return;}S.live=true;S.client=true;return payment();}
   if(e.status===503){S.live=false;banner('L\'archivio contabile non è ancora attivo su questo ambiente: ti mostro l\'azienda dimostrativa.','demo');return startDemo();}
   S.live=false;banner(esc(e.message),'error');onboarding();return;
  }
+ try{const a=await S.store.account();S.client=a.kind==='client';}catch{}
+ if(S.client&&!location.pathname.startsWith('/contabilita/')){location.replace('/contabilita/app/'+location.search+location.hash);return;}
+ if(S.client&&new URLSearchParams(location.search).get('pagamento')==='ok')flash('Pagamento ricevuto: benvenuto in RADIX Contabilità.','ok');
  try{await loadCompanies();}catch(e){banner(esc(e.message),'error');}
+}
+// Client account whose subscription is not active yet: after Stripe the webhook may take a few seconds.
+async function payment(){
+ const paid=new URLSearchParams(location.search).get('pagamento')==='ok';
+ view.innerHTML='<div class="acc-panel acc-onboard"><h2>'+(paid?'Stiamo confermando il pagamento':'Completa l\'attivazione')+'</h2><p class="acc-muted">'+(paid?'Stripe ci sta inviando la conferma: la pagina si aggiorna da sola.':'Il tuo account è pronto. Per usare la contabilità completa il pagamento di '+eur0(PRICE.PRICE_CENTS)+' al mese + IVA.')+'</p>'+
+  '<div class="acc-actions"><button class="acc-btn" type="button" data-act="paynow">'+(paid?'Paga di nuovo':'Completa il pagamento')+'</button><button class="acc-btn ghost" type="button" data-act="clientlogout">Esci</button></div></div>';
+ $('accTabs').hidden=true;
+ if(!paid)return;
+ for(let i=0;i<15;i++){await new Promise(r=>setTimeout(r,2000));try{await S.store.companies();$('accTabs').hidden=false;flash('Pagamento ricevuto: benvenuto in RADIX Contabilità.','ok');return loadCompanies();}catch(e){if(e.status!==402)break;}}
+ banner('La conferma del pagamento non è ancora arrivata. Ricarica la pagina tra qualche minuto.','');
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Accedi · RADIX Contabilità</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<link rel="stylesheet" href="/contabilita/contabilita.css">
+<script src="/lib/accounting/pricing.js" defer></script>
+<script src="/contabilita/account.js" defer></script>
+</head>
+<body class="ct">
+<header class="ct-top">
+ <a class="ct-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="ct-word">RADIX</span><span class="ct-area">Contabilità</span></a>
+ <nav class="ct-nav" aria-label="Sezioni"><a href="/contabilita/#incluso">Cosa è incluso</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
+ <a class="ct-btn ghost small" href="/contabilita/iscrizione.html">Iscriviti</a>
+</header>
+<main id="main" class="ct-form-page">
+ <section class="ct-form-wrap narrow">
+  <p class="ct-eyebrow">Area clienti</p>
+  <h1 class="ct-form-title">Accedi alla tua contabilità</h1>
+  <p class="ct-alert" id="ctMsg" role="status" hidden></p>
+  <form id="ctLogin" class="ct-form" novalidate>
+   <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+   <label>Password<input name="password" type="password" required maxlength="200" autocomplete="current-password"></label>
+   <button class="ct-btn" type="submit">Accedi</button>
+   <p class="ct-note">Non hai ancora un account? <a href="/contabilita/iscrizione.html">Iscriviti</a>.</p>
+  </form>
+ </section>
+</main>
+</body>
+</html>

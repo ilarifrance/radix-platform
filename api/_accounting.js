@@ -333,19 +333,40 @@ async function bundle(store,c,u,year){
  return v;
 }
 
-function createHandler({getSessionUser,getStore,ask}){
+// Public actions: sign-up and client sign-in from /contabilita/ (no session yet). Client accounts may only work on
+// their own company, only once its subscription is active, and cannot create companies or manage members.
+const PUBLIC=['signup.start','client.login','client.logout'];
+const CLIENT_BLOCKED=['company.create','member.add','member.remove','member.update'];
+function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchImpl}){
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   try{
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}
-   let user;try{user=getSessionUser(req);}catch{user=null;}
-   if(!user||!Number.isInteger(user.uid)||user.uid<1)fail(401,'Accedi con il tuo account RADIX.');
-   const store=getStore();
+   let body;
    if(req.method==='POST'){
     if(req.headers['x-radix-accounting']!=='1'||!/^application\/json(?:;|$)/i.test(req.headers['content-type']||'')||req.headers['sec-fetch-site']==='cross-site')fail(403,'Richiesta non consentita.');
-    let body=req.body;if(typeof body==='string'){if(Buffer.byteLength(body)>4000000)fail(413,'Richiesta troppo grande.');try{body=JSON.parse(body);}catch{fail(400,'JSON non valido.');}}
-    return res.status(200).json(await command(store,user.uid,body,{ask}));
+    body=req.body;if(typeof body==='string'){if(Buffer.byteLength(body)>4000000)fail(413,'Richiesta troppo grande.');try{body=JSON.parse(body);}catch{fail(400,'JSON non valido.');}}
+    if(billing&&obj(body)&&PUBLIC.includes(body.action)){
+     if(!obj(body.data)||Object.keys(body).some(k=>!['action','data'].includes(k)))fail(400,'Comando non valido.');
+     const store=getStore();
+     if(body.action==='client.logout'){res.setHeader('Set-Cookie',billing.clearCookie());return res.status(200).json({ok:true});}
+     if(body.action==='client.login')return res.status(200).json(await billing.login(store,req,res,body.data));
+     return res.status(200).json(await billing.signup(store,req,res,body.data,{companyData,fetchImpl}));
+    }
    }
+   let user;try{user=getSessionUser(req);}catch{user=null;}
+   if((!user||!Number.isInteger(user.uid))&&getClientUser){try{user=getClientUser(req);}catch{user=null;}}
+   if(!user||!Number.isInteger(user.uid)||user.uid<1)fail(401,'Accedi con il tuo account RADIX.');
+   const store=getStore();
+   let acct=null;
+   if(user.client){
+    acct=await billing.account(store,user.uid);if(!acct)fail(401,'Accedi con il tuo account RADIX.');
+    if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json(acct);
+    if(req.method==='POST'&&obj(body)&&body.action==='billing.checkout')return res.status(200).json({url:await billing.checkout(store,user.uid,req,{fetchImpl})});
+    if(!billing.ACTIVE.includes(acct.status))fail(402,'Abbonamento non attivo: completa il pagamento per usare la contabilità.');
+    if(req.method==='POST'&&obj(body)&&(CLIENT_BLOCKED.includes(body.action)||(body.action==='company.update'&&obj(body.data)&&Object.hasOwn(body.data,'plan'))))fail(403,'Questa azione non è disponibile per il tuo account.');
+   }else if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json({kind:'team'});
+   if(req.method==='POST')return res.status(200).json(await command(store,user.uid,body,{ask}));
    const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year'].includes(k)))fail(400,'Parametro non consentito.');
    if(qy.resource==='companies')return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.name),'[]') AS v FROM (SELECT c.id,c.name,c.vat,c.regime,c.vat_periodicity,c.plan,m.role FROM acc_companies c JOIN acc_memberships m ON m.company_id=c.id WHERE m.user_id=$1) t",[user.uid])});
    if(qy.resource==='bundle'){

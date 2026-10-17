@@ -56,3 +56,24 @@ main{max-width:1120px;margin:0 auto;padding:0 16px}
 @media (max-width:1000px){.ct-steps,.ct-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:767px){.ct-nav{display:none}.ct-top .ct-btn{margin-left:auto}.ct-hero{padding:48px 0 40px}.ct h1{font-size:34px}.ct-lead{font-size:16px}
  .ct-steps,.ct-grid,.ct-price{grid-template-columns:1fr}.ct-price{padding:20px}.ct-amount{font-size:44px}.ct-section{padding:40px 0}}
+/* Sign-up and sign-in */
+.ct-form-page{padding-top:48px;padding-bottom:64px}
+.ct-form-wrap{max-width:640px;margin:0 auto}
+.ct-form-wrap.narrow{max-width:420px}
+.ct-form-title{font:700 32px/1.15 var(--display);margin:0 0 8px}
+.ct-form{display:flex;flex-direction:column;gap:16px;margin-top:20px}
+.ct-form fieldset{border:1px solid var(--border);border-radius:16px;padding:16px 20px 20px;margin:0;display:flex;flex-direction:column;gap:14px;background:var(--surface)}
+.ct-form legend{padding:0 6px;font-weight:600}
+.ct-form label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--muted);flex:1;min-width:0}
+.ct-form input:not([type=checkbox]),.ct-form select{height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface-2);color:var(--text);font:15px var(--font)}
+.ct-form input:focus-visible,.ct-form select:focus-visible{outline:2px solid var(--core);outline-offset:1px}
+.ct-form input:user-invalid{border-color:#FF6B70}
+.ct-form small{color:var(--subtle);font-size:12px}
+.ct-row{display:flex;gap:12px;flex-wrap:wrap}
+.ct-row label{flex:1 1 200px}
+.ct-form .ct-check{flex-direction:row;align-items:flex-start;gap:10px;color:var(--text)}
+.ct-check input{width:18px;height:18px;margin-top:2px;accent-color:var(--core)}
+.ct-form .ct-btn{align-self:flex-start;cursor:pointer;font:600 15px var(--font)}
+.ct-form .ct-btn:disabled{opacity:.6;cursor:progress}
+.ct-alert{margin:16px 0 0;padding:12px 14px;border-radius:10px;border:1px solid #FF6B70;background:color-mix(in srgb,#FF6B70 10%,transparent)}
+.ct-alert.info{border-color:var(--border-strong);background:var(--surface-2)}

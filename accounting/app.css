@@ -114,3 +114,11 @@ body.acc{margin:0;background:radial-gradient(ellipse at 85% -10%,color-mix(in sr
 .acc-ask{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
 .acc-ask textarea{resize:vertical;min-height:44px}
 @media (max-width:640px){.acc-checks li{grid-template-columns:auto minmax(0,1fr)}.acc-checks li>a{grid-column:2;justify-self:start}.acc-ask{grid-template-columns:1fr}}
+
+/* Client version (/contabilita/app/): no RADIX shell, own slim top bar. */
+.acc-client{--rx-font:Inter,system-ui,sans-serif;--rx-display:'Space Grotesk',Inter,system-ui,sans-serif}
+.acc-clienttop{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1440px;margin:0 auto;padding:14px 28px;border-bottom:1px solid var(--rx-border,#133C3D)}
+.acc-brand{display:flex;flex-direction:column;line-height:1;text-decoration:none;color:var(--rx-text,#F1FAFB)!important}
+.acc-brand span{font:700 18px/1 'Space Grotesk',Inter,sans-serif;letter-spacing:.28em}
+.acc-brand small{margin-top:4px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--rx-studio,#F4BD5F)}
+@media (max-width:767px){.acc-clienttop{padding:12px 16px}}
