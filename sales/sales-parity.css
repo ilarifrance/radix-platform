@@ -570,3 +570,23 @@ details.crm-automations>p.muted{margin:12px 20px 4px;font-size:12px}
 .crm-automation:has(button:disabled)>.crm-automation-count{color:#6f9496;background:transparent}
 .crm-automation>button{grid-area:act;min-height:34px;padding:5px 14px;font-size:13px}
 @media(max-width:640px){.crm-automation{grid-template-columns:1fr auto;grid-template-areas:"name name" "desc desc" "count act"}.crm-automation>.crm-automation-count{justify-self:start}}
+
+/* ---------- Possibili doppioni (crm-tools.js dedupePanel), same look as the campaigns panel ---------- */
+details.crm-dedupe{flex:1 1 100%;width:100%;padding:0;overflow:hidden}
+details.crm-dedupe>summary{cursor:pointer;padding:16px 20px;font-weight:600;color:#e6f6f2;list-style-position:inside}
+details.crm-dedupe[open]>summary{border-bottom:1px solid #18444a}
+.crm-dedupe-body{display:grid;gap:12px;padding:16px 20px 20px}
+.crm-dedupe-body>p.muted{margin:0;font-size:12.5px;max-width:760px}
+.crm-dedupe-body>button{justify-self:start;min-height:36px;padding:6px 14px;font-size:13px}
+.crm-dedupe-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.crm-dedupe-list:empty{display:none}
+.crm-dedupe-list>p{grid-column:1/-1;margin:0;font-size:12.5px;color:#9fbdc0}
+.crm-dedupe-list>p.crm-dedupe-count{color:#f5c66b;font-weight:600}
+.crm-dedupe-group{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0;padding:12px 14px 14px;border:1px solid #1f5a5c;border-radius:12px;background:#071f29cc}
+.crm-dedupe-group>legend{padding:2px 10px;border-radius:999px;font-size:11.5px;font-weight:600;color:#f5c66b;background:#3a3016;box-shadow:inset 0 0 0 1px #f5c66b44}
+.crm-dedupe-group>label.check{display:flex;align-items:flex-start;gap:8px;margin:0;padding:8px 10px;border:1px solid transparent;border-radius:8px;font-size:12.5px;color:#cfe6e1;cursor:pointer;overflow-wrap:anywhere}
+.crm-dedupe-group>label.check:last-of-type{margin-bottom:6px}
+.crm-dedupe-group>label.check:hover{background:#0a2833}
+.crm-dedupe-group>label.check:has(input:checked){border-color:#3fe8bd66;background:#0b2e33;color:#fff}
+.crm-dedupe-group>label.check input[type=radio]{width:16px;height:16px;min-height:0;margin:1px 0 0;flex:none;accent-color:#3fe8bd}
+.crm-dedupe-group>button{align-self:flex-start;margin-top:auto;min-height:32px;padding:4px 12px;font-size:12.5px}
