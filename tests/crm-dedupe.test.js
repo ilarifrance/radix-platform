@@ -32,3 +32,16 @@ test('merge is refused across companies, for deals with activities, and for the 
  assert.match(D.mergePlan(keep,drop,[{entity:'opportunities',record:{id:'o1',title:'Deal',contact_id:'d'}},{entity:'tasks',record:{id:'t1',opportunity_id:'o1',contact_id:'d'}}]).blocked,/Deal/);
  assert.ok(D.mergePlan(keep,keep,[]).blocked);
 });
+test('keys: emails keep punctuation, Italian prefixes are ignored, names of any script count',()=>{
+ assert.notEqual(D.email('mario_rossi@acme.it'),D.email('mario-rossi@acme.it'));assert.equal(D.email(' Mario@Acme.IT '),'mario@acme.it');
+ assert.equal(D.phone('+39 12345678'),D.phone('12345678'));assert.equal(D.phone('0039 333 1234567'),D.phone('333-1234567'));assert.equal(D.phone('123'),'');
+ assert.notEqual(D.phone('+44 20 7946 0958'),D.phone('+1 20 7946 0958'));
+ assert.equal(D.norm('张伟'),'张伟');assert.notEqual(D.norm('Łukasz Nowak'),D.norm('ukasz Nowak'));assert.equal(D.norm('Anna  Verdì'),'anna verdi');
+ const g=D.groups([{id:'a',name:'张伟',company:'X'},{id:'b',name:'张伟',company:'X'}]);assert.equal(g.length,1);
+});
+test('leads move too; notes are never cut and never appended twice',()=>{
+ const p=D.mergePlan(keep,drop,[{entity:'leads',record:{id:'l1',contact_id:'d',version:1}}]);
+ assert.deepEqual(p.moves.map(m=>m.entity+':'+m.record.id),['leads:l1']);
+ assert.equal(D.mergePlan({...keep,notes:'vecchie\n\nUnito da «M. Rossi»: nuove'},drop,[]).fill.notes,undefined);
+ assert.match(D.mergePlan({...keep,notes:'x'.repeat(3000)},{...drop,notes:'y'.repeat(1500)},[]).blocked,/4000/);
+});
