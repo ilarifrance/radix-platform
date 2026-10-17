@@ -43,7 +43,20 @@ function withUnsubscribe(plan,links,origin){
   const url=origin+'/api/sales?unsubscribe='+t,foot=UNSUB+url;emails.push({...e,body:e.body.slice(0,4000-foot.length)+foot,unsubscribeUrl:url})}
  return {emails,skipped:{...plan.skipped,link:missing}};
 }
-const core={SEQUENCES,planSequence,planCampaign,withUnsubscribe,fill};
+// Pure: the distinct http(s) links of an email text (max 10), trailing punctuation left out.
+function urlsIn(text){return [...new Set(String(text).match(/https?:\/\/[^\s<>"'()]*[^\s<>"'().,;:!?]/g)||[])].filter(u=>u.length<=2000).slice(0,10)}
+// Pure: every link of each email goes through its signed click link (clicks: {contactId:[token per url]}).
+// An email without tokens, or that would grow past 4000 characters, keeps its plain links.
+function withTracking(plan,clicks,urls,campaign,origin){
+ if(!urls||!urls.length||!clicks)return plan;
+ const emails=plan.emails.map(e=>{const t=clicks[e.contact.id];if(!t||t.length!==urls.length)return e;
+  let body=e.body;const order=urls.map((u,i)=>[u,i]).sort((a,b)=>b[0].length-a[0].length);
+  for(const [u,i] of order)body=body.split(u).join('\u0000'+i+'\u0000');
+  body=body.replace(/\u0000(\d+)\u0000/g,(_,i)=>origin+'/api/sales?click='+t[i]+'&k='+encodeURIComponent(campaign)+'&u='+encodeURIComponent(urls[i]));
+  return body.length>3700?e:{...e,body,tracked:true}});
+ return {...plan,emails};
+}
+const core={SEQUENCES,planSequence,planCampaign,withUnsubscribe,withTracking,urlsIn,fill};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmCampaignCore=core;
 
@@ -86,15 +99,17 @@ function campaignPanel(filterOf){
  const ai=B('Scrivi con l’AI',()=>{if(!window.RadixCrmCopilot){app().error('Copilota non disponibile su questa pagina.');return}RadixCrmCopilot.open('Scrivi una email commerciale breve per una campagna ai contatti del segmento che ho selezionato. Dammi oggetto e testo, usa i segnaposto {nome} e {azienda}, tono professionale e concreto, una sola call to action.'+(body.value.trim()?' Parti da questa bozza: «'+body.value.trim().slice(0,1500)+'»':''))});
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
- box.append(ls,lb,row,out,E('p','Si invia una email alla volta, ognuna con la sua conferma. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
+ const results=E('div',undefined,'crm-campaign-results');
+ row.append(B('Risultati: chi ha cliccato',()=>showClicks(results)));
+ box.append(ls,lb,row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
  async function prepare(){
   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
   let plan,configured=false;
   if(!await run('Preparo gli invii…',async()=>{plan=planCampaign(subject.value.trim(),body.value.trim(),await segmentContacts(filterOf));
-   const ids=plan.emails.map(e=>e.contact.id),links={};
-   for(let i=0;i<ids.length;i+=300)Object.assign(links,(await app().api('unsubscribe_links',{body:{workspace:app().state.workspace,entity:'unsubscribe_links',action:'create',data:{contacts:ids.slice(i,i+300)}}})).links||{});
-   plan=withUnsubscribe(plan,links,location.origin);configured=await emailConfigured()}))return;
-  out.replaceChildren(E('p',plan.emails.length+' email pronte'+(plan.skipped.consent?' · '+plan.skipped.consent+' senza consenso escluse':'')+(plan.skipped.email?' · '+plan.skipped.email+' senza email valida':'')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(configured?'':' · invio diretto non configurato (manca Gmail): usa «Apri nel programma email»'),'muted'));
+   const ids=plan.emails.map(e=>e.contact.id),links={},clicks={},urls=urlsIn(body.value),campaign=subject.value.trim().replace(/\{[a-z_]+\}/g,'').replace(/\s+/g,' ').trim().slice(0,80)||'Campagna '+new Date().toISOString().slice(0,10);
+   for(let i=0;i<ids.length;i+=300){const d=await app().api('unsubscribe_links',{body:{workspace:app().state.workspace,entity:'unsubscribe_links',action:'create',data:{contacts:ids.slice(i,i+300),...(urls.length?{campaign,urls}:{})}}});Object.assign(links,d.links||{});Object.assign(clicks,d.clicks||{})}
+   plan=withUnsubscribe(withTracking(plan,clicks,urls,campaign,location.origin),links,location.origin);configured=await emailConfigured()}))return;
+  out.replaceChildren(E('p',plan.emails.length+' email pronte'+(plan.skipped.consent?' · '+plan.skipped.consent+' senza consenso escluse':'')+(plan.skipped.email?' · '+plan.skipped.email+' senza email valida':'')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(plan.emails.some(e=>e.tracked)?' · i link sono tracciati: chi clicca compare nei risultati e nella sua cronologia':'')+(configured?'':' · invio diretto non configurato (manca Gmail): usa «Apri nel programma email»'),'muted'));
   const csv=B('Esporta per stampa unione (CSV)',()=>{const C=window.RadixCrmCsv;if(!C)return;const t=C.toCsv(plan.emails.map(e=>({to:e.to,name:e.contact.name,subject:e.subject,body:e.body})),[{label:'Email',key:'to'},{label:'Nome',key:'name'},{label:'Oggetto',key:'subject'},{label:'Testo',key:'body'}]);const a=E('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='campagna-'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)});
   out.append(csv);
   for(const e of plan.emails){
@@ -110,6 +125,14 @@ function campaignPanel(filterOf){
   }
  }
  return box;
+}
+async function showClicks(out){
+ let d;if(!await run('Carico i clic…',async()=>{d=await app().api('email_clicks',{})}))return;
+ const when=t=>new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ out.replaceChildren(E('h4','Clic sulle campagne'));
+ if(!(d.campaigns||[]).length){out.append(E('p','Ancora nessun clic. I link delle prossime campagne vengono tracciati in automatico.','muted'));app().notice('');return}
+ for(const c of d.campaigns)out.append(E('p','«'+c.campaign+'» · '+c.people+(c.people===1?' persona':' persone')+' · '+c.clicks+(c.clicks===1?' clic':' clic')+' · ultimo '+when(c.last_at)));
+ const list=E('ul');for(const p of d.people||[])list.append(E('li',p.name+' · «'+p.campaign+'» · '+p.clicks+' clic · '+when(p.last_at)));out.append(list,E('p','Il primo clic di ogni persona su una campagna entra nella sua cronologia, alza il punteggio del contatto e crea un’attività «Richiama» per domani a chi gli ha scritto per ultimo. Alcuni filtri antivirus aprono i link da soli: un clic isolato subito dopo l’invio può non essere una persona.','muted'));app().notice('');
 }
 root.RadixCrmCampaigns={panel(filterOf){const box=E('details',undefined,'panel crm-campaigns');box.append(E('summary','Sequenze e campagne email sul segmento'));if(app().writable('tasks'))box.append(sequencePanel(filterOf));if(app().writable('interactions'))box.append(campaignPanel(filterOf));return box}};
 })(typeof globalThis!=='undefined'?globalThis:this);

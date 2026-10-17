@@ -74,13 +74,17 @@ function segmentPanel(){
  const consent=field('Consenso marketing',E('select'));[['','Tutti'],['yes','Solo con consenso'],['no','Senza consenso']].forEach(([v,t])=>{const o=E('option',t);o.value=v;consent.append(o)});
  const silent=field('Non sentiti da almeno (giorni)',Object.assign(E('input'),{type:'number',min:'0',max:'3650'}));
  const minScore=field('Punteggio minimo (0–100)',Object.assign(E('input'),{type:'number',min:'0',max:'100'}));
+ const clicked=field('Clic sulle campagne email',E('select'));[['','Tutti'],['yes','Hanno cliccato almeno un link'],['no','Non hanno mai cliccato']].forEach(([v,t])=>{const o=E('option',t);o.value=v;clicked.append(o)});
  const out=E('div',undefined,'muted');
  const filterOf=async()=>{
   const companies=new Map((await exportRows('companies')).map(c=>[low(c.name),c]));
   const last=new Map();for(const i of app().rows('interactions')){const t=Date.parse(i.occurred_at);if(i.contact_id&&(!last.has(i.contact_id)||last.get(i.contact_id)<t))last.set(i.contact_id,t)}
   const days=silent.value===''?null:Number(silent.value),min=minScore.value===''?null:Number(minScore.value);
   const data=scoreData(),now=Date.now();
-  return r=>{const c=companies.get(low(r.company))||{};
+  // Contacts with at least one tracked click (api/_sales_clicks.js); without the report the filter fails rather than guessing.
+  const clickers=clicked.value?new Set(((await app().api('email_clicks',{})).contacts)||[]):null;
+  return r=>{
+   if(clickers&&(clicked.value==='yes')!==clickers.has(r.id))return false;const c=companies.get(low(r.company))||{};
    if(role.value&&!low(r.role).includes(low(role.value)))return false;
    if(industry.value&&!low(c.industry).includes(low(industry.value)))return false;
    if(city.value&&!low(c.city).includes(low(city.value)))return false;
@@ -93,11 +97,11 @@ function segmentPanel(){
  const exp=B('Esporta segmento CSV',async()=>{let f;try{f=await filterOf()}catch(e){app().error(e.message);return}exportCsv('contacts',f)});
  const a=E('div',undefined,'actions');a.append(show,exp);
  // Saved segments (sales_segments): the same five filters, shared by the workspace.
- const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}if(minScore.value!==''){const n=Number(minScore.value);if(!Number.isInteger(n)||n<0||n>100)throw new Error('Punteggio minimo: un numero intero da 0 a 100.');f.min_score=n}return f};
+ const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}if(minScore.value!==''){const n=Number(minScore.value);if(!Number.isInteger(n)||n<0||n>100)throw new Error('Punteggio minimo: un numero intero da 0 a 100.');f.min_score=n}if(clicked.value)f.clicked=clicked.value;return f};
  const saved=E('select');saved.setAttribute('aria-label','Segmenti salvati');const savedRows=new Map();
  const fillSaved=rows=>{savedRows.clear();saved.replaceChildren();const o=E('option',rows.length?'Segmenti salvati…':'Nessun segmento salvato');o.value='';saved.append(o);for(const r of rows){savedRows.set(r.id,r);const x=E('option',r.name);x.value=r.id;saved.append(x)}};
  const loadSaved=async()=>{try{fillSaved((await app().api('segments')).rows||[])}catch(e){fillSaved([]);out.replaceChildren(E('p','Segmenti salvati non disponibili: '+e.message,'notice'))}};
- saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';minScore.value=f.min_score??'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
+ saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';minScore.value=f.min_score??'';clicked.value=f.clicked||'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
  const keep=E('div',undefined,'actions crm-saved');keep.append(saved);
  if(app().writable('contacts')){
   keep.append(B('Salva segmento',async()=>{let filters;try{filters=current()}catch(e){app().error(e.message);return}
