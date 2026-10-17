@@ -17,7 +17,7 @@ function fakeStore({account=null,exists=false}={}){
   tx:async q=>{txs.push(q);return [];}};
 }
 function fakeFetch(){const calls=[];const f=async(url,opt)=>{calls.push({url,opt});return {ok:true,json:async()=>({id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/cs_test_1'})};};f.calls=calls;return f;}
-const signupBody={action:'signup.start',data:{name:'Mario Rossi',email:'Mario@Alfa.it',password:'una-password-lunga',accept:true,company:{name:'Alfa Srl',vat:'01234567890',regime:'ordinario',vat_periodicity:'quarterly'}}};
+const signupBody={action:'signup.start',data:{name:'Mario Rossi',email:'Mario@Alfa.it',password:'una-password-lunga',accept:true,accept_clauses:true,company:{name:'Alfa Srl',vat:'01234567890',regime:'ordinario',vat_periodicity:'quarterly'}}};
 
 test('sign-up needs Stripe configured and creates nothing without it',async()=>{
  delete process.env.STRIPE_SECRET_KEY;const st=fakeStore();
@@ -80,6 +80,30 @@ test('Stripe webhook: signature checked, subscription status follows the newest 
  assert.equal((await send(fakeStore(),ok.raw,signed(ev,'whsec_test',Math.floor(Date.now()/1000)-900).header)).status,400,'old signatures are refused');
  const del=signed({id:'evt_2',type:'customer.subscription.deleted',created:1760000500,data:{object:{id:'sub_1',customer:'cus_1',status:'canceled',metadata:{company_id:C}}}},'whsec_test'),st2=fakeStore();
  assert.equal((await send(st2,del.raw,del.header)).status,200);assert.equal(st2.txs[0][1][1][1],'canceled');assert.match(st2.txs[0][1][0],/status_at IS NULL OR status_at<=\$6/);
+});
+
+test('sign-up needs the specific approval of the onerous clauses and records the terms version',async()=>{
+ process.env.STRIPE_SECRET_KEY='sk_test_x';const st=fakeStore();
+ const H=createHandler({getSessionUser:()=>null,getClientUser:billing.getClientUser,billing,getStore:()=>st,fetchImpl:fakeFetch()});
+ const r=await call(H,{body:{...signupBody,data:{...signupBody.data,accept_clauses:false}},headers:{'x-forwarded-for':'10.0.0.3'}});
+ assert.equal(r.status,400);assert.match(r.body.error,/articolo 14/);assert.equal(st.txs.length,0);
+ assert.equal((await call(H,{body:signupBody,headers:{'x-forwarded-for':'10.0.0.4'}})).status,200);
+ const audit=st.txs[0].find(x=>/INSERT INTO acc_audit/.test(x[0]));const detail=JSON.parse(audit[1][3]);
+ assert.equal(detail.terms_version,billing.TERMS_VERSION);assert.deepEqual(detail.accepted,['condizioni','privacy','art_1341_1342']);assert.equal(detail.ip,'10.0.0.4');
+});
+
+test('legal pages: terms and privacy exist, are linked from every public page and load no third-party fonts',()=>{
+ const fs=require('node:fs'),d=__dirname+'/../contabilita/';
+ const terms=fs.readFileSync(d+'condizioni.html','utf8'),priv=fs.readFileSync(d+'privacy.html','utf8');
+ assert.match(terms,new RegExp('Versione '+billing.TERMS_VERSION));assert.match(priv,new RegExp('Versione '+billing.TERMS_VERSION));
+ assert.match(terms,/id="approvazione"/);assert.match(terms,/id="allegato-a"/);assert.match(terms,/1341/);
+ for(const f of ['index.html','iscrizione.html','accedi.html','condizioni.html','privacy.html']){const h=fs.readFileSync(d+f,'utf8');
+  assert.match(h,/href="\/contabilita\/condizioni\.html"/,f);assert.match(h,/href="\/contabilita\/privacy\.html"/,f);assert.doesNotMatch(h,/googleapis|gstatic/,f);}
+ assert.doesNotMatch(fs.readFileSync(d+'app/index.html','utf8'),/googleapis|gstatic/);
+ const signup=fs.readFileSync(d+'iscrizione.html','utf8');assert.match(signup,/name="accept"/);assert.match(signup,/name="accept_clauses"[^>]*required/);
+ assert.match(fs.readFileSync(d+'account.js','utf8'),/accept_clauses:f\.accept_clauses\.checked/);
+ // The demo link on the public page opens the demonstration company without an account.
+ assert.match(fs.readFileSync(__dirname+'/../accounting/app.js','utf8'),/get\('demo'\)==='1'/);
 });
 
 test('public pages: sign-up and sign-in post to the accounting API',()=>{

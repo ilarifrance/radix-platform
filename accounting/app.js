@@ -461,6 +461,9 @@ async function start(){
  S.store=liveStore();
  try{await S.store.companies();S.live=true;}
  catch(e){
+  // The public page links /contabilita/app/?demo=1: visitors try the demonstration company without an account.
+  if(e.status===401&&location.pathname.startsWith('/contabilita/')&&new URLSearchParams(location.search).get('demo')==='1'){S.live=false;
+   if($('accLogout'))$('accLogout').hidden=true;if($('accDemoCta'))$('accDemoCta').hidden=false;return startDemo();}
   if(e.status===401){S.live=false;banner('Per usare la contabilità della tua azienda <a href="/contabilita/accedi.html">accedi</a> o <a href="/contabilita/iscrizione.html">attiva il servizio</a>. Intanto puoi provare l\'azienda dimostrativa.','');onboarding();return;}
   if(e.status===402){if(!location.pathname.startsWith('/contabilita/')){location.replace('/contabilita/app/'+location.search+location.hash);return;}S.live=true;S.client=true;return payment();}
   if(e.status===503){S.live=false;banner('L\'archivio contabile non è ancora attivo su questo ambiente: ti mostro l\'azienda dimostrativa.','demo');return startDemo();}

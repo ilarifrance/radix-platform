@@ -51,7 +51,7 @@ test('demo copilot has a daily allowance per user',async()=>{
 
 test('public page reads price, limits and partner from the pricing module',()=>{
  const html=fs.readFileSync(__dirname+'/../contabilita/index.html','utf8'),js=fs.readFileSync(__dirname+'/../contabilita/contabilita.js','utf8');
- assert.match(html,/\/lib\/accounting\/pricing\.js/);assert.match(html,/href="\/accounting\/"/);
+ assert.match(html,/\/lib\/accounting\/pricing\.js/);assert.match(html,/href="\/contabilita\/app\/\?demo=1"/);
  for(const k of Object.keys(pricing.INCLUDED))assert.match(html,new RegExp('data-inc="'+k+'"'));
  assert.doesNotMatch(js+html,/PARTNER|partner/);assert.match(js,/P\.PRICE_CENTS/);
  assert.doesNotMatch(html,/Nessun costo di attivazione/);

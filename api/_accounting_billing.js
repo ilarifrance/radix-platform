@@ -67,8 +67,11 @@ function originOf(req){
  return (/^(localhost|127\.0\.0\.1)(:|$)/.test(host)?'http':'https')+'://'+host;
 }
 // Per-instance allowance against scripted sign-ups and password guessing.
+// Version of /contabilita/condizioni.html and privacy.html the client accepts at sign-up; bump it with the texts.
+const TERMS_VERSION='2026-10-17';
+const clientIp=req=>String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||null;
 const HITS=new Map();
-function limit(req,kind,max){const ip=String(req.headers['x-forwarded-for']||'').split(',')[0].trim()||'?',k=kind+':'+ip+':'+new Date().toISOString().slice(0,13),n=(HITS.get(k)||0)+1;
+function limit(req,kind,max){const ip=clientIp(req)||'?',k=kind+':'+ip+':'+new Date().toISOString().slice(0,13),n=(HITS.get(k)||0)+1;
  if(HITS.size>10000)HITS.clear();HITS.set(k,n);if(n>max)fail(429,'Troppi tentativi: riprova tra un\'ora.');}
 const str=(v,max,msg)=>{if(typeof v!=='string'||!v.trim()||v.length>max||/[\u0000-\u001f\u007f]/.test(v))fail(400,msg);return v.trim();};
 
@@ -79,6 +82,7 @@ async function signup(store,req,res,d,deps){
  const name=str(d.name,120,'Indica nome e cognome.');
  if(typeof d.password!=='string'||d.password.length<10||d.password.length>200)fail(400,'La password deve avere almeno 10 caratteri.');
  if(d.accept!==true)fail(400,'Per continuare accetta le condizioni del servizio.');
+ if(d.accept_clauses!==true)fail(400,'Per continuare approva le clausole indicate all\'articolo 14 delle condizioni.');
  const company=deps.companyData(d.company||{},false);
  if(!process.env.STRIPE_SECRET_KEY)fail(503,'I pagamenti non sono ancora configurati su questo ambiente.');
  if(await store.json('SELECT to_jsonb(true) AS v FROM users WHERE lower(email)=$1',[email]))fail(409,'Esiste già un account con questa email: accedi.');
@@ -92,7 +96,7 @@ async function signup(store,req,res,d,deps){
   q('INSERT INTO acc_accounts(company_id,code,name,kind,grp,keywords,system) SELECT $1,x.code,x.name,x.kind,x.grp,x.keywords,x.system FROM jsonb_to_recordset($2::jsonb) AS x(code text,name text,kind text,grp text,keywords text,system boolean)',[id,JSON.stringify(accounts)]),
   q('INSERT INTO acc_client_accounts(user_id,company_id) VALUES($1,$2)',[uid,id]),
   q('INSERT INTO acc_subscriptions(company_id,price_cents) VALUES($1,$2)',[id,pricing.PRICE_CENTS]),
-  q('INSERT INTO acc_audit(company_id,actor_id,action,entity_id,detail) VALUES($1,$2,$3,$1,$4::jsonb)',[id,uid,'signup',JSON.stringify({name:company.name})])]);
+  q('INSERT INTO acc_audit(company_id,actor_id,action,entity_id,detail) VALUES($1,$2,$3,$1,$4::jsonb)',[id,uid,'signup',JSON.stringify({name:company.name,terms_version:TERMS_VERSION,accepted:['condizioni','privacy','art_1341_1342'],ip:clientIp(req)})])]);
  res.setHeader('Set-Cookie',cookie(signClient(uid)));
  return {company:id,url:await openCheckout(store,id,email,req,deps)};
 }
@@ -144,4 +148,4 @@ async function webhook(store,req,res){
  return {received:true};
 }
 
-module.exports={getClientUser,signClient,verifyClient,clearCookie,signup,checkout,login,account,webhook,verifyWebhook,checkoutParams,form,BillingError,ACTIVE,GROSS};
+module.exports={getClientUser,signClient,verifyClient,clearCookie,signup,checkout,login,account,webhook,verifyWebhook,checkoutParams,form,BillingError,ACTIVE,GROSS,TERMS_VERSION};

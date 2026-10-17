@@ -1,15 +1,15 @@
 <!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark">
 <title>RADIX Contabilità · La tua azienda</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<link rel="stylesheet" href="/contabilita/fonts/fonts.css">
 <link rel="stylesheet" href="/accounting/app.css">
 </head>
 <!-- Client version of /accounting/: same app, without the internal RADIX shell. Keep the markup in sync with accounting/index.html. -->
 <body class="acc acc-client">
 <header class="acc-clienttop">
  <a class="acc-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span>RADIX</span><small>Contabilità</small></a>
- <button type="button" class="acc-btn ghost small" data-act="clientlogout">Esci</button>
+ <a class="acc-btn small" id="accDemoCta" href="/contabilita/iscrizione.html" hidden>Attiva il servizio</a>
+ <button type="button" class="acc-btn ghost small" id="accLogout" data-act="clientlogout">Esci</button>
 </header>
 <main class="acc-main">
  <header class="acc-head">

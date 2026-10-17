@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark">
 <title>Iscriviti · RADIX Contabilità</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap">
+<link rel="stylesheet" href="/contabilita/fonts/fonts.css">
 <link rel="stylesheet" href="/contabilita/contabilita.css">
 <script src="/lib/accounting/pricing.js" defer></script>
 <script src="/contabilita/account.js" defer></script>
@@ -36,11 +35,15 @@
     <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
     <label>Password<input name="password" type="password" required minlength="10" maxlength="200" autocomplete="new-password" aria-describedby="pwHelp"><small id="pwHelp">Almeno 10 caratteri.</small></label>
    </fieldset>
-   <label class="ct-check"><input type="checkbox" name="accept" required> Accetto le condizioni del servizio e l'informativa sulla privacy.</label>
+   <div class="ct-checks">
+    <label class="ct-check"><input type="checkbox" name="accept" required><span>Dichiaro di agire per la mia attività d'impresa o professionale e accetto le <a href="/contabilita/condizioni.html" target="_blank" rel="noopener">condizioni del servizio</a>. Ho letto l'<a href="/contabilita/privacy.html" target="_blank" rel="noopener">informativa sulla privacy</a>.</span></label>
+    <label class="ct-check"><input type="checkbox" name="accept_clauses" required><span>Ai sensi degli artt. 1341 e 1342 del Codice civile approvo specificamente le clausole 4, 5, 6, 10, 12 e 13 delle condizioni, elencate all'<a href="/contabilita/condizioni.html#approvazione" target="_blank" rel="noopener">articolo 14</a>.</span></label>
+   </div>
    <button class="ct-btn" type="submit">Continua al pagamento</button>
    <p class="ct-note">Il pagamento avviene sulla pagina sicura di Stripe.</p>
   </form>
  </section>
 </main>
+<footer class="ct-foot"><span class="ct-word">RADIX</span><span><a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a></span></footer>
 </body>
 </html>

@@ -13,9 +13,9 @@ if(new URLSearchParams(location.search).get('pagamento')==='annullato')msg('Paga
 const signup=$('ctSignup');
 if(signup)signup.addEventListener('submit',async ev=>{
  ev.preventDefault();const f=signup.elements;
- if(!signup.checkValidity()){const bad=signup.querySelector(':invalid');msg(bad&&bad.name==='accept'?'Per continuare accetta le condizioni del servizio.':bad&&bad.name==='password'?'La password deve avere almeno 10 caratteri.':'Controlla i campi evidenziati.');bad&&bad.focus();return;}
+ if(!signup.checkValidity()){const bad=signup.querySelector(':invalid');msg(bad&&bad.name==='accept'?'Per continuare accetta le condizioni del servizio.':bad&&bad.name==='accept_clauses'?'Per continuare approva le clausole dell\'articolo 14.':bad&&bad.name==='password'?'La password deve avere almeno 10 caratteri.':'Controlla i campi evidenziati.');bad&&bad.focus();return;}
  msg('');busy(signup,true);
- try{const r=await post('signup.start',{name:f.name.value,email:f.email.value,password:f.password.value,accept:f.accept.checked,
+ try{const r=await post('signup.start',{name:f.name.value,email:f.email.value,password:f.password.value,accept:f.accept.checked,accept_clauses:f.accept_clauses.checked,
    company:{name:f.cname.value,vat:f.vat.value||null,legal_form:f.legal_form.value,regime:f.regime.value,vat_periodicity:f.vat_periodicity.value}});
   location.href=r.url;}
  catch(e){msg(e.message);busy(signup,false);}

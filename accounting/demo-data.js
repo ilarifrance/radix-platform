@@ -92,7 +92,7 @@ function createStore(){
 }
 
 // ---- Fictional company and its year, generated through the same commands ----
-const COMPANY={name:'Officina Digitale Demo Srl',vat:'IT01234560789',tax_code:'01234560789',legal_form:'srl',regime:'ordinario',vat_periodicity:'quarterly',plan:'controllo'};
+const COMPANY={name:'Officina Digitale Demo Srl',vat:'IT01234560789',tax_code:'01234560789',legal_form:'srl',regime:'ordinario',vat_periodicity:'quarterly',plan:'professionista'};
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 const money=c=>(c<0?'-':'')+Math.floor(Math.abs(c)/100)+'.'+String(Math.abs(c)%100).padStart(2,'0');
 // Minimal FatturaPA FPR12 document (one body). lines: [{d,c (cents),r (rate)}]

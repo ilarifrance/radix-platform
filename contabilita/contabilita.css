@@ -77,3 +77,52 @@ main{max-width:1120px;margin:0 auto;padding:0 16px}
 .ct-form .ct-btn:disabled{opacity:.6;cursor:progress}
 .ct-alert{margin:16px 0 0;padding:12px 14px;border-radius:10px;border:1px solid #FF6B70;background:color-mix(in srgb,#FF6B70 10%,transparent)}
 .ct-alert.info{border-color:var(--border-strong);background:var(--surface-2)}
+.ct-checks{display:flex;flex-direction:column;gap:12px}
+.ct-check span{font-size:14px;line-height:1.5}
+.ct-nav a[aria-current]{color:var(--text);text-decoration:underline;text-underline-offset:6px;text-decoration-color:var(--accent)}
+/* Terms and privacy */
+.ct-legal{max-width:760px;padding-top:48px;padding-bottom:64px}
+.ct-legal h1{font-size:36px;line-height:1.15}
+.ct-legal h2{margin:40px 0 12px;font-size:20px;scroll-margin-top:80px}
+.ct-legal p,.ct-legal li{color:var(--muted)}
+.ct-legal b{color:var(--text);font-weight:600}
+.ct-legal ul,.ct-legal ol{padding-left:22px;display:flex;flex-direction:column;gap:6px}
+.ct-legal code{font-size:14px;padding:1px 6px;border-radius:6px;background:var(--surface-2)}
+.ct-draft{margin:20px 0 28px;padding:12px 14px;border-radius:10px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--text)!important}
+.ct-table-wrap{overflow-x:auto}
+.ct-table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:14px}
+.ct-table th,.ct-table td{padding:10px 12px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.ct-table th{color:var(--text);font-weight:600;background:var(--surface)}
+.ct-table td{color:var(--muted)}
+@media (max-width:767px){.ct-legal h1{font-size:28px}.ct-table{font-size:13px}.ct-table th,.ct-table td{padding:8px}}
+/* Promotional page sections */
+.ct-hero-grid{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:48px;align-items:center}
+.ct-hero-grid h1{font-size:44px}
+.ct-ticks{list-style:none;display:flex;flex-wrap:wrap;gap:8px 20px;margin:20px 0 0;padding:0;font-size:14px;color:var(--muted)}
+.ct-ticks li{position:relative;padding-left:20px}
+.ct-ticks li::before{content:"";position:absolute;left:2px;top:7px;width:10px;height:6px;border-left:2px solid var(--core);border-bottom:2px solid var(--core);transform:rotate(-45deg)}
+.ct-shot{margin:0}
+.ct-shot img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--border-strong);box-shadow:0 24px 60px -20px rgba(0,0,0,.7)}
+.ct-shot figcaption{margin-top:8px;font-size:12px;color:var(--subtle)}
+.ct-grid.three{grid-template-columns:repeat(3,1fr)}
+.ct-split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:48px;align-items:center}
+.ct-split.reverse{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.ct-narrow{max-width:720px}
+.ct-duties{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:16px;background:var(--surface)}
+.ct-duties li{display:flex;flex-direction:column;gap:2px;padding:14px 18px 14px 46px;position:relative;border-top:1px solid var(--border)}
+.ct-duties li:first-child{border-top:0}
+.ct-duties li::before{content:"";position:absolute;left:20px;top:21px;width:12px;height:7px;border-left:2px solid var(--core);border-bottom:2px solid var(--core);transform:rotate(-45deg)}
+.ct-duties span{font-size:14px;color:var(--muted)}
+.ct-chips{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.ct-chips li{padding:10px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface-2);font-size:14px}
+.ct-chips li::before{content:"“";color:var(--accent);margin-right:2px}
+.ct-chips li::after{content:"”";color:var(--accent);margin-left:2px}
+.ct-inc{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.ct-inc h3{margin-bottom:14px}
+.ct-list-out li::before{border:0;transform:none;top:12px;width:10px;height:2px;background:var(--subtle)}
+.ct-final{text-align:center;display:flex;flex-direction:column;align-items:center}
+.ct-final h2{margin-bottom:8px}
+.ct-final .ct-muted{margin:0}
+.ct-price{align-items:start}
+@media (max-width:1000px){.ct-hero-grid,.ct-split,.ct-split.reverse{grid-template-columns:1fr;gap:32px}.ct-grid.three{grid-template-columns:1fr}.ct-price{grid-template-columns:1fr}}
+@media (max-width:767px){.ct-hero-grid h1{font-size:32px}.ct-inc{grid-template-columns:1fr}.ct-split.reverse .ct-shot{order:2}}
