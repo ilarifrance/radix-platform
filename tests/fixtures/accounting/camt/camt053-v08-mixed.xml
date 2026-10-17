@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<camt:Document xmlns:camt="urn:iso:std:iso:20022:tech:xsd:camt.053.001.08">
+  <camt:BkToCstmrStmt>
+    <camt:GrpHdr><camt:MsgId>MSG-20261016-08</camt:MsgId><camt:CreDtTm>2026-10-17T05:00:00+02:00</camt:CreDtTm></camt:GrpHdr>
+    <camt:Stmt>
+      <camt:Id>STMT-08-0042</camt:Id>
+      <camt:CreDtTm>2026-10-17T05:00:00+02:00</camt:CreDtTm>
+      <camt:Acct>
+        <camt:Id><camt:IBAN>IT60 X054 2811 1010 0000 0123 456</camt:IBAN></camt:Id>
+        <camt:Ccy>EUR</camt:Ccy>
+      </camt:Acct>
+      <camt:Bal>
+        <camt:Tp><camt:CdOrPrtry><camt:Cd>PRCD</camt:Cd></camt:CdOrPrtry></camt:Tp>
+        <camt:Amt Ccy="EUR">150.00</camt:Amt>
+        <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+        <camt:Dt><camt:Dt>2026-10-15</camt:Dt></camt:Dt>
+      </camt:Bal>
+      <camt:Bal>
+        <camt:Tp><camt:CdOrPrtry><camt:Cd>CLBD</camt:Cd></camt:CdOrPrtry></camt:Tp>
+        <camt:Amt Ccy="EUR">1320.00</camt:Amt>
+        <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+        <camt:Dt><camt:Dt>2026-10-16</camt:Dt></camt:Dt>
+      </camt:Bal>
+      <!-- 1: incoming SCT, .08 party nesting -->
+      <camt:Ntry>
+        <camt:NtryRef>N-0001</camt:NtryRef>
+        <camt:Amt Ccy="EUR">1000.00</camt:Amt>
+        <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+        <camt:Sts><camt:Cd>BOOK</camt:Cd></camt:Sts>
+        <camt:BookgDt><camt:DtTm>2026-10-16T09:31:07+02:00</camt:DtTm></camt:BookgDt>
+        <camt:ValDt><camt:Dt>2026-10-16</camt:Dt></camt:ValDt>
+        <camt:BkTxCd><camt:Domn><camt:Cd>PMNT</camt:Cd><camt:Fmly><camt:Cd>RCDT</camt:Cd><camt:SubFmlyCd>ESCT</camt:SubFmlyCd></camt:Fmly></camt:Domn></camt:BkTxCd>
+        <camt:NtryDtls>
+          <camt:TxDtls>
+            <camt:Refs><camt:EndToEndId>NOTPROVIDED</camt:EndToEndId></camt:Refs>
+            <camt:RltdPties>
+              <camt:Dbtr><camt:Pty><camt:Nm>Studio Legale Neri</camt:Nm></camt:Pty></camt:Dbtr>
+              <camt:Cdtr><camt:Pty><camt:Nm>RADIX STUDIO SRL</camt:Nm></camt:Pty></camt:Cdtr>
+            </camt:RltdPties>
+            <camt:RmtInf><camt:Ustrd>Acconto progetto</camt:Ustrd><camt:Ustrd>sito web 2026</camt:Ustrd></camt:RmtInf>
+          </camt:TxDtls>
+        </camt:NtryDtls>
+      </camt:Ntry>
+      <!-- 2: pending card authorisation, must be ignored -->
+      <camt:Ntry>
+        <camt:Amt Ccy="EUR">59.90</camt:Amt>
+        <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+        <camt:Sts><camt:Cd>PDNG</camt:Cd></camt:Sts>
+        <camt:ValDt><camt:Dt>2026-10-17</camt:Dt></camt:ValDt>
+        <camt:AddtlNtryInf>AUTORIZZAZIONE CARTA IN ATTESA</camt:AddtlNtryInf>
+      </camt:Ntry>
+      <!-- 3: SDD collection batch, one booking with 2 transactions -->
+      <camt:Ntry>
+        <camt:Amt Ccy="EUR">720.00</camt:Amt>
+        <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+        <camt:Sts><camt:Cd>BOOK</camt:Cd></camt:Sts>
+        <camt:BookgDt><camt:Dt>2026-10-16</camt:Dt></camt:BookgDt>
+        <camt:ValDt><camt:Dt>2026-10-16</camt:Dt></camt:ValDt>
+        <camt:AcctSvcrRef>SDD-BATCH-7781</camt:AcctSvcrRef>
+        <camt:BkTxCd><camt:Domn><camt:Cd>PMNT</camt:Cd><camt:Fmly><camt:Cd>RDDT</camt:Cd><camt:SubFmlyCd>BBDD</camt:SubFmlyCd></camt:Fmly></camt:Domn></camt:BkTxCd>
+        <camt:NtryDtls>
+          <camt:Btch><camt:NbOfTxs>2</camt:NbOfTxs><camt:TtlAmt Ccy="EUR">720.00</camt:TtlAmt></camt:Btch>
+          <camt:TxDtls>
+            <camt:Refs><camt:EndToEndId>SDD-CANONE-OTT-01</camt:EndToEndId></camt:Refs>
+            <camt:Amt Ccy="EUR">480.00</camt:Amt>
+            <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+            <camt:RltdPties><camt:Dbtr><camt:Pty><camt:Nm>Alfa Consulting SRL</camt:Nm></camt:Pty></camt:Dbtr></camt:RltdPties>
+            <camt:RmtInf><camt:Ustrd>Canone ottobre - contratto 2026/14</camt:Ustrd></camt:RmtInf>
+          </camt:TxDtls>
+          <camt:TxDtls>
+            <camt:Refs><camt:EndToEndId>SDD-CANONE-OTT-02</camt:EndToEndId></camt:Refs>
+            <camt:Amt Ccy="EUR">240.00</camt:Amt>
+            <camt:CdtDbtInd>CRDT</camt:CdtDbtInd>
+            <camt:RltdPties><camt:Dbtr><camt:Pty><camt:Nm>Beta Design SNC</camt:Nm></camt:Pty></camt:Dbtr></camt:RltdPties>
+            <camt:RmtInf><camt:Ustrd>Canone ottobre - contratto 2026/21</camt:Ustrd></camt:RmtInf>
+          </camt:TxDtls>
+        </camt:NtryDtls>
+        <camt:AddtlNtryInf>INCASSO SDD CORE - DISTINTA 7781</camt:AddtlNtryInf>
+      </camt:Ntry>
+      <!-- 4: reversal (R-transaction) of the Beta Design collection -->
+      <camt:Ntry>
+        <camt:Amt Ccy="EUR">240.00</camt:Amt>
+        <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+        <camt:RvslInd>true</camt:RvslInd>
+        <camt:Sts><camt:Cd>BOOK</camt:Cd></camt:Sts>
+        <camt:BookgDt><camt:Dt>2026-10-16</camt:Dt></camt:BookgDt>
+        <camt:ValDt><camt:Dt>2026-10-16</camt:Dt></camt:ValDt>
+        <camt:AcctSvcrRef>SDD-RET-7781-02</camt:AcctSvcrRef>
+        <camt:NtryDtls>
+          <camt:TxDtls>
+            <camt:Refs><camt:EndToEndId>SDD-CANONE-OTT-02</camt:EndToEndId></camt:Refs>
+            <camt:RltdPties><camt:Dbtr><camt:Pty><camt:Nm>Beta Design SNC</camt:Nm></camt:Pty></camt:Dbtr></camt:RltdPties>
+            <camt:AddtlTxInf>Storno SDD - motivo AM04 fondi insufficienti</camt:AddtlTxInf>
+          </camt:TxDtls>
+        </camt:NtryDtls>
+      </camt:Ntry>
+      <!-- 5: bank fee without NtryDtls -->
+      <camt:Ntry>
+        <camt:Amt Ccy="EUR">10.00</camt:Amt>
+        <camt:CdtDbtInd>DBIT</camt:CdtDbtInd>
+        <camt:Sts><camt:Cd>BOOK</camt:Cd></camt:Sts>
+        <camt:BookgDt><camt:Dt>2026-10-16</camt:Dt></camt:BookgDt>
+        <camt:ValDt><camt:Dt>2026-10-16</camt:Dt></camt:ValDt>
+        <camt:AddtlNtryInf>Commissioni incasso SDD</camt:AddtlNtryInf>
+      </camt:Ntry>
+    </camt:Stmt>
+  </camt:BkToCstmrStmt>
+</camt:Document>

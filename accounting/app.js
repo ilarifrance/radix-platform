@@ -3,7 +3,7 @@
    Every figure is computed by lib/accounting from the company's entries; nothing is invented. */
 (function(){
 'use strict';
-const COA=window.RadixChartOfAccounts,LED=window.RadixLedger,FPA=window.RadixFatturaPA,BANK=window.RadixBankCSV,POST=window.RadixPosting,VAT=window.RadixVAT,MGMT=window.RadixManagement,REC=window.RadixReconcile,DEMO=window.RadixAccDemo;
+const COA=window.RadixChartOfAccounts,LED=window.RadixLedger,FPA=window.RadixFatturaPA,BANK=window.RadixBankCSV,POST=window.RadixPosting,VAT=window.RadixVAT,MGMT=window.RadixManagement,REC=window.RadixReconcile,DEMO=window.RadixAccDemo,P7M=window.RadixP7M,CAMT=window.RadixCAMT,ASSETS=window.RadixAssets,COP=window.RadixCopilot;
 const $=id=>document.getElementById(id);
 const view=$('accView');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -13,11 +13,11 @@ const eur0=c=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',max
 const signed=c=>'<span class="'+(c<0?'neg':'')+'">'+eur(c)+'</span>';
 const dateIt=d=>d?d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4):'';
 const today=new Date().toISOString().slice(0,10);
-const TABS=['panoramica','fatture','prima-nota','banca','iva','bilancio','gestione','impostazioni'];
-const SHELL_IDS={panoramica:'accounting',fatture:'acc-invoices','prima-nota':'acc-journal',banca:'acc-bank',iva:'acc-vat',bilancio:'acc-reports',gestione:'acc-control',impostazioni:'accounting'};
+const TABS=['panoramica','fatture','prima-nota','banca','iva','bilancio','gestione','chiusure','copilota','impostazioni'];
+const SHELL_IDS={panoramica:'accounting',fatture:'acc-invoices','prima-nota':'acc-journal',banca:'acc-bank',iva:'acc-vat',bilancio:'acc-reports',gestione:'acc-control',chiusure:'acc-close',copilota:'acc-copilot',impostazioni:'accounting'};
 const ROLE={owner:'Titolare',admin:'Amministratore',accountant:'Commercialista',member:'Collaboratore',viewer:'Sola lettura'};
 const PLAN={base:'Base',controllo:'Controllo di gestione',professionista:'Con professionista'};
-const S={store:null,demo:false,companies:[],company:null,year:+today.slice(0,4),data:null,calc:null,tab:'panoramica',ui:{docFilter:'to_review',doc:null,pct:100,editor:null,ledger:null,itemKind:'receivable',dimension:'project',ivaPeriod:null,journalFilter:''},busy:false};
+const S={store:null,demo:false,companies:[],company:null,year:+today.slice(0,4),data:null,calc:null,tab:'panoramica',ui:{docFilter:'to_review',doc:null,pct:100,editor:null,ledger:null,itemKind:'receivable',dimension:'project',ivaPeriod:null,journalFilter:'',closeMonth:null,rates:{},accrual:{kind:'risconto_attivo',account:'',amount:'',from:'',to:'',description:''},chat:[],asking:false},busy:false};
 
 // ---------- data access ----------
 function liveStore(){
@@ -25,7 +25,8 @@ function liveStore(){
  return {
   companies:()=>call('/api/accounting?resource=companies').then(j=>j.rows),
   bundle:year=>call('/api/accounting?resource=bundle&company='+encodeURIComponent(S.company)+'&year='+year),
-  command:(action,data)=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify({action,data,...(action==='company.create'?{}:{company:S.company})})})
+  command:(action,data)=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify({action,data,...(action==='company.create'?{}:{company:S.company})})}),
+  commandRaw:body=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify(body)})
  };
 }
 function banner(text,kind){const b=$('accBanner');if(!text){b.hidden=true;return;}b.hidden=false;b.className='acc-banner '+(kind||'');b.innerHTML=text;}
@@ -59,7 +60,8 @@ function derive(d){
  const next=vat.find(v=>!v.closed&&v.period.to<today)||vat.find(v=>v.period.from<=today&&v.period.to>=today);
  const newBank=d.bank.filter(m=>m.status==='new');
  const sugg=REC.suggest(newBank,d.open_items);
- return {posted,is,kp,age,fc,vat,next,sugg,toReview:d.documents.filter(x=>x.status==='to_review'),drafts:d.entries.filter(e=>e.status==='draft'),idx:COA.index(acc),cut};
+const checks=COP.anomalies(d,{year:y,today});
+ return {checks,posted,is,kp,age,fc,vat,next,sugg,toReview:d.documents.filter(x=>x.status==='to_review'),drafts:d.entries.filter(e=>e.status==='draft'),idx:COA.index(acc),cut};
 }
 
 // ---------- rendering ----------
@@ -68,10 +70,10 @@ function render(){
  $('accTitle').textContent=d.company.name;
  $('accLead').textContent=[d.company.vat||d.company.tax_code,'Regime '+d.company.regime,'IVA '+(d.company.vat_periodicity==='monthly'?'mensile':'trimestrale'),'Piano '+(PLAN[d.company.plan]||d.company.plan),'Il tuo ruolo: '+(ROLE[d.company.role]||d.company.role)].filter(Boolean).join(' · ');
  $('accSwitch').hidden=false;$('accTabs').hidden=false;
- $('cntDocs').textContent=c.toReview.length||'';$('cntBank').textContent=c.sugg.length||'';
+ $('cntDocs').textContent=c.toReview.length||'';$('cntChecks').textContent=c.checks.filter(x=>x.level!=='bassa').length||'';$('cntBank').textContent=c.sugg.length||'';
  for(const a of document.querySelectorAll('#accTabs a'))a.toggleAttribute('aria-current',a.dataset.tab===S.tab),a.dataset.tab===S.tab&&a.setAttribute('aria-current','page');
  for(const a of document.querySelectorAll('.rx-sidebar [data-rx-id^="acc"],.rx-sidebar [data-rx-id="accounting"]')){if(a.dataset.rxId===SHELL_IDS[S.tab]&&!(S.tab==='impostazioni'))a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}
- view.innerHTML=({panoramica,fatture,'prima-nota':primaNota,banca,iva,bilancio,gestione,impostazioni}[S.tab]||panoramica)(d,c);
+ view.innerHTML=({panoramica,fatture,'prima-nota':primaNota,banca,iva,bilancio,gestione,chiusure,copilota,impostazioni}[S.tab]||panoramica)(d,c);
  if(S.tab==='prima-nota'&&S.ui.editor)updateBalance();
 }
 const canWrite=()=>['owner','admin','accountant','member'].includes(S.data.company.role);
@@ -92,6 +94,8 @@ function panoramica(d,c){
  if(c.drafts.length)todo.push(['warn',c.drafts.length+' registrazioni in bozza','#prima-nota','Apri']);
  if(n&&!n.closed&&n.period.to<today)todo.push(['warn','Liquidazione IVA '+n.period.label+' da chiudere','#iva','Apri']);
  if(c.fc.first_negative)todo.push(['err','Cassa prevista sotto zero nella settimana del '+dateIt(c.fc.first_negative.from),'#gestione','Vedi']);
+ const other=c.checks.filter(x=>['duplicate_invoice','negative_cash','customers_credit','suppliers_debit','unbalanced','vat_late','depreciation_missing','unassigned_costs','revenue_debit'].includes(x.code));
+ if(other.length)todo.push([other.some(x=>x.level==='alta')?'err':'warn',other.length===1?other[0].title:other.length+' controlli del copilota da verificare','#copilota','Vedi']);
  if(!todo.length)todo.push(['ok','Nessuna attività in sospeso','','']);
  const vatTile=n?(n.closed?eur(n.payable_cents):eur(Math.max(0,n.vp14_cents))):'—';
  return '<div class="acc-grid kpi">'+
@@ -134,7 +138,7 @@ function cashChart(fc,opening){
 // ---------- invoices ----------
 function fatture(d,c){
  const f=S.ui.docFilter,list=d.documents.filter(x=>x.status===f);
- const drop='<label class="acc-drop" id="accDrop"><input type="file" id="accXml" accept=".xml,text/xml,application/xml" multiple'+(canWrite()?'':' disabled')+'><b>Trascina qui le fatture elettroniche XML</b><span>oppure clicca per sceglierle. Fatture di acquisto e di vendita: RADIX riconosce il verso dalla partita IVA dell\'azienda. I file firmati .p7m vanno prima scaricati in versione XML.</span></label>';
+ const drop='<label class="acc-drop" id="accDrop"><input type="file" id="accXml" accept=".xml,.p7m,text/xml,application/xml,application/pkcs7-mime" multiple'+(canWrite()?'':' disabled')+'><b>Trascina qui le fatture elettroniche XML</b><span>oppure clicca per sceglierle. Fatture di acquisto e di vendita: RADIX riconosce il verso dalla partita IVA dell\'azienda. Vanno bene anche i file firmati .p7m.</span></label>';
  const seg='<div class="acc-seg" role="group" aria-label="Filtro fatture">'+[['to_review','Da registrare'],['registered','Registrate'],['ignored','Ignorate']].map(([k,l])=>'<button type="button" data-act="docfilter" data-v="'+k+'" aria-pressed="'+(f===k)+'">'+l+'</button>').join('')+'</div>';
  const rows=list.map(x=>'<tr class="click'+(S.ui.doc===x.id?' sel':'')+'" data-act="opendoc" data-id="'+esc(x.id)+'"><td>'+dateIt(x.date)+'</td><td>'+esc(x.number)+'</td><td>'+(x.direction==='purchase'?'Acquisto':'Vendita')+(['TD04','TD08'].includes(x.doc_type)?' · nota di credito':'')+'</td><td>'+esc(x.counterpart_name||'')+'</td><td class="num">'+eur(x.total_cents)+'</td><td>'+(x.status==='to_review'?'<span class="acc-chip '+(x.proposal&&x.proposal.confidence==='alta'?'ok':x.proposal&&x.proposal.confidence==='bassa'?'err':'warn')+'">proposta '+esc(x.proposal?x.proposal.confidence:'')+'</span>':x.status==='registered'?'<span class="acc-chip ok">registrata</span>':'<span class="acc-chip">ignorata</span>')+'</td></tr>').join('');
  const table=list.length?'<div class="acc-tablewrap"><table><thead><tr><th>Data</th><th>Numero</th><th>Tipo</th><th>Controparte</th><th class="num">Totale</th><th>Stato</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty(f==='to_review'?'Nessuna fattura da registrare. Carica i file XML dal cassetto fiscale o dal tuo programma di fatturazione.':'Nessuna fattura in questo elenco.');
@@ -164,8 +168,8 @@ function review(doc){
 async function importXml(files){
  let ok=0,dup=0;const errs=[];
  for(const f of files){if(f.size>2400000){errs.push(f.name+': file troppo grande');continue;}
-  const xml=await f.text();
-  try{const r=await S.store.command('document.import',{xml,file_name:f.name.slice(0,200)});for(const x of r.documents)x.duplicate?dup++:ok++;}catch(e){errs.push(f.name+': '+e.message);}}
+  try{const xml=/\.p7m$/i.test(f.name)?P7M.extract(new Uint8Array(await f.arrayBuffer())).xml:await f.text();
+   const r=await S.store.command('document.import',{xml,file_name:f.name.replace(/\.p7m$/i,'').slice(0,200)});for(const x of r.documents)x.duplicate?dup++:ok++;}catch(e){errs.push(f.name+': '+e.message);}}
  await reload();
  flash([ok?ok+' fatture importate':'',dup?dup+' già presenti':'',errs.length?errs.join(' · '):''].filter(Boolean).join(' · ')||'Nessuna fattura importata.',errs.length&&!ok?'error':'ok');
 }
@@ -176,7 +180,7 @@ function primaNota(d,c){
  const q=S.ui.journalFilter.toLowerCase();
  const list=d.entries.filter(e=>e.date>=S.year+'-01-01'&&(!q||(e.description+' '+(e.number||'')).toLowerCase().includes(q))).slice().reverse();
  const rows=list.slice(0,300).map(e=>{const tot=e.lines.reduce((t,l)=>t+l.debit_cents,0);
-  return '<tr><td>'+dateIt(e.date)+'</td><td>'+esc(e.number||'bozza')+'</td><td>'+esc(e.description)+'<div class="acc-subtle">'+e.lines.map(l=>esc(l.account+' '+accName(l.account))+(l.debit_cents?' D ':' A ')+eur(l.debit_cents||l.credit_cents)).join(' · ')+'</div></td><td class="num">'+eur(tot)+'</td><td>'+(e.status==='draft'?'<button class="acc-btn small ghost" type="button" data-act="editentry" data-id="'+esc(e.id)+'"'+dis(canWrite())+'>Modifica</button>':e.reverses?'<span class="acc-chip">storno</span>':d.entries.some(x=>x.reverses===e.id)?'<span class="acc-chip">stornata</span>':'<button class="acc-btn small ghost" type="button" data-act="reverse" data-id="'+esc(e.id)+'"'+dis(canWrite())+'>Storna</button>')+'</td></tr>';}).join('');
+  return '<tr><td>'+dateIt(e.date)+'</td><td>'+esc(e.number||'bozza')+'</td><td>'+esc(e.description)+'<div class="acc-subtle">'+e.lines.map(l=>esc(l.account+' '+accName(l.account))+(l.debit_cents?' D ':' A ')+eur(l.debit_cents||l.credit_cents)).join(' · ')+'</div></td><td class="num">'+eur(tot)+'</td><td>'+(e.status==='draft'?'<button class="acc-btn small ghost" type="button" data-act="editentry" data-id="'+esc(e.id)+'"'+dis(canWrite())+'>Modifica</button>':e.source&&e.source.type==='accrual_reversal'?'<span class="acc-chip">riapertura</span>':e.reverses?'<span class="acc-chip">storno</span>':d.entries.some(x=>x.reverses===e.id&&!(x.source&&x.source.type==='accrual_reversal'))?'<span class="acc-chip">stornata</span>':'<button class="acc-btn small ghost" type="button" data-act="reverse" data-id="'+esc(e.id)+'"'+dis(canWrite())+'>Storna</button>')+'</td></tr>';}).join('');
  return (ed?editor(ed):'<div class="acc-actions" style="margin:0 0 14px"><button class="acc-btn" type="button" data-act="newentry"'+dis(canWrite())+'>+ Nuova registrazione</button></div>')+
   panel('Libro giornale '+S.year,(list.length?'<div class="acc-tablewrap"><table><thead><tr><th>Data</th><th>Protocollo</th><th>Descrizione e righe</th><th class="num">Importo</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+(list.length>300?'<p class="acc-subtle">Mostrate le ultime 300 registrazioni: usa la ricerca per trovarne altre.</p>':''):empty('Nessuna registrazione nel '+S.year+'.')),'<input type="search" data-act="jfilter" value="'+esc(S.ui.journalFilter)+'" placeholder="Cerca descrizione o protocollo" aria-label="Cerca nel giornale">');
 }
@@ -212,7 +216,7 @@ function banca(d,c){
  const k=S.ui.itemKind,a=c.age[k];
  const open=items.filter(i=>i.kind===k&&i.paid_cents!==i.amount_cents);
  const ageRow=(l,v)=>'<tr><td>'+l+'</td><td class="num">'+eur(v)+'</td></tr>';
- return panel('Movimenti da riconciliare',c.sugg.length?'<ul class="acc-moves">'+sugg+'</ul><p class="acc-subtle">RADIX propone la scadenza con importo, numero fattura e nome più simili. Confermando registra l\'incasso o il pagamento in prima nota.</p>':empty('Nessun movimento da riconciliare. Carica l\'estratto conto qui sotto.'))+'<div class="acc-grid two" style="margin-top:16px"><div>'+panel('Importa estratto conto','<label class="acc-drop"><input type="file" id="accCsv" accept=".csv,text/csv,.txt"'+(canWrite()?'':' disabled')+'><b>Carica il CSV dell\'estratto conto</b><span>Esportalo dall\'home banking: RADIX riconosce le colonne di data, descrizione e importo (anche dare/avere separati) e salta i movimenti già caricati.</span></label>')+'</div><div>'+
+ return panel('Movimenti da riconciliare',c.sugg.length?'<ul class="acc-moves">'+sugg+'</ul><p class="acc-subtle">RADIX propone la scadenza con importo, numero fattura e nome più simili. Confermando registra l\'incasso o il pagamento in prima nota.</p>':empty('Nessun movimento da riconciliare. Carica l\'estratto conto qui sotto.'))+'<div class="acc-grid two" style="margin-top:16px"><div>'+panel('Importa estratto conto','<label class="acc-drop"><input type="file" id="accCsv" accept=".csv,text/csv,.txt,.xml,text/xml,application/xml"'+(canWrite()?'':' disabled')+'><b>Carica l\'estratto conto (CSV o CAMT XML)</b><span>Esportalo dall\'home banking: dal CSV RADIX riconosce data, descrizione e importo (anche dare/avere separati); il formato bancario CAMT.053 si legge così com\'è. I movimenti già caricati vengono saltati.</span></label>')+'</div><div>'+
   panel('Scadenzario',('<div class="acc-tablewrap"><table><tbody>'+ageRow('Non ancora scaduti',a.not_due)+ageRow('Scaduti da 1 a 30 giorni',a.d0_30)+ageRow('Da 31 a 60 giorni',a.d31_60)+ageRow('Da 61 a 90 giorni',a.d61_90)+ageRow('Oltre 90 giorni',a.over_90)+'<tr class="total"><td>Totale aperto</td><td class="num">'+eur(a.total)+'</td></tr></tbody></table></div>')+
    (open.length?'<h3 style="margin-top:14px">Partite aperte</h3><div class="acc-tablewrap"><table><thead><tr><th>Scadenza</th><th>Controparte</th><th>Fattura</th><th class="num">Residuo</th></tr></thead><tbody>'+open.slice(0,200).map(i=>{const late=MGMT.days(i.due,today);return '<tr><td>'+dateIt(i.due)+(late>0?' <span class="acc-chip err">'+late+' gg</span>':'')+'</td><td>'+esc(i.counterpart||'')+'</td><td>'+esc(i.doc_number||'')+'</td><td class="num">'+eur(i.amount_cents-i.paid_cents)+'</td></tr>';}).join('')+'</tbody></table></div>':empty('Nessuna partita aperta.')),
    '<div class="acc-seg" role="group" aria-label="Crediti o debiti">'+[['receivable','Crediti'],['payable','Debiti']].map(([v,l])=>'<button type="button" data-act="itemkind" data-v="'+v+'" aria-pressed="'+(k===v)+'">'+l+'</button>').join('')+'</div>')+'</div></div>';
@@ -263,6 +267,61 @@ function gestione(d,c){
 }
 function derivedEbitda(budget){const out=[];for(let m=1;m<=12;m++){const v=budget.filter(b=>b.month===m).reduce((t,b)=>t+b.amount_cents,0);if(budget.some(b=>b.month===m))out.push({key:'ebitda',month:m,amount_cents:v});}return out;}
 
+// ---------- closings: month checklist, depreciation, accruals ----------
+const MONTHS_IT=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+function defaultMonth(){const y=+today.slice(0,4),m=+today.slice(5,7);return S.year<y?12:S.year>y?1:Math.max(1,m-1);}
+function chiusure(d,c){
+ const month=S.ui.closeMonth||defaultMonth(),mc=COP.monthClose(d,{year:S.year,month,today});
+ const checklist='<ul class="acc-todo">'+mc.items.map(i=>'<li><span><span class="acc-dot '+(i.done?'ok':'warn')+'"></span>'+esc(i.label)+' <span class="acc-subtle">· '+esc(i.detail)+'</span></span>'+(i.done?'':'<a class="acc-btn small ghost" href="#'+i.tab+'">Apri</a>')+'</li>').join('')+'</ul>';
+ const monthSel='<select data-act="closemonth" aria-label="Mese">'+MONTHS_IT.map((n,i)=>'<option value="'+(i+1)+'"'+(i+1===month?' selected':'')+'>'+n[0].toUpperCase()+n.slice(1)+' '+S.year+'</option>').join('')+'</select>';
+ const dep=ASSETS.depreciation(d.entries,d.accounts,S.year,{rates:S.ui.rates});
+ const reg=ASSETS.register(d.entries,d.accounts,{to:S.year+'-12-31'});
+ const accs=[...new Set(reg.map(a=>a.account))];
+ const rateInputs=accs.map(code=>{const r=Object.hasOwn(S.ui.rates,code)?S.ui.rates[code]:ASSETS.RATES[code];return '<label style="flex:0 0 170px">'+esc(accName(code))+' %<input data-rate="'+esc(code)+'" value="'+esc(r==null?'':String(r).replace('.',','))+'" inputmode="decimal" aria-label="Aliquota '+esc(accName(code))+'"></label>';}).join('');
+ const depRows=dep.rows.map(r=>'<tr><td>'+dateIt(r.date)+'</td><td>'+esc(r.description)+'<div class="acc-subtle">'+esc(r.account+' '+r.account_name)+'</div></td><td class="num">'+eur(r.cost_cents)+'</td><td class="num">'+String(r.rate).replace('.',',')+'%</td><td class="num">'+eur(r.amount_cents)+'</td><td class="num">'+eur(r.residual_cents)+'</td></tr>').join('');
+ const depDone=dep.existing.length>0;
+ const depBody=reg.length?'<div class="acc-row">'+rateInputs+'</div><div class="acc-tablewrap" style="margin-top:12px"><table><thead><tr><th>Acquisto</th><th>Cespite</th><th class="num">Costo</th><th class="num">Aliquota</th><th class="num">Quota '+S.year+'</th><th class="num">Residuo</th></tr></thead><tbody>'+(depRows||'<tr><td colspan="6">Nessuna quota nel '+S.year+'.</td></tr>')+'<tr class="total"><td colspan="4">Totale ammortamenti '+S.year+'</td><td class="num">'+eur(dep.total_cents)+'</td><td></td></tr></tbody></table></div>'+
+  (dep.missing.length?'<p class="acc-banner">'+dep.missing.length+' cespiti senza aliquota: indicala sopra.</p>':'')+
+  '<div class="acc-actions">'+(depDone?'<span class="acc-chip ok">Ammortamenti '+S.year+' registrati</span>':'<button class="acc-btn" type="button" data-act="depreciate"'+(dep.total_cents?dis(canManage()):' disabled')+'>Registra ammortamenti al 31/12/'+S.year+'</button>')+'</div>'+
+  '<p class="acc-subtle">I cespiti sono gli acquisti registrati sui conti di immobilizzazione. Aliquote indicative dei coefficienti ministeriali, metà nel primo anno; i beni fino a 516,46 € si ammortizzano nell\'anno. Il commercialista conferma le aliquote del tuo settore.</p>'
+  :empty('Nessun cespite: quando registri una fattura di un bene durevole (computer, arredi, macchinari) scegli il conto di immobilizzazione al posto del costo.');
+ const a=S.ui.accrual,k=ASSETS.KINDS[a.kind];
+ const done=d.entries.filter(e=>e.source&&e.source.type==='accrual'&&e.date.startsWith(String(S.year)));
+ const accForm='<div class="acc-row"><label>Tipo<select data-acc="kind">'+Object.entries(ASSETS.KINDS).map(([v,x])=>'<option value="'+v+'"'+(v===a.kind?' selected':'')+'>'+x.label+'</option>').join('')+'</select></label><label style="flex:1 1 240px">'+(k.side==='C'?'Conto di costo':'Conto di ricavo')+'<select data-acc="account"><option value="">Scegli…</option>'+accOptions(a.account,x=>x.kind===k.side)+'</select></label><label>Importo totale<input data-acc="amount" value="'+esc(a.amount)+'" inputmode="decimal" placeholder="0,00"></label></div>'+
+  '<div class="acc-row" style="margin-top:10px"><label>Competenza dal<input type="date" data-acc="from" value="'+esc(a.from)+'"></label><label>al<input type="date" data-acc="to" value="'+esc(a.to)+'"></label><label style="flex:1 1 240px">Descrizione<input data-acc="description" value="'+esc(a.description)+'" maxlength="200" placeholder="Es. polizza RC 01/07–30/06"></label></div><div id="accPreview">'+accrualPreview()+'</div>'+
+  '<div class="acc-actions"><button class="acc-btn" type="button" data-act="accrue"'+dis(canManage())+'>Registra al 31/12/'+S.year+'</button></div>'+
+  '<p class="acc-subtle">'+esc({risconto_attivo:'Costo già registrato che vale in parte per l\'anno prossimo (affitti anticipati, assicurazioni, canoni annuali).',rateo_attivo:'Ricavo maturato quest\'anno che fatturerai l\'anno prossimo.',rateo_passivo:'Costo maturato quest\'anno che ti verrà fatturato l\'anno prossimo (utenze, interessi).',risconto_passivo:'Ricavo già fatturato che vale in parte per l\'anno prossimo (abbonamenti, canoni incassati in anticipo).'}[a.kind])+'</p>'+
+  (done.length?'<h3 style="margin-top:14px">Registrati nel '+S.year+'</h3><ul class="acc-reasons">'+done.map(e=>'<li>'+esc(e.number||'')+' · '+esc(e.description)+' · '+eur(e.lines.reduce((t,l)=>t+l.debit_cents,0))+'</li>').join('')+'</ul>':'');
+ return '<div class="acc-grid half">'+panel('Chiusura del mese',checklist+'<p class="acc-subtle">'+mc.done+' di '+mc.total+' controlli completati per '+MONTHS_IT[month-1]+' '+S.year+'.</p>',monthSel)+panel('Ratei e risconti',accForm)+'</div>'+panel('Cespiti e ammortamenti '+S.year,depBody);
+}
+
+function accrualPreview(){
+ const a=S.ui.accrual,k=ASSETS.KINDS[a.kind];if(!(a.account&&a.amount&&a.from&&a.to))return '';
+ try{const p=ASSETS.accrual({...a,amount_cents:cents(a.amount),closing:S.year+'-12-31'},S.data.accounts);return '<p class="acc-banner ok">'+esc(p.label)+' di '+eur(p.amount_cents)+': '+(k.future?p.days_after+' giorni su '+p.days_total+' sono del '+(S.year+1):p.days_before+' giorni su '+p.days_total+' sono del '+S.year)+'. Il 01/01/'+(S.year+1)+' RADIX registra la riapertura.</p>';}
+ catch(e){return '<p class="acc-banner error">'+esc(e.message)+'</p>';}
+}
+// ---------- copilot ----------
+const LEVEL={alta:['err','Alta'],media:['warn','Media'],bassa:['','Bassa']};
+function md(t){return esc(t).split(/\n{2,}/).map(p=>{const lines=p.split('\n');const li=lines.every(l=>/^\s*([-*•]|\d+[.)])\s+/.test(l));const b=x=>x.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');return li?'<ul>'+lines.map(l=>'<li>'+b(l.replace(/^\s*([-*•]|\d+[.)])\s+/,''))+'</li>').join('')+'</ul>':'<p>'+b(lines.join('<br>'))+'</p>';}).join('');}
+function copilota(d,c){
+ const checks=c.checks.length?'<ul class="acc-checks">'+c.checks.map(x=>'<li><span class="acc-chip '+LEVEL[x.level][0]+'">'+LEVEL[x.level][1]+'</span><div><b>'+esc(x.title)+'</b><div class="acc-subtle">'+esc(x.detail)+'</div></div><a class="acc-btn small ghost" href="#'+x.tab+'">Apri</a></li>').join('')+'</ul>':empty('Nessuna anomalia trovata nei conti del '+S.year+'.');
+ const chat=S.ui.chat.map(m=>'<div class="acc-msg '+m.role+'">'+(m.role==='assistant'?md(m.content):'<p>'+esc(m.content)+'</p>')+'</div>').join('')+(S.ui.asking?'<div class="acc-msg assistant"><p class="acc-muted">Sto leggendo i conti…</p></div>':'');
+ const sugg=COP.SUGGESTED.map(q=>'<button class="acc-btn small ghost" type="button" data-act="askq" data-v="'+esc(q)+'"'+(S.ui.asking?' disabled':'')+'>'+esc(q)+'</button>').join('');
+ return '<div class="acc-grid two">'+panel('Chiedi al copilota','<div class="acc-chat" id="accChat">'+(chat||'<p class="acc-muted">Fai una domanda sui conti di '+esc(d.company.name)+': risponde con i numeri di questa pagina.</p>')+'</div><div class="acc-suggest">'+sugg+'</div><form class="acc-ask" data-act="askform"><textarea id="accQ" rows="2" maxlength="1000" placeholder="Es. Perché il margine di settembre è sceso?" aria-label="Domanda al copilota"'+(S.ui.asking?' disabled':'')+'></textarea><button class="acc-btn" type="submit"'+(S.ui.asking?' disabled':'')+'>Chiedi</button></form><p class="acc-subtle">Il copilota legge solo i dati calcolati da RADIX su questa azienda e non modifica nulla. Le scelte fiscali vanno confermate con il commercialista.</p>',S.ui.chat.length?'<button class="acc-btn small ghost" type="button" data-act="clearchat">Nuova conversazione</button>':'')+
+  panel('Controlli automatici',checks+'<p class="acc-subtle">Controlli che RADIX ripete a ogni modifica: quadratura, saldi anomali, documenti e movimenti fermi, scadenze IVA, crediti scaduti, cassa, fatture doppie, ammortamenti.</p>')+'</div>';
+}
+async function ask(question){
+ question=String(question||'').trim();if(!question||S.ui.asking)return;
+ const history=S.ui.chat.slice(-6);S.ui.chat.push({role:'user',content:question});S.ui.asking=true;render();
+ try{
+  let r;
+  if(S.demo){const ctx=COP.snapshot(S.data,{year:S.year,today});r=await liveStore().commandRaw({action:'copilot.ask',data:{question,history,context:ctx}});}
+  else r=await S.store.command('copilot.ask',{question,history,year:S.year});
+  S.ui.chat.push({role:'assistant',content:r.answer});
+ }catch(e){S.ui.chat.pop();flash(e.status===401?'Accedi a RADIX per usare il copilota.':e.message||'Il copilota non risponde.','error');if($('accQ'))$('accQ').value=question;}
+ finally{S.ui.asking=false;if(S.tab==='copilota')render();const box=$('accChat');if(box)box.scrollTop=box.scrollHeight;}
+}
+
 // ---------- company settings ----------
 function impostazioni(d){
  const co=d.company;
@@ -284,7 +343,7 @@ function impostazioni(d){
  panel('Piano dei conti','<details><summary class="acc-muted">'+d.accounts.length+' conti · aggiungi o rinomina</summary><div class="acc-row" style="margin:12px 0">'+f('aCode','Codice (es. 61.12)','',' maxlength="8"')+f('aName','Nome','',' maxlength="120"')+sel('aKind','Tipo','C',Object.entries(COA.KINDS))+sel('aGroup','Gruppo','servizi',groups)+'<button class="acc-btn ghost" type="button" data-act="saveaccount"'+dis(canManage())+'>Salva conto</button></div><div class="acc-tablewrap"><table><thead><tr><th>Codice</th><th>Nome</th><th>Tipo</th><th>Gruppo</th><th></th></tr></thead><tbody>'+accRows+'</tbody></table></div></details>')+
  panel('Attività recenti',d.audit.length?'<ul class="acc-reasons">'+d.audit.slice(0,20).map(a=>'<li>'+esc(new Date(a.at).toLocaleString('it-IT'))+' · '+esc(a.actor||'')+' · '+esc(AUDIT[a.action]||a.action)+'</li>').join('')+'</ul>':empty('Nessuna attività.'));
 }
-const AUDIT={'company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA'};
+const AUDIT={'company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto'};
 
 // ---------- onboarding ----------
 function onboarding(reason){
@@ -335,6 +394,11 @@ document.addEventListener('click',async ev=>{
  else if(a==='saveaccount'){await run('account.save',{code:$('aCode').value.trim(),name:$('aName').value,kind:$('aKind').value,group:$('aGroup').value},'Conto salvato.');}
  else if(a==='createcompany'){const r=await S.store.command('company.create',{name:$('nName').value,vat:$('nVat').value||null,tax_code:$('nCf').value||null,regime:$('nRegime').value,vat_periodicity:$('nPer').value,plan:$('nPlan').value}).catch(e=>{flash(e.message,'error');return null;});if(r){S.company=r.id;await loadCompanies();flash('Azienda creata: carica le prime fatture.','ok');location.hash='#fatture';}}
  else if(a==='startdemo'){await startDemo();}
+ else if(a==='depreciate'){const dep=ASSETS.depreciation(d.entries,d.accounts,S.year,{rates:S.ui.rates});if(confirm('Registrare ammortamenti per '+eur(dep.total_cents)+' al 31/12/'+S.year+' su '+dep.rows.length+' cespiti?'))await run('closing.depreciation',{year:S.year,...(Object.keys(S.ui.rates).length?{rates:S.ui.rates}:{})},'Ammortamenti '+S.year+' registrati.');}
+ else if(a==='accrue'){const x=S.ui.accrual,amount=cents(x.amount);if(!x.account||!amount||Number.isNaN(amount)||!x.from||!x.to){flash('Indica conto, importo e periodo di competenza.','error');return;}
+  const r=await run('closing.accrual',{kind:x.kind,account:x.account,amount_cents:amount,from:x.from,to:x.to,closing:S.year+'-12-31',...(x.description.trim()?{description:x.description.trim()}:{})},r=>ASSETS.KINDS[x.kind].label+' di '+eur(r.amount_cents)+' registrato, con riapertura al 01/01/'+(S.year+1)+'.');if(r){S.ui.accrual={...S.ui.accrual,account:'',amount:'',from:'',to:'',description:''};render();}}
+ else if(a==='askq'){await ask(v);}
+ else if(a==='clearchat'){S.ui.chat=[];render();}
  else if(a==='exporttb'){const tb=LED.trialBalance(S.calc.posted,d.accounts,{to:S.year+'-12-31'});download('bilancio-verifica-'+S.year+'.csv',[['Conto','Nome','Dare','Avere','Saldo'],...tb.rows.map(r=>[r.code,r.name,cc(r.debit_cents),cc(r.credit_cents),cc(r.balance_cents)])]);}
  else if(a==='exportjournal'){download('libro-giornale-'+S.year+'.csv',[['Data','Protocollo','Descrizione','Conto','Nome conto','Dare','Avere','Progetto','Centro di costo'],...S.calc.posted.filter(e=>e.date.startsWith(String(S.year))).flatMap(e=>e.lines.map(l=>[e.date,e.number,e.description,l.account,accName(l.account),cc(l.debit_cents),cc(l.credit_cents),l.project||'',l.cost_center||'']))]);}
  else if(a==='exportvat'){const p=S.calc.vat.find(x=>x.period.key===v).period;download('registri-iva-'+v+'.csv',[['Registro','Data','Numero','Tipo','Controparte','Partita IVA','Aliquota','Natura','Imponibile','IVA','IVA detraibile','Esigibilità'],...d.vat_rows.filter(r=>r.date>=p.from&&r.date<=p.to).map(r=>[r.register,r.date,r.doc_number,r.doc_type,r.counterpart||'',r.counterpart_vat||'',r.rate,r.nature||'',cc(r.taxable_cents),cc(r.vat_cents),cc(r.deductible_vat_cents),r.exigibility])]);}
@@ -342,10 +406,13 @@ document.addEventListener('click',async ev=>{
 const cc=c=>((c||0)/100).toFixed(2).replace('.',',');
 function download(name,rows){const csv='﻿'+rows.map(r=>r.map(x=>{const s=String(x??'');return /[;"\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}).join(';')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function syncEditorHead(){const ed=S.ui.editor;if(!ed)return;if($('edDate'))ed.date=$('edDate').value;if($('edDesc'))ed.description=$('edDesc').value;}
+document.addEventListener('submit',ev=>{const f=ev.target.closest('[data-act=askform]');if(!f)return;ev.preventDefault();ask($('accQ').value);});
+document.addEventListener('keydown',ev=>{if(ev.target.id==='accQ'&&ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();ask(ev.target.value);}});
 document.addEventListener('input',ev=>{
  const t=ev.target;
  if(t.dataset.line!==undefined&&S.ui.editor){S.ui.editor.lines[+t.dataset.line][t.dataset.f]=t.value;updateBalance();}
  else if(t.dataset.docline!==undefined&&S.ui.docLines){S.ui.docLines.lines[+t.dataset.docline][t.dataset.f]=t.value||null;}
+ else if(t.dataset.acc!==undefined){S.ui.accrual[t.dataset.acc]=t.value;if($('accPreview'))$('accPreview').innerHTML=accrualPreview();}
  else if(t.dataset.act==='jfilter'){S.ui.journalFilter=t.value;clearTimeout(S.jt);S.jt=setTimeout(()=>{render();const s=document.querySelector('[data-act=jfilter]');if(s){s.focus();s.setSelectionRange(s.value.length,s.value.length);}},250);}
 });
 document.addEventListener('change',async ev=>{
@@ -353,15 +420,18 @@ document.addEventListener('change',async ev=>{
  if(t.dataset.line!==undefined&&S.ui.editor){S.ui.editor.lines[+t.dataset.line][t.dataset.f]=t.value;updateBalance();}
  else if(t.dataset.docline!==undefined&&S.ui.docLines){S.ui.docLines.lines[+t.dataset.docline][t.dataset.f]=t.value||null;}
  else if(t.dataset.act==='pct'){S.ui.pct=+t.value;S.ui.docLines=null;render();}
+ else if(t.dataset.act==='closemonth'){S.ui.closeMonth=+t.value;render();}
+ else if(t.dataset.rate!==undefined){const v=t.value.trim().replace(',','.');if(v===''){delete S.ui.rates[t.dataset.rate];}else if(+v>0&&+v<=100)S.ui.rates[t.dataset.rate]=Math.round(+v*100)/100;else{flash('Aliquota non valida: da 0,01 a 100.','error');return;}render();}
+ else if(t.dataset.acc!==undefined){S.ui.accrual[t.dataset.acc]=t.value;if(t.dataset.acc==='kind'){S.ui.accrual.account='';render();}else if($('accPreview'))$('accPreview').innerHTML=accrualPreview();}
  else if(t.id==='accXml'&&t.files.length){await importXml([...t.files]);}
- else if(t.id==='accCsv'&&t.files.length){const f=t.files[0];if(f.size>2400000){flash('File troppo grande.','error');return;}const csv=await f.text();await run('bank.import',{csv},r=>r.imported+' movimenti importati'+(r.duplicates?', '+r.duplicates+' già presenti':'')+(r.warnings.length?' · '+r.warnings.length+' righe scartate':''));}
+ else if(t.id==='accCsv'&&t.files.length){const f=t.files[0];if(f.size>2400000){flash('File troppo grande.','error');return;}const txt=await f.text(),isCamt=/\.xml$/i.test(f.name)||CAMT.isCamt(txt);await run('bank.import',isCamt?{camt:txt}:{csv:txt},r=>r.imported+' movimenti importati'+(r.duplicates?', '+r.duplicates+' già presenti':'')+(r.warnings.length?' · '+r.warnings.length+' righe scartate':''));}
  else if(t.id==='accCompany'){if(t.value==='__demo'){await startDemo();return;}S.company=t.value;S.ui.doc=null;S.ui.editor=null;await reload().catch(e=>flash(e.message,'error'));}
  else if(t.id==='accYear'){S.year=+t.value;S.ui.ivaPeriod=null;await reload().catch(e=>flash(e.message,'error'));}
 });
 // Drag and drop of XML files on the invoice drop zone.
 document.addEventListener('dragover',ev=>{const z=ev.target.closest&&ev.target.closest('#accDrop');if(z){ev.preventDefault();z.classList.add('over');}});
 document.addEventListener('dragleave',ev=>{const z=ev.target.closest&&ev.target.closest('#accDrop');if(z)z.classList.remove('over');});
-document.addEventListener('drop',ev=>{const z=ev.target.closest&&ev.target.closest('#accDrop');if(!z)return;ev.preventDefault();z.classList.remove('over');if(!canWrite())return;const files=[...ev.dataTransfer.files].filter(f=>/\.xml$/i.test(f.name));if(files.length)importXml(files);else flash('Trascina file .xml di fatture elettroniche.','error');});
+document.addEventListener('drop',ev=>{const z=ev.target.closest&&ev.target.closest('#accDrop');if(!z)return;ev.preventDefault();z.classList.remove('over');if(!canWrite())return;const files=[...ev.dataTransfer.files].filter(f=>/\.(xml|p7m)$/i.test(f.name));if(files.length)importXml(files);else flash('Trascina file .xml o .p7m di fatture elettroniche.','error');});
 
 // ---------- start ----------
 function fillSwitch(){

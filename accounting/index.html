@@ -12,7 +12,7 @@
   <div>
    <p class="acc-eyebrow">RADIX / Accounting</p>
    <h1 id="accTitle">Contabilità e controllo di gestione</h1>
-   <p class="acc-lead" id="accLead">Carichi le fatture elettroniche e l'estratto conto: RADIX propone le registrazioni in partita doppia, calcola l'IVA e ti mostra margini, budget e cassa. Ogni registrazione la confermi tu.</p>
+   <p class="acc-lead" id="accLead">Carichi le fatture elettroniche (anche .p7m) e l'estratto conto: RADIX propone le registrazioni in partita doppia, calcola l'IVA e ti mostra margini, budget e cassa. Ogni registrazione la confermi tu.</p>
   </div>
   <div class="acc-switch" id="accSwitch" hidden>
    <label>Azienda <select id="accCompany" aria-label="Azienda"></select></label>
@@ -29,6 +29,8 @@
   <a href="#iva" data-tab="iva">IVA</a>
   <a href="#bilancio" data-tab="bilancio">Bilancio</a>
   <a href="#gestione" data-tab="gestione">Controllo di gestione</a>
+  <a href="#chiusure" data-tab="chiusure">Chiusure</a>
+  <a href="#copilota" data-tab="copilota">Copilota <span class="acc-count" id="cntChecks"></span></a>
   <a href="#impostazioni" data-tab="impostazioni">Azienda</a>
  </nav>
  <section id="accView" class="acc-view" aria-live="polite"><p class="acc-muted">Caricamento…</p></section>
@@ -43,6 +45,10 @@
 <script src="/lib/accounting/vat.js" defer></script>
 <script src="/lib/accounting/management.js" defer></script>
 <script src="/lib/accounting/reconcile.js" defer></script>
+<script src="/lib/accounting/assets.js" defer></script>
+<script src="/lib/accounting/copilot.js" defer></script>
+<script src="/lib/accounting/p7m.js" defer></script>
+<script src="/lib/accounting/camt.js" defer></script>
 <script src="/accounting/demo-data.js" defer></script>
 <script src="/accounting/app.js" defer></script>
 </body></html>

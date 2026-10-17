@@ -87,6 +87,8 @@
       { id: 'acc-vat', text: 'IVA', href: '/accounting/index.html#iva', kw: 'liquidazione f24 lipe registri' },
       { id: 'acc-reports', text: 'Bilancio', href: '/accounting/index.html#bilancio', kw: 'conto economico stato patrimoniale verifica' },
       { id: 'acc-control', text: 'Controllo di gestione', href: '/accounting/index.html#gestione', kw: 'budget margini cash flow kpi' },
+      { id: 'acc-close', text: 'Chiusure', href: '/accounting/index.html#chiusure', kw: 'ammortamenti cespiti ratei risconti chiusura mese' },
+      { id: 'acc-copilot', text: 'Copilota', href: '/accounting/index.html#copilota', kw: 'assistente ai domande anomalie controlli' },
       { id: 'acc-studio', text: 'Studio AI', href: '/accounting/studio.html', kw: 'commercialista agenti' }
     ] },
     { id: 'executive', text: 'Executive', icon: 'crown', soon: true },

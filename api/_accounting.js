@@ -8,8 +8,11 @@ const ledger=require('../lib/accounting/ledger');
 const posting=require('../lib/accounting/posting');
 const fatturapa=require('../lib/accounting/fatturapa');
 const bankCsv=require('../lib/accounting/bank-csv');
+const camt=require('../lib/accounting/camt');
 const vat=require('../lib/accounting/vat');
 const reconcile=require('../lib/accounting/reconcile');
+const assets=require('../lib/accounting/assets');
+const copilot=require('../lib/accounting/copilot');
 
 class AccError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(s,m)=>{throw new AccError(s,m);};
@@ -54,7 +57,23 @@ function companyData(d,partial){
  if(!partial&&!out.name)fail(400,'Indica la ragione sociale.');return out;
 }
 
-async function command(store,u,body){
+// Year-end commands may need accounts added to the standard chart after a company was created (ratei e risconti).
+function ensureAccounts(c,codes){const list=coa.STANDARD.filter(a=>codes.includes(a.code)).map(a=>({code:a.code,name:a.name,kind:a.kind,grp:a.group,keywords:a.keywords,system:Object.values(coa.SYSTEM).includes(a.code)}));
+ return q('INSERT INTO acc_accounts(company_id,code,name,kind,grp,keywords,system) SELECT $1,x.code,x.name,x.kind,x.grp,x.keywords,x.system FROM jsonb_to_recordset($2::jsonb) AS x(code text,name text,kind text,grp text,keywords text,system boolean) ON CONFLICT(company_id,code) DO NOTHING',[c,JSON.stringify(list)]);}
+const withStandard=(accounts,codes)=>accounts.concat(coa.STANDARD.filter(a=>codes.includes(a.code)&&!accounts.some(x=>x.code===a.code)));
+const linesCodes=e=>[...new Set(e.lines.map(l=>l.account))];
+const COPILOT_UNAVAILABLE='Il copilota non risponde in questo momento: riprova tra poco.';
+async function askCopilot(deps,snap,d){
+ const question=text(d.question,1000,true);
+ if(d.history!==undefined&&(!Array.isArray(d.history)||d.history.length>12||d.history.some(h=>!obj(h)||!['user','assistant'].includes(h.role)||typeof h.content!=='string'||h.content.length>4000)))fail(400,'Cronologia non valida.');
+ if(!deps||typeof deps.ask!=='function')fail(503,'Il copilota non è ancora configurato su questo ambiente.');
+ let r;try{r=await deps.ask(copilot.prompt(snap,question,d.history||[]));}catch(e){console.error('accounting copilot',e&&e.status||'',e&&e.message);fail(503,COPILOT_UNAVAILABLE);}
+ if(!r)fail(503,'Il copilota non è ancora configurato su questo ambiente.');
+ if(r.refused)return {answer:'Su questa domanda non posso aiutarti: prova a riformularla parlando dei conti dell\'azienda.',refused:true};
+ if(!r.text)fail(503,COPILOT_UNAVAILABLE);
+ return {answer:r.text.slice(0,6000)};
+}
+async function command(store,u,body,deps){
  if(!obj(body)||Object.keys(body).some(k=>!['company','action','data'].includes(k))||typeof body.action!=='string'||!obj(body.data))fail(400,'Comando non valido.');
  const {action,data:d}=body,c=body.company;
  if(action==='company.create'){
@@ -67,8 +86,40 @@ async function command(store,u,body){
    audit(id,u,'company.create',id,{name:f.name})]);
   return {id};
  }
+ // Demonstration company: the page sends the snapshot it computed in the browser (fictional data, nothing stored).
+ if(action==='copilot.ask'&&c===undefined){
+  if(!obj(d.context)||JSON.stringify(d.context).length>80000)fail(400,'Situazione dell\'azienda mancante o troppo grande.');
+  return askCopilot(deps,d.context,d);
+ }
  if(!uuid(c))fail(400,'Azienda non valida.');
  switch(action){
+ case 'copilot.ask':{
+  const year=d.year===undefined?+today().slice(0,4):int(d.year,2000,2100,'Anno non valido.');
+  const b=await bundle(store,c,u,year);b.accounts=b.accounts.map(a=>({...a,group:a.group||a.grp}));
+  return askCopilot(deps,copilot.snapshot(b,{year,today:today()}),d);
+ }
+ case 'closing.depreciation':{
+  const year=int(d.year,2000,2100,'Anno non valido.'),rates={};
+  if(d.rates!==undefined){if(!obj(d.rates)||Object.keys(d.rates).length>50)fail(400,'Aliquote non valide.');for(const [k,v] of Object.entries(d.rates)){if(!/^\d{2}\.\d{2}(\.\d{2})?$/.test(k)||typeof v!=='number'||!(v>0&&v<=100)||Math.round(v*100)!==v*100)fail(400,'Aliquota non valida per '+k+'.');rates[k]=v;}}
+  const b=await bundle(store,c,u,year);b.accounts=b.accounts.map(a=>({...a,group:a.group||a.grp}));
+  const dep=assets.depreciation(b.entries,b.accounts,year,{rates});
+  if(dep.existing.length)fail(409,'Ammortamenti '+year+' già registrati: stornali per rifarli.');
+  if(!dep.entry)fail(400,'Nessuna quota di ammortamento da registrare nel '+year+'.');
+  const codes=linesCodes(dep.entry);checkEntry(dep.entry,withStandard(b.accounts,codes));
+  const ins=insertEntry(c,u,dep.entry,{post:true,source:dep.entry.source});
+  await store.tx([role(c,u,MANAGE),ensureAccounts(c,codes),
+   q("SELECT acc_assert(NOT EXISTS(SELECT 1 FROM acc_entries e WHERE e.company_id=$1 AND e.source->>'type'='depreciation' AND e.source->>'year'=$2::text AND NOT EXISTS(SELECT 1 FROM acc_entries r WHERE r.company_id=e.company_id AND r.reverses=e.id)),'Ammortamenti già registrati per questo esercizio.','23505')",[c,String(year)]),
+   ...ins.queries,audit(c,u,action,ins.id,{year,total_cents:dep.total_cents,assets:dep.rows.length})]);
+  return {id:ins.id,total_cents:dep.total_cents};
+ }
+ case 'closing.accrual':{
+  const o={kind:d.kind,account:text(d.account,12,true),amount_cents:int(d.amount_cents,1,9e13,'Importo non valido.'),from:date(d.from),to:date(d.to),closing:d.closing===undefined?undefined:date(d.closing),description:text(d.description,200),project:text(d.project,80),cost_center:text(d.cost_center,80)};
+  const accounts=await accountsOf(store,c);let a;try{a=assets.accrual(o,withStandard(accounts,Object.values(assets.KINDS).map(k=>k.account)));}catch(e){fail(400,e.message);}
+  const codes=linesCodes(a.entry);checkEntry(a.entry,withStandard(accounts,codes));
+  const first=insertEntry(c,u,a.entry,{post:true,source:a.entry.source}),second=insertEntry(c,u,a.reversal,{post:true,source:a.reversal.source,reverses:first.id});
+  await store.tx([role(c,u,MANAGE),ensureAccounts(c,codes),...first.queries,...second.queries,audit(c,u,action,first.id,{kind:o.kind,amount_cents:a.amount_cents})]);
+  return {id:first.id,reversal_id:second.id,amount_cents:a.amount_cents};
+ }
  case 'company.update':{
   const f=companyData(d,true),v=int(d.version,1,2147483646,'Versione non valida.'),keys=Object.keys(f);if(!keys.length)fail(400,'Nessuna modifica.');
   await store.tx([role(c,u,Object.hasOwn(f,'lock_date')?MANAGE:ADMIN.concat('accountant')),
@@ -124,7 +175,7 @@ async function command(store,u,body){
   const src=await store.json("SELECT jsonb_build_object('number',e.number,'description',e.description,'lines',(SELECT jsonb_agg(jsonb_build_object('account',l.account,'debit_cents',l.credit_cents,'credit_cents',l.debit_cents,'cost_center',l.cost_center,'project',l.project) ORDER BY l.n) FROM acc_entry_lines l WHERE l.company_id=e.company_id AND l.entry_id=e.id)) AS v FROM acc_entries e WHERE e.company_id=$1 AND e.id=$2 AND e.status='posted' AND EXISTS(SELECT 1 FROM acc_memberships m WHERE m.company_id=$1 AND m.user_id=$3)",[c,d.id,u]);
   if(!src)fail(404,'Registrazione contabilizzata non trovata.');
   const ins=insertEntry(c,u,{date:when,description:('Storno '+src.number+' · '+src.description).slice(0,300),lines:src.lines},{post:true,source:{type:'reversal'},reverses:d.id});
-  await store.tx([role(c,u,WRITE),q("SELECT acc_assert(NOT EXISTS(SELECT 1 FROM acc_entries WHERE company_id=$1 AND reverses=$2),'Registrazione già stornata.','23505')",[c,d.id]),...ins.queries,audit(c,u,action,ins.id,{reverses:d.id})]);
+  await store.tx([role(c,u,WRITE),q("SELECT acc_assert(NOT EXISTS(SELECT 1 FROM acc_entries WHERE company_id=$1 AND reverses=$2 AND coalesce(source->>'type','')<>'accrual_reversal'),'Registrazione già stornata.','23505')",[c,d.id]),...ins.queries,audit(c,u,action,ins.id,{reverses:d.id})]);
   return {id:ins.id};
  }
  case 'document.import':{
@@ -183,9 +234,11 @@ async function command(store,u,body){
   return {id:d.id};
  }
  case 'bank.import':{
-  if(typeof d.csv!=='string'||!d.csv.length||d.csv.length>2500000)fail(400,'File dell\'estratto conto mancante o troppo grande.');
+  // CSV from home banking or ISO 20022 CAMT.053 XML: both parsers return the same rows.
+  const src=typeof d.camt==='string'?d.camt:d.csv;
+  if(typeof src!=='string'||!src.length||src.length>(typeof d.camt==="string"?3900000:2500000))fail(400,'File dell\'estratto conto mancante o troppo grande.');
   const account=d.account===undefined?coa.SYSTEM.bank:text(d.account,12,true);
-  let parsed;try{parsed=bankCsv.parseStatement(d.csv);}catch(e){fail(400,e.message);}
+  let parsed;try{parsed=typeof d.camt==='string'?camt.parseStatement(src):bankCsv.parseStatement(src);}catch(e){fail(400,e.message);}
   if(!parsed.rows.length)fail(400,'Nessun movimento leggibile nel file.');if(parsed.rows.length>5000)fail(413,'Massimo 5000 movimenti per file.');
   const rows=parsed.rows.filter(r=>r.amount_cents!==0).map(r=>({id:randomUUID(),date:r.date,value_date:r.value_date,amount_cents:r.amount_cents,description:(r.description||'').slice(0,500),fingerprint:bankCsv.fingerprint(r).slice(0,700)}));
   const res=await store.tx([role(c,u,WRITE),q("SELECT acc_assert(EXISTS(SELECT 1 FROM acc_accounts WHERE company_id=$1 AND code=$2 AND grp='liquidita'),'Conto banca non valido.','22023')",[c,account]),
@@ -268,7 +321,7 @@ async function bundle(store,c,u,year){
  return v;
 }
 
-function createHandler({getSessionUser,getStore}){
+function createHandler({getSessionUser,getStore,ask}){
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   try{
@@ -279,7 +332,7 @@ function createHandler({getSessionUser,getStore}){
    if(req.method==='POST'){
     if(req.headers['x-radix-accounting']!=='1'||!/^application\/json(?:;|$)/i.test(req.headers['content-type']||'')||req.headers['sec-fetch-site']==='cross-site')fail(403,'Richiesta non consentita.');
     let body=req.body;if(typeof body==='string'){if(Buffer.byteLength(body)>4000000)fail(413,'Richiesta troppo grande.');try{body=JSON.parse(body);}catch{fail(400,'JSON non valido.');}}
-    return res.status(200).json(await command(store,user.uid,body));
+    return res.status(200).json(await command(store,user.uid,body,{ask}));
    }
    const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year'].includes(k)))fail(400,'Parametro non consentito.');
    if(qy.resource==='companies')return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.name),'[]') AS v FROM (SELECT c.id,c.name,c.vat,c.regime,c.vat_periodicity,c.plan,m.role FROM acc_companies c JOIN acc_memberships m ON m.company_id=c.id WHERE m.user_id=$1) t",[user.uid])});
