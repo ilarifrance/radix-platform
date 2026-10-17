@@ -31,3 +31,43 @@ test('addTask appends a manual incarico with valid role and dependencies',()=>{
  while(s.tasks.length<core.MAX_TASKS)core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles);
  assert.throws(()=>core.addTask(s,{role:'copywriter',instruction:'Scrivi altri testi'},roles),/Massimo/);
 });
+
+test('flags numeric claims in a draft that no given source contains',()=>{
+ const sources=['15 anni nel B2B, +1M€ di fatturato annuo, +4 milioni in 3 anni','LinkedIn: 1.000 follower, circa 2.000 impression'];
+ const draft='Con 15 anni di esperienza ho portato +1M€ annuo. Oggi ho 1.000 follower e 2.000 impression. Un cliente ha ottenuto +38% di lead e 120 nuovi clienti, ROI 3x, con 4.500 € di budget. Nel 2026, alle 9:00.';
+ const flagged=route.unsupportedNumbers(draft,sources).map(x=>x.claim);
+ assert.deepEqual(flagged,['+38%','120 nuovi clienti','3x','4.500 €']);
+ assert.match(route.unsupportedNumbers(draft,sources)[0].context,/cliente ha ottenuto \+38% di lead/);
+ assert.deepEqual(route.unsupportedNumbers('+4 milioni in 3 anni e 1M€',sources),[]);
+ assert.deepEqual(route.unsupportedNumbers('',sources),[]);
+});
+
+test('calendar weeks start next Monday with correct weekdays in Europe/Rome',()=>{
+ const c=route.calendarWeeks(Date.parse('2026-10-17T16:00:00Z'),8).split('\n');
+ assert.equal(c.length,8);
+ assert.equal(c[0],'Settimana 1: lun 19/10/2026, mar 20/10/2026, mer 21/10/2026, gio 22/10/2026, ven 23/10/2026, sab 24/10/2026, dom 25/10/2026');
+ assert.match(c[1],/^Settimana 2: lun 26\/10\/2026/);
+ assert.match(c[2],/^Settimana 3: lun 02\/11\/2026/);
+ assert.match(route.calendarWeeks(Date.parse('2026-10-18T23:30:00Z'),1),/^Settimana 1: lun 26\/10/);
+ assert.match(route.calendarWeeks(Date.parse('2026-10-19T08:00:00Z'),1),/^Settimana 1: lun 26\/10/);
+});
+
+test('collects the questions a draft leaves to the reviewer',()=>{
+ const out='# Strategia\nTesto [caso reale da fornire] e ancora [caso reale da fornire].\n## Dati mancanti\n- Settore del cliente del caso\n2. **Tempo** che puoi dedicare\n## Calendario\n- Lunedì post\nFirma: [tuo link Calendly]';
+ assert.deepEqual(route.missingInfo(out),['Settore del cliente del caso','Tempo che puoi dedicare','[caso reale da fornire]','[tuo link Calendly]']);
+ assert.deepEqual(route.missingInfo('Solo testo [nota]'),[]);
+});
+
+test('flags speed promises that no source states',()=>{
+ const flagged=route.unsupportedNumbers('Piano pronto in 2 minuti, video in 10 minuti, risposta in soli 10 secondi. Revisione in 1 ora.',['Il tempo di revisione è in 1 ora']).map(x=>x.claim);
+ assert.deepEqual(flagged,['in 2 minuti','in 10 minuti','in soli 10 secondi']);
+});
+
+test('applies only the review fixes found verbatim in the draft',()=>{
+ const draft='Il commerciale mi ha chiamato giovedì. Preventivo più basso di 1.500 euro. Fine.';
+ const r=route.applyReview(draft,'Ecco:\n[{"trova":"Il commerciale mi ha chiamato giovedì.","sostituisci":"Succede spesso: il commerciale chiama.","motivo":"episodio inventato"},{"trova":"più basso di 1.500 euro","sostituisci":"più basso","motivo":"cifra non fornita"},{"trova":"testo assente","sostituisci":"x"},{"trova":"Fine.","sostituisci":"Fine."}]');
+ assert.equal(r.text,'Succede spesso: il commerciale chiama. Preventivo più basso. Fine.');
+ assert.equal(r.applied.length,2);assert.equal(r.skipped,2);assert.equal(r.applied[0].motivo,'episodio inventato');
+ assert.deepEqual(route.applyReview(draft,'non è JSON'),{text:draft,applied:[],skipped:0});
+ assert.match(route.reviewPrompt('BOZZA X','FATTI Y'),/FONTI:\nFATTI Y[\s\S]*BOZZA:\nBOZZA X/);
+});

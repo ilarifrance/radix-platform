@@ -41,3 +41,5 @@ fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 22px;padding
 .attention-list [data-kind=soon] button{border-left:3px solid #e8a33d}
 /* Calendar proposed by the AI: one row per item with its checkbox (functional layout; visual style is the UX thread's). */
 .ped-proposal{margin-bottom:20px}.proposal-list{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}.proposal-list label{display:flex;gap:10px;align-items:baseline;margin:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px}.proposal-list input{width:auto;flex:none;margin:0}.proposal-list .muted{font-size:12px}
+
+#fillBriefBox{border:1px solid #4fd1a5;background:#0d2a2a;color:#c9fbe9;border-radius:12px;padding:14px 16px;margin:0 0 16px}#fillBriefBox p{margin:0 0 10px}
