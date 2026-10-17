@@ -9,7 +9,7 @@ test('does not unblock a failed prerequisite',()=>{const t=route.parseRouting('-
 test('a project without incarichi gets them from its approved PED brief or its profile',()=>{
  const project={id:'lancio-aura-1',name:'Lancio Aura',summary:'Lanciare Aura',client_id:null,profile:{brief:{budget:'',constraints:''}}};
  const b=route.briefForSetup(project,{goal:'Awareness Aura',audience:'PMI',channels:'LinkedIn, Instagram',voice:'Chiaro',brand:'Aura',gaps:'Niente spesa'});
- assert.deepEqual(b,{name:'Lancio Aura',goal:'Awareness Aura',audience:'PMI',market:'',budget:null,channels:['LinkedIn','Instagram'],brandRules:'Chiaro · Aura',constraints:'Niente spesa',clientId:null});
+ assert.deepEqual(b,{name:'Lancio Aura',goal:'Awareness Aura',audience:'PMI',market:'',budget:null,channels:['LinkedIn','Instagram'],brandRules:'Chiaro · Aura',constraints:'Niente spesa',facts:'',cases:'',clientId:null});
  assert.equal(route.briefForSetup(project,null).goal,'Lanciare Aura');
  assert.match(route.setupPrompt(b),/Canali: LinkedIn, Instagram[\s\S]*---ROUTING---/);
  const roles={'marketing-orchestrator':'Orchestratore','copywriter':'Copywriter','strategist':'Strategist'};
@@ -70,4 +70,16 @@ test('applies only the review fixes found verbatim in the draft',()=>{
  assert.equal(r.applied.length,2);assert.equal(r.skipped,2);assert.equal(r.applied[0].motivo,'episodio inventato');
  assert.deepEqual(route.applyReview(draft,'non è JSON'),{text:draft,applied:[],skipped:0});
  assert.match(route.reviewPrompt('BOZZA X','FATTI Y'),/FONTI:\nFATTI Y[\s\S]*BOZZA:\nBOZZA X/);
+});
+
+test('specialists get the real RADIX tools, the reviewer enforces them, cases travel with the brief',()=>{
+ const R=require('../agency/orchestration-core.js');
+ assert.match(R.RADIX_TOOLS,/clic sui link/);assert.match(R.RADIX_TOOLS,/NON misura le aperture/);assert.match(R.RADIX_TOOLS,/Non esistono in RADIX/);
+ const p=R.reviewPrompt('bozza','fonti');assert.ok(p.includes(R.RADIX_TOOLS));assert.match(p,/funzioni attribuite a RADIX/);
+ const b=R.briefForSetup({name:'X',profile:{brief:{goal:'g',facts:'15 anni B2B',cases:'Cliente A: +10%'}}},{});
+ assert.equal(b.facts,'15 anni B2B');assert.equal(b.cases,'Cliente A: +10%');
+ const src=require('node:fs').readFileSync(__dirname+'/../agency/project-workspace.html','utf8');
+ assert.match(src,/RadixAgencyRouting\.RADIX_TOOLS/);assert.match(src,/CASI REALI DEL CLIENTE/);assert.match(src,/id="cases"/);
+ const ped=require('node:fs').readFileSync(__dirname+'/../editorial-workspace.js','utf8');
+ assert.match(ped,/copyPrompt\(state\.brief,item\)\+tools\(\)/);assert.match(ped,/planPrompt\(state,today\)\+tools\(\)/);
 });

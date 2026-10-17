@@ -108,10 +108,14 @@ function renderPublish(item){const host=$('publish');host.querySelectorAll('.too
 // Text for one content: the Copywriter writes it, a second pass removes figures and cases the facts don't support,
 // and whatever is still unsupported is listed for the person. Returns {text,applied,numbers}.
 const routing=window.RadixAgencyRouting;
-const sourcesOf=item=>[JSON.stringify(state.brief||{}),item.title||'',((item.history||[])[0]||{}).copy||'',item.copy||''].join('\n');
+// Client facts and real cases from the agency workspace (fallback: the project profile), the only source for figures and stories.
+function clientFacts(){const b=(agency&&agency.brief)||(registryProject&&registryProject.profile&&registryProject.profile.brief)||{};
+ return (b.facts?'FATTI VERIFICATI DEL CLIENTE: '+String(b.facts).slice(0,4000)+'\n':'')+'CASI REALI DEL CLIENTE (gli unici da raccontare): '+(b.cases?String(b.cases).slice(0,4000):'nessuno fornito: non inventarne, scrivi [caso reale da fornire]')}
+const tools=()=>'\n\n'+clientFacts()+(routing&&routing.RADIX_TOOLS?'\n'+routing.RADIX_TOOLS:'');
+const sourcesOf=item=>[JSON.stringify(state.brief||{}),clientFacts(),item.title||'',((item.history||[])[0]||{}).copy||'',item.copy||''].join('\n');
 const scope=agentId=>({projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId});
 async function produceCopy(item,progress){
- const r=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:pv.copyPrompt(state.brief,item)}]},{onProgress:progress});
+ const r=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:pv.copyPrompt(state.brief,item)+tools()}]},{onProgress:progress});
  let text=pv.cleanCopy(r.text),applied=[];const sources=sourcesOf(item);
  if(routing){try{const rv=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:routing.reviewPrompt(text,sources)}]});const fixed=routing.applyReview(text,rv.text);text=fixed.text;applied=fixed.applied}catch(e){}}
  return {text,applied,numbers:routing?routing.unsupportedNumbers(text,sources):[]};
@@ -187,7 +191,7 @@ async function fillBrief(auto){if(writing||!rt)return 0;const tasks=approvedAgen
   for(let pass=1;pass<=2;pass++){
    const todo=pass===1?labels:Object.fromEntries(Object.keys(labels).filter(k=>!$(k).value.trim()).map(k=>[k,labels[k]]));
    if(!Object.keys(todo).length)break;
-   try{const r=await rt.reply({role:'brand-strategist',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'brand-strategist'},messages:[{role:'user',content:pv.briefPrompt(todo,profile,tasks)}]},{onProgress:n=>notify('Compilazione del brief: parte '+n+'…')});
+   try{const r=await rt.reply({role:'brand-strategist',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'brand-strategist'},messages:[{role:'user',content:pv.briefPrompt(todo,profile,tasks)+tools()}]},{onProgress:n=>notify('Compilazione del brief: parte '+n+'…')});
     const fill=pv.parseBrief(r.text,todo,limits);Object.entries(fill).forEach(([k,v])=>{$(k).value=v});filled+=Object.keys(fill).length;briefDirty=true}
    catch(e){error=e.message;if(pass===1&&!filled)continue}
   }
@@ -209,7 +213,7 @@ async function guidedStart(){const q=new URLSearchParams(location.search);if(q.g
 async function proposePlan(auto){if(writing||!rt)return;if(!state.briefApproved){notify('Approva prima la strategia al passo 1.');return}
  if(auto!==true&&!confirm('Chiedere al Social Media Manager AI una proposta di calendario? La chiamata consuma crediti API; nulla entra nel PED finché non scegli i contenuti.'))return;
  writing=true;$('proposePlan').disabled=true;notify('Social Media Manager AI al lavoro sul calendario…');
- try{const today=pv.localToday(Date.now(),core.timeZoneOf(state));const r=await rt.reply({role:'social-media-manager',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'social-media-manager'},messages:[{role:'user',content:pv.planPrompt(state,today)}]},{onProgress:n=>notify('Social Media Manager AI: parte '+n+'…')});
+ try{const today=pv.localToday(Date.now(),core.timeZoneOf(state));const r=await rt.reply({role:'social-media-manager',project:rt.profileFor(registryProject),memoryScope:{projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId:'social-media-manager'},messages:[{role:'user',content:pv.planPrompt(state,today)+tools()}]},{onProgress:n=>notify('Social Media Manager AI: parte '+n+'…')});
   proposal=pv.parsePlan(r.text,state,today);keepProposal();renderProposal();
   notify(proposal.items.length?'Proposta pronta: scegli i contenuti da aggiungere al PED.':'L’AI non ha proposto contenuti nuovi validi: riprova o aggiungili a mano.')}
  catch(e){notify('Proposta non disponibile: '+e.message)}finally{writing=false;$('proposePlan').disabled=!state.briefApproved}}

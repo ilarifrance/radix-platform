@@ -289,6 +289,12 @@ async function importData(req,res,db,uid){
    const id=String(raw&&raw.id||'').toLowerCase();
    if(!core.validProjectId(id)){result.skipped++;continue}
    const p=core.project({...raw,clientId:raw.clientId||null});
+   // A v3.7 profile named like a project already in the registry is not a second project: its voice and
+   // positioning join that project's profile (once), so the list never shows the same name twice.
+   if(data.source==='command-center'){
+    const same=await db`SELECT id FROM rx_projects WHERE lower(name)=lower(${p.name}) AND id<>${id} LIMIT 1`;
+    if(same.length){await db`UPDATE rx_projects SET profile=profile||jsonb_build_object('v37',${JSON.stringify(p.profile)}::jsonb) WHERE id=${same[0].id} AND NOT (profile ? 'v37')`;result.skipped++;continue}
+   }
    if(p.clientId){const c=await db`SELECT 1 FROM rx_clients WHERE id=${p.clientId}`;if(!c.length)p.clientId=null}
    const rows=await db`INSERT INTO rx_projects(id,client_id,name,kind,status,summary,profile,created_by,updated_by)
     VALUES(${id},${p.clientId},${p.name},${p.kind},${p.status},${p.summary},${JSON.stringify(p.profile)}::jsonb,${uid},${uid}) ON CONFLICT (id) DO NOTHING RETURNING id`;

@@ -36,7 +36,7 @@ function briefForSetup(project,editorialBrief){
  const channels=pick(e.channels,Array.isArray(pb.channels)?pb.channels.join(', '):pb.channels).split(/[,;\n]/).map(x=>x.trim()).filter(Boolean);
  return {name:pick(p.name,pb.name),goal:pick(e.goal,pb.goal,p.summary),audience:pick(e.audience,pb.audience),market:pick(pb.market,e.positioning,e.offer),
   budget:pb.budget==null||pb.budget===''?null:pb.budget,channels,brandRules:pick(pb.brandRules,[e.voice,e.brand].map(x=>String(x||'').trim()).filter(Boolean).join(' · ')),
-  constraints:pick(pb.constraints,e.gaps),clientId:p.client_id||pb.clientId||null};
+  constraints:pick(pb.constraints,e.gaps),facts:pick(pb.facts),cases:pick(pb.cases),clientId:p.client_id||pb.clientId||null};
 }
 function setupPrompt(b){
  return 'Progetto: '+b.name+'\nObiettivo: '+b.goal+'\nTarget: '+(b.audience||'da definire')+'\nMercato: '+(b.market||'non indicato')+'\nBudget EUR: '+(b.budget==null?'non indicato':b.budget)+'\nCanali: '+(b.channels.join(', ')||'da definire')+'\nLinee guida: '+(b.brandRules||'non indicate')+'\nVincoli: '+(b.constraints||'nessuno indicato')+
@@ -133,12 +133,24 @@ function applyReview(draft,reply){
  });
  return {text,applied,skipped};
 }
+// What RADIX really does today, so specialists don't promise missing features or send work to outside tools.
+// Keep in sync with the product (api/_integrations-status.js lists the connected services).
+const RADIX_TOOLS=['STRUMENTI REALI DI RADIX (usa questi; non attribuire a RADIX altre funzioni e non proporre strumenti esterni per ciò che RADIX già fa):',
+ '- CRM Sales: aziende, contatti, trattative con pipeline e probabilità, attività e follow-up, interazioni, ticket, segmenti, punteggio del contatto (recenza, frequenza, trattative, consenso, ruolo), import ed export CSV.',
+ '- Email dal CRM: campagne a un segmento con consenso marketing, una email alla volta con conferma (invio via Gmail se collegato), link personale di disiscrizione; sequenze che creano attività con scadenza. Conta i clic sui link delle campagne per persona e per campagna, e il primo clic entra nella cronologia del contatto. NON misura le aperture delle email e non legge le email ricevute.',
+ '- Lead Intelligence: liste di lead, profili cliente ideale, passaggio dei lead al CRM.',
+ '- Piano Editoriale: brief, calendario con giorni e orari, bozze scritte dall\'AI con controllo dei numeri, grafiche e caroselli generati, approvazione per contenuto, programmazione su Buffer dei canali collegati con conferma esplicita, export del calendario (.ics). Misura produzione e puntualità del piano, NON l\'engagement social (impression, like, follower vanno letti sulle piattaforme o in Buffer).',
+ '- Video con avatar AI tramite HeyGen (se collegato).',
+ '- Project Manager: progetti, fasi e Gantt, attività, capacità del team.',
+ '- Agenti AI con memoria di progetto condivisa; ogni azione esterna (pubblicazione, invio, spesa) richiede conferma.',
+ 'Non esistono in RADIX: tracciamento delle aperture email, Google Analytics, moduli o sondaggi, link brevi tipo Bitly, lettura automatica della casella email.'].join('\n');
 function reviewPrompt(draft,sources){
  return ['Sei il revisore qualità di RADIX Agency. Controlla la BOZZA qui sotto rispetto a FATTI VERIFICATI, BRIEF e MATERIALI APPROVATI.',
-  'Correggi solo questi problemi: numeri, percentuali, cifre, clienti o casi che non compaiono nelle fonti; episodi raccontati in prima persona a nome del cliente che non compaiono nelle fonti (riscrivili come scenario tipico in terza persona, senza cifre); promesse di prestazioni (tempi, velocità, «perfetto», «garantito») non presenti nelle fonti; strumenti o fornitori esterni non previsti dalle fonti; giorni della settimana che non corrispondono alle date del calendario fornito.',
+  'Correggi solo questi problemi: numeri, percentuali, cifre, clienti o casi che non compaiono nelle fonti; episodi raccontati in prima persona a nome del cliente che non compaiono nelle fonti (riscrivili come scenario tipico in terza persona, senza cifre); promesse di prestazioni (tempi, velocità, «perfetto», «garantito») non presenti nelle fonti; strumenti o fornitori esterni non previsti dalle fonti; funzioni attribuite a RADIX che non compaiono negli STRUMENTI REALI DI RADIX (riscrivi con la funzione reale più vicina o togli la promessa); giorni della settimana che non corrispondono alle date del calendario fornito.',
   'Non riscrivere lo stile e non accorciare. Rispondi solo con un array JSON, senza testo prima o dopo: [{"trova":"testo copiato esattamente dalla bozza","sostituisci":"testo corretto","motivo":"breve"}]. Massimo 20 elementi; se non c\'è nulla da correggere rispondi [].',
+  RADIX_TOOLS,
   'FONTI:\n'+String(sources||'').slice(0,40000),
   'BOZZA:\n'+String(draft||'').slice(0,40000)].join('\n\n');
 }
-return Object.freeze({applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+return Object.freeze({RADIX_TOOLS,applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });
