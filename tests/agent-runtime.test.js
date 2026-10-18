@@ -130,3 +130,20 @@ test('Web Developer pages: recognised, unwrapped from code fences, one per file 
  assert.deepEqual(rt.sitePages([{doc:a},{doc:{title:'NDA',body:'x'}},{doc:b},{doc:c}]).map(p=>p.doc),[a,b]);
  const page=fs.readFileSync('agents.html','utf8');assert.match(page,/<iframe id="site-frame" sandbox="allow-same-origin"/);assert.doesNotMatch(page,/sandbox="[^"]*allow-scripts/);
 });
+test('single post images: layout field, automatic layout and on-brand colour pairs',()=>{
+ const media=require('../lib/radix-agent-media');
+ const [a]=media.parseSlides('---SLIDES---\n1|#0F2D24|#FAF9F6|Quanto costa non delegare?|question\n---FINE---');
+ assert.equal(a.layout,'question');assert.equal(a.text,'Quanto costa non delegare?');
+ assert.equal(media.parseSlides('---SLIDES---\n1|#0F2D24|#FAF9F6|Testo | con barra\n---FINE---')[0].layout,undefined);
+ assert.equal(media.autoLayout('Sei pronto?'),'question');assert.equal(media.autoLayout('«Delegare è scegliere»'),'quote');
+ assert.equal(media.autoLayout('Uno · due · tre'),'list');assert.equal(media.autoLayout('Il 30% del tempo'),'stat');assert.equal(media.autoLayout('Delegare è una scelta'),'statement');
+ const seen=new Set(['Primo post','Secondo messaggio','Terzo claim forte','Quarta frase','Quinto'].map(t=>media.schemeFor({bg:'#0F2D24',fg:'#FAF9F6',text:t},null).bg));
+ assert.ok(seen.size>=2,'posts do not all share one background');
+});
+test('style guide in the visual identity: one colour per role, font and signature',()=>{
+ const media=require('../lib/radix-agent-media');
+ const g=media.styleGuide({name:'X',visual:'Copertina e chiusura: blu notte #14283F. Pagine interne: bianco caldo #F5F3EE. Numeri e parole chiave: petrolio #147D83. Accento: oro tenue #D8AD58. Testi su fondo chiaro: grigio scuro #344054. Font: Inter Bold e Inter Regular. Firma: FRANCESCO ILARI – GCP in alto a sinistra.'});
+ assert.deepEqual(g,{cover:'#14283F',page:'#F5F3EE',key:'#147D83',accent:'#D8AD58',text:'#344054',font:'Inter',signature:'FRANCESCO ILARI – GCP'});
+ assert.equal(media.styleGuide({visual:'Palette #0F2D24, #6B7F72, #EDE6DE, Montserrat + Inter'}),null,'a plain palette keeps the rotating layouts');
+ const h=media.styleGuide({name:'Studio Alfa — sito',visual:'Copertina #000000\nSfondo #FFFFFF'});assert.equal(h.key,'#000000');assert.equal(h.text,'#000000');assert.equal(h.signature,'STUDIO ALFA');
+});
