@@ -35,6 +35,13 @@ test('stale-deal flags open deals with no recent touch and no open task',()=>{
  data.tasks.push({...p.items[0].task,status:'todo'});assert.equal(A.plan('stale-deal',data,{now}).items.length,1);
 });
 
+test('new-contact plans a first touch for fresh contacts nobody has worked yet',()=>{
+ const data={contacts:[{id:ids(1),name:'Nuovo',created_at:'2026-10-14T10:00:00Z'},{id:ids(2),name:'Vecchio',created_at:'2026-09-01T10:00:00Z'},{id:ids(3),name:'Chiamato',created_at:'2026-10-15T10:00:00Z'},{id:ids(4),name:'Con trattativa',created_at:'2026-10-15T10:00:00Z'},{id:ids(5),name:'Fatto',created_at:'2026-10-15T10:00:00Z'}],
+  interactions:[{contact_id:ids(3),occurred_at:'2026-10-15T11:00:00Z'}],opportunities:[{id:ids(9),contact_id:ids(4),outcome:'open'}],tasks:[{contact_id:ids(5),title:'Chiama',status:'done'}]};
+ const p=A.plan('new-contact',data,{now,assignee:ids(8)});assert.deepEqual(p.items.map(x=>x.record.name),['Nuovo']);
+ assert.equal(p.items[0].task.title,'[Auto · Primo contatto] Primo contatto: Nuovo');assert.equal(p.items[0].task.assignee_id,ids(8));
+});
+
 test('hot-contact needs a scorer and skips contacts already in play',()=>{
  const data={contacts:[{id:ids(1),name:'Anna'},{id:ids(2),name:'Bruno'},{id:ids(3),name:'Carla'}],opportunities:[{id:ids(5),contact_id:ids(2),outcome:'open'}],tasks:[]};
  assert.equal(A.plan('hot-contact',data,{now}).items.length,0);

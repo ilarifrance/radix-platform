@@ -10,6 +10,7 @@ const RULES=Object.freeze([
  {id:'won-onboarding',name:'Avvio cliente',description:'Trattative vinte negli ultimi 30 giorni: avvia l’onboarding del cliente.'},
  {id:'ticket-stalled',name:'Ticket fermo',description:'Ticket aperti o in attesa senza assegnatario, oppure con scadenza passata.'},
  {id:'stale-deal',name:'Trattativa ferma',description:'Trattative aperte senza interazioni né attività aperte da 14 giorni.'},
+ {id:'new-contact',name:'Primo contatto',description:'Contatti creati negli ultimi 7 giorni senza interazioni, trattative né attività: pianifica il primo contatto.'},
  {id:'hot-contact',name:'Contatto caldo',description:'Contatti con punteggio caldo senza trattative né attività aperte.'}
 ]);
 const tag=rule=>'[Auto · '+rule.name+']';
@@ -44,6 +45,11 @@ function plan(ruleId,data,opts){
    const last=Math.max(0,...inter.filter(i=>i.opportunity_id===o.id||(o.contact_id&&i.contact_id===o.contact_id)).map(i=>Date.parse(i.occurred_at)||0));if(last>since)continue;
    const days=last?Math.floor((now-last)/DAY):null;
    out.push({record:o,task:{title:short(title+' Riprendi il contatto: '+(o.title||'')+(days!=null?' (ultimo contatto '+days+' giorni fa)':' (nessun contatto registrato)'),200),opportunity_id:o.id,company_id:o.company_id||null,contact_id:o.contact_id||null,assignee_id:o.owner_id||assignee,priority:'normal',status:'todo',due_at:at9(now,1)}})}
+ }else if(ruleId==='new-contact'){
+  const inter=data.interactions||[],all=data.tasks||[];
+  for(const c of data.contacts||[]){const born=Date.parse(c.created_at||'');if(!born||now-born>7*DAY)continue;
+   if(inter.some(i=>i.contact_id===c.id)||opps.some(o=>o.contact_id===c.id)||all.some(t=>t.contact_id===c.id))continue;
+   out.push({record:c,task:{title:short(title+' Primo contatto: '+(c.name||''),200),contact_id:c.id,company_id:c.company_id||null,assignee_id:assignee,priority:'normal',status:'todo',due_at:at9(now,1)}})}
  }else if(ruleId==='hot-contact'){
   const scorer=opts&&opts.score;if(!scorer)return {rule,items:[]};
   const busy=new Set([...tasks.map(t=>t.contact_id),...opps.filter(o=>!o.outcome||o.outcome==='open').map(o=>o.contact_id)].filter(Boolean));
