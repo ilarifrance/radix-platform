@@ -133,6 +133,24 @@ function applyReview(draft,reply){
  });
  return {text,applied,skipped};
 }
+// Two tabs (or two people) on the same project: on a save conflict, merge the server copy into this tab's
+// state instead of losing work. Per task and per top-level field, whichever side changed since the common
+// base wins; when both changed a task, the further-along status wins (ties: this tab). Mutates and returns
+// local so in-flight runs keep writing to the same task objects.
+const STATUS_RANK={proposed:0,error:0,running:1,changes_requested:2,done:3,approved:4};
+function mergeWorkspace(base,local,remote){
+ const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b),b=base||{},r=remote||{};
+ for(const k of Object.keys(r)){if(k==='tasks')continue;if(same(local[k],b[k])&&!same(r[k],b[k]))local[k]=r[k]}
+ const baseTasks=new Map((b.tasks||[]).map(t=>[t.id,t])),mine=new Map((local.tasks||[]).map(t=>[t.id,t]));
+ for(const rt of r.tasks||[]){
+  const lt=mine.get(rt.id),bt=baseTasks.get(rt.id);
+  if(!lt){if(!bt)(local.tasks=local.tasks||[]).push(rt);continue}
+  const localChanged=!same(lt,bt),remoteChanged=!same(rt,bt);
+  if(!remoteChanged)continue;
+  if(!localChanged||(STATUS_RANK[rt.status]||0)>(STATUS_RANK[lt.status]||0)){for(const k of Object.keys(lt))if(!(k in rt))delete lt[k];Object.assign(lt,JSON.parse(JSON.stringify(rt)))}
+ }
+ return local;
+}
 // What RADIX really does today, so specialists don't promise missing features or send work to outside tools.
 // Keep in sync with the product (api/_integrations-status.js lists the connected services).
 const RADIX_TOOLS=['STRUMENTI REALI DI RADIX (usa questi; non attribuire a RADIX altre funzioni e non proporre strumenti esterni per ciò che RADIX già fa):',
@@ -152,5 +170,5 @@ function reviewPrompt(draft,sources){
   'FONTI:\n'+String(sources||'').slice(0,40000),
   'BOZZA:\n'+String(draft||'').slice(0,40000)].join('\n\n');
 }
-return Object.freeze({RADIX_TOOLS,applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+return Object.freeze({mergeWorkspace,RADIX_TOOLS,applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });

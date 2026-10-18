@@ -83,3 +83,15 @@ test('specialists get the real RADIX tools, the reviewer enforces them, cases tr
  const ped=require('node:fs').readFileSync(__dirname+'/../editorial-workspace.js','utf8');
  assert.match(ped,/copyPrompt\(state\.brief,item\)\+tools\(\)/);assert.match(ped,/planPrompt\(state,today\)\+tools\(\)/);
 });
+
+test('save conflicts merge per task: each side keeps what it changed, further status wins when both did',()=>{
+ const R=require('../agency/orchestration-core.js');
+ const base={autoRun:true,tasks:[{id:'a',status:'proposed'},{id:'b',status:'done',output:'x'},{id:'c',status:'running'}]};
+ const local=JSON.parse(JSON.stringify(base));const ref=local.tasks[0];
+ local.tasks[0]=Object.assign(ref,{status:'running'});local.tasks[2].status='done';local.tasks[2].output='mine';
+ const remote=JSON.parse(JSON.stringify(base));remote.tasks[1].status='approved';remote.tasks[2].status='approved';remote.tasks[2].output='theirs';remote.autoRun=false;remote.tasks.push({id:'d',status:'proposed'});
+ const out=R.mergeWorkspace(base,local,remote);
+ assert.equal(out,local);assert.equal(out.tasks[0],ref,'same object for in-flight runs');assert.equal(out.tasks[0].status,'running');
+ assert.equal(out.tasks[1].status,'approved','remote-only change kept');assert.equal(out.tasks[2].output,'theirs','both changed: approved beats done');
+ assert.equal(out.autoRun,false);assert.deepEqual(out.tasks.map(t=>t.id),['a','b','c','d']);
+});
