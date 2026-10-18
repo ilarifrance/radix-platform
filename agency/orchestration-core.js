@@ -30,6 +30,14 @@ function nextReady(tasks){const done=new Set(tasks.filter(t=>t.status==='done').
 function hasBlockedDependencies(tasks){const failed=new Set(tasks.filter(t=>t.status==='error'||t.status==='blocked').map(t=>t.id));return tasks.some(t=>t.status==='proposed'&&t.dependsOn.some(d=>failed.has(d)))}
 // Projects created outside Agency (internal, brand) have no incarichi yet: their brief, from the
 // approved PED strategy or the project profile, becomes the request to the Marketing Orchestrator.
+// «Usa come modello»: the parts of an approved brief that describe the service (sector, goal, audience, market, budget,
+// services, platforms, brand and constraints) for a new client. Name, client, facts and cases belong to the old
+// client and are never copied.
+function templateBrief(brief){
+ const b=brief&&typeof brief==='object'?brief:{},txt=(v,n)=>String(v==null?'':v).trim().slice(0,n),list=v=>Array.isArray(v)?v.map(x=>txt(x,80)).filter(Boolean).slice(0,30):[];
+ const budget=b.budget===null||b.budget===''||b.budget===undefined?null:Number(b.budget);
+ return {industry:txt(b.industry,200),goal:txt(b.goal,2000),audience:txt(b.audience,2000),market:txt(b.market,500),budget:Number.isFinite(budget)&&budget>=0?budget:null,channels:list(b.channels),platforms:list(b.platforms),brandRules:txt(b.brandRules,4000),constraints:txt(b.constraints,4000)};
+}
 function briefForSetup(project,editorialBrief){
  const p=project||{},pb=(p.profile&&p.profile.brief)||{},e=editorialBrief||{};
  const pick=(...v)=>v.map(x=>String(x==null?'':x).trim()).find(Boolean)||'';
@@ -170,5 +178,5 @@ function reviewPrompt(draft,sources){
   'FONTI:\n'+String(sources||'').slice(0,40000),
   'BOZZA:\n'+String(draft||'').slice(0,40000)].join('\n\n');
 }
-return Object.freeze({mergeWorkspace,RADIX_TOOLS,applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
+return Object.freeze({templateBrief,mergeWorkspace,RADIX_TOOLS,applyReview,reviewPrompt,missingInfo,calendarWeeks,unsupportedNumbers,addTask,parseRouting,stripRouting,nextReady,hasBlockedDependencies,briefForSetup,setupPrompt,workspaceFromReply,MAX_TASKS,MAX_INSTRUCTIONS});
 });
