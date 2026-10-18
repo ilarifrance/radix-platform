@@ -27,6 +27,26 @@ if(signup)signup.addEventListener('submit',async ev=>{
   location.href=r.url;}
  catch(e){msg(e.message);busy(signup,false);}
 });
+const forgot=$('ctForgot');
+if(forgot)forgot.addEventListener('submit',async ev=>{
+ ev.preventDefault();const f=forgot.elements;if(!f.email.checkValidity()||!f.email.value){msg('Inserisci l\'email del tuo account.');f.email.focus();return;}
+ msg('');busy(forgot,true);
+ try{await post('client.reset_request',{email:f.email.value});msg('Se l\'email corrisponde a un account, ti abbiamo appena mandato il link. Controlla anche lo spam.','info');}
+ catch(e){msg(e.message);}busy(forgot,false);
+});
+// The reset token arrives in the URL fragment (#t=…), which the browser never sends to the server or as Referer.
+const reset=$('ctReset');
+if(reset){const token=new URLSearchParams(location.hash.slice(1)).get('t');
+ addEventListener('hashchange',()=>location.reload());
+ if(!token){msg('Il link non è completo: apri quello che hai ricevuto via email o chiedine uno nuovo.');busy(reset,true);}
+ reset.addEventListener('submit',async ev=>{
+  ev.preventDefault();const f=reset.elements;
+  if(f.password.value.length<10){msg('La password deve avere almeno 10 caratteri.');f.password.focus();return;}
+  if(f.password.value!==f.password2.value){msg('Le due password non coincidono.');f.password2.focus();return;}
+  msg('');busy(reset,true);
+  try{await post('client.reset',{token,password:f.password.value});history.replaceState(null,'',location.pathname);location.href='/contabilita/app/';}
+  catch(e){msg(e.message);const a=document.createElement('a');a.href='/contabilita/recupero.html';a.textContent='Chiedi un nuovo link';$('ctMsg').append(' ',a,'.');busy(reset,false);}
+ });}
 const login=$('ctLogin');
 if(login)login.addEventListener('submit',async ev=>{
  ev.preventDefault();const f=login.elements;if(!f.email.value||!f.password.value){msg('Inserisci email e password.');return;}

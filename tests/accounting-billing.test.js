@@ -130,3 +130,35 @@ test('public pages: sign-up and sign-in post to the accounting API',()=>{
  assert.deepEqual(tabs(app),tabs(team));assert.deepEqual(scripts(app),scripts(team));
  assert.equal(require('../api/accounting-stripe.js').config.api.bodyParser,false);
 });
+
+test('password reset: one-hour link by email, valid once, no account enumeration',async()=>{
+ const {hashPassword}=require('../api/_auth');let hash=hashPassword('vecchia-password');const txs=[],mails=[];
+ const st={json:async(t,p)=>{if(/'name',u.name,'hash'/.test(t))return p[0]==='mario@alfa.it'?{id:41,name:'Mario Rossi',hash}:null;
+   if(/'hash',u.password_hash,'company'/.test(t))return p[0]===41?{hash,company:C}:null;return null;},tx:async q=>{txs.push(q);return [];}};
+ const sendMail=async m=>{mails.push(m);};
+ const H=createHandler({getSessionUser:()=>null,getClientUser:billing.getClientUser,billing,getStore:()=>st,sendMail});
+ const ask=email=>call(H,{body:{action:'client.reset_request',data:{email}},headers:{'x-forwarded-for':'10.0.1.'+mails.length+txs.length}});
+ // Unknown address: same answer, no email.
+ const none=await ask('nessuno@alfa.it');assert.equal(none.status,200);assert.deepEqual(none.body,{ok:true});assert.equal(mails.length,0);
+ const r=await ask('Mario@Alfa.it');assert.equal(r.status,200);assert.equal(mails.length,1);assert.equal(mails[0].to,'mario@alfa.it');
+ const link=mails[0].text.match(/https:\/\/radix\.test\/contabilita\/reimposta\.html#t=([A-Za-z0-9_.-]+)/);assert.ok(link,mails[0].text);const token=link[1];
+ const set=(tok,password='nuova-password-lunga')=>call(H,{body:{action:'client.reset',data:{token:tok,password}},headers:{'x-forwarded-for':'10.0.2.'+txs.length}});
+ assert.equal((await set(token,'corta')).status,400);
+ assert.equal((await set(token.slice(0,-2)+'xx')).status,400,'tampered signature');
+ const ok=await set(token);assert.equal(ok.status,200,JSON.stringify(ok.body));
+ assert.match(ok.headers['Set-Cookie'],/^radix_client=/);
+ const q=txs[0].map(x=>x[0]);assert.match(q[0],/password_hash=\$2/);assert.match(q[1],/UPDATE users SET password_hash/);assert.match(q[2],/'?password\.reset'?|acc_audit/);
+ assert.ok(require('../api/_auth').verifyPassword('nuova-password-lunga',txs[0][1][1][1]));
+ // Once the password changed the same link no longer verifies.
+ hash=txs[0][1][1][1];assert.equal((await set(token)).status,400);
+ // Expired link.
+ const old=billing.resetToken(41,hash,Date.now()-2*60*60*1000);assert.equal((await set(old)).status,400);
+ // Without a mail sender the request says so instead of pretending.
+ const saved=[process.env.GMAIL_USER,process.env.GMAIL_APP_PASSWORD];delete process.env.GMAIL_USER;delete process.env.GMAIL_APP_PASSWORD;
+ const H2=createHandler({getSessionUser:()=>null,getClientUser:billing.getClientUser,billing,getStore:()=>st});
+ assert.equal((await call(H2,{body:{action:'client.reset_request',data:{email:'mario@alfa.it'}},headers:{'x-forwarded-for':'10.0.3.1'}})).status,503);
+ if(saved[0])process.env.GMAIL_USER=saved[0];if(saved[1])process.env.GMAIL_APP_PASSWORD=saved[1];
+ const fs=require('node:fs'),d=__dirname+'/../contabilita/';
+ assert.match(fs.readFileSync(d+'accedi.html','utf8'),/href="\/contabilita\/recupero\.html"/);
+ for(const f of ['recupero.html','reimposta.html'])assert.match(fs.readFileSync(d+f,'utf8'),/\/contabilita\/account\.js/);
+});

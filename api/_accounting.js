@@ -336,9 +336,9 @@ async function bundle(store,c,u,year){
 
 // Public actions: sign-up and client sign-in from /contabilita/ (no session yet). Client accounts may only work on
 // their own company, only once its subscription is active, and cannot create companies or manage members.
-const PUBLIC=['signup.start','client.login','client.logout'];
+const PUBLIC=['signup.start','client.login','client.logout','client.reset_request','client.reset'];
 const CLIENT_BLOCKED=['company.create','member.add','member.remove','member.update'];
-function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchImpl}){
+function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchImpl,sendMail}){
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
   try{
@@ -352,6 +352,8 @@ function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchI
      const store=getStore();
      if(body.action==='client.logout'){res.setHeader('Set-Cookie',billing.clearCookie());return res.status(200).json({ok:true});}
      if(body.action==='client.login')return res.status(200).json(await billing.login(store,req,res,body.data));
+     if(body.action==='client.reset_request')return res.status(200).json(await billing.requestReset(store,req,body.data,{sendMail}));
+     if(body.action==='client.reset')return res.status(200).json(await billing.resetPassword(store,req,res,body.data));
      return res.status(200).json(await billing.signup(store,req,res,body.data,{companyData,fetchImpl}));
     }
    }

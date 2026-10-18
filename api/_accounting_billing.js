@@ -122,6 +122,50 @@ async function login(store,req,res,d){
  if(!u||!verifyPassword(d.password,u.hash))fail(401,'Email o password errati.');
  res.setHeader('Set-Cookie',cookie(signClient(u.id)));return {ok:true};
 }
+// ---------- password reset ----------
+// The link carries uid and expiry signed together with the current password hash: it works once, because setting a
+// new password changes the hash, and expires after an hour. No table is needed. The token travels in the URL
+// fragment, so it never reaches server logs or the Referer header.
+const RESET_TTL=60*60;
+const resetSig=(body,hash)=>crypto.createHmac('sha256',clientKey()).update('reset.'+body+'.'+hash).digest('base64url');
+function resetToken(uid,hash,now=Date.now()){const body=Buffer.from(JSON.stringify({uid,exp:Math.floor(now/1000)+RESET_TTL})).toString('base64url');return body+'.'+resetSig(body,hash);}
+function readReset(token){
+ if(typeof token!=='string'||token.length>400||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token))return null;
+ try{const [body,sig]=token.split('.'),p=JSON.parse(Buffer.from(body,'base64url').toString('utf8'));
+  if(!Number.isInteger(p.uid)||p.uid<1||!(p.exp>Date.now()/1000))return null;return {uid:p.uid,body,sig};}catch{return null;}
+}
+const checkReset=(t,hash)=>{const want=Buffer.from(resetSig(t.body,hash)),got=Buffer.from(t.sig);return want.length===got.length&&crypto.timingSafeEqual(want,got);};
+// Mail goes through the same Gmail SMTP account the CRM uses (GMAIL_USER, GMAIL_APP_PASSWORD); ACCOUNTING_MAIL_FROM
+// can set the visible sender. Tests and other environments pass deps.sendMail.
+function defaultSendMail(){
+ const user=process.env.GMAIL_USER,pass=process.env.GMAIL_APP_PASSWORD;if(!user||!pass)return null;
+ return async msg=>{const nodemailer=require('nodemailer');await nodemailer.createTransport({service:'gmail',auth:{user,pass}}).sendMail({from:process.env.ACCOUNTING_MAIL_FROM||'RADIX Contabilità <'+user+'>',...msg});};
+}
+async function requestReset(store,req,d,deps={}){
+ limit(req,'reset',5);
+ const send=deps.sendMail||defaultSendMail();if(!send)fail(503,'Il recupero della password non è ancora attivo: scrivi all\'assistenza.');
+ const email=str(d.email,254,'Email non valida.').toLowerCase();if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))fail(400,'Email non valida.');
+ const u=await store.json("SELECT jsonb_build_object('id',u.id,'name',u.name,'hash',u.password_hash) AS v FROM users u JOIN acc_client_accounts c ON c.user_id=u.id WHERE lower(u.email)=$1",[email]);
+ // Same answer whether or not the account exists, so the form does not reveal who is a client.
+ if(u){const link=originOf(req)+'/contabilita/reimposta.html#t='+resetToken(u.id,u.hash);
+  try{await send({to:email,subject:'Reimposta la password di RADIX Contabilità',
+   text:'Ciao '+u.name+',\n\nper scegliere una nuova password apri questo link entro un\'ora:\n'+link+'\n\nSe non hai chiesto tu il cambio, ignora questa email: la password resta quella di prima.\n\nRADIX Contabilità'});}
+  catch(e){console.error('accounting reset mail',e&&e.code);fail(502,'Non riusciamo a inviare l\'email in questo momento: riprova tra poco.');}}
+ return {ok:true};
+}
+async function resetPassword(store,req,res,d){
+ limit(req,'reset-set',10);
+ const t=readReset(d.token);if(!t)fail(400,'Il link non è valido o è scaduto.');
+ if(typeof d.password!=='string'||d.password.length<10||d.password.length>200)fail(400,'La password deve avere almeno 10 caratteri.');
+ const u=await store.json("SELECT jsonb_build_object('hash',u.password_hash,'company',c.company_id) AS v FROM users u JOIN acc_client_accounts c ON c.user_id=u.id WHERE u.id=$1",[t.uid]);
+ if(!u||!checkReset(t,u.hash))fail(400,'Il link non è valido o è scaduto.');
+ // The update only applies while the hash is still the one the link was signed with: a link works once.
+ await store.tx([q('SELECT acc_assert(EXISTS(SELECT 1 FROM users WHERE id=$1 AND password_hash=$2),\'conflict\',\'40001\')',[t.uid,u.hash]),
+  q('UPDATE users SET password_hash=$2 WHERE id=$1',[t.uid,hashPassword(d.password)]),
+  q('INSERT INTO acc_audit(company_id,actor_id,action,entity_id,detail) VALUES($1,$2,$3,$1,$4::jsonb)',[u.company,t.uid,'password.reset',JSON.stringify({ip:clientIp(req)})])]);
+ res.setHeader('Set-Cookie',cookie(signClient(t.uid)));return {ok:true};
+}
+
 // What a signed-in client account may do: everything on its own company once the subscription is active.
 async function account(store,uid){
  return store.json("SELECT jsonb_build_object('kind','client','company',c.company_id,'name',u.name,'email',u.email,'status',s.status,'price_cents',s.price_cents,'current_period_end',s.current_period_end) AS v FROM acc_client_accounts c JOIN users u ON u.id=c.user_id LEFT JOIN acc_subscriptions s ON s.company_id=c.company_id WHERE c.user_id=$1",[uid]);
@@ -152,4 +196,4 @@ async function webhook(store,req,res){
  return {received:true};
 }
 
-module.exports={getClientUser,signClient,verifyClient,clearCookie,signup,checkout,login,account,webhook,verifyWebhook,checkoutParams,form,BillingError,ACTIVE,GROSS,TERMS_VERSION};
+module.exports={getClientUser,signClient,verifyClient,clearCookie,signup,checkout,login,account,webhook,verifyWebhook,checkoutParams,form,BillingError,ACTIVE,GROSS,TERMS_VERSION,requestReset,resetPassword,resetToken};

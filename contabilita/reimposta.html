@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Nuova password · RADIX Contabilità</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/contabilita/fonts/fonts.css">
+<link rel="stylesheet" href="/contabilita/contabilita.css">
+<script src="/lib/accounting/pricing.js" defer></script>
+<script src="/contabilita/account.js" defer></script>
+</head>
+<body class="ct">
+<header class="ct-top">
+ <a class="ct-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="ct-word">RADIX</span><span class="ct-area">Contabilità</span></a>
+ <nav class="ct-nav" aria-label="Sezioni"><a href="/contabilita/#incluso">Cosa è incluso</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
+ <a class="ct-btn ghost small" href="/contabilita/iscrizione.html">Iscriviti</a>
+</header>
+<main id="main" class="ct-form-page">
+ <section class="ct-form-wrap narrow">
+  <p class="ct-eyebrow">Area clienti</p>
+  <h1 class="ct-form-title">Scegli una nuova password</h1>
+  <p class="ct-muted">Dopo il salvataggio entri direttamente nella tua contabilità.</p>
+  <p class="ct-alert" id="ctMsg" role="status" hidden></p>
+  <form id="ctReset" class="ct-form" novalidate>
+   <label>Nuova password<input name="password" type="password" required minlength="10" maxlength="200" autocomplete="new-password" aria-describedby="pwHelp"><small id="pwHelp">Almeno 10 caratteri.</small></label>
+   <label>Ripeti la password<input name="password2" type="password" required minlength="10" maxlength="200" autocomplete="new-password"></label>
+   <button class="ct-btn" type="submit">Salva la password</button>
+  </form>
+ </section>
+</main>
+<footer class="ct-foot"><span class="ct-word">RADIX</span><span><a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a></span></footer>
+</body>
+</html>
