@@ -68,6 +68,6 @@ test('segments can filter on clicks; the report lists every contact who clicked'
  const {segmentFilters}=require('../api/_sales');
  assert.equal(segmentFilters({clicked:'yes'}),true);assert.equal(segmentFilters({clicked:'maybe'}),false);
  const sql=async q=>/DISTINCT contact_id/.test(q)?[{contact_id:C}]:[];
- assert.deepEqual((await k.report(sql,W)).contacts,[C]);
+ const rep=await k.report(sql,W);assert.deepEqual(rep.contacts,[C]);assert.ok(Array.isArray(rep.rows),'the CRM client needs rows on every GET');
  const src=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');assert.match(src,/f\.clicked=clicked\.value/);assert.match(src,/api\('email_clicks'/);
 });

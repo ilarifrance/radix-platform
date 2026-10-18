@@ -108,8 +108,17 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
 
+/* email campaigns: clicks on tracked links (RADIX does not track opens) */
+async function emailPanel(main){const api=window.RadixSalesApp?.api;if(!api||!main)return;let r;try{r=await api('email_clicks',{})}catch{return}if(!main.isConnected)return;
+  const p=panel('Campagne email','an-email','Clic sui link tracciati delle campagne inviate dal CRM');const camps=(r&&r.campaigns)||[];
+  if(!camps.length)p.append(E('p','Ancora nessun clic. I clic arrivano quando i destinatari aprono un link di una campagna inviata dal CRM.','an-note'));
+  else{const tb=E('table');const hr=E('tr');['Campagna','Persone','Clic','Ultimo clic'].forEach(x=>hr.append(E('th',x)));const th=E('thead');th.append(hr);tb.append(th);const b=E('tbody');
+    for(const c of camps.slice(0,6)){const tr=E('tr');tr.append(E('td',c.campaign||'—'),E('td',c.people),E('td',c.clicks),E('td',c.last_at?new Date(c.last_at).toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):'—'));b.append(tr)}tb.append(b);p.append(tb);
+    p.append(E('p',((r.contacts||[]).length)+' contatti hanno cliccato almeno una volta. Per ognuno il CRM ha creato un’attività «Richiama».','an-note'))}
+  p.append(E('p','Le aperture delle email non vengono tracciate.','an-note'));const go=E('a','Apri le campagne →','an-link');go.href='#contacts';p.append(go);main.append(p)}
+
 let busy=false;
-async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!d||!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d));requestAnimationFrame(()=>{busy=false;if(!s.isConnected)later()})}
+async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!d||!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d));emailPanel(s.querySelector(':scope>.an .an-main'));requestAnimationFrame(()=>{busy=false;if(!s.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal|an)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});addEventListener('hashchange',later);later();

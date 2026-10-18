@@ -56,6 +56,7 @@ async function links(sql,workspace,ids,campaign,urls,secret){
  return Object.fromEntries(rows.map(r=>[r.id,urls.map(u=>sign(secret,workspace,r.id,campaign,u))]));
 }
 // Per campaign: clicks, people who clicked, last click; who clicked most recently; every contact who ever clicked (segments).
+// rows repeats people because the CRM client rejects GET answers without rows.
 async function report(sql,workspace){
  const [campaigns,people,contacts]=await Promise.all([
   sql('SELECT campaign,count(*)::int AS clicks,count(DISTINCT contact_id)::int AS people,max(clicked_at) AS last_at FROM sales_email_clicks WHERE workspace_id=$1 GROUP BY campaign ORDER BY max(clicked_at) DESC LIMIT 50',[workspace]),
@@ -63,6 +64,6 @@ async function report(sql,workspace){
 ,
   sql('SELECT DISTINCT contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 5000',[workspace])
  ]);
- return {campaigns,people,contacts:contacts.map(r=>r.contact_id)};
+ return {rows:people,campaigns,people,contacts:contacts.map(r=>r.contact_id)};
 }
 module.exports={sign,verify,handle,links,report,validUrl,validCampaign,MAX_CAMPAIGN};
