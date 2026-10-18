@@ -57,15 +57,18 @@ async function links(sql,workspace,ids,campaign,urls,secret){
  const rows=await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=ANY($2::uuid[])',[workspace,ids]);
  return Object.fromEntries(rows.map(r=>[r.id,urls.map(u=>sign(secret,workspace,r.id,campaign,u))]));
 }
-// Per campaign: clicks, people who clicked, last click; who clicked most recently; every contact who ever clicked (segments).
+// Per campaign: clicks, people who clicked, last click; who clicked most recently; every contact who ever clicked
+// and who clicked each campaign (segments).
 // rows repeats people because the CRM client rejects GET answers without rows.
 async function report(sql,workspace){
- const [campaigns,people,contacts]=await Promise.all([
+ const [campaigns,people,contacts,pairs]=await Promise.all([
   sql('SELECT campaign,count(*)::int AS clicks,count(DISTINCT contact_id)::int AS people,max(clicked_at) AS last_at FROM sales_email_clicks WHERE workspace_id=$1 GROUP BY campaign ORDER BY max(clicked_at) DESC LIMIT 50',[workspace]),
   sql('SELECT k.contact_id,c.name,k.campaign,count(*)::int AS clicks,max(k.clicked_at) AS last_at FROM sales_email_clicks k JOIN sales_contacts c ON c.workspace_id=k.workspace_id AND c.id=k.contact_id WHERE k.workspace_id=$1 GROUP BY k.contact_id,c.name,k.campaign ORDER BY max(k.clicked_at) DESC LIMIT 100',[workspace])
 ,
-  sql('SELECT DISTINCT contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 5000',[workspace])
+  sql('SELECT DISTINCT contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 5000',[workspace]),
+  sql('SELECT DISTINCT campaign,contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 20000',[workspace])
  ]);
- return {rows:people,campaigns,people,contacts:contacts.map(r=>r.contact_id)};
+ const byCampaign={};for(const r of pairs)(byCampaign[r.campaign]=byCampaign[r.campaign]||[]).push(r.contact_id);
+ return {rows:people,campaigns,people,contacts:contacts.map(r=>r.contact_id),byCampaign};
 }
 module.exports={sign,verify,handle,links,report,validUrl,validCampaign,MAX_CAMPAIGN};
