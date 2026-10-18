@@ -86,3 +86,17 @@ test('copyPrompt carries the reviewer note for a rewrite',()=>{
  assert.match(pv.copyPrompt({},{title:'T',channel:'LinkedIn',copy:'vecchio'},'più breve'),/seguendo questa indicazione di chi lo approva: più breve/);
  assert.doesNotMatch(pv.copyPrompt({},{title:'T',channel:'LinkedIn',copy:'vecchio'}),/indicazione di chi lo approva/);
 });
+test('visual identity: moodboard colours get a role, AI proposals are checked, the text reads back as a style guide',()=>{
+ const pv=require('../lib/ped-views.js'),media=require('../lib/radix-agent-media.js');
+ const g=pv.assignRoles(['#F5F3EE','#14283F','#147D83','#D8AD58','#344054']);
+ assert.deepEqual(g,{cover:'#14283F',page:'#F5F3EE',key:'#147D83',accent:'#D8AD58',text:'#344054'});
+ assert.throws(()=>pv.assignRoles(['#FFFFFF']),/due colori/);
+ const text=pv.identityText({...g,font:'Inter',signature:'FRANCESCO ILARI – GCP'},'Dalla moodboard «mood #ABCDEF.png»');
+ assert.doesNotMatch(text.split('\n')[0],/#[0-9a-f]{6}/i,'the source line carries no colour');
+ assert.deepEqual(media.styleGuide({visual:text}),{...g,font:'Inter',signature:'FRANCESCO ILARI – GCP'});
+ const p=pv.parseIdentity('Ecco {"cover":"#1b2a41","page":"#FAF7F2","key":"#0E7C66","accent":"#E0A458","text":"#2E3440","font":"lora","signature":"STUDIO","reason":"Sobria."}');
+ assert.equal(p.cover,'#1B2A41');assert.equal(p.font,'Lora');assert.equal(p.reason,'Sobria.');
+ assert.throws(()=>pv.parseIdentity('{"cover":"blu"}'),/Manca il colore/);assert.throws(()=>pv.parseIdentity('niente'),/riprova/);
+ assert.deepEqual(pv.identityProblems(g),[]);assert.equal(pv.identityProblems({...g,page:'#1A2B44'}).length>=1,true);
+ assert.match(pv.identityPrompt({brand:'Studio'},'Prova'),/«Prova»[\s\S]*Brand e contesto: Studio[\s\S]*JSON/);
+});
