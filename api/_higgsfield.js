@@ -8,6 +8,9 @@
 // Azioni:
 //   POST { action:'generate', prompt, aspectRatio, requestKey } -> { requestId, status }
 //   GET  ?action=status&id=<request_id>                         -> { status, images:[url], error }
+//   GET  ?action=image&id=<request_id>                          -> the first image's bytes (for the canvas)
+// «image» lets the page compose the photo with the project's style guide: the CDN may not allow
+// cross-origin reads, so the server fetches the image of a request it can verify, never a URL from the page.
 // Ogni generazione parte solo da un clic con conferma nella pagina; requestKey (UUID) evita doppioni
 // se la stessa richiesta viene ripetuta dopo un timeout.
 
@@ -18,6 +21,7 @@ const DEFAULT_MODEL = 'higgsfield-ai/soul/standard';
 const ASPECT_RATIOS = Object.freeze(['1:1', '4:3', '3:4', '3:2', '2:3', '5:4', '4:5', '16:9', '9:16', '21:9']);
 const DONE = Object.freeze(['completed', 'failed', 'nsfw', 'canceled']);
 const MAX_PROMPT = 2000;
+const IMAGE_MAX = 4000000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function credentials(env) {
@@ -88,6 +92,19 @@ module.exports = async (req, res) => {
       if (!UUID.test(id)) return res.status(400).json({ error: 'Identificativo richiesta non valido.' });
       return res.status(200).json(summarize(await hfFetch(key, '/requests/' + id + '/status')));
     }
+    if (req.method === 'GET' && req.query.action === 'image') {
+      const id = String(req.query.id || '');
+      if (!UUID.test(id)) return res.status(400).json({ error: 'Identificativo richiesta non valido.' });
+      const s = summarize(await hfFetch(key, '/requests/' + id + '/status'));
+      if (s.status !== 'completed' || !s.images.length) return res.status(409).json({ error: 'Immagine non ancora pronta.' });
+      const img = await fetch(s.images[0], { redirect: 'follow' });
+      const type = String(img.headers.get('content-type') || '').split(';')[0];
+      if (!img.ok || !/^https:\/\//.test(img.url || s.images[0]) || !/^image\/(png|jpeg|webp)$/.test(type)) return res.status(502).json({ error: 'Higgsfield: immagine non scaricabile.' });
+      const buf = Buffer.from(await img.arrayBuffer());
+      if (buf.length > IMAGE_MAX) return res.status(413).json({ error: 'Immagine troppo grande da comporre: scaricala e usala così com’è.' });
+      res.setHeader('Content-Type', type);
+      return res.status(200).send(buf);
+    }
     const body = parseBody(req.body);
     if (req.method === 'POST' && body.action === 'generate') {
       const payload = generateBody(body);
@@ -97,7 +114,7 @@ module.exports = async (req, res) => {
       if (!out.requestId) return res.status(502).json({ error: 'Higgsfield non ha restituito un identificativo di richiesta.' });
       return res.status(200).json(out);
     }
-    return res.status(400).json({ error: "Azione non valida. Usa POST action=generate o GET action=status." });
+    return res.status(400).json({ error: "Azione non valida. Usa POST action=generate o GET action=status|image." });
   } catch (e) {
     return res.status(e.status && e.status < 500 ? e.status : 502).json({ error: 'Higgsfield: ' + e.message });
   }

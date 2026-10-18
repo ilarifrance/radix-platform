@@ -59,3 +59,33 @@ test('art director output offers the Higgsfield image tool with a prompt from th
  assert.match(p,/ritratto in ufficio/);assert.match(p,/Consulenza per PMI/);assert.ok(!/SLIDES/.test(p));
  assert.equal(typeof media.imageTool,'function');
 });
+
+test('Studio Foto: answers become three framings of one prompt, brand colours from the identity, no faces by default',()=>{
+ const studio=require('../lib/image-studio.js');
+ assert.throws(()=>studio.prompts({},{concept:'corto'}),/comunicare/);
+ const list=studio.prompts({light:'warm golden-hour light',ratio:'9:16'},{concept:'Il costo nascosto della delega mancata',project:{kind:'Consulenza per PMI'},guide:{cover:'#0B1F3A',page:'#F4F1EA',key:'#C8A96A',accent:'#C8A96A'}});
+ assert.equal(list.length,3);assert.deepEqual(list.map(x=>x.label),studio.VARIANTS.map(v=>v[0]));
+ for(const x of list){assert.match(x.prompt,/delega mancata/);assert.match(x.prompt,/#0B1F3A, #F4F1EA, #C8A96A/);assert.match(x.prompt,/No people at all/);assert.match(x.prompt,/golden-hour/);assert.match(x.prompt,/No text/);assert.ok(x.prompt.length<=2000)}
+ assert.equal(new Set(list.map(x=>x.prompt)).size,3);
+ assert.throws(()=>studio.prompts({people:'everyone smiling'},{concept:'Il costo nascosto della delega'}),/Persone/);
+ assert.equal(studio.ratioOf({ratio:'9:16'}),'9:16');assert.equal(studio.ratioOf({}),'4:5');
+ assert.match(studio.prompts({colors:'muted neutral tones'},{concept:'Il costo nascosto della delega'})[0].prompt,/Muted neutral tones/);
+ assert.equal(studio.headlineFrom('Delegare non è perdere controllo. È guadagnare tempo.'),'Delegare non è perdere controllo.');
+ assert.equal(studio.conceptFrom('Molti fanno tutto da soli. Poi crollano.\n---SLIDES---\n1|#000000|#ffffff|x\n---FINE---','Delega'),'Delega: Molti fanno tutto da soli.');
+});
+
+test('image action fetches the photo of a verified request, never a URL from the page',async()=>{
+ const origUser=auth.getSessionUser,origFetch=global.fetch,origKey=process.env.HIGGSFIELD_API_KEY,calls=[];
+ const bin=()=>({code:200,headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this},send(b){this.body=b;return this}});
+ try{
+  auth.getSessionUser=()=>({uid:1});process.env.HIGGSFIELD_API_KEY='kid:ksecret';
+  global.fetch=async(url)=>{calls.push(String(url));if(/status$/.test(url))return {ok:true,status:200,json:async()=>({status:'completed',request_id:ID,images:[{url:'https://cdn.example/i.jpg'}]})};
+   return {ok:true,url:'https://cdn.example/i.jpg',headers:{get:()=>'image/jpeg'},arrayBuffer:async()=>new Uint8Array([255,216,255]).buffer}};
+  let r=bin();await hf({method:'GET',query:{action:'image',id:ID,url:'http://169.254.169.254/'}},r);
+  assert.equal(r.code,200);assert.equal(r.headers['Content-Type'],'image/jpeg');assert.equal(r.body.length,3);assert.deepEqual(calls,['https://api.higgsfield.ai/requests/'+ID+'/status','https://cdn.example/i.jpg']);
+  global.fetch=async(url)=>/status$/.test(url)?{ok:true,status:200,json:async()=>({status:'completed',request_id:ID,images:[{url:'https://cdn.example/i.jpg'}]})}:{ok:true,url:'https://cdn.example/i.jpg',headers:{get:()=>'text/html'},arrayBuffer:async()=>new ArrayBuffer(1)};
+  r=bin();await hf({method:'GET',query:{action:'image',id:ID}},r);assert.equal(r.code,502);
+  global.fetch=async()=>({ok:true,status:200,json:async()=>({status:'in_progress',request_id:ID})});
+  r=bin();await hf({method:'GET',query:{action:'image',id:ID}},r);assert.equal(r.code,409);
+ }finally{auth.getSessionUser=origUser;global.fetch=origFetch;if(origKey===undefined)delete process.env.HIGGSFIELD_API_KEY;else process.env.HIGGSFIELD_API_KEY=origKey}
+});

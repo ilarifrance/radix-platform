@@ -138,6 +138,8 @@ async function produceSlides(item){
 }
 // Graphics are not part of the approved version (text, channel, date): storing them keeps status, revision and plan approval.
 function setSlides(id,slides){const c=state.contents.find(x=>x.id===id);if(c)c.slides=String(slides).slice(0,8000);return c}
+// A Higgsfield photo chosen in Studio Foto replaces the drawn graphics of an image post; «Rigenera la grafica» goes back to them.
+function setPhoto(id,photo){const c=state.contents.find(x=>x.id===id);if(!c)return c;if(photo)c.photo=photo;else delete c.photo;return c}
 // After an approval the post gets its graphics without further clicks: the Art Director draws them if missing and
 // they are attached for Buffer, unless images are already attached (for example with AI backgrounds).
 async function autoGraphics(item,quiet){if(!rt||!media||['video','email'].includes(pv.mediaKind(item)))return;
@@ -151,7 +153,7 @@ async function api(method,query,body){const r=await fetch('/api/workspace?resour
 async function attachCanvases(item,canvases){const q='projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id);
  for(let i=0;i<canvases.length;i++)await api('POST','',{projectId,contentId:item.id,slot:i,dataUrl:canvases[i].toDataURL('image/jpeg',0.9)});
  await api('DELETE',q+'&from='+canvases.length);return canvases.length}
-async function attachSlides(item){const slides=media.parseSlides(item.slides||''),project=rt&&rt.profileFor(registryProject);if(!slides.length)return 0;
+async function attachSlides(item){const slides=media.parseSlides(item.slides||''),project=rt&&rt.profileFor(registryProject);if(!slides.length||item.photo)return 0;
  try{if(document.fonts){await Promise.all(['400 40px Inter','700 40px Inter','800 40px Montserrat'].map(f=>document.fonts.load(f)));await document.fonts.ready}}catch(e){}
  return attachCanvases(item,slides.map((x,i)=>media.renderSlide(x,i,slides.length,null,project)))}
 async function renderAttached(item,box){try{const d=await api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id));const p=document.createElement('p');p.className='muted';
@@ -166,8 +168,15 @@ function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!i
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'🎨 Rigenera la grafica':(kind==='carousel'?'🎨 Crea le slide del carosello':'🎨 Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
  b.onclick=async()=>{if(writing||!rt)return;if(!confirm('Chiedere la grafica all’Art Director AI? Consuma crediti API.'))return;writing=true;b.disabled=true;notify('Art Director AI al lavoro…');
-  try{const slides=await produceSlides(item);setSlides(item.id,slides);persist('Grafica salvata nel contenuto.');try{await attachSlides(Object.assign({},item,{slides}))}catch(e){notify('Grafica salvata, ma non allegata al post: '+e.message)}openContent(item.id)}catch(e){notify('Grafica non disponibile: '+e.message)}finally{writing=false;b.disabled=false}};
- box.append(b);if(item.slides){const t=media.carouselTool(item.slides,{project:rt&&rt.profileFor(registryProject),prefix:'ped-'+item.date});if(t){box.append(t);const open=t.querySelector('button');if(open)open.click()}
+  try{const slides=await produceSlides(item);setSlides(item.id,slides);setPhoto(item.id,null);persist('Grafica salvata nel contenuto.');try{await attachSlides(Object.assign({},item,{slides,photo:null}))}catch(e){notify('Grafica salvata, ma non allegata al post: '+e.message)}openContent(item.id)}catch(e){notify('Grafica non disponibile: '+e.message)}finally{writing=false;b.disabled=false}};
+ box.append(b);
+ const S=window.RadixImageStudio;if(S&&kind!=='carousel'&&item.copy.trim()){const ph=document.createElement('button');ph.type='button';ph.textContent=item.photo?'📷 Cambia la foto (Higgsfield)':'📷 Foto con Higgsfield · 3 proposte';ph.title='Rispondi a poche domande, scegli tra 3 foto e RADIX la compone con il titolo e i colori del progetto';
+  ph.onclick=()=>{const dlg=document.createElement('dialog'),head=document.createElement('header'),h=document.createElement('h2'),x=document.createElement('button');dlg.className='ps-dialog';dlg.setAttribute('aria-label','Studio Foto');h.textContent='📷 Studio Foto · «'+item.title+'»';x.type='button';x.textContent='Chiudi';head.append(h,x);
+   let used=false;const studio=S.photoStudio({project:rt&&rt.profileFor(registryProject),concept:S.conceptFrom(item.copy,item.title),headline:S.headlineFrom(item.copy),
+    onUse:async(canvas,info)=>{await attachCanvases(item,[canvas]);setPhoto(item.id,{requestId:info.requestId,headline:info.headline,at:new Date().toISOString()});persist('Foto allegata al post.');used=true}});
+   x.onclick=()=>dlg.close();dlg.onclose=()=>{dlg.remove();if(used&&selected===item.id)openContent(item.id)};dlg.append(head,studio);document.body.append(dlg);dlg.showModal()};box.append(ph)}
+ if(item.photo){const p=document.createElement('p');p.className='muted';p.textContent='📷 Il post usa una foto scelta in Studio Foto'+(item.photo.headline?' con il titolo «'+item.photo.headline+'»':'')+'. «Rigenera la grafica» torna alle immagini disegnate.';box.append(p);renderAttached(item,box);return}
+ if(item.slides){const t=media.carouselTool(item.slides,{project:rt&&rt.profileFor(registryProject),prefix:'ped-'+item.date});if(t){box.append(t);const open=t.querySelector('button');if(open)open.click()}
   const att=document.createElement('button');att.type='button';att.textContent='📎 Allega al post le immagini mostrate';att.title='Usa le slide come le vedi ora, anche con gli sfondi AI';att.onclick=async()=>{const cs=[...box.querySelectorAll('canvas')];if(!cs.length)return;att.disabled=true;try{const n=await attachCanvases(item,cs);notify(n+' immagini allegate al post.');openContent(item.id)}catch(e){notify('Immagini non allegate: '+e.message)}finally{att.disabled=false}};box.append(att);renderAttached(item,box)}}
 // One click for the next 31 days: text, automatic check and graphics for every content still at the idea stage.
 // Clean texts go to review for the person's approval; texts with figures to verify stay as drafts. Nothing is published.
@@ -206,7 +215,7 @@ function postPreview(item){const art=document.createElement('article');art.class
  bar.append(ok,redo,state_);art.append(head,title,body,pic,bar,form);return art}
 function updateReviewFooter(){const open=[...document.querySelectorAll('#reviewList .post-preview:not([data-state])')].length,b=$('reviewApproveRest');b.hidden=!open;b.textContent='✓ Approva i '+open+' rimasti'+(core.isPlanApproved(state)?'':' e la pianificazione');$('reviewCount').textContent=open?open+' da decidere':'Tutti decisi';if(!open&&!core.isPlanApproved(state)&&state.contents.length){$('reviewPlan').hidden=false}else $('reviewPlan').hidden=true}
 // Draws again, in the current style, the images of the posts that already have slides and re-attaches them.
-async function redrawImages(){const list=state.contents.filter(x=>x.slides&&['review','approved'].includes(x.status)&&!pv.isQueued(x)&&!['video','email'].includes(pv.mediaKind(x)));const b=$('reviewRedraw');if(!list.length){notify('Nessuna immagine da ridisegnare.');return}
+async function redrawImages(){const list=state.contents.filter(x=>x.slides&&!x.photo&&['review','approved'].includes(x.status)&&!pv.isQueued(x)&&!['video','email'].includes(pv.mediaKind(x)));const b=$('reviewRedraw');if(!list.length){notify('Nessuna immagine da ridisegnare.');return}
  b.disabled=true;let done=0;try{for(const x of list){b.textContent='Ridisegno '+(done+1)+' di '+list.length+'…';try{await attachSlides(x);done++}catch(e){}}}finally{b.disabled=false;b.textContent='🎨 Ridisegna le immagini'}
  notify(done+' immagini ridisegnate e allegate.');if($('reviewDialog').open)openReview()}
 function openReview(){const list=inReview();if(!list.length){approveAll();return}
