@@ -145,3 +145,18 @@ test('readyAgentWork: open tasks with completed dependencies, one entry per agen
  assert.deepEqual(v.readyAgentWork(all,all).map(x=>x.id+':'+x.agent),['bb:copywriter','bb:seo','ffffff:analyst']);
  assert.deepEqual(v.readyAgentWork([all[2]],all),[],'a dependency outside the list still blocks');
 });
+
+test('level pushes overflow to the first week with room for everyone on the task',()=>{
+ const mon=Date.parse('2026-10-19T09:00:00Z');// Monday
+ const t=(id,due,extra={})=>({id,title:id,owner:'Anna',status:'Da fare',start:'',due,dependencies:[],assignedAgents:[],...extra});
+ const tasks=[t('a','2026-10-20'),t('b','2026-10-21'),t('c','2026-10-22',{start:'2026-10-19'}),t('d','2026-10-23'),
+  t('e','2026-10-27'),t('f','2026-10-28'),t('g','2026-10-29'),
+  t('ped','2026-10-23',{pedContentId:'x'}),t('base','2026-10-22'),t('next','2026-11-20',{dependencies:['base']}),t('done','2026-10-22',{status:'Completato'})];
+ const moves=v.level(tasks,mon,6,3);
+ // week 1: a,b,c,d,ped,base = 6 → ped and base stay, d c b move (latest first). Week 2 has e,f,g = 3 (full): week 3.
+ assert.deepEqual(moves.map(m=>m.id+':'+m.due),['d:2026-11-06','c:2026-11-05','b:2026-11-04']);
+ assert.equal(moves[1].start,'2026-11-02');assert.equal(moves[0].owner,'Anna');
+ const after=tasks.map(x=>{const m=moves.find(y=>y.id===x.id);return m?{...x,due:m.due}:x});
+ assert.equal(v.level(after,mon,6,3).length,0);
+ assert.deepEqual(v.level(tasks,mon,6,10),[]);
+});
