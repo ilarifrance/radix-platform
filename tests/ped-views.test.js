@@ -82,3 +82,7 @@ test('schedulePlan pairs approved contents with the one Buffer channel of their 
  assert.deepEqual(p.skipped.map(x=>x.item.id+':'+x.reason),['c:nessun canale Buffer unico per Instagram','g:orario già passato','h:invio già in corso o da verificare']);
  assert.equal(pv.schedulePlan(contents,channels,{schedule,preferred:'ig2'}).ready.find(x=>x.item.id==='c').channel.id,'ig2');
 });
+test('copyPrompt carries the reviewer note for a rewrite',()=>{
+ assert.match(pv.copyPrompt({},{title:'T',channel:'LinkedIn',copy:'vecchio'},'più breve'),/seguendo questa indicazione di chi lo approva: più breve/);
+ assert.doesNotMatch(pv.copyPrompt({},{title:'T',channel:'LinkedIn',copy:'vecchio'}),/indicazione di chi lo approva/);
+});

@@ -81,7 +81,7 @@ test('specialists get the real RADIX tools, the reviewer enforces them, cases tr
  const src=require('node:fs').readFileSync(__dirname+'/../agency/project-workspace.html','utf8');
  assert.match(src,/RadixAgencyRouting\.RADIX_TOOLS/);assert.match(src,/CASI REALI DEL CLIENTE/);assert.match(src,/id="cases"/);
  const ped=require('node:fs').readFileSync(__dirname+'/../editorial-workspace.js','utf8');
- assert.match(ped,/copyPrompt\(state\.brief,item\)\+tools\(\)/);assert.match(ped,/planPrompt\(state,today\)\+tools\(\)/);
+ assert.match(ped,/copyPrompt\(state\.brief,item,note\)\+tools\(\)/);assert.match(ped,/planPrompt\(state,today\)\+tools\(\)/);
 });
 
 test('save conflicts merge per task: each side keeps what it changed, further status wins when both did',()=>{
