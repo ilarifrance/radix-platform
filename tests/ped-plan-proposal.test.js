@@ -65,3 +65,10 @@ test('brief prompt uses only approved drafts and the project profile; parseBrief
 test('parseBrief also accepts the field labels as keys',()=>{
  assert.deepEqual(pv.parseBrief('{"Obiettivo":"A","frequency":"B"}',{goal:'Obiettivo',frequency:'Frequenza'}),{goal:'A',frequency:'B'});
 });
+
+test('cadence: posts per week per channel over the proposal span, to compare with the brief',()=>{
+ const items=[['LinkedIn','2026-11-02'],['LinkedIn','2026-11-04'],['LinkedIn','2026-11-09'],['LinkedIn','2026-11-11'],['Instagram','2026-11-05'],['Newsletter','2026-11-15'],['X','bad']].map(([channel,date])=>({channel,date,title:'t'}));
+ assert.deepEqual(pv.cadence(items),[{channel:'LinkedIn',count:4,perWeek:2},{channel:'Instagram',count:1,perWeek:0.5},{channel:'Newsletter',count:1,perWeek:0.5}]);
+ assert.deepEqual(pv.cadence([{channel:'LinkedIn',date:'2026-11-02'}]),[{channel:'LinkedIn',count:1,perWeek:1}],'a short proposal counts as one week');
+ assert.deepEqual(pv.cadence([]),[]);
+});
