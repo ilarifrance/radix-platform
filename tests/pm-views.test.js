@@ -145,3 +145,16 @@ test('readyAgentWork: open tasks with completed dependencies, one entry per agen
  assert.deepEqual(v.readyAgentWork(all,all).map(x=>x.id+':'+x.agent),['bb:copywriter','bb:seo','ffffff:analyst']);
  assert.deepEqual(v.readyAgentWork([all[2]],all),[],'a dependency outside the list still blocks');
 });
+
+test('gantt marks the critical path and the margin of the other open activities',()=>{
+  const v=require('../lib/pm-views.js');const now=Date.parse('2026-10-18T10:00:00Z');
+  const tasks=[
+    {id:'a',title:'A',status:'Da fare',start:'2026-10-19',due:'2026-10-21'},
+    {id:'b',title:'B',status:'Da fare',start:'2026-10-22',due:'2026-10-30',dependencies:['a']},
+    {id:'c',title:'C',status:'Da fare',start:'2026-10-19',due:'2026-10-23'},
+    {id:'d',title:'D',status:'Completato',start:'2026-10-01',due:'2026-10-05'}];
+  const rows=Object.fromEntries(v.gantt(tasks,now).rows.map(r=>[r.id,r]));
+  assert.equal(rows.a.critical,true);assert.equal(rows.b.critical,true);
+  assert.equal(rows.c.critical,false);assert.equal(rows.c.slack,7);
+  assert.equal(rows.d.critical,undefined);
+});
