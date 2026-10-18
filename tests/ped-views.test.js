@@ -63,3 +63,22 @@ test('plan analytics: weeks, channels and what needs attention, in the plan time
  assert.equal(pv.analytics({timezone:'Europe/Rome',contents:[]},{now:Date.parse('2026-10-16T22:30:00Z')}).today,'2026-10-17');
  assert.equal(pv.analytics({contents:[]},{today:'2026-10-16'}).kpis.approvedShare,null);
 });
+
+test('schedulePlan pairs approved contents with the one Buffer channel of their network',()=>{
+ const channels=[{id:'li',name:'Francesco LinkedIn',service:'linkedin'},{id:'ig1',name:'IG uno',service:'instagram'},{id:'ig2',name:'IG due',service:'instagram'},{id:'tw',name:'X',service:'twitter'}];
+ const at=d=>({mode:'scheduled',scheduledAt:d+'T08:00:00.000Z',reason:''});
+ const contents=[
+  {id:'a',title:'Post B',status:'approved',revision:1,channel:'LinkedIn',date:'2026-10-22'},
+  {id:'b',title:'Post A',status:'approved',revision:1,channel:'LinkedIn',date:'2026-10-21'},
+  {id:'c',title:'Reel',status:'approved',revision:1,channel:'Instagram',date:'2026-10-23'},
+  {id:'d',title:'Tweet',status:'approved',revision:2,channel:'X',date:'2026-10-24'},
+  {id:'e',title:'Bozza',status:'draft',revision:1,channel:'LinkedIn',date:'2026-10-25'},
+  {id:'f',title:'Già in coda',status:'approved',revision:1,channel:'LinkedIn',date:'2026-10-26',publication:{revision:1}},
+  {id:'g',title:'Passato',status:'approved',revision:1,channel:'LinkedIn',date:'2026-10-01'},
+  {id:'h',title:'In invio',status:'approved',revision:1,channel:'LinkedIn',date:'2026-10-27'}];
+ const schedule=i=>i.id==='g'?{mode:'queue',scheduledAt:'x',reason:'past'}:at(i.date);
+ const p=pv.schedulePlan(contents,channels,{schedule,sent:i=>i.id==='h'});
+ assert.deepEqual(p.ready.map(x=>x.item.id+':'+x.channel.id),['b:li','a:li','d:tw']);
+ assert.deepEqual(p.skipped.map(x=>x.item.id+':'+x.reason),['c:nessun canale Buffer unico per Instagram','g:orario già passato','h:invio già in corso o da verificare']);
+ assert.equal(pv.schedulePlan(contents,channels,{schedule,preferred:'ig2'}).ready.find(x=>x.item.id==='c').channel.id,'ig2');
+});

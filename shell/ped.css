@@ -369,3 +369,11 @@ html[data-ped-section="overview"] .rx-ped #pedPage>:is(.calendar-toolbar,#calend
 html[data-ped-section="analytics"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,.filters,#groups,.layout),
 html[data-ped-section="library"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,#analytics){display:none!important}
 html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns:minmax(0,1fr)!important;margin-top:18px}
+/* Three-step guide of the PED (write, approve, schedule) */
+.rx-ped .ped-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0;padding:0}
+.rx-ped .ped-steps li{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--rx-border-strong);border-radius:12px;background:var(--rx-surface)}
+.rx-ped .ped-steps li[data-state=current]{border-color:var(--rx-agency);box-shadow:0 0 0 1px var(--rx-agency)}
+.rx-ped .ped-steps li[data-state=current] button{background:var(--rx-agency);color:#fff;border-color:transparent}
+.rx-ped .ped-steps li[data-state=done] button::after{content:" ✓"}
+.rx-ped .ped-steps small{color:var(--rx-muted);font-size:12px}
+@media (max-width:720px){.rx-ped .ped-steps{grid-template-columns:1fr}}
