@@ -52,7 +52,24 @@ test('demo copilot has a daily allowance per user',async()=>{
 test('public page reads price, limits and partner from the pricing module',()=>{
  const html=fs.readFileSync(__dirname+'/../contabilita/index.html','utf8'),js=fs.readFileSync(__dirname+'/../contabilita/contabilita.js','utf8');
  assert.match(html,/\/lib\/accounting\/pricing\.js/);assert.match(html,/href="\/contabilita\/app\/\?demo=1"/);
- for(const k of Object.keys(pricing.INCLUDED))assert.match(html,new RegExp('data-inc="'+k+'"'));
+ for(const k of Object.keys(pricing.INCLUDED))assert.match(html,new RegExp('data-size-limit="'+k+'"'));
  assert.doesNotMatch(js+html,/PARTNER|partner/);assert.match(js,/P\.PRICE_CENTS/);
  assert.doesNotMatch(html,/Nessun costo di attivazione/);
+});
+
+test('size packs: price grows with the allowance and each pack leaves more for the partner firm',()=>{
+ assert.deepEqual(pricing.SIZE_KEYS,['base','crescita','strutturata']);
+ assert.deepEqual(pricing.INCLUDED,pricing.limitsOf('base'));assert.equal(pricing.priceOf('base'),pricing.PRICE_CENTS);assert.equal(pricing.priceOf('nessuno'),pricing.PRICE_CENTS);
+ const checks=pricing.sizeCheck();let prev=null;
+ for(const c of checks){assert.ok(c.left_cents>0,c.size);if(prev){assert.ok(c.price_cents>prev.price_cents);assert.ok(c.left_cents>prev.left_cents,c.size);
+   for(const k of Object.keys(pricing.INCLUDED))assert.ok(pricing.limitsOf(c.size)[k]>pricing.limitsOf(prev.size)[k],c.size+' '+k);}prev=c;}
+ assert.ok(checks[0].cost_cents<pricing.COST_CAP_CENTS,'the base pack stays under the 15 € ceiling at full use');
+ for(const x of pricing.EXTRAS){assert.ok(Number.isInteger(x.from_cents)&&x.from_cents>0,x.key);assert.ok(x.label&&x.detail&&x.per,x.key);}
+});
+
+test('public page and sign-up list every size pack from the pricing module',()=>{
+ const html=fs.readFileSync(__dirname+'/../contabilita/index.html','utf8'),signup=fs.readFileSync(__dirname+'/../contabilita/iscrizione.html','utf8');
+ for(const k of pricing.SIZE_KEYS){assert.match(html,new RegExp('data-size="'+k+'"'));assert.match(html,new RegExp('iscrizione\\.html\\?pacchetto='+k));}
+ assert.match(html,/id="ctExtras"/);assert.match(signup,/name="size"/);
+ assert.match(fs.readFileSync(__dirname+'/../contabilita/account.js','utf8'),/size:f\.size\.value/);
 });

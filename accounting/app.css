@@ -123,3 +123,6 @@ body.acc{margin:0;background:radial-gradient(ellipse at 85% -10%,color-mix(in sr
 .acc-brand small{margin-top:4px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--rx-studio,#F4BD5F)}
 @media (max-width:767px){.acc-clienttop{padding:12px 16px}}
 .acc-clienttop a.acc-btn{text-decoration:none;margin-left:auto}
+.acc-plan.current{border-color:var(--rx-studio,#F4BD5F)}
+.acc-extras{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.acc-extras .acc-subtle{display:block;margin-top:2px}

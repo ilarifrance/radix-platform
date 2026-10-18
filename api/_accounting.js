@@ -52,6 +52,7 @@ const COMPANY_FIELDS={name:v=>text(v,200,true),vat:v=>{const t=text(v,30);if(t==
  regime:v=>{if(!['ordinario','semplificato','forfettario'].includes(v))fail(400,'Regime non valido.');return v;},
  vat_periodicity:v=>{if(!['monthly','quarterly'].includes(v))fail(400,'Periodicità IVA non valida.');return v;},
  plan:v=>{if(!['base','controllo','professionista'].includes(v))fail(400,'Piano non valido.');return v;},
+ size:v=>{if(!pricing.SIZE_KEYS.includes(v))fail(400,'Pacchetto non valido.');return v;},
  lock_date:v=>v===null?null:date(v)};
 function companyData(d,partial){
  const out={};for(const [k,v] of Object.entries(d)){if(['id','version'].includes(k))continue;if(!Object.hasOwn(COMPANY_FIELDS,k))fail(400,'Campo non consentito: '+k);out[k]=COMPANY_FIELDS[k](v);}
@@ -101,8 +102,8 @@ async function command(store,u,body,deps){
  case 'copilot.ask':{
   const year=d.year===undefined?+today().slice(0,4):int(d.year,2000,2100,'Anno non valido.');
   const b=await bundle(store,c,u,year);b.accounts=b.accounts.map(a=>({...a,group:a.group||a.grp}));
-  // Questions included in the plan, counted per company and calendar month through the audit log.
-  const limit=pricing.INCLUDED.copilot_questions;
+  // Questions included in the company's size pack, counted per calendar month through the audit log.
+  const limit=pricing.limitsOf(b.company&&b.company.size).copilot_questions;
   await store.tx([role(c,u,READ),
    q("SELECT acc_assert((SELECT count(*) FROM acc_audit WHERE company_id=$1 AND action='copilot.ask' AND at>=date_trunc('month',now()))<$2,'Hai usato tutte le domande al copilota incluse questo mese.','P0429')",[c,limit]),
    audit(c,u,action,null,{year})]);
@@ -364,11 +365,11 @@ function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchI
     if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json(acct);
     if(req.method==='POST'&&obj(body)&&body.action==='billing.checkout')return res.status(200).json({url:await billing.checkout(store,user.uid,req,{fetchImpl})});
     if(!billing.ACTIVE.includes(acct.status))fail(402,'Abbonamento non attivo: completa il pagamento per usare la contabilità.');
-    if(req.method==='POST'&&obj(body)&&(CLIENT_BLOCKED.includes(body.action)||(body.action==='company.update'&&obj(body.data)&&Object.hasOwn(body.data,'plan'))))fail(403,'Questa azione non è disponibile per il tuo account.');
+    if(req.method==='POST'&&obj(body)&&(CLIENT_BLOCKED.includes(body.action)||(body.action==='company.update'&&obj(body.data)&&(Object.hasOwn(body.data,'plan')||Object.hasOwn(body.data,'size')))))fail(403,'Questa azione non è disponibile per il tuo account.');
    }else if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json({kind:'team'});
    if(req.method==='POST')return res.status(200).json(await command(store,user.uid,body,{ask}));
    const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year'].includes(k)))fail(400,'Parametro non consentito.');
-   if(qy.resource==='companies')return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.name),'[]') AS v FROM (SELECT c.id,c.name,c.vat,c.regime,c.vat_periodicity,c.plan,m.role FROM acc_companies c JOIN acc_memberships m ON m.company_id=c.id WHERE m.user_id=$1) t",[user.uid])});
+   if(qy.resource==='companies')return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.name),'[]') AS v FROM (SELECT c.id,c.name,c.vat,c.regime,c.vat_periodicity,c.plan,c.size,m.role FROM acc_companies c JOIN acc_memberships m ON m.company_id=c.id WHERE m.user_id=$1) t",[user.uid])});
    if(qy.resource==='bundle'){
     if(!uuid(qy.company))fail(400,'Azienda non valida.');const year=qy.year===undefined?+today().slice(0,4):Number(qy.year);
     if(!Number.isInteger(year)||year<2000||year>2100)fail(400,'Anno non valido.');

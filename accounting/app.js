@@ -17,6 +17,7 @@ const TABS=['panoramica','fatture','prima-nota','banca','iva','bilancio','gestio
 const SHELL_IDS={panoramica:'accounting',fatture:'acc-invoices','prima-nota':'acc-journal',banca:'acc-bank',iva:'acc-vat',bilancio:'acc-reports',gestione:'acc-control',chiusure:'acc-close',copilota:'acc-copilot',impostazioni:'accounting'};
 const ROLE={owner:'Titolare',admin:'Amministratore',accountant:'Commercialista',member:'Collaboratore',viewer:'Sola lettura'};
 const PLAN={base:'Con il tuo commercialista',controllo:'Con il tuo commercialista',professionista:'Commercialista compreso'};
+const sizeLabel=k=>(PRICE.SIZES[k]||PRICE.SIZES.base).label,SIZE_OPTS=PRICE.SIZE_KEYS.map(k=>[k,PRICE.SIZES[k].label+', '+eur0(PRICE.priceOf(k))+' al mese']);
 const PLAN_OPTS=[['professionista','Commercialista compreso, '+eur0(PRICE.PRICE_CENTS)+' al mese'],['base','Con il tuo commercialista, '+eur0(PRICE.PRICE_CENTS)+' al mese']];
 const S={store:null,demo:false,companies:[],company:null,year:+today.slice(0,4),data:null,calc:null,tab:'panoramica',ui:{docFilter:'to_review',doc:null,pct:100,editor:null,ledger:null,itemKind:'receivable',dimension:'project',ivaPeriod:null,journalFilter:'',closeMonth:null,rates:{},accrual:{kind:'risconto_attivo',account:'',amount:'',from:'',to:'',description:''},chat:[],asking:false},busy:false};
 
@@ -70,7 +71,7 @@ const checks=COP.anomalies(d,{year:y,today});
 function render(){
  const d=S.data,c=S.calc;
  $('accTitle').textContent=d.company.name;
- $('accLead').textContent=[d.company.vat||d.company.tax_code,'Regime '+d.company.regime,'IVA '+(d.company.vat_periodicity==='monthly'?'mensile':'trimestrale'),'Piano '+(PLAN[d.company.plan]||d.company.plan),'Il tuo ruolo: '+(ROLE[d.company.role]||d.company.role)].filter(Boolean).join(' · ');
+ $('accLead').textContent=[d.company.vat||d.company.tax_code,'Regime '+d.company.regime,'IVA '+(d.company.vat_periodicity==='monthly'?'mensile':'trimestrale'),'Piano '+(PLAN[d.company.plan]||d.company.plan)+' · '+sizeLabel(d.company.size),'Il tuo ruolo: '+(ROLE[d.company.role]||d.company.role)].filter(Boolean).join(' · ');
  $('accSwitch').hidden=false;$('accTabs').hidden=false;
  $('cntDocs').textContent=c.toReview.length||'';$('cntChecks').textContent=c.checks.filter(x=>x.level!=='bassa').length||'';$('cntBank').textContent=c.sugg.length||'';
  for(const a of document.querySelectorAll('#accTabs a'))a.toggleAttribute('aria-current',a.dataset.tab===S.tab),a.dataset.tab===S.tab&&a.setAttribute('aria-current','page');
@@ -337,7 +338,7 @@ function impostazioni(d){
   sel('coForm','Forma giuridica',co.legal_form,[['srl','S.r.l.'],['srls','S.r.l.s.'],['spa','S.p.A.'],['snc','S.n.c.'],['sas','S.a.s.'],['ditta','Ditta individuale'],['professionista','Professionista'],['altro','Altro']])+
   sel('coRegime','Regime contabile',co.regime,[['ordinario','Ordinario'],['semplificato','Semplificato'],['forfettario','Forfettario']])+
   sel('coPer','Liquidazione IVA',co.vat_periodicity,[['quarterly','Trimestrale'],['monthly','Mensile']])+
-  (S.client?'<label>Piano del servizio<input value="'+esc(PLAN[co.plan]||co.plan)+', '+eur0(PRICE.PRICE_CENTS)+' al mese" readonly></label>':sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS))+'</div>'+
+  (S.client?'<label>Piano del servizio<input value="'+esc(PLAN[co.plan]||co.plan)+' · '+esc(sizeLabel(co.size))+', '+eur0(PRICE.priceOf(co.size))+' al mese" readonly></label>':sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS)+sel('coSize','Pacchetto',co.size||'base',SIZE_OPTS))+'</div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="savecompany"'+dis(canManage())+'>Salva anagrafica</button></div>'+
   '<h3 style="margin-top:18px">Chiusura del periodo</h3><div class="acc-row"><label style="flex:0 0 200px">Nessuna registrazione fino al<input type="date" id="coLock" value="'+esc(co.lock_date||'')+'"></label><button class="acc-btn ghost" type="button" data-act="savelock"'+dis(canManage())+'>Aggiorna blocco</button></div><p class="acc-subtle">Dopo l\'invio delle dichiarazioni il commercialista blocca il periodo: nessuno può più registrare o modificare scritture con data precedente.</p>')+
  panel('Persone con accesso',(members?'<div class="acc-tablewrap"><table><thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th></th></tr></thead><tbody>'+members+'</tbody></table></div>':'')+
@@ -356,7 +357,9 @@ function onboarding(reason){
   '<div class="acc-row">'+'<label>Ragione sociale<input id="nName" maxlength="200" placeholder="Rossi Srl"></label><label>Partita IVA<input id="nVat" maxlength="16" placeholder="IT01234567890"></label><label>Codice fiscale (se diverso)<input id="nCf" maxlength="16"></label></div>'+
   '<div class="acc-row" style="margin-top:10px"><label>Regime<select id="nRegime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label><label>Liquidazione IVA<select id="nPer"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label><label>Piano<select id="nPlan">'+PLAN_OPTS.map(o=>'<option value="'+o[0]+'">'+esc(o[1])+'</option>').join('')+'</select></label></div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="createcompany"'+(S.store&&!S.demo&&S.live?'':' disabled')+'>Crea l\'azienda</button><button class="acc-btn ghost" type="button" data-act="startdemo">Prova con l\'azienda dimostrativa</button></div>'+
-  '<h3 style="margin-top:20px">Il servizio</h3><div class="acc-plans">'+'<div class="acc-plan"><b>'+esc(PRICE.PLANS.professionista.label)+'</b><p class="acc-price">'+eur0(PRICE.PRICE_CENTS)+' al mese + IVA, tutto compreso</p><p>'+esc(PRICE.PLANS.professionista.summary)+'</p><p>Fino a '+PRICE.INCLUDED.invoices+' fatture al mese, '+PRICE.INCLUDED.bank_accounts+' conto bancario, '+PRICE.INCLUDED.copilot_questions+' domande al copilota, '+PRICE.INCLUDED.users+' utenti.</p></div>'+'<div class="acc-plan"><b>'+esc(PRICE.PLANS.base.label)+'</b><p class="acc-price">'+eur0(PRICE.PRICE_CENTS)+' al mese + IVA</p><p>'+esc(PRICE.PLANS.base.summary)+'</p></div></div></div>';
+  '<h3 style="margin-top:20px">Il servizio</h3><p class="acc-subtle">'+esc(PRICE.PLANS.professionista.summary)+' Il prezzo dipende dal pacchetto, scelto in base al volume di lavoro.</p><div class="acc-plans">'+
+  PRICE.SIZE_KEYS.map(k=>{const z=PRICE.SIZES[k],l=z.limits;return '<div class="acc-plan'+((co.size||'base')===k?' current':'')+'"><b>'+esc(z.label)+((co.size||'base')===k?' · il tuo pacchetto':'')+'</b><p class="acc-price">'+eur0(PRICE.priceOf(k))+' al mese + IVA</p><p>'+esc(z.who)+'.</p><p>Fino a '+l.invoices+' fatture al mese, '+l.bank_accounts+(l.bank_accounts>1?' conti bancari, ':' conto bancario, ')+l.copilot_questions+' domande al copilota, '+l.users+' utenti.</p></div>';}).join('')+'</div>'+
+  '<h3 style="margin-top:20px">Servizi con preventivo</h3><ul class="acc-extras">'+PRICE.EXTRAS.map(x=>'<li><b>'+esc(x.label)+'</b> <span class="acc-subtle">da '+eur0(x.from_cents)+' + IVA '+esc(x.per)+' · '+esc(x.detail)+'</span></li>').join('')+'</ul></div>';
 }
 
 // ---------- events ----------
@@ -389,7 +392,7 @@ document.addEventListener('click',async ev=>{
  else if(a==='dimension'){S.ui.dimension=v;render();}
  else if(a==='savebudget'){const rows=[];for(const inp of document.querySelectorAll('[data-budget]')){const c=cents(inp.value.trim());if(Number.isNaN(c)){flash('Importo non leggibile: '+inp.value,'error');return;}if(!c)continue;const k=inp.dataset.budget,sign=k==='ricavi'?1:-1,tot=Math.abs(c),base=Math.trunc(tot/12);for(let m=1;m<=12;m++)rows.push({key:k,month:m,amount_cents:sign*(base+(m===12?tot-base*12:0))});}
   await run('budget.save',{year:S.year,rows},'Budget '+S.year+' salvato.');}
- else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,...($('coPlan')?{plan:$('coPlan').value}:{})},'Anagrafica aggiornata.');}
+ else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,...($('coPlan')?{plan:$('coPlan').value}:{}),...($('coSize')?{size:$('coSize').value}:{})},'Anagrafica aggiornata.');}
  else if(a==='savelock'){const co=d.company;await run('company.update',{version:co.version,lock_date:$('coLock').value||null},'Blocco del periodo aggiornato.');}
  else if(a==='addmember'){await run('member.add',{email:$('mEmail').value,role:$('mRole').value},'Persona aggiunta.');}
  else if(a==='rmmember'){if(confirm('Togliere l\'accesso a questa persona?'))await run('member.remove',{user_id:+idv},'Accesso rimosso.');}

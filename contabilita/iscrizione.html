@@ -20,7 +20,7 @@
  <section class="ct-form-wrap">
   <p class="ct-eyebrow">Iscrizione</p>
   <h1 class="ct-form-title">Attiva la contabilità della tua azienda</h1>
-  <p class="ct-muted"><span data-price-full>39 € al mese + IVA</span>, commercialista compreso. Dopo il pagamento trovi l'azienda pronta con il piano dei conti.</p>
+  <p class="ct-muted">Commercialista compreso, disdici quando vuoi. Dopo il pagamento trovi l'azienda pronta con il piano dei conti.</p>
   <p class="ct-alert" id="ctMsg" role="status" hidden></p>
   <form id="ctSignup" class="ct-form" novalidate>
    <fieldset><legend>La tua azienda</legend>
@@ -29,6 +29,10 @@
      <label>Forma giuridica<select name="legal_form"><option value="srl">S.r.l.</option><option value="srls">S.r.l.s.</option><option value="spa">S.p.A.</option><option value="snc">S.n.c.</option><option value="sas">S.a.s.</option><option value="ditta">Ditta individuale</option><option value="professionista">Professionista</option><option value="altro">Altro</option></select></label></div>
     <div class="ct-row"><label>Regime contabile<select name="regime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label>
      <label>Liquidazione IVA<select name="vat_periodicity"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label></div>
+   </fieldset>
+   <fieldset><legend>Il pacchetto</legend>
+    <label>Pacchetto<select name="size" id="ctSize" aria-describedby="ctSizeHelp"><option value="base">Base, 39 € al mese + IVA</option><option value="crescita">Crescita, 69 € al mese + IVA</option><option value="strutturata">Strutturata, 139 € al mese + IVA</option></select><small id="ctSizeHelp">Fino a 100 fatture al mese, 1 conto bancario, 100 domande al copilota, 3 utenti.</small></label>
+    <small><a href="/contabilita/#prezzo" target="_blank" rel="noopener">Confronta i pacchetti</a>. Per cambiarlo più avanti basta scriverci.</small>
    </fieldset>
    <fieldset><legend>Il tuo accesso</legend>
     <label>Nome e cognome<input name="name" required maxlength="120" autocomplete="name"></label>

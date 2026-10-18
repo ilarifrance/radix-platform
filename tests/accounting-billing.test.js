@@ -63,6 +63,7 @@ test('client accounts: closed until paid, then limited to their own company',asy
  assert.equal((await call(H(active),{body:{action:'company.create',data:{name:'Altra'}},cookie})).status,403);
  assert.equal((await call(H(active),{body:{action:'billing.checkout',data:{}},cookie})).status,409);
  assert.equal((await call(H(active),{body:{company:C,action:'company.update',data:{version:1,plan:'base'}},cookie})).status,403,'clients do not change their plan');
+ assert.equal((await call(H(active),{body:{company:C,action:'company.update',data:{version:1,size:'base'}},cookie})).status,403,'clients do not change their size pack');
  // A client token placed in the team cookie is not a team session.
  assert.equal((await call(H(active),{method:'GET',query:{resource:'companies'},cookie:'radix_session='+encodeURIComponent(billing.signClient(41))})).status,401);
 });
@@ -90,6 +91,17 @@ test('sign-up needs the specific approval of the onerous clauses and records the
  assert.equal((await call(H,{body:signupBody,headers:{'x-forwarded-for':'10.0.0.4'}})).status,200);
  const audit=st.txs[0].find(x=>/INSERT INTO acc_audit/.test(x[0]));const detail=JSON.parse(audit[1][3]);
  assert.equal(detail.terms_version,billing.TERMS_VERSION);assert.deepEqual(detail.accepted,['condizioni','privacy','art_1341_1342']);assert.equal(detail.ip,'10.0.0.4');
+});
+
+test('sign-up with a larger size pack charges its price and stores the pack',async()=>{
+ process.env.STRIPE_SECRET_KEY='sk_test_x';const st=fakeStore(),f=fakeFetch();
+ const H=createHandler({getSessionUser:()=>null,getClientUser:billing.getClientUser,billing,getStore:()=>st,fetchImpl:f});
+ assert.equal((await call(H,{body:{...signupBody,data:{...signupBody.data,size:'enorme'}},headers:{'x-forwarded-for':'10.0.0.5'}})).status,400);
+ const r=await call(H,{body:{...signupBody,data:{...signupBody.data,size:'crescita'}},headers:{'x-forwarded-for':'10.0.0.6'}});
+ assert.equal(r.status,200,JSON.stringify(r.body));
+ const qs=st.txs[0],co=qs.find(x=>/INSERT INTO acc_companies/.test(x[0])),sub=qs.find(x=>/INSERT INTO acc_subscriptions/.test(x[0]));
+ assert.equal(co[1][7],'crescita');assert.equal(sub[1][1],6900);
+ const body=decodeURIComponent(f.calls[0].opt.body);assert.match(body,/\[unit_amount\]=8418/);assert.match(body,/RADIX Contabilità · Crescita/);
 });
 
 test('legal pages: terms and privacy exist, are linked from every public page and load no third-party fonts',()=>{
