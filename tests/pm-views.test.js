@@ -145,3 +145,9 @@ test('readyAgentWork: open tasks with completed dependencies, one entry per agen
  assert.deepEqual(v.readyAgentWork(all,all).map(x=>x.id+':'+x.agent),['bb:copywriter','bb:seo','ffffff:analyst']);
  assert.deepEqual(v.readyAgentWork([all[2]],all),[],'a dependency outside the list still blocks');
 });
+test('origin tells automatic tasks apart from manual ones',()=>{
+ assert.equal(v.origin(T('a',{agencyTaskId:'x',status:'Completato'})).label,'Approvato in Agency');
+ assert.equal(v.origin(T('b',{agencyTaskId:'x'})).label,'Incarico Agency');
+ assert.equal(v.origin(T('c',{pedContentId:'p1'})).kind,'ped');
+ assert.equal(v.origin(T('d')),null);
+});
