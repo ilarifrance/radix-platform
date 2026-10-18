@@ -137,3 +137,11 @@ test('statusReport: weekly progress text from the plan, with budget, late and up
  const empty=views.statusReport([],{name:'X',subprojects:[{id:'s1',name:'Generale'}]},Date.parse('2026-10-17T09:00:00Z')).text;
  assert.match(empty,/nessuna scadenza ancora passata/);assert.match(empty,/il piano è in linea/);assert.doesNotMatch(empty,/Budget|\n\n\n/);
 });
+
+test('readyAgentWork: open tasks with completed dependencies, one entry per agent without a result',()=>{
+ const t=(id,o)=>Object.assign({id,title:id,status:'Da fare',dependencies:[],assignedAgents:[],agentWork:[],due:'2026-11-0'+id.length},o);
+ const all=[t('a',{status:'Completato',assignedAgents:['copywriter']}),t('bb',{dependencies:['a'],assignedAgents:['copywriter','seo']}),t('ccc',{dependencies:['bb'],assignedAgents:['copywriter']}),
+  t('dddd',{status:'In corso',assignedAgents:['seo'],agentWork:[{agent:'seo'}]}),t('eeeee',{status:'In revisione',assignedAgents:['seo']}),t('ffffff',{assignedAgents:['analyst']})];
+ assert.deepEqual(v.readyAgentWork(all,all).map(x=>x.id+':'+x.agent),['bb:copywriter','bb:seo','ffffff:analyst']);
+ assert.deepEqual(v.readyAgentWork([all[2]],all),[],'a dependency outside the list still blocks');
+});

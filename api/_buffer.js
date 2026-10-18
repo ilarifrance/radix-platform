@@ -52,18 +52,23 @@ async function bufferGraphQL(apiKey, query, variables) {
 // Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
 // viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
 // il post, 502 se la risposta non è valida.
-async function createPost(apiKey, { channelId, text, dueAt }) {
+async function createPost(apiKey, { channelId, text, dueAt, images }) {
   const scheduled = !!dueAt;
+  const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
+  const vars = { channelId, text };
+  if (scheduled) vars.dueAt = dueAt;
+  // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
+  const assets = pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
   const data = await bufferGraphQL(
     apiKey,
     'mutation($channelId: String!, $text: String!' + (scheduled ? ', $dueAt: DateTime!' : '') + ') {\n' +
       '  createPost(input: { text: $text, channelId: $channelId, schedulingType: automatic, mode: ' +
-      (scheduled ? 'customScheduled, dueAt: $dueAt' : 'addToQueue') + ' }) {\n' +
+      (scheduled ? 'customScheduled, dueAt: $dueAt' : 'addToQueue') + assets + ' }) {\n' +
       '    ... on PostActionSuccess { post { id text dueAt } }\n' +
       '    ... on MutationError { message }\n' +
       '  }\n' +
       '}',
-    scheduled ? { channelId, text, dueAt } : { channelId, text }
+    vars
   );
   const result = data && data.createPost;
   const fail = (status, message) => Object.assign(new Error(message), { status });

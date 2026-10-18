@@ -97,3 +97,16 @@ CREATE TABLE IF NOT EXISTS rx_publications (
  UNIQUE (project_id, content_id, revision, service)
 );
 CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC);
+
+-- Images of a PED content (slides, post image), fetched by publishing services from a signed link.
+CREATE TABLE IF NOT EXISTS rx_media (
+ id text PRIMARY KEY CHECK (id ~ '^[0-9a-f-]{36}$'),
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ slot integer NOT NULL CHECK (slot BETWEEN 0 AND 19),
+ mime text NOT NULL CHECK (mime IN ('image/png','image/jpeg')),
+ data_b64 text NOT NULL CHECK (length(data_b64) <= 4000000),
+ created_by integer REFERENCES users(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, slot)
+);
