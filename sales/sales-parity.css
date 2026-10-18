@@ -590,3 +590,13 @@ details.crm-dedupe[open]>summary{border-bottom:1px solid #18444a}
 .crm-dedupe-group>label.check:has(input:checked){border-color:#3fe8bd66;background:#0b2e33;color:#fff}
 .crm-dedupe-group>label.check input[type=radio]{width:16px;height:16px;min-height:0;margin:1px 0 0;flex:none;accent-color:#3fe8bd}
 .crm-dedupe-group>button{align-self:flex-start;margin-top:auto;min-height:32px;padding:4px 12px;font-size:12.5px}
+/* Simulatore ricavi */
+.an-sim-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:12px 0}
+.an-sim-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#9fbdc0}
+.an-sim-form input,.an-sim-form select{background:#0b2a2e;border:1px solid #1f5a5c;border-radius:8px;color:#e8f6f4;padding:8px 10px;font:inherit;font-size:14px}
+.an-sim-form small{font-size:11px;color:#6f9496}
+.an-sim-bars{display:flex;align-items:flex-end;gap:6px;height:120px;margin-top:14px}
+.an-sim-bars div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px}
+.an-sim-bars span{flex:1;width:100%;max-width:38px;display:flex;flex-direction:column;justify-content:flex-end}
+.an-sim-bars i{display:block;width:100%}.an-sim-bars i.pipe{background:#26d796}.an-sim-bars i.new{background:#4aa3ff;border-radius:3px 3px 0 0}
+.an-sim-bars small{font-size:11px;color:#6f9496}
