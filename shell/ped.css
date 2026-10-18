@@ -377,3 +377,22 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .rx-ped .ped-steps li[data-state=done] button::after{content:" ✓"}
 .rx-ped .ped-steps small{color:var(--rx-muted);font-size:12px}
 @media (max-width:720px){.rx-ped .ped-steps{grid-template-columns:1fr}}
+/* Review before approving: posts shown as they will look */
+.review-dialog{width:min(1100px,94vw);max-height:90vh;padding:0;border:1px solid var(--rx-border-strong);border-radius:16px;background:var(--rx-bg,#0b0d12);color:inherit}
+.review-dialog::backdrop{background:rgba(0,0,0,.6)}
+.review-head,.review-foot{position:sticky;display:flex;align-items:center;gap:12px;padding:16px 20px;background:var(--rx-surface);z-index:1}
+.review-head{top:0;justify-content:space-between;border-bottom:1px solid var(--rx-border-strong)}.review-head h2{margin:0}
+.review-foot{bottom:0;flex-wrap:wrap;border-top:1px solid var(--rx-border-strong)}
+.review-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:20px}
+.review-check{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:0 20px 16px}
+.post-preview{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--rx-border-strong);border-radius:14px;background:var(--rx-surface)}
+.post-preview[data-state=approved]{border-color:#2fbf71;opacity:.75}.post-preview[data-state=check]{border-color:#e0a030}
+.post-preview header{display:flex;gap:10px;align-items:center}.post-preview header small{display:block;color:var(--rx-muted)}
+.pp-avatar{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--rx-agency,#7c5cff);color:#fff;font-weight:700}
+.pp-title{margin:0;font-weight:600}.pp-text{white-space:pre-wrap;line-height:1.5;max-height:340px;overflow:auto}
+.pp-media{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;color:var(--rx-muted);font-size:13px}
+.pp-media img,.pp-media canvas{width:100%;height:auto;border-radius:10px;display:block}
+.pp-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.pp-state{margin:0;font-size:13px;color:var(--rx-muted)}
+.pp-redo{display:flex;flex-direction:column;gap:8px}.pp-redo textarea{width:100%}
+.post-preview header>div{flex:1;text-align:left}
+.review-tools{display:flex;gap:8px;align-items:center}
