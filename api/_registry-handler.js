@@ -243,7 +243,14 @@ async function publications(req,res,db,uid,deps){
  if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
  let post;
  const base='https://'+String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
- const images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>base+mediaUrl(x.id));
+ let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
+ // With a public Blob store, Buffer gets public copies (Preview protection would block the signed RADIX url).
+ const blobToken=process.env.BLOB_READ_WRITE_TOKEN;
+ if(blobToken&&images.length&&deps.putBlob){
+  try{const rows=await db`SELECT id,mime,data_b64 FROM rx_media WHERE id = ANY(${images})`;const byId=new Map(rows.map(x=>[x.id,x]));
+   images=await Promise.all(images.map(mid=>{const m=byId.get(mid);return deps.putBlob(blobToken,{name:mid,mime:m.mime,data:Buffer.from(m.data_b64,'base64')})}))}
+  catch(e){return failed(502,'Immagini non caricate su Vercel Blob: '+core.clean(e&&e.message,300))}
+ }else images=images.map(mid=>base+mediaUrl(mid));
  try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,images})}
  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
@@ -352,7 +359,7 @@ module.exports=async(req,res)=>{
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{
-  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost});
+  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,putBlob:require('./_blob').putPublic});
  }catch(e){
   if(e instanceof SyntaxError)return send(res,400,{error:'JSON non valido'});
   if(e instanceof core.InputError)return send(res,400,{error:e.message});
