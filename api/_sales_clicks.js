@@ -12,7 +12,7 @@ const MAX_URL=2000,MAX_CAMPAIGN=80;
 const key=secret=>{if(typeof secret!=='string'||secret.length<16)throw new Error('JWT_SECRET is not set in the environment.');return crypto.createHmac('sha256',secret).update('radix-crm-click-v1').digest()};
 const toBytes=u=>Buffer.from(u.replace(/-/g,''),'hex');
 const toUuid=b=>{const h=b.toString('hex');return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20)};
-const validUrl=u=>{if(typeof u!=='string'||!u||u.length>MAX_URL)return false;try{const x=new URL(u);return (x.protocol==='https:'||x.protocol==='http:')&&!x.username&&!x.password}catch{return false}};
+const validUrl=u=>{if(typeof u!=='string'||!u||u.length>MAX_URL||/[\u0000-\u0020\u007f]/.test(u))return false;try{const x=new URL(u);return (x.protocol==='https:'||x.protocol==='http:')&&!x.username&&!x.password}catch{return false}};
 const validCampaign=k=>typeof k==='string'&&k.trim().length>0&&k.length<=MAX_CAMPAIGN&&!/[\u0000-\u001f\u007f]/.test(k);
 const mac=(secret,ids,campaign,url)=>crypto.createHmac('sha256',key(secret)).update(Buffer.concat([ids,Buffer.from('\n'+campaign+'\n'+url)])).digest().subarray(0,16);
 function sign(secret,workspace,contact,campaign,url){

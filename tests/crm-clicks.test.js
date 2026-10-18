@@ -12,7 +12,7 @@ test('click tokens sign contact, campaign and url: no open redirect, no tamperin
  assert.equal(k.verify(K,t,CAMP,'https://evil.example/'),null,'another url');
  assert.equal(k.verify(K,t,'Altra',URL1),null,'another campaign');
  assert.equal(k.verify('z'.repeat(40),t,CAMP,URL1),null);
- for(const u of ['javascript:alert(1)','ftp://x.y/','https://u:p@x.y/','','x'.repeat(10)])assert.equal(k.validUrl(u),false,u);
+ for(const u of ['https://a.b/x\r\nSet-Cookie: a=1','https://a.b/ x','javascript:alert(1)','ftp://x.y/','https://u:p@x.y/','','x'.repeat(10)])assert.equal(k.validUrl(u),false,u);
  assert.throws(()=>k.sign(K,W,C,CAMP,'javascript:alert(1)'));assert.throws(()=>k.sign(K,W,C,'',URL1));
 });
 
