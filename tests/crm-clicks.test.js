@@ -21,7 +21,7 @@ test('redirect: GET records click (first one also in the timeline), HEAD and fai
  const q={click:k.sign(K,W,C,CAMP,URL1),k:CAMP,u:URL1};
  let r=res();await k.handle({method:'GET',query:q},r,{getSql:()=>sql,secret:K});
  assert.equal(r.code,302);assert.equal(r.headers.Location,URL1);assert.equal(calls.length,1);
- assert.match(calls[0][0],/INSERT INTO sales_email_clicks/);assert.match(calls[0][0],/INSERT INTO sales_interactions/);assert.match(calls[0][0],/NOT EXISTS/);assert.match(calls[0][0],/INSERT INTO sales_tasks/);assert.match(calls[0][0],/'high','todo'/);
+ assert.match(calls[0][0],/INSERT INTO sales_email_clicks/);assert.match(calls[0][0],/INSERT INTO sales_interactions/);assert.match(calls[0][0],/NOT EXISTS/);assert.match(calls[0][0],/INSERT INTO sales_tasks/);assert.match(calls[0][0],/'high','todo'/);assert.match(calls[0][0],/role='owner'/,'falls back to the owner when nobody emailed the contact');
  assert.deepEqual(calls[0][1],[W,C,CAMP,URL1]);
  r=res();await k.handle({method:'HEAD',query:q},r,{getSql:()=>sql,secret:K});assert.equal(r.code,302);assert.equal(calls.length,1,'HEAD does not count');
  r=res();await k.handle({method:'GET',query:q},r,{getSql:()=>async()=>{throw Object.assign(new Error('x'),{code:'42P01'})},secret:K});assert.equal(r.code,302,'missing table still redirects');

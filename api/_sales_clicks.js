@@ -5,7 +5,7 @@
    already pointed (no open redirect) and nobody can count clicks for someone else.
    The first click of a contact on a campaign also lands in the CRM timeline as an «email» interaction
    (so score and Sales Orbit see it) and opens a high-priority follow-up task for whoever last emailed
-   that contact. A failed write still redirects. */
+   that contact (otherwise whoever created the contact, otherwise the workspace owner). A failed write still redirects. */
 const crypto=require('node:crypto');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_URL=2000,MAX_CAMPAIGN=80;
@@ -36,13 +36,15 @@ async function handle(req,res,{getSql,secret}){
  // Link scanners often probe with HEAD: redirect without counting.
  if(req.method==='GET'){
   try{
-   await getSql()(`WITH c AS (SELECT id,company_id,name FROM sales_contacts WHERE workspace_id=$1 AND id=$2),
+   await getSql()(`WITH c AS (SELECT id,company_id,name,created_by FROM sales_contacts WHERE workspace_id=$1 AND id=$2),
  first AS (SELECT NOT EXISTS(SELECT 1 FROM sales_email_clicks WHERE workspace_id=$1 AND contact_id=$2 AND campaign=$3) AS yes),
  ins AS (INSERT INTO sales_email_clicks(workspace_id,contact_id,campaign,url) SELECT $1,c.id,$3,$4 FROM c RETURNING 1),
  task AS (INSERT INTO sales_tasks(workspace_id,id,title,contact_id,company_id,assignee_id,priority,status,due_at)
   SELECT $1,gen_random_uuid(),left('Richiama '||c.name||': ha cliccato «'||$3||'»',200),c.id,c.company_id,
-   (SELECT i.created_by FROM sales_interactions i JOIN sales_memberships m ON m.workspace_id=i.workspace_id AND m.user_id=i.created_by AND m.role IN ('owner','admin','member')
+   COALESCE((SELECT i.created_by FROM sales_interactions i JOIN sales_memberships m ON m.workspace_id=i.workspace_id AND m.user_id=i.created_by AND m.role IN ('owner','admin','member')
     WHERE i.workspace_id=$1 AND i.contact_id=$2 AND i.kind='email' AND i.created_by IS NOT NULL ORDER BY i.occurred_at DESC LIMIT 1),
+    (SELECT m.user_id FROM sales_memberships m WHERE m.workspace_id=$1 AND m.user_id=c.created_by AND m.role IN ('owner','admin','member')),
+    (SELECT m.user_id FROM sales_memberships m WHERE m.workspace_id=$1 AND m.role='owner' ORDER BY m.user_id LIMIT 1)),
    'high','todo',now()+interval '1 day' FROM c,first WHERE first.yes RETURNING 1)
  INSERT INTO sales_interactions(workspace_id,id,title,kind,occurred_at,body,contact_id,company_id)
  SELECT $1,gen_random_uuid(),left('Clic sull’email: '||$3,200),'email',now(),left('Ha aperto il link '||$4,4000),c.id,c.company_id FROM c,first WHERE first.yes`,[who.workspace,who.contact,campaign,url]);
