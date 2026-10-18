@@ -7,6 +7,7 @@ const crypto=require('node:crypto');
 const {randomUUID}=crypto;
 const coa=require('../lib/accounting/chart-of-accounts');
 const pricing=require('../lib/accounting/pricing');
+const feeInvoice=require('../lib/accounting/fee-invoice');
 const {hashPassword,verifyPassword,parseCookies}=require('./_auth');
 
 class BillingError extends Error{constructor(status,message){super(message);this.status=status;}}
@@ -87,6 +88,8 @@ async function signup(store,req,res,d,deps){
  if(d.accept!==true)fail(400,'Per continuare accetta le condizioni del servizio.');
  if(d.accept_clauses!==true)fail(400,'Per continuare approva le clausole indicate all\'articolo 14 delle condizioni.');
  const company=deps.companyData(d.company||{},false);
+ // The monthly fee is invoiced electronically from the first payment: the data the invoice needs is asked up front.
+ const gaps=feeInvoice.missing(company);if(gaps.length)fail(400,'Per la fattura del canone servono: '+gaps.join(', ')+'.');
  const size=d.size===undefined?'base':d.size;if(!pricing.SIZE_KEYS.includes(size))fail(400,'Pacchetto non valido.');const priceCents=pricing.priceOf(size);
  if(!process.env.STRIPE_SECRET_KEY)fail(503,'I pagamenti non sono ancora configurati su questo ambiente.');
  if(await store.json('SELECT to_jsonb(true) AS v FROM users WHERE lower(email)=$1',[email]))fail(409,'Esiste già un account con questa email: accedi.');
@@ -95,7 +98,7 @@ async function signup(store,req,res,d,deps){
  const accounts=coa.STANDARD.map(a=>({code:a.code,name:a.name,kind:a.kind,grp:a.group,keywords:a.keywords,system:Object.values(coa.SYSTEM).includes(a.code)}));
  await store.tx([
   q('INSERT INTO users(id,email,name,password_hash) VALUES($1,$2,$3,$4)',[uid,email,name,hashPassword(d.password)]),
-  q("INSERT INTO acc_companies(id,name,vat,tax_code,legal_form,regime,vat_periodicity,plan,size,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,'professionista',$8,$9)",[id,company.name,company.vat??null,company.tax_code??null,company.legal_form||'srl',company.regime||'ordinario',company.vat_periodicity||'quarterly',size,uid]),
+  q("INSERT INTO acc_companies(id,name,vat,tax_code,legal_form,regime,vat_periodicity,plan,size,created_by,address,zip,city,province,sdi_code,pec) VALUES($1,$2,$3,$4,$5,$6,$7,'professionista',$8,$9,$10,$11,$12,$13,$14,$15)",[id,company.name,company.vat??null,company.tax_code??null,company.legal_form||'srl',company.regime||'ordinario',company.vat_periodicity||'quarterly',size,uid,company.address,company.zip,company.city,company.province,company.sdi_code??null,company.pec??null]),
   q("INSERT INTO acc_memberships(company_id,user_id,role) VALUES($1,$2,'owner')",[id,uid]),
   q('INSERT INTO acc_accounts(company_id,code,name,kind,grp,keywords,system) SELECT $1,x.code,x.name,x.kind,x.grp,x.keywords,x.system FROM jsonb_to_recordset($2::jsonb) AS x(code text,name text,kind text,grp text,keywords text,system boolean)',[id,JSON.stringify(accounts)]),
   q('INSERT INTO acc_client_accounts(user_id,company_id) VALUES($1,$2)',[uid,id]),
@@ -172,13 +175,15 @@ async function account(store,uid){
 }
 
 // ---------- webhook ----------
+const romeDate=ts=>new Date(ts*1000).toLocaleDateString('sv-SE',{timeZone:'Europe/Rome'});
+const itDate=ts=>romeDate(ts).split('-').reverse().join('/');
 async function rawBody(req){if(Buffer.isBuffer(req.rawBody))return req.rawBody;const chunks=[];let n=0;for await(const c of req){n+=c.length;if(n>1e6)fail(413,'Richiesta troppo grande.');chunks.push(Buffer.from(c));}return Buffer.concat(chunks);}
 async function webhook(store,req,res){
  if(req.method!=='POST'){res.setHeader('Allow','POST');fail(405,'Metodo non consentito.');}
  const raw=await rawBody(req);
  if(!verifyWebhook(raw,req.headers['stripe-signature'],process.env.STRIPE_WEBHOOK_SECRET))fail(400,'Firma non valida.');
  const ev=JSON.parse(raw.toString('utf8')),o=ev.data&&ev.data.object||{};
- let company=null,update=null;
+ let company=null,update=null,fee=false;
  if(ev.type==='checkout.session.completed'){
   company=o.client_reference_id||o.metadata&&o.metadata.company_id;
   update=q("UPDATE acc_subscriptions SET stripe_customer=$2,stripe_subscription=coalesce($3,stripe_subscription),status=CASE WHEN $4 AND (status_at IS NULL OR status_at<=$5) THEN 'active' ELSE status END,status_at=CASE WHEN $4 AND (status_at IS NULL OR status_at<=$5) THEN $5 ELSE status_at END,updated_at=now() WHERE company_id=$1::uuid",
@@ -190,9 +195,25 @@ async function webhook(store,req,res){
    [company,st,o.id,o.customer||null,end?new Date(end*1000).toISOString():null,ev.created]);
  }
  if(company&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(company))company=null;
+ // A paid fee becomes the next numbered invoice of the year, with the buyer's data as it is today.
+ if(ev.type==='invoice.paid'&&Number.isInteger(o.amount_paid)&&o.amount_paid>0&&typeof o.id==='string'){
+  const det=o.parent&&o.parent.subscription_details||o.subscription_details||{},sub=o.subscription||det.subscription||null;
+  company=det.metadata&&det.metadata.company_id||null;
+  if(company&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(company))company=null;
+  const paid=(o.status_transitions&&o.status_transitions.paid_at)||ev.created,day=romeDate(paid),t=feeInvoice.split(o.amount_paid,pricing.VAT_RATE);
+  const line=o.lines&&o.lines.data&&o.lines.data[0],per=line&&line.period;
+  const period=per&&per.start&&per.end?' dal '+itDate(per.start)+' al '+itDate(per.end-86400):'';
+  update=q(`INSERT INTO acc_fee_invoices(company_id,year,number,issued_on,description,net_cents,vat_cents,gross_cents,stripe_invoice,buyer)
+   SELECT co.id,$3::int,coalesce((SELECT max(number) FROM acc_fee_invoices WHERE year=$3::int),0)+1,$4::date,
+    'RADIX Contabilità, pacchetto '||initcap(co.size)||', canone mensile'||$5,$6,$7,$8,$9,
+    jsonb_build_object('name',co.name,'vat',co.vat,'tax_code',co.tax_code,'address',co.address,'zip',co.zip,'city',co.city,'province',co.province,'sdi_code',co.sdi_code,'pec',co.pec)
+   FROM acc_companies co WHERE co.id=coalesce($1::uuid,(SELECT company_id FROM acc_subscriptions WHERE stripe_subscription=$2))
+   ON CONFLICT(stripe_invoice) DO NOTHING`,[company,sub,+day.slice(0,4),day,period,t.net_cents,t.vat_cents,t.gross_cents,o.id]);
+  fee=true;
+ }
  if(typeof ev.id!=='string'||!/^evt_\w{1,250}$/.test(ev.id)||!Number.isInteger(ev.created))fail(400,'Evento non valido.');
  await store.tx([q('INSERT INTO acc_billing_events(id,type,company_id,created) VALUES($1,$2,(SELECT company_id FROM acc_subscriptions WHERE company_id=$3::uuid),$4) ON CONFLICT(id) DO NOTHING',[ev.id,String(ev.type).slice(0,100),company,ev.created]),
-  ...(company&&update?[update]:[])]);
+  ...((company||fee)&&update?[update]:[])]);
  return {received:true};
 }
 

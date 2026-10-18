@@ -14,6 +14,7 @@ const reconcile=require('../lib/accounting/reconcile');
 const assets=require('../lib/accounting/assets');
 const copilot=require('../lib/accounting/copilot');
 const pricing=require('../lib/accounting/pricing');
+const feeInvoice=require('../lib/accounting/fee-invoice');
 
 class AccError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(s,m)=>{throw new AccError(s,m);};
@@ -53,6 +54,13 @@ const COMPANY_FIELDS={name:v=>text(v,200,true),vat:v=>{const t=text(v,30);if(t==
  vat_periodicity:v=>{if(!['monthly','quarterly'].includes(v))fail(400,'Periodicità IVA non valida.');return v;},
  plan:v=>{if(!['base','controllo','professionista'].includes(v))fail(400,'Piano non valido.');return v;},
  size:v=>{if(!pricing.SIZE_KEYS.includes(v))fail(400,'Pacchetto non valido.');return v;},
+ // Registered office and e-invoice address: needed to issue the invoice of the monthly fee (migration 004).
+ address:v=>text(v,200),
+ zip:v=>{const t=text(v,5);if(t!==null&&!/^\d{5}$/.test(t))fail(400,'CAP non valido.');return t;},
+ city:v=>text(v,80),
+ province:v=>{const t=text(v,2);if(t===null)return null;const n=t.toUpperCase();if(!/^[A-Z]{2}$/.test(n))fail(400,'Provincia non valida: usa la sigla, per esempio MI.');return n;},
+ sdi_code:v=>{const t=text(v,7);if(t===null)return null;const n=t.toUpperCase();if(!/^[A-Z0-9]{7}$/.test(n))fail(400,'Codice destinatario non valido: sono 7 caratteri.');return n;},
+ pec:v=>{const t=text(v,254);if(t!==null&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t))fail(400,'PEC non valida.');return t&&t.toLowerCase();},
  lock_date:v=>v===null?null:date(v)};
 function companyData(d,partial){
  const out={};for(const [k,v] of Object.entries(d)){if(['id','version'].includes(k))continue;if(!Object.hasOwn(COMPANY_FIELDS,k))fail(400,'Campo non consentito: '+k);out[k]=COMPANY_FIELDS[k](v);}
@@ -336,6 +344,9 @@ async function bundle(store,c,u,year){
 
 // Public actions: sign-up and client sign-in from /contabilita/ (no session yet). Client accounts may only work on
 // their own company, only once its subscription is active, and cannot create companies or manage members.
+// Seller of the fee invoices: the company that runs RADIX Contabilità, as JSON in ACCOUNTING_SELLER
+// ({name,vat,tax_code,address,zip,city,province,regime_fiscale}); null until it is set.
+function seller(){try{const s=JSON.parse(process.env.ACCOUNTING_SELLER||'null');return s&&typeof s==='object'?s:null;}catch{return null;}}
 const PUBLIC=['signup.start','client.login','client.logout','client.reset_request','client.reset'];
 const CLIENT_BLOCKED=['company.create','member.add','member.remove','member.update'];
 function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchImpl,sendMail}){
@@ -370,7 +381,18 @@ function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchI
     if(req.method==='POST'&&obj(body)&&(CLIENT_BLOCKED.includes(body.action)||(body.action==='company.update'&&obj(body.data)&&(Object.hasOwn(body.data,'plan')||Object.hasOwn(body.data,'size')))))fail(403,'Questa azione non è disponibile per il tuo account.');
    }else if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json({kind:'team'});
    if(req.method==='POST')return res.status(200).json(await command(store,user.uid,body,{ask}));
-   const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year'].includes(k)))fail(400,'Parametro non consentito.');
+   const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year','id'].includes(k)))fail(400,'Parametro non consentito.');
+   // Invoices of the monthly fee, for the company's members: the list, and each one as a FatturaPA file.
+   if(qy.resource==='fee_invoices'){if(!uuid(qy.company))fail(400,'Azienda non valida.');
+    return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(jsonb_build_object('id',f.id,'year',f.year,'number',f.number,'issued_on',f.issued_on,'description',f.description,'net_cents',f.net_cents,'vat_cents',f.vat_cents,'gross_cents',f.gross_cents) ORDER BY f.issued_on DESC,f.number DESC),'[]') AS v FROM acc_fee_invoices f JOIN acc_memberships m ON m.company_id=f.company_id AND m.user_id=$2 WHERE f.company_id=$1",[qy.company,user.uid]),
+     seller_ready:!!seller()});}
+   if(qy.resource==='fee_invoice_xml'){if(!uuid(qy.id))fail(400,'Fattura non valida.');
+    const f=await store.json("SELECT to_jsonb(f) AS v FROM acc_fee_invoices f JOIN acc_memberships m ON m.company_id=f.company_id AND m.user_id=$2 WHERE f.id=$1",[qy.id,user.uid]);
+    if(!f)fail(404,'Fattura non trovata.');const sel=seller();if(!sel)fail(503,'La fattura è registrata: il file XML sarà disponibile quando saranno inseriti i dati del fornitore.');
+    let xml;try{xml=feeInvoice.build(sel,f.buyer,{number:f.year+'/'+f.number,date:f.issued_on,progressive:feeInvoice.progressive(f.year,f.number),gross_cents:f.gross_cents,lines:[{description:f.description,net_cents:f.net_cents}]});}
+    catch(e){fail(409,e.message+' Completa i dati in Azienda e riprova.');}
+    res.setHeader('Content-Type','application/xml; charset=utf-8');res.setHeader('Content-Disposition','attachment; filename="'+feeInvoice.fileName(sel,feeInvoice.progressive(f.year,f.number))+'"');
+    res.status(200);return res.end(xml);}
    if(qy.resource==='companies')return res.status(200).json({rows:await store.json("SELECT coalesce(jsonb_agg(to_jsonb(t) ORDER BY t.name),'[]') AS v FROM (SELECT c.id,c.name,c.vat,c.regime,c.vat_periodicity,c.plan,c.size,m.role FROM acc_companies c JOIN acc_memberships m ON m.company_id=c.id WHERE m.user_id=$1) t",[user.uid])});
    if(qy.resource==='bundle'){
     if(!uuid(qy.company))fail(400,'Azienda non valida.');const year=qy.year===undefined?+today().slice(0,4):Number(qy.year);

@@ -25,10 +25,19 @@
   <form id="ctSignup" class="ct-form" novalidate>
    <fieldset><legend>La tua azienda</legend>
     <label>Ragione sociale<input name="cname" required maxlength="200" autocomplete="organization"></label>
-    <div class="ct-row"><label>Partita IVA<input name="vat" maxlength="16" placeholder="IT01234567890" inputmode="text"></label>
+    <div class="ct-row"><label>Partita IVA<input name="vat" required maxlength="16" placeholder="IT01234567890" inputmode="text"></label>
      <label>Forma giuridica<select name="legal_form"><option value="srl">S.r.l.</option><option value="srls">S.r.l.s.</option><option value="spa">S.p.A.</option><option value="snc">S.n.c.</option><option value="sas">S.a.s.</option><option value="ditta">Ditta individuale</option><option value="professionista">Professionista</option><option value="altro">Altro</option></select></label></div>
     <div class="ct-row"><label>Regime contabile<select name="regime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label>
      <label>Liquidazione IVA<select name="vat_periodicity"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label></div>
+   </fieldset>
+   <fieldset><legend>Sede e fatturazione</legend>
+    <small>Servono per la fattura elettronica del canone, che ricevi ogni mese.</small>
+    <label>Indirizzo della sede<input name="address" required maxlength="200" autocomplete="street-address"></label>
+    <div class="ct-row"><label>CAP<input name="zip" required maxlength="5" inputmode="numeric" pattern="\d{5}" autocomplete="postal-code"></label>
+     <label>Comune<input name="city" required maxlength="80" autocomplete="address-level2"></label>
+     <label>Provincia<input name="province" required maxlength="2" pattern="[A-Za-z]{2}" placeholder="MI" autocomplete="address-level1"></label></div>
+    <div class="ct-row"><label>Codice destinatario<input name="sdi_code" maxlength="7" pattern="[A-Za-z0-9]{7}" placeholder="7 caratteri"></label>
+     <label>oppure PEC<input name="pec" type="email" maxlength="254"></label></div>
    </fieldset>
    <fieldset><legend>Il pacchetto</legend>
     <label>Pacchetto<select name="size" id="ctSize" aria-describedby="ctSizeHelp"><option value="base">Base, 39 € al mese + IVA</option><option value="crescita">Crescita, 69 € al mese + IVA</option><option value="strutturata">Strutturata, 139 € al mese + IVA</option></select><small id="ctSizeHelp">Fino a 100 fatture al mese, 1 conto bancario, 100 domande al copilota, 3 utenti.</small></label>

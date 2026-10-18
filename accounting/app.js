@@ -29,6 +29,7 @@ function liveStore(){
   bundle:year=>call('/api/accounting?resource=bundle&company='+encodeURIComponent(S.company)+'&year='+year),
   command:(action,data)=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify({action,data,...(action==='company.create'?{}:{company:S.company})})}),
   account:()=>call('/api/accounting?resource=account'),
+  feeInvoices:()=>call('/api/accounting?resource=fee_invoices&company='+encodeURIComponent(S.company)),
   commandRaw:body=>call('/api/accounting',{method:'POST',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify(body)})
  };
 }
@@ -43,6 +44,7 @@ async function run(action,data,ok){
  finally{S.busy=false;document.body.style.cursor='';}
 }
 async function reload(){
+ S.ui.fees=undefined;
  S.data=await S.store.bundle(S.year);
  S.data.accounts=S.data.accounts.map(a=>({...a,group:a.group||a.grp}));
  S.calc=derive(S.data);render();
@@ -326,6 +328,19 @@ async function ask(question){
 }
 
 // ---------- company settings ----------
+// Invoices of the monthly fee (from Stripe payments), loaded when the tab opens; the demo company has none.
+function feeInvoices(){
+ if(S.demo||!S.live)return '';
+ if(S.ui.fees===undefined){S.ui.fees='loading';liveStore().feeInvoices().then(j=>{S.ui.fees=j;},e=>{S.ui.fees={error:e.message};}).then(()=>{if(S.tab==='impostazioni')render();});}
+ const f=S.ui.fees,head='';
+ if(f==='loading')return head+'<p class="acc-subtle">Carico le fatture…</p>';
+ if(f.error)return head+'<p class="acc-subtle">'+esc(f.error)+'</p>';
+ if(!f.rows.length)return head+'<p class="acc-subtle">La prima fattura arriva con il primo pagamento del canone.</p>';
+ return head+'<div class="acc-tablewrap"><table><thead><tr><th>Numero</th><th>Data</th><th>Descrizione</th><th class="num">Totale</th><th></th></tr></thead><tbody>'+
+  f.rows.map(x=>'<tr><td>'+x.year+'/'+x.number+'</td><td>'+esc(String(x.issued_on).slice(0,10).split('-').reverse().join('/'))+'</td><td>'+esc(x.description)+'</td><td class="num">'+esc(eur(x.gross_cents))+'</td><td>'+
+   (f.seller_ready?'<a class="acc-btn small ghost" href="/api/accounting?resource=fee_invoice_xml&id='+encodeURIComponent(x.id)+'" download>Scarica XML</a>':'')+'</td></tr>').join('')+'</tbody></table></div>'+
+  (f.seller_ready?'':'<p class="acc-subtle">Le fatture sono registrate; il file XML sarà scaricabile appena attivato l\'invio allo SDI.</p>');
+}
 function impostazioni(d){
  const co=d.company;
  const f=(id,label,val,extra)=>'<label>'+label+'<input id="'+id+'" value="'+esc(val||'')+'"'+(extra||'')+'></label>';
@@ -339,11 +354,14 @@ function impostazioni(d){
   sel('coRegime','Regime contabile',co.regime,[['ordinario','Ordinario'],['semplificato','Semplificato'],['forfettario','Forfettario']])+
   sel('coPer','Liquidazione IVA',co.vat_periodicity,[['quarterly','Trimestrale'],['monthly','Mensile']])+
   (S.client?'<label>Piano del servizio<input value="'+esc(PLAN[co.plan]||co.plan)+' · '+esc(sizeLabel(co.size))+', '+eur0(PRICE.priceOf(co.size))+' al mese" readonly></label>':sel('coPlan','Piano del servizio',co.plan==='controllo'?'base':co.plan,PLAN_OPTS)+sel('coSize','Pacchetto',co.size||'base',SIZE_OPTS))+'</div>'+
+  '<div class="acc-row" style="margin-top:10px">'+f('coAddr','Indirizzo della sede',co.address,' maxlength="200"')+f('coZip','CAP',co.zip,' maxlength="5" inputmode="numeric" style="max-width:90px"')+f('coCity','Comune',co.city,' maxlength="80"')+f('coProv','Provincia',co.province,' maxlength="2" style="max-width:70px"')+'</div>'+
+  '<div class="acc-row" style="margin-top:10px">'+f('coSdi','Codice destinatario',co.sdi_code,' maxlength="7"')+f('coPec','PEC',co.pec,' maxlength="254" type="email"')+'</div>'+
   '<div class="acc-actions"><button class="acc-btn" type="button" data-act="savecompany"'+dis(canManage())+'>Salva anagrafica</button></div>'+
   '<h3 style="margin-top:18px">Chiusura del periodo</h3><div class="acc-row"><label style="flex:0 0 200px">Nessuna registrazione fino al<input type="date" id="coLock" value="'+esc(co.lock_date||'')+'"></label><button class="acc-btn ghost" type="button" data-act="savelock"'+dis(canManage())+'>Aggiorna blocco</button></div><p class="acc-subtle">Dopo l\'invio delle dichiarazioni il commercialista blocca il periodo: nessuno può più registrare o modificare scritture con data precedente.</p>')+
  panel('Persone con accesso',(members?'<div class="acc-tablewrap"><table><thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th></th></tr></thead><tbody>'+members+'</tbody></table></div>':'')+
   '<div class="acc-row" style="margin-top:12px"><label>Email dell\'account RADIX<input id="mEmail" type="email" maxlength="254" placeholder="nome@azienda.it"></label>'+sel('mRole','Ruolo','accountant',[['accountant','Commercialista'],['member','Collaboratore'],['viewer','Sola lettura'],['admin','Amministratore']])+'<button class="acc-btn ghost" type="button" data-act="addmember"'+dis(['owner','admin'].includes(co.role)&&!S.demo&&!S.client)+'>Aggiungi</button></div><p class="acc-subtle">Il commercialista vede tutto, chiude le liquidazioni e blocca i periodi; il collaboratore registra; la sola lettura consulta.</p>')+'</div>'+
  panel('Piano dei conti','<details><summary class="acc-muted">'+d.accounts.length+' conti · aggiungi o rinomina</summary><div class="acc-row" style="margin:12px 0">'+f('aCode','Codice (es. 61.12)','',' maxlength="8"')+f('aName','Nome','',' maxlength="120"')+sel('aKind','Tipo','C',Object.entries(COA.KINDS))+sel('aGroup','Gruppo','servizi',groups)+'<button class="acc-btn ghost" type="button" data-act="saveaccount"'+dis(canManage())+'>Salva conto</button></div><div class="acc-tablewrap"><table><thead><tr><th>Codice</th><th>Nome</th><th>Tipo</th><th>Gruppo</th><th></th></tr></thead><tbody>'+accRows+'</tbody></table></div></details>')+
+ (S.demo||!S.live?'':panel('Fatture del servizio',feeInvoices()))+
  panel('Attività recenti',d.audit.length?'<ul class="acc-reasons">'+d.audit.slice(0,20).map(a=>'<li>'+esc(new Date(a.at).toLocaleString('it-IT'))+' · '+esc(a.actor||'')+' · '+esc(AUDIT[a.action]||a.action)+'</li>').join('')+'</ul>':empty('Nessuna attività.'));
 }
 const AUDIT={'signup':'ha attivato il servizio','company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto'};
@@ -392,7 +410,7 @@ document.addEventListener('click',async ev=>{
  else if(a==='dimension'){S.ui.dimension=v;render();}
  else if(a==='savebudget'){const rows=[];for(const inp of document.querySelectorAll('[data-budget]')){const c=cents(inp.value.trim());if(Number.isNaN(c)){flash('Importo non leggibile: '+inp.value,'error');return;}if(!c)continue;const k=inp.dataset.budget,sign=k==='ricavi'?1:-1,tot=Math.abs(c),base=Math.trunc(tot/12);for(let m=1;m<=12;m++)rows.push({key:k,month:m,amount_cents:sign*(base+(m===12?tot-base*12:0))});}
   await run('budget.save',{year:S.year,rows},'Budget '+S.year+' salvato.');}
- else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,...($('coPlan')?{plan:$('coPlan').value}:{}),...($('coSize')?{size:$('coSize').value}:{})},'Anagrafica aggiornata.');}
+ else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,address:$('coAddr').value||null,zip:$('coZip').value||null,city:$('coCity').value||null,province:$('coProv').value||null,sdi_code:$('coSdi').value||null,pec:$('coPec').value||null,...($('coPlan')?{plan:$('coPlan').value}:{}),...($('coSize')?{size:$('coSize').value}:{})},'Anagrafica aggiornata.');}
  else if(a==='savelock'){const co=d.company;await run('company.update',{version:co.version,lock_date:$('coLock').value||null},'Blocco del periodo aggiornato.');}
  else if(a==='addmember'){await run('member.add',{email:$('mEmail').value,role:$('mRole').value},'Persona aggiunta.');}
  else if(a==='rmmember'){if(confirm('Togliere l\'accesso a questa persona?'))await run('member.remove',{user_id:+idv},'Accesso rimosso.');}

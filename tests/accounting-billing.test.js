@@ -17,7 +17,7 @@ function fakeStore({account=null,exists=false}={}){
   tx:async q=>{txs.push(q);return [];}};
 }
 function fakeFetch(){const calls=[];const f=async(url,opt)=>{calls.push({url,opt});return {ok:true,json:async()=>({id:'cs_test_1',url:'https://checkout.stripe.com/c/pay/cs_test_1'})};};f.calls=calls;return f;}
-const signupBody={action:'signup.start',data:{name:'Mario Rossi',email:'Mario@Alfa.it',password:'una-password-lunga',accept:true,accept_clauses:true,company:{name:'Alfa Srl',vat:'01234567890',regime:'ordinario',vat_periodicity:'quarterly'}}};
+const signupBody={action:'signup.start',data:{name:'Mario Rossi',email:'Mario@Alfa.it',password:'una-password-lunga',accept:true,accept_clauses:true,company:{name:'Alfa Srl',vat:'01234567890',regime:'ordinario',vat_periodicity:'quarterly',address:'Via Roma 1',zip:'20121',city:'Milano',province:'mi',sdi_code:'m5uxcr1'}}};
 
 test('sign-up needs Stripe configured and creates nothing without it',async()=>{
  delete process.env.STRIPE_SECRET_KEY;const st=fakeStore();
