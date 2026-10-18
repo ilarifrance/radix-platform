@@ -76,7 +76,7 @@ var batch=false;
 async function runReady(){const ready=views.readyAgentWork(scoped(),state.tasks);if(batch||!ready.length)return;
  if(!confirm('Far svolgere '+ready.length+(ready.length===1?' lavoro':' lavori')+' agli agenti AI? Ogni chiamata consuma crediti API; i risultati restano In revisione finché non li approvi.'))return;
  batch=true;render();let done=0;try{for(const w of ready){const before=(state.tasks.find(x=>x.id===w.id)||{}).agentWork||[];await runAgent(w.id,w.agent);if(((state.tasks.find(x=>x.id===w.id)||{}).agentWork||[]).length>before.length)done++}}
- finally{batch=false;say(done+' su '+ready.length+' lavori svolti dagli agenti: sono In revisione.');render()}}
+ finally{batch=false;say(done+' su '+ready.length+(ready.length===1?' lavoro svolto':' lavori svolti')+' dagli agenti'+(done?': '+(done===1?'è':'sono')+' In revisione.':'.'));render()}}
 async function runAgent(id,agent){
  const key=id+'|'+agent,t=state.tasks.find(x=>x.id===id);if(!t||running[key])return;
  running[key]='Al lavoro…';render();say((rt.label(agent))+' sta lavorando su «'+t.title+'».');
