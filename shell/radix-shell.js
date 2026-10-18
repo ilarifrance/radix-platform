@@ -62,6 +62,7 @@
       { id: 'agency-clients', text: 'Clienti', href: '/agency/clients.html' },
       { id: 'agency-projects', text: 'Progetti', href: '/agency/projects.html' },
       { id: 'agency-ped', text: 'Piano editoriale', href: '/project-editorial.html', project: 'project', kw: 'ped social calendario contenuti' },
+      { id: 'agency-avatar', text: 'Studio Avatar', href: '/agency/avatar.html', project: 'project', kw: 'avatar heygen video voce' },
       { id: 'agency-operations', text: 'Operations', href: '/agency/operations.html' },
       { id: 'agency-memory', text: 'Memoria', href: '/agency/memory.html' }
     ] },

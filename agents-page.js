@@ -109,7 +109,7 @@ function renderFlow(flow,msg){
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
    const src=sourcesEl(n.sources);if(src)row.append(src);
-   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>row.append(t));
+   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs,avatar:project.profile&&project.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(project.id)}).forEach(t=>row.append(t));
    if(!busy)row.append(stepTools(msg,i));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
@@ -188,7 +188,7 @@ function render(){
    if((m.agent||agentId)==='copywriter')acts.append(node('small',m.content.length+' caratteri','char-count'));
    if(rt.markdownTables(m.content).length)acts.append(btn('Excel',()=>rt.exportExcel((a?a.name:'Risposta')+' · '+project.name,m.content)));
    el.append(acts);
-   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>el.append(t));
+   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs,avatar:project.profile&&project.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(project.id)}).forEach(t=>el.append(t));
   }
   box.append(el);
  }
