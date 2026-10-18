@@ -16,6 +16,10 @@
       "destination": "/api/integrations/heygen"
     },
     {
+      "source": "/api/higgsfield",
+      "destination": "/api/integrations/higgsfield"
+    },
+    {
       "source": "/api/openai-image",
       "destination": "/api/integrations/openai-image"
     },

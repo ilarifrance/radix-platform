@@ -10,7 +10,9 @@ const SERVICES=Object.freeze([
  {id:'blob',label:'Archivio immagini pubblico (Vercel Blob)',use:'Immagini del PED raggiungibili da Buffer anche in anteprima',env:['BLOB_READ_WRITE_TOKEN']},
  {id:'openai-image',label:'Immagini (OpenAI)',use:'Sfondi delle slide dei caroselli',env:['OPENAI_API_KEY']},
  {id:'heygen',label:'HeyGen',use:'Video con avatar',env:['HEYGEN_API_KEY']},
- {id:'email',label:'Email (Gmail)',use:'Invio email dagli agenti commerciali',env:['GMAIL_USER','GMAIL_APP_PASSWORD']}
+ {id:'email',label:'Email (Gmail)',use:'Invio email dagli agenti commerciali',env:['GMAIL_USER','GMAIL_APP_PASSWORD']},
+ {id:'higgsfield',label:'Higgsfield',use:'Generazione di immagini e video per Agency e PED',env:['HIGGSFIELD_API_KEY']},
+ {id:'captain-data',label:'Captain Data',use:'Verifica dei lead in Lead Intelligence',env:['CAPTAIN_DATA_API_KEY','CAPTAIN_DATA_USER_UID']}
 ]);
 function status(env){
  return SERVICES.map(s=>({id:s.id,label:s.label,use:s.use,configured:s.env.every(k=>typeof env[k]==='string'&&env[k].trim()!=='')}));
