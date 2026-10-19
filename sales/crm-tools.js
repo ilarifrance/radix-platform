@@ -240,6 +240,7 @@ window.RadixCrmTools={
  section(entity,section){
   if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf));if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
   else if(entity==='companies')section.append(ioBar('companies'));
+  else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks')){const head=section.querySelector(':scope>.row')||section;head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
