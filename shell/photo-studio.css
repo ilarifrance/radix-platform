@@ -1,0 +1,29 @@
+/* Studio Foto (lib/image-studio.js): guided Higgsfield photo, three proposals, composition. */
+.photo-studio{display:flex;flex-direction:column;gap:12px;margin:10px 0;padding:14px;border:1px solid var(--rx-border-strong,#26324a);border-radius:14px;background:var(--rx-surface,transparent)}
+.photo-studio [hidden]{display:none!important}
+.photo-studio .ps-steps{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0;padding:0}
+.photo-studio .ps-steps li{padding:7px 10px;border:1px solid var(--rx-border,#26324a);border-radius:9px;font-size:12px;color:var(--rx-muted,#8fa3b8)}
+.photo-studio .ps-steps li[data-state=current]{border-color:var(--rx-agency,#7c5cff);color:var(--rx-text,inherit);box-shadow:0 0 0 1px var(--rx-agency,#7c5cff)}
+.photo-studio .ps-steps li[data-state=done]::after{content:" ✓"}
+.photo-studio .ps-questions{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.photo-studio fieldset{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:8px 10px;border:1px solid var(--rx-border,#26324a);border-radius:11px}
+.photo-studio legend{font-size:12px;padding:0 4px;color:var(--rx-muted,#8fa3b8)}
+.photo-studio .ps-chip{flex-direction:row;color:inherit;margin:0;display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--rx-border,#26324a);border-radius:999px;font-size:13px;cursor:pointer}
+.photo-studio .ps-chip:has(input:checked){border-color:var(--rx-agency,#7c5cff);background:rgba(124,92,255,.14)}
+.photo-studio .ps-chip input{width:14px;height:14px;min-height:0;margin:0;padding:0;accent-color:var(--rx-agency,#7c5cff)}
+.photo-studio label{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.photo-studio textarea,.photo-studio input:not([type]),.photo-studio input[type=text]{font:inherit;color:inherit;background:transparent;border:1px solid var(--rx-border-strong,#26324a);border-radius:9px;padding:8px 10px}
+.photo-studio .ps-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.photo-studio .ps-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.photo-studio .ps-card{margin:0;display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--rx-border,#26324a);border-radius:12px}
+.photo-studio .ps-card[data-chosen=true]{border-color:var(--rx-agency,#7c5cff);box-shadow:0 0 0 2px var(--rx-agency,#7c5cff)}
+.photo-studio .ps-card img,.photo-studio .ps-ph{width:100%;aspect-ratio:var(--ratio,4/5);object-fit:cover;border-radius:9px;background:rgba(127,127,127,.12)}
+.photo-studio .ps-ph{display:grid;place-items:center;padding:10px;text-align:center;font-size:12px;color:var(--rx-muted,#8fa3b8)}
+.photo-studio figcaption{font-size:12px;color:var(--rx-muted,#8fa3b8)}
+.photo-studio .ps-compose{display:flex;flex-direction:column;gap:10px}
+.photo-studio .ps-canvas{width:100%;max-width:340px;height:auto;border-radius:12px}
+.ps-dialog{width:min(980px,94vw);max-height:92vh;overflow:auto;padding:18px 20px;border:1px solid var(--rx-border-strong,#26324a);border-radius:18px;background:var(--rx-surface,#0d1220);color:var(--rx-text,#eef3f8)}
+.ps-dialog::backdrop{background:rgba(2,6,12,.66)}
+.ps-dialog>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.ps-dialog>header h2{margin:0;font-size:18px}
+.ps-dialog .photo-studio{border:0;padding:0;margin:0;background:transparent}

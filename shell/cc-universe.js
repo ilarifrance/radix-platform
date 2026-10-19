@@ -208,7 +208,7 @@
   }
 
   // Connected systems: one icon per service, lit when its key is configured on this deployment.
-  var ABBR = { anthropic: 'AI', database: 'DB', buffer: 'Bf', 'openai-image': 'Im', heygen: 'HG', email: '@' };
+  var ABBR = { anthropic: 'AI', database: 'DB', buffer: 'Bf', 'openai-image': 'Im', heygen: 'HG', email: '@', higgsfield: 'Hf', 'captain-data': 'CD' };
   var top = document.querySelector('.top-status');
   if (top && window.fetch) {
     fetch('/api/integrations/status', { credentials: 'same-origin', cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
