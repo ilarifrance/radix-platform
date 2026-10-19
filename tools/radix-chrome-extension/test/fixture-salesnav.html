@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><title>Sales Navigator (finto, solo per test)</title>
+<style>body{font-family:sans-serif;margin:0}header{height:60px;background:#0a66c2;color:#fff;padding:16px}#results{list-style:none;padding:0 20px;margin:0}li.artdeco-list__item{height:150px;border-bottom:1px solid #ddd;padding:10px}.dot{margin:0 4px}footer{padding:20px}.captcha{padding:40px}</style></head>
+<body>
+<header><span>Sales Navigator</span> · <span id="total"></span></header>
+<main><ol id="results"></ol><footer><button class="artdeco-pagination__button--next" aria-label="Avanti" type="button">Avanti</button></footer></main>
+<script>
+// Fake Sales Navigator results page for automated tests only: lazy rendering on
+// scroll, SPA pagination via the visible «Avanti» button, optional challenges.
+const params=new URLSearchParams(location.search);
+const N=Number(params.get('n')||60),SIZE=25,CAPTCHA=Number(params.get('captcha')||0),CHECKPOINT=Number(params.get('checkpoint')||0);
+const people=Array.from({length:N},(_,i)=>({
+ id:'ACwAA'+String(i).padStart(4,'0'),
+ name:['Giulia Bianchi','Marco De Santis','Luca Rossi','Anna Maria Verdi','Paolo Esposito'][i%5]+' '+i,
+ title:i%7===3?'':['Responsabile acquisti','CEO','Direttore commerciale','Head of Marketing','Titolare'][i%5],
+ company:i%6===4?'':'Azienda '+i+' Srl',
+ location:i%4===2?'':['Milano, Lombardia, Italia','Roma, Lazio, Italia','Torino, Piemonte, Italia'][i%3]
+}));
+let page=Number(params.get('page')||1),shown=0;
+document.getElementById('total').textContent=N.toLocaleString('it-IT')+' risultati';
+function card(p){
+ const li=document.createElement('li');li.className='artdeco-list__item';
+ li.innerHTML='<div><a href="/sales/lead/'+p.id+',NAME_SEARCH,x1?_ntb=abc"><span data-anonymize="person-name"></span></a> <span>· 2°</span></div>'
+  +'<div class="pos">'+(p.title?'<span data-anonymize="title"></span>':'')+(p.title&&p.company?'<span class="dot">·</span>':'')+(p.company?'<a href="/sales/company/1" data-anonymize="company-name"></a>':'')+'</div>'
+  +(p.location?'<div><span data-anonymize="location"></span></div>':'')+'<button type="button">Salva</button> <button type="button">Messaggio</button>';
+ li.querySelector('[data-anonymize="person-name"]').textContent=p.name;
+ if(p.title)li.querySelector('[data-anonymize="title"]').textContent=p.title;
+ if(p.company)li.querySelector('[data-anonymize="company-name"]').textContent=p.company;
+ if(p.location)li.querySelector('[data-anonymize="location"]').textContent=p.location;
+ return li;
+}
+function slice(){return people.slice((page-1)*SIZE,page*SIZE)}
+function more(){const list=slice();const add=list.slice(shown,shown+6);for(const p of add)document.getElementById('results').append(card(p));shown+=add.length}
+function render(){
+ const ol=document.getElementById('results');ol.replaceChildren();shown=0;
+ if(CAPTCHA&&page>=CAPTCHA){ol.innerHTML='<div class="captcha"><h2>Verifica di sicurezza</h2><iframe title="captcha" src="about:blank"></iframe></div>';return}
+ more();
+ const next=document.querySelector('[aria-label="Avanti"]');next.disabled=page*SIZE>=N;
+ window.scrollTo(0,0);
+}
+window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.scrollHeight-200)more()});
+document.querySelector('[aria-label="Avanti"]').addEventListener('click',()=>{
+ if(CHECKPOINT&&page+1>=CHECKPOINT){location.href='https://www.linkedin.com/checkpoint/challenge/test';return}
+ document.getElementById('results').replaceChildren();
+ setTimeout(()=>{page++;params.set('page',page);history.pushState(null,'','?'+params);render()},500);
+});
+render();
+</script>
+</body>
+</html>
