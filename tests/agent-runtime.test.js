@@ -57,6 +57,26 @@ test('a billing error halts the queue so the flow can be resumed',async()=>{
  assert.match(flow.halted,/credit balance/);assert.equal(flow.nodes.filter(n=>n.status==='pending').length,2);
 });
 
+test('the plain-language API errors from the server still halt the queue',async()=>{
+ const {friendlyApiError}=require('../api/chat.js');
+ for(const [m,st] of [['Your credit balance is too low',400],['invalid x-api-key',401],['Overloaded',529]]){
+  const msg=friendlyApiError(Object.assign(new Error(m),{status:st}));
+  const flow=rt.makeFlow([{role:'strategist',subtask:'A'},{role:'copywriter',subtask:'B'}],1);
+  await rt.runNodes(flow,{concurrency:1,call:async()=>{throw Error(msg)}});
+  assert.equal(flow.halted,msg);assert.equal(flow.nodes[1].status,'pending');
+ }
+});
+
+test('a reply cut off before the document is a failure, not a delivery',async()=>{
+ const flow=rt.makeFlow([{role:'legal-contracts',subtask:'Contratto'},{role:'legal-risk-analyst',subtask:'Rileggi',deps:[1]}],1);
+ await rt.runNodes(flow,{concurrency:1,call:async()=>({text:'---DOCUMENTO: Contratto---\n# CONTRATTO\n\n⚠️ [Risposta interrotta per limite di spazio anche dopo 2 parti: scrivi "continua" per farla finire.]',truncated:true})});
+ assert.deepEqual(flow.nodes.map(n=>n.status),['error','error']);
+ assert.match(flow.nodes[0].output,/Rigenera ultima risposta/);
+ const long=rt.makeFlow([{role:'legal-contracts',subtask:'X'}],1);
+ await rt.runNodes(long,{call:async()=>({text:'a'.repeat(4000),truncated:true})});
+ assert.equal(long.nodes[0].status,'done','a long text cut at the end is still delivered');
+});
+
 test('markdown is escaped before formatting',()=>{
  const html=rt.renderMarkdown('# Titolo\n<script>x</script> **forte** [link](javascript:alert(1))\n\n| a | b |\n|---|---|\n| 1 | <b>2</b> |\n\n- uno\n- due',1);
  assert.doesNotMatch(html,/<script>|<b>2/);assert.match(html,/<h2>Titolo<\/h2>/);assert.match(html,/<strong>forte<\/strong>/);
