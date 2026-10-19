@@ -75,10 +75,10 @@ test('chat falls back to the previous engine on a refusal or a rejected request'
   const realFetch = global.fetch, key = process.env.ANTHROPIC_API_KEY;
   global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); const r = replies.shift(); return { ok: r.ok, status: r.status, json: async () => r.json }; };
   process.env.ANTHROPIC_API_KEY = 'test';
-  const run = async (role) => {
+  const run = async (role, engine) => {
     let out;
     const res = { status() { return this; }, json(b) { out = b; return this; }, setHeader() {} };
-    await chat({ method: 'POST', headers: {}, body: { role, messages: [{ role: 'user', content: 'ciao' }] } }, res);
+    await chat({ method: 'POST', headers: {}, body: { role, engine, messages: [{ role: 'user', content: 'ciao' }] } }, res);
     return out;
   };
   try {
@@ -92,6 +92,26 @@ test('chat falls back to the previous engine on a refusal or a rejected request'
     assert.equal(sent[2].model, engine.DEFAULTS.precise, 'unknown roles fall back to the strategist');
     assert.equal(sent[3].model, engine.DEFAULTS.legacy);
     assert.match(JSON.stringify(b), /Seconda/);
+  } finally {
+    global.fetch = realFetch;
+    if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
+  }
+});
+
+test('a request can ask for the previous engine', async () => {
+  require('../api/_auth').getSessionUser = () => ({ uid: 'u1' });
+  const chat = require('../api/chat.js');
+  const sent = [];
+  const realFetch = global.fetch, key = process.env.ANTHROPIC_API_KEY;
+  global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }) }; };
+  process.env.ANTHROPIC_API_KEY = 'test';
+  let out;
+  const res = { status() { return this; }, json(b) { out = b; return this; }, setHeader() {} };
+  try {
+    await chat({ method: 'POST', headers: {}, body: { role: 'strategist', engine: 'legacy', messages: [{ role: 'user', content: 'x' }] } }, res);
+    assert.equal(sent.length, 1);
+    assert.equal(sent[0].model, engine.DEFAULTS.legacy);
+    assert.equal(out.engine, 'legacy');
   } finally {
     global.fetch = realFetch;
     if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;

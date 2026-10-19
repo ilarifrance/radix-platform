@@ -1709,6 +1709,8 @@ module.exports = async (req, res) => {
     }
   }
   const { role, messages, brand, project, memoryScope, crmScope } = body || {};
+  // "legacy" asks for the previous engine (comparisons, or a reply that worked better there).
+  const forcedTier = body && body.engine === "legacy" ? "legacy" : undefined;
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
   const agentKey = own(AGENTS, role) ? role : own(AGENT_ALIASES, role) && own(AGENTS, AGENT_ALIASES[role]) ? AGENT_ALIASES[role] : "strategist";
   const agent = AGENTS[agentKey];
@@ -1777,7 +1779,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages, system, agentKey);
+    let { text, usage, sources, stopReason, engine } = await callAnthropic(apiKey, agent, messages, system, agentKey, forcedTier);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -1795,7 +1797,7 @@ module.exports = async (req, res) => {
           },
         ]);
         try {
-          const retry = await callAnthropic(apiKey, agent, retryMessages, system, agentKey);
+          const retry = await callAnthropic(apiKey, agent, retryMessages, system, agentKey, forcedTier);
           text = retry.text;
           stopReason = retry.stopReason;
           revised = true;
@@ -1827,7 +1829,7 @@ module.exports = async (req, res) => {
     // vengono ricucite in un unico documento completo — vedi fetchAgentReply() in index.html.
     const truncated = stopReason === "max_tokens";
 
-    res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [] });
+    res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [], engine });
   } catch (err) {
     const status = err && err.status ? err.status : 502;
     res.status(status).json({ error: "Chiamata all'API fallita: " + (err && err.message ? err.message : String(err)) });
