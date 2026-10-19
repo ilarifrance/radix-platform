@@ -291,3 +291,14 @@ details.crm-campaigns>summary,details.crm-automations>summary,details.crm-dedupe
 .tv-recall-row>div{min-width:0}
 .tv-recall-row b,.tv-recall-row small{overflow-wrap:anywhere}
 @media(max-width:600px){.tv-tabs button{padding:8px 12px;font-size:14px}.tv-tabs .tv-kanban{border-left:0}.row>.crm-tools>label{white-space:normal}}
+
+/* Scheda del record and «Primi passi» (sales/crm-record.css, PR #118): light values for its --crx-* tokens.
+   "html:root" outranks its plain ":root" block whatever the load order. */
+html:root{
+ --crx-surface:var(--crm-card);--crx-surface-2:var(--crm-soft);
+ --crx-border:var(--crm-line);--crx-border-soft:var(--crm-line);--crx-border-accent:var(--crm-accent-line);
+ --crx-shadow:var(--crm-shadow);--crx-heading:var(--crm-text);--crx-text:var(--crm-text);
+ --crx-muted:var(--crm-muted);--crx-faint:var(--crm-subtle);
+ --crx-accent:var(--crm-accent);--crx-accent-2:var(--crm-accent-2);--crx-accent-strong:var(--crm-accent);--crx-accent-ink:var(--crm-on-accent);
+ --crx-link:var(--crm-link);--crx-tab:var(--crm-muted);--crx-warn:var(--crm-warn);
+ --crx-track:var(--crm-head);--crx-fill:linear-gradient(90deg,var(--crm-accent),var(--crm-accent-2));--crx-mark:var(--crm-line-2)}
