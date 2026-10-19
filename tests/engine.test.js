@@ -1,3 +1,4 @@
+const sysText = (s) => (typeof s === 'string' ? s : (s || []).map((b) => b.text).join(''));
 const test = require('node:test');
 const assert = require('node:assert');
 const engine = require('../api/_engine');
@@ -21,7 +22,7 @@ test('newer models: reasoning on, effort set, no temperature, room for the reaso
   assert.deepEqual(body.output_config, { effort: 'high' });
   assert.equal(body.temperature, undefined);
   assert.equal(body.max_tokens, 22000);
-  assert.equal(body.system, 'S');
+  assert.deepEqual(body.system, [{ type: 'text', text: 'S', cache_control: { type: 'ephemeral' } }], 'instructions cached for the series of requests');
   assert.deepEqual(body.messages, [{ role: 'user', content: 'ciao' }]);
   assert.equal(body.tools[0].type, 'web_search_20260209');
   assert.equal(body.tools[1].type, 'web_fetch_20260318');
@@ -87,7 +88,7 @@ test('chat falls back to the previous engine on a refusal or a rejected request'
     assert.equal(sent[1].model, engine.DEFAULTS.legacy);
     assert.equal(sent[1].thinking, undefined);
     assert.match(JSON.stringify(a), /Risposta/);
-    assert.match(sent[0].system, /REGOLE DI PRECISIONE/);
+    assert.match(sysText(sent[0].system), /REGOLE DI PRECISIONE/);
     const b = await run('constructor');
     assert.equal(sent[2].model, engine.DEFAULTS.precise, 'unknown roles fall back to the strategist');
     assert.equal(sent[3].model, engine.DEFAULTS.legacy);
@@ -127,9 +128,9 @@ test('agents that write about RADIX get its real feature list, others do not', a
   const res = { status() { return this; }, json() { return this; }, setHeader() {} };
   try {
     for (const role of ['copywriter', 'comm-email-outreach', 'legal-gdpr']) await chat({ method: 'POST', headers: {}, body: { role, messages: [{ role: 'user', content: 'x' }] } }, res);
-    assert.match(sent[0].system, /STRUMENTI REALI DI RADIX/);
-    assert.match(sent[1].system, /STRUMENTI REALI DI RADIX/);
-    assert.doesNotMatch(sent[2].system, /STRUMENTI REALI DI RADIX/);
+    assert.match(sysText(sent[0].system), /STRUMENTI REALI DI RADIX/);
+    assert.match(sysText(sent[1].system), /STRUMENTI REALI DI RADIX/);
+    assert.doesNotMatch(sysText(sent[2].system), /STRUMENTI REALI DI RADIX/);
   } finally {
     global.fetch = realFetch;
     if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;

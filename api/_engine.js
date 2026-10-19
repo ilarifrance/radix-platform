@@ -96,7 +96,8 @@ function requestBody({ key, agent, messages, system, env, tools, tier: forced })
   const model = models(env)[tier];
   const answer = agent.maxTokens || 1024;
   const t = toolsFor(agent, tier, tools);
-  const body = { model, system: system || agent.system };
+  const text = system || agent.system;
+  const body = { model, system: text };
   if (tier === "legacy") {
     body.max_tokens = answer;
     body.temperature = typeof agent.temperature === "number" ? agent.temperature : 0.6;
@@ -106,6 +107,9 @@ function requestBody({ key, agent, messages, system, env, tools, tier: forced })
     body.thinking = { type: "adaptive" };
     body.output_config = { effort: effortFor(tier, agent) };
     body.messages = continuationSafe(messages);
+    // Same agent, project and day = same instructions: the series of requests of a bulk job (all the PED
+    // drafts, the continuation parts of a long text) reads them from the cache instead of paying them again.
+    if (text) body.system = [{ type: "text", text, cache_control: { type: "ephemeral" } }];
   }
   if (t) body.tools = t;
   return { tier, model, body };
