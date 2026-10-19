@@ -5,7 +5,9 @@ const stateOf=item=>statuses[pv.columnOf(item)];
 // The status line sits at the top of the page: when it is scrolled out of view, the same text also shows as a toast at the bottom.
 let toastTimer=0;function notify(text){const m=$('message');m.textContent=text;if(m.getBoundingClientRect().bottom>0)return;
  let t=document.getElementById('pedToast');if(!t){t=document.createElement('div');t.id='pedToast';t.className='ped-toast';t.setAttribute('aria-hidden','true');t.onclick=()=>{t.hidden=true};document.body.append(t)}
- t.textContent=text;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{t.hidden=true},/in corso|…$/.test(text)?15000:7000)}
+ t.textContent=text;t.hidden=false;clearTimeout(toastTimer);t.classList.toggle('ped-toast-alert',/ricarica la pagina|non riuscit|non salvat/i.test(text));
+ // Problems (a conflict with another tab, a failed save) stay until clicked; the rest fade.
+ if(!t.classList.contains('ped-toast-alert'))toastTimer=setTimeout(()=>{t.hidden=true},/in corso|…$/.test(text)?15000:7000)}
 // Links to the same project in the other areas (Agency workspace, project plan).
 function linkProject(p){const nav=document.querySelector('aside nav');if(!nav||nav.querySelector('[data-project-link]'))return;const links=[];if(p.kind==='agency')links.push(['./agency/project-workspace.html?id=','Workspace Agency']);links.push(['./radix-pm-concept.html?project=','Project manager']);links.push(['./agency/memory.html?id=','Memoria del progetto']);links.push(['./agents.html?project=','Agenti AI']);links.push(['./project-profile.html?id=','Profilo per gli agenti']);for(const [href,label] of links){const a=document.createElement('a');a.href=href+encodeURIComponent(p.id);a.textContent=label+' ↗';a.dataset.projectLink='1';nav.append(a)}}
 // The plan's time zone: dates and times of every content are local times there.
