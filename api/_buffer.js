@@ -37,7 +37,12 @@ async function bufferGraphQL(apiKey, query, variables) {
     /* risposta non JSON: data resta null, gestito sotto */
   }
   if (!res.ok) {
-    const err = new Error('Buffer ha risposto ' + res.status + (data ? ': ' + JSON.stringify(data) : ''));
+    // 401/403: the key itself is the problem, so say that first instead of only the raw status.
+    const why =
+      res.status === 401 || res.status === 403
+        ? 'la chiave Buffer sul server non è valida o è scaduta (rigenerala su publish.buffer.com, Settings -> API, e aggiornala su Vercel). '
+        : '';
+    const err = new Error(why + 'Buffer ha risposto ' + res.status + (data ? ': ' + JSON.stringify(data) : ''));
     err.status = res.status;
     throw err;
   }
@@ -151,3 +156,4 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.createPost = createPost;
+module.exports.bufferGraphQL = bufferGraphQL;

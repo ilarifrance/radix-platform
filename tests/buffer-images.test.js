@@ -34,3 +34,13 @@ test('publishing uploads images to Blob only when BLOB_READ_WRITE_TOKEN is set',
  assert.match(src,/process\.env\.BLOB_READ_WRITE_TOKEN/);assert.match(src,/putBlob:require\('\.\/_blob'\)\.putPublic/);
  assert.match(src,/else images=images\.map\(mid=>base\+mediaUrl\(mid\)\)/);
 });
+
+test('bufferGraphQL says plainly when the Buffer key is rejected',async()=>{
+ const {bufferGraphQL}=require('../api/_buffer.js');const orig=global.fetch;
+ try{
+  global.fetch=async()=>({ok:false,status:401,json:async()=>({error:'unauthorized'})});
+  await assert.rejects(bufferGraphQL('k','query { account { id } }'),e=>/chiave Buffer sul server non è valida o è scaduta/.test(e.message)&&/401/.test(e.message)&&e.status===401);
+  global.fetch=async()=>({ok:false,status:500,json:async()=>({})});
+  await assert.rejects(bufferGraphQL('k','query { account { id } }'),e=>!/chiave Buffer/.test(e.message)&&/500/.test(e.message));
+ }finally{global.fetch=orig}
+});
