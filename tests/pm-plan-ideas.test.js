@@ -38,3 +38,30 @@ test('buildState makes a valid PM plan with sub-projects, dependencies and miles
  assert.deepEqual(s.tasks[0].assignedAgents,['copywriter']);assert.equal(s.tasks[2].milestone,true);assert.equal(s.tasks[2].approvalRequired,true);
  assert.match(s.projects[0].note,/Rapido/);
 });
+
+test('plan ideas send the agency-wide team memory to the planner, a new project has no other scope yet', async () => {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '../lib/pm-plan-ideas.js'), 'utf8');
+  assert.match(src, /role:'pm-planner',memoryScope:\{level:'agency',agentId:'pm-planner'\}/);
+  require('../api/_auth').getSessionUser = () => ({ uid: 'u1' });
+  const seen = [];
+  const dbPath = require.resolve('../api/_db');
+  require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: { sql: () => () => [] } };
+  require('../api/_agency-memory-store').context = async (db, ctx) => { seen.push(ctx); return { context: 'Decisione: niente promesse di risultati.' }; };
+  delete require.cache[require.resolve('../api/chat.js')];
+  const chat = require('../api/chat.js');
+  const sent = [], realFetch = global.fetch, key = process.env.ANTHROPIC_API_KEY;
+  global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }) }; };
+  process.env.ANTHROPIC_API_KEY = 'test';
+  const res = { status() { return this; }, json() { return this; }, setHeader() {} };
+  const text = (s) => (typeof s === 'string' ? s : (s || []).map((b) => b.text).join(''));
+  try {
+    await chat({ method: 'POST', headers: {}, body: { role: 'pm-planner', memoryScope: { level: 'agency', agentId: 'pm-planner' }, messages: [{ role: 'user', content: 'x' }] } }, res);
+    await chat({ method: 'POST', headers: {}, body: { role: 'pm-planner', memoryScope: { agentId: 'pm-planner' }, messages: [{ role: 'user', content: 'x' }] } }, res);
+    assert.match(text(sent[0].system), /MEMORIA CONFERMATA DEL TEAM[\s\S]*niente promesse/);
+    assert.doesNotMatch(text(sent[1].system), /MEMORIA CONFERMATA/, 'without project, client or the agency level nothing is read');
+    assert.deepEqual(seen, [{ projectId: '', clientId: '', agentId: 'pm-planner' }]);
+  } finally {
+    global.fetch = realFetch;
+    if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
+  }
+});
