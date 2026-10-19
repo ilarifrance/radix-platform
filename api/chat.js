@@ -1870,6 +1870,16 @@ module.exports = async (req, res) => {
     res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [], engine });
   } catch (err) {
     const status = err && err.status ? err.status : 502;
-    res.status(status).json({ error: "Chiamata all'API fallita: " + (err && err.message ? err.message : String(err)) });
+    res.status(status).json({ error: friendlyApiError(err) });
   }
 };
+
+// Errori dell'API tradotti in una frase che dice all'utente cosa fare; il resto resta tecnico.
+function friendlyApiError(err) {
+  const msg = err && err.message ? err.message : String(err);
+  if (/credit balance is too low/i.test(msg)) return "Credito API esaurito: ricarica il credito dell'account Anthropic (console.anthropic.com, Plans & Billing), poi premi «Rigenera ultima risposta».";
+  if ((err && err.status === 401) || /invalid x-api-key|authentication_error/i.test(msg)) return "La chiave API degli agenti sul server non è valida o è scaduta: aggiornala su Vercel.";
+  if ((err && (err.status === 429 || err.status === 529)) || /rate_limit|overloaded/i.test(msg)) return "Il servizio degli agenti è sovraccarico in questo momento: riprova tra qualche minuto con «Rigenera ultima risposta».";
+  return "Chiamata all'API fallita: " + msg;
+}
+module.exports.friendlyApiError = friendlyApiError;

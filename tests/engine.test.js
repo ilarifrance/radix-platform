@@ -136,3 +136,11 @@ test('agents that write about RADIX get its real feature list, others do not', a
     if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
   }
 });
+
+test('API errors the user can act on are explained in plain words', () => {
+  const { friendlyApiError } = require('../api/chat.js');
+  assert.match(friendlyApiError(Object.assign(new Error('Your credit balance is too low to access the Anthropic API.'), { status: 400 })), /Credito API esaurito/);
+  assert.match(friendlyApiError(Object.assign(new Error('invalid x-api-key'), { status: 401 })), /chiave API/);
+  assert.match(friendlyApiError(Object.assign(new Error('Overloaded'), { status: 529 })), /sovraccarico/);
+  assert.match(friendlyApiError(new Error('boom')), /^Chiamata all'API fallita: boom$/);
+});
