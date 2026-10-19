@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Importa in RADIX</title><link rel="stylesheet" href="popup.css"></head>
+<body class="popup">
+<header><div class="logo">R</div><div><h1>Importa in RADIX</h1><small>LinkedIn Sales Navigator</small></div></header>
+
+<section id="link-box" class="soft">
+ <div><span class="dot" id="link-dot"></span><span id="link-text">Controllo collegamento…</span></div>
+ <div id="link-form" hidden>
+  <label for="link-code">Codice di collegamento</label>
+  <textarea id="link-code" placeholder="Incolla qui il codice di RADIX › Lead Intelligence › Collega estensione Chrome"></textarea>
+  <div class="row"><button id="link-save" class="primary wide" type="button">Collega a RADIX</button></div>
+  <p id="link-message" class="status small"></p>
+ </div>
+</section>
+
+<section id="page-box">
+ <div id="page-unsupported" hidden>
+  <h2>Apri Sales Navigator</h2>
+  <p class="muted" id="page-hint">Apri una <b>ricerca persone</b> o una <b>lista lead</b> di Sales Navigator, con il tuo accesso LinkedIn.</p>
+  <a class="button wide" href="https://www.linkedin.com/sales/search/people" target="_blank" rel="noopener">Apri Sales Navigator</a>
+ </div>
+ <div id="page-ready" hidden>
+  <div class="big" id="visible-count">0</div>
+  <div class="muted" id="visible-label">persone visibili in questa pagina</div>
+  <label for="max">Quanti contatti importare al massimo</label>
+  <select id="max"></select>
+  <div class="row"><button id="start" class="primary wide" type="button">Importa in RADIX</button></div>
+  <p id="start-message" class="status small"></p>
+ </div>
+</section>
+
+<section id="run-box" hidden>
+ <h2 id="run-title">Importazione</h2>
+ <div id="run-count" class="muted"></div>
+ <div class="bar"><span id="run-bar"></span></div>
+ <p id="run-message" class="status"></p>
+ <div class="row">
+  <button id="stop" type="button" hidden>Ferma</button>
+  <button id="retry" class="primary" type="button" hidden>Invia a RADIX</button>
+  <a id="open" class="button" target="_blank" rel="noopener" hidden>Apri in RADIX</a>
+  <button id="backup" type="button" hidden>Backup JSON</button>
+  <button id="clear" type="button" hidden>Nuova importazione</button>
+ </div>
+</section>
+
+<footer>Legge solo ciò che è visibile nella pagina, con pause da persona. L’automazione può violare i termini di LinkedIn: usala a tuo rischio. <a href="options.html" target="_blank">Impostazioni</a></footer>
+<script src="src/lead-contact-batches.js"></script><script src="src/core.js"></script><script src="src/settings.js"></script><script src="popup.js"></script>
+</body>
+</html>
