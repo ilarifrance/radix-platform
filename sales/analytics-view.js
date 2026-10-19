@@ -65,7 +65,33 @@ function predict(opportunities,interactions,stages,now){
     out.items.push({id:o.id,title:o.title,amount:amount(o),histP:p,stageP:Number.isFinite(Number(sp))&&sp!==null?Number(sp):null,why:['big','old','active'].map(k=>label[k][f[k]?0:1])})}
   out.expected=Math.round(out.expected);out.items.sort((a,b)=>Math.abs((b.stageP??b.histP)-b.histP)-Math.abs((a.stageP??a.histP)-a.histP)||b.amount-a.amount);
   return out}
-const core={isOpen,forecast,closings,predict};
+// Revenue simulator. simBaseline() reads starting values from the CRM: win rate of closed deals, average
+// won amount (else average open amount), opportunities created in the last 90 days per month, median
+// days from creation to win. Missing values stay null and the page asks for them. simulate() is a plain
+// what-if: the open pipeline closes at the win rate, spread evenly over the sales cycle; each month's new
+// opportunities close one cycle later at the same rate. It is a simulation, not a forecast.
+function simBaseline(opportunities,now){
+  const t=now instanceof Date?now.getTime():Number(now??Date.now()),day=864e5,ms=v=>{const x=Date.parse(v);return Number.isFinite(x)?x:null};
+  const all=(opportunities||[]).filter(Boolean),won=all.filter(o=>o.outcome==='won'),lost=all.filter(o=>o.outcome==='lost'),open=all.filter(isOpen),amt=o=>Number(o.amount_cents)||0;
+  const closed=won.length+lost.length,base=won.length?won:open.filter(o=>amt(o)>0);
+  const recent=all.filter(o=>{const c=ms(o.created_at);return c!=null&&c<=t&&c>t-90*day}).length;
+  const days=won.map(o=>{const a=ms(o.created_at),b=ms(o.closed_at);return a!=null&&b!=null&&b>=a?(b-a)/day:null}).filter(x=>x!=null).sort((a,b)=>a-b);
+  const median=days.length?(days.length%2?days[(days.length-1)/2]:(days[days.length/2-1]+days[days.length/2])/2):null;
+  return {openTotal:open.reduce((a,o)=>a+amt(o),0),openCount:open.length,closed,
+    winRate:closed?Math.round(won.length/closed*100):null,
+    avgDeal:base.length?Math.round(base.reduce((a,o)=>a+amt(o),0)/base.length):null,avgFrom:won.length?'won':base.length?'open':null,
+    newPerMonth:all.some(o=>ms(o.created_at)!=null)?Math.round(recent/3*10)/10:null,
+    cycleMonths:median==null?null:Math.max(1,Math.ceil(median/30))}}
+function simulate(p){
+  const num=(v,lo,hi)=>{const n=Number(v);return Number.isFinite(n)?Math.min(hi,Math.max(lo,n)):lo};
+  const months=Math.round(num(p&&p.months,1,24)),w=num(p&&p.winRate,0,100)/100,avg=num(p&&p.avgDeal,0,9e12),n=num(p&&p.newPerMonth,0,1e4),cycle=Math.round(num(p&&p.cycleMonths,1,24)),open=num(p&&p.openTotal,0,9e15);
+  const monthly=Array.from({length:months},()=>({pipeline:0,fresh:0}));
+  for(let i=0;i<Math.min(cycle,months);i++)monthly[i].pipeline=open*w/cycle;
+  for(let m=1;m<=months;m++){const c=m+cycle;if(c<=months)monthly[c-1].fresh+=n*w*avg}
+  const r=monthly.map(x=>({pipeline:Math.round(x.pipeline),fresh:Math.round(x.fresh),total:Math.round(x.pipeline+x.fresh)}));
+  const fromPipeline=r.reduce((a,x)=>a+x.pipeline,0),fromNew=r.reduce((a,x)=>a+x.fresh,0);
+  return {months,monthly:r,fromPipeline,fromNew,total:fromPipeline+fromNew,deals:Math.round(n*Math.max(0,months-cycle)*w*10)/10}}
+const core={isOpen,forecast,closings,predict,simBaseline,simulate};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.RadixCrmForecast=core;
 if(typeof document==='undefined')return;
@@ -113,6 +139,7 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
     if(pr.items.length){fp.append(E('p','Dove lo storico e la probabilità della fase differiscono di più:','an-note'),ol)}
     fp.append(E('p','Modello statistico semplice sulle trattative chiuse di questo workspace (importo, durata, contatti recenti): è una stima, non cambia le probabilità salvate.','an-note'))}
   main.append(fp);
+  main.append(simPanel(all));
   /* stacked bars by close month and stage */
   const two=E('div',undefined,'an-two');const vel=panel('Pipeline per mese di chiusura','an-bars','Valore per fase, in base alla chiusura prevista');
   const t0=new Date();const months=[...Array(6)].map((_,i)=>new Date(t0.getFullYear(),t0.getMonth()+i,1));
@@ -144,6 +171,30 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   for(const l of lines)rail.append(E('p',l));rail.append(E('p','Calcolato dai dati del CRM. La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   root.append(main,rail);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return root}
+
+/* revenue simulator: starting values from the CRM, editable; edits survive re-renders of the view */
+const simEdits={};
+function simPanel(all){const b=simBaseline(all,Date.now());
+  const p=panel('Simulatore ricavi','an-sim','Cambia i valori per vedere quanto potresti incassare. È una simulazione, non una previsione.');
+  const fields=[['winRate','Tasso di vittoria (%)',b.winRate,b.winRate!=null?'Dai dati: '+b.winRate+'% su '+b.closed+' chiuse':'Nessuna trattativa chiusa: inserisci un valore',1],
+    ['avgDeal','Valore medio per contratto (€)',b.avgDeal==null?null:Math.round(b.avgDeal/100),b.avgFrom==='won'?'Dai dati: media delle vinte':b.avgFrom==='open'?'Dai dati: media delle aperte (nessuna vinta)':'Nessun importo nel CRM: inserisci un valore',100],
+    ['newPerMonth','Nuove opportunità al mese',b.newPerMonth,b.newPerMonth!=null?'Dai dati: create negli ultimi 90 giorni':'Data di creazione assente: inserisci un valore',0.5],
+    ['cycleMonths','Durata della trattativa (mesi)',b.cycleMonths,b.cycleMonths!=null?'Dai dati: mediana dalla creazione alla vittoria':'Nessuna vinta con date: inserisci un valore',1]];
+  const form=E('div',undefined,'an-sim-form'),inputs={};
+  for(const [k,label,def,hint,step] of fields){const l=E('label');const i=E('input');i.type='number';i.min='0';i.step=String(step);i.name=k;
+    const v=simEdits[k]!==undefined?simEdits[k]:def;if(v!=null)i.value=String(v);i.placeholder='da inserire';inputs[k]=i;l.append(E('span',label),i,E('small',hint));form.append(l)}
+  const hl=E('label');const hz=E('select');hz.name='months';for(const m of [3,6,12]){const o=E('option',m+' mesi');o.value=String(m);hz.append(o)}hz.value=String(simEdits.months||6);hl.append(E('span','Orizzonte'),hz,E('small','Pipeline aperta: '+eur(b.openTotal)+' su '+b.openCount+' opp.'));form.append(hl);
+  const out=E('div',undefined,'an-sim-out');p.append(form,out);
+  const draw=()=>{const val=k=>inputs[k].value===''?null:Number(inputs[k].value);const miss=fields.filter(f=>val(f[0])==null).map(f=>f[1].replace(/ \(.*\)$/,'').toLowerCase());out.replaceChildren();
+    if(miss.length){out.append(E('p','Per simulare inserisci: '+miss.join(', ')+'.','an-note'));return}
+    const r=simulate({openTotal:b.openTotal,winRate:val('winRate'),avgDeal:val('avgDeal')*100,newPerMonth:val('newPerMonth'),cycleMonths:val('cycleMonths'),months:Number(hz.value)});
+    const line=(a,c)=>{const x=E('p',undefined,'an-line');x.append(E('span',a),E('b',c));out.append(x)};
+    line('Incasso simulato in '+r.months+' mesi',eur(r.total));line('Dalla pipeline aperta',eur(r.fromPipeline));line('Da nuove opportunità',eur(r.fromNew)+(r.deals?' · circa '+r.deals.toLocaleString('it-IT')+' contratti':''));
+    const max=Math.max(1,...r.monthly.map(x=>x.total)),bars=E('div',undefined,'an-sim-bars'),t0=new Date();
+    r.monthly.forEach((x,i)=>{const c=E('div');c.title=eur(x.total);const st=E('span');const seg=(v,cls)=>{const q=E('i',undefined,cls);q.style.height=(v/max*100)+'%';return q};st.append(seg(x.fresh,'new'),seg(x.pipeline,'pipe'));const d=new Date(t0.getFullYear(),t0.getMonth()+i+1,1);c.append(st,E('small',MN[d.getMonth()]));bars.append(c)});out.append(bars);const lg=E('p',undefined,'an-legend');[['Dalla pipeline aperta','#26d796'],['Da nuove opportunità','#4aa3ff']].forEach(([t,col])=>{const x=E('span',t);x.style.setProperty('--c',col);lg.append(x)});out.append(lg);
+    if(r.fromNew===0&&Number(inputs.cycleMonths.value)>=r.months)out.append(E('p','Le nuove opportunità chiudono dopo l’orizzonte scelto: allunga l’orizzonte per vederle.','an-note'))};
+  for(const i of [...Object.values(inputs),hz])i.addEventListener('input',()=>{simEdits[i.name]=i.value===''?null:i.name==='months'?Number(i.value):Number(i.value);draw()});
+  draw();return p}
 
 /* email campaigns: clicks on tracked links (RADIX does not track opens) */
 async function emailPanel(main){const api=window.RadixSalesApp?.api;if(!api||!main)return;let r;try{r=await api('email_clicks',{})}catch{return}if(!main.isConnected)return;
