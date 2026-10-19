@@ -70,7 +70,8 @@ function chooseVoice(v){voice=v;step(4);$('avChosen').textContent=chosen.name+' 
 
 // ---- 4 · try and save ----
 async function save(){if(busy)return;let record;try{record=studio.avatarRecord({...chosen,voiceId:voice&&voice.id,voiceName:voice&&voice.name})}catch(e){say(e.message);return}
- busy=true;$('avSave').disabled=true;try{const saved=await ws.projects.update(project.id,project.revision,{profile:{...(project.profile||{}),avatar:record}});project={...project,...saved};showSaved();document.querySelectorAll('[data-panel]').forEach(p=>{p.hidden=true});$('avSteps').hidden=true;say('Avatar salvato: i video del piano editoriale partono con '+record.name+'.')}
+ busy=true;$('avSave').disabled=true;try{const saved=await ws.projects.update(project.id,project.revision,{profile:{...(project.profile||{}),avatar:record}});project={...project,...saved};showSaved();document.querySelectorAll('[data-panel]').forEach(p=>{p.hidden=true});$('avSteps').hidden=true;say('Avatar salvato: i video del piano editoriale partono con '+record.name+'.');
+  if(ws.memory)ws.memory.propose(studio.avatarMemory(record,project.id,project.client_id,path==='design'?$('avAppearance').value:'')).then(()=>say('Avatar salvato: i video del piano editoriale partono con '+record.name+'. Ho proposto la scelta anche in Memoria: confermala lì perché gli agenti la usino.')).catch(()=>{})}
  catch(e){say('Non salvato: '+e.message+(/revision|versione|modificat/i.test(e.message)?' Ricarica la pagina e riprova.':''))}finally{busy=false;$('avSave').disabled=false}}
 async function tryVideo(){if(busy||!chosen||!voice)return;const script=$('avScript').value.trim();if(!script){say('Scrivi un testo di prova.');return}
  if(!confirm('Generare un video di prova su HeyGen? Consuma crediti HeyGen.'))return;busy=true;$('avTry').disabled=true;const st=$('avTryState');st.textContent='Avvio il video…';

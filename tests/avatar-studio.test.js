@@ -52,3 +52,13 @@ test('HeyGen route: design and avatar creation need confirmation, upload goes to
   assert.deepEqual(JSON.parse(calls.at(-1).o.body).video_inputs[0].character,{type:'talking_photo',talking_photo_id:'look1'});
  }finally{globalThis.fetch=realFetch;auth.getSessionUser=orig;if(key===undefined)delete process.env.HEYGEN_API_KEY;else process.env.HEYGEN_API_KEY=key;delete require.cache[require.resolve('../api/_heygen.js')]}
 });
+
+test('the saved avatar is proposed to team memory as a project decision', () => {
+  const S = require('../lib/avatar-studio.js'), core = require('../api/_agency-memory-core.js');
+  const rec = S.avatarRecord({ type: 'talking_photo', id: 'tp1', name: 'Giulia', voiceId: 'v1', voiceName: 'Isabella' });
+  const e = S.avatarMemory(rec, 'p-1', 'c-1', 'donna sui 30,  capelli castani');
+  assert.equal(e.status, 'proposed'); assert.equal(e.kind, 'decision'); assert.equal(e.title, 'Avatar dei video: Giulia');
+  assert.match(e.content, /presentati da «Giulia» \(foto parlante HeyGen\) con la voce «Isabella»\. Aspetto: donna sui 30, capelli castani\./);
+  assert.equal(core.validate(e).projectId, 'p-1');
+  assert.doesNotMatch(S.avatarMemory(rec, 'p-1', '', '').content, /Aspetto/);
+});
