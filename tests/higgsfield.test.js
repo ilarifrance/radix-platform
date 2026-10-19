@@ -105,3 +105,11 @@ test('Art Director check: images first, then the request; reply parsed and bound
   assert.equal(S.parseReview('{"items":[{"n":1,"score":3},{"n":2,"score":8}]}', 2).best, 1, 'best from scores when missing');
   assert.equal(S.parseReview('nessun json', 2), null);
 });
+
+test('Art Director check reads the confirmed team memory of the project', () => {
+  const fs = require('node:fs'), path = require('node:path'), read = (f) => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+  assert.match(read('lib/image-studio.js'), /rt\.reply\(\{role:'art-director',project:ctx\.project,memoryScope:ctx\.memoryScope,/);
+  assert.match(read('editorial-workspace.js'), /S\.photoStudio\(\{project:rt&&rt\.profileFor\(registryProject\),memoryScope:scope\('art-director'\),/);
+  assert.match(read('lib/radix-agent-media.js'), /S\.photoStudio\(\{project:ctx\.project,memoryScope:ctx\.memoryScope,/);
+  assert.equal((read('agents-page.js').match(/prefs:teamPrefs,memoryScope:scope\('art-director'\)\}/g) || []).length, 2);
+});
