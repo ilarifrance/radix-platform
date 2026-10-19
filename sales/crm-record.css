@@ -1,0 +1,74 @@
+/* Scheda del record (Riepilogo AI, Registra un'attività) and «Primi passi» on the Panoramica.
+   Every color is a custom property in the block below: to retheme (e.g. light background),
+   redefine only these variables. Layout rules further down use no hard-coded colors. */
+:root{
+ --crx-surface:linear-gradient(160deg,#0a2a33f0,#061b25f2);
+ --crx-surface-2:#061b24cc;
+ --crx-border:#1f5a5c;
+ --crx-border-soft:#1b4a50;
+ --crx-border-accent:#2f8a80;
+ --crx-shadow:0 14px 34px #0005;
+ --crx-heading:#cfe3e0;
+ --crx-text:inherit;
+ --crx-muted:#8fb1b3;
+ --crx-faint:#6f9496;
+ --crx-accent:#57f6d6;
+ --crx-accent-2:#7fe7cd;
+ --crx-accent-strong:#36edbd;
+ --crx-accent-ink:#03211b;
+ --crx-link:#3fe8bd;
+ --crx-tab:#b4d0d1;
+ --crx-warn:#f2b84b;
+ --crx-track:#0a3640;
+ --crx-fill:linear-gradient(90deg,#36edbd,#54cbda);
+ --crx-mark:#3c7378;
+}
+
+/* ---------- Scheda del record (crm-record.js) ---------- */
+.crm-rec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin:6px 0 18px}
+.crm-rec>section{background:var(--crx-surface);border:1px solid var(--crx-border);border-radius:14px;box-shadow:var(--crx-shadow);padding:16px 18px;min-width:0;color:var(--crx-text)}
+.crm-rec h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--crx-heading)}
+.crm-rec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
+.crm-rec-head button{min-height:36px;font-size:13px}
+.crm-rec>section>p.muted{font-size:12px;margin:4px 0 8px;color:var(--crx-muted)}
+.crm-rec .crm-rec-ai{border-color:var(--crx-border-accent)}
+.crm-rec-ai h3{color:var(--crx-accent)}
+.crm-rec-out:empty{display:none}
+.crm-rec-out{display:grid;gap:10px;margin-top:8px}
+.crm-rec-part{background:var(--crx-surface-2);border:1px solid var(--crx-border-soft);border-radius:10px;padding:10px 12px}
+.crm-rec-part h4{margin:0 0 4px;font-size:12px;font-weight:600;color:var(--crx-accent-2)}
+.crm-rec-part p,.crm-rec-raw{margin:0;font-size:13px;white-space:pre-wrap}
+.crm-rec-next{border-color:var(--crx-accent-strong)}
+.crm-rec-warn{margin:0;font-size:12px;color:var(--crx-warn)}
+.crm-rec-meta{font-size:11px;color:var(--crx-faint)}
+.crm-rec-wait{margin:0;font-size:13px;color:var(--crx-accent-2)}
+.crm-rec-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 12px;border-bottom:1px solid var(--crx-border)}
+.crm-rec-tabs button{min-height:36px;padding:6px 14px;font-size:13px;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;color:var(--crx-tab)}
+.crm-rec-tabs button[aria-selected="true"]{color:var(--crx-accent);border-bottom-color:var(--crx-accent-strong)}
+.crm-rec-form{display:grid;gap:6px}
+.crm-rec-form label{font-size:12px;color:var(--crx-muted);display:grid;gap:4px}
+.crm-rec-form input,.crm-rec-form select{min-height:38px}
+.crm-rec-form textarea{min-height:90px}
+.crm-rec-form small{font-size:11px;color:var(--crx-faint)}
+.crm-rec-form .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.crm-rec-form .actions button{min-height:36px;font-size:13px}
+.crm-rec-form p.muted{font-size:12px;margin:2px 0 0}
+.crm-rec-to{margin:0;font-size:12px;color:var(--crx-heading)}
+@media(max-width:1000px){.crm-rec{grid-template-columns:1fr}}
+
+/* ---------- Primi passi (dashboard-view.js) ---------- */
+.pv-onboard .pv-head{align-items:center;margin-bottom:10px}
+.pv-onboard-count{font-size:12px;color:var(--crx-accent-2);margin-left:auto}
+.pv-onboard-hide{min-height:30px;padding:4px 10px;font-size:12px;background:none;border:1px solid var(--crx-border);color:var(--crx-muted)}
+.pv-onboard-bar{height:6px;border-radius:6px;background:var(--crx-track);overflow:hidden;margin-bottom:12px}
+.pv-onboard-bar i{display:block;height:100%;background:var(--crx-fill)}
+.pv-onboard-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.pv-onboard-list li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--crx-border-soft);border-radius:10px;background:var(--crx-surface-2)}
+.pv-onboard-list li>div{display:grid;min-width:0;flex:1}
+.pv-onboard-list b{font-size:13px;font-weight:600}
+.pv-onboard-list small{font-size:11px;color:var(--crx-muted)}
+.pv-onboard-list li.done b{color:var(--crx-muted)}
+.pv-onboard-mark{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--crx-mark);display:grid;place-items:center;font-size:12px}
+.pv-onboard-mark.ok{background:var(--crx-accent-strong);border-color:var(--crx-accent-strong);color:var(--crx-accent-ink);font-weight:700}
+.pv-onboard-go{font-size:12px;color:var(--crx-link);white-space:nowrap}
+.pv-onboard-state{font-size:11px;color:var(--crx-faint)}

@@ -4,7 +4,7 @@
    the first 100 rows of each entity, cached until the workspace changes or
    the user presses Aggiorna. */
 (()=>{
-const ENT=['contacts','companies','opportunities','tasks','interactions','stages','members'];
+const ENT=['contacts','companies','opportunities','tasks','interactions','stages','members','processes','leads'];
 let ws=null,data=null,pending=null,gen=0;
 async function read(entity,w){const q=new URLSearchParams({entity,offset:'0',workspace:w});const r=await fetch('/api/sales?'+q,{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('CRM '+r.status);const d=await r.json();if(!Array.isArray(d.rows))throw Error('Formato non valido');return d.rows}
 function load(){const w=document.getElementById('workspace')?.value;if(!w)return Promise.resolve(null);

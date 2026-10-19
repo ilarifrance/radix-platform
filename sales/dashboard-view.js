@@ -97,12 +97,24 @@ function rail(d,m){const r=E('aside',undefined,'pv-rail');const h=E('div',undefi
   const next=E('div',undefined,'pv-rail-block');next.append(E('h4','Prossime attività'));for(const t of [...m.open].sort((a,b)=>String(a.due_at||'9999').localeCompare(String(b.due_at||'9999'))).slice(0,3)){const p=E('p');p.append(E('b',t.title),E('small',company(d,t.company_id)+' · '+fmtDay(t.due_at)));next.append(p)}r.append(next);
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','pv-ask');ask.href='/sales-orbit-higgsfield.html';r.append(ask);return r}
 
+// «Primi passi»: steps from crm-onboarding-core.js, ticked only by the data; hidden per user and workspace.
+function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesApp;if(!O)return null;
+  const key=O.storageKey(app?.state.me,document.getElementById('workspace')?.value);
+  if(key){try{if(localStorage.getItem(key)==='hidden')return null}catch{}}
+  const steps=O.steps(d),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
+  const h=E('div',undefined,'pv-head');const t=E('h3',pr.complete?'Primi passi: tutto pronto':'Primi passi');t.id='pv-onboard-title';h.append(t,E('span',pr.done+' di '+pr.total+' fatti','pv-onboard-count'));
+  if(key){const x=E('button','Nascondi','pv-onboard-hide');x.type='button';x.onclick=()=>{try{localStorage.setItem(key,'hidden')}catch{}p.remove()};h.append(x)}
+  p.append(h);const bar=E('div',undefined,'pv-onboard-bar');bar.setAttribute('role','progressbar');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(pr.total));bar.setAttribute('aria-valuenow',String(pr.done));bar.setAttribute('aria-label','Passi completati');const fill=E('i');fill.style.width=Math.round(pr.done/pr.total*100)+'%';bar.append(fill);p.append(bar);
+  const ol=E('ol',undefined,'pv-onboard-list');for(const s of steps){const li=E('li',undefined,s.done?'done':'todo');li.append(E('span',s.done?'✓':'',s.done?'pv-onboard-mark ok':'pv-onboard-mark'));const tx=E('div');tx.append(E('b',s.label),E('small',s.hint));li.append(tx);
+    if(s.done)li.append(E('span','Fatto','pv-onboard-state'));else{const a=E('a','Vai','pv-onboard-go');a.href=s.href;a.setAttribute('aria-label','Vai: '+s.label);li.append(a)}ol.append(li)}
+  p.append(ol,E('p','Si spuntano da soli leggendo i dati del workspace'+(d.partial?' (primi 100 record per tipo)':'')+'.','pv-note'));return p}
+
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}
   const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;const m=model(d);
   busy=true;sec.querySelector(':scope>.pv')?.remove();
   const root=E('div',undefined,'pv');const main=E('div',undefined,'pv-main');const mid=E('div',undefined,'pv-two');mid.append(funnel(m),trend(m));const low=E('div',undefined,'pv-two pv-two-b');low.append(risks(d,m),team(m));
-  main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
+  const start=onboarding(d);if(start)main.append(start);main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
   document.documentElement.classList.add('pv-on');requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains("pv")||n.classList?.contains("cx")))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
