@@ -89,3 +89,19 @@ test('image action fetches the photo of a verified request, never a URL from the
   r=bin();await hf({method:'GET',query:{action:'image',id:ID}},r);assert.equal(r.code,409);
  }finally{auth.getSessionUser=origUser;global.fetch=origFetch;if(origKey===undefined)delete process.env.HIGGSFIELD_API_KEY;else process.env.HIGGSFIELD_API_KEY=origKey}
 });
+
+test('Art Director check: images first, then the request; reply parsed and bounded', () => {
+  const S = require('../lib/image-studio.js');
+  const m = S.reviewMessage([{ url: 'https://cdn.example/a.png' }, { url: 'https://cdn.example/b.png' }, null], { concept: 'Ordine nel caos', project: { name: 'Studio Rossi' } });
+  assert.equal(m.role, 'user');
+  assert.deepEqual(m.content.slice(0, 2).map((x) => x.source.url), ['https://cdn.example/a.png', 'https://cdn.example/b.png']);
+  assert.match(m.content[2].text, /le 2 proposte/);
+  assert.match(m.content[2].text, /Studio Rossi/);
+  const r = S.parseReview('Ecco: {"best":2,"items":[{"n":1,"score":4,"issues":["scritte finte sul cartello"],"note":"testo nel fondo"},{"n":2,"score":11,"issues":[],"note":"pulita"},{"n":7,"score":9}]}', 2);
+  assert.equal(r.best, 1);
+  assert.deepEqual(r.items[0].issues, ['scritte finte sul cartello']);
+  assert.equal(r.items[1].score, 10);
+  assert.equal(r.items.length, 2);
+  assert.equal(S.parseReview('{"items":[{"n":1,"score":3},{"n":2,"score":8}]}', 2).best, 1, 'best from scores when missing');
+  assert.equal(S.parseReview('nessun json', 2), null);
+});
