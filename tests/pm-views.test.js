@@ -160,3 +160,10 @@ test('level pushes overflow to the first week with room for everyone on the task
  assert.equal(v.level(after,mon,6,3).length,0);
  assert.deepEqual(v.level(tasks,mon,6,10),[]);
 });
+
+test('origin tells automatic tasks apart from manual ones',()=>{
+ assert.equal(v.origin(T('a',{agencyTaskId:'x',status:'Completato'})).label,'Approvato in Agency');
+ assert.equal(v.origin(T('b',{agencyTaskId:'x'})).label,'Incarico Agency');
+ assert.equal(v.origin(T('c',{pedContentId:'p1'})).kind,'ped');
+ assert.equal(v.origin(T('d')),null);
+});
