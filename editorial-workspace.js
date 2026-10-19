@@ -117,7 +117,7 @@ const scope=agentId=>({projectId,clientId:String(registryProject&&registryProjec
 async function produceCopy(item,progress,note){
  const r=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:pv.copyPrompt(state.brief,item,note)+tools()}]},{onProgress:progress});
  let text=pv.cleanCopy(r.text),applied=[];const sources=sourcesOf(item);
- if(routing){try{const rv=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:routing.reviewPrompt(text,sources)}]});const fixed=routing.applyReview(text,rv.text);text=fixed.text;applied=fixed.applied}catch(e){}}
+ if(routing){try{const rv=await rt.reply({role:'fact-checker',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:routing.reviewPrompt(text,sources)}]});const fixed=routing.applyReview(text,rv.text);text=fixed.text;applied=fixed.applied}catch(e){}}
  return {text,applied,numbers:routing?routing.unsupportedNumbers(text,sources):[]};
 }
 function renderCheck(res){const box=$('copyCheck');if(!res){box.hidden=true;return}box.hidden=false;box.className='copy-check'+(res.numbers.length?'':' ok');box.replaceChildren();
