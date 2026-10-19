@@ -117,3 +117,21 @@ test('a request can ask for the previous engine', async () => {
     if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
   }
 });
+
+test('agents that write about RADIX get its real feature list, others do not', async () => {
+  require('../api/_auth').getSessionUser = () => ({ uid: 'u1' });
+  const chat = require('../api/chat.js');
+  const sent = [], realFetch = global.fetch, key = process.env.ANTHROPIC_API_KEY;
+  global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }) }; };
+  process.env.ANTHROPIC_API_KEY = 'test';
+  const res = { status() { return this; }, json() { return this; }, setHeader() {} };
+  try {
+    for (const role of ['copywriter', 'comm-email-outreach', 'legal-gdpr']) await chat({ method: 'POST', headers: {}, body: { role, messages: [{ role: 'user', content: 'x' }] } }, res);
+    assert.match(sent[0].system, /STRUMENTI REALI DI RADIX/);
+    assert.match(sent[1].system, /STRUMENTI REALI DI RADIX/);
+    assert.doesNotMatch(sent[2].system, /STRUMENTI REALI DI RADIX/);
+  } finally {
+    global.fetch = realFetch;
+    if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
+  }
+});
