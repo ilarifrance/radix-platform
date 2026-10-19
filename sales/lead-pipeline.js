@@ -196,5 +196,7 @@
  window.addEventListener('radix:lead-reviewed',rebuild);
  window.addEventListener('radix:lead-outcome-recorded',e=>{const d=e.detail||{};if(d.key&&Number.isInteger(d.index)&&['contacted','replied','meeting','won','lost'].includes(d.stage))state.outcomes.set(d.key,d.index);render()});
  window.addEventListener('radix:lead-outcome-voided',e=>{state.outcomes.delete(e.detail?.ref);render()});
+ // Read-only view for the Newsletter tab (sales/lead-newsletter.js): the leads it would act on and their session segments.
+ window.RadixLeadPipeline=Object.freeze({targets:()=>targets().slice(),leads:()=>state.leads.slice(),segmentOf:key=>state.segments.get(key)||'',segments:()=>[...new Set(state.segments.values())].sort(),selected:()=>state.selected.size});
  rebuild();
 })();
