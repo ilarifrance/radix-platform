@@ -95,3 +95,8 @@ test('save conflicts merge per task: each side keeps what it changed, further st
  assert.equal(out.tasks[1].status,'approved','remote-only change kept');assert.equal(out.tasks[2].output,'theirs','both changed: approved beats done');
  assert.equal(out.autoRun,false);assert.deepEqual(out.tasks.map(t=>t.id),['a','b','c','d']);
 });
+test('templateBrief keeps the service and drops the old client data',()=>{
+ const t=route.templateBrief({name:'Francesco Ilari',clientId:'c1',industry:'Consulenza',goal:'Lead B2B',audience:'PMI',market:'Italia',budget:'1500',channels:['ped-social','email'],platforms:['LinkedIn',''],brandRules:'Tono diretto',constraints:'Niente promesse',facts:'1.000 follower',cases:'Caso X'});
+ assert.deepEqual(t,{industry:'Consulenza',goal:'Lead B2B',audience:'PMI',market:'Italia',budget:1500,channels:['ped-social','email'],platforms:['LinkedIn'],brandRules:'Tono diretto',constraints:'Niente promesse'});
+ assert.equal(route.templateBrief({budget:null}).budget,null);assert.equal(route.templateBrief(null).goal,'');assert.equal(route.templateBrief({budget:-3}).budget,null);
+});

@@ -9,7 +9,7 @@ let roles=null,plan=null,aiTasks=[],aiText="",aiBusy=false,stopRequested=false,a
 
 
 async function checkAuth(){
- try{const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});if(!response.ok){sessionUser=null;updateAuth();loadClients();return false}const data=await response.json();sessionUser=data.user||null;updateAuth();loadClients();return !!sessionUser}
+ try{const response=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});if(!response.ok){sessionUser=null;updateAuth();loadClients();return false}const data=await response.json();sessionUser=data.user||null;updateAuth();loadClients();applyTemplate();return !!sessionUser}
  catch(e){sessionUser=null;updateAuth();return false}
 }
 function updateAuth(){
@@ -17,6 +17,13 @@ function updateAuth(){
  $('authOpen').textContent=sessionUser?'Sessione attiva':'Accedi a RADIX';
  $('authOpen').disabled=!!sessionUser;
 }
+// «Usa come modello» from the projects list: the form starts from another project's service, without its client data.
+function applyTemplate(){const id=new URLSearchParams(location.search).get('modello');if(!id||!sessionUser||applyTemplate.done)return;applyTemplate.done=true;
+ RadixWorkspace.ready().then(()=>RadixWorkspace.documents.load(id,'agency-workspace')).then(d=>{const src=d&&d.data&&d.data.brief;if(!src)throw Error('progetto modello senza brief');const t=RadixAgencyRouting.templateBrief(src);
+  for(const k of ['industry','goal','audience','market','brandRules','constraints'])$(k).value=t[k];$('budget').value=t.budget===null?'':String(t.budget);
+  document.querySelectorAll('#channels input').forEach(x=>{x.checked=t.channels.includes(x.value)});document.querySelectorAll('#platforms input').forEach(x=>{x.checked=t.platforms.includes(x.value)});
+  $('message').textContent='Modello caricato da «'+(src.name||id)+'»: servizio, canali e regole sono pronti. Scegli il cliente, scrivi il nome del progetto e la sua scheda fatti.';$('name').focus()})
+ .catch(e=>{$('message').textContent='Modello non caricato: '+e.message})}
 function loadClients(){const sel=$('clientId');clientList=[];sel.disabled=true;sel.innerHTML='<option value="">Nessun cliente (progetto interno)</option>';if(!sessionUser)return;RadixWorkspace.ready().then(()=>RadixWorkspace.clients.list()).then(list=>{clientList=list.filter(c=>['active','prospect','paused'].includes(c.status));for(const client of clientList){const opt=document.createElement('option');opt.value=client.id;opt.textContent=client.name;sel.appendChild(opt)}const requested=new URLSearchParams(location.search).get('client');if(requested&&clientList.some(c=>c.id===requested))sel.value=requested;$('clientHint').textContent=clientList.length?clientList.length+' clienti disponibili nell’archivio del team.':'Nessun cliente disponibile: crealo nella pagina Clienti.';sel.disabled=false}).catch(e=>{$('clientHint').textContent='Impossibile leggere i clienti: '+e.message})}
 function openAuth(){ $('loginOverlay').classList.add('open');$('loginError').textContent='';$('loginEmail').focus()}
 function closeAuth(){ $('loginOverlay').classList.remove('open');$('loginPassword').value='' }
