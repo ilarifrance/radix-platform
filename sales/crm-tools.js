@@ -223,6 +223,19 @@ async function mergeGroup(group,keepId){
  }
  if(skipped.length)a.error('Non uniti: '+skipped.join(' · '));
 }
+// Playbook of the opportunity's stage (crm-playbook-core.js): fixed steps, missing ones created after one confirmation.
+function playbookBlock(opp){
+ const a=app(),P=window.RadixCrmPlaybook,box=E('div',undefined,'crm-playbook'),plan=P.planPlaybook(opp,a.rows('stages'),a.rows('tasks'),{now:Date.now(),assignee:a.state.me||null});
+ box.append(E('strong','Playbook · '+plan.playbook.name+(plan.stage?' ('+plan.stage.title+')':'')));
+ const ol=E('ol');for(const s of plan.steps){const li=E('li',s.title.replace(/^\[Playbook [^\]]*\] /,'')+' · '+(s.day?'entro '+s.day+(s.day===1?' giorno':' giorni'):'oggi'));if(s.done){li.className='done';li.append(E('span',' ✓ già creata','muted'))}ol.append(li)}box.append(ol);
+ if(plan.create.length){const n=plan.create.length;box.append(B('Crea '+(n===1?'l’attività mancante':'le '+n+' attività mancanti'),async()=>{
+  if(!window.confirm('Creare '+n+' attività del playbook «'+plan.playbook.name+'» per «'+a.title(opp)+'»?\n'+plan.create.map(t=>'• '+t.title).join('\n')))return;
+  let done=0;const failed=[];await run('Creo le attività del playbook…',async()=>{for(const t of plan.create){try{await post('tasks','create',t);done++}catch(e){failed.push(e.message)}}});
+  await a.refresh(false);a.notice('Playbook «'+plan.playbook.name+'»: '+done+(done===1?' attività creata.':' attività create.'));if(failed.length)a.error('Non create: '+failed.length+' · '+failed[0])}))}
+ else box.append(E('p','Tutti i passi di questa fase sono già tra le attività.','muted'));
+ box.append(E('p','Passi fissi per fase, non generati dall’AI. Le attività vanno al responsabile della trattativa.','muted'));
+ return box;
+}
 window.RadixCrmTools={
  section(entity,section){
   if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf));if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
@@ -235,6 +248,7 @@ window.RadixCrmTools={
   if(entity==='tickets'&&!readonly&&window.RadixCrmTicketReply?.mount&&RadixCrmTicketReply.mount(c,row))return;
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');
    bar.append(B('Bozza di risposta con AI',()=>RadixCrmCopilot.open('Scrivi una bozza di risposta cortese e concreta per il ticket di assistenza «'+row.title+'»'+(row.body?'. Richiesta del cliente: «'+String(row.body).slice(0,1500)+'»':'')+'. Usa solo i dati del CRM, indica cosa verificare prima di inviarla e non promettere nulla che non risulti dai dati.')));c.append(bar);return}
+  if(entity==='opportunities'&&!readonly&&window.RadixCrmPlaybook&&app().writable('tasks')&&(!row.outcome||row.outcome==='open')){c.append(playbookBlock(row));return}
   if(entity!=='contacts'||readonly)return;
   if(window.RadixCrmScore){const s=RadixCrmScore.score(row,scoreData());const p=E('p','Punteggio '+s.total+' · '+s.band+' — '+RadixCrmScore.explain(s),'crm-score crm-score-'+s.band);p.dataset.score=String(s.total);c.append(p)}
   const bar=E('div',undefined,'actions crm-gdpr');
