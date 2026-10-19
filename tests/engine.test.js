@@ -144,3 +144,28 @@ test('API errors the user can act on are explained in plain words', () => {
   assert.match(friendlyApiError(Object.assign(new Error('Overloaded'), { status: 529 })), /sovraccarico/);
   assert.match(friendlyApiError(new Error('boom')), /^Chiamata all'API fallita: boom$/);
 });
+
+test('legal agents get the corrected rules and the decisions already taken by the client', async () => {
+  require('../api/_auth').getSessionUser = () => ({ uid: 'u1' });
+  const chat = require('../api/chat.js');
+  const sent = [], realFetch = global.fetch, key = process.env.ANTHROPIC_API_KEY;
+  global.fetch = async (url, opts) => { sent.push(JSON.parse(opts.body)); return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'ok' }], stop_reason: 'end_turn' }) }; };
+  process.env.ANTHROPIC_API_KEY = 'test';
+  const res = { status() { return this; }, json() { return this; }, setHeader() {} };
+  const stale = { id: 'doc-capital', name: 'Doc Capital', summary: 'Startup fondata da Francesco Ilari.' };
+  try {
+    await chat({ method: 'POST', headers: {}, body: { role: 'legal-contracts', project: stale, messages: [{ role: 'user', content: 'x' }] } }, res);
+    await chat({ method: 'POST', headers: {}, body: { role: 'legal-contracts', project: { id: 'altro', name: 'Altro', decisions: 'Quorum 60%.' }, messages: [{ role: 'user', content: 'x' }] } }, res);
+    const doc = sysText(sent[0].system);
+    assert.match(doc, /Decisioni già prese e fatti confermati[^\n]*non il fondatore/, 'a saved profile without decisions still gets the preset ones');
+    assert.match(doc, /art\. 413 c\.p\.c\./);
+    assert.match(doc, /art\. 64 CPI riguarda solo i dipendenti/);
+    assert.match(doc, /SSPL e BSL/);
+    assert.match(sysText(sent[1].system), /Decisioni già prese e fatti confermati[^\n]*Quorum 60%/);
+    assert.doesNotMatch(sysText(sent[1].system), /Tryon/);
+    assert.equal(sent[0].max_tokens, 32000, 'contracts have room for long documents');
+  } finally {
+    global.fetch = realFetch;
+    if (key === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = key;
+  }
+});
