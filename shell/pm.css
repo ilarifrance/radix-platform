@@ -367,3 +367,14 @@ body.pm-no-plan main#workspace>#stats{display:none}
 .rx-pm #replan[hidden]{display:none}
 .rx-pm .pm-projectbar:has(#replan:not([hidden])) #new-project{margin-left:0}
 html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #replan{height:38px;min-height:0;padding:0 12px}
+/* Andamento: burn-up a colonne e tabella per responsabile */
+.rx-pm .pm-trend{margin-top:16px;display:grid;gap:14px}.rx-pm .pm-burn{margin:0;padding:16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised)}
+.rx-pm .pm-burn figcaption{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.rx-pm .pm-burn-legend{display:flex;gap:14px;margin:10px 0;font-size:12px;color:var(--rx-muted)}
+.rx-pm .pm-burn-legend .k::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.rx-pm .pm-burn-legend .planned::before{background:color-mix(in srgb,var(--pm-todo) 30%,transparent);border:1px dashed var(--pm-todo)}.rx-pm .pm-burn-legend .done::before{background:var(--pm-done)}
+.rx-pm .pm-burn-plot{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(44px,1fr);gap:6px;height:200px;align-items:end;overflow-x:auto;border-bottom:1px solid var(--rx-border)}
+.rx-pm .pm-burn-col{display:flex;flex-direction:column;align-items:center;height:100%;gap:4px;font-size:11px;color:var(--rx-muted)}.rx-pm .pm-burn-col.now small{color:var(--rx-text);font-weight:600}
+.rx-pm .pm-burn-val{font-size:11px;font-weight:600;color:var(--rx-text)}.rx-pm .pm-burn-bars{position:relative;flex:1;width:22px}
+.rx-pm .pm-burn-bar{position:absolute;bottom:0;left:0;right:0;border-radius:4px 4px 0 0}.rx-pm .pm-burn-bar.planned{background:color-mix(in srgb,var(--pm-todo) 22%,transparent);border:1px dashed var(--pm-todo);border-bottom:0}
+.rx-pm .pm-burn-bar.done{left:4px;right:4px;background:var(--pm-done)}.rx-pm .pm-burn-col.ahead{opacity:.7}.rx-pm .pm-burn-note{margin:0;color:var(--rx-text)}
+.rx-pm .pm-people{width:100%;border-collapse:collapse;font-size:13px}.rx-pm .pm-people caption{text-align:left;color:var(--rx-muted);padding-bottom:6px;font-size:12px}.rx-pm .pm-people th,.rx-pm .pm-people td{padding:8px 10px;border-bottom:1px solid var(--rx-border);text-align:left}.rx-pm .pm-people td.warn{color:var(--rx-warning);font-weight:600}
