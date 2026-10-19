@@ -100,14 +100,16 @@ function renderPublish(item){const host=$('publish');host.querySelectorAll('.too
   try{if(!bufferChannels){const r=await fetch('/api/buffer?action=channels',{credentials:'same-origin'}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Canali Buffer non disponibili');bufferChannels=d.channels||[]}}
   catch(e){open.disabled=false;open.textContent='📤 Prepara la pubblicazione';notify('Buffer: '+e.message);let err=wrap.querySelector('.publish-error');if(!err){err=Object.assign(document.createElement('p'),{className:'tool-status publish-error'});err.setAttribute('role','alert');wrap.append(err)}err.textContent='Buffer non risponde: '+e.message;return}
   {const err=wrap.querySelector('.publish-error');if(err)err.remove()}open.hidden=true;if(!bufferChannels.length){wrap.append(Object.assign(document.createElement('p'),{className:'tool-status',textContent:'Nessun canale trovato sull’account Buffer collegato.'}));return}
+  // The preview below must show the images that will really go out, so stale drawn images are redrawn first.
+  try{if(await freshGraphics(state.contents.find(x=>x.id===item.id)||item))persist('Immagini ridisegnate con l’identità visiva attuale.')}catch(e){}
   const panel=document.createElement('div');panel.className='panel publish-form';
   const lc=document.createElement('label'),sel=document.createElement('select');sel.id='publishChannel';lc.append('Canale Buffer',sel);bufferChannels.forEach(c=>sel.append(new Option(c.name+(c.service?' ('+c.service+')':''),c.id)));let saved='';try{saved=localStorage.getItem('radix.buffer-channel')||''}catch(e){}if(bufferChannels.some(c=>c.id===saved))sel.value=saved;
   const modes=document.createElement('fieldset');modes.className='publish-modes';modes.append(Object.assign(document.createElement('legend'),{textContent:'Quando'}));
   const opts=[['scheduled',plan.mode==='scheduled'?'All’orario del piano · '+fmtAt(plan.scheduledAt,tz):'All’orario del piano · non disponibile: '+(plan.reason==='past'?'orario già passato':'data o orario mancanti'),plan.mode!=='scheduled'],['queue','Nel prossimo slot libero di Buffer',false]];
   opts.forEach(([v,label,off],i)=>{const l=document.createElement('label'),r=document.createElement('input');r.type='radio';r.name='publishMode';r.value=v;r.disabled=off;r.checked=plan.mode==='scheduled'?i===0:v==='queue';l.append(r,' '+label);modes.append(l)});
-  const pre=document.createElement('p');pre.className='muted';pre.textContent='Testo inviato (versione approvata '+item.revision+', non modificabile qui): '+item.copy.slice(0,280)+(item.copy.length>280?'…':'');
+  const pre=document.createElement('p');pre.className='muted';pre.textContent='Qui sopra il post come lo vedranno su '+(item.channel||'social')+': testo della versione approvata '+item.revision+' e immagini allegate. Per cambiarlo, modifica il contenuto e approvalo di nuovo.';
   const go=document.createElement('button'),status=document.createElement('p');go.type='button';go.className='primary';go.id='sendPublish';go.textContent='Invia a Buffer';status.className='tool-status';status.id='publishStatus';
-  panel.append(lc,modes,pre,go,status);wrap.append(panel);
+  panel.append(lc,modes,channelPreview(item,()=>{const c=bufferChannels.find(x=>x.id===sel.value);return c&&c.service||item.channel}),pre,go,status);wrap.append(panel);
   go.onclick=async()=>{const mode=(panel.querySelector('input[name=publishMode]:checked')||{}).value||'queue',ch=bufferChannels.find(c=>c.id===sel.value);
    if(!confirm('Questo programma DAVVERO la pubblicazione su Buffer, canale "'+(ch?ch.name:sel.value)+'", '+(mode==='scheduled'?'per '+fmtAt(plan.scheduledAt,tz):'nel prossimo slot libero')+'. Non è una bozza. Confermi?'))return;
    try{localStorage.setItem('radix.buffer-channel',sel.value)}catch(e){}
@@ -209,6 +211,18 @@ var approving=false;
 const inReview=()=>(state.contents||[]).filter(x=>x.status==='review'&&!x.needsStrategyReview&&x.strategyRevision===state.strategyRevision).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
 // Review before approving: each text in review is shown as the post will look (image and full text). The person
 // approves it, or sends it back with a note and the Copywriter rewrites it right away; the rest is approved together.
+// How the post will look once published: name, the first lines of the text with «…altro» as on LinkedIn, and the images
+// actually attached (the ones Buffer receives).
+function channelPreview(item,service){const prof=rt&&registryProject&&rt.profileFor(registryProject)||{},art=document.createElement('article');art.className='post-preview publish-preview';art.id='publishPreview';
+ const head=document.createElement('header'),av=document.createElement('span'),who=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small');
+ const full=String(prof.name||registryProject&&registryProject.name||'RADIX').split(/\s[—–-]\s/)[0];av.className='pp-avatar';av.textContent=full.trim().charAt(0).toUpperCase()||'R';name.textContent=full;
+ const svc=String(service()||''),names={linkedin:'LinkedIn',instagram:'Instagram',facebook:'Facebook',twitter:'X',threads:'Threads',tiktok:'TikTok',youtube:'YouTube'};meta.textContent=(names[svc.toLowerCase()]||item.channel||svc||'Social')+' · anteprima';who.append(name,meta);head.append(av,who);
+ const text=document.createElement('div');text.className='pp-text pp-clamp';text.textContent=item.copy;const more=document.createElement('button');more.type='button';more.className='pp-more-text';more.textContent='…altro';
+ more.onclick=()=>{const open=text.classList.toggle('pp-clamp');more.textContent=open?'…altro':'mostra meno'};
+ const pic=document.createElement('div');pic.className='pp-media';pic.textContent='Carico le immagini allegate…';
+ api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id)).then(d=>{if(!d.items.length){pic.textContent='Nessuna immagine allegata: il post esce solo con il testo.';return}
+  pic.dataset.count=d.items.length;pic.replaceChildren(...d.items.map(x=>Object.assign(document.createElement('img'),{src:x.url,alt:'Immagine allegata al post',loading:'lazy'})))}).catch(()=>{pic.textContent='Immagini non disponibili ora.'});
+ art.append(head,text);if(String(item.copy||'').length>210||String(item.copy||'').split('\n').length>3)art.append(more);art.append(pic);return art}
 function postPreview(item){const art=document.createElement('article');art.className='post-preview';art.dataset.id=item.id;
  const head=document.createElement('header'),av=document.createElement('span'),who=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small');
  av.className='pp-avatar';av.textContent=String(project&&project.name||'R').trim().charAt(0).toUpperCase();name.textContent=String(project&&project.name||'RADIX').split(' — ')[0];
