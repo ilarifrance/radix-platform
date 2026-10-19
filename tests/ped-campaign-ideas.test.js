@@ -26,3 +26,12 @@ test('parseCampaignIdeas keeps at most 3 valid campaigns',()=>{
 test('parseCampaignIdeas rejects unreadable answers',()=>{
  assert.throws(()=>pv.parseCampaignIdeas('nessuna idea',state,'2026-10-19'),/non sono leggibili/);
 });
+
+test('a chosen campaign becomes a project decision proposed to team memory', () => {
+  const pv = require('../lib/ped-views.js');
+  const e = pv.campaignMemory({ name: ' Lancio  autunno ', start: '2026-10-20', end: '2026-11-15', goal: 'Far provare il nuovo menù', channels: 'Instagram, Facebook' }, 'p-1', 'c-1');
+  assert.deepEqual({ level: e.level, kind: e.kind, status: e.status, projectId: e.projectId, clientId: e.clientId, title: e.title }, { level: 'project', kind: 'decision', status: 'proposed', projectId: 'p-1', clientId: 'c-1', title: 'Campagna scelta: Lancio autunno' });
+  assert.match(e.content, /dal 2026-10-20 al 2026-11-15\. Obiettivo: Far provare il nuovo menù\. Canali: Instagram, Facebook\./);
+  assert.ok(e.source.length >= 3);
+  assert.equal(require('../api/_agency-memory-core.js').validate(e).title, e.title, 'accepted by the memory API');
+});
