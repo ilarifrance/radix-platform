@@ -60,20 +60,20 @@ async function bufferGraphQL(apiKey, query, variables) {
 async function createPost(apiKey, { channelId, text, dueAt, images }) {
   const scheduled = !!dueAt;
   const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
-  const vars = { channelId, text };
-  if (scheduled) vars.dueAt = dueAt;
   // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
   const assets = pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
   const data = await bufferGraphQL(
     apiKey,
-    'mutation($channelId: String!, $text: String!' + (scheduled ? ', $dueAt: DateTime!' : '') + ') {\n' +
-      '  createPost(input: { text: $text, channelId: $channelId, schedulingType: automatic, mode: ' +
-      (scheduled ? 'customScheduled, dueAt: $dueAt' : 'addToQueue') + assets + ' }) {\n' +
+    // Inline literals, as in Buffer's own examples: ids use Buffer's own scalar types (ChannelId,
+    // OrganizationId), so a variable declared String! is rejected. JSON strings are valid GraphQL strings.
+    'mutation {\n' +
+      '  createPost(input: { text: ' + JSON.stringify(String(text)) + ', channelId: ' + JSON.stringify(String(channelId)) +
+      ', schedulingType: automatic, mode: ' +
+      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + ' }) {\n' +
       '    ... on PostActionSuccess { post { id text dueAt } }\n' +
       '    ... on MutationError { message }\n' +
       '  }\n' +
-      '}',
-    vars
+      '}'
   );
   const result = data && data.createPost;
   const fail = (status, message) => Object.assign(new Error(message), { status });
@@ -127,8 +127,7 @@ module.exports = async (req, res) => {
         orgs.map((org) =>
           bufferGraphQL(
             apiKey,
-            'query($orgId: String!) { channels(input: { organizationId: $orgId }) { id name service } }',
-            { orgId: org.id }
+            'query { channels(input: { organizationId: ' + JSON.stringify(String(org.id)) + ' }) { id name service } }'
           ).then((d) => (d && d.channels) || [])
         )
       );
