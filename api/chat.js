@@ -329,8 +329,22 @@ function todayLineIt() {
 function systemPromptFor(agent, brand, project) {
   // v3.3: il profilo progetto sostituisce il vecchio blocco "personal" (che resta solo come fallback quando il
   // client manda brand=personal senza profilo: il preset "personal" contiene già le stesse istruzioni).
-  return todayLineIt() + projectContextBlock(project, brand) + agent.system;
+  return todayLineIt() + projectContextBlock(project, brand) + agent.system + PRECISION_RULES;
 }
+
+// Same rules for every agent: facts only from what was given or really read, gaps marked instead of guessed,
+// sources for outside data, and the user's own errors pointed out instead of repeated.
+const PRECISION_RULES =
+  "\n\nREGOLE DI PRECISIONE (valgono sopra ogni indicazione di stile):\n" +
+  "- Usa solo fatti presenti nel profilo del progetto, nella memoria confermata, nei messaggi o in pagine che hai davvero letto. " +
+  "Non inventare numeri, percentuali, clienti, casi, citazioni, premi, date, nomi o funzioni.\n" +
+  "- Se un dato serve e non ce l'hai, scrivi [da verificare: cosa manca] invece di stimarlo. Una stima è ammessa solo se dichiarata " +
+  "come tale, con il ragionamento che la produce.\n" +
+  "- Ogni dato esterno (mercato, prezzi, norme, concorrenti, tendenze) porta la fonte: nome e link della pagina letta. Se non hai " +
+  "cercato, non presentarlo come fatto.\n" +
+  "- Se la richiesta o il materiale contiene un errore (dato sbagliato, norma superata, contraddizione, nome scritto male), " +
+  "segnalalo in una riga con la correzione invece di ripeterlo.\n" +
+  "- Prima di consegnare rileggi: ogni numero e ogni nome deve avere un'origine tra quelle sopra.";
 
 // v3.2 — Roster accorpato (approvato il 2/10): gli identificativi vecchi restano validi come alias, cosi' le
 // conversazioni e i flussi gia' salvati (e un routing emesso da una sintesi precedente) continuano a funzionare.
@@ -1446,6 +1460,21 @@ const AGENTS = {
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
   },
   // CRM copilot: answers on the live CRM snapshot (crmScope) of a workspace the user belongs to.
+  // Fact check of a finished text against facts, brief and approved material (prompt from the page that calls it).
+  "fact-checker": {
+    name: "Revisore dei fatti",
+    maxTokens: 4000,
+    temperature: 0.1,
+    enforceStyle: false,
+    tools: false,
+    effort: "high",
+    system:
+      "Sei il revisore dei fatti di RADIX. Controlli testi già scritti da altri agenti confrontandoli con le fonti che " +
+      "ti vengono date (profilo del progetto, scheda fatti, casi reali, brief, materiali approvati, memoria confermata). " +
+      "Cerchi ogni affermazione che le fonti non sostengono: numeri, percentuali, clienti, casi, citazioni, promesse di " +
+      "risultato, funzioni del prodotto, date e giorni. Non cambi lo stile, non accorci, non aggiungi contenuti: correggi " +
+      "solo quello che non ha un'origine. Rispondi esattamente nel formato chiesto nel messaggio, senza testo in più.",
+  },
   "crm-copilot": {
     name: "Copilota commerciale",
     maxTokens: 1800,
@@ -1545,7 +1574,18 @@ const WEB_FETCH_TOOL = {
   max_content_tokens: 15000,
 };
 
-async function callAnthropic(apiKey, agent, messages, system) {
+// Model, reasoning and tools for each agent: see _engine.js. The previous engine answers again when the
+// newer model declines the request or rejects it as malformed, so a reply never fails for that reason.
+async function callAnthropic(apiKey, agent, messages, system, key, forcedTier) {
+  const engine = require("./_engine");
+  const { tier, body } = engine.requestBody({
+    key, agent, messages, system, env: process.env, tier: forcedTier,
+    tools: { search: WEB_SEARCH_TOOL, fetch: WEB_FETCH_TOOL },
+  });
+  // v2.6: la ricerca/fetch web sono tool "server-side" — il loro uso (soprattutto web_fetch, che
+  // da solo può assorbire fino a 15.000 token di contenuto scaricato) viene conteggiato nello
+  // STESSO budget di max_tokens della risposta. I tool restano disponibili di default e si
+  // disattivano con `agent.tools === false`; `tools: "search"` = solo web_search; `searchUses` per agente.
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -1553,28 +1593,13 @@ async function callAnthropic(apiKey, agent, messages, system) {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: agent.maxTokens || 1024,
-      temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
-      system: system || agent.system,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      // v2.6: la ricerca/fetch web sono tool "server-side" — il loro uso (soprattutto web_fetch, che
-      // da solo può assorbire fino a 15.000 token di contenuto scaricato) viene conteggiato nello
-      // STESSO budget di max_tokens della risposta. Un agente che redige un documento legale/fiscale
-      // non ha bisogno di cercare sul web per farlo, e un tentativo di ricerca riflessa può esaurire
-      // da solo tutto il budget disponibile prima ancora che il testo vero del documento inizi —
-      // causa concreta, osservata dal vivo, di risposte troncate a poche righe nonostante maxTokens
-      // alto. I tool restano disponibili di default (agenti di ricerca/outreach ne hanno davvero
-      // bisogno) e si disattivano esplicitamente con `agent.tools === false`.
-      // v3.3: `tools: "search"` = solo web_search (max 3 ricerche, risultati brevi), senza web_fetch: per gli
-      // agenti che devono verificare un dato o una tendenza ma scrivono deliverable lunghi, dove un fetch da
-      // 15.000 token mangerebbe il budget del documento.
-      // v3.6: `searchUses` per agente (il Ricercatore di Contatti ne ha bisogno di più di 3 per una lista vera).
-      ...(agent.tools === false ? {} : agent.tools === "search" ? { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }] } : { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }, WEB_FETCH_TOOL] }),
-    }),
+    body: JSON.stringify(body),
   });
   const data = await upstream.json();
+  if (tier !== "legacy" && ((!upstream.ok && (upstream.status === 400 || upstream.status === 404)) || (upstream.ok && data.stop_reason === "refusal"))) {
+    console.warn("[chat] fallback to previous engine", upstream.status, data?.stop_reason || data?.error?.type || "");
+    return callAnthropic(apiKey, agent, messages, system, key, "legacy");
+  }
   if (!upstream.ok) {
     const err = new Error(data?.error?.message || "Errore dall'API Anthropic");
     err.status = upstream.status;
@@ -1620,7 +1645,7 @@ async function callAnthropic(apiKey, agent, messages, system) {
   const usage = data.usage || null;
   const stu = usage && usage.server_tool_use;
   const searched = !!(stu && (stu.web_search_requests > 0 || stu.web_fetch_requests > 0));
-  return { text, usage, sources, searched, stopReason: data.stop_reason || null };
+  return { text, usage, sources, searched, stopReason: data.stop_reason || null, engine: tier };
 }
 
 async function teamMemoryBlock(scope) {
@@ -1684,7 +1709,9 @@ module.exports = async (req, res) => {
     }
   }
   const { role, messages, brand, project, memoryScope, crmScope } = body || {};
-  const agent = AGENTS[role] || AGENTS[AGENT_ALIASES[role]] || AGENTS.strategist;
+  const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+  const agentKey = own(AGENTS, role) ? role : own(AGENT_ALIASES, role) && own(AGENTS, AGENT_ALIASES[role]) ? AGENT_ALIASES[role] : "strategist";
+  const agent = AGENTS[agentKey];
   let system = systemPromptFor(agent, brand, project);
   // Team memory: confirmed decisions, preferences and outcomes for this project and client,
   // read on the server so every agent works from the same memory.
@@ -1750,7 +1777,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages, system);
+    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages, system, agentKey);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -1768,7 +1795,7 @@ module.exports = async (req, res) => {
           },
         ]);
         try {
-          const retry = await callAnthropic(apiKey, agent, retryMessages, system);
+          const retry = await callAnthropic(apiKey, agent, retryMessages, system, agentKey);
           text = retry.text;
           stopReason = retry.stopReason;
           revised = true;

@@ -131,7 +131,7 @@ const data=await RadixAgents.reply({role:t.role,project:profile,memoryScope:{pro
 // Automatic quality pass before the reviewer sees the draft: exact replacements only, the original stays in t.rawOutput.
 phase='review';tick();t.review=null;t.rawOutput=data.reply;
 try{const sources='FATTI VERIFICATI: '+(p.facts||'nessuno')+'\n\nCASI REALI: '+(p.cases||'nessuno')+'\n\nBRIEF: '+JSON.stringify(p)+'\n\nCALENDARIO:\n'+RadixAgencyRouting.calendarWeeks(Date.now(),8)+'\n\nMATERIALI APPROVATI:\n'+prior;
- const rv=await RadixAgents.reply({role:t.role,project:profile,memoryScope:{projectId:key,clientId:String(p.clientId||''),agentId:String(t.role||'')},messages:[{role:'user',content:RadixAgencyRouting.reviewPrompt(data.reply,sources)}]});
+ const rv=await RadixAgents.reply({role:'fact-checker',project:profile,memoryScope:{projectId:key,clientId:String(p.clientId||''),agentId:String(t.role||'')},messages:[{role:'user',content:RadixAgencyRouting.reviewPrompt(data.reply,sources)}]});
  const fixed=RadixAgencyRouting.applyReview(data.reply,rv.text);data.reply=fixed.text;t.review={applied:fixed.applied,skipped:fixed.skipped,at:new Date().toISOString()}}
 catch(e){t.review={error:e.message}}
 t.output=data.reply;t.status='done';t.completedAt=new Date().toISOString();$('message').textContent='Bozza disponibile: rivedila e approvala oppure richiedi modifiche.';
