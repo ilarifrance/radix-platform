@@ -329,7 +329,17 @@ function todayLineIt() {
 function systemPromptFor(agent, brand, project) {
   // v3.3: il profilo progetto sostituisce il vecchio blocco "personal" (che resta solo come fallback quando il
   // client manda brand=personal senza profilo: il preset "personal" contiene già le stesse istruzioni).
-  return todayLineIt() + projectContextBlock(project, brand) + agent.system + PRECISION_RULES;
+  return todayLineIt() + projectContextBlock(project, brand) + agent.system + (agent.radixTools ? "\n\n" + radixTools() : "") + PRECISION_RULES;
+}
+
+// What RADIX really does, for the agents that write about it or for its clients (marketing, sales, CRM):
+// the same list the Agency review uses, so no agent promises a feature RADIX does not have.
+function radixTools() {
+  try {
+    return require("../agency/orchestration-core.js").RADIX_TOOLS;
+  } catch {
+    return "";
+  }
 }
 
 // Same rules for every agent: facts only from what was given or really read, gaps marked instead of guessed,
@@ -1670,6 +1680,11 @@ async function teamMemoryBlock(scope) {
     return "";
   }
 }
+
+Object.keys(AGENTS).forEach((k) => {
+  const a = AGENTS[k];
+  if (a.radixTools === undefined) a.radixTools = a.system.indexOf(MARKETING_CONTEXT) !== -1 || /^(comm|crm)-/.test(k) || k === "fact-checker";
+});
 
 module.exports = async (req, res) => {
   if (!isAuthorized(req)) {
