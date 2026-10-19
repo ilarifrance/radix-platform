@@ -430,6 +430,11 @@
         var u = d && (d.user || d);
         var name = u && (u.name || u.displayName || u.email);
         if (!name) return;
+        // Guida RADIX: the «?» button with how to use this page, for signed-in people.
+        if (body.dataset.shellGuide !== 'off' && !document.getElementById('rxGuide')) {
+          var gCss = document.createElement('link'); gCss.rel = 'stylesheet'; gCss.href = '/shell/radix-guide.css'; document.head.appendChild(gCss);
+          var gJs = document.createElement('script'); gJs.src = '/lib/radix-guide.js'; document.body.appendChild(gJs);
+        }
         if (pageTop) {
           var pill = top.querySelector('.user-pill');
           (pill ? pill.parentNode : top).insertBefore(logoutButton(), pill ? pill.nextSibling : null);

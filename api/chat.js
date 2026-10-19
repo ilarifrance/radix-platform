@@ -329,6 +329,8 @@ function todayLineIt() {
 function systemPromptFor(agent, brand, project) {
   // v3.3: il profilo progetto sostituisce il vecchio blocco "personal" (che resta solo come fallback quando il
   // client manda brand=personal senza profilo: il preset "personal" contiene già le stesse istruzioni).
+  // An agent about RADIX itself (the guide) needs no project block.
+  if (agent.standalone) return todayLineIt() + agent.system;
   return todayLineIt() + projectContextBlock(project, brand) + agent.system;
 }
 
@@ -1444,6 +1446,15 @@ const AGENTS = {
       "chat è quello che l'interfaccia legge per preparare l'invio; se ti chiedono più versioni (per segmento), " +
       "ripeti il formato Oggetto/Corpo per ciascuna, una sotto l'altra, con una riga di titolo prima." +
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
+  },
+  // Guida RADIX: helps a person find the right page and the next step, from the same map as the widget (lib/radix-guide.js).
+  "radix-guide": {
+    name: "Guida RADIX",
+    maxTokens: 900,
+    temperature: 0.2,
+    enforceStyle: false,
+    standalone: true,
+    system: require("../lib/radix-guide.js").systemText(),
   },
   // CRM copilot: answers on the live CRM snapshot (crmScope) of a workspace the user belongs to.
   "crm-copilot": {
