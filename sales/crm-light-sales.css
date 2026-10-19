@@ -42,9 +42,9 @@ dialog::backdrop{background:#1d1a2759}
 html.rx-has-view #content>section.rx-view>.row:first-child{background:var(--crm-card);border:1px solid var(--crm-line);border-radius:12px;padding:16px 20px;box-shadow:var(--crm-shadow);gap:8px;justify-content:flex-start}
 html.rx-has-view #content>section.rx-view>.row:first-child>h2{font-size:24px;color:var(--crm-text);margin-right:auto}
 html.rx-has-view #content>section.rx-view>.row:first-child>button,html.rx-has-view #content>section.rx-view>.row:first-child>.crm-tools button{min-height:36px;padding:6px 16px;font-size:13.5px}
-html.rx-has-view #content>section.rx-view>.row:first-child>.crm-tools{margin:0;gap:0;flex-wrap:nowrap}
+html.rx-has-view #content>section.rx-view>.row:first-child>.crm-tools{margin:0;gap:0;flex-wrap:wrap}
 .row>.crm-tools>button{border-radius:0;margin-left:-1px}
-.row>.crm-tools>button:first-child{border-radius:8px 0 0 8px;margin-left:0}
+.row>.crm-tools>button:first-of-type{border-radius:8px 0 0 8px;margin-left:0}
 .row>.crm-tools>button:last-of-type{border-radius:0 8px 8px 0}
 .row>.crm-tools>button:only-of-type{border-radius:8px}
 .row>.crm-tools>button:hover{position:relative;z-index:1}
@@ -276,3 +276,18 @@ details.crm-campaigns>summary,details.crm-automations>summary,details.crm-dedupe
 .crm-ideas-chip:has(input:checked){border-color:var(--crm-accent);background:var(--crm-accent-soft)}
 .crm-ideas-card[data-chosen=true]{border-color:var(--crm-accent);box-shadow:0 0 0 2px var(--crm-accent)}
 .crm-ideas-warn{color:var(--crm-warn)}
+
+/* ---------- Attività: nothing runs past its box (checked at 1280, 1600 and 390px) ---------- */
+.row>.crm-tools>label{display:flex;align-items:center;gap:8px;margin:0 10px 0 0;font-size:12.5px;white-space:nowrap}
+.row>.crm-tools>label>input{width:76px;min-height:36px;padding:6px 8px}
+.tv-kpi>div{min-width:0}
+.tv-sub{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.tv-tabs{flex-wrap:wrap;overflow:visible}
+.tv-tabs button{flex:1 1 auto;min-width:0}
+.tv-tabs .tv-kanban{flex:0 1 auto}
+.tv-slot>div{min-width:0}
+.tv-slot b{overflow-wrap:anywhere}
+.tv-tag{flex:0 1 auto;min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis}
+.tv-recall-row>div{min-width:0}
+.tv-recall-row b,.tv-recall-row small{overflow-wrap:anywhere}
+@media(max-width:600px){.tv-tabs button{padding:8px 12px;font-size:14px}.tv-tabs .tv-kanban{border-left:0}.row>.crm-tools>label{white-space:normal}}
