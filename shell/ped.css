@@ -411,3 +411,8 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .ped-more>summary::-webkit-details-marker{display:none}.ped-more[open]>summary{border-color:var(--rx-accent,var(--rx-border))}
 .ped-more-list{position:absolute;z-index:20;top:calc(100% + 6px);left:0;display:flex;flex-direction:column;gap:6px;min-width:220px;padding:8px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface);box-shadow:0 12px 30px rgba(0,0,0,.35)}
 .ped-more-list button{width:100%;text-align:left}
+
+.publish-preview{width:100%;max-width:560px;box-sizing:border-box;background:#fff;color:#1d2226;border-color:#dfe3e8}.publish-preview header small{color:#5e6b78}
+.publish-preview .pp-text{max-height:none;overflow:visible;font-size:14px}.publish-preview .pp-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pp-more-text{align-self:flex-end;background:none;border:0;padding:0;color:#5e6b78;font-weight:600;cursor:pointer}
+.publish-preview .pp-media{color:#5e6b78;grid-template-columns:repeat(4,1fr)}.publish-preview .pp-media img:first-child{grid-column:1/-1}.publish-preview .pp-media img{border-radius:4px}

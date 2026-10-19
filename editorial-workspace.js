@@ -100,18 +100,21 @@ function renderPublish(item){const host=$('publish');host.querySelectorAll('.too
   try{if(!bufferChannels){const r=await fetch('/api/buffer?action=channels',{credentials:'same-origin'}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Canali Buffer non disponibili');bufferChannels=d.channels||[]}}
   catch(e){open.disabled=false;open.textContent='📤 Prepara la pubblicazione';notify('Buffer: '+e.message);let err=wrap.querySelector('.publish-error');if(!err){err=Object.assign(document.createElement('p'),{className:'tool-status publish-error'});err.setAttribute('role','alert');wrap.append(err)}err.textContent='Buffer non risponde: '+e.message;return}
   {const err=wrap.querySelector('.publish-error');if(err)err.remove()}open.hidden=true;if(!bufferChannels.length){wrap.append(Object.assign(document.createElement('p'),{className:'tool-status',textContent:'Nessun canale trovato sull’account Buffer collegato.'}));return}
+  // The preview below must show the images that will really go out, so stale drawn images are redrawn first.
+  try{if(await freshGraphics(state.contents.find(x=>x.id===item.id)||item))persist('Immagini ridisegnate con l’identità visiva attuale.')}catch(e){}
   const panel=document.createElement('div');panel.className='panel publish-form';
   const lc=document.createElement('label'),sel=document.createElement('select');sel.id='publishChannel';lc.append('Canale Buffer',sel);bufferChannels.forEach(c=>sel.append(new Option(c.name+(c.service?' ('+c.service+')':''),c.id)));let saved='';try{saved=localStorage.getItem('radix.buffer-channel')||''}catch(e){}if(bufferChannels.some(c=>c.id===saved))sel.value=saved;
   const modes=document.createElement('fieldset');modes.className='publish-modes';modes.append(Object.assign(document.createElement('legend'),{textContent:'Quando'}));
   const opts=[['scheduled',plan.mode==='scheduled'?'All’orario del piano · '+fmtAt(plan.scheduledAt,tz):'All’orario del piano · non disponibile: '+(plan.reason==='past'?'orario già passato':'data o orario mancanti'),plan.mode!=='scheduled'],['queue','Nel prossimo slot libero di Buffer',false]];
   opts.forEach(([v,label,off],i)=>{const l=document.createElement('label'),r=document.createElement('input');r.type='radio';r.name='publishMode';r.value=v;r.disabled=off;r.checked=plan.mode==='scheduled'?i===0:v==='queue';l.append(r,' '+label);modes.append(l)});
-  const pre=document.createElement('p');pre.className='muted';pre.textContent='Testo inviato (versione approvata '+item.revision+', non modificabile qui): '+item.copy.slice(0,280)+(item.copy.length>280?'…':'');
+  const pre=document.createElement('p');pre.className='muted';pre.textContent='Qui sopra il post come lo vedranno su '+(item.channel||'social')+': testo della versione approvata '+item.revision+' e immagini allegate. Per cambiarlo, modifica il contenuto e approvalo di nuovo.';
   const go=document.createElement('button'),status=document.createElement('p');go.type='button';go.className='primary';go.id='sendPublish';go.textContent='Invia a Buffer';status.className='tool-status';status.id='publishStatus';
-  panel.append(lc,modes,pre,go,status);wrap.append(panel);
+  panel.append(lc,modes,channelPreview(item,()=>{const c=bufferChannels.find(x=>x.id===sel.value);return c&&c.service||item.channel}),pre,go,status);wrap.append(panel);
   go.onclick=async()=>{const mode=(panel.querySelector('input[name=publishMode]:checked')||{}).value||'queue',ch=bufferChannels.find(c=>c.id===sel.value);
    if(!confirm('Questo programma DAVVERO la pubblicazione su Buffer, canale "'+(ch?ch.name:sel.value)+'", '+(mode==='scheduled'?'per '+fmtAt(plan.scheduledAt,tz):'nel prossimo slot libero')+'. Non è una bozza. Confermi?'))return;
    try{localStorage.setItem('radix.buffer-channel',sel.value)}catch(e){}
    go.disabled=sel.disabled=true;status.textContent='Invio in corso…';
+   try{if(await freshGraphics(state.contents.find(x=>x.id===item.id)||item)){status.textContent='Immagini ridisegnate con l’identità visiva attuale. Invio in corso…';persist()}}catch(e){go.disabled=sel.disabled=false;status.textContent='Immagini non aggiornate: '+e.message+'. Non ho inviato nulla.';return}
    const body={projectId,contentId:item.id,revision:item.revision,channelId:sel.value,channelName:ch?ch.name:'',mode};
    try{await saving;let r;try{r=await ws.publications.send(body)}catch(e){if(!(e instanceof ws.ConflictError&&e.body&&e.body.uncertain))throw e;if(!confirm(e.message+'\n\nHai controllato su Buffer e il post NON c’è? Solo in quel caso conferma per riprovare.'))throw e;r=await ws.publications.send({...body,retryUncertain:true})}
     const row=r.item,cur=state.contents.find(x=>x.id===item.id);pubs=[row,...pubs.filter(p=>p.id!==row.id)];
@@ -165,8 +168,13 @@ async function autoGraphics(item,quiet){if(!rt||!media||['video','email'].includ
  if(selected===item.id)openContent(item.id)}
 // Stores the graphics of a content on the server (one JPEG per slide) so the approved post goes to Buffer with them.
 async function api(method,query,body){const r=await fetch('/api/workspace?resource=media&'+query,{method,credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'HTTP '+r.status);return d}
+// Which visual identity the attached images were drawn with: when it changes, drawn images are redrawn before going to Buffer.
+function styleKey(){const v=String((rt&&registryProject&&(rt.profileFor(registryProject)||{}).visual)||'');let h=5381;for(let i=0;i<v.length;i++)h=(h*33+v.charCodeAt(i))>>>0;return v.length+'-'+h.toString(36)}
+async function freshGraphics(item){if(!media||!item||!item.slides||item.photo||['video','email'].includes(pv.mediaKind(item))||item.graphicsStyle===styleKey())return false;
+ return !!(await attachSlides(item))}
 async function attachCanvases(item,canvases){const q='projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id);
  for(let i=0;i<canvases.length;i++)await api('POST','',{projectId,contentId:item.id,slot:i,dataUrl:canvases[i].toDataURL('image/jpeg',0.9)});
+ {const c=state.contents.find(x=>x.id===item.id);if(c)c.graphicsStyle=styleKey();if(item!==c)item.graphicsStyle=styleKey()}
  await api('DELETE',q+'&from='+canvases.length);return canvases.length}
 async function attachSlides(item){const slides=media.parseSlides(item.slides||''),project=rt&&rt.profileFor(registryProject);if(!slides.length||item.photo)return 0;
  try{if(document.fonts){await Promise.all(['400 40px Inter','700 40px Inter','800 40px Montserrat'].map(f=>document.fonts.load(f)));await document.fonts.ready}}catch(e){}
@@ -203,6 +211,18 @@ var approving=false;
 const inReview=()=>(state.contents||[]).filter(x=>x.status==='review'&&!x.needsStrategyReview&&x.strategyRevision===state.strategyRevision).sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
 // Review before approving: each text in review is shown as the post will look (image and full text). The person
 // approves it, or sends it back with a note and the Copywriter rewrites it right away; the rest is approved together.
+// How the post will look once published: name, the first lines of the text with «…altro» as on LinkedIn, and the images
+// actually attached (the ones Buffer receives).
+function channelPreview(item,service){const prof=rt&&registryProject&&rt.profileFor(registryProject)||{},art=document.createElement('article');art.className='post-preview publish-preview';art.id='publishPreview';
+ const head=document.createElement('header'),av=document.createElement('span'),who=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small');
+ const full=String(prof.name||registryProject&&registryProject.name||'RADIX').split(/\s[—–-]\s/)[0];av.className='pp-avatar';av.textContent=full.trim().charAt(0).toUpperCase()||'R';name.textContent=full;
+ const svc=String(service()||''),names={linkedin:'LinkedIn',instagram:'Instagram',facebook:'Facebook',twitter:'X',threads:'Threads',tiktok:'TikTok',youtube:'YouTube'};meta.textContent=(names[svc.toLowerCase()]||item.channel||svc||'Social')+' · anteprima';who.append(name,meta);head.append(av,who);
+ const text=document.createElement('div');text.className='pp-text pp-clamp';text.textContent=item.copy;const more=document.createElement('button');more.type='button';more.className='pp-more-text';more.textContent='…altro';
+ more.onclick=()=>{const open=text.classList.toggle('pp-clamp');more.textContent=open?'…altro':'mostra meno'};
+ const pic=document.createElement('div');pic.className='pp-media';pic.textContent='Carico le immagini allegate…';
+ api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id)).then(d=>{if(!d.items.length){pic.textContent='Nessuna immagine allegata: il post esce solo con il testo.';return}
+  pic.dataset.count=d.items.length;pic.replaceChildren(...d.items.map(x=>Object.assign(document.createElement('img'),{src:x.url,alt:'Immagine allegata al post',loading:'lazy'})))}).catch(()=>{pic.textContent='Immagini non disponibili ora.'});
+ art.append(head,text);if(String(item.copy||'').length>210||String(item.copy||'').split('\n').length>3)art.append(more);art.append(pic);return art}
 function postPreview(item){const art=document.createElement('article');art.className='post-preview';art.dataset.id=item.id;
  const head=document.createElement('header'),av=document.createElement('span'),who=document.createElement('div'),name=document.createElement('strong'),meta=document.createElement('small');
  av.className='pp-avatar';av.textContent=String(project&&project.name||'R').trim().charAt(0).toUpperCase();name.textContent=String(project&&project.name||'RADIX').split(' — ')[0];
@@ -306,6 +326,7 @@ async function scheduleAll(){if(scheduling)return;scheduling=true;$('scheduleAll
   await saving;let done=0;
   for(const x of p.ready){notify('Programmo '+(done+1)+' di '+p.ready.length+': '+x.item.title+'…');
    const cur=state.contents.find(c=>c.id===x.item.id);if(!cur||cur.revision!==x.item.revision||cur.status!=='approved')continue;
+   try{if(await freshGraphics(cur))persist()}catch(e){if(done)persist();notify(done+' programmati. Fermato su «'+cur.title+'»: immagini non aggiornate ('+e.message+').');return}
    let r;try{r=await ws.publications.send({projectId,contentId:cur.id,revision:cur.revision,channelId:x.channel.id,channelName:x.channel.name,mode:'scheduled'})}
    catch(e){if(e.body&&e.body.item)pubs=[e.body.item,...pubs.filter(q=>q.id!==e.body.item.id)];if(done)persist();notify(done+' programmati. Fermato su «'+cur.title+'»: '+e.message);return}
    const row=r.item;pubs=[row,...pubs.filter(q=>q.id!==row.id)];cur.publication=publicationFrom(row);done++}
