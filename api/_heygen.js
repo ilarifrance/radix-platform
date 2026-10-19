@@ -18,6 +18,10 @@
 //   GET  ?action=status&videoId=...   -> { status, videoUrl, thumbnailUrl, error }
 
 const { getSessionUser } = require('./_auth');
+const studio = require('../lib/avatar-studio');
+
+const UPLOAD_URL = 'https://upload.heygen.com/v1/asset';
+const MAX_UPLOAD = 4 * 1024 * 1024;
 
 const HEYGEN_BASE = 'https://api.heygen.com';
 
@@ -110,6 +114,7 @@ module.exports = async (req, res) => {
           id: v.voice_id || v.id,
           name: v.name || v.voice_id || v.id,
           language: v.language || null,
+          previewAudio: /^https:\/\//.test(v.preview_audio || '') ? v.preview_audio : null,
           gender: v.gender || null,
         })),
       });
@@ -132,19 +137,134 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // Studio Avatar: photos of an avatar designed from the user's answers (HeyGen bills each generation).
+    if (req.method === 'POST' && action === 'design') {
+      if ((postBody || {}).confirm !== true) {
+        res.status(400).json({ error: 'Conferma esplicita mancante: la generazione consuma crediti HeyGen.' });
+        return;
+      }
+      let payload;
+      try {
+        payload = studio.designPayload(postBody.answers, postBody.name);
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+        return;
+      }
+      const data = await heygenFetch(apiKey, '/v2/photo_avatar/photo/generate', { method: 'POST', body: JSON.stringify(payload) });
+      const generationId = pick(data, ['data.generation_id', 'generation_id'], null);
+      if (!generationId) {
+        res.status(502).json({ error: 'HeyGen non ha restituito un generation_id.' });
+        return;
+      }
+      res.status(200).json({ generationId });
+      return;
+    }
+
+    if (action === 'generation') {
+      const id = req.query.id;
+      if (!id || !/^[\w-]{6,80}$/.test(id)) {
+        res.status(400).json({ error: "Manca 'id' della generazione." });
+        return;
+      }
+      const data = await heygenFetch(apiKey, `/v2/photo_avatar/generation/${encodeURIComponent(id)}`, { method: 'GET' });
+      const urls = pick(data, ['data.image_url_list', 'image_url_list'], []) || [];
+      const keys = pick(data, ['data.image_key_list', 'image_key_list'], []) || [];
+      res.status(200).json({
+        status: pick(data, ['data.status', 'status'], 'unknown'),
+        error: pick(data, ['data.msg', 'msg'], null),
+        images: studio.examples(urls.map((url, i) => ({ url, key: keys[i] }))),
+      });
+      return;
+    }
+
+    // The user's own photo: uploaded as a HeyGen asset, so it can become the avatar.
+    if (req.method === 'POST' && action === 'upload') {
+      const m = /^data:(image\/(?:jpeg|png));base64,([A-Za-z0-9+/=]+)$/.exec(String((postBody || {}).dataUrl || ''));
+      if (!m) {
+        res.status(400).json({ error: 'Carica una foto JPG o PNG.' });
+        return;
+      }
+      const bytes = Buffer.from(m[2], 'base64');
+      if (bytes.length > MAX_UPLOAD) {
+        res.status(413).json({ error: 'Foto troppo grande: massimo 4 MB.' });
+        return;
+      }
+      const up = await fetch(UPLOAD_URL, { method: 'POST', headers: { 'Content-Type': m[1], 'X-Api-Key': apiKey }, body: bytes });
+      const data = await up.json().catch(() => null);
+      if (!up.ok) {
+        res.status(502).json({ error: 'Caricamento su HeyGen fallito: ' + pick(data, ['message', 'error.message', 'error'], up.status) });
+        return;
+      }
+      const imageKey = pick(data, ['data.image_key', 'image_key'], null);
+      if (!imageKey) {
+        res.status(502).json({ error: 'HeyGen non ha restituito la chiave della foto.' });
+        return;
+      }
+      res.status(200).json({ imageKey, url: pick(data, ['data.url', 'url'], null) });
+      return;
+    }
+
+    // The chosen photo becomes a photo avatar (an avatar group), then HeyGen trains it for new looks.
+    if (req.method === 'POST' && action === 'createAvatar') {
+      const { imageKey, name, confirm } = postBody || {};
+      if (confirm !== true) {
+        res.status(400).json({ error: 'Conferma esplicita mancante: creare l’avatar consuma crediti HeyGen.' });
+        return;
+      }
+      if (!imageKey || !/^image\/[\w-]+\/[\w.-]+$/.test(String(imageKey))) {
+        res.status(400).json({ error: "Manca la foto scelta ('imageKey')." });
+        return;
+      }
+      const data = await heygenFetch(apiKey, '/v2/photo_avatar/avatar_group/create', {
+        method: 'POST',
+        body: JSON.stringify({ name: String(name || 'Avatar RADIX').slice(0, 80), image_key: imageKey }),
+      });
+      const avatarId = pick(data, ['data.id', 'id'], null);
+      const groupId = pick(data, ['data.group_id', 'group_id'], null);
+      if (!avatarId) {
+        res.status(502).json({ error: 'HeyGen non ha restituito l’avatar creato.' });
+        return;
+      }
+      let trainError = null;
+      if (groupId) {
+        try {
+          await heygenFetch(apiKey, '/v2/photo_avatar/train', { method: 'POST', body: JSON.stringify({ group_id: groupId }) });
+        } catch (e) {
+          trainError = e.message;
+        }
+      }
+      res.status(200).json({ avatarId, groupId, imageUrl: pick(data, ['data.image_url', 'image_url'], null), trainError });
+      return;
+    }
+
+    if (action === 'trainStatus') {
+      const id = req.query.groupId;
+      if (!id || !/^[\w-]{6,80}$/.test(id)) {
+        res.status(400).json({ error: "Manca 'groupId'." });
+        return;
+      }
+      const data = await heygenFetch(apiKey, `/v2/photo_avatar/train/status/${encodeURIComponent(id)}`, { method: 'GET' });
+      res.status(200).json({ status: pick(data, ['data.status', 'status'], 'unknown'), error: pick(data, ['data.error_msg', 'error_msg'], null) });
+      return;
+    }
+
     if (req.method === 'POST' && action === 'generate') {
-      const { script, avatarId, voiceId } = postBody || {};
-      if (!script || !avatarId || !voiceId) {
+      const { script, avatarId, voiceId, talkingPhotoId } = postBody || {};
+      if (!script || !(avatarId || talkingPhotoId) || !voiceId) {
         res.status(400).json({ error: "Mancano 'script', 'avatarId' o 'voiceId'." });
         return;
       }
+      // A photo avatar made in Studio Avatar speaks as a talking photo; a HeyGen studio avatar as an avatar.
+      const character = talkingPhotoId
+        ? { type: 'talking_photo', talking_photo_id: talkingPhotoId }
+        : { type: 'avatar', avatar_id: avatarId, avatar_style: 'normal' };
       const data = await heygenFetch(apiKey, '/v2/video/generate', {
         method: 'POST',
         body: JSON.stringify({
           dimension: { width: 1080, height: 1920 }, // verticale — Reels/Stories/TikTok/LinkedIn video
           video_inputs: [
             {
-              character: { type: 'avatar', avatar_id: avatarId, avatar_style: 'normal' },
+              character,
               voice: { type: 'text', voice_id: voiceId, input_text: script },
               background: { type: 'color', value: '#0F2D24' },
             },
@@ -160,7 +280,7 @@ module.exports = async (req, res) => {
       return;
     }
 
-    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: avatars, voices, generate, status." });
+    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: avatars, voices, design, generation, upload, createAvatar, trainStatus, generate, status." });
   } catch (err) {
     res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502).json({
       error: 'Chiamata a HeyGen fallita: ' + (err && err.message ? err.message : String(err)),
