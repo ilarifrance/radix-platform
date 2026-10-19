@@ -367,3 +367,17 @@ body.pm-no-plan main#workspace>#stats{display:none}
 .rx-pm #replan[hidden]{display:none}
 .rx-pm .pm-projectbar:has(#replan:not([hidden])) #new-project{margin-left:0}
 html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #replan{height:38px;min-height:0;padding:0 12px}
+/* Nuovo progetto: three plans proposed by the AI (lib/pm-plan-ideas.js). */
+.pm-ideas-open{margin:4px 0 12px}
+.pm-ideas{display:grid;gap:10px;margin:0 0 16px;padding:14px;border:1px dashed #3b4a7a;border-radius:12px}
+.pm-ideas label{display:grid;gap:4px}
+.pm-ideas-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pm-ideas fieldset{display:flex;flex-wrap:wrap;gap:8px;border:1px solid #2c3a63;border-radius:10px;padding:8px 10px}
+.pm-ideas .pm-ideas-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #33437a;border-radius:999px;padding:5px 11px;cursor:pointer}
+.pm-ideas .pm-ideas-chip input{width:auto;margin:0}
+.pm-ideas-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.pm-ideas-card{display:grid;gap:6px;align-content:start;padding:12px;border:1px solid #33437a;border-radius:12px}
+.pm-ideas-card p{margin:0}
+.pm-ideas-meta{color:#8fe3c6;font-size:13px}.pm-ideas-late{color:#f2d28c;font-size:13px}
+.pm-ideas-phases{margin:0;padding-left:18px;font-size:13px;display:grid;gap:4px}
+.pm-ideas-phases span{color:#9aa6d6}

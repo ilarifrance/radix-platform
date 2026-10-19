@@ -1446,6 +1446,17 @@ const AGENTS = {
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
   },
   // CRM copilot: answers on the live CRM snapshot (crmScope) of a workspace the user belongs to.
+  "pm-planner": {
+    name: "Pianificatore di progetto",
+    maxTokens: 6000,
+    temperature: 0.4,
+    enforceStyle: false,
+    system:
+      "Sei il pianificatore di progetto di RADIX. Trasformi un obiettivo in piani operativi: fasi, attività concrete " +
+      "con un verbo iniziale, durate realistiche in giorni lavorativi, dipendenze e milestone sulle consegne. " +
+      "Usi ruoli come responsabili, mai nomi di persone inventati. Non inventi budget, clienti, numeri o risultati. " +
+      "Quando ti viene chiesto un formato JSON rispondi solo con quel JSON, senza testo prima o dopo.",
+  },
   "crm-copilot": {
     name: "Copilota commerciale",
     maxTokens: 1800,
