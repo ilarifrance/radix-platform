@@ -313,11 +313,26 @@
       var count = typeof x.total === 'number' && x.total ? '<em>' + (x.done || 0) + '/' + x.total + '</em>' : '';
       return '<li data-state="' + st + '" title="' + esc(PHASE_STATE[st] + (x.detail ? ' · ' + x.detail : '')) + '">' +
         '<i>' + (i + 1) + '</i><b>' + esc(x.label || x.id) + '</b>' + count +
-        (x.detail ? '<small>' + esc(x.detail) + '</small>' : '<small>' + PHASE_STATE[st] + '</small>') + '</li>';
+        (x.detail ? '<small>' + esc(x.detail) + '</small>' : '<small>' + PHASE_STATE[st] + '</small>') +
+        (x.actor === 'ai' || x.actor === 'you' ? '<span class="rx-phase-who" data-actor="' + x.actor + '">' + (x.actor === 'ai' ? 'AI' : 'Tu') + '</span>' : '') + '</li>';
     }).join('');
+    renderNow(box, phases);
     box.style.setProperty('--done', done / phases.length * 100 + '%');
     var cur = box.querySelector('[data-state=active],[data-state=waiting]');
     if (cur && box.scrollWidth > box.clientWidth) box.scrollLeft = cur.offsetLeft - (box.clientWidth - cur.offsetWidth) / 2;
+  }
+  // «Adesso»: the one phase to move now, who moves it (RADIX or you) and the page where it happens.
+  function renderNow(box, phases) {
+    var cur = null, i;
+    for (i = 0; i < phases.length && !cur; i++) if (phases[i].state === 'waiting') cur = phases[i];
+    for (i = 0; i < phases.length && !cur; i++) if (phases[i].state !== 'done') cur = phases[i];
+    var card = document.querySelector('.rx-now');
+    if (!cur || !cur.action) { if (card) card.remove(); return; }
+    if (!card) { card = document.createElement('div'); card.className = 'rx-now'; card.setAttribute('role', 'status'); box.parentNode.insertBefore(card, box); }
+    var you = cur.actor === 'you', link = '';
+    if (cur.where === 'ped' && barProject) link = '<a class="rx-now-go" href="/project-editorial.html?project=' + encodeURIComponent(barProject) + '">Apri il Piano editoriale ↗</a>';
+    card.setAttribute('data-actor', you ? 'you' : 'ai');
+    card.innerHTML = '<b>' + (you ? 'Tocca a te' : 'Lo fa RADIX') + '</b><span><strong>' + esc(cur.label || cur.id) + '</strong> · ' + esc(cur.action) + '</span>' + link;
   }
   buildBar(curProject);
   window.addEventListener('hashchange', markStep);

@@ -198,3 +198,12 @@ html.ag-has-globe .rx-agency .planet-wrap{height:190px;-webkit-mask-image:linear
 .rx-agency form.assign label{display:grid;gap:5px;flex:1 1 260px;font-size:12.5px;color:var(--rx-muted)}
 .rx-agency form.assign select{width:100%;font-size:13.5px;color:var(--rx-text,#f1f3ff);background:#121733;border:1px solid var(--rx-border);padding:8px 10px}
 .rx-agency form.assign button.action{flex:none;cursor:pointer}
+/* Who moves each phase (AI or you) and the «Adesso» card above the phases. */
+.rx-phase-who{font:700 9px/1 var(--rx-font);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:999px;border:1px solid #33437a;color:#8f9cc4}
+.rx-phase-who[data-actor=ai]{border-color:#2f7d66;color:#8fe3c6}
+.rx-phase-who[data-actor=you]{border-color:#c79a3b;color:#f2d28c}
+.rx-now{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 -4px;padding:12px 14px;border-radius:12px;border:1px solid #2f7d66;background:#0d2a2a;color:#dfe6ff;font:14px/1.4 var(--rx-font)}
+.rx-now[data-actor=you]{border-color:#c79a3b;background:#2a2112}
+.rx-now>b{font-weight:700;color:#8fe3c6}.rx-now[data-actor=you]>b{color:#f2d28c}
+.rx-now span{flex:1 1 260px}
+.rx-now-go{color:#c9fbe9;border:1px solid currentColor;border-radius:9px;padding:6px 11px;text-decoration:none;white-space:nowrap}
