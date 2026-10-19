@@ -103,6 +103,7 @@ function renderFlow(flow,msg){
   if(n.deps&&n.deps.length)head.append(node('small','usa il risultato di '+n.deps.map(d=>'#'+d).join(', '),'meta'));
   row.append(head,node('small',n.subtask,'meta'));
   if(n.status==='stale')row.append(node('small','Usa un risultato che è cambiato: aggiornalo per allinearlo.','meta'));
+  if(n.status==='error'&&n.output){const e=node('p',String(n.output).replace(/^Errore:\s*/,''),'node-error');e.setAttribute('role','alert');row.append(e)}
   if((n.status==='done'||n.status==='stale')&&n.output){
    const docs=rt.parseDocuments(n.output);docs.forEach(d=>row.append(docCard(d,n.label)));
    const note=media.stripSlides(rt.stripDocuments(n.output));
