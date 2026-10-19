@@ -21,7 +21,10 @@
    tbody.append(tr);
   }
   if(!list.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.textContent='Nessun contatto acquisito.';tr.append(td);tbody.append(tr)}
+  window.dispatchEvent(new CustomEvent('radix:lead-contacts-updated',{detail:{count:list.length}}));
  };
+ // Read-only copy for the Lead pipeline table and the bulk «Porta nel CRM».
+ window.radixLeadContacts={records:()=>(job?.records||[]).map(r=>({...r}))};
  function saveFile(name,value,type){
   const blob=new Blob([value],{type});const link=document.createElement('a');const uri=URL.createObjectURL(blob);
   link.href=uri;link.download=name;document.body.append(link);link.click();link.remove();
