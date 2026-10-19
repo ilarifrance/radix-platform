@@ -55,8 +55,8 @@
 
   #appScreen{ display:none; }
 </style>
-</head>
-<body>
+<link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/system.css"><script src="/shell/radix-shell.js" defer></script></head>
+<body class="rx-admin rx-system" data-shell-area="system" data-shell-page="admin">
 
   <div id="gateScreen">
     <div class="gate-box">
@@ -83,8 +83,9 @@
       <div class="card">
         <h2>1. Inizializza il database</h2>
         <p class="hint">
-          Crea (o verifica) le tabelle <code>users</code> e <code>workspace_state</code> su Postgres. Sicura da
-          rieseguire più volte: non tocca mai dati già esistenti, serve solo la prima volta o se in dubbio.
+          Crea (o verifica) tutte le tabelle: account e stato condiviso, memoria del team, registro di clienti,
+          progetti, documenti, approvazioni, attività e pubblicazioni. Sicura da rieseguire più volte: non tocca
+          mai dati già esistenti. Serve dopo ogni aggiornamento che aggiunge tabelle, o se in dubbio.
         </p>
         <button id="migrateBtn" type="button">Esegui migrazione</button>
         <div id="migrateMsg" class="msg-box"></div>
@@ -209,10 +210,19 @@
     var msg = document.getElementById("migrateMsg");
     btn.disabled = true;
     try {
-      var res = await adminFetch("/api/admin/migrate", { method: "POST" });
-      var data = await res.json();
-      if (!res.ok) { showMsg(msg, data.error || "Errore imprevisto", false); return; }
-      showMsg(msg, data.message || "Fatto.", true);
+      // Base tables, then team memory, then the shared registry (clients, projects, documents,
+      // approvals, activity, publications). Each step is idempotent; stop at the first failure.
+      var steps = [["", "Tabelle di base"], ["?agencyMemory=1", "Memoria del team"], ["?registry=1", "Registro RADIX e pubblicazioni"]];
+      var done = [];
+      for (var i = 0; i < steps.length; i++) {
+        showMsg(msg, "In corso: " + steps[i][1] + "…", true);
+        var res = await adminFetch("/api/admin/migrate" + steps[i][0], { method: "POST" });
+        var data = {};
+        try { data = await res.json(); } catch (e) {}
+        if (!res.ok) { showMsg(msg, (done.length ? "Completati: " + done.join(", ") + ". " : "") + steps[i][1] + ": " + (data.error || "errore imprevisto"), false); return; }
+        done.push(steps[i][1]);
+      }
+      showMsg(msg, "Database aggiornato: " + done.join(", ") + ".", true);
     } catch (e) {
       showMsg(msg, "Chiamata fallita: " + e.message, false);
     } finally {

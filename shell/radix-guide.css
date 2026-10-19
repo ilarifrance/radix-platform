@@ -1,0 +1,19 @@
+/* Guida RADIX (lib/radix-guide.js): «?» button and the guide panel, on every page with the shell. */
+button.rx-guide-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:48px;height:48px;min-height:0;padding:0;border-radius:50%!important;border:1px solid var(--rx-border-strong,#2b3550);background:var(--rx-accent,#7c5cff)!important;color:#fff;font:700 22px/1 var(--rx-font,system-ui,sans-serif);cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.rx-guide-fab:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.rx-guide{position:fixed;right:22px;bottom:82px;z-index:900;width:min(380px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;border:1px solid var(--rx-border-strong,#2b3550);border-radius:16px;background:var(--rx-surface,#0d1220);color:var(--rx-text,#eef3f8);font:14px/1.45 var(--rx-font,system-ui,sans-serif);box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.rx-guide[hidden]{display:none}
+.rx-guide>header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rx-border,#222b42)}
+.rx-guide-x{background:transparent;border:0;color:var(--rx-muted,#8fa3b8);font-size:16px;cursor:pointer;padding:2px 6px}
+.rx-guide-log{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.rx-guide-msg{padding:9px 11px;border-radius:12px;max-width:92%;white-space:pre-wrap}
+.rx-guide-msg.bot{background:rgba(127,127,127,.1);align-self:flex-start}
+.rx-guide-msg.me{background:var(--rx-accent,#7c5cff);color:#fff;align-self:flex-end}
+.rx-guide-msg ol{margin:6px 0 0;padding-left:20px;white-space:normal}
+.rx-guide-link{display:inline-block;margin:4px 6px 0 0;padding:3px 9px;border:1px solid var(--rx-accent,#7c5cff);border-radius:999px;color:inherit;text-decoration:none;font-size:13px}
+.rx-guide-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rx-guide-chip{padding:5px 10px;border:1px solid var(--rx-border-strong,#2b3550);border-radius:999px;background:transparent;color:inherit;font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.rx-guide-ask{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--rx-border,#222b42)}
+.rx-guide-ask input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--rx-border-strong,#2b3550);border-radius:10px;background:transparent;color:inherit;font:inherit}
+.rx-guide-ask button{padding:8px 12px;border:0;border-radius:10px;background:var(--rx-accent,#7c5cff);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+@media print{.rx-guide-fab,.rx-guide{display:none}}

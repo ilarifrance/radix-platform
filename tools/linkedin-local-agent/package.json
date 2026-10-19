@@ -1,0 +1,13 @@
+{
+  "name": "@radix/linkedin-local-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local RADIX Sales Navigator browser agent (manual sign-in; no credential export)",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test ../../tests/linkedin-local-agent.test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.56.0"
+  }
+}

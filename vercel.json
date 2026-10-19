@@ -1,0 +1,31 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/control-center-v2.html",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/buffer",
+      "destination": "/api/integrations/buffer"
+    },
+    {
+      "source": "/api/heygen",
+      "destination": "/api/integrations/heygen"
+    },
+    {
+      "source": "/api/higgsfield",
+      "destination": "/api/integrations/higgsfield"
+    },
+    {
+      "source": "/api/openai-image",
+      "destination": "/api/integrations/openai-image"
+    },
+    {
+      "source": "/api/send-email",
+      "destination": "/api/integrations/send-email"
+    }
+  ]
+}

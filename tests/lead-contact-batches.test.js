@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),b=require('../lib/lead-contact-batches');
+const source='https://example.com/input';
+test('supports 50 to 500+ contacts in separate batches',()=>{let job=b.start(source);for(let n=0;n<3;n++)job=b.add(job,Array.from({length:200},(_,i)=>({fullName:'Person '+(n*200+i),profileUrl:'https://example.com/person/'+(n*200+i),companyName:'Company'})),'batch-'+n);assert.equal(job.records.length,600);assert.equal(job.total,600);assert.equal(job.batches.length,3)});
+test('deduplicates confirmed profile URLs and supports idempotent retries',()=>{const row={fullName:'Ada',profileUrl:'https://example.com/ada'};let job=b.add(b.start(source),[row],'b1');assert.equal(b.add(job,[row],'b1').total,1);job=b.add(job,[{...row,jobTitle:'CEO'}],'b2');assert.equal(job.records.length,1);assert.equal(job.records[0].jobTitle,'CEO');assert.equal(job.duplicates,1);assert.throws(()=>b.add(job,[{fullName:'Other'}],'b1'),/contenuto diverso/)});
+test('rejects unverified origins and oversized batches',()=>{assert.throws(()=>b.start('http://example.com'),/HTTPS/);assert.throws(()=>b.add(b.start(''),[{fullName:'Ada'}],'b1'),/Fonte obbligatoria/);assert.throws(()=>b.add(b.start(source),Array.from({length:501},()=>({fullName:'Ada'})),'b1'),/500/)});

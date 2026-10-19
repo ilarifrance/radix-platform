@@ -1,0 +1,203 @@
+/* RADIX Lead Intelligence — high-fidelity cockpit layout aligned to the approved Higgsfield lead screen. */
+body{background:radial-gradient(ellipse at 83% -12%,#10465170,transparent 39%),#04101b;}
+.app{grid-template-columns:188px minmax(0,1fr)}
+.nav{padding:22px 11px;background:linear-gradient(170deg,#061a25,#03111c);border-right:1px solid #1c5860}
+.nav .logo{font-size:24px;margin:0 9px 31px;letter-spacing:.17em}
+.nav>a{padding:12px 9px;display:flex;align-items:center;min-height:43px}
+.nav>a.active{background:linear-gradient(95deg,#09594f,#0b2b39);border-left:3px solid #30f5c6;box-shadow:inset 0 0 23px #30f5b21c,0 0 12px #24bba730}
+main{min-width:0}
+.top{height:63px;padding:13px 25px;border-bottom:1px solid #24545b;background:#061923a3}
+.hero{min-height:0;padding:25px 28px 22px;background:radial-gradient(ellipse at 87% 20%,#0c595657,transparent 44%);border-bottom:1px solid #21535a}
+.hero h1{margin:9px 0 7px;font-size:clamp(25px,2.8vw,35px);letter-spacing:-.035em;line-height:1.12}
+.hero h1 br{display:none}
+.hero h1 em{color:#b7fff0}
+.hero>p{margin:7px 0;max-width:760px;font-size:12px}
+.hero-glow{width:310px;height:190px;right:2%;top:-18px;opacity:.45}
+.hero-glow .core{width:88px;height:88px;top:55px;left:130px}
+.hero-glow .ring{width:245px;height:78px;top:60px;left:54px}
+.hero-glow .r2{width:210px;height:85px;top:63px;left:70px}
+.steps{margin:0;padding:13px 26px;gap:0;border-block:0;background:#071d28;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid #1e5057}
+.steps span{position:relative;border:0;border-radius:0;background:none!important;text-align:center;padding:11px 6px;font-size:10px;color:#8fb6bd;border-bottom:2px solid #244b53}
+.steps .on{color:#43f6c8;border-bottom-color:#2bcda8}
+.workspace{grid-template-columns:minmax(0,1fr) minmax(250px,292px);gap:12px;padding:16px 17px;align-items:start}
+.left{gap:13px;min-width:0}
+.panel{padding:17px 16px;border-radius:12px;border:1px solid #255761;background:linear-gradient(140deg,#0a2531,#081d2a)}
+.panel h2{font-size:16px;margin:6px 0 10px}
+.panel .eyebrow{font-size:9px;letter-spacing:.14em;color:#44dcc0}
+.panel-head{gap:6px}
+.panel-head .tag{font-size:9px}
+.fields{gap:10px}
+.fields label{font-size:11px}
+.fields input,.fields select{padding:9px;border-radius:7px;background:#081e2c}
+.toolbar{margin-top:15px}
+.primary{border-color:#1cb896;background:linear-gradient(115deg,#18a98b,#078577);box-shadow:0 0 17px #25cfae22}
+.upload{padding:10px 15px}
+.tablewrap{border:1px solid #24505b;border-radius:9px}
+table th{background:#0d313d}
+table th,table td{padding:10px 8px}
+table tbody tr:hover{background:#12404a69}
+.right{min-width:0}
+.copilot{top:13px;padding:14px;background:linear-gradient(#082c34,#071c2b);border-color:#286d69;border-radius:11px}
+.copilot-head h2{font-size:16px}
+.copilot .stat{padding:11px 0}
+.copilot .stat strong{font-size:23px}
+.insight{margin-top:12px;padding:11px}
+.mail-preview{background:#092f3b;border-color:#307c74}
+@media(max-width:1150px){.workspace{grid-template-columns:1fr}.copilot{position:static}}
+@media(max-width:750px){.hero-glow{opacity:.22}.steps{overflow-x:auto;display:flex}.steps span{flex:0 0 155px}.app{grid-template-columns:1fr}.nav{height:auto;position:static;overflow-x:auto;flex-direction:row}.nav>a{white-space:nowrap}.nav .logo,.sidebar-bottom{display:none}.workspace{padding:12px}.hero{padding:20px 14px}}
+
+/* Higgsfield Lead — interactive seven-step workflow */
+.steps{grid-template-columns:repeat(7,minmax(0,1fr));position:sticky;top:0;z-index:17;background:#061b26e8;backdrop-filter:blur(10px)}
+.steps a{display:grid;place-items:center;padding:11px 2px;border-bottom:2px solid #25505b;color:#a1c5c6;font-size:10px;letter-spacing:.08em;white-space:nowrap}
+.steps a.on,.steps a:hover,.steps a:focus-visible{border-color:#48edba;color:#66ffd4;background:#12564a60}
+.out-panel{background:radial-gradient(circle at 95% 0,#0d5d5363,transparent 40%),linear-gradient(140deg,#0d303b,#081d2b);border-color:#318b7a}
+.out-output{display:block;padding:10px;min-height:39px;background:#0a2e37;border:1px solid #2b7569;border-radius:7px;color:#e8fff8}
+.out-checks{display:grid;gap:12px;margin:15px 0;color:#bfe8dd;font-size:12px}
+.out-checks label{display:flex;align-items:center;gap:10px}.out-checks input{width:16px;height:16px;accent-color:#27e4b3}
+.out-timeline{display:grid;gap:9px;margin:18px 0}
+.out-sequence-card{display:grid;grid-template-columns:120px 1fr;gap:5px 14px;padding:15px;border-radius:11px;border:1px solid #317c71;border-left:3px solid #35edc3;background:linear-gradient(130deg,#123b45,#082431)}
+.out-sequence-card time{grid-row:span 3;color:#54f4cd;font-weight:700}.out-sequence-card b{font-size:10px;color:#8fd8c9;text-transform:uppercase}.out-sequence-card strong{color:#e8fffa}.out-sequence-card p{margin:0;color:#a2c4c6;font-size:12px;white-space:pre-wrap}
+section[id]{scroll-margin-top:78px}
+@media(max-width:1100px){.steps{display:flex;overflow-x:auto}.steps a{min-width:120px}}
+@media(max-width:690px){.steps{position:static}.out-sequence-card{grid-template-columns:1fr}.out-sequence-card time{grid-row:auto}}
+
+.sync-linked{margin-top:16px;padding:18px;border:1px solid #288578;border-radius:12px;background:linear-gradient(115deg,#0d383b,#081f2b);box-shadow:0 0 30px #1ceabb0b}
+.sync-linked[hidden]{display:none}
+.sync-linked-top{display:flex;align-items:center;gap:12px}
+.sync-linked-top strong{color:#d9fff3;font-size:14px}
+.sync-linked-top small{display:block;color:#83caba;font-size:11px;margin-top:3px}
+.sync-linked-symbol{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#154e42;color:#5dfbd0;font-size:21px;border:1px solid #238d75}
+.sync-go{display:inline-flex;align-items:center;padding:12px 10px;color:#88f4d1;font-size:12px;text-decoration:underline}
+.crm-existing-button{display:block;width:100%;text-align:left;background:#0c3640;border-color:#2b8578;margin:6px 0}
+.crm-existing-button:hover{background:#15564e}
+
+/* Outcome journal linked to the scoped CRM interactions API. */
+.steps{grid-template-columns:repeat(8,minmax(0,1fr))}
+.crm-outcome-panel{position:relative;overflow:hidden;margin:18px 0 12px;padding:20px 19px;border:1px solid #368779;border-radius:15px;background:radial-gradient(ellipse at 100% 0%,#168e9a25,transparent 44%),linear-gradient(135deg,#092a35,#071a2a);box-shadow:inset 0 1px #78f5e91a,0 12px 34px #0003}
+.crm-outcome-panel:before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(#4df9bd,#4dd4fa,#6c83ff)}
+.crm-outcome-panel .panel-head h2{margin:6px 0 9px;font-size:17px}
+.crm-outcome-pending{align-self:center;color:#82e6d3;font-size:12px}
+.crm-outcome-history{display:grid;gap:7px;margin-top:12px;padding:14px;border:1px solid #2e5866;border-radius:10px;background:#061923}
+.crm-outcome-history p{margin:0;color:#afcdd1;font-size:12px}
+.crm-outcome-history-row{padding:10px 12px;border-radius:8px;background:linear-gradient(90deg,#14494e80,#0b253400);border-left:2px solid #38dcad}
+@media(max-width:1100px){.steps{display:flex;overflow-x:auto}}
+
+/* Lead journey: counts are always derived from real client workflow events. */
+.lead-journey{position:relative;overflow:hidden;margin:0;padding:26px 27px 20px;background:radial-gradient(ellipse at 12% 0,#24526762,transparent 39%),radial-gradient(ellipse at 92% 100%,#123c7054,transparent 36%),linear-gradient(115deg,#071e2b,#061620);border-bottom:1px solid #32646c}
+.lead-journey:before{content:"";position:absolute;inset:-1px 0 auto;height:1px;background:linear-gradient(90deg,transparent,#2ff9d4aa,#7b8fff8c,transparent);pointer-events:none}
+.journey-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.journey-heading h2{font-size:clamp(18px,1.8vw,24px);font-weight:770;letter-spacing:-.035em;margin:5px 0;color:#eaffff}
+.journey-heading h2 em{font-style:normal;color:#6df1cf}
+.journey-live{display:inline-flex;align-items:center;gap:8px;color:#8efadf;border:1px solid #398b83;background:#103b42;border-radius:999px;padding:7px 12px;font-size:10px;letter-spacing:.11em}
+.journey-live:before{content:"";width:7px;height:7px;border-radius:50%;background:#5efad1;box-shadow:0 0 9px #29efb9}
+.journey-viewport{overflow-x:auto;scrollbar-width:thin;scrollbar-color:#347b78 #051824;padding:4px 2px 17px}
+.journey-track{display:grid;grid-template-columns:repeat(7,minmax(122px,1fr));gap:9px;min-width:850px;position:relative}
+.journey-track:before{content:"";position:absolute;z-index:0;top:36px;left:50px;right:50px;height:2px;background:linear-gradient(90deg,#1eab8f,#3eaec9,#4f56af);box-shadow:0 0 13px #2fccc055}
+.journey-node{z-index:1;display:flex;flex-direction:column;min-height:138px;gap:4px;padding:14px 14px 13px;background:linear-gradient(153deg,#123747d9,#081a29ee);border:1px solid #315869;border-radius:13px;color:#d9edf5;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.journey-node:hover,.journey-node:focus-visible{transform:translateY(-4px);border-color:#56d9b8;box-shadow:0 9px 30px #0007,0 0 25px #29f1c21e;outline:0}
+.journey-node-index{display:grid;place-items:center;flex:none;width:43px;height:43px;border:1px solid #467783;background:radial-gradient(circle,#165068,#0c2637);border-radius:50%;font-size:12px;letter-spacing:.07em;color:#a6bfdb;box-shadow:0 0 0 5px #091e2d}
+.journey-node.has-data .journey-node-index{border-color:#2be7b9;background:radial-gradient(circle,#27bdab,#0b3b52);color:white;box-shadow:0 0 12px #48f6bc88,0 0 0 5px #092b32}
+.journey-node-number{font:800 26px/1.14 ui-sans-serif,system-ui;color:#f1fffc;letter-spacing:-.06em;margin-top:2px}
+.journey-node.has-data .journey-node-number{color:#6ffbd6;text-shadow:0 0 22px #3cf2ab3d}
+.journey-node-label{font-size:12px;font-weight:750}.journey-node small{font-size:10px;color:#84acb7}
+.journey-next{display:flex;align-items:center;gap:11px;padding:12px 14px;border:1px solid #31635f;background:#11313c8f;border-radius:11px;color:#d7f1eb}
+.journey-next strong{font-size:11px;color:#87e6d0}.journey-next p{font-size:12px;margin:1px 0 0;color:#b2ced6}.journey-next a{margin-left:auto;color:#65edca;font-size:12px;white-space:nowrap}
+.journey-signal{width:25px;height:25px;flex:none;border-radius:8px;border:1px solid #39dfbd;background:radial-gradient(circle,#3becd1,#0f465e 70%);box-shadow:0 0 18px #3bf5ca30;animation:journeyPulse 2.7s ease-in-out infinite}
+.journey-disclaimer{font-size:10px;color:#739ca4;margin:10px 0 0}
+@keyframes journeyPulse{0%,100%{opacity:1;box-shadow:0 0 9px #3bf5ca29}50%{opacity:.75;box-shadow:0 0 21px #3bf5ca6c}}
+@media(max-width:800px){.lead-journey{padding:19px 13px}.journey-node{min-height:124px}.journey-heading{align-items:flex-start}.journey-next{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.journey-signal{animation:none}.journey-node{transition:none}}
+
+#out-task-all{background:linear-gradient(112deg,#158e79,#13799b);border-color:#45c8b8;box-shadow:0 0 24px #25cebd26}
+#out-task-all:not(:disabled):hover{filter:brightness(1.16);box-shadow:0 0 26px #3df7d34d}
+
+/* Workspace-scoped persistence: visual separation and explicit controls. */
+.lead-archive-panel{position:relative;overflow:hidden;border-color:#3e8bb9;background:radial-gradient(ellipse at 95% -15%,#274ab66b,transparent 43%),linear-gradient(135deg,#0d2d43,#061e2e)}
+.lead-archive-panel:before{content:"";position:absolute;inset:0 0 auto;height:2px;background:linear-gradient(90deg,#4cf7cc,#60bde9,#8c84f3);box-shadow:0 0 20px #78cafe}
+.lead-archive-panel .tag{color:#a9dafa;border-color:#487aa1}
+.lead-archive-panel .fields{margin-top:15px}
+.lead-archive-panel select{min-width:0;width:100%;padding:10px;border-radius:8px;background:#081e2c;border:1px solid #36718e;color:#ebffff}
+.lead-archive-panel #archive-delete{border-color:#7c485b;color:#f1b2ba}
+.lead-archive-panel #archive-status{padding:10px 13px;border-left:3px solid #42b6dc;background:#0b3044;border-radius:5px}
+
+/* Lead Intake: URL source + supervised enrichment */
+.lead-linkedin-panel h3{font-size:16px;margin:16px 0 10px;color:#e1fffa}.lead-linkedin-panel .li-separator{height:1px;background:linear-gradient(90deg,#30d8c6aa,#2b536000);margin:24px 0}.lead-linkedin-panel textarea,.lead-linkedin-panel input[type=url]{display:block;width:100%;background:#08222e;border:1px solid #376875;border-radius:9px;color:#e5fff9;padding:12px;margin-top:6px;font:inherit}.lead-linkedin-panel .li-link{color:#42ecc9;border:1px solid #376875;padding:9px 13px;border-radius:9px}.li-suggestions{max-height:360px;overflow:auto;margin:10px 0;border-top:1px solid #27525c}.li-suggestion{display:flex;align-items:flex-start;gap:12px;padding:10px 6px;border-bottom:1px solid #27525c;color:#cde7e5;cursor:pointer;overflow-wrap:anywhere}.li-suggestion input{flex:0 0 auto;accent-color:#28e8b7;width:17px;height:17px}.lead-linkedin-panel .upload{margin:12px 0}.lead-linkedin-panel p{line-height:1.6}@media(max-width:760px){.li-suggestion{font-size:12px}.lead-linkedin-panel .toolbar{flex-wrap:wrap}}
+
+
+/* RADIX Lead Intelligence / 2026 cockpit contact intelligence: dedicated high-contrast layout */
+.contact-vault{position:relative;isolation:isolate;overflow:hidden;margin:22px 0 18px;padding:22px;border:1px solid #2b797c;border-radius:16px;background:radial-gradient(ellipse at 96% 0%,#164b6750,transparent 48%),linear-gradient(155deg,#0a2d39,#061d2d 77%);box-shadow:0 14px 44px #010c1740,inset 0 1px #75fff515}
+.contact-vault::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,#54f3c9,#5ea6ff,transparent);opacity:.8}
+.contact-vault-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:22px}
+.contact-vault-header>div{display:grid;gap:5px}
+.contact-vault-header strong{font-size:16px;font-weight:720;letter-spacing:-.02em;color:#eafffc}
+.contact-vault-header span:not(.tag){font-size:11px;color:#a1c7cf}
+.contact-vault .fields{margin-block:12px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.contact-vault .toolbar{gap:8px;display:flex;flex-wrap:wrap;align-items:center}
+.contact-vault .toolbar button{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.contact-vault .toolbar button:not(:disabled):hover{transform:translateY(-2px);border-color:#69eecb;box-shadow:0 4px 18px #29dabc24}
+.contact-vault .tag{background:#153d54;border:1px solid #4487a3;color:#b1e9ff;letter-spacing:.11em}
+.contact-metrics{margin-top:22px;margin-bottom:22px;gap:12px}
+.contact-metrics>div{position:relative;overflow:hidden;border:1px solid #27696f;border-radius:14px;box-shadow:inset 0 1px #f0fffa0d,0 9px 23px #03121c40;background:linear-gradient(130deg,#103342,#082331)}
+.contact-metrics>div::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:#4ce1c1}
+.contact-metrics>div:nth-child(2)::before{background:#81b7ff}
+.contact-metrics>div:nth-child(3)::before{background:#f4bf70}
+.contact-metrics>div:nth-child(2) strong{color:#acd7ff}
+.contact-metrics>div:nth-child(3) strong{color:#f2cc8b}
+.contact-metrics strong{display:block;margin-top:7px;font-size:clamp(23px,2.8vw,30px);letter-spacing:-.035em}
+#contact-status,#contact-job-status,#contact-api-result{padding:12px 14px;border:1px solid #255660;border-radius:10px;background:#081c2a;color:#adced3;line-height:1.6}
+#contact-job-status{margin-top:17px;border-color:#2d7679}
+#contact-preview-rows td{max-width:310px;overflow-wrap:anywhere}
+#contact-source,#contact-batch-id,#contact-job-title,#contact-job-select{width:100%;min-width:0}
+#contact-preview-rows tr{transition:background-color .16s ease}
+#contact-preview-rows tr:hover{background-color:#14505d50}
+.panel:has(#contact-import){border-color:#2b7775;box-shadow:inset 0 1px #ffffff08,0 0 30px #24c7b20b}
+#contact-import,#contact-job-save{background:linear-gradient(110deg,#0c907c,#1698b5);border-color:#29cfbb;color:#fff;font-weight:700}
+#contact-job-delete{color:#f3a8ac;border-color:#6a5055}
+#contact-job-delete:hover{border-color:#e29394!important}
+button:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+@media(max-width:950px){.contact-vault{padding:16px}.contact-vault .fields{grid-template-columns:1fr}.contact-vault-header{align-items:center}}
+@media(max-width:560px){.contact-vault{padding:14px}.contact-metrics{gap:6px}.contact-metrics>div{padding:10px 7px}.contact-metrics small{font-size:9px;letter-spacing:.02em}.contact-vault-header{flex-wrap:wrap}.contact-vault .toolbar>button{flex:1 1 150px}}
+@media(prefers-reduced-motion:reduce){.contact-vault .toolbar button,#contact-preview-rows tr{transition:none}}
+
+/* Growth project bridge */
+.growth-context{display:flex;align-items:center;gap:15px;justify-content:space-between;flex-wrap:wrap;border:1px solid #287b73;border-radius:12px;background:linear-gradient(135deg,#0b3541,#08242d);padding:16px 21px;margin:15px 18px 0}
+.growth-context[hidden]{display:none}
+.growth-context>div:first-child{display:grid;gap:4px}
+.growth-context strong{font-size:15px;color:#eafffa}.growth-context small{color:#94d0ca;font-size:12px}.growth-context .toolbar{margin:0;gap:8px}.growth-context .toolbar a{padding:9px 12px;border:1px solid #398376;border-radius:8px;font-size:12px}.growth-context .toolbar a:hover{background:#145047}.growth-context p{flex-basis:100%;margin:0;font-size:11px}
+@media(max-width:750px){.growth-context{margin:10px 12px;padding:13px}.growth-context .toolbar{width:100%;flex-wrap:wrap}}
+
+.icp-project-import{border:1px solid #337e75;border-radius:11px;padding:15px;background:linear-gradient(120deg,#0b3940,#09232f);margin:18px 0}.icp-project-import strong{color:#9bffe0;font-size:13px}.icp-project-import p{font-size:12px;margin:8px 0}.icp-project-import .upload{margin-top:11px}
+
+
+/* RADIX Lead Intelligence — October visual refinement, accessibility and navigation */
+@media(min-width:751px){
+  .nav{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#367870 #09232d}
+  .nav .logo{flex:none;margin-bottom:20px}
+  .nav>a{flex:none;min-height:40px;line-height:1.25;border-radius:9px;transition:background-color .18s,color .18s,transform .18s}
+  .nav>a:hover{transform:translateX(2px)}
+  .sidebar-bottom{flex:none}
+}
+.steps{scrollbar-width:thin;scrollbar-color:#3c9786 #09232d}
+.steps a{min-height:41px;transition:background .18s,border-color .18s,color .18s}
+.steps a:focus-visible,.nav>a:focus-visible{outline:2px solid #80ffe0;outline-offset:-2px}
+.panel,.contact-vault{box-shadow:0 12px 36px #00000026,inset 0 1px #ffffff08}
+.panel:focus-within{border-color:#438c85}
+.panel h2{letter-spacing:-.012em}
+.tablewrap{scrollbar-width:thin;scrollbar-color:#3b9284 #0b2632}
+.tablewrap th{position:sticky;top:0;z-index:1}
+.tablewrap td{line-height:1.5}
+button,.upload,.toolbar a{transition:background .2s,border-color .2s,box-shadow .2s,transform .2s}
+button:hover:not(:disabled),.upload:hover{transform:translateY(-1px)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.upload:focus-within{outline:2px solid #70f6d4;outline-offset:2px}
+#contact-status,#contact-job-status,#contact-api-result{overflow-wrap:anywhere}
+#contact-preview-rows td{font-variant-numeric:tabular-nums}
+@media(max-width:750px){
+  .nav{scrollbar-width:thin;scrollbar-color:#3b9284 #0b2632}
+  .steps{top:0;max-width:100vw;overscroll-behavior-x:contain}
+  .steps a{flex:0 0 auto;padding-inline:13px}
+  .toolbar{gap:8px}
+  .panel{overflow-wrap:anywhere}
+}
+@media(prefers-reduced-motion:reduce){
+  .nav>a,.steps a,button,.upload,.toolbar a{transition:none!important;transform:none!important}
+}

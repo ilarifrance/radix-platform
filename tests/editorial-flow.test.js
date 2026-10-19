@@ -1,0 +1,64 @@
+const test=require('node:test'),assert=require('node:assert/strict'),core=require('../editorial-core');
+const brief={goal:'Awareness',audience:'PMI',channels:'LinkedIn',period:'Novembre',voice:'Chiaro',brand:'Brand',offer:'Servizio',positioning:'Consulenza',messages:'Metodo',topics:'Metodo e casi',frequency:'Due a settimana',kpis:'Richieste contatto',materials:'Nessuno',gaps:'Da approfondire'};
+function ready(){const s=core.create({id:'aura',summary:'Awareness'});core.revise(s,brief);core.approveBrief(s);return s}
+test('brief must be complete before content can be created',()=>{const s=core.create({id:'aura'});assert.throws(()=>core.approveBrief(s),/Completa/);assert.throws(()=>core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn'}),/Conferma/);core.revise(s,brief);core.approveBrief(s);assert.equal(s.briefApproved,true)});
+test('content revisions invalidate approval and require review again',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn',copy:'Testo'});assert.throws(()=>core.review(s,'1','approve'),/revisione/);core.review(s,'1','request');core.review(s,'1','approve');assert.equal(s.contents[0].status,'approved');core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn',copy:'Testo modificato'});assert.equal(s.contents.length,1);assert.equal(s.contents[0].revision,2);assert.equal(s.contents[0].status,'draft')});
+test('changing brief invalidates readiness and prior content approval',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn',copy:'Testo'});core.review(s,'1','request');core.review(s,'1','approve');core.revise(s,{...brief,audience:'Consumer'});assert.equal(s.briefApproved,false);assert.equal(s.contents[0].status,'draft');assert.throws(()=>core.review(s,'1','approve'),/Brief/)});
+test('local state is isolated by account and project; restore rejects cross-project data',()=>{assert.notEqual(core.key('francesco','aura'),core.key('altro','aura'));assert.notEqual(core.key('francesco','aura'),core.key('francesco','doc'));const raw=JSON.stringify(ready());assert.equal(core.restore(raw,'aura').contents.length,0);assert.throws(()=>core.restore(raw,'doc'),/incompatibile/)});
+test('empty copy cannot be submitted; project creates no invented content',()=>{const s=ready();assert.deepEqual(s.contents,[]);core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn'});assert.throws(()=>core.review(s,'1','request'),/testo/)});
+
+test('strategy approvals bind to versions and retain historical strategy and content',()=>{const s=ready();const approved=s.strategyRevision;core.updateContent(s,{id:'1',title:'A',channel:'LinkedIn',copy:'Originale'});core.updateContent(s,{id:'1',title:'A',channel:'LinkedIn',copy:'Nuovo'});assert.equal(s.contents[0].history[0].copy,'Originale');core.revise(s,{...brief,topics:'Nuova rubrica'});assert.equal(s.strategyApproval,null);assert.equal(s.contents[0].needsStrategyReview,true);assert.equal(s.strategyHistory.at(-1).approval.revision,approved);assert.equal(s.contents[0].copy,'Nuovo');core.approveBrief(s);assert.equal(s.strategyApproval.revision,approved+1);assert.equal(s.contents[0].needsStrategyReview,true)});
+test('legacy boolean approval cannot unlock strategy gate after restore',()=>{const s=ready();delete s.strategyApproval;assert.equal(core.restore(JSON.stringify(s),'aura').briefApproved,false)});
+test('saving unchanged strategy preserves approval and version',()=>{const s=ready();const revision=s.strategyRevision;core.revise(s,{...brief,goal:' Awareness '});assert.equal(s.strategyRevision,revision);assert.equal(s.briefApproved,true)});
+test('reapproving strategy cannot approve stale content without a revised version',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Titolo',channel:'LinkedIn',copy:'Testo'});core.review(s,'1','request');core.review(s,'1','approve');core.revise(s,{...brief,topics:'Altro tema'});core.approveBrief(s);assert.throws(()=>core.review(s,'1','request'),/Strategia modificata/);assert.equal(s.contents[0].status,'draft');core.updateContent(s,{id:'1',title:'Titolo rivisto',channel:'LinkedIn',copy:'Testo coerente con la nuova strategia'});core.review(s,'1','request');core.review(s,'1','approve');assert.equal(s.contents[0].status,'approved');assert.equal(s.contents[0].strategyRevision,s.strategyRevision)});
+test('planning approval is separate, exact and invalidated by schedule changes',()=>{const s=ready();assert.throws(()=>core.approvePlan(s),/almeno un contenuto/);core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',copy:'Testo'});assert.throws(()=>core.approvePlan(s),/data/);core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',copy:'Testo'});core.approvePlan(s);assert.equal(core.isPlanApproved(s),true);assert.equal(s.contents[0].status,'draft');core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-05',copy:'Testo'});assert.equal(core.isPlanApproved(s),false);assert.equal(s.planApproval,null)});
+test('strategy revision invalidates planning approval without deleting planned content',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',copy:'Testo'});core.approvePlan(s);core.revise(s,{...brief,messages:'Nuovo messaggio'});assert.equal(s.planApproval,null);assert.equal(s.contents.length,1);assert.equal(s.contents[0].needsStrategyReview,true)});
+test('calendar periods navigate deterministically across day week month and year',()=>{assert.deepEqual(core.calendarPeriod('2026-11-04','week').dates,['2026-11-02','2026-11-03','2026-11-04','2026-11-05','2026-11-06','2026-11-07','2026-11-08']);assert.equal(core.calendarPeriod('2026-11-30','month',1).anchor,'2026-12-30');assert.equal(core.calendarPeriod('2026-11-04','month').dates.length,30);assert.deepEqual(core.calendarPeriod('2026-11-04','year').dates.slice(0,2),['2026-01-01','2026-02-01']);assert.throws(()=>core.calendarPeriod('bad','week'),/non valido/)});
+test('time is validated, versioned and participates in planning approval',()=>{const s=ready();assert.throws(()=>core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',time:'25:00'}),/Orario/);core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',time:'09:30',copy:'A'});core.approvePlan(s);const fingerprint=s.planApproval.fingerprint;core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',time:'10:30',copy:'A'});assert.notEqual(core.planFingerprint(s),fingerprint);assert.equal(s.contents[0].history[0].time,'09:30')});
+test('comments keep the version they refer to and never touch status or approval',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',copy:'Testo'});core.review(s,'1','request');core.review(s,'1','approve');core.approvePlan(s);
+ const c=core.addComment(s,'1',' Va bene, ma accorcia ','Anna');assert.equal(c.text,'Va bene, ma accorcia');assert.equal(c.revision,1);assert.equal(s.contents[0].status,'approved');assert.ok(core.isPlanApproved(s));
+ assert.throws(()=>core.addComment(s,'1','  '),/commento/);assert.throws(()=>core.addComment(s,'x','ok'),/non trovato/);
+ core.updateContent(s,{id:'1',title:'Post',channel:'LinkedIn',date:'2026-11-04',copy:'Testo breve'});assert.equal(s.contents[0].comments.length,1);assert.equal(s.contents[0].revision,2)});
+test('channel variants are linked drafts, one per channel, and restore saves an old version as new',()=>{const s=ready();core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-04',time:'09:00',copy:'Testo LinkedIn'});
+ const v=core.addVariant(s,'1','Instagram','2');assert.equal(v.variantOf,'1');assert.equal(v.status,'draft');assert.equal(v.copy,'Testo LinkedIn');assert.equal(v.date,'2026-11-04');
+ assert.throws(()=>core.addVariant(s,'2','linkedin','3'),/già/);const w=core.addVariant(s,'2','Facebook','3');assert.equal(w.variantOf,'1');
+ assert.deepEqual(core.variantsOf(s,'2').map(x=>x.id).sort(),['1','3']);core.updateContent(s,{id:'2',title:'Lancio',channel:'Instagram',date:'2026-11-04',copy:'Testo IG'});assert.equal(s.contents.find(x=>x.id==='2').variantOf,'1');
+ core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-04',copy:'Seconda'});const r=core.restoreVersion(s,'1',1);assert.equal(r.revision,3);assert.equal(r.copy,'Testo LinkedIn');assert.equal(r.status,'draft');assert.throws(()=>core.restoreVersion(s,'1',9),/Versione/)});
+
+test('campaigns and rubrics group contents without touching versions or approvals',()=>{
+ const s=ready();core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-03',copy:'Testo'});core.review(s,'1','request');core.review(s,'1','approve');
+ assert.throws(()=>core.saveCampaign(s,{id:'c1',name:' '}),/nome/);assert.throws(()=>core.saveCampaign(s,{id:'c1',name:'Q4',start:'2026-11-30',end:'2026-11-01'}),/finisce prima/);
+ const c=core.saveCampaign(s,{id:'c1',name:'Lancio Q4',start:'2026-11-01',end:'2026-11-02',channels:'LinkedIn'});assert.throws(()=>core.saveCampaign(s,{id:'c2',name:'lancio q4'}),/già/);
+ core.saveRubric(s,{id:'r1',name:'Casi studio',cadence:'Ogni martedì'});
+ const before=JSON.stringify({rev:s.contents[0].revision,status:s.contents[0].status,fp:core.planFingerprint(s)});
+ core.tagContent(s,'1',{campaignId:'c1',rubricId:'r1'});assert.equal(s.contents[0].campaignId,'c1');
+ assert.equal(JSON.stringify({rev:s.contents[0].revision,status:s.contents[0].status,fp:core.planFingerprint(s)}),before);
+ assert.throws(()=>core.tagContent(s,'1',{campaignId:'x'}),/Campagna non trovata/);
+ const st=core.campaignStats(s)[0];assert.equal(st.total,1);assert.equal(st.byStatus.approved,1);assert.equal(st.outside,1,'3 Nov is after the campaign end');assert.deepEqual(st.channels,['LinkedIn']);
+ // a new version and a channel variant keep the labels
+ core.updateContent(s,{id:'1',title:'Lancio',channel:'LinkedIn',date:'2026-11-01',copy:'Testo 2'});assert.equal(s.contents[0].rubricId,'r1');assert.equal(core.campaignStats(s)[0].outside,0);
+ const v=core.addVariant(s,'1','Instagram','2');assert.equal(v.campaignId,'c1');assert.equal(v.rubricId,'r1');
+ core.tagContent(s,'2',{rubricId:''});assert.equal(s.contents[1].rubricId,undefined);
+ assert.equal(core.removeGroup(s,'campaign','c1'),2);assert.equal(s.contents.some(x=>x.campaignId),false);assert.equal(s.contents.length,2);
+ assert.equal(c.name,'Lancio Q4');
+});
+test('rubric suggestions come from the brief topics and skip existing ones',()=>{
+ const s=ready();s.brief.topics='- Metodo RADIX\n2. Casi studio, Dietro le quinte;\nCasi studio';core.saveRubric(s,{id:'r',name:'metodo radix'});
+ assert.deepEqual(core.rubricsFromBrief(s),['Casi studio','Dietro le quinte']);
+ const r=core.restore(JSON.stringify({...s,campaigns:undefined}),'aura');assert.deepEqual(r.campaigns,[]);assert.equal(r.rubrics.length,1);
+});
+
+test('publishing schedule reads PED times in the plan time zone, across daylight saving',()=>{
+ const s=core.create({id:'p',summary:'x'});assert.equal(core.timeZoneOf(s),'Europe/Rome');
+ assert.equal(core.zonedTime('2026-10-20','18:00','Europe/Rome'),'2026-10-20T16:00:00.000Z');
+ assert.equal(core.zonedTime('2026-12-20','18:00','Europe/Rome'),'2026-12-20T17:00:00.000Z');
+ assert.equal(core.zonedTime('2026-10-20','09:00','America/New_York'),'2026-10-20T13:00:00.000Z');
+ assert.equal(core.zonedTime('2026-10-20','','Europe/Rome'),null);assert.equal(core.zonedTime('2026-10-20','25:00','Europe/Rome'),null);
+ assert.throws(()=>core.setTimeZone(s,'Mars/Base'),/Fuso/);core.setTimeZone(s,'America/New_York');assert.equal(core.timeZoneOf(s),'America/New_York');
+ const now=Date.parse('2026-10-20T12:00:00Z'),item={date:'2026-10-20',time:'09:30'};
+ assert.deepEqual(core.publishSchedule(s,item,now),{mode:'scheduled',timezone:'America/New_York',scheduledAt:'2026-10-20T13:30:00.000Z',reason:''});
+ assert.equal(core.publishSchedule(s,{date:'2026-10-20',time:'08:02'},now).reason,'past');
+ assert.equal(core.publishSchedule(s,{date:'2026-10-20',time:''},now).reason,'missing');
+ s.timezone='Nowhere';assert.equal(core.timeZoneOf(s),'Europe/Rome');
+ assert.deepEqual(core.approvalPayload({id:'1',title:'T',channel:'LinkedIn',date:'2026-10-20',copy:'c',revision:2,status:'approved'}),{title:'T',channel:'LinkedIn',date:'2026-10-20',time:'',copy:'c',revision:2});
+});

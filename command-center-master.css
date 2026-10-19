@@ -1,0 +1,240 @@
+/* Approved master: neutral black glass, emerald energy, readable hierarchy. */
+:root{--bg:#02090b;--bg2:#041014;--panel:#041115;--panel2:#07191e;--line:#133c3d;--line2:#1b5654;--text:#f1fafb;--muted:#9bb4bd;--muted2:#718c96;--green:#00eab5;--green2:#77ffe0}
+body{background:radial-gradient(ellipse at 46% 35%,#052020 0,transparent 48%),#02090b;color:var(--text)}
+.sidebar{background:linear-gradient(160deg,#020b0e,#020809);border-right-color:#103738}
+.brand-name{font-size:30px;letter-spacing:.12em;color:#f3ffff}
+.brand-name::first-letter{color:#76ffe2}
+.brand-sub{color:#76a7b1;letter-spacing:.18em}
+.brand-mark{border-color:#157c69;color:#00edbd;background:#04231e}
+.nav-item{font-size:13px;color:#a8bdc6;min-height:44px}
+.nav-item.active{color:#f0fffb;background:linear-gradient(90deg,#06342c,#031b19);border-color:#095449;box-shadow:inset 2px 0 #00eabd,0 0 20px #00eabd08}
+.topbar{background:#020c0ee8;border-bottom-color:#123436;box-shadow:none}
+.command{background:linear-gradient(120deg,#031615,#020b10);border-color:#0b6257;border-radius:12px}
+.command input{color:#e4f5f7;font-size:13px}
+.welcome-bar{background:linear-gradient(105deg,#031115,#031012);border-color:#10534d;border-radius:12px;box-shadow:none}
+.welcome-message h1{font-size:27px;letter-spacing:-.035em;color:#fff}
+.welcome-message p{color:#a4bdc5;font-size:13px}
+.metric{background:linear-gradient(135deg,#03171b,#041015);border-color:#164247;border-radius:10px}
+.metric-label{color:#b4ced3;letter-spacing:.07em}
+.metric-value{color:#ecffff;text-shadow:0 0 18px #00eab533}
+.panel,.side-stack .panel,.network-panel{background:linear-gradient(145deg,#031215,#020b0e);border:1px solid #10534e;border-radius:13px;box-shadow:inset 0 1px #8effd808,0 12px 40px #0003}
+.panel-head,.network-panel .panel-head,.side-stack .panel-head{background:transparent;border-bottom-color:#13413b66}
+.panel-title,.network-panel .panel-title,.side-stack .panel-title{font-size:13px;font-weight:600;letter-spacing:.015em;color:#eefbfc}
+.panel-meta{color:#91aab4}
+.network-panel .panel-meta{color:#9ab6bd}
+.network-wrap{background:radial-gradient(ellipse at 50% 49%,#00eabd0d,transparent 42%),#020c0f}
+.network-wrap::after{opacity:.18}
+.cluster-orbit{opacity:.62;stroke-width:.7;filter:none}
+.cluster-orbit.tilted{opacity:.28}
+.network-flow{stroke-width:.8;opacity:.75}
+.network-label strong{color:#f5feff;font-size:17px;line-height:1.25}
+.network-label small{color:#adced5;font-size:9px}
+.project-ring{filter:drop-shadow(0 0 7px var(--node-color))}
+.core-globe{filter:drop-shadow(0 0 20px #00eab5)}
+.core-ring{stroke:#86ffe2;stroke-width:1.7;filter:drop-shadow(0 0 12px #00ffd2)}
+.core-inner{stroke:#b7fff4;stroke-opacity:.12}
+.core-title{fill:#fff;font-weight:700;letter-spacing:.13em}
+.core-rays{fill:none;stroke:#00eab5;stroke-width:.65;opacity:.3;pointer-events:none}
+.network-caption,.legend{background:#021315dd;border-color:#15594e;color:#a3c8c8}
+#networkBreadcrumb,#projectTools{border-bottom-color:#13413b66;background:#031214}
+.team-grid{grid-template-columns:1fr;gap:6px}
+.team-card{display:grid;grid-template-columns:1fr auto;gap:3px 10px;padding:10px 12px;min-height:0;background:linear-gradient(90deg,#07232a,#031216);border-color:#16444a}
+.team-title{font-size:12px;color:#f1faff}.team-count{grid-column:2;grid-row:1/3;font-size:22px;align-self:center;color:#70f6d4}
+.team-sub{font-size:10px;color:#a4c0c7}.team-status{grid-column:1/-1;font-size:9px;margin-top:4px;color:#8db4be}
+.workflow-card,.resource,.action,.attention-item{background:linear-gradient(110deg,#041b20,#031115);border-color:#15434a;border-radius:10px}
+.resource-name,.workflow-name,.action-title{color:#ecf9fb;font-size:12px}
+.resource-icon,.action-icon{color:#46e6d2;background:#07302e;border-color:#126557}
+.activity-text{color:#c6d9df}.activity-time{color:#88a9b4}
+@media(min-width:1181px){.dashboard-grid{grid-template-columns:minmax(0,2.3fr) minmax(300px,1fr)}.network-wrap{height:490px}.lower-grid{grid-template-columns:1.5fr 1.05fr 1.05fr .8fr}}
+@media(max-width:640px){.welcome-message h1{font-size:23px}.network-label strong{font-size:16px}.panel-title{font-size:12px}.team-card{padding:12px}}
+@media(prefers-contrast:more){.panel,.metric,.team-card{border-color:#5aaa9d}.panel-meta,.team-sub,.team-status{color:#d4e8ed}}
+/* Corrections verified in the first authenticated master pass. */
+.core-globe{fill:#031b18}
+.lower-grid{align-items:start}
+.lower-grid .panel{min-height:300px}
+.workflow-list{max-height:300px;overflow-y:auto}
+.team-grid{max-height:300px;overflow-y:auto}
+@media(min-width:1181px){.welcome-bar{min-height:100px;padding:14px 18px}.network-wrap{height:450px}}
+@media(max-width:640px){.workflow-list,.team-grid{max-height:none}.lower-grid .panel{min-height:0}}
+/* Close-up references: thin globe rim and individually responsive light beams. */
+.network-beam-halo{fill:none;stroke-width:3;opacity:.15;filter:blur(2px);pointer-events:none}
+.network-flow{stroke-dasharray:2 14;stroke-width:1;filter:drop-shadow(0 0 3px currentColor)}
+.core-globe{fill:#021713;filter:drop-shadow(0 0 16px #00eab5)}
+.core-ring{stroke-width:1;filter:drop-shadow(0 0 8px #00ffd2)}
+.core-rays{opacity:.17}
+.core-inner{stroke-opacity:.07}
+.network-panel .core-ring{fill:none;stroke-width:1;filter:drop-shadow(0 0 6px #00ffd2)}
+.network-panel .core-inner{fill:none;stroke-width:.6;stroke-opacity:.07}
+.network-panel .core-halo{fill:url(#coreHalo);stroke:#00eab5;stroke-width:.55;opacity:.85;filter:blur(.25px) drop-shadow(0 0 13px #00eab566)}
+.node-aura{opacity:.18;filter:blur(3px)}
+.network-target .project-ring{fill:var(--node-color);fill-opacity:.25;stroke-width:1.3}
+.network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-opacity:.45}
+.cluster-orbit.outer{opacity:.44}.cluster-orbit.inner{opacity:.36}
+.network-label{padding-top:5px;display:flex;flex-direction:column;align-items:center}
+.network-label-layer,.network-label-overlay{pointer-events:none}
+.network-label strong{max-width:205px;padding:3px 9px;border-radius:8px;background:linear-gradient(90deg,transparent,#020c0bd9 16%,#020c0be8 84%,transparent);text-shadow:0 1px 2px #000,0 0 8px var(--node-color)}
+.network-label small{padding:1px 6px;border-radius:5px;background:#020b09c7}
+@media(prefers-reduced-motion:reduce){.network-beam-halo{filter:none}}
+
+/* Data-backed workflow filters */
+.sync-notice{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;padding:12px 16px;border:1px solid #786033;border-radius:10px;background:#211b0c;color:#e5cb8a;font-size:12px}
+.sync-notice[hidden]{display:none}.sync-notice button{flex-shrink:0;min-height:44px;padding:8px 12px;border:1px solid #786033;border-radius:8px;background:#30270e;color:#ffe9b6;cursor:pointer}
+.sync-notice button:disabled{opacity:.5}.sync-notice button:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+@media(max-width:760px){.sync-notice{align-items:stretch;flex-direction:column}}
+.knowledge-resource{width:100%;border:0;border-bottom:1px solid #173c2c;background:transparent;color:inherit;text-align:left;cursor:pointer;min-height:44px}
+.knowledge-resource:hover{background:#0a2117}.knowledge-resource:focus-visible{outline:2px solid #1ef28f;outline-offset:-2px}
+.knowledge-search{display:flex;align-items:center;gap:12px;margin:0 0 16px;color:#93bca8;font-size:11px}
+.knowledge-search input{flex:1;min-width:0;min-height:44px;border:1px solid #285641;border-radius:9px;padding:10px 12px;background:#07150e;color:#d8f8e8}
+.knowledge-search input:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+.agent-filters{display:grid;grid-template-columns:minmax(180px,1.4fr) repeat(2,minmax(130px,1fr)) auto;gap:9px;align-items:end;margin:0 0 13px;padding:11px;border:1px solid #173c2c;border-radius:12px;background:rgba(7,24,16,.88)}
+.agent-filters label{display:grid;gap:5px;color:#789b89;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.agent-filters input,.agent-filters select{min-width:0;height:36px;border:1px solid #285641;border-radius:8px;background:#07150e;color:#d8f8e8;padding:0 10px;font-size:10px;color-scheme:dark}
+.agent-filters input:focus-visible,.agent-filters select:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+.agent-filters output{align-self:center;color:#9cc8b1;font-size:10px;white-space:nowrap}
+@media(max-width:760px){.knowledge-search{flex-wrap:wrap}.knowledge-search input{flex-basis:100%;order:3}}
+@media(max-width:760px){.agent-filters{grid-template-columns:1fr}.agent-filters output{white-space:normal}}
+.workflow-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) auto;gap:9px;align-items:end;margin:0 0 13px;padding:11px;border:1px solid #173c2c;border-radius:12px;background:rgba(7,24,16,.88)}
+.workflow-filters label{display:grid;gap:5px;color:#789b89;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.workflow-filters select{min-width:0;height:36px;border:1px solid #285641;border-radius:8px;background:#07150e;color:#d8f8e8;padding:0 30px 0 10px;font-size:10px;font-weight:600;color-scheme:dark}
+.workflow-filters select:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+.workflow-filter-count{align-self:center;max-width:150px;color:#9cc8b1;font-size:10px;line-height:1.4;text-align:right}
+.command-view-card{padding:0;overflow:hidden;cursor:default}
+.command-flow-main{display:block;width:100%;min-height:94px;padding:13px;border:0;background:transparent;color:#d8f8e8;text-align:left;cursor:pointer}
+.command-flow-main:hover{background:rgba(30,242,143,.045)}
+.command-flow-main:focus-visible,.command-task-links button:focus-visible{outline:2px solid #1ef28f;outline-offset:-3px}
+.command-flow-main b,.command-flow-main span,.command-flow-main small{display:block}
+.command-flow-main b{font-size:11px;margin-bottom:6px}.command-flow-main span{color:#8fb5a2;font-size:9px;line-height:1.45}.command-flow-main small{margin-top:9px;color:#62a584;font-size:8px}
+.command-task-links{display:grid;gap:1px;padding:0 8px 8px}
+.command-task-links button{display:flex;justify-content:space-between;gap:8px;min-height:38px;padding:8px 9px;border:1px solid #183c2b;border-radius:7px;background:#06120c;color:#aed7c2;font-size:9px;text-align:left;cursor:pointer}
+.command-task-links button:hover{border-color:#2c9660;background:#092017}.command-task-links small{color:#63b88f}
+.workflow-filter-empty{grid-column:1/-1;min-height:120px}
+@media(max-width:800px){.workflow-filters{grid-template-columns:1fr 1fr}.workflow-filter-count{max-width:none;text-align:left}}
+@media(max-width:560px){.workflow-filters{grid-template-columns:1fr}.workflow-filters select{min-height:44px}.workflow-filter-count{text-align:left}}
+
+/* Configured roster satellites belong to the central RADIX team, not to a project. */
+.configured-satellite>circle:first-of-type{fill:#06251f;stroke:#52d9b4;stroke-width:1;filter:drop-shadow(0 0 3px #00dba8)}
+.configured-satellite .satellite-hit{fill:transparent;stroke:none}
+.configured-satellite:hover>circle:first-of-type,.configured-satellite:focus>circle:first-of-type{fill:#95ffe0;stroke:#edfff9;filter:drop-shadow(0 0 7px #00eab5)}
+.network-panel .core-rays{stroke:#33c9a2;stroke-width:.55;opacity:.3}
+.core-surface{fill:none;stroke:url(#coreSweep);stroke-width:.45;opacity:.28;pointer-events:none}
+.core-surface .core-contour{stroke:#8fffe1;stroke-width:.65;stroke-dasharray:2 4;opacity:.4}
+.core-sheen{mix-blend-mode:screen;pointer-events:none}
+.core-sweep{fill:none;stroke:#c8fff0;stroke-width:1;stroke-linecap:round;opacity:.28;filter:drop-shadow(0 0 4px #70ffda);pointer-events:none}
+.core-emitter{fill:#dffff6;stroke:#13ffc1;stroke-width:.55;filter:drop-shadow(0 0 4px #00ffc3);animation:coreEmitter 3.6s ease-in-out infinite;animation-delay:var(--emitter-delay)}
+@keyframes coreEmitter{0%,100%{opacity:.45}45%{opacity:1}70%{opacity:.62}}
+/* Dimensional spheres and fine energy filaments, matching the approved close-ups. */
+.network-panel .core-globe{fill:url(#coreGradient);filter:drop-shadow(0 0 10px #00d9a780)}
+.network-panel .core-ring{stroke:#8ffff0;stroke-width:1.05;animation:none;filter:drop-shadow(0 0 4px #00ffce)}
+.network-target .project-ring{fill:url(#sphereLight);fill-opacity:.85;stroke:var(--node-color);stroke-width:1}
+.network-target .project-inner{fill:var(--node-color);fill-opacity:.12;stroke-width:.5;stroke-opacity:.55}
+.network-beam-filament{fill:none;stroke-width:.55;opacity:.34;pointer-events:none}
+.network-beam-halo{stroke-width:5;opacity:.13;filter:blur(4px)}
+.network-flow{fill:none;stroke-width:1.15;stroke-dasharray:1 27;opacity:.9;animation-duration:14s}
+.scene-satellite{animation:none!important;transform-origin:0 0;cursor:pointer}
+.configured-satellite>circle:first-of-type{fill:url(#sphereLight);stroke:#77e9c8;filter:drop-shadow(0 0 3px #00dba8)}
+.network-wrap::after{display:none}
+@media(min-width:1181px){.network-wrap{height:510px}}
+@media(prefers-reduced-motion:reduce){.network-beam-filament,.network-flow,.scene-satellite,.core-emitter{animation:none!important;transition:none!important}}
+.mobile-agent-roster summary{padding:12px;color:#bef5e4;cursor:pointer;min-height:44px;box-sizing:border-box}
+.mobile-agent-roster button{width:100%;margin-bottom:6px}
+
+/* Brighter curved bundles remain readable against the black glass. */
+.network-beam-filament{stroke-width:.75;opacity:.58}
+.network-beam-halo{opacity:.22}
+.network-panel .core-rays{opacity:.42}
+
+/* Keep the geometric identity when hosted font loading is unavailable. */
+.brand-mark,.brand-name,h1,.metric-value,.core-title,.team-count,.drawer-title,.fatal-card h2,.project-name{font-family:"Space Grotesk",Inter,system-ui,sans-serif}
+
+.satellite-tether{stroke-width:.65;opacity:.38;pointer-events:none;filter:drop-shadow(0 0 2px var(--node-color))}
+.scene-satellite:hover .satellite-tether,.scene-satellite:focus-visible .satellite-tether{opacity:.85;stroke-width:1}
+@media(max-width:640px){.network-panel:not(.network-expanded) .network-wrap{height:300px}}
+
+/* Saved workflow groups: counts are tasks, never a claim of active agents. */
+.satellite-count{font:600 10px Inter,system-ui,sans-serif;fill:#e0f9ed;paint-order:stroke;stroke:#020b08;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.scene-satellite>circle:first-of-type{filter:drop-shadow(0 0 5px var(--node-color))}
+.network-cluster.cluster-hover .satellite-tether{opacity:.72;stroke-width:.9}
+
+/* Data-backed section views share the cockpit without pretending unsupported modules exist. */
+.operational-view{height:100%;overflow:auto;padding:16px;box-sizing:border-box;background:radial-gradient(circle at 50% 0,#06352824,transparent 42%)}
+.operational-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.operational-head strong{display:block;color:#effff8;font:650 22px/1.2 "Space Grotesk",Inter,sans-serif}
+.operational-head span{display:block;color:#78a594;font-size:11px;margin-top:4px}
+.operational-head button{border:1px solid #135a46;background:#06231b;color:#9af4d1;border-radius:9px;padding:8px 12px;cursor:pointer}
+.operational-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.operational-section-label{grid-column:1/-1;margin:8px 2px 0;padding-top:12px;border-top:1px solid #123d32;color:#78a594;font-size:10px;letter-spacing:.09em;text-transform:uppercase}
+.operational-card{min-width:0;min-height:92px;border:1px solid #123d32;background:linear-gradient(145deg,#061a16e8,#020b09e8);border-radius:12px;padding:0;color:#dffbef;box-shadow:inset 0 1px #36dca414}
+.operational-card>button,.operational-card:not(:has(>button)){width:100%;height:100%;display:grid;grid-template-columns:34px minmax(0,1fr) 18px;gap:10px;align-items:start;text-align:left;border:0;background:none;color:inherit;padding:13px;box-sizing:border-box}
+.operational-card>button{cursor:pointer;border-radius:12px}
+.operational-card>button:hover,.operational-card>button:focus-visible{outline:1px solid #24d99a;background:#0b3528a8}
+.operational-card i{width:30px;height:30px;display:grid;place-items:center;border:1px solid #147355;border-radius:9px;background:#0a3125;color:#45ecaf;font-style:normal}
+.operational-card strong,.operational-card span,.operational-card small{display:block;overflow-wrap:anywhere}
+.operational-card strong{font-size:13px;color:#f3fff9}.operational-card span{margin-top:3px;color:#76d6b2;font-size:10px}.operational-card small{margin-top:8px;color:#8eaea1;font-size:10px;line-height:1.35}.operational-card b{color:#4fe8b0}
+@media(max-width:1000px){.operational-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:760px){
+  .network-wrap:has(.operational-view:not([hidden])){height:auto!important;min-height:0;overflow:visible!important;touch-action:pan-y}
+  .operational-view{height:auto;overflow:visible;padding:12px}
+  .operational-grid{grid-template-columns:1fr}
+  .operational-head{align-items:stretch;flex-direction:column;gap:10px}
+  .operational-head strong{font-size:18px}
+  .operational-head button{width:100%;min-height:44px}
+  .operational-card{min-height:104px}
+  .operational-card>button{min-height:104px}
+}
+@media(pointer:coarse){
+  .nav-item,.view-tab,.tool-btn,.operational-card>button,#networkBreadcrumb button,#projectTools button{min-height:44px}
+  .tool-btn{min-width:44px}
+  .operational-card>button:hover{outline:none;background:none}
+}
+#networkToolbar[hidden]{display:none}
+
+/* Saved workflow task navigation */
+.workflow-task-link{width:100%;text-align:left;color:inherit;background:transparent;border:1px solid #24523e;border-radius:9px;margin-bottom:7px;cursor:pointer;min-height:44px}
+.workflow-task-link:hover{background:#102b1e}
+.workflow-task-link:focus-visible,.drawer-link:focus-visible{outline:2px solid #1ef28f;outline-offset:2px}
+
+button.drawer-link{background:#102b1e;color:#a1f4c5;cursor:pointer;font:inherit;min-height:44px}
+
+/* RADIX integration: all operational divisions remain reachable on shorter screens. */
+.sidebar{overflow-y:auto;overscroll-behavior:contain;padding-bottom:26px;scrollbar-width:thin;scrollbar-color:rgba(94,233,193,.34) transparent}
+.sidebar .side-foot{position:relative;left:auto;right:auto;bottom:auto;margin-top:20px}
+.sidebar .nav-item{flex-shrink:0}
+@media(max-height:760px){.sidebar{padding-top:12px}.sidebar .brand{padding-bottom:10px}}
+
+/* Integrated RADIX sidebar: independent scroll, footer never covers links. */
+.sidebar{display:flex;flex-direction:column;overflow:hidden!important;min-height:0}
+.sidebar .brand{flex:0 0 auto}
+.sidebar-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;scrollbar-width:thin;scrollbar-color:#338875 transparent;padding:0 3px 16px}
+.sidebar-scroll::-webkit-scrollbar{width:7px}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:#245b52;border-radius:20px}
+.sidebar .side-foot{position:static!important;inset:auto!important;left:auto!important;right:auto!important;bottom:auto!important;flex:0 0 auto;margin:0!important;padding-top:10px;background:#03100f}
+.sidebar .side-section{margin-top:8px}
+.sidebar-scroll .nav-item{min-height:35px}
+.sidebar-fold{border:1px solid #173832;border-radius:10px;padding:3px 2px}
+.sidebar-fold>summary{display:block!important;cursor:pointer;list-style:none;user-select:none;padding:7px 10px!important;line-height:1.5}
+.sidebar-fold>summary::-webkit-details-marker{display:none}
+.sidebar-fold>summary:after{content:'▾';float:right;color:#67f0cb}
+.sidebar-fold[open]>summary:after{content:'▴'}
+.sidebar-fold:not([open]) .nav{display:none}
+.sidebar-fold .nav{padding-top:5px}
+.sidebar-scroll:focus-visible{outline:2px solid #55eac3;outline-offset:-2px}
+@media(max-width:860px){
+  .sidebar-fold>summary{font-size:0!important;text-align:center}
+  .sidebar-fold>summary:after{content:'⋯';float:none;font-size:18px}
+  .sidebar-fold[open]>summary:after{content:'▴'}
+  .sidebar-scroll{padding-left:0;padding-right:0}
+}
+
+/* Command Center inline authentication: remain on same page after login. */
+.fatal-login{display:grid;gap:9px;margin-top:20px;text-align:left}
+.fatal-login[hidden],.fatal-card [hidden]{display:none!important}
+.fatal-login label{font-size:12px;font-weight:650;color:#d5f9e7}
+.fatal-login input{width:100%;min-height:43px;border:1px solid #2e6b59;border-radius:9px;background:#03130e;color:#eafef2;font-size:15px;padding:10px 12px;outline-offset:2px}
+.fatal-login input:focus-visible{outline:2px solid #50ffc1}
+.fatal-login button{border:1px solid #45e6af;background:#104e39;color:#eafff5;border-radius:10px;min-height:43px;font-size:14px;font-weight:700;cursor:pointer}
+.fatal-login button:disabled{opacity:.65;cursor:wait}
+.fatal-login p{font-size:12px;min-height:18px;margin:1px 0;color:#d5f9e7}
+
+/* Keep the login usable on short screens and with an on-screen keyboard. */
+.fatal{overflow-y:auto;overscroll-behavior:contain}
+.fatal-card{margin-block:auto;max-height:100%;overflow-y:auto}

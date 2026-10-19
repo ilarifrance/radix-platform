@@ -8,10 +8,28 @@ const { sql } = require('./_db');
 const { getSessionUser } = require('./_auth');
 
 module.exports = async (req, res) => {
+  const isDashboard = req.method === 'GET' && req.query && req.query.view === 'dashboard';
+  if (isDashboard) res.setHeader('Cache-Control', 'no-store');
   const user = getSessionUser(req);
   if (!user) {
     res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
     return;
+  }
+
+  if (isDashboard) {
+    try {
+      const client = sql();
+      const rows = await client`SELECT data, updated_at, updated_by FROM workspace_state WHERE id = 1`;
+      let summary = require('./_dashboard').dashboard(rows[0], user);
+      // Registry projects, approvals, team activity and Agenti AI flows, when the registry exists.
+      try {
+        const registry = require('./_dashboard_registry');
+        summary = registry.withRegistry(summary, await registry.loadRegistry(client));
+      } catch (_) { /* registry not migrated yet: the v3.7 summary still works */ }
+      return res.status(200).json(summary);
+    } catch (_) {
+      return res.status(500).json({ error: 'Riepilogo temporaneamente non disponibile.' });
+    }
   }
 
   const client = sql();
