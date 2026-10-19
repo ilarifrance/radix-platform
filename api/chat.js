@@ -1642,7 +1642,8 @@ async function teamMemoryBlock(scope) {
     clientId: memoryCore.clean(scope.clientId, 80),
     agentId: memoryCore.clean(scope.agentId, 80),
   };
-  if (!ctx.projectId && !ctx.clientId) return "";
+  // A new project (no id or client yet) can still ask for the agency-wide entries only.
+  if (!ctx.projectId && !ctx.clientId && scope.level !== "agency") return "";
   if ([ctx.projectId, ctx.clientId, ctx.agentId].some((id) => id && !memoryCore.validId(id))) return "";
   try {
     const { sql } = require("./_db");
