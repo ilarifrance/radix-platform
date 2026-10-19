@@ -76,9 +76,12 @@ let emailReady=null;
 async function emailConfigured(){if(emailReady!==null)return emailReady;try{const r=await fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{};emailReady=!!(d.items||[]).find(i=>i.id==='email'&&i.configured)}catch{emailReady=false}return emailReady}
 function sequencePanel(filterOf){
  const box=E('div',undefined,'crm-sequence');box.append(E('h3','Sequenze automatiche'));
- const sel=E('select');sel.setAttribute('aria-label','Sequenza');SEQUENCES.forEach(s=>{const o=E('option',s.name+' ('+s.steps.map(x=>'g'+x.day+' '+KIND[x.kind].toLowerCase()).join(', ')+')');o.value=s.id;sel.append(o)});
+ const sel=E('select');sel.setAttribute('aria-label','Sequenza');const custom=[];
+ const option=s=>{const o=E('option',s.name+' ('+s.steps.map(x=>'g'+x.day+' '+KIND[x.kind].toLowerCase()).join(', ')+')');o.value=s.id;sel.append(o)};SEQUENCES.forEach(option);
+ // A sequence made with «3 proposte guidate» (crm-sequence-ideas.js) joins the list for this session and is selected.
+ box.addSequence=s=>{custom.push(s);option(s);sel.value=s.id};
  const consent=E('input');consent.type='checkbox';consent.checked=true;const cl=E('label');cl.append(consent,E('span',' Passi email solo a chi ha dato il consenso'));
- const go=B('Avvia sulla selezione del segmento',()=>startSequence(SEQUENCES.find(s=>s.id===sel.value),consent.checked,filterOf));
+ const go=B('Avvia sulla selezione del segmento',()=>startSequence(SEQUENCES.concat(custom).find(s=>s.id===sel.value),consent.checked,filterOf));
  const row=E('div',undefined,'actions');row.append(sel,go);box.append(row,cl,E('p','Ogni passo diventa un’attività con scadenza nel CRM, assegnata a te. I contatti già in questa sequenza vengono saltati.','muted'));return box;
 }
 async function startSequence(seq,consentOnly,filterOf){
