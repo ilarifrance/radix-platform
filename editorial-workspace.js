@@ -112,6 +112,7 @@ function renderPublish(item){const host=$('publish');host.querySelectorAll('.too
    if(!confirm('Questo programma DAVVERO la pubblicazione su Buffer, canale "'+(ch?ch.name:sel.value)+'", '+(mode==='scheduled'?'per '+fmtAt(plan.scheduledAt,tz):'nel prossimo slot libero')+'. Non è una bozza. Confermi?'))return;
    try{localStorage.setItem('radix.buffer-channel',sel.value)}catch(e){}
    go.disabled=sel.disabled=true;status.textContent='Invio in corso…';
+   try{if(await freshGraphics(state.contents.find(x=>x.id===item.id)||item)){status.textContent='Immagini ridisegnate con l’identità visiva attuale. Invio in corso…';persist()}}catch(e){go.disabled=sel.disabled=false;status.textContent='Immagini non aggiornate: '+e.message+'. Non ho inviato nulla.';return}
    const body={projectId,contentId:item.id,revision:item.revision,channelId:sel.value,channelName:ch?ch.name:'',mode};
    try{await saving;let r;try{r=await ws.publications.send(body)}catch(e){if(!(e instanceof ws.ConflictError&&e.body&&e.body.uncertain))throw e;if(!confirm(e.message+'\n\nHai controllato su Buffer e il post NON c’è? Solo in quel caso conferma per riprovare.'))throw e;r=await ws.publications.send({...body,retryUncertain:true})}
     const row=r.item,cur=state.contents.find(x=>x.id===item.id);pubs=[row,...pubs.filter(p=>p.id!==row.id)];
@@ -165,8 +166,13 @@ async function autoGraphics(item,quiet){if(!rt||!media||['video','email'].includ
  if(selected===item.id)openContent(item.id)}
 // Stores the graphics of a content on the server (one JPEG per slide) so the approved post goes to Buffer with them.
 async function api(method,query,body){const r=await fetch('/api/workspace?resource=media&'+query,{method,credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'HTTP '+r.status);return d}
+// Which visual identity the attached images were drawn with: when it changes, drawn images are redrawn before going to Buffer.
+function styleKey(){const v=String((rt&&registryProject&&(rt.profileFor(registryProject)||{}).visual)||'');let h=5381;for(let i=0;i<v.length;i++)h=(h*33+v.charCodeAt(i))>>>0;return v.length+'-'+h.toString(36)}
+async function freshGraphics(item){if(!media||!item||!item.slides||item.photo||['video','email'].includes(pv.mediaKind(item))||item.graphicsStyle===styleKey())return false;
+ return !!(await attachSlides(item))}
 async function attachCanvases(item,canvases){const q='projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id);
  for(let i=0;i<canvases.length;i++)await api('POST','',{projectId,contentId:item.id,slot:i,dataUrl:canvases[i].toDataURL('image/jpeg',0.9)});
+ {const c=state.contents.find(x=>x.id===item.id);if(c)c.graphicsStyle=styleKey();if(item!==c)item.graphicsStyle=styleKey()}
  await api('DELETE',q+'&from='+canvases.length);return canvases.length}
 async function attachSlides(item){const slides=media.parseSlides(item.slides||''),project=rt&&rt.profileFor(registryProject);if(!slides.length||item.photo)return 0;
  try{if(document.fonts){await Promise.all(['400 40px Inter','700 40px Inter','800 40px Montserrat'].map(f=>document.fonts.load(f)));await document.fonts.ready}}catch(e){}
@@ -306,6 +312,7 @@ async function scheduleAll(){if(scheduling)return;scheduling=true;$('scheduleAll
   await saving;let done=0;
   for(const x of p.ready){notify('Programmo '+(done+1)+' di '+p.ready.length+': '+x.item.title+'…');
    const cur=state.contents.find(c=>c.id===x.item.id);if(!cur||cur.revision!==x.item.revision||cur.status!=='approved')continue;
+   try{if(await freshGraphics(cur))persist()}catch(e){if(done)persist();notify(done+' programmati. Fermato su «'+cur.title+'»: immagini non aggiornate ('+e.message+').');return}
    let r;try{r=await ws.publications.send({projectId,contentId:cur.id,revision:cur.revision,channelId:x.channel.id,channelName:x.channel.name,mode:'scheduled'})}
    catch(e){if(e.body&&e.body.item)pubs=[e.body.item,...pubs.filter(q=>q.id!==e.body.item.id)];if(done)persist();notify(done+' programmati. Fermato su «'+cur.title+'»: '+e.message);return}
    const row=r.item;pubs=[row,...pubs.filter(q=>q.id!==row.id)];cur.publication=publicationFrom(row);done++}
