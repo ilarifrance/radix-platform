@@ -27,3 +27,6 @@
 .ps-dialog>header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
 .ps-dialog>header h2{margin:0;font-size:18px}
 .ps-dialog .photo-studio{border:0;padding:0;margin:0;background:transparent}
+.photo-studio .ps-ad{display:flex;flex-direction:column;gap:3px;padding:6px 8px;border-radius:9px;font-size:12px;background:rgba(127,127,127,.1)}
+.photo-studio .ps-ad.best{background:rgba(124,92,255,.16);box-shadow:inset 0 0 0 1px var(--rx-agency,#7c5cff)}
+.photo-studio .ps-ad ul{margin:0;padding:0;list-style:none;color:var(--rx-warning,#f0b45b)}
