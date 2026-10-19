@@ -101,8 +101,12 @@ test('examples are valid and use every merge tag',()=>{
 
 test('page wiring: assets at the end of their groups, hooks in reply block and tickets section, no AI, storage guarded',()=>{
  const html=fs.readFileSync('radix-sales.html','utf8');
- assert.ok(html.includes('<link rel="stylesheet" href="sales/sales-nav.css"><link rel="stylesheet" href="sales/crm-knowledge.css"><script'));
- assert.ok(html.includes('<script src="sales/crm-tools.js" defer></script><script src="sales/crm-knowledge-core.js"></script><script src="sales/crm-knowledge.js" defer></script></head>'));
+ // Order, not exact neighbours: other CRM PRs add their own tags to the same one-line head.
+ const at=t=>{const i=html.indexOf(t);assert.ok(i>=0,t);return i};
+ assert.ok(at('<link rel="stylesheet" href="sales/sales-nav.css">')<at('<link rel="stylesheet" href="sales/crm-knowledge.css">'));
+ assert.ok(at('<script src="sales/crm-tools.js" defer></script>')<at('<script src="sales/crm-knowledge-core.js"></script>'));
+ assert.ok(at('<script src="sales/crm-knowledge-core.js"></script>')<at('<script src="sales/crm-knowledge.js" defer></script>'));
+ assert.ok(at('<script src="sales/crm-knowledge.js" defer></script>')<at('</head>'));
  assert.ok(fs.readFileSync('sales/crm-ticket-reply.js','utf8').includes('RadixCrmKnowledge.attach(box,area,ticket,load)'));
  assert.ok(fs.readFileSync('sales/crm-tools.js','utf8').includes("entity==='tickets'&&window.RadixCrmKnowledge"));
  const ui=fs.readFileSync('sales/crm-knowledge.js','utf8'),core=fs.readFileSync('sales/crm-knowledge-core.js','utf8');
