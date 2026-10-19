@@ -416,3 +416,6 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .publish-preview .pp-text{max-height:none;overflow:visible;font-size:14px}.publish-preview .pp-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .pp-more-text{align-self:flex-end;background:none;border:0;padding:0;color:#5e6b78;font-weight:600;cursor:pointer}
 .publish-preview .pp-media{color:#5e6b78;grid-template-columns:repeat(4,1fr)}.publish-preview .pp-media img:first-child{grid-column:1/-1}.publish-preview .pp-media img{border-radius:4px}
+
+.ped-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;max-width:min(640px,calc(100vw - 32px));padding:12px 18px;border-radius:12px;border:1px solid var(--rx-border-strong);background:var(--rx-surface,#0f1a17);color:inherit;font-size:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);cursor:pointer}
+.ped-toast[hidden]{display:none}
