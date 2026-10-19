@@ -24,6 +24,24 @@ test('ticket-stalled covers unassigned or late open tickets',()=>{
  data.tasks.push({...p.items[0].task,status:'todo'});assert.equal(A.plan('ticket-stalled',data,{now}).items.length,1);
 });
 
+test('stale-deal flags open deals with no recent touch and no open task',()=>{
+ const old='2026-09-01T10:00:00Z';
+ const data={opportunities:[{id:ids(1),title:'Ferma',created_at:old,contact_id:ids(7),owner_id:ids(9)},{id:ids(2),title:'Toccata',created_at:old,contact_id:ids(8)},{id:ids(3),title:'Nuova',created_at:'2026-10-10T10:00:00Z'},{id:ids(4),title:'Con attività',created_at:old},{id:ids(5),title:'Mai sentita',created_at:old,outcome:'open'},{id:ids(6),title:'Persa',created_at:old,outcome:'lost'}],
+  interactions:[{contact_id:ids(7),occurred_at:'2026-09-20T10:00:00Z'},{opportunity_id:ids(2),occurred_at:'2026-10-12T10:00:00Z'}],
+  tasks:[{opportunity_id:ids(4),title:'Chiama',status:'todo'}]};
+ const p=A.plan('stale-deal',data,{now});assert.deepEqual(p.items.map(x=>x.record.id),[ids(1),ids(5)]);
+ assert.equal(p.items[0].task.title,'[Auto · Trattativa ferma] Riprendi il contatto: Ferma (ultimo contatto 26 giorni fa)');assert.equal(p.items[0].task.assignee_id,ids(9));
+ assert.match(p.items[1].task.title,/nessun contatto registrato\)$/);
+ data.tasks.push({...p.items[0].task,status:'todo'});assert.equal(A.plan('stale-deal',data,{now}).items.length,1);
+});
+
+test('new-contact plans a first touch for fresh contacts nobody has worked yet',()=>{
+ const data={contacts:[{id:ids(1),name:'Nuovo',created_at:'2026-10-14T10:00:00Z'},{id:ids(2),name:'Vecchio',created_at:'2026-09-01T10:00:00Z'},{id:ids(3),name:'Chiamato',created_at:'2026-10-15T10:00:00Z'},{id:ids(4),name:'Con trattativa',created_at:'2026-10-15T10:00:00Z'},{id:ids(5),name:'Fatto',created_at:'2026-10-15T10:00:00Z'}],
+  interactions:[{contact_id:ids(3),occurred_at:'2026-10-15T11:00:00Z'}],opportunities:[{id:ids(9),contact_id:ids(4),outcome:'open'}],tasks:[{contact_id:ids(5),title:'Chiama',status:'done'}]};
+ const p=A.plan('new-contact',data,{now,assignee:ids(8)});assert.deepEqual(p.items.map(x=>x.record.name),['Nuovo']);
+ assert.equal(p.items[0].task.title,'[Auto · Primo contatto] Primo contatto: Nuovo');assert.equal(p.items[0].task.assignee_id,ids(8));
+});
+
 test('hot-contact needs a scorer and skips contacts already in play',()=>{
  const data={contacts:[{id:ids(1),name:'Anna'},{id:ids(2),name:'Bruno'},{id:ids(3),name:'Carla'}],opportunities:[{id:ids(5),contact_id:ids(2),outcome:'open'}],tasks:[]};
  assert.equal(A.plan('hot-contact',data,{now}).items.length,0);
