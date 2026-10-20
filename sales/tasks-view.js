@@ -7,8 +7,10 @@
 (()=>{
 const content=document.getElementById('content');if(!content)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
+// Open/won/lost: one rule for every CRM view, RadixCrmForecast.isOpen (analytics-view.js).
+const isOpen=o=>window.RadixCrmForecast.isOpen(o);
 const DAY=864e5,t0=()=>{const d=new Date();d.setHours(0,0,0,0);return+d};
-const dd=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
+const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
 const hm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
 const rel=d=>{const n=Math.floor((+d-t0())/DAY);return n===0?'Oggi':n===-1?'Ieri':n<0?(-n)+' giorni fa':n===1?'Domani':d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'})};
 const PRI={high:['Alta','alta'],medium:['Media','media'],low:['Bassa','bassa']};
@@ -21,6 +23,7 @@ function groups(d){const now=t0(),open=d.tasks.filter(t=>t.status!=='done');
   const inRange=(t,a,b)=>{const x=dd(t.due_at);return x&&+x>=a&&+x<b};
   return{open,today:open.filter(t=>inRange(t,now,now+DAY)),week:open.filter(t=>inRange(t,now,now+7*DAY)),due:open.filter(t=>{const x=dd(t.due_at);return x&&+x<now+DAY}).sort((a,b)=>String(a.due_at).localeCompare(String(b.due_at))),
     nodate:open.filter(t=>!t.due_at),done:d.tasks.filter(t=>t.status==='done')}}
+window.RadixCrmTasksView={groups,rel,dd,recall,rail};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'';
 const member=(d,id)=>d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnata';
 
@@ -53,9 +56,9 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
   p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente. Regola fissa, non AI.','tv-note'));
   const last=c=>d.interactions.filter(i=>i.contact_id===c.id).map(i=>i.occurred_at).sort().at(-1)||'';
-  const rows=d.contacts.filter(c=>d.opportunities.some(o=>o.contact_id===c.id)&&!d.tasks.some(t=>t.contact_id===c.id&&t.status!=='done')).sort((a,b)=>last(a).localeCompare(last(b))).slice(0,3);
+  const rows=d.contacts.filter(c=>d.opportunities.some(o=>o.contact_id===c.id&&isOpen(o))&&!d.tasks.some(t=>t.contact_id===c.id&&t.status!=='done')).sort((a,b)=>last(a).localeCompare(last(b))).slice(0,3);
   if(!rows.length)p.append(E('p','Nessun contatto da richiamare: ogni trattativa ha un’attività aperta.','tv-empty'));
-  for(const c of rows){const o=d.opportunities.find(x=>x.contact_id===c.id);const r=E('div',undefined,'tv-recall-row');const av=E('span',initials(c.name),'tv-av');av.setAttribute('aria-hidden','true');
+  for(const c of rows){const o=d.opportunities.find(x=>x.contact_id===c.id&&isOpen(x));const r=E('div',undefined,'tv-recall-row');const av=E('span',initials(c.name),'tv-av');av.setAttribute('aria-hidden','true');
     const tx=E('div');const l=last(c);tx.append(E('b',c.name),E('small',l?'Ultimo contatto '+rel(dd(l)).toLowerCase():'Nessuna interazione registrata'),E('small','Deal: '+o.title+' · '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(o.amount_cents||0)/100),'tv-deal'));
     const a=E('a','Apri contatto','tv-btn');a.href='#contacts';r.append(av,tx,a);p.append(r)}
   return p}
@@ -72,8 +75,8 @@ function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-tab
   t.append(tb);p.append(t);return p}
 
 function rail(d,g){const r=E('aside',undefined,'tv-rail');const h=E('div',undefined,'tv-rail-head');h.append(E('span','✦','tv-spark'),E('h3','Briefing del giorno'));r.append(h);
-  const high=g.today.filter(t=>t.priority==='high').length;const atRisk=d.opportunities.filter(o=>{const x=dd(o.expected_close);return x&&+x<t0()+14*DAY&&!g.open.some(t=>t.opportunity_id===o.id)}).length;
-  const pipe=d.opportunities.reduce((s,o)=>s+Number(o.amount_cents||0),0);
+  const high=g.today.filter(t=>t.priority==='high').length;const atRisk=d.opportunities.filter(o=>{if(!isOpen(o))return false;const x=dd(o.expected_close);return x&&+x<t0()+14*DAY&&!g.open.some(t=>t.opportunity_id===o.id)}).length;
+  const pipe=d.opportunities.filter(isOpen).reduce((s,o)=>s+Number(o.amount_cents||0),0);
   [['bulb',`Hai ${g.today.length} attività oggi, ${high} ad alta priorità`],['cal',`${g.due.length} attività scadute o in scadenza oggi`],['chart','Pipeline nel CRM: '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(pipe/100)],['clock',`${atRisk} trattative chiudono entro 14 giorni senza attività`]].forEach(([i,t])=>{const b=E('p',undefined,'tv-brief');b.append(E('span',undefined,'tv-ico '+i),E('span',t));r.append(b)});
   r.append(E('p','Numeri calcolati dai dati del CRM.','tv-note'));
   const q=E('div',undefined,'tv-quick');q.append(E('h4','Azioni rapide'));
@@ -82,7 +85,7 @@ function rail(d,g){const r=E('aside',undefined,'tv-rail');const h=E('div',undefi
 
 let busy=false;
 async function render(){const sec=document.getElementById('tasks');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('tv-on');return}
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;const g=groups(d);
+  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;if(!window.RadixCrmForecast){later();return}const g=groups(d);
   busy=true;sec.querySelector(':scope>.tv')?.remove();
   const root=E('div',undefined,'tv');const main=E('div',undefined,'tv-main');
   const tabs=E('div',undefined,'tv-tabs');tabs.setAttribute('role','tablist');

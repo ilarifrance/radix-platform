@@ -1,0 +1,304 @@
+/* radix-sales.html in the CRM light theme (tokens in crm-light.css). Visual only: loaded after
+   sales.css / sales-parity.css, it repaints the same selectors; layout and behaviour stay theirs. */
+:root{--bg:var(--crm-bg);--panel:var(--crm-card);--line:var(--crm-line);--text:var(--crm-text);--muted:var(--crm-muted);--green:var(--crm-accent);--gold:var(--crm-warn);--mint:var(--crm-accent)}
+body{background:var(--crm-bg);color:var(--crm-text);font-family:var(--crm-font)}
+a{color:var(--crm-link)}
+.muted,small{color:var(--crm-muted)}
+.eyebrow,main>.eyebrow{color:var(--crm-accent)}
+
+/* top bar */
+body>header{background:var(--crm-card);border-bottom:1px solid var(--crm-line);backdrop-filter:none}
+body>header .brand small{color:var(--crm-accent)}
+body>header .badge{border-color:var(--crm-line);color:var(--crm-accent);background:var(--crm-card)}
+body>header label{color:var(--crm-muted)}
+body>header select{background:var(--crm-card);border-color:var(--crm-line-2)}
+body>header button{background:var(--crm-card);border-color:var(--crm-line-2);color:var(--crm-accent)}
+main>#status{color:var(--crm-muted)}
+body>footer{color:var(--crm-subtle)}
+
+/* controls: white outlined buttons with accent text, filled primary */
+button{background:var(--crm-card);border:1px solid var(--crm-line-2);color:var(--crm-accent);border-radius:8px;font-weight:500}
+button:hover{background:var(--crm-hover);border-color:var(--crm-accent-line)}
+button.primary{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent);box-shadow:none;font-weight:600}
+button.primary:hover{background:#5b21b6;border-color:#5b21b6}
+button.danger{background:var(--crm-card);border-color:#f1c4bf;color:var(--crm-err)}
+button.danger:hover{background:var(--crm-err-soft);border-color:var(--crm-err)}
+input,select,textarea{background:var(--crm-card);border:1px solid var(--crm-line-2);color:var(--crm-text)}
+input::placeholder,textarea::placeholder{color:var(--crm-subtle)}
+input:focus,select:focus,textarea:focus{border-color:var(--crm-accent)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible,textarea:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+label{color:var(--crm-muted)}
+
+/* cards and panels */
+.panel{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow);border-radius:12px}
+.card{background:var(--crm-card);border-color:var(--crm-line)}
+.customer360{border-color:var(--crm-accent-line);box-shadow:0 0 0 3px var(--crm-accent-soft),var(--crm-shadow)}
+#error,.notice{background:var(--crm-warn-soft);border-left:3px solid var(--crm-warn);color:#7a4204;border-radius:8px}
+#status{color:var(--crm-muted)}
+dialog{background:var(--crm-card);border:1px solid var(--crm-line);color:var(--crm-text);box-shadow:0 20px 50px #1d1a2733}
+dialog::backdrop{background:#1d1a2759}
+
+/* list page header (Salesforce "object home"): white band, title left, actions grouped on the right */
+html.rx-has-view #content>section.rx-view>.row:first-child{background:var(--crm-card);border:1px solid var(--crm-line);border-radius:12px;padding:16px 20px;box-shadow:var(--crm-shadow);gap:8px;justify-content:flex-start}
+html.rx-has-view #content>section.rx-view>.row:first-child>h2{font-size:24px;color:var(--crm-text);margin-right:auto}
+html.rx-has-view #content>section.rx-view>.row:first-child>button,html.rx-has-view #content>section.rx-view>.row:first-child>.crm-tools button{min-height:36px;padding:6px 16px;font-size:13.5px}
+html.rx-has-view #content>section.rx-view>.row:first-child>.crm-tools{margin:0;gap:0;flex-wrap:wrap}
+.row>.crm-tools>button{border-radius:0;margin-left:-1px}
+.row>.crm-tools>button:first-of-type{border-radius:8px 0 0 8px;margin-left:0}
+.row>.crm-tools>button:last-of-type{border-radius:0 8px 8px 0}
+.row>.crm-tools>button:only-of-type{border-radius:8px}
+.row>.crm-tools>button:hover{position:relative;z-index:1}
+
+/* record lists read as a white table */
+html.rx-has-view #content>section.rx-view>article.card{background:var(--crm-card);border-left:1px solid var(--crm-line);border-right:1px solid var(--crm-line)}
+html.rx-has-view #content>section.rx-view>article.card:first-of-type{border-top:1px solid var(--crm-line)}
+html.rx-has-view #content>section.rx-view>article.card:last-of-type{border-bottom:1px solid var(--crm-line)}
+:is(#companies,#contacts,#leads,#interactions,#members,#processes,#stages)>article.card{border-bottom:1px solid var(--crm-line)}
+:is(#companies,#contacts,#leads,#interactions,#members,#processes,#stages)>article.card:hover{background:var(--crm-hover)}
+:is(#companies,#contacts,#leads,#interactions,#members,#processes,#stages)>article.card>h3{color:var(--crm-link)}
+:is(#companies,#contacts,#leads,#interactions,#members,#processes,#stages)>article.card>h3::before{color:var(--crm-accent);background:var(--crm-accent-soft);box-shadow:none}
+.panel>form>label{color:var(--crm-muted)}
+
+/* KPI tiles */
+.metric{background:var(--crm-card);border:1px solid var(--crm-line);color:var(--crm-muted);box-shadow:var(--crm-shadow)}
+.metric strong{color:var(--crm-text)}
+.metric::after{border:1.5px solid var(--crm-accent-line);box-shadow:none}
+.metric:nth-child(3)::after{border-color:#f3d7a8;box-shadow:none}
+.metric::before{background:linear-gradient(180deg,transparent,#6d28d914)}
+
+/* kanban (opportunità, attività) */
+.board{scrollbar-color:var(--crm-line-2) transparent}
+.column{background:var(--crm-head);border:1px solid var(--crm-line);border-top:3px solid var(--crm-accent)}
+.column:nth-child(4n+2){border-top-color:var(--crm-chart-2)}
+.column:nth-child(4n+3){border-top-color:var(--crm-chart-5)}
+.column:nth-child(4n+4){border-top-color:var(--crm-chart-3)}
+.column>h3,.column .card h3{color:var(--crm-text)}
+.column .card{background:var(--crm-card);border-color:var(--crm-line);box-shadow:var(--crm-shadow)}
+.column .card label{color:var(--crm-muted)}
+.outcome-won{color:var(--crm-ok)}.outcome-lost{color:var(--crm-err)}
+.crm-playbook{border:1px solid var(--crm-line);background:var(--crm-soft)}
+.crm-playbook li.done{color:var(--crm-subtle)}
+
+/* ---------- Contatti (contacts-view.js) ---------- */
+.cx-avatar,.pv-av{color:var(--crm-accent);background:var(--crm-accent-soft);box-shadow:0 0 0 1px var(--crm-accent-line)}
+.cx-avatar.lg{box-shadow:0 0 0 2px var(--crm-accent-line)}
+.cx-avatar.xl{box-shadow:0 0 0 3px var(--crm-accent-line),0 0 0 9px var(--crm-accent-soft)}
+.cx-table{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.cx-row{border-bottom:1px solid var(--crm-line);color:var(--crm-text)}
+.cx-row.cx-head{color:var(--crm-muted);background:var(--crm-head);border-bottom:1px solid var(--crm-line-2)}
+button.cx-row{font-weight:400}
+button.cx-row:hover{background:var(--crm-hover)}
+button.cx-row[aria-current]{background:var(--crm-accent-soft);box-shadow:inset 3px 0 0 var(--crm-accent);border-radius:0}
+.cx-who b{color:var(--crm-link)}
+.cx-last b{color:var(--crm-text)}
+.cx-next b{color:var(--crm-text)}
+.cx-last small,.cx-next small,.cx-sub,.cx-timeline li small,.cx-deal small,.cx-empty,.cx-node small,.cx-legend{color:var(--crm-muted)}
+.cx-next small.late{color:var(--crm-err)}
+.cx-panel{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.cx-chip{color:var(--crm-warn);border:1px solid #f3d7a8;background:var(--crm-warn-soft)}
+.cx-tags span,.cx-pill{color:var(--crm-accent);background:var(--crm-accent-soft);border:1px solid var(--crm-accent-line)}
+.cx-timeline li::before{background:var(--crm-accent);box-shadow:0 0 0 3px var(--crm-accent-soft)}
+.cx-deal{border-bottom:1px solid var(--crm-line)}
+.cx-map-stage line{stroke:var(--crm-accent)}
+.cx-map-stage line.weak{stroke:var(--crm-chart-2);stroke-opacity:.6}
+button.cx-node{color:var(--crm-text)}
+button.cx-node:hover .cx-avatar{box-shadow:0 0 0 2px var(--crm-accent)}
+.cx-legend span::before{border-top:2px solid var(--crm-accent)}
+.cx-legend span.weak::before{border-top:2px dashed var(--crm-chart-2)}
+.cx-score{background:var(--crm-soft);color:var(--crm-muted);box-shadow:inset 0 0 0 1px var(--crm-line)}
+.cx-score b{color:var(--crm-text)}
+.cx-score.crm-score-caldo{background:var(--crm-err-soft);box-shadow:inset 0 0 0 1px #f1c4bf}
+.cx-score.crm-score-caldo small,.cx-score.crm-score-caldo b{color:var(--crm-err)}
+.cx-score.crm-score-tiepido{background:var(--crm-warn-soft);box-shadow:inset 0 0 0 1px #f3d7a8}
+.cx-score.crm-score-tiepido small,.cx-score.crm-score-tiepido b{color:var(--crm-warn)}
+.cx-score.crm-score-freddo{background:var(--crm-info-soft);box-shadow:inset 0 0 0 1px #c7d6fb}
+.cx-score.crm-score-freddo small,.cx-score.crm-score-freddo b{color:var(--crm-info)}
+.cx-score-line{color:var(--crm-muted)}
+
+/* ---------- Panoramica (dashboard-view.js) ---------- */
+html.pv-on #dashboard>.row:first-child>h2::after,html.tv-on #tasks>.row:first-child>h2::after,#calendar>.row:first-child>h2::after,#analytics>.row:first-child>h2::after{color:var(--crm-muted)}
+.pv-panel,.pv-kpi,.pv-rail,.tv-panel,.tv-kpi,.tv-rail,.tv-tabs,.cal-card,.an-panel,.an-kpi,.an-rail{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.pv-head h3,.pv-recent h4,.pv-rail-block h4{color:var(--crm-muted)}
+.pv-head a{color:var(--crm-link)}
+.pv-kpi small,.an-kpi small,.tv-kpi small{color:var(--crm-muted)}
+.pv-kpi strong{color:var(--crm-text)}
+.pv-kpi.warn strong,.tv-kpi.warn strong{color:var(--crm-warn)}
+.pv-kpi span,.an-kpi span,.tv-sub{color:var(--crm-muted)}
+.pv-kpi::after{border:1.5px solid var(--crm-accent-line);box-shadow:none}
+.pv-kpi.warn::after{border-color:#f3d7a8;box-shadow:none}
+.pv-spark .line{stroke:var(--crm-accent)}
+.pv-spark .area{fill:#6d28d914}
+.pv-spark.warn .line{stroke:var(--crm-chart-5)}
+.pv-spark.warn .area{fill:#b4530914}
+.pv-funnel-svg{filter:none}
+.pv-funnel-svg .f0{fill:#4c1d95}.pv-funnel-svg .f1{fill:#5b21b6}.pv-funnel-svg .f2{fill:#6d28d9}.pv-funnel-svg .f3{fill:#7c3aed}.pv-funnel-svg .f4{fill:#8b5cf6}
+.pv-conv small,.pv-funnel li span{color:var(--crm-muted)}
+.pv-conv b{color:var(--crm-accent)}
+.pv-funnel li{border-bottom:1px solid var(--crm-line)}
+.pv-funnel li::before{background:var(--crm-accent)}
+.pv-funnel li b{color:var(--crm-text)}
+.pv-chart .grid,.an-chart .grid{stroke:var(--crm-line)}
+.pv-chart .ax,.an-chart .ax{fill:var(--crm-muted)}
+.pv-chart .l1{stroke:var(--crm-accent)}
+.pv-chart .l2{stroke:var(--crm-chart-2)}
+.pv-chart .fill{fill:#6d28d914}
+.pv-chart .dot.l1{fill:var(--crm-accent)}.pv-chart .dot.l2{fill:var(--crm-chart-2)}
+.pv-legend,.an-legend,.cal-legend{color:var(--crm-muted)}
+.pv-legend span::before{border-top:3px solid var(--crm-accent)}
+.pv-legend span.l2::before{border-top:3px dotted var(--crm-chart-2)}
+.pv-risk th,.an-team th,.an-top th,.an-email th{color:var(--crm-muted);background:var(--crm-head);border-bottom:1px solid var(--crm-line-2);font-weight:600}
+.pv-risk td,.an-team td,.an-top td,.an-email td{border-bottom:1px solid var(--crm-line)}
+.pv-risk tbody tr:hover{background:var(--crm-hover)}
+.pv-level.alto{color:var(--crm-err);background:var(--crm-err-soft);border-color:#f1c4bf}
+.pv-level.medio{color:var(--crm-warn);background:var(--crm-warn-soft);border-color:#f3d7a8}
+.pv-level.basso{color:var(--crm-ok);background:var(--crm-ok-soft);border-color:#b7e3c6}
+.pv-note,.an-note,.tv-note,.an-rail p.an-note{color:var(--crm-subtle)}
+.pv-empty,.tv-empty,.cal-empty,.pv-rank,.pv-ring small,.pv-counts small,.pv-agenda time,.pv-agenda small,.pv-recent small,.pv-rail-block small,.pv-action small{color:var(--crm-muted)}
+.pv-team li:first-child{background:var(--crm-accent-soft)}
+.pv-team li:first-child .pv-rank{color:#8a4b05}
+.pv-bar,.an-bar,.an-q-bar,.tv-progress>span{background:var(--crm-head)}
+.pv-bar i,.an-bar i,.an-q-bar i,.tv-progress i{background:var(--crm-accent);box-shadow:none}
+.pv-focus{border-color:#f3d7a8;box-shadow:inset 3px 0 0 var(--crm-warn),var(--crm-shadow)}
+.pv-ring .bg{stroke:var(--crm-head)}
+.pv-ring .fg{stroke:var(--crm-accent);filter:none}
+.pv-when{color:var(--crm-ok)}
+.pv-when.late{color:var(--crm-err)}
+.pv-rail-head h3,.pv-spark-ico,.tv-spark{color:var(--crm-accent)}
+.pv-action{border:1px solid var(--crm-line);background:var(--crm-card);color:var(--crm-text)}
+.pv-action::after{color:var(--crm-subtle)}
+.pv-action:hover{border-color:var(--crm-accent-line);background:var(--crm-hover)}
+.pv-rail-block,.tv-quick{border-top:1px solid var(--crm-line)}
+.pv-ask,.an-ask,.cal-btn,.tv-btn{border:1px solid var(--crm-line-2);color:var(--crm-accent);background:var(--crm-card)}
+.pv-ask:hover,.an-ask:hover,.cal-btn:hover,.tv-btn:hover{background:var(--crm-hover)}
+
+/* ---------- Attività (tasks-view.js) ---------- */
+.tv-tabs button{color:var(--crm-text)}
+.tv-tabs button[aria-selected=true],.tv-tabs button[aria-pressed=true]{background:var(--crm-accent-soft);box-shadow:inset 0 0 0 1px var(--crm-accent-line);color:var(--crm-accent)}
+.tv-tabs button.due{color:var(--crm-warn)}
+.tv-tabs .tv-kanban{color:var(--crm-muted);border-left:1px solid var(--crm-line)}
+.tv-badge,.tv-count{background:var(--crm-head);color:var(--crm-text)}
+.tv-tabs .due .tv-badge,.tv-table.warn .tv-count{background:var(--crm-warn-soft);color:var(--crm-warn)}
+.tv-ico{background:var(--crm-accent-soft);box-shadow:none}
+.tv-ico::before{background:var(--crm-accent)}
+.tv-kpi.warn .tv-ico{box-shadow:none;background:var(--crm-warn-soft)}
+.tv-kpi.warn .tv-ico::before{background:var(--crm-warn)}
+.tv-table.warn{border-color:#f3d7a8;background:var(--crm-card)}
+.tv-warn-ico{color:var(--crm-warn)}
+.tv-timeline li:not(:last-child)::after{border-left:1px solid var(--crm-line-2)}
+.tv-timeline time{color:var(--crm-muted)}
+.tv-timeline li.now time{color:var(--crm-accent)}
+.tv-slot,.tv-recall-row,.tv-brief{border:1px solid var(--crm-line);background:var(--crm-card)}
+.tv-timeline li.now .tv-slot{border-color:var(--crm-accent-line);box-shadow:0 0 0 3px var(--crm-accent-soft);background:var(--crm-card)}
+.tv-slot small,.tv-recall-row small{color:var(--crm-muted)}
+.tv-check{border:1.5px solid var(--crm-line-2);background:var(--crm-card)}
+.tv-check:hover{border-color:var(--crm-accent);background:radial-gradient(circle,var(--crm-accent) 0 35%,transparent 40%)}
+.tv-tag{color:var(--crm-muted);border:1px solid var(--crm-line)}
+.tv-foot,.tv-quick a,.tv-quick button{border:1px solid var(--crm-line);background:var(--crm-card);color:var(--crm-text)}
+.tv-foot:hover,.tv-quick a:hover,.tv-quick button:hover{border-color:var(--crm-accent-line);background:var(--crm-hover)}
+.tv-recall-row .tv-deal{color:var(--crm-muted)}
+.tv-av{color:var(--crm-accent);background:var(--crm-accent-soft);box-shadow:none}
+.tv-table th{color:var(--crm-muted);font-weight:600}
+.tv-table td{background:var(--crm-card);border-top:1px solid var(--crm-line);border-bottom:1px solid var(--crm-line)}
+.tv-table td:first-child{border-left:1px solid var(--crm-line)}
+.tv-table td:last-child{border-right:1px solid var(--crm-line)}
+.tv-table.warn td{background:#fffaf2;border-color:#f3d7a8}
+.tv-dot{color:var(--crm-subtle)}
+.tv-dot.late,td.late,.tv-pri.alta{color:var(--crm-err)}
+.tv-table.warn .tv-dot.late,.tv-pri.media{color:var(--crm-warn)}
+.tv-pri.bassa{color:var(--crm-ok)}
+.tv-status{border:1px solid #c7d6fb;color:var(--crm-info);background:var(--crm-info-soft)}
+.tv-status.done{border-color:#b7e3c6;color:var(--crm-ok);background:var(--crm-ok-soft)}
+.tv-status.doing{border-color:#f3d7a8;color:var(--crm-warn);background:var(--crm-warn-soft)}
+
+/* ---------- Calendario (calendar-view.js) ---------- */
+.teal{--c:#0f766e}.blue{--c:#1d4ed8}.purple{--c:#6d28d9}.gold{--c:#a85b06}.orange{--c:#c2410c}.red{--c:#b42318}
+.cal-sub,.cal-mini-grid .dow,.cal-dayhead small,.cal-hour,.cal-month .dow{color:var(--crm-muted)}
+.cal-mini-grid button{color:var(--crm-text)}
+.cal-mini-grid button.out{color:var(--crm-subtle)}
+.cal-mini-grid button.week{background:var(--crm-head)}
+.cal-mini-grid button.sel,.cal-mini-grid button.today{background:var(--crm-accent);color:var(--crm-on-accent)}
+.cal-mini-grid button.today:not(.sel){background:transparent;color:var(--crm-accent);box-shadow:inset 0 0 0 1.5px var(--crm-accent)}
+.cal-link{color:var(--crm-link)}
+.cal-check{color:var(--crm-text)}
+.cal-check input{accent-color:var(--crm-accent)}
+.cal-bar,.cal-legend{border-color:var(--crm-line)}
+.cal-modes{border:1px solid var(--crm-line-2)}
+.cal-modes button{color:var(--crm-text)}
+.cal-modes button[aria-pressed=true]{background:var(--crm-accent-soft);color:var(--crm-accent);box-shadow:inset 0 0 0 1px var(--crm-accent-line)}
+.cal-row,.cal-month .dow,.cal-mcell{border-color:var(--crm-line)}
+.cal-dayhead,.cal-cell,.cal-col{border-left:1px solid var(--crm-line)}
+.cal-dayhead.today b{background:var(--crm-accent);color:var(--crm-on-accent)}
+.cal-cell.today,.cal-col.today{background:#6d28d90a;box-shadow:inset 1px 0 0 var(--crm-accent-line),inset -1px 0 0 var(--crm-accent-line)}
+.cal-col{background:repeating-linear-gradient(180deg,transparent 0 55px,var(--crm-line) 55px 56px)}
+.cal-ev{color:var(--crm-text);background:color-mix(in srgb,var(--c) 10%,#fff);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-left:3px solid var(--c);box-shadow:none}
+.cal-ev small,.cal-ev span{color:var(--crm-muted)}
+.cal-now{border-top-color:var(--crm-err)}
+.cal-now::before{background:var(--crm-err)}
+.cal-mcell.today>b{color:var(--crm-accent)}
+.cal-agenda{border-top:1px solid var(--crm-line);color:var(--crm-text)}
+.cal-agenda time{color:var(--crm-muted)}
+
+/* ---------- Analisi (analytics-view.js; chart colours come from --crm-chart-*) ---------- */
+.an-sub,.an-fun-n,.an-q-grid small,.an-q-grid span,.an-sim-form label{color:var(--crm-muted)}
+.an-kpi strong{color:var(--crm-text)}
+.an-kpi::after{background:linear-gradient(180deg,transparent,#6d28d912)}
+.an-fun-bar{background:var(--c);color:var(--crm-on-accent)}
+.an-fun-bar small{color:#ffffffe6}
+.an-line{border-bottom:1px solid var(--crm-line)}
+.an-line span{color:var(--crm-muted)}
+.an-line b{color:var(--crm-text)}
+.an-q-head strong,.an-q-grid b{color:var(--crm-accent)}
+.an-q-grid div{border:1px solid var(--crm-line);background:var(--crm-soft)}
+.an-stage{border:1px solid var(--crm-accent-line);color:var(--crm-accent);background:var(--crm-accent-soft)}
+.an-link{color:var(--crm-link)}
+.an-rail p{color:var(--crm-text)}
+.an-sim-form input,.an-sim-form select{background:var(--crm-card);border:1px solid var(--crm-line-2);color:var(--crm-text)}
+.an-sim-form small,.an-sim-bars small{color:var(--crm-subtle)}
+.an-sim-bars i.pipe{background:var(--crm-chart-1)}
+.an-sim-bars i.new{background:var(--crm-chart-2)}
+
+/* ---------- Segmenti, campagne, automazioni, doppioni (crm-tools.js, crm-campaigns.js) ---------- */
+details.crm-campaigns>summary,details.crm-automations>summary,details.crm-dedupe>summary,.crm-sequence h3,.crm-campaign h3,.crm-automation>strong,.crm-campaign-item strong{color:var(--crm-text)}
+:is(details.crm-campaigns,details.crm-automations,details.crm-dedupe)[open]>summary,.crm-automation,.crm-sequence{border-color:var(--crm-line)}
+.crm-sequence>label,.crm-dedupe-group>label.check{color:var(--crm-text)}
+.crm-sequence>label input[type=checkbox],.crm-dedupe-group>label.check input[type=radio]{accent-color:var(--crm-accent)}
+.crm-campaign-queue>p,.crm-dedupe-list>p{color:var(--crm-muted)}
+.crm-campaign-item,.crm-dedupe-group{border:1px solid var(--crm-line);background:var(--crm-soft)}
+.crm-campaign-item details>summary,.crm-campaign-item>.actions a{color:var(--crm-link)}
+.crm-campaign-item .interaction-body{background:var(--crm-card);border:1px solid var(--crm-line)}
+.crm-automation>.crm-automation-count{background:var(--crm-accent-soft);color:var(--crm-accent)}
+.crm-automation:has(button:disabled)>.crm-automation-count{color:var(--crm-subtle);background:transparent}
+.crm-dedupe-list>p.crm-dedupe-count{color:var(--crm-warn)}
+.crm-dedupe-group>legend{color:var(--crm-warn);background:var(--crm-warn-soft);box-shadow:inset 0 0 0 1px #f3d7a8}
+.crm-dedupe-group>label.check:hover{background:var(--crm-hover)}
+.crm-dedupe-group>label.check:has(input:checked){border-color:var(--crm-accent-line);background:var(--crm-accent-soft);color:var(--crm-text)}
+.crm-ideas,.crm-ideas fieldset,.crm-ideas-chip,.crm-ideas-card{border-color:var(--crm-line-2)}
+.crm-ideas-chip:has(input:checked){border-color:var(--crm-accent);background:var(--crm-accent-soft)}
+.crm-ideas-card[data-chosen=true]{border-color:var(--crm-accent);box-shadow:0 0 0 2px var(--crm-accent)}
+.crm-ideas-warn{color:var(--crm-warn)}
+
+/* ---------- Attività: nothing runs past its box (checked at 1280, 1600 and 390px) ---------- */
+.row>.crm-tools>label{display:flex;align-items:center;gap:8px;margin:0 10px 0 0;font-size:12.5px;white-space:nowrap}
+.row>.crm-tools>label>input{width:76px;min-height:36px;padding:6px 8px}
+.tv-kpi>div{min-width:0}
+.tv-sub{white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.tv-tabs{flex-wrap:wrap;overflow:visible}
+.tv-tabs button{flex:1 1 auto;min-width:0}
+.tv-tabs .tv-kanban{flex:0 1 auto}
+.tv-slot>div{min-width:0}
+.tv-slot b{overflow-wrap:anywhere}
+.tv-tag{flex:0 1 auto;min-width:0;max-width:42%;overflow:hidden;text-overflow:ellipsis}
+.tv-recall-row>div{min-width:0}
+.tv-recall-row b,.tv-recall-row small{overflow-wrap:anywhere}
+@media(max-width:600px){.tv-tabs button{padding:8px 12px;font-size:14px}.tv-tabs .tv-kanban{border-left:0}.row>.crm-tools>label{white-space:normal}}
+
+/* Scheda del record and «Primi passi» (sales/crm-record.css, PR #118): light values for its --crx-* tokens.
+   "html:root" outranks its plain ":root" block whatever the load order. */
+html:root{
+ --crx-surface:var(--crm-card);--crx-surface-2:var(--crm-soft);
+ --crx-border:var(--crm-line);--crx-border-soft:var(--crm-line);--crx-border-accent:var(--crm-accent-line);
+ --crx-shadow:var(--crm-shadow);--crx-heading:var(--crm-text);--crx-text:var(--crm-text);
+ --crx-muted:var(--crm-muted);--crx-faint:var(--crm-subtle);
+ --crx-accent:var(--crm-accent);--crx-accent-2:var(--crm-accent-2);--crx-accent-strong:var(--crm-accent);--crx-accent-ink:var(--crm-on-accent);
+ --crx-link:var(--crm-link);--crx-tab:var(--crm-muted);--crx-warn:var(--crm-warn);
+ --crx-track:var(--crm-head);--crx-fill:linear-gradient(90deg,var(--crm-accent),var(--crm-accent-2));--crx-mark:var(--crm-line-2)}

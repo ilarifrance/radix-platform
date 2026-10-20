@@ -238,10 +238,17 @@ function playbookBlock(opp){
 }
 window.RadixCrmTools={
  section(entity,section){
-  if(entity==='contacts'){const seg=segmentPanel();section.append(ioBar('contacts'),seg);if(window.RadixCrmCampaigns)section.append(RadixCrmCampaigns.panel(seg.filterOf));if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
-  else if(entity==='companies')section.append(ioBar('companies'));
+  // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
+  const head=section.querySelector(':scope>.row')||section;
+  if(entity==='contacts'){const seg=segmentPanel(),bar=ioBar('contacts');head.append(bar);section.append(seg);
+   const reveal=box=>()=>{box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true})};
+   bar.append(B('Segmenti',reveal(seg)));
+   if(window.RadixCrmCampaigns){const camp=RadixCrmCampaigns.panel(seg.filterOf);section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
+   if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
+  else if(entity==='companies')head.append(ioBar('companies'));
+  else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
-  else if(entity==='tasks'&&app().writable('tasks')){const head=section.querySelector(':scope>.row')||section;head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
+  else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
  card(entity,row,c,readonly){
   // The reply block has its own AI draft; the Copilota shortcut stays for roles that cannot record replies.

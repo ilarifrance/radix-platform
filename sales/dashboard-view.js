@@ -1,6 +1,6 @@
 'use strict';
-/* Panoramica commerciale: KPI, funnel per fase, pipeline per mese di chiusura,
-   opportunità a rischio, classifica del team, focus di oggi e azioni suggerite,
+/* Panoramica commerciale: «Suggerimenti per oggi» (the one list of today's actions), «Primi passi»,
+   KPI, funnel per fase, pipeline per mese di chiusura, opportunità a rischio, classifica del team,
    as in the CRM "Panoramica" mockup. Everything is computed from CRM rows
    (crm-data.js); suggestions come from fixed rules shown to the user, not AI. */
 (()=>{
@@ -8,8 +8,10 @@ const content=document.getElementById('content');if(!content)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const NS='http://www.w3.org/2000/svg',S=(tag,attrs)=>{const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,String(attrs[k]));return n};
 const eur=c=>{const v=Number(c||0)/100;return v>=1e6?(v/1e6).toLocaleString('it-IT',{maximumFractionDigits:1})+'M':v>=1e4?Math.round(v/1e3).toLocaleString('it-IT')+'K':v.toLocaleString('it-IT',{maximumFractionDigits:0})};
+// Open/won/lost: one rule for every CRM view, RadixCrmForecast.isOpen (analytics-view.js).
+const isOpen=o=>window.RadixCrmForecast.isOpen(o);
 const DAY=864e5,today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
-const dd=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
+const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
 const fmtDay=v=>{const d=dd(v);return d?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):'—'};
 const initials=t=>String(t||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
 const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -20,7 +22,7 @@ function spark(values,cls){const svg=S('svg',{viewBox:'0 0 100 30',preserveAspec
 
 function model(d){const t0=today(),open=d.tasks.filter(t=>t.status!=='done');
   const stages=d.stages.filter(s=>d.opportunities.some(o=>o.process_id===s.process_id)).sort((a,b)=>a.position-b.position);
-  const opps=d.opportunities,total=opps.reduce((s,o)=>s+Number(o.amount_cents||0),0);
+  const opps=d.opportunities.filter(isOpen),total=opps.reduce((s,o)=>s+Number(o.amount_cents||0),0);
   const months=[...Array(6)].map((_,i)=>{const m=new Date(t0.getFullYear(),t0.getMonth()+i,1);return{label:MONTHS[m.getMonth()],y:m.getFullYear(),m:m.getMonth(),value:0,count:0}});
   for(const o of opps){const c=dd(o.expected_close);if(!c)continue;const slot=months.find(x=>x.y===c.getFullYear()&&x.m===c.getMonth());if(slot){slot.value+=Number(o.amount_cents||0);slot.count++}}
   const weeks=[...Array(6)].map((_,i)=>({from:+t0+i*7*DAY,to:+t0+(i+1)*7*DAY}));
@@ -35,6 +37,7 @@ function model(d){const t0=today(),open=d.tasks.filter(t=>t.status!=='done');
   const board=[...owners.entries()].map(([id,v])=>({name:d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnato',v})).sort((a,b)=>b.v-a.v);
   return{t0,open,stages,opps,total,months,dueWeeks,closeWeeks,due,in30,risk,board}}
 
+window.RadixCrmDashboardView={model};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'—';
 const panel=(title,cls,link)=>{const p=E('section',undefined,'pv-panel '+(cls||''));const h=E('div',undefined,'pv-head');h.append(E('h3',title));if(link){const a=E('a',link[0]);a.href=link[1];h.append(a)}p.append(h);return p};
 
@@ -75,34 +78,59 @@ function team(m){const p=panel('Classifica del team (pipeline)','pv-team');const
   m.board.slice(0,5).forEach((x,i)=>{const li=E('li');const av=E('span',initials(x.name),'pv-av');av.setAttribute('aria-hidden','true');const bar=E('span',undefined,'pv-bar');const fill=E('i');fill.style.width=Math.round(x.v/max*100)+'%';bar.append(fill);li.append(E('b',String(i+1),'pv-rank'),av,E('span',x.name,'pv-name'),bar,E('strong','€ '+eur(x.v)));ol.append(li)});
   if(!m.board.length)p.append(E('p','Nessuna opportunità assegnata.','pv-empty'));p.append(ol);return p}
 
-function focus(d,m){const p=panel('Focus di oggi','pv-focus',['Apri attività →','#tasks']);const done=d.tasks.filter(t=>t.status==='done').length,all=d.tasks.length;
-  const ring=E('div',undefined,'pv-ring');const svg=S('svg',{viewBox:'0 0 120 120','aria-hidden':'true'});svg.append(S('circle',{cx:60,cy:60,r:50,class:'bg'}));const frac=all?done/all:0;svg.append(S('circle',{cx:60,cy:60,r:50,class:'fg','stroke-dasharray':`${(frac*314).toFixed(1)} 314`}));ring.append(svg);
-  const lab=E('div');lab.append(E('b',done),E('small','di '+all+' attività completate'));ring.append(lab);
-  const counts=E('ul',undefined,'pv-counts');const overdue=m.open.filter(t=>{const x=dd(t.due_at);return x&&+x<+m.t0}).length;
-  [['Scadute',overdue],['Oggi',m.due.length-overdue],['Aperte',m.open.length]].forEach(([k,v])=>{const li=E('li');li.append(E('b',v),E('small',k));counts.append(li)});
-  const list=E('ul',undefined,'pv-agenda');const next=[...m.open].sort((a,b)=>String(a.due_at||'9999').localeCompare(String(b.due_at||'9999'))).slice(0,3);
-  for(const t of next){const li=E('li');const x=dd(t.due_at);li.append(E('time',x?x.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):'—'));const tx=E('div');tx.append(E('b',t.title),E('small',company(d,t.company_id)));li.append(tx);const tag=E('span',!x?'Senza data':+x<+m.t0?'Scaduta':+x<+m.t0+DAY?'Oggi':fmtDay(t.due_at),'pv-when'+(x&&+x<+m.t0?' late':''));li.append(tag);list.append(li)}
-  if(!next.length)list.append(E('li','Nessuna attività aperta.','pv-empty'));
-  const recent=E('div',undefined,'pv-recent');recent.append(E('h4','Ultime interazioni'));const inter=[...d.interactions].sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at))).slice(0,3);
-  if(!inter.length)recent.append(E('p','Nessuna interazione registrata.','pv-empty'));for(const i of inter){const r=E('p');r.append(E('b',i.title),E('small',fmtDay(i.occurred_at)));recent.append(r)}
-  const g=E('div',undefined,'pv-focus-grid');const left=E('div',undefined,'pv-focus-left');left.append(ring,counts);g.append(left,list,recent);p.append(g);return p}
+// «Focus di oggi» and «Azioni suggerite» were merged into «Suggerimenti per oggi» (crm-home-core.js):
+// the team counts and last interaction are its summary line, «chiude a breve senza attività» is a rule.
 
-function rail(d,m){const r=E('aside',undefined,'pv-rail');const h=E('div',undefined,'pv-rail-head');h.append(E('span','✦','pv-spark-ico'),E('h3','Azioni suggerite'));r.append(h);
-  r.append(E('p','Calcolate con regole fisse sui dati del CRM, non da un modello AI.','pv-note'));
-  const items=[];for(const x of m.risk.slice(0,3))items.push(['Pianifica un passo per '+x.o.title,company(d,x.o.company_id)+' · '+x.why.toLowerCase(),'#tasks']);
-  const lonely=d.contacts.filter(c=>!d.interactions.some(i=>i.contact_id===c.id)&&!m.open.some(t=>t.contact_id===c.id)).slice(0,2);
-  for(const c of lonely)items.push(['Ricontatta '+c.name,company(d,c.company_id)+' · nessuna attività né interazione','#contacts']);
-  if(!items.length)r.append(E('p','Niente da segnalare oggi.','pv-empty'));
-  for(const [t,s,href] of items){const a=E('a',undefined,'pv-action');a.href=href;a.append(E('b',t),E('small',s));r.append(a)}
-  const next=E('div',undefined,'pv-rail-block');next.append(E('h4','Prossime attività'));for(const t of [...m.open].sort((a,b)=>String(a.due_at||'9999').localeCompare(String(b.due_at||'9999'))).slice(0,3)){const p=E('p');p.append(E('b',t.title),E('small',company(d,t.company_id)+' · '+fmtDay(t.due_at)));next.append(p)}r.append(next);
-  const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','pv-ask');ask.href='/sales-orbit-higgsfield.html';r.append(ask);return r}
+// «Primi passi»: steps from crm-onboarding-core.js, ticked only by the data; hidden per user and workspace.
+function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesApp;if(!O)return null;
+  const key=O.storageKey(app?.state.me,document.getElementById('workspace')?.value);
+  let hidden=false;if(key){try{hidden=localStorage.getItem(key)==='hidden'}catch{}}
+  // Hidden: only a small link to show the card again.
+  if(hidden){const w=E('p',undefined,'pv-onboard-show');const b=E('button','Mostra i primi passi');b.type='button';b.onclick=()=>{try{localStorage.removeItem(key)}catch{}const n=onboarding(d);if(n)w.replaceWith(n)};w.append(b);return w}
+  const steps=O.steps(d),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
+  const h=E('div',undefined,'pv-head');const t=E('h3',pr.complete?'Primi passi: tutto pronto':'Primi passi');t.id='pv-onboard-title';h.append(t,E('span',pr.done+' di '+pr.total+' fatti','pv-onboard-count'));
+  if(key){const x=E('button','Nascondi','pv-onboard-hide');x.type='button';x.onclick=()=>{try{localStorage.setItem(key,'hidden')}catch{}const n=onboarding(d);if(n)p.replaceWith(n);else p.remove()};h.append(x)}
+  p.append(h);const body=E('div',undefined,'pv-onboard-body');
+  // Every step done: only the title row, the steps behind «Vedi i passi».
+  if(pr.complete){p.classList.add('done');body.hidden=true;const v=E('button','Vedi i passi','pv-onboard-toggle');v.type='button';v.setAttribute('aria-expanded','false');v.onclick=()=>{body.hidden=!body.hidden;v.setAttribute('aria-expanded',String(!body.hidden));v.textContent=body.hidden?'Vedi i passi':'Chiudi i passi'};h.insertBefore(v,h.querySelector('.pv-onboard-hide'))}
+  p.append(body);const bar=E('div',undefined,'pv-onboard-bar');bar.setAttribute('role','progressbar');bar.setAttribute('aria-valuemin','0');bar.setAttribute('aria-valuemax',String(pr.total));bar.setAttribute('aria-valuenow',String(pr.done));bar.setAttribute('aria-label','Passi completati');const fill=E('i');fill.style.width=Math.round(pr.done/pr.total*100)+'%';bar.append(fill);body.append(bar);
+  const ol=E('ol',undefined,'pv-onboard-list');for(const s of steps){const li=E('li',undefined,s.done?'done':'todo');li.append(E('span',s.done?'✓':'',s.done?'pv-onboard-mark ok':'pv-onboard-mark'));const tx=E('div');tx.append(E('b',s.label),E('small',s.hint));li.append(tx);
+    if(s.done)li.append(E('span','Fatto','pv-onboard-state'));else{const a=E('a','Vai','pv-onboard-go');a.href=s.href;a.setAttribute('aria-label','Vai: '+s.label);li.append(a)}ol.append(li)}
+  body.append(ol,E('p','Si spuntano da soli leggendo i dati del workspace'+(d.partial?' (primi 100 record per tipo)':'')+'.','pv-note'));return p}
+
+// «Suggerimenti per oggi»: items from crm-home-core.js (fixed rules). Buttons only open Customer360 or a view.
+function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
+  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets')});
+  const p=E('section',undefined,'ch');p.setAttribute('aria-labelledby','ch-title');
+  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span','regole fisse, non AI','ch-tag'));p.append(h);
+  // Team summary (was «Focus di oggi»): counts of all open tasks and the last interaction.
+  const s=H.pulse(d,{now:Date.now()});const sum=E('p',undefined,'ch-pulse');
+  for(const [n,label,cls] of [[s.overdue,s.overdue===1?'scaduta':'scadute',s.overdue?'late':''],[s.today,'oggi',''],[s.open,s.open===1?'aperta':'aperte',''],[s.done+' di '+s.total,'completate','']]){const c=E('span',undefined,'ch-chip'+(cls?' '+cls:''));c.append(E('b',n),document.createTextNode(' '+label));sum.append(c)}
+  const all=E('a','Attività del team →','ch-link');all.href='#tasks';sum.append(all);p.append(sum);
+  if(s.last)p.append(E('p','Ultima interazione: '+s.last.title+' · '+s.last.day,'ch-last'));
+  if(!res.items.length){const ok=E('div',undefined,'ch-ok');ok.append(E('b','Tutto in ordine'),E('small','Nessuna scadenza, trattativa ferma, ticket aperto o contatto da avviare.'));p.append(ok)}
+  const ol=E('ol',undefined,'ch-list');
+  // On a phone only the first PHONE items show; the rest behind «Mostra tutti» (CSS, crm-home.css).
+  const PHONE=3;res.items.forEach((it,i)=>{const li=E('li',undefined,'ch-item u'+it.urgency+(i>=PHONE?' ch-more':''));const tx=E('div',undefined,'ch-text');
+    tx.append(E('small',(H.RULES.find(r=>r.id===it.rule)||{}).name||'','ch-rule'),E('b',it.title),E('span',it.reason,'ch-why'));
+    if(it.value>0)tx.append(E('span','€ '+eur(it.value),'ch-value'));
+    const b=E('button',it.label,'ch-go');b.type='button';b.dataset.rule=it.rule;b.setAttribute('aria-label',it.label+': '+it.title);
+    b.addEventListener('click',()=>{const a=it.action;if(a.kind==='view'){app?.closeCustomer?.();location.hash=a.hash;return}if(app?.state.busy)return;app?.openCustomer(a.subject,{id:a.id,name:a.name})});
+    li.append(tx,b);ol.append(li)});
+  if(res.items.length)p.append(ol);
+  if(res.items.length>PHONE){const all=E('button','Mostra tutti ('+res.items.length+')','ch-all');all.type='button';all.setAttribute('aria-expanded','false');all.onclick=()=>{const on=ol.classList.toggle('open');all.setAttribute('aria-expanded',String(on));all.textContent=on?'Mostra meno':'Mostra tutti ('+res.items.length+')'};p.append(all)}
+  const more=res.total>res.items.length?' Altri '+(res.total-res.items.length)+' non mostrati.':'';
+  const note=((res.items.length?'Ordine: prima le scadenze, poi il valore.':'')+more+(app?.state.me?'':' Attività personali non disponibili: utente non riconosciuto.')).trim();if(note)p.append(E('p',note,'ch-note'));
+  const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','ch-link');ask.href='/sales-orbit-higgsfield.html';p.append(ask);
+  return p}
 
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;const m=model(d);
+  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;if(!window.RadixCrmForecast){later();return}const m=model(d);
   busy=true;sec.querySelector(':scope>.pv')?.remove();
   const root=E('div',undefined,'pv');const main=E('div',undefined,'pv-main');const mid=E('div',undefined,'pv-two');mid.append(funnel(m),trend(m));const low=E('div',undefined,'pv-two pv-two-b');low.append(risks(d,m),team(m));
-  main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
+  // Order: today's actions, onboarding (collapsed when done), then KPI and charts. No side rail.
+  const tips=assistant(d);if(tips)main.append(tips);const start=onboarding(d);if(start)main.append(start);main.append(kpis(m),mid,low);root.classList.add('pv-solo');root.append(main);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
   document.documentElement.classList.add('pv-on');requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains("pv")||n.classList?.contains("cx")))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});

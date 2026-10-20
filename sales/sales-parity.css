@@ -140,8 +140,9 @@ html.cx-on #contacts>article.card{display:none}
 .cx-avatar.lg{width:64px;height:64px;font-size:20px;box-shadow:0 0 0 2px #54a8ff,0 0 22px #54a8ff80}
 .cx-avatar.xl{width:118px;height:118px;font-size:36px;box-shadow:0 0 0 3px #36edbd,0 0 0 9px #36edbd1a,0 0 30px #36edbd70}
 .cx-table{background:#071f29cc;border:1px solid #1f5a5c;border-radius:14px;overflow:hidden}
-.cx-row{display:grid;grid-template-columns:minmax(130px,1.25fr) 72px minmax(80px,.9fr) 78px minmax(100px,1.1fr);gap:10px;align-items:center;width:100%;min-height:0;padding:12px 14px;border:0;border-bottom:1px solid #18444a;border-radius:0;background:transparent;text-align:left;color:var(--text);font-size:13px}
+.cx-row{display:grid;grid-template-columns:minmax(0,1.25fr) 72px minmax(0,.9fr) 78px minmax(0,1.1fr);gap:10px;align-items:center;width:100%;min-height:0;padding:12px 14px;border:0;border-bottom:1px solid #18444a;border-radius:0;background:transparent;text-align:left;color:var(--text);font-size:13px}
 .cx-row:last-child{border-bottom:0}
+.cx-row>*{min-width:0;overflow-wrap:break-word}
 .cx-row.cx-head{font-size:12px;color:#9fbdc0;font-weight:600;padding:12px 14px;background:#0a2833}
 button.cx-row:hover{background:#0b2f38}
 button.cx-row[aria-current]{background:linear-gradient(90deg,#0f3d40,#0a2c35);box-shadow:inset 0 0 0 1px #36edbd;border-radius:10px}
@@ -188,7 +189,7 @@ button.cx-node:hover .cx-avatar{box-shadow:0 0 0 2px #36edbd,0 0 18px #36edbd}
 .cx-legend span::before{content:"";display:inline-block;width:26px;height:0;border-top:2px solid #36edbd;vertical-align:middle;margin-right:8px}
 .cx-legend span.weak::before{border-top:2px dashed #54cbda}
 @media(max-width:1200px){.cx{grid-template-columns:1fr}}
-@media(max-width:640px){.cx-row{grid-template-columns:1fr auto}.cx-row.cx-head{display:none}.cx-grid{grid-template-columns:1fr}.cx-id{flex-direction:column;align-items:flex-start}.cx-avatar.xl{width:80px;height:80px;font-size:26px}}
+@media(max-width:640px){.cx-row{grid-template-columns:minmax(0,1fr) auto}.cx-row.cx-head{display:none}.cx-grid{grid-template-columns:1fr}.cx-id{flex-direction:column;align-items:flex-start}.cx-avatar.xl{width:80px;height:80px;font-size:26px}}
 
 /* ---------- Panoramica commerciale (dashboard-view.js) ---------- */
 html.pv-on #dashboard>.metrics{display:none}
@@ -445,6 +446,8 @@ td.late{color:#ff8f80}
 .cal-cell .cal-ev em,.cal-mcell .cal-ev em{display:none}
 .cal-ev.done{opacity:.55}.cal-ev.done b{text-decoration:line-through}
 .cal-ev.offhours{border-style:dashed}
+/* Narrow lanes: one line per field with an ellipsis; the full text stays in the tooltip. */
+.cal-col .cal-ev>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-now{position:absolute;left:0;right:0;border-top:2px solid #ff5a5a;z-index:3}
 .cal-now::before{content:"";position:absolute;left:-5px;top:-6px;width:10px;height:10px;border-radius:50%;background:#ff5a5a}
 .cal-month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}

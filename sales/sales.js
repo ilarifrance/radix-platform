@@ -16,7 +16,7 @@ const rows = entity => state.rows[entity] || [];
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
-window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r)};
+window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
@@ -245,6 +245,8 @@ function customerPanel(){
  const heading=el('div',undefined,'row');heading.append(el('h2','Customer360 · '+customer.title),button('Chiudi Customer360',()=>{if(!state.busy){customer=null;render();}}));panel.append(heading);
  panel.append(el('p','Relazioni restituite dal server, inclusa la scheda selezionata. '+customer.rows.length+' record caricati. Vista sola lettura; le modifiche sono nelle sezioni dedicate.','muted'));
  if(customer.error)panel.append(el('p',customer.error,'notice'),button('Riprova Customer360',()=>loadCustomer(customer.offset>0)));
+ // Riepilogo AI and the activity composer for this record (sales/crm-record.js).
+ if(customer.rows.length)window.RadixCrmRecord?.mount(panel,{subject:customer.subject,id:customer.id,title:customer.title,rows:customer.rows});
  customer.rows.forEach(item=>{const group=el('div');group.append(el('h3',names[item.entity] || item.entity),card(item.entity,item.record,true));panel.append(group);});
  if(!customer.rows.length && !customer.error)panel.append(el('p','Nessun record restituito.','muted'));
  if(customer.more)panel.append(button('Carica altri 100 · Customer360',()=>loadCustomer(true)));

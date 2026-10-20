@@ -36,7 +36,7 @@ function filters(d){const box=E('section',undefined,'cal-card cal-filters');cons
   box.append(E('h4','Tipo'));for(const [k,[name,tone]] of Object.entries(TYPES)){const l=E('label',undefined,'cal-check');const i=E('input');i.type='checkbox';i.checked=!state.off.has(k);i.onchange=()=>{i.checked?state.off.delete(k):state.off.add(k);render()};l.append(i,E('span',undefined,'dot '+tone),document.createTextNode(name));box.append(l)}
   return box}
 
-function chip(e,compact){const a=E('a',undefined,'cal-ev '+TYPES[e.type][1]+(e.done?' done':''));a.href=e.href;a.title=e.title+(e.sub?' · '+e.sub:'');
+function chip(e,compact){const a=E('a',undefined,'cal-ev '+TYPES[e.type][1]+(e.done?' done':''));a.href=e.href;a.title=(e.allDay?'':hm(e.start)+' – '+hm(e.end)+' · ')+e.title+(e.sub?' · '+e.sub:'');
   if(!e.allDay&&!compact)a.append(E('small',hm(e.start)+' – '+hm(e.end)));a.append(E('em',TYPES[e.type][0]),E('b',e.title));if(e.sub&&!compact)a.append(E('span',e.sub));return a}
 
 function grid(list){const days=state.mode==='day'?[state.cursor]:[...Array(7)].map((_,i)=>new Date(+monday(state.cursor)+i*DAY+3600e3));
