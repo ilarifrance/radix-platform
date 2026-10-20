@@ -46,6 +46,17 @@
 .lf-jobs li>div{display:grid;min-width:0}
 .lf-jobs strong{overflow-wrap:anywhere}
 .lf-jobs small{color:var(--lp-muted);font-size:12px}
+.lf-jobs li>div{flex:1 1 auto}
+.lf-pick{flex:none;display:grid;place-items:center;width:40px;height:40px;margin:-6px 0 -6px -8px;border-radius:var(--lp-r-sm);cursor:pointer}
+.lf-pick:hover{background:var(--lp-soft)}
+.lf-pick input{width:20px;height:20px;margin:0;accent-color:var(--lp-accent);cursor:pointer}
+.lf-jobs-multi{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-top:10px;padding:10px 12px 10px 14px;border:1px dashed var(--lp-accent-line);border-radius:var(--lp-r-md);background:var(--lp-accent-soft)}
+.lf-jobs-multi[hidden]{display:none}
+.lf-jobs-multi .lf-hint{margin:0;flex:1 1 240px;font-size:13px;color:var(--lp-muted)}
+.panel .lf-jobs-multi .lp-btn{min-height:40px;padding:8px 18px;border-radius:var(--lp-r-sm);border-color:var(--lp-accent);color:var(--lp-accent);background:var(--lp-card)}
+.panel .lf-jobs-multi .lp-btn:not(:disabled):hover{background:var(--lp-accent);color:#fff}
+/* A workspace picker that shows the same workspace as the one at the top (lead-flow.js › tidyPickers). */
+label.lf-follows{display:none!important}
 .panel .lf-jobs .lp-btn{min-height:40px;padding:8px 18px;border-radius:var(--lp-r-sm);background:var(--lp-accent);border-color:var(--lp-accent);color:#fff}
 .lf-more{margin:16px 0 0;border-top:1px solid var(--lp-line);padding-top:12px}
 .lf-more>summary{cursor:pointer;font-weight:600;color:var(--lp-accent);min-height:32px;display:flex;align-items:center}
@@ -72,6 +83,8 @@ body[data-step="3"] .lp-tabs,body[data-step="4"] .lp-tabs{margin-top:24px}
  .lf-modes{grid-template-columns:minmax(0,1fr);gap:8px}
  .lf-mode{padding:12px 14px}
  .lf-howto{grid-template-columns:minmax(0,1fr)}
- .lf-jobs li{flex-wrap:wrap}
+ .lf-jobs li{flex-wrap:nowrap;gap:8px;padding-right:10px}
+ .panel .lf-jobs .lp-btn{padding:8px 14px}
+ .panel .lf-jobs-multi .lp-btn{width:100%;white-space:normal}
  .lf-next .lp-btn{width:100%}
 }

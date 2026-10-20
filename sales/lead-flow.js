@@ -4,6 +4,9 @@
    existing buttons (#contact-job-list, #contact-job-load, #lp-crm…), so every check and confirm stays where it was.
    One workspace picker (#archive-workspace, owned by lead-archive.js) is the source the other pickers follow.
    Browser storage keeps only two conveniences (chosen mode, last workspace id), never lead data.
+   The pickers that already follow it (bulk «Porta nel CRM», single lead, newsletter) are hidden while they show the
+   same workspace; they stay in the page and come back as soon as they differ.
+   LinkedIn lists can be ticked and opened together (lead-contact-workbench.js › radixLeadContacts.openJobs).
    Deep links: #mode=linkedin|file|provider|backup, #step=1..4, any element id (#lead-import, #radix-extension-link…).
    #lead-job=<id>&ws=<uuid> belongs to lead-contact-workbench.js: here it only selects LinkedIn and step 2. */
 (()=>{
@@ -13,7 +16,8 @@
  const KEY_MODE='radix.leadFlow.mode',KEY_WS='radix.leadFlow.workspace',OPEN_WINDOW=30000;
  const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  const store={get(k){try{return window.localStorage.getItem(k)||''}catch{return ''}},set(k,v){try{window.localStorage.setItem(k,v)}catch{}}};
- const state={step:0,mode:'',pendingOpen:0,lastRefresh:0,opening:false};
+ const state={step:0,mode:'',pendingOpen:0,lastRefresh:0,opening:false,merging:false,picked:new Set(),counts:new Map()};
+ const FOLLOWERS=['bulk-workspace','sync-workspace','nl-workspace'];
  const ws=$('archive-workspace'),jobSel=$('contact-job-select');
  const wsValue=()=>ws&&UUID.test(ws.value)?ws.value:'';
  const hashJob=()=>/(?:^#|&)lead-job=/.test(location.hash);
@@ -49,16 +53,23 @@
  // ---- one workspace for the page ----
  function preferWorkspace(select){
   const v=wsValue();if(select&&v&&[...select.options].some(o=>o.value===v))select.value=v;
+  tidyPickers();
+ }
+ // A follower picker showing the top workspace is redundant: hide its label (the select keeps working).
+ function tidyPickers(){
+  const v=wsValue();
+  for(const id of FOLLOWERS){const s=$(id),label=s?.closest('label');if(label)label.classList.toggle('lf-follows',Boolean(v)&&s.value===v)}
  }
  function follow(){
   const v=wsValue();if(!v)return;
-  for(const id of ['bulk-workspace','sync-workspace','nl-workspace']){
+  for(const id of FOLLOWERS){
    const s=$(id);if(!s||s.disabled||s.value===v||![...s.options].some(o=>o.value===v))continue;
    s.value=v;
    // A closed bulk panel reads the CRM only when opened: no event needed.
    if(id==='bulk-workspace'&&$('bulk-crm')?.hidden)continue;
    s.dispatchEvent(new Event('change'));
   }
+  tidyPickers();
  }
  function autoPick(){
   if(!ws||ws.disabled||wsValue()||hashJob())return;
@@ -70,6 +81,7 @@
  function onWorkspace(){
   const v=wsValue();
   say('lf-ws-hint',v?'Vale per tutta la pagina: liste, CRM e newsletter.':'Scegli il workspace: vale per tutta la pagina.');
+  tidyPickers();
   if(!v){renderJobs();return}
   store.set(KEY_WS,v);follow();refreshJobs(true);
  }
@@ -88,15 +100,21 @@
  }
  function renderJobs(){
   const list=$('lf-jobs');if(!list||!jobSel)return;list.replaceChildren();
-  if(!wsValue()){say('lf-jobs-status','Scegli il workspace in alto: qui compariranno le liste importate.');say('lf-ext-status','Scegli il workspace in alto per collegare l’estensione e vedere le importazioni.');return}
+  if(!wsValue()){state.picked.clear();const multi=$('lf-jobs-multi');if(multi)multi.hidden=true;say('lf-jobs-status','Scegli il workspace in alto: qui compariranno le liste importate.');say('lf-ext-status','Scegli il workspace in alto per collegare l’estensione e vedere le importazioni.');return}
   const all=[...jobSel.options].filter(o=>o.value).map(parseJob),li=all.filter(j=>/linkedin/i.test(j.title));
+  const ids=new Set(li.map(j=>j.id));for(const id of [...state.picked])if(!ids.has(id))state.picked.delete(id);
+  state.counts=new Map(li.map(j=>[j.id,j.count]));
   for(const j of li){
-   const item=el('li'),text=el('div');
+   const item=el('li'),text=el('div'),tick=el('label',null,'lf-pick'),box=el('input');
+   box.type='checkbox';box.dataset.pick=j.id;box.checked=state.picked.has(j.id);box.setAttribute('aria-label','Seleziona la lista '+j.label);
+   tick.append(box);
    text.append(el('strong',j.label),el('small',j.count==null?'Importata dall’estensione':j.count+' contatti'));
    const open=el('button','Apri','lp-btn lp-primary');open.type='button';open.dataset.job=j.id;
    open.setAttribute('aria-label','Apri la lista '+j.label);
-   item.append(text,open);list.append(item);
+   item.append(tick,text,open);list.append(item);
   }
+  const multi=$('lf-jobs-multi');if(multi)multi.hidden=li.length<2;
+  picked();
   const others=all.length-li.length;
   if(!state.lastRefresh)return;
   say('lf-jobs-status',li.length?(others?(others===1?'C’è anche un’altra lista salvata: la trovi in «Provider».':'Ci sono anche '+others+' altre liste salvate: le trovi in «Provider».'):''):all.length?'Nessuna lista da LinkedIn. Le '+all.length+' liste salvate sono in «Provider».':'Nessuna lista ancora: importa da Sales Navigator con l’estensione, poi premi «Aggiorna».');
@@ -106,6 +124,34 @@
   if(!jobSel||![...jobSel.options].some(o=>o.value===id))return;
   jobSel.value=id;state.pendingOpen=Date.now();
   $('contact-job-load')?.click();
+ }
+ // ---- several LinkedIn lists at once ----
+ function picked(){
+  const n=state.picked.size,btn=$('lf-jobs-open-selected'),all=$('lf-jobs-toggle-all');
+  if(btn)btn.disabled=!n||state.merging;
+  if(all){all.disabled=state.merging;all.textContent=n&&n===state.counts.size?'Deseleziona tutte':'Seleziona tutte'}
+  const sum=[...state.picked].reduce((t,id)=>t+(state.counts.get(id)||0),0);
+  say('lf-jobs-picked',!n?'Spunta due o più liste per aprirle insieme: chi compare in più liste resta una volta sola.'
+   :n===1?'1 lista selezionata: spuntane un’altra per aprirle insieme.'
+   :n+' liste selezionate · '+sum+' contatti prima di unire i doppioni.');
+ }
+ // «Seleziona tutte» / «Deseleziona tutte»: every LinkedIn list in the panel, or none.
+ function toggleAll(){
+  if(state.merging)return;
+  const every=state.picked.size===state.counts.size;state.picked.clear();
+  if(!every)for(const id of state.counts.keys())state.picked.add(id);
+  for(const b of document.querySelectorAll('#lf-jobs [data-pick]'))b.checked=state.picked.has(b.dataset.pick);
+  picked();
+ }
+ async function openPicked(){
+  const open=window.radixLeadContacts?.openJobs;if(!open||!state.picked.size||state.merging)return;
+  // Same order as the list (newest first); the merge prefers the newer list on ties.
+  const ids=[...jobSel.options].map(o=>o.value).filter(v=>state.picked.has(v));
+  state.merging=true;picked();state.pendingOpen=Date.now();
+  let r=null;try{r=await open(ids)}finally{state.merging=false;picked()}
+  if(!r){state.pendingOpen=0;return}
+  say('lf-jobs-status',r.note);
+  const note=$('lp-open-status');if(note){note.textContent=r.note;note.hidden=false}
  }
  // Messages of the existing archive code, shown next to the LinkedIn list (the routine «N lavori disponibili» is not).
  function mirrorJobs(){const t=$('contact-job-status')?.textContent||'';if(t&&!/liste salvate nel workspace|lavori disponibili/.test(t))say('lf-jobs-status',t)}
@@ -157,9 +203,13 @@
   const mode=e.target.closest('[data-mode]');
   if(mode){setMode(mode.dataset.mode);setStep(1);document.querySelector('[data-mode-panel="'+state.mode+'"]')?.scrollIntoView?.({block:'nearest',behavior:'smooth'});return}
   const job=e.target.closest('#lf-jobs [data-job]');if(job){openJob(job.dataset.job);return}
+  const box=e.target.closest('#lf-jobs [data-pick]');if(box){if(box.checked)state.picked.add(box.dataset.pick);else state.picked.delete(box.dataset.pick);picked();return}
   const a=e.target.closest('a[href^="#"]');if(a&&a.getAttribute('href').length>1)reveal(a.getAttribute('href').slice(1).split('&')[0]);
  });
  $('lf-jobs-refresh')?.addEventListener('click',()=>refreshJobs(true));
+ $('lf-jobs-open-selected')?.addEventListener('click',openPicked);
+ $('lf-jobs-toggle-all')?.addEventListener('click',toggleAll);
+ for(const id of FOLLOWERS){const s=$(id);if(!s)continue;s.addEventListener('change',tidyPickers);new MutationObserver(tidyPickers).observe(s,{childList:true,attributes:true})}
  $('lp-crm')?.addEventListener('click',()=>{if(state.step!==3)setStep(3,{tab:'bulk'})});
  $('lp-more-leads')?.addEventListener('click',()=>setStep(1,{scroll:true}));
  $('bulk-close')?.addEventListener('click',()=>{if($('bulk-crm')?.hidden)setStep(2)});
@@ -188,5 +238,5 @@
  setMode(MODES.includes(saved)?saved:'linkedin',{remember:false});
  setStep(1);
  fromHash();
- counts();renderJobs();autoPick();
+ counts();renderJobs();autoPick();tidyPickers();
 })();

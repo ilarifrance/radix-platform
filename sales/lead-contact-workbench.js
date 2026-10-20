@@ -141,13 +141,16 @@
    await listJobs(row.id);
   }catch(e){text('contact-job-status','Salvataggio non riuscito: '+e.message)}
  };
- async function openJob(ws,id){
+ async function readJob(ws,id){
   const [row]=await api('GET','lead_contact_jobs',null,ws,id);
   if(!row?.payload)throw Error('Lavoro non disponibile');
   const p=row.payload,B=window.RadixContactBatch;
   if(p.version!==1||!Array.isArray(p.records)||!Array.isArray(p.batches))throw Error('Contenuto archivio non valido');
   const base=B.start(p.sourceUrl);
-  const contacts=p.records.map(r=>B.person(r,base.sourceUrl));
+  return {row,p,base,contacts:p.records.map(r=>B.person(r,base.sourceUrl))};
+ }
+ async function openJob(ws,id){
+  const {row,p,base,contacts}=await readJob(ws,id);
   job={...base,records:contacts,batches:p.batches,total:p.total,duplicates:p.duplicates,providerRunUid:p.providerRunUid};
   $('contact-provider-run-uid').value=p.providerRunUid||'';
   $('contact-source').value=job.sourceUrl;
@@ -164,6 +167,34 @@
    await openJob(ws,id);
   }catch(e){text('contact-job-status','Apertura non riuscita: '+e.message)}
  };
+ // «Apri le liste selezionate» (passo 1 › LinkedIn): several saved jobs read like «Apri lavoro», then one person per
+ // LinkedIn profile (RadixLeadListsMerge). The result is a new, unsaved work: the saved lists stay as they are.
+ async function openJobs(ids){
+  const M=window.RadixLeadListsMerge;
+  try{
+   if(!M)throw Error('Funzione non disponibile');
+   const ws=workspace(),list=[...new Set((ids||[]).filter(id=>/^[a-f0-9-]{36}$/i.test(id)))];
+   if(!list.length)throw Error('Seleziona almeno una lista');
+   if((vault.dirty||job)&&!window.confirm('Aprire le liste selezionate? I dati non salvati saranno persi.'))return null;
+   text('contact-job-status','Apro '+list.length+(list.length===1?' lista…':' liste…'));
+   if(list.length===1){
+    // One list opens exactly like «Apri»: same job, same version, still saveable in place.
+    const {row,count}=await openJob(ws,list[0]);
+    const one={records:job.records,total:count,unique:count,duplicates:0,lists:1};
+    const note=M.summary(one);text('contact-job-status',note);return {...one,title:row.title,note};
+   }
+   const read=[];for(const id of list)read.push(await readJob(ws,id));
+   const merged=M.merge(read.map(x=>({id:x.row.id,updatedAt:x.row.updated_at,records:x.contacts})));
+   job={...read[0].base,records:merged.records,batches:[],total:merged.total,duplicates:merged.duplicates};
+   $('contact-provider-run-uid').value='';$('contact-source').value=job.sourceUrl;$('contact-job-select').value='';
+   $('contact-job-title').value='Liste unite · '+read.length+' liste';
+   vault={id:'',version:0,workspace:'',dirty:false};
+   show();updateCallbackInfo();
+   const note=M.summary(merged);text('contact-job-status',note);
+   return {...merged,note};
+  }catch(e){text('contact-job-status','Apertura non riuscita: '+e.message);return null}
+ }
+ window.radixLeadContacts.openJobs=openJobs;
  // «Apri in RADIX» from the Chrome extension: #lead-job=<id>&ws=<workspace> picks the workspace in the
  // Archivio, opens that saved job like «Apri lavoro» and shows its contacts in the Lead pipeline.
  async function openFromLink(){

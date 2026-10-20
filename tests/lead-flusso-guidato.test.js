@@ -207,11 +207,11 @@ test('opening a LinkedIn job reuses «Apri lavoro» and moves to step 2',()=>{
  d.mutate(sel);
  assert.equal(d.storage.get('radix.leadFlow.workspace'),'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
  const items=d.get('lf-jobs').children;assert.equal(items.length,1,'only LinkedIn jobs');
- assert.equal(items[0].children[0].children[0].textContent,'20/10/2026 09:41');
- assert.equal(items[0].children[0].children[1].textContent,'12 contatti');
+ assert.equal(items[0].children[1].children[0].textContent,'20/10/2026 09:41');
+ assert.equal(items[0].children[1].children[1].textContent,'12 contatti');
  assert.match(d.get('lf-jobs-status').textContent,/un’altra lista salvata/);
  let loaded='';d.get('contact-job-load').addEventListener('click',()=>{loaded=sel.value});
- items[0].children[1].click();
+ items[0].children[2].click();
  assert.equal(loaded,'11111111-1111-4111-8111-111111111111');
  assert.equal(d.window.RadixLeadFlow.step(),1);
  d.fire('radix:lead-contacts-updated',{count:12});
@@ -223,5 +223,5 @@ test('opening a LinkedIn job reuses «Apri lavoro» and moves to step 2',()=>{
 test('the other workspace pickers follow the top one',()=>{
  for(const [f,needle] of [['sales/lead-pipeline.js',"window.RadixLeadFlow?.preferWorkspace(sel)"],['sales/lead-crm-handoff.js',"window.RadixLeadFlow?.preferWorkspace(select)"],['sales/lead-newsletter.js',"window.RadixLeadFlow?.preferWorkspace($('nl-workspace'))"]])
   assert.ok(fs.readFileSync(f,'utf8').includes(needle),f);
- assert.match(flow,/for\(const id of \['bulk-workspace','sync-workspace','nl-workspace'\]\)/);
+ assert.match(flow,/const FOLLOWERS=\['bulk-workspace','sync-workspace','nl-workspace'\];/);assert.match(flow,/for\(const id of FOLLOWERS\)\{/);
 });
