@@ -76,7 +76,7 @@
    if(!authorized.length)throw Error('Nessun workspace CRM con permessi di scrittura');
    const select=$('sync-workspace');select.replaceChildren();
    for(const w of authorized){const o=el('option',w.name||w.id);o.value=w.id;select.append(o)}
-   select.disabled=false;state.workspace=select.value;
+   window.RadixLeadFlow?.preferWorkspace(select);select.disabled=false;state.workspace=select.value;
    $('sync-check').disabled=!state.prospects.length;
    reset('Workspace autorizzato collegato. Verifica il prospect prima della registrazione.');
   }catch(e){reset('CRM non collegato: '+e.message)}

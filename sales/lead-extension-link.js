@@ -17,7 +17,7 @@
   out.hidden=false;box.hidden=true;copy.hidden=true;
   try{
    const workspace=$('archive-workspace')?.value||'';
-   if(!/^[a-f0-9-]{36}$/i.test(workspace))throw Error('Seleziona prima un workspace nell’Archivio Lead Intelligence');
+   if(!/^[a-f0-9-]{36}$/i.test(workspace))throw Error('Scegli prima il workspace in alto');
    status.textContent='Creazione codice…';
    const res=await fetch('/api/sales',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace,entity:'lead_import_token',action:'create',data:{}})});
    const body=await res.json().catch(()=>({}));

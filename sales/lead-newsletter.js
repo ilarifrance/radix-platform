@@ -40,7 +40,7 @@
    if(!$('nl-workspace').options.length||$('nl-workspace').disabled){
     const all=(await get({entity:'workspaces'})).rows||[],ok=all.filter(w=>['owner','admin','member'].includes(w.role));
     if(!ok.length)throw Error('nessun workspace CRM in cui puoi scrivere');
-    $('nl-workspace').replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));$('nl-workspace').disabled=false;
+    $('nl-workspace').replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));window.RadixLeadFlow?.preferWorkspace($('nl-workspace'));$('nl-workspace').disabled=false;
    }
    state.ws=$('nl-workspace').value;state.wsName=$('nl-workspace').selectedOptions[0]?.textContent||'';
    const [contacts,companies,segments]=await Promise.all([get({entity:'export',subject:'contacts',workspace:state.ws}),get({entity:'export',subject:'companies',workspace:state.ws}),rowsOf('segments').catch(()=>[])]);

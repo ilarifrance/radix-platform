@@ -94,7 +94,7 @@
   if(state.workspaces)return state.workspaces;
   const all=await get({entity:'workspaces'}),ok=all.filter(w=>['owner','admin','member'].includes(w.role));
   if(!ok.length)throw Error('Nessun workspace CRM in cui puoi scrivere');
-  state.workspaces=ok;const sel=$('bulk-workspace');sel.replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));sel.disabled=false;
+  state.workspaces=ok;const sel=$('bulk-workspace');sel.replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));window.RadixLeadFlow?.preferWorkspace(sel);sel.disabled=false;
   return ok;
  }
  async function loadCrm(){
