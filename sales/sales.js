@@ -262,6 +262,48 @@ async function mutate(entity,action,data,confirmation){
  catch(e){const advice=[401,403].includes(e.status)?' Accesso invalidato: verifica sessione e membership, poi premi Aggiorna.':e.status===409?' Conflitto: premi Aggiorna prima di modificare nuovamente.':' Verifica con Aggiorna prima di ripetere una richiesta incerta.';error(e.message+(saved?' La modifica è stata salvata.':advice));notice('Operazione non completata o da verificare.');}
  finally{lock(false);}
 }
+// Aziende e Contatti as in Salesforce: «Informazioni», addresses, «Dati fiscali», «Altro», each a
+// section that folds (closed on a phone except the first). Fields from sales/crm-fields-core.js.
+function recordSections(entity,row,host,references,selectControl){
+ const RF=window.RadixCrmFields;const wide=!window.matchMedia||window.matchMedia('(min-width: 700px)').matches;
+ // Archive without migration 011: rows come back without the added keys, so those fields stay read-only.
+ const loaded=rows(entity),missing=loaded.length>0&&!loaded.some(r=>RF.supported(entity,r));
+ if(missing)host.append(el('p','Questo archivio non ha ancora i campi aggiuntivi (ragione sociale, indirizzi, dati fiscali…): arrivano con la migrazione sales 011, da approvare. Gli altri campi si salvano normalmente.','notice rf-missing'));
+ const inputs={};
+ RF.SECTIONS[entity].forEach((sec,i)=>{
+  const box=el('details',undefined,'rf-sec');box.dataset.section=sec.id;box.open=wide||i===0;
+  const sum=el('summary');const count=el('small',undefined,'rf-count');sum.append(el('span',sec.label),count);box.append(sum);
+  const grid=el('div',undefined,'rf-grid');box.append(grid);
+  for(const fd of sec.fields){
+   const value=RF.formValue(entity,fd.key,row);let control,wrap;
+   if(['select','member','company','contact'].includes(fd.type)){
+    let choices=fd.type==='select'?[['','Non impostato'],...fd.options]:references(fd.type==='member'?'members':fd.type==='company'?'companies':'contacts',row?.[fd.key]);
+    if(row&&((fd.type==='company'&&entity==='companies')||(fd.type==='contact'&&entity==='contacts')))choices=choices.filter(([v])=>v!==row.id);
+    const c=selectControl(fd.label,choices,value);control=c.select;wrap=c.wrap;
+   }else{
+    wrap=el('div');const l=el('label',fd.label);
+    if(fd.type==='area'){control=el('textarea');control.rows=3;wrap.className='rf-full';}
+    else{control=el('input');control.type={email:'email',url:'url',tel:'tel',date:'date',int:'number'}[fd.type]||'text';
+     if(fd.type==='int'){control.min='0';control.step='1';control.max='10000000';control.inputMode='numeric';}
+     if(fd.type==='money'){control.inputMode='decimal';control.placeholder='Es. 1.250.000';}
+     if(fd.type==='date'){control.min='1900-01-01';control.max=new Date().toISOString().slice(0,10);}
+     if(fd.type==='url')control.placeholder='https://';
+     if(['vat','taxcode','sdi'].includes(fd.type)){control.autocapitalize='characters';control.spellcheck=false;}}
+    if(fd.max)control.maxLength=fd.max;control.value=value;l.append(control);wrap.append(l);
+   }
+   control.name=fd.key;if(fd.added&&missing){control.disabled=true;control.dataset.rfMissing='1';}
+   if(fd.hint)wrap.append(el('small',fd.hint,'rf-hint'));
+   if(['street'].some(x=>fd.key.endsWith(x)))wrap.classList.add('rf-full');
+   grid.append(wrap);inputs[fd.key]=control;
+  }
+  if(sec.id==='shipping')grid.prepend(Object.assign(button('Copia l’indirizzo di fatturazione',()=>{for(const k of ['street','zip','city','province','country']){const from=inputs['billing_'+k],to=inputs['shipping_'+k];if(from&&to&&!to.disabled)to.value=from.value;}update();},'rf-copy'),{title:'Riempie i campi qui sotto con quelli dell’indirizzo di fatturazione'}));
+  const update=()=>{const n=sec.fields.filter(fd=>inputs[fd.key]&&String(inputs[fd.key].value||'').trim()).length;count.textContent=n?n+(n===1?' compilato':' compilati'):'';};
+  box.addEventListener('input',update);box.addEventListener('change',update);update();
+  host.append(box);
+ });
+ if(entity==='contacts'){const name=host.querySelector('input[name="name"]'),hint=()=>{if(name)name.placeholder=RF.displayName(inputs.first_name?.value,inputs.last_name?.value)||'Vuoto = Nome e Cognome';};
+  for(const k of ['first_name','last_name'])inputs[k]?.addEventListener('input',hint);hint();}
+}
 function openEditor(entity,row=null){
  if(state.busy || !writable(entity))return;
  error('');editing={entity,row};$('editor-title').textContent=(row?'Modifica · ':'Crea · ')+names[entity];const fields=$('editor-fields');fields.replaceChildren();
@@ -270,14 +312,19 @@ function openEditor(entity,row=null){
  const references=(entity,value)=>{const choices=[['','Non assegnato'],...rows(entity).map(r=>[r.id,title(r)])];if(value && !rows(entity).some(r=>r.id===value))choices.push([value,'Riferimento corrente non caricato']);return choices;};
  const priorities=[['low','Bassa'],['normal','Normale'],['high','Alta'],['urgent','Urgente']];
  const utcInput=(key,label,value,required=false)=>{const input=addInput(key,label,'text',value || '',required);input.placeholder='2026-10-10T14:30:00Z';fields.append(el('small','ISO UTC esplicito: YYYY-MM-DDTHH:mm:ssZ. Nessuna conversione locale.'));return input;};
- addInput(['companies','contacts'].includes(entity)?'name':'title','Nome / titolo *','text',row?title(row):'',true);
+ const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);$('editor').classList?.toggle('rf-wide',record);
+ if(record&&entity==='contacts'){const n=addInput('name','Nome visualizzato','text',row?.name||'',false);n.placeholder='Vuoto = Nome e Cognome';}
+ else addInput(['companies','contacts'].includes(entity)?'name':'title',record?'Nome azienda *':'Nome / titolo *','text',row?title(row):'',true);
  const addText=(key,label,max,type='text')=>{const input=addInput(key,label,type,row?.[key]||'');input.maxLength=max;return input;};
  const addArea=(key,label,max)=>{const l=el('label',label);const t=el('textarea');t.name=key;t.maxLength=max;t.rows=4;t.value=row?.[key]||'';l.append(t);fields.append(l);return t;};
- if(entity==='companies'){addText('industry','Settore',120);addText('website','Sito web',300,'url').placeholder='https://';addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('city','Città',120);addArea('notes','Note',4000);}
- if(entity==='contacts'){addText('role','Ruolo',120);addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('linkedin_url','Profilo LinkedIn',300,'url').placeholder='https://';addArea('notes','Note',4000);
+ if(record)recordSections(entity,row,fields,references,selectControl);
+ if(entity==='companies'&&!record){addText('industry','Settore',120);addText('website','Sito web',300,'url').placeholder='https://';addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('city','Città',120);addArea('notes','Note',4000);}
+ if(entity==='contacts'&&!record){addText('role','Ruolo',120);addText('email','Email',254,'email');addText('phone','Telefono',40,'tel');addText('linkedin_url','Profilo LinkedIn',300,'url').placeholder='https://';addArea('notes','Note',4000);
   const l=el('label');const box=el('input');box.type='checkbox';box.name='marketing_consent';box.checked=Boolean(row?.marketing_consent);l.append(box,el('span',' Ha dato il consenso a ricevere comunicazioni marketing'));fields.append(l);
   fields.append(el('small','Registra il consenso solo se la persona lo ha dato esplicitamente. Togliendo la spunta si registra la revoca.'));}
- if(['contacts','leads','opportunities','tasks','interactions','tickets'].includes(entity))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
+ if(entity==='contacts'&&record){const l=el('label');const box=el('input');box.type='checkbox';box.name='marketing_consent';box.checked=Boolean(row?.marketing_consent);l.append(box,el('span',' Ha dato il consenso a ricevere comunicazioni marketing'));fields.append(l);
+  fields.append(el('small','Registra il consenso solo se la persona lo ha dato esplicitamente. Togliendo la spunta si registra la revoca.'));}
+ if(['contacts','leads','opportunities','tasks','interactions','tickets'].includes(entity)&&!(record&&entity==='contacts'))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
  if(['leads','opportunities','tasks','interactions','tickets'].includes(entity))addSelect('contact_id','Contatto',references('contacts',row?.contact_id),row?.contact_id);
  if(['leads','opportunities','tasks','interactions'].includes(entity))fields.append(el('p','Se scegli un contatto, indica la sua azienda. Se colleghi un’opportunità, riporta esattamente la sua azienda e il suo contatto (anche i valori non assegnati). Il server rifiuta combinazioni incoerenti.','muted'));
  if(entity==='interactions')fields.append(el('p','Collega almeno un’azienda, un contatto o un’opportunità. Registrare un’email non la invia.','muted'));
@@ -334,7 +381,11 @@ function openEditor(entity,row=null){
 }
 $('editor-form').addEventListener('submit',event=>{
  event.preventDefault();if(!editing || state.busy)return;const {entity,row}=editing;const data={};
+ const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);
  for(const [key,value] of new FormData(event.currentTarget)){
+  // Aziende e Contatti: every field of crm-fields-core.js is parsed (and checked) the same way.
+  if(record&&key==='name'&&entity==='contacts'){data.name=value.trim();continue;}
+  if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
   if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
   else if(['owner_id','assignee_id','task_assignee_id','task_due_days'].includes(key)){
    if(!value.trim())data[key]=null;
@@ -360,6 +411,12 @@ $('editor-form').addEventListener('submit',event=>{
  if(entity==='stages'){
   const rules=[data.task_assignee_id,data.task_priority,data.task_due_days];
   if(data.task_title?rules.some(v=>v==null):rules.some(v=>v!=null)){error('Titolo automatico e tutte e tre le regole devono essere compilati insieme, oppure tutti vuoti.');return;}
+ }
+ if(record){
+  if(entity==='contacts'&&!data.name)data.name=RF.displayName(data.first_name,data.last_name);
+  if(!data.name){error(entity==='contacts'?'Indica il nome visualizzato oppure Nome e Cognome.':'Indica il nome dell’azienda.');return;}
+  // Added fields left as stored are not resent: an archive without migration 011 still saves the rest.
+  const kept=RF.prune(entity,data,row);for(const k of Object.keys(data))if(!Object.hasOwn(kept,k))delete data[k];
  }
  if(entity==='contacts'){const consent=Boolean(event.currentTarget.elements.marketing_consent?.checked);data.marketing_consent=consent;data.consent_at=consent?(row?.marketing_consent&&row.consent_at?row.consent_at:new Date().toISOString().slice(0,19)+'Z'):null;}
  if(entity==='opportunities'&&row){if(data.outcome==='lost'&&!data.lost_reason){error('Indica il motivo della perdita.');return;}if(data.outcome!=='lost')delete data.lost_reason;

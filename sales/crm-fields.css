@@ -1,0 +1,32 @@
+/* Aziende e Contatti as in Salesforce (sales/crm-fields-core.js): the folding sections of the edit
+   form (sales.js) and the «Dettagli» block of Customer360 (crm-record.js). CRM light tokens
+   (--crm-*, crm-light.css) with the dark theme variables as fallback. */
+#editor.rf-wide{max-width:780px}
+#editor .rf-missing{grid-column:1/-1;margin:0;font-size:13px}
+.rf-sec{grid-column:1/-1;min-width:0;border:1px solid var(--crm-line,var(--line));border-radius:10px;background:var(--crm-card,transparent)}
+.rf-sec>summary{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 14px;cursor:pointer;list-style:none;font-weight:600;font-size:14px;color:var(--crm-text,var(--text));border-radius:10px}
+.rf-sec>summary::-webkit-details-marker{display:none}
+.rf-sec>summary::before{content:"▸";font-size:12px;color:var(--crm-subtle,var(--muted));transition:transform .15s}
+.rf-sec[open]>summary::before{transform:rotate(90deg)}
+.rf-sec[open]>summary{border-bottom:1px solid var(--crm-line,var(--line));border-radius:10px 10px 0 0}
+.rf-sec>summary:hover{background:var(--crm-hover,transparent)}
+.rf-count{margin-left:auto;font-weight:400;font-size:12px;color:var(--crm-muted,var(--muted))}
+.rf-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2px 14px;padding:4px 14px 14px}
+.rf-grid>div{min-width:0}
+.rf-grid>.rf-full,.rf-grid>.rf-copy{grid-column:1/-1}
+.rf-grid label{margin:8px 0 4px}
+.rf-grid textarea{min-height:80px}
+.rf-hint{display:block;font-size:12px;color:var(--crm-muted,var(--muted))}
+.rf-copy{justify-self:start;margin-top:10px;min-height:36px;font-size:13px}
+@media(max-width:600px){.rf-grid{grid-template-columns:1fr;padding:2px 12px 12px}.rf-sec>summary{padding:8px 12px}}
+
+/* «Dettagli» in Customer360: full width above Riepilogo AI and Registra un'attività. */
+.crm-rec>.crm-rec-details{grid-column:1/-1}
+.crm-rec-det-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px 28px;margin-top:8px}
+.crm-rec-det-group{min-width:0}
+.crm-rec-det-group h4{margin:0 0 6px;font-size:12px;font-weight:600;color:var(--crx-accent-2)}
+.crm-rec-det-group dl{display:grid;grid-template-columns:minmax(96px,38%) minmax(0,1fr);gap:5px 12px;margin:0}
+.crm-rec-det-group dt{font-size:12px;color:var(--crx-muted);padding-top:1px}
+.crm-rec-det-group dd{margin:0;font-size:14px;overflow-wrap:anywhere;color:var(--crx-text)}
+.crm-rec-det-group a{color:var(--crx-link)}
+.crm-rec-link{border:0;background:none;padding:0;min-height:0;font:inherit;color:var(--crx-link);text-align:left;cursor:pointer;box-shadow:none;text-decoration:underline;text-underline-offset:2px}

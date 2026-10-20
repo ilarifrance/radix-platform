@@ -29,23 +29,66 @@ const ALIASES={
  companies:{name:['azienda','nome','name','company','companyname','ragionesociale','societa','società'],industry:['settore','industry'],website:['sito','website','sitoweb','url','dominio','domain'],email:['email','mail'],phone:['telefono','phone','tel'],city:['citta','città','city','comune','sede'],notes:['note','notes']}
 };
 const LIMITS={name:200,role:120,email:254,phone:40,linkedin_url:300,notes:4000,industry:120,website:300,city:120,company:200};
-function mapRows(kind,parsed){
- const a=ALIASES[kind];const col={};
+/* Fields of migration sales 011 (crm-fields-core.js), with Italian and English (Salesforce export) headers.
+   Read only with opts.extended: an archive without 011 refuses them. */
+const ADDR=(p,it,en)=>({[p+'street']:[...it.map(x=>'indirizzo'+x),...it.map(x=>'via'+x),...en.map(x=>x+'street'),...en.map(x=>x+'address')],[p+'zip']:[...it.map(x=>'cap'+x),...en.map(x=>x+'postalcode'),...en.map(x=>x+'zip'),...en.map(x=>x+'zipcode')],[p+'city']:[...it.map(x=>'citta'+x),...it.map(x=>'città'+x),...en.map(x=>x+'city')],[p+'province']:[...it.map(x=>'provincia'+x),...it.map(x=>'prov'+x),...en.map(x=>x+'state'),...en.map(x=>x+'province')],[p+'country']:[...it.map(x=>'paese'+x),...it.map(x=>'nazione'+x),...en.map(x=>x+'country')]});
+const EXTENDED={
+ contacts:{first_name:['firstname','nomeproprio'],last_name:['lastname','cognome','surname'],title:['qualifica','title','titolo professionale'.replace(/\s/g,'')],department:['reparto','dipartimento','department','ufficio'],
+  mobile:['cellulare','mobile','mobilephone','cell','telefonocellulare'],phone:['telefono','phone','tel','telefonoufficio','businessphone','phonenumber'],
+  street:['indirizzo','via','street','address','mailingstreet'],zip:['cap','zip','zipcode','postalcode','mailingpostalcode','codicepostale'],city:['citta','città','city','comune','mailingcity'],province:['provincia','prov','province','state','mailingstate'],country:['paese','nazione','country','mailingcountry'],
+  birthdate:['datadinascita','birthdate','birthday','datanascita','nascita'],lead_source:['origine','fonte','leadsource','originecontatto','fontecontatto'],preferred_language:['lingua','linguapreferita','language','preferredlanguage']},
+ companies:{legal_name:['ragionesociale','legalname','denominazione'],account_type:['tipo','tipoazienda','tipologia','type','accounttype'],rating:['valutazione','rating','temperatura'],
+  annual_revenue_cents:['fatturato','fatturatoannuo','annualrevenue','revenue','ricavi'],employees:['dipendenti','numerodipendenti','addetti','employees','numberofemployees'],
+  ...ADDR('billing_',['fatturazione'],['billing']),...ADDR('shipping_',['spedizione'],['shipping']),
+  vat_number:['partitaiva','piva','vat','vatnumber','vatid','partitaivacee'],tax_code:['codicefiscale','cf','taxcode','fiscalcode'],pec:['pec','emailpec','indirizzopec'],sdi_code:['sdi','codicesdi','codicedestinatario','codiceunivoco','sdicode'],description:['descrizione','description']}
+};
+// Spreadsheet words for the two lists, in Italian and English.
+const VALUE_WORDS={account_type:{cliente:'cliente',customer:'cliente',prospect:'prospect',potenziale:'prospect',partner:'partner',fornitore:'fornitore',supplier:'fornitore',vendor:'fornitore',altro:'altro',other:'altro'},rating:{calda:'calda',caldo:'calda',hot:'calda',tiepida:'tiepida',tiepido:'tiepida',warm:'tiepida',fredda:'fredda',freddo:'fredda',cold:'fredda'}};
+// «31/12/1980», «31.12.1980», «1980-12-31» → 1980-12-31.
+function isoDate(v){const s=String(v||'').trim();let m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);if(m)return m[1]+'-'+m[2]+'-'+m[3];m=/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/.exec(s);return m?m[3]+'-'+m[2].padStart(2,'0')+'-'+m[1].padStart(2,'0'):s}
+const fieldsCore=()=>root.RadixCrmFields||(typeof require==='function'?require('./crm-fields-core.js'):null);
+/* opts.extended: also read the 011 fields. A value the CRM would refuse (Partita IVA with a wrong check
+   digit, unknown type…) is left out of that row and listed in `warnings`; the row is still imported. */
+function mapRows(kind,parsed,opts){
+ const ext=!!(opts&&opts.extended)&&!!EXTENDED[kind];
+ const a=ext?{...ALIASES[kind],...EXTENDED[kind]}:ALIASES[kind];const col={};
+ if(ext&&kind==='companies')a.name=[...ALIASES.companies.name.filter(x=>x!=='ragionesociale'),'accountname','nomeazienda'];
+ if(ext&&kind==='contacts'){a.name=ALIASES.contacts.name;delete a.first;delete a.last}
+ const warnings=[];
  for(const [field,names] of Object.entries(a)){const h=parsed.headers.find(x=>names.includes(norm(x)));if(h)col[field]=h}
  const out=[],skipped=[];
  parsed.rows.forEach((r,i)=>{const o={};
   for(const f of Object.keys(a))if(col[f]&&r[col[f]])o[f]=r[col[f]].slice(0,LIMITS[f]||200);
-  if(!o.name&&(o.first||o.last))o.name=[o.first,o.last].filter(Boolean).join(' ');
-  else if(o.name&&o.last&&!o.name.includes(o.last))o.name=(o.name+' '+o.last).slice(0,200);
+  if(ext){
+   const F=fieldsCore();
+   if(kind==='contacts'){
+    // «Nome» beside «Cognome» is the first name: the display name becomes «Nome Cognome».
+    if(o.last_name&&o.name&&!o.first_name&&!o.name.includes(o.last_name))o.first_name=o.name;
+    if(!o.name&&(o.first_name||o.last_name))o.name=[o.first_name,o.last_name].filter(Boolean).join(' ').slice(0,200);
+    else if(o.name&&o.last_name&&!o.name.includes(o.last_name))o.name=(o.name+' '+o.last_name).slice(0,200);
+    if(o.birthdate)o.birthdate=isoDate(o.birthdate);
+   }
+   if(kind==='companies'&&!o.name&&o.legal_name)o.name=o.legal_name.slice(0,200);
+   for(const k of Object.keys(EXTENDED[kind])){
+    if(o[k]===undefined||['phone'].includes(k))continue;
+    if(VALUE_WORDS[k])o[k]=VALUE_WORDS[k][String(o[k]).normalize('NFKC').trim().toLocaleLowerCase('it')]||o[k];
+    if(k==='annual_revenue_cents'){const c=F?F.euroToCents(o[k]):NaN;if(Number.isSafeInteger(c)&&c>=0){o[k]=c;continue}warnings.push({line:i+2,field:k,why:'fatturato non leggibile'});delete o[k];continue}
+    if(!F){delete o[k];continue}
+    const res=F.parse(kind,k,o[k]);if(res.error){warnings.push({line:i+2,field:k,why:res.error});delete o[k]}else if(res.value==null)delete o[k];else o[k]=res.value;
+   }
+  }else{
+   if(!o.name&&(o.first||o.last))o.name=[o.first,o.last].filter(Boolean).join(' ');
+   else if(o.name&&o.last&&!o.name.includes(o.last))o.name=(o.name+' '+o.last).slice(0,200);
+  }
   delete o.first;delete o.last;
   if(o.website&&!/^https?:\/\//i.test(o.website))o.website='https://'+o.website.replace(/^\/+/,'');
   if(o.linkedin_url&&!/^https?:\/\//i.test(o.linkedin_url))o.linkedin_url='https://'+o.linkedin_url.replace(/^\/+/,'');
   if(o.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)){skipped.push({line:i+2,why:'email non valida'});return}
   if(!o.name){skipped.push({line:i+2,why:'nome mancante'});return}
   out.push(o)});
- return {rows:out,skipped,columns:col};
+ return ext?{rows:out,skipped,columns:col,warnings}:{rows:out,skipped,columns:col};
 }
-const api={parse,toCsv,mapRows,safe,MAX_ROWS};
+const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.RadixCrmCsv=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

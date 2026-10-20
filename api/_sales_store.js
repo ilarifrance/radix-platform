@@ -1,5 +1,8 @@
 'use strict';
 const {fields}=require('./_sales');
+const recordFields=require('../sales/crm-fields-core.js');
+// Export rows: the added fields (011) arrive in one jsonb column and become ordinary keys.
+function flatten(kind){return rows=>rows.map(({added,...r})=>{const out={...r};if(added&&typeof added==='object')for(const k of recordFields.ADDED[kind])if(Object.hasOwn(added,k))out[k]=k==='birthdate'&&added[k]?String(added[k]).slice(0,10):added[k];return out;});}
 const {createLeadListStore}=require('./_lead_lists_store');
 const {createLeadContactJobsStore}=require('./_lead_contact_jobs_store');
 const {createGrowthProjectsStore}=require('./_lead_growth_projects_store');
@@ -9,6 +12,9 @@ function normalize(value,key=''){
  if(['due_at','occurred_at','created_at','updated_at','consent_at','closed_at','resolved_at'].includes(key)){
   const date=new Date(value);if(!Number.isFinite(date.getTime()))throw new Error('invalid stored timestamp');return date.toISOString();
  }
+ // Calendar dates (birthdate, 011) stay YYYY-MM-DD: a driver Date is local midnight, so local parts are exact.
+ if(value instanceof Date&&['birthdate','expected_close'].includes(key)){const p=n=>String(n).padStart(2,'0');return value.getFullYear()+'-'+p(value.getMonth()+1)+'-'+p(value.getDate());}
+ if(typeof value==='string'&&key==='birthdate')return value.slice(0,10);
  if(Array.isArray(value))return value.map(v=>normalize(v));
  if(typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,normalize(v,k)]));
  return value;
@@ -41,8 +47,10 @@ function createStore(rawSql){
    }
    // Full export (GDPR access, CSV): every row of the workspace up to 5000, with the company name.
    if(c.entity==='export'){
-    if(c.subject==='contacts')return sql('SELECT t.id,t.name,t.role,t.email,t.phone,t.linkedin_url,t.marketing_consent,t.consent_at,t.notes,c.name AS company,t.created_at FROM sales_contacts t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]);
-    if(c.subject==='companies')return sql('SELECT t.id,t.name,t.industry,t.website,t.email,t.phone,t.city,t.notes,t.created_at FROM sales_companies t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]);
+    // The added fields of migration 011 come through to_jsonb only when the columns exist: an
+    // archive without them exports the same columns as before, never an «undefined column» error.
+    if(c.subject==='contacts')return sql('SELECT t.id,t.name,t.role,t.email,t.phone,t.linkedin_url,t.marketing_consent,t.consent_at,t.notes,c.name AS company,t.created_at,to_jsonb(t) AS added FROM sales_contacts t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]).then(flatten('contacts'));
+    if(c.subject==='companies')return sql('SELECT t.id,t.name,t.industry,t.website,t.email,t.phone,t.city,t.notes,t.created_at,to_jsonb(t) AS added FROM sales_companies t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]).then(flatten('companies'));
     throw new Error('invalid export');
    }
    if(c.entity==='dashboard')return sql('SELECT (SELECT count(*) FROM sales_companies WHERE workspace_id=$1) AS companies, (SELECT count(*) FROM sales_contacts WHERE workspace_id=$1) AS contacts, (SELECT count(*) FROM sales_leads WHERE workspace_id=$1) AS leads, (SELECT count(*) FROM sales_opportunities WHERE workspace_id=$1) AS opportunities, (SELECT count(*) FROM sales_tasks WHERE workspace_id=$1) AS tasks, (SELECT COALESCE(sum(amount_cents),0)::text FROM sales_opportunities WHERE workspace_id=$1 AND outcome=\'open\') AS open_amount_cents WHERE '+guard,[c.workspace,u]);

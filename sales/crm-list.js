@@ -26,7 +26,7 @@ function save(kind){try{localStorage.setItem(L().storageKey(st[kind].ws,kind),JS
 let cached=null;
 async function fallback(){if(!window.RadixCrmData)return;try{cached=await window.RadixCrmData.load()}catch{cached=null}}
 function data(){const a=app(),ready=!!a?.state.ready,r={};
- for(const e of ['contacts','companies','interactions','opportunities','stages']){const mine=a?a.rows(e):[];r[e]=!ready&&!mine.length&&cached&&Array.isArray(cached[e])?cached[e]:mine}
+ for(const e of ['contacts','companies','interactions','opportunities','stages','members']){const mine=a?a.rows(e):[];r[e]=!ready&&!mine.length&&cached&&Array.isArray(cached[e])?cached[e]:mine}
  return r}
 
 function setMode(kind,mode){document.documentElement.dataset['lv'+(kind==='contacts'?'Contacts':'Companies')]=mode}
@@ -61,7 +61,11 @@ function mount(section,kind){
  viewSel.addEventListener('change',()=>{p.view=viewSel.value;const v=L().VIEWS[kind].find(x=>x.id===p.view);p.sort=v&&v.sort?{...v.sort}:{key:'name',dir:'asc'};save(kind);draw()});
  let t=null;search.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{st[kind].query=search.value;draw()},120)});
  const hasScore=()=>!!window.RadixCrmScore;
- function drawCols(){colList.replaceChildren();for(const c of L().columnsFor(kind,{score:hasScore()})){const l=E('label',undefined,'lv-check');const i=E('input');i.type='checkbox';i.checked=p.columns.includes(c.id);i.disabled=!!c.fixed;
+ // Columns of migration 011 only when the loaded rows carry those fields (an older archive does not).
+ const hasAdded=()=>{const F=window.RadixCrmFields,rows=data()[kind];return !!F&&(!rows.length||rows.some(r=>F.supported(kind,r)))};
+ const colOpts=()=>({score:hasScore(),added:hasAdded()});
+ let offered='';
+ function drawCols(){colList.replaceChildren();offered=L().columnsFor(kind,colOpts()).map(c=>c.id).join();for(const c of L().columnsFor(kind,colOpts())){const l=E('label',undefined,'lv-check');const i=E('input');i.type='checkbox';i.checked=p.columns.includes(c.id);i.disabled=!!c.fixed;
   i.addEventListener('change',()=>{p.columns=L().toggleColumn(kind,p.columns,c.id);save(kind);draw()});l.append(i,E('span',' '+c.label));colList.append(l)}}
 
  function rowsNow(){const d=data(),now=Date.now();const all=L().buildRows(kind,d,{now,score:window.RadixCrmScore?.score,explain:window.RadixCrmScore?.explain});
@@ -77,7 +81,9 @@ function mount(section,kind){
    case 'name':{const b=B(r.name,()=>open(kind,r.record),'lv-name');b.title='Apri Customer360 · '+r.name;td.append(b);break}
    case 'company':if(r.companyRecord){const b=B(r.company,()=>open('companies',r.companyRecord),'lv-link');b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(E('span','—','lv-empty'));break;
    case 'email':{const h=L().mailHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
-   case 'phone':{const h=L().telHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
+   case 'phone':case 'mobile':{const h=L().telHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
+   case 'revenue':td.append(v==null?E('span','—','lv-empty'):E('span',money(v)));td.className='num';td.title='Fatturato annuo in euro';break;
+   case 'employees':td.append(v==null?E('span','—','lv-empty'):E('span',new Intl.NumberFormat('it-IT').format(v)));td.className='num';break;
    case 'website':{const h=L().websiteHref(v);td.append(h?link(v.replace(/^https?:\/\//,'').replace(/\/$/,''),h,true):E('span',v||'—',v?'':'lv-empty'));break}
    case 'linkedin':{const h=L().websiteHref(v);td.append(h?link('Profilo',h,true):E('span','—','lv-empty'));break}
    case 'consent':{const s=E('span',r.consent?'Sì':'No','lv-pill '+(r.consent?'ok':'no'));if(r.consent&&r.consentAt)s.title='Registrato il '+shortDate(Date.parse(r.consentAt));td.append(s);break}
@@ -94,7 +100,7 @@ function mount(section,kind){
  function draw(){
   if(p.mode!=='table')return;
   const {all,shown,now}=rowsNow(),a=app(),sel=st[kind].selected;
-  const columns=L().columnsFor(kind,{score:hasScore()}).filter(c=>p.columns.includes(c.id));
+  const offer=L().columnsFor(kind,colOpts()).map(c=>c.id).join();if(offer!==offered)drawCols();const columns=L().columnsFor(kind,colOpts()).filter(c=>p.columns.includes(c.id));
   const v=L().VIEWS[kind].find(x=>x.id===p.view);const sortCol=L().COLUMNS[kind].find(c=>c.id===p.sort.key);
   meta.textContent=shown.length+(shown.length===1?' elemento':' elementi')+(shown.length!==all.length?' su '+all.length+' caricati':'')+' · Ordinati per '+(sortCol?sortCol.label:'Nome')+' · Aggiornato alle '+hhmm(loadedAt);
   note.textContent=(a?.state.more?.[kind]?'Elenco parziale: sono caricati i primi '+all.length+' record, «Carica altri 100» qui sotto aggiunge i successivi. ':'')+(p.view==='recent'?'«Creati di recente»: negli ultimi '+L().RECENT_DAYS+' giorni. ':p.view==='idle'?'Senza interazioni registrate negli ultimi '+L().IDLE_DAYS+' giorni (azienda, suoi contatti o trattative). ':'')+(kind==='contacts'?'Ultimo contatto e punteggio dalle interazioni e trattative caricate.':'Contatti, opportunità e attività contati sui record caricati.');
@@ -104,9 +110,9 @@ function mount(section,kind){
   const thC=E('th',undefined,'lv-cb');thC.setAttribute('scope','col');const all_=E('input');all_.type='checkbox';all_.setAttribute('aria-label','Seleziona tutti i '+NAME[kind].many+' nell’elenco');
   const ss=L().selectionState(sel,shown.map(r=>r.id));all_.checked=ss==='all';all_.indeterminate=ss==='some';all_.disabled=!shown.length;
   all_.addEventListener('change',()=>{st[kind].selected=L().toggleAll(st[kind].selected,shown.map(r=>r.id));draw()});thC.append(all_);hr.append(thN,thC);
-  for(const c of columns){const th=E('th');th.setAttribute('scope','col');th.dataset.col=c.id;if(['contacts','openValue'].includes(c.id))th.className='num';
+  for(const c of columns){const th=E('th');th.setAttribute('scope','col');th.dataset.col=c.id;if(['contacts','openValue','revenue','employees'].includes(c.id))th.className='num';
    const on=p.sort.key===c.id;if(on)th.setAttribute('aria-sort',p.sort.dir==='asc'?'ascending':'descending');
-   const b=B(c.label,()=>{p.sort=L().nextSort(p.sort,c.id);save(kind);draw()},'lv-sort');b.append(E('span',on?(p.sort.dir==='asc'?'▲':'▼'):'↕','lv-arrow'));b.lastChild.setAttribute('aria-hidden','true');th.append(b);hr.append(th)}
+   const b=B(c.short||c.label,()=>{p.sort=L().nextSort(p.sort,c.id);save(kind);draw()},'lv-sort');if(c.short)b.title=c.label;b.append(E('span',on?(p.sort.dir==='asc'?'▲':'▼'):'↕','lv-arrow'));b.lastChild.setAttribute('aria-hidden','true');th.append(b);hr.append(th)}
   const thA=E('th',undefined,'lv-actions');thA.setAttribute('scope','col');thA.append(E('span','Azioni','lv-sr'));hr.append(thA);thead.append(hr);table.append(thead);
   const tbody=E('tbody');const canWrite=!!a&&a.writable(kind);
   shown.forEach((r,i)=>{const tr=E('tr');tr.dataset.id=r.id;if(sel.has(r.id))tr.className='on';

@@ -128,9 +128,34 @@ function composerPanel(ctx){
  box.append(bar,body);show(tabs.get(key)||'email');return box;
 }
 
+/* ---------- Dettagli (Aziende e Contatti) ---------- */
+// Only the fields that have a value, grouped as in the edit form (sales/crm-fields-core.js).
+// Rows from an archive without migration 011 simply have fewer fields to show.
+function detailsPanel(ctx){
+ const F=window.RadixCrmFields,a=app(),rec=recordOf(ctx);if(!F||!rec||!['companies','contacts'].includes(ctx.subject))return null;
+ const related=e=>(ctx.rows||[]).filter(x=>x.entity===e).map(x=>x.record);
+ const lists={companies:[...related('companies'),...a.rows('companies')],contacts:[...related('contacts'),...a.rows('contacts')],members:a.rows('members')};
+ const groups=F.details(ctx.subject,rec,lists);if(!groups.length)return null;
+ const box=E('section',undefined,'crm-rec-details');box.setAttribute('aria-labelledby','crm-rec-det-title');
+ const head=E('div',undefined,'crm-rec-head');const h=E('h3','Dettagli');h.id='crm-rec-det-title';head.append(h);
+ if(a.writable(ctx.subject))head.append(B('Modifica',()=>a.edit(ctx.subject,rec)));
+ box.append(head);
+ const cols=E('div',undefined,'crm-rec-det-cols');
+ for(const g of groups){const part=E('div',undefined,'crm-rec-det-group');part.dataset.section=g.id;part.append(E('h4',g.label));const dl=E('dl');
+  for(const it of g.items){const dd=E('dd');dd.dataset.key=it.key;
+   const target=it.ref&&(it.type==='company'?lists.companies:lists.contacts).find(r=>r.id===it.ref);
+   if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri Customer360 · '+it.text;dd.append(b)}
+   else if(it.key==='pec'||it.key==='email')dd.append(Object.assign(E('a',it.text),{href:'mailto:'+it.text}));
+   else if(it.type==='url'&&/^https?:\/\//i.test(it.text))dd.append(Object.assign(E('a',it.text.replace(/^https?:\/\//,'')),{href:it.text,target:'_blank',rel:'noopener noreferrer'}));
+   else dd.textContent=it.text;
+   dl.append(E('dt',it.label),dd)}
+  part.append(dl);cols.append(part)}
+ box.append(cols);return box;
+}
+
 function mount(panel,ctx){
  if(!app()||!ctx||!core.SUBJECT_LABEL[ctx.subject])return;
- const wrap=E('div',undefined,'crm-rec');wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
+ const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx);if(det)wrap.append(det);wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
 }
 window.RadixCrmRecord={mount};
 })();
