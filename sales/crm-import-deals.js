@@ -41,8 +41,8 @@ function table(kind,p){
  t.append(thead,body);wrap.append(t);return wrap;
 }
 async function importCsv(kind,file){
- const a=app();if(!file)return;if(file.size>2e6){a.error('File troppo grande: massimo 2 MB.');return}
- let parsed;try{parsed=window.RadixCrmCsv.parse(await file.text())}catch(e){a.error(e.message);return}
+ const a=app();if(!file)return;
+ let parsed;try{parsed=await window.RadixCrmCsv.readFile(file)}catch(e){a.error(e.message);return}
  if(!parsed.rows.length){a.error('Il file non ha righe da importare.');return}
  let p;
  if(!await run('Leggo il CRM per il confronto…',async()=>{p=C().plan(kind,parsed,await context(kind),{now:Date.now()})}))return;
@@ -98,8 +98,8 @@ window.RadixCrmImportDeals={
  section(entity,section){
   if(!['opportunities','tasks'].includes(entity)||!app()?.writable(entity)||!C()||!window.RadixCrmCsv)return;
   const head=section.querySelector(':scope>.row')||section,bar=E('div',undefined,'actions crm-tools crm-import-bar');
-  const input=E('input');input.type='file';input.accept='.csv,text/csv';input.hidden=true;input.addEventListener('change',()=>{const f=input.files[0];input.value='';importCsv(entity,f)});
-  bar.append(B('Importa CSV',()=>input.click()),input);head.append(bar);
+  const input=E('input');input.type='file';input.accept=window.RadixCrmCsv.ACCEPT;input.hidden=true;input.addEventListener('change',()=>{const f=input.files[0];input.value='';importCsv(entity,f)});
+  bar.append(Object.assign(B('Importa CSV o Excel',()=>input.click()),{title:'File .csv o .xlsx: la prima riga con i nomi delle colonne'}),input);head.append(bar);
  }
 };
 })();

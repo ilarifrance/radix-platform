@@ -97,7 +97,27 @@ function mapRows(kind,parsed,opts){
  const unknown=parsed.headers.filter(h=>h&&!used.has(h));
  return ext?{rows:out,skipped,columns:col,warnings,unknown}:{rows:out,skipped,columns:col,unknown};
 }
-const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED};
+/* Rows of a sheet (header first, arrays of cell texts) → the same shape as parse(). */
+function fromRows(rows){
+ const all=(rows||[]).map(r=>(r||[]).map(x=>String(x??'')));
+ if(all.length>MAX_ROWS+1)throw Error('Massimo '+MAX_ROWS+' righe per importazione.');
+ const headers=(all.shift()||[]).map(h=>h.trim());
+ return {headers,rows:all.filter(r=>r.some(x=>x.trim())).map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]??'').trim()])))};
+}
+const isXlsx=f=>/\.xlsx$/i.test(String(f&&f.name||''));
+/* A file chosen for import: CSV (up to 2 MB) or Excel .xlsx (first sheet, up to 3 MB, via lib/lead-xlsx-parser.js). */
+async function readFile(file){
+ if(isXlsx(file)){
+  if(file.size>3e6)throw Error('File troppo grande: massimo 3 MB per Excel.');
+  if(!root.RadixLeadXlsx||!root.RadixLeadXlsx.readRows)throw Error('Lettore Excel non disponibile: aggiorna la pagina.');
+  return fromRows(await root.RadixLeadXlsx.readRows(await file.arrayBuffer(),{maxRows:MAX_ROWS+1}));
+ }
+ if(/\.xls$/i.test(String(file&&file.name||'')))throw Error('Il vecchio formato .xls non è letto: da Excel salva come .xlsx o CSV.');
+ if(file.size>2e6)throw Error('File troppo grande: massimo 2 MB.');
+ return parse(await file.text());
+}
+const ACCEPT='.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED,fromRows,readFile,ACCEPT};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.RadixCrmCsv=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
