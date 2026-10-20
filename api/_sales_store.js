@@ -2,11 +2,12 @@
 const {fields}=require('./_sales');
 const recordFields=require('../sales/crm-fields-core.js');
 // Export rows: the added fields (011) arrive in one jsonb column and become ordinary keys.
-function flatten(kind){return rows=>rows.map(({added,...r})=>{const out={...r};if(added&&typeof added==='object')for(const k of recordFields.ADDED[kind])if(Object.hasOwn(added,k))out[k]=k==='birthdate'&&added[k]?String(added[k]).slice(0,10):added[k];return out;});}
+function flatten(kind){return rows=>rows.map(({added,...r})=>{const out={...r};if(added&&typeof added==='object')for(const k of recordFields.ADDED[kind])if(Object.hasOwn(added,k))out[k]=k==='birthdate'&&added[k]?String(added[k]).slice(0,10):added[k];if(added&&added.custom&&typeof added.custom==='object')out.custom=added.custom;return out;});}
 const {createLeadListStore}=require('./_lead_lists_store');
 const {createLeadContactJobsStore}=require('./_lead_contact_jobs_store');
 const {createGrowthProjectsStore}=require('./_lead_growth_projects_store');
 const {createDocumentsStore}=require('./_sales_documents');
+const {createCustomFieldsStore}=require('./_sales_custom_fields');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
@@ -33,6 +34,7 @@ function createStore(rawSql){
  leadContactJobs:createLeadContactJobsStore(leadSql),
  growthProjects:createGrowthProjectsStore(leadSql),
  documents:createDocumentsStore(sql),
+ customFields:createCustomFieldsStore(sql),
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';

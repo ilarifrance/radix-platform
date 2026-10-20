@@ -308,6 +308,8 @@ function recordSections(entity,row,host,references,selectControl){
   box.addEventListener('input',update);box.addEventListener('change',update);update();
   host.append(box);
  });
+ // «Aggiungi campo» (015): fields of the whole workspace, after the fixed sections.
+ if(window.RadixCrmCustom&&!missing)window.RadixCrmCustom.section(entity,row,host);
  // A contact takes the Dipartimento of its company when the field is still empty.
  if(entity==='contacts'&&inputs.company_id&&inputs.division&&!inputs.division.disabled)inputs.company_id.addEventListener('change',()=>{if(String(inputs.division.value||'').trim())return;const co=rows('companies').find(c=>c.id===inputs.company_id.value);if(co?.division){inputs.division.value=co.division;inputs.division.dispatchEvent(new Event('input',{bubbles:true}));}});
  if(entity==='contacts'){const name=host.querySelector('input[name="name"]'),hint=()=>{if(name)name.placeholder=RF.displayName(inputs.first_name?.value,inputs.last_name?.value)||'Vuoto = Nome e Cognome';};
@@ -401,6 +403,7 @@ $('editor-form').addEventListener('submit',event=>{
  const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);
  for(const [key,value] of new FormData(event.currentTarget)){
   // Aziende e Contatti: every field of crm-fields-core.js is parsed (and checked) the same way.
+  if(record&&key.startsWith('custom:'))continue;
   if(record&&key==='name'&&entity==='contacts'){data.name=value.trim();continue;}
   if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id,current:row?.[key]});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
   if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
@@ -434,6 +437,7 @@ $('editor-form').addEventListener('submit',event=>{
   if(!data.name){error(entity==='contacts'?'Indica il nome visualizzato oppure Nome e Cognome.':'Indica il nome dell’azienda.');return;}
   // Added fields left as stored are not resent: an archive without migration 011 still saves the rest.
   const kept=RF.prune(entity,data,row);for(const k of Object.keys(data))if(!Object.hasOwn(kept,k))delete data[k];
+  const custom=window.RadixCrmCustom?.collect(event.currentTarget,row);if(custom)data.custom=custom;
  }
  if(entity==='contacts'){const consent=Boolean(event.currentTarget.elements.marketing_consent?.checked);data.marketing_consent=consent;data.consent_at=consent?(row?.marketing_consent&&row.consent_at?row.consent_at:new Date().toISOString().slice(0,19)+'Z'):null;}
  if(entity==='opportunities'&&row){if(data.outcome==='lost'&&!data.lost_reason){error('Indica il motivo della perdita.');return;}if(data.outcome!=='lost')delete data.lost_reason;

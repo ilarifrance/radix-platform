@@ -113,7 +113,7 @@ function mount(section,kind){
   if(p.mode!=='table')return;
   const {all,shown,now}=rowsNow(),a=app(),sel=st[kind].selected;
   const offer=L().columnsFor(kind,colOpts()).map(c=>c.id).join();if(offer!==offered)drawCols();const columns=L().columnsFor(kind,colOpts()).filter(c=>p.columns.includes(c.id));
-  const v=L().VIEWS[kind].find(x=>x.id===p.view);const sortCol=L().COLUMNS[kind].find(c=>c.id===p.sort.key);
+  const v=L().VIEWS[kind].find(x=>x.id===p.view);const sortCol=L().cols(kind).find(c=>c.id===p.sort.key);
   meta.textContent=shown.length+(shown.length===1?' elemento':' elementi')+(shown.length!==all.length?' su '+all.length+' caricati':'')+' · Ordinati per '+(sortCol?sortCol.label:'Nome')+' · Aggiornato alle '+hhmm(loadedAt);
   note.textContent=(a?.state.more?.[kind]?'Elenco parziale: sono caricati i primi '+all.length+' record, «Carica altri 100» qui sotto aggiunge i successivi. ':'')+(p.view==='recent'?'«Creati di recente»: negli ultimi '+L().RECENT_DAYS+' giorni. ':p.view==='idle'?'Senza interazioni registrate negli ultimi '+L().IDLE_DAYS+' giorni (azienda, suoi contatti o trattative). ':'')+(kind==='contacts'?'Ultimo contatto e punteggio dalle interazioni e trattative caricate.':'Contatti, opportunità e attività contati sui record caricati.');
   const table=E('table',undefined,'lv-table');const cap=E('caption',(v?v.label:NAME[kind].title)+' · '+shown.length+' righe');cap.className='lv-sr';table.append(cap);
@@ -162,7 +162,13 @@ function mount(section,kind){
  box.redraw=draw;applyMode();
 }
 
+// «Campi aggiunti» (015): the lists mount once the workspace's fields are known, so saved columns survive.
+let customWs=null,customReady=false;
+function custom(){const C=window.RadixCrmCustom,ws=app()?.state.workspace;if(!C||!ws)return true;if(customWs===ws)return customReady;
+ customWs=ws;customReady=false;C.load().then(defs=>{if(customWs!==ws)return;for(const k of ['contacts','companies']){L().setCustom(k,defs);st[k].ws=undefined}customReady=true;later()});return false}
+addEventListener('radix-custom-fields',()=>{const C=window.RadixCrmCustom;if(!C)return;for(const k of ['contacts','companies'])L().setCustom(k,C.defs());later()});
 function rescan(){if(!window.RadixCrmList||!window.RadixSalesApp)return;
+ if(!custom())return;
  for(const kind of ['contacts','companies']){const s=document.getElementById(kind);if(!s||s.parentElement!==content){continue}
   const box=s.querySelector(':scope>.lv');if(box)box.redraw();else mount(s,kind)}}
 let q=false;const later=()=>{if(q)return;q=true;requestAnimationFrame(()=>{q=false;rescan()})};

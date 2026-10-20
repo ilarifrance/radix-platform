@@ -85,12 +85,17 @@ function mapRows(kind,parsed,opts){
    else if(o.name&&o.last&&!o.name.includes(o.last))o.name=(o.name+' '+o.last).slice(0,200);
   }
   delete o.first;delete o.last;
+  // «Campi aggiunti» (015): opts.custom = { field id: header } from crm-custom-fields.js columnsFor().
+  if(opts&&opts.custom){const cu={};for(const [id,h] of Object.entries(opts.custom)){const v=String(r[h]??'').trim();if(v)cu[id]=v.slice(0,500)}if(Object.keys(cu).length)o.custom=cu}
   if(o.website&&!/^https?:\/\//i.test(o.website))o.website='https://'+o.website.replace(/^\/+/,'');
   if(o.linkedin_url&&!/^https?:\/\//i.test(o.linkedin_url))o.linkedin_url='https://'+o.linkedin_url.replace(/^\/+/,'');
   if(o.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(o.email)){skipped.push({line:i+2,why:'email non valida'});return}
   if(!o.name){skipped.push({line:i+2,why:'nome mancante'});return}
   out.push(o)});
- return ext?{rows:out,skipped,columns:col,warnings}:{rows:out,skipped,columns:col};
+ // Headers that fill nothing: shown before the import, so a missing «Aggiungi campo» is noticed.
+ const used=new Set([...Object.values(col),...Object.values((opts&&opts.custom)||{})]);
+ const unknown=parsed.headers.filter(h=>h&&!used.has(h));
+ return ext?{rows:out,skipped,columns:col,warnings,unknown}:{rows:out,skipped,columns:col,unknown};
 }
 const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;

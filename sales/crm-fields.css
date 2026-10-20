@@ -30,3 +30,8 @@
 .crm-rec-det-group dd{margin:0;font-size:14px;overflow-wrap:anywhere;color:var(--crx-text)}
 .crm-rec-det-group a{color:var(--crx-link)}
 .crm-rec-link{border:0;background:none;padding:0;min-height:0;font:inherit;color:var(--crx-link);text-align:left;cursor:pointer;box-shadow:none;text-decoration:underline;text-underline-offset:2px}
+/* «Campi aggiunti» (crm-custom-fields.js) */
+.rf-custom>.rf-grid:empty{display:none}
+.rf-custom-note{margin:10px 14px 0;font-size:13px}.rf-custom-note:empty{display:none}
+.rf-custom-add{padding:0 14px 14px}.rf-custom-add>.rf-grid{padding:4px 0 0}.rf-custom-add .actions{grid-column:1/-1;display:flex;gap:8px}
+@media(max-width:600px){.rf-custom-add{padding:0 12px 12px}}
