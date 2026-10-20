@@ -31,8 +31,35 @@
 .pv .ch-ok b{color:var(--ch-ok);font-size:14px}
 .pv .ch-ok small{color:var(--ch-muted);font-size:12.5px}
 .pv .ch-note{margin:10px 0 0;font-size:11.5px;color:var(--ch-subtle)}
-@media (max-width:560px){
+.pv .ch-pulse{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px;font-size:12.5px;color:var(--ch-muted)}
+.pv .ch-chip{padding:2px 9px;border-radius:999px;border:1px solid var(--ch-line);background:var(--ch-soft)}
+.pv .ch-chip b{color:var(--ch-text)}
+.pv .ch-chip.late,.pv .ch-chip.late b{color:var(--ch-err)}
+.pv .ch-last{margin:0 0 10px;font-size:12px;color:var(--ch-subtle);overflow-wrap:anywhere}
+.pv .ch-link{display:inline-block;font-size:12.5px;color:var(--ch-accent)}
+.pv .ch-pulse .ch-link{margin-left:auto}
+.pv .ch>.ch-link{margin-top:8px}
+
+/* Panoramica without the side rail (its blocks are in the list above). */
+.pv.pv-solo{grid-template-columns:minmax(0,1fr)}
+/* «Primi passi» with every step done: one compact row. */
+.pv .pv-onboard.done{padding-top:12px;padding-bottom:12px}
+.pv .pv-onboard.done .pv-head{margin-bottom:0}
+.pv .pv-onboard-toggle{min-height:30px;padding:4px 10px;font-size:12px;background:none;border:1px solid var(--ch-line-2);color:inherit}
+
+/* «Promemoria» (sales.js) repeats the Panoramica list and the Attività view: hidden there.
+   Elsewhere, on a phone, only its summary line and link. */
+html[data-rx-view="dashboard"] #content>aside.reminder,html[data-rx-view="tasks"] #content>aside.reminder{display:none}
+@media (max-width:600px){#content>aside.reminder ul{display:none}#content>aside.reminder p{margin:2px 0}}
+.pv .ch .ch-all{display:none}
+@media (max-width:600px){
  .pv .ch{padding:14px}
- .pv .ch-item{flex-wrap:wrap}
- .pv .ch .ch-go{width:100%}
+ .pv .ch-item{align-items:flex-start;gap:8px;padding:9px 10px}
+ .pv .ch .ch-go{min-height:32px;padding:5px 10px;font-size:12px;white-space:normal;max-width:9.5em;text-align:center}
+ .pv .ch-pulse .ch-link{margin-left:0}
+ .pv .ch-list:not(.open) .ch-more{display:none}
+ .pv .ch .ch-all{display:block;width:100%;margin-top:8px;min-height:34px;border-radius:8px;border:1px solid var(--ch-line-2);background:var(--ch-card);color:var(--ch-accent);font:600 13px/1.2 var(--ch-font)}
+ /* Primi passi on a phone: only the steps still to do, without hints. */
+ .pv .pv-onboard-list li.done{display:none}
+ .pv .pv-onboard-list small{display:none}
 }

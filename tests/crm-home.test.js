@@ -18,7 +18,7 @@ test('opportunity open after its expected close: Customer360 of the deal',()=>{
   {id:'o2',title:'Vinta',amount_cents:900000,outcome:'won',expected_close:ymd(NOW-3*DAY),created_at:iso(NOW-2*DAY)},
   {id:'o3',title:'Futura',amount_cents:900000,outcome:'open',expected_close:ymd(NOW+3*DAY),created_at:iso(NOW-2*DAY)}]};
  const r=H.suggestions(d,{now:NOW});
- assert.equal(r.items.length,1);const it=r.items[0];
+ assert.deepEqual(rules(r),['close-overdue','close-soon'],'the future deal closes in 3 days without tasks');const it=r.items[0];
  assert.equal(it.rule,'close-overdue');assert.equal(it.urgency,3);assert.equal(it.value,500000);
  assert.deepEqual(it.action,{kind:'customer',subject:'opportunities',id:'o1',name:'Rinnovo'});
  assert.match(it.reason,/ancora aperta \(3 giorni fa\)/);
@@ -60,10 +60,14 @@ test('new contact without first contact; tickets waiting; leads not worked',()=>
   tickets:[{id:'k1',title:'Lento',status:'open',priority:'normal',created_at:iso(NOW-9*DAY)},{id:'k2',title:'In attesa cliente',status:'pending',created_at:old},{id:'k3',title:'Chiuso',status:'closed',created_at:old}],
   leads:[{id:'l1',title:'Lead nuovo',contact_id:'c2',created_at:iso(NOW-4*DAY)},{id:'l2',title:'Lead lavorato',contact_id:'c3'},{id:'l3',title:'Senza riferimenti'}]};
  const r=H.suggestions(d,{now:NOW});
- assert.deepEqual(rules(r).sort(),['lead-new','new-contact','ticket-waiting']);
+ assert.deepEqual(rules(r).sort(),['lead-new','new-contact','ticket-open','ticket-open']);
  const by=id=>r.items.find(x=>x.rule===id);
  assert.deepEqual(by('new-contact').action,{kind:'customer',subject:'contacts',id:'c1',name:'Anna'});
- assert.deepEqual(by('ticket-waiting').action,{kind:'view',hash:'#tickets'});assert.match(by('ticket-waiting').reason,/Aperto da 9 giorni/);
+ const tk=r.items.filter(x=>x.rule==='ticket-open');
+ assert.deepEqual(tk.map(x=>x.title).sort(),['In attesa cliente','Lento'],'open and waiting on the customer; closed left out');
+ assert.ok(tk.every(x=>x.action.kind==='view'&&x.action.hash==='#tickets'));
+ assert.match(tk.find(x=>x.title==='Lento').reason,/^Aperto da 9 giorni/);
+ assert.match(tk.find(x=>x.title==='In attesa cliente').reason,/^In attesa del cliente da 40 giorni: sollecita o chiudi\.$/);
  assert.equal(by('lead-new').title,'Lead nuovo');assert.deepEqual(by('lead-new').action,{kind:'customer',subject:'contacts',id:'c2',name:'Vecchio'});
  // a new contact that is also a lead shows once, as the more urgent «Primo contatto»
  const twice=H.suggestions({contacts:[d.contacts[0]],leads:[{id:'l9',title:'Lead Anna',contact_id:'c1'}]},{now:NOW});
@@ -71,7 +75,34 @@ test('new contact without first contact; tickets waiting; leads not worked',()=>
  // a lead with only a company opens the company
  assert.deepEqual(H.suggestions({companies:[{id:'a1',name:'Neri'}],leads:[{id:'l8',title:'L',company_id:'a1'}]},{now:NOW}).items[0].action,{kind:'customer',subject:'companies',id:'a1',name:'Neri'});
  // tickets can also come from sales.js rows
- assert.equal(H.suggestions({},{now:NOW,tickets:d.tickets}).items.length,1);
+ assert.equal(H.suggestions({},{now:NOW,tickets:d.tickets}).items.length,2);
+});
+
+test('ticket rule: its name says what it selects; waiting tickets count from the last update',()=>{
+ const rule=H.RULES.find(r=>r.id==='ticket-open');assert.equal(rule.name,'Ticket da seguire');
+ assert.ok(!H.RULES.some(r=>/in attesa/i.test(r.name)),'no rule named like the «In attesa del cliente» status');
+ const r=H.suggestions({tickets:[{id:'k1',title:'A',status:'pending',created_at:old,updated_at:iso(NOW-DAY)},{id:'k2',title:'B',status:'pending',priority:'urgent',created_at:old,updated_at:iso(NOW-5*DAY)}]},{now:NOW});
+ const by=t=>r.items.find(x=>x.title===t);
+ assert.match(by('A').reason,/da 1 giorno/);assert.equal(by('A').urgency,0,'just answered: low');
+ assert.equal(by('B').urgency,2);assert.match(by('B').reason,/da 5 giorni, priorità urgente: sollecita/);
+});
+
+test('close-soon (was «Azioni suggerite»): open deals closing within 14 days with no open task',()=>{
+ const o=(id,days,extra)=>({id,title:id,amount_cents:100,outcome:'open',expected_close:ymd(NOW+days*DAY),created_at:iso(NOW-DAY),...extra});
+ const d={opportunities:[o('oggi',0),o('dieci',10),o('venti',20),o('vinta',5,{outcome:'won'}),o('con-attivita',5)],tasks:[{opportunity_id:'con-attivita',status:'todo'}]};
+ const r=H.suggestions(d,{now:NOW});
+ assert.deepEqual(r.items.filter(x=>x.rule==='close-soon').map(x=>x.title).sort(),['dieci','oggi']);
+ assert.match(r.items.find(x=>x.title==='dieci').reason,/tra 10 giorni\) e non ha attività aperte/);
+ assert.match(r.items.find(x=>x.title==='oggi').reason,/\(oggi\)/);
+ assert.deepEqual(r.items.find(x=>x.title==='oggi').action,{kind:'customer',subject:'opportunities',id:'oggi',name:'oggi'});
+ assert.equal(H.suggestions({...d,tasks:[{opportunity_id:'dieci',status:'done'}]},{now:NOW}).items.some(x=>x.title==='dieci'),true,'a done task does not count');
+});
+
+test('pulse: team task counts and the last past interaction (was «Focus di oggi»)',()=>{
+ const p=H.pulse({tasks:[{status:'todo',due_at:iso(NOW-3*DAY)},{status:'todo',due_at:iso(NOW+60e3)},{status:'todo'},{status:'done',due_at:iso(NOW-3*DAY)}],
+  interactions:[{title:'Futura',occurred_at:iso(NOW+DAY)},{title:'Chiamata',occurred_at:iso(NOW-DAY)},{title:'Vecchia',occurred_at:iso(NOW-9*DAY)}]},{now:NOW});
+ assert.deepEqual({...p,last:p.last.title},{overdue:1,today:1,open:3,done:1,total:4,last:'Chiamata'});
+ assert.deepEqual(H.pulse(null,{now:NOW}),{overdue:0,today:0,open:0,done:0,total:0,last:null});
 });
 
 test('order: urgency first, then value; at most 6 and 3 per rule',()=>{
@@ -100,4 +131,26 @@ test('wiring: core after automations, css at the end of the styles, view uses th
  assert.equal((css.match(/:root\{/g)||[]).length,1);
  for(const m of css.matchAll(/var\(--crm-[a-z0-9-]+(,?)/g))assert.equal(m[1],',','every --crm-* token has a light fallback');
  assert.doesNotMatch(css.replace(/:root\{[^}]*\}/,''),/#[0-9a-f]{3,8}\b/i,'colours only in the :root block');
+});
+
+test('Panoramica: one list of today actions, old blocks gone, Promemoria hidden where it repeats',()=>{
+ const v=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
+ assert.doesNotMatch(v,/'Focus di oggi'|'Azioni suggerite'/,'old duplicated panels removed');
+ const r=v.slice(v.indexOf('async function render'));
+ assert.ok(r.indexOf('assistant(d)')<r.indexOf('onboarding(d)')&&r.indexOf('onboarding(d)')<r.indexOf('kpis(m)'),'Suggerimenti, then Primi passi, then KPI');
+ assert.match(v,/pr\.complete\)\{p\.classList\.add\('done'\);body\.hidden=true/,'Primi passi collapsed when every step is done');
+ assert.match(v,/if\(a\.kind==='view'\)\{app\?\.closeCustomer\?\.\(\);location\.hash=a\.hash/,'Customer360 closed before going to another view');
+ assert.match(fs.readFileSync(__dirname+'/../sales/sales.js','utf8'),/closeCustomer:\(\)=>\{if\(customer&&!state\.busy\)\{customer=null;render\(\);\}\}/);
+ assert.match(fs.readFileSync(__dirname+'/../sales/sales-views.js','utf8'),/dataset\.rxView=id/);
+ const css=fs.readFileSync(__dirname+'/../sales/crm-home.css','utf8');
+ assert.match(css,/html\[data-rx-view="dashboard"\] #content>aside\.reminder/);
+});
+
+test('phone layout: first 3 suggestions, the rest behind «Mostra tutti»; Primi passi shows only steps to do',()=>{
+ const v=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
+ assert.match(v,/const PHONE=3;/);assert.match(v,/i>=PHONE\?' ch-more':''/);assert.match(v,/'Mostra tutti \('\+res\.items\.length\+'\)'/);
+ const css=fs.readFileSync(__dirname+'/../sales/crm-home.css','utf8');
+ const phone=css.slice(css.indexOf('@media (max-width:600px){\n'));
+ assert.match(phone,/\.ch-list:not\(\.open\) \.ch-more\{display:none\}/);assert.match(phone,/\.pv-onboard-list li\.done\{display:none\}/);
+ assert.match(css,/\.pv \.ch \.ch-all\{display:none\}/,'the toggle shows only on a phone');
 });

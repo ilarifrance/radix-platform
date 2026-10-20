@@ -13,6 +13,8 @@ function decorate(){
   for(const s of content.querySelectorAll(':scope>section.rx-view'))if(s!==view)s.classList.remove('rx-view');
   // add only when missing: classList.add on a present class still fires a mutation, and the views re-render on it
   if(view&&!view.classList.contains('rx-view'))view.classList.add('rx-view');document.documentElement.classList.toggle('rx-has-view',!!view);
+  /* which view is shown, for CSS (e.g. the «Promemoria» box is hidden where it repeats the view) */
+  const id=view?view.id:'';if(document.documentElement.dataset.rxView!==id)document.documentElement.dataset.rxView=id;
   for(const h of content.querySelectorAll('section>article.card>h3:not([data-initials])'))h.dataset.initials=initials(h.textContent);
 }
 let queued=false;const later=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorate()})};

@@ -3,7 +3,10 @@
    rows the CRM already loads (crm-data.js, plus the tickets sales.js loads). No AI, no writes: each
    item only says why it is there and where to go (Customer360 of the record, or a CRM view).
    Order: urgency first (3 scaduto, 2 oggi o fermo, 1 da fare, 0 da lavorare), then value, then age.
-   Stale deals and new contacts reuse the rules of crm-automations-core.js. */
+   Stale deals and new contacts reuse the rules of crm-automations-core.js.
+   This is the one list of today's actions on the Panoramica: it replaces the old «Azioni suggerite»
+   (its «chiude a breve senza attività» rule is «Chiusura vicina» here) and «Focus di oggi»
+   (its team counts and last interaction are in pulse()). */
 (function(root){
 const DAY=864e5,MAX=6,PER_RULE=3;
 const list=v=>Array.isArray(v)?v:[];
@@ -15,6 +18,7 @@ const MONTHS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov',
 const fmtDay=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||''));return m?Number(m[3])+' '+MONTHS[Number(m[2])-1]:''};
 const days=n=>n===1?'1 giorno':n+' giorni';
 const isOpenDeal=o=>!o.outcome||o.outcome==='open';
+const SOON=14;// «Chiusura vicina»: expected close within this many days and no open task on the deal
 const automations=()=>root.RadixCrmAutomations||(typeof require==='function'?require('./crm-automations-core.js'):null);
 const open360=(subject,r)=>({kind:'customer',subject,id:r.id,name:r.name||r.title||''});
 const view=(hash)=>({kind:'view',hash});
@@ -22,9 +26,10 @@ const view=(hash)=>({kind:'view',hash});
 const RULES=Object.freeze([
  {id:'close-overdue',name:'Chiusura scaduta'},
  {id:'task-due',name:'Attività in scadenza'},
+ {id:'close-soon',name:'Chiusura vicina'},
  {id:'stale-deal',name:'Trattativa ferma'},
  {id:'new-contact',name:'Primo contatto'},
- {id:'ticket-waiting',name:'Ticket in attesa'},
+ {id:'ticket-open',name:'Ticket da seguire'},
  {id:'lead-new',name:'Lead da lavorare'}
 ]);
 
@@ -41,6 +46,12 @@ function collect(data,opts){
   const late=Math.round((t0-midnight(new Date(c+'T00:00:00').getTime()))/DAY);
   out.push({rule:'close-overdue',key:'opportunities:'+x.id,urgency:3,value:Number(x.amount_cents||0),age:late,
    title:x.title||'Opportunità',reason:'Chiusura prevista il '+fmtDay(c)+', ancora aperta ('+days(late)+' fa).',action:open360('opportunities',x),label:'Apri'})}
+ // 1b. Open deals closing within 14 days with no open task on them.
+ for(const x of opps){if(!isOpenDeal(x))continue;const c=String(x.expected_close||'').slice(0,10);if(!c||c<today)continue;
+  const left=Math.round((midnight(new Date(c+'T00:00:00').getTime())-t0)/DAY);if(left>SOON)continue;
+  if(tasks.some(t=>t.opportunity_id===x.id&&t.status!=='done'))continue;
+  out.push({rule:'close-soon',key:'opportunities:'+x.id,urgency:2,value:Number(x.amount_cents||0),age:SOON-left,
+   title:x.title||'Opportunità',reason:'Chiude il '+fmtDay(c)+' ('+(left<1?'oggi':'tra '+days(left))+') e non ha attività aperte.',action:open360('opportunities',x),label:'Apri'})}
  // 2. My open tasks overdue or due today.
  if(o.me){for(const t of tasks){if(t.status==='done'||t.assignee_id!==o.me)continue;const due=ts(t.due_at);if(due===null||due>=t1)continue;const late=due<now;
   const n=Math.floor((t0-midnight(due))/DAY);
@@ -57,11 +68,12 @@ function collect(data,opts){
   for(const it of A.plan('new-contact',{contacts,opportunities:opps,tasks,interactions:inter},{now}).items){const c=it.record;const n=Math.floor((now-ts(c.created_at))/DAY);
    out.push({rule:'new-contact',key:'contacts:'+c.id,urgency:1,value:0,age:n,
     title:c.name||'Contatto',reason:'Nuovo contatto'+(companyName(c.company_id)?' di '+companyName(c.company_id):'')+' (da '+(n<1?'oggi':days(n))+'), ancora nessun primo contatto.',action:open360('contacts',c),label:'Apri'})}}
- // 5. Open tickets (waiting for us), the oldest first.
- for(const k of tickets){if(k.status!=='open')continue;const born=ts(k.created_at);const n=born===null?0:Math.floor((now-born)/DAY);const due=ts(k.due_at),late=due!==null&&due<now;
+ // 5. Tickets to follow: open (waiting for us) and «In attesa del cliente» (pending: remind or close).
+ for(const k of tickets){if(k.status!=='open'&&k.status!=='pending')continue;const wait=k.status==='pending';
+  const since=ts(wait?(k.updated_at||k.created_at):k.created_at);const n=since===null?0:Math.floor((now-since)/DAY);const due=ts(k.due_at),late=due!==null&&due<now;
   const urgent=k.priority==='urgent'||k.priority==='high';
-  out.push({rule:'ticket-waiting',key:'tickets:'+k.id,urgency:late?3:urgent?2:1,value:0,age:n,
-   title:k.title||'Ticket',reason:'Aperto da '+(n<1?'oggi':days(n))+(late?', scadenza passata':'')+(urgent?', priorità '+(k.priority==='urgent'?'urgente':'alta'):'')+'.',action:view('#tickets'),label:'Vai all’assistenza'})}
+  out.push({rule:'ticket-open',key:'tickets:'+k.id,urgency:late?3:urgent?2:wait&&n<3?0:1,value:0,age:n,
+   title:k.title||'Ticket',reason:(wait?'In attesa del cliente da ':'Aperto da ')+(n<1?'oggi':days(n))+(late?', scadenza passata':'')+(urgent?', priorità '+(k.priority==='urgent'?'urgente':'alta'):'')+(wait?': sollecita o chiudi.':'.'),action:view('#tickets'),label:'Vai all’assistenza'})}
  // 6. Leads in the CRM whose contact (or company) has no interaction, task or deal yet.
  for(const l of list(d.leads)){const by=l.contact_id?'contact_id':l.company_id?'company_id':null;const ref=by&&l[by];
   if(!ref)continue;// a lead with no contact nor company cannot be checked: skip it rather than guess
@@ -82,9 +94,21 @@ function rank(items){
  return out;
 }
 
+// Team counts shown on top of the list (what «Focus di oggi» showed): open tasks overdue, due today,
+// open, done of all; the last interaction already happened.
+function pulse(data,opts){
+ const d=data||{},now=(opts&&opts.now)||Date.now(),t0=midnight(now),t1=t0+DAY;
+ const tasks=list(d.tasks),open=tasks.filter(t=>t.status!=='done');
+ const overdue=open.filter(t=>{const x=ts(t.due_at);return x!==null&&x<t0}).length;
+ const today=open.filter(t=>{const x=ts(t.due_at);return x!==null&&x>=t0&&x<t1}).length;
+ const past=list(d.interactions).filter(i=>{const x=ts(i.occurred_at);return x!==null&&x<=now}).sort((a,b)=>ts(b.occurred_at)-ts(a.occurred_at));
+ const last=past[0]?{title:past[0].title||'Interazione',day:fmtDay(localDay(ts(past[0].occurred_at)))}:null;
+ return {overdue,today,open:open.length,done:tasks.length-open.length,total:tasks.length,last};
+}
+
 // {items: up to 6, total: how many qualified (after one per record and 3 per rule)}
 function suggestions(data,opts){const all=rank(collect(data,opts));return {items:all.slice(0,MAX),total:all.length}}
 
-const api={RULES,MAX,PER_RULE,collect,rank,suggestions};
+const api={RULES,MAX,PER_RULE,SOON,collect,rank,suggestions,pulse};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmHome=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
