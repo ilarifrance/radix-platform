@@ -18,11 +18,14 @@ const state={mode:'week',cursor:mid(new Date()),off:new Set(),owner:''};
 function ensureNav(){if(nav.querySelector('a[href="#calendar"]'))return;const a=E('a','Calendario');a.href='#calendar';const after=nav.querySelector('a[href="#tasks"]');after?after.after(a):nav.append(a)}
 function ensureSection(){let s=document.getElementById('calendar');if(s&&s.parentNode===content)return s;s=E('section',undefined,'panel cal-section');s.id='calendar';const row=E('div',undefined,'row');row.append(E('h2','Calendario'));s.append(row);content.append(s);return s}
 
-function events(d){const out=[],company=id=>d.companies.find(c=>c.id===id)?.name||'',ownerOf=r=>String(r.assignee_id??r.owner_id??'');
+// Every CRM event, unfiltered; also read by the «Oggi» view (crm-today.js) for today's agenda.
+function collect(d){const out=[],company=id=>d.companies.find(c=>c.id===id)?.name||'',ownerOf=r=>String(r.assignee_id??r.owner_id??'');
   for(const t of d.tasks){if(!t.due_at)continue;const s=new Date(t.due_at);if(!Number.isFinite(+s))continue;out.push({type:'task',title:t.title,sub:company(t.company_id),start:s,end:new Date(+s+60*6e4),done:t.status==='done',owner:ownerOf(t),href:'#tasks'})}
   for(const i of d.interactions){if(!i.occurred_at)continue;const s=new Date(i.occurred_at);if(!Number.isFinite(+s))continue;const k=TYPES[i.kind]?i.kind:'note';out.push({type:k,title:i.title,sub:company(i.company_id),start:s,end:new Date(+s+30*6e4),owner:'',href:'#interactions'})}
   for(const o of d.opportunities){if(!o.expected_close)continue;const s=new Date(o.expected_close+'T00:00:00');if(!Number.isFinite(+s))continue;out.push({type:'close',title:o.title,sub:company(o.company_id),start:s,allDay:true,owner:String(o.owner_id??''),href:'#opportunities'})}
-  return out.filter(e=>!state.off.has(e.type)&&(!state.owner||e.owner===state.owner)).sort((a,b)=>a.start-b.start)}
+  return out.sort((a,b)=>a.start-b.start)}
+function events(d){return collect(d).filter(e=>!state.off.has(e.type)&&(!state.owner||e.owner===state.owner))}
+window.RadixCrmCalendar={events:collect,TYPES};
 
 function mini(){const box=E('section',undefined,'cal-card cal-mini');const c=state.cursor,first=new Date(c.getFullYear(),c.getMonth(),1);
   const head=E('div',undefined,'cal-mini-head');const prev=E('button','‹');prev.type='button';prev.setAttribute('aria-label','Mese precedente');prev.onclick=()=>{state.cursor=new Date(c.getFullYear(),c.getMonth()-1,1);render()};

@@ -3,7 +3,7 @@
 // Runs right after #crm-boot is parsed (not deferred), so the right title is there on the first paint.
 'use strict';
 (function () {
-  var NAMES = { dashboard: 'Panoramica', companies: 'Aziende', contacts: 'Contatti', tasks: 'Attività', tickets: 'Assistenza',
+  var NAMES = { dashboard: 'Panoramica', today: 'Oggi', companies: 'Aziende', contacts: 'Contatti', tasks: 'Attività', tickets: 'Assistenza',
     calendar: 'Calendario', analytics: 'Analisi', opportunities: 'Opportunità', leads: 'Lead', interactions: 'Interazioni',
     members: 'Membri', processes: 'Processi', stages: 'Fasi' };
   var boot = document.getElementById('crm-boot');
