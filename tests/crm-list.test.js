@@ -64,10 +64,24 @@ test('views: recent, consent, without email; open deals, idle 30 days',()=>{
  assert.deepEqual(v('contacts',c,'recent'),['k1','k4'],'no created_at is not recent');
  assert.deepEqual(v('contacts',c,'consent'),['k1','k4']);
  assert.deepEqual(v('contacts',c,'no-email'),['k2','k4']);
+ assert.deepEqual(v('contacts',c,'linkedin-no-email'),[],'none of these has a profile');
  assert.deepEqual(v('companies',co,'open'),['a']);
  assert.deepEqual(v('companies',co,'idle'),['b','c']);
- assert.deepEqual(L.VIEWS.contacts.map(x=>x.label),['Tutti i contatti','Creati di recente','Con consenso marketing','Senza email']);
+ assert.deepEqual(L.VIEWS.contacts.map(x=>x.label),['Tutti i contatti','Creati di recente','Con consenso marketing','Senza email','Solo con LinkedIn, senza email']);
  assert.deepEqual(L.VIEWS.companies.map(x=>x.label),['Tutte le aziende','Con opportunità aperte','Senza attività da 30 giorni']);
+});
+
+test('LinkedIn: the profile check of «Messaggio LinkedIn» on each row; «Solo con LinkedIn, senza email»',()=>{
+ const LI=require('../sales/crm-linkedin-message-core.js');
+ const d={contacts:[{id:'p1',name:'Uno',linkedin_url:'linkedin.com/in/uno'},{id:'p2',name:'Due',linkedin_url:'https://www.linkedin.com/in/due',email:'due@x.it'},
+  {id:'p3',name:'Tre',linkedin_url:'https://evil.com/in/tre'},{id:'p4',name:'Quattro',linkedin_url:'javascript:alert(1)'},{id:'p5',name:'Cinque'}]};
+ const r=L.buildRows('contacts',d,{now:NOW});
+ assert.deepEqual(r.map(x=>x.linkedinUrl),d.contacts.map(c=>LI.profileUrl(c.linkedin_url)));
+ assert.deepEqual(r.map(x=>!!x.linkedinUrl),[true,true,false,false,false]);
+ assert.deepEqual(ids(L.apply('contacts',r,{view:'linkedin-no-email'})),['p1']);
+ assert.equal(L.normalize('contacts',{view:'linkedin-no-email'}).view,'linkedin-no-email','saved view survives');
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-list.js','utf8');
+ assert.match(ui,/r\.linkedinUrl&&window\.RadixCrmLinkedIn/);assert.match(ui,/window\.RadixCrmLinkedIn\.open\(r\.record\)/);assert.match(ui,/e\.stopPropagation\(\)/);
 });
 
 test('search ignores case and accents and needs every word',()=>{
