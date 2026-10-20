@@ -48,6 +48,30 @@ test('merge keeps one record per person, the most complete one, newer list on ti
  assert.deepEqual(M.merge([{records:[null,'x']}]).records,[]);
 });
 
+test('merge fills the kept record\'s empty fields from the other copies, newer list first, never overwriting',()=>{
+ const old={id:'a',updatedAt:'2026-10-18T10:00:00Z',records:[R('Giulia Rossi',P('G'),{firstName:'Giulia',lastName:'Rossi',companyName:'Vecchia Srl',jobTitle:'CEO',email:'g@old.it',phone:'+39 030 1'})]};
+ const mid={id:'b',updatedAt:'2026-10-19T10:00:00Z',records:[R('',P('G'),{location:'Brescia',email:'g@mid.it',lastName:'  '})]};
+ const neu={id:'c',updatedAt:'2026-10-20T10:00:00Z',records:[R('Giulia Rossi',P('G,NAME_SEARCH,x'),{companyName:'Rossi Meccanica',jobTitle:'CEO',location:'Milano'})]};
+ const before=JSON.stringify([old,mid,neu]);
+ for(const jobs of [[old,mid,neu],[neu,old,mid]]){
+  const m=M.merge(jobs);
+  assert.equal(m.total,3);assert.equal(m.unique,1);assert.equal(m.duplicates,2,'count unchanged by the fill');
+  const r=m.records[0];
+  assert.equal(r.companyName,'Rossi Meccanica','winner (newer, as complete) keeps its company');
+  assert.equal(r.location,'Milano','filled field never overwritten');
+  assert.equal(r.email,'g@mid.it','empty → newer copy first');
+  assert.equal(r.phone,'+39 030 1');assert.equal(r.firstName,'Giulia');assert.equal(r.lastName,'Rossi','blank copy skipped');
+  assert.equal(r.profileUrl,P('G,NAME_SEARCH,x'));
+ }
+ assert.equal(JSON.stringify([old,mid,neu]),before,'input records untouched');
+ // The older, more complete record wins and still takes the newer copy's missing fields.
+ const w=M.merge([{updatedAt:'2026-10-20',records:[R('M',P('M'),{jobTitle:'Acquisti',email:'m@new.it'})]},{updatedAt:'2026-10-18',records:[R('M',P('M'),{jobTitle:'Buyer',companyName:'Forni',location:'Bergamo'})]}]).records[0];
+ assert.deepEqual([w.jobTitle,w.companyName,w.email],['Buyer','Forni','m@new.it']);
+ // Nothing to fill: the record kept is the very same object; unique records are never copied.
+ const solo=R('S',P('S'),{companyName:'X'});assert.equal(M.merge([{records:[solo]}]).records[0],solo);
+ assert.deepEqual(M.FILL,['companyName','jobTitle','location','firstName','lastName','fullName','email','phone']);
+});
+
 test('status line in plain Italian',()=>{
  assert.equal(M.summary({lists:3,unique:1180,duplicates:92}),'Aperte 3 liste: 1180 contatti unici, 92 doppioni uniti.');
  assert.equal(M.summary({lists:2,unique:1,duplicates:1}),'Aperte 2 liste: 1 contatto unico, 1 doppione unito.');
@@ -57,7 +81,7 @@ test('status line in plain Italian',()=>{
 test('page: core before the workbench, self-hosted, multi-open bar in the LinkedIn panel',()=>{
  const at=s=>html.indexOf('src="/sales/'+s+'"');
  assert.ok(at('lead-lists-merge-core.js')>0&&at('lead-lists-merge-core.js')<at('lead-contact-workbench.js'));
- assert.match(html,/<div id="lf-jobs-multi" class="lf-jobs-multi" hidden>.*<button type="button" id="lf-jobs-open-selected" class="lp-btn" disabled>Apri le liste selezionate<\/button><\/div>/);
+ assert.match(html,/<div id="lf-jobs-multi" class="lf-jobs-multi" hidden>.*<button type="button" id="lf-jobs-toggle-all" class="lp-btn">Seleziona tutte<\/button><button type="button" id="lf-jobs-open-selected" class="lp-btn" disabled>Apri le liste selezionate<\/button><\/div>/);
  assert.ok(html.indexOf('id="lf-jobs"')<html.indexOf('id="lf-jobs-multi"'));
  for(const s of [core,flow,workbench])assert.doesNotThrow(()=>new vm.Script(s));
  assert.doesNotMatch(core+css,/https?:\/\/(?:cdn|unpkg|fonts)\./);
@@ -108,7 +132,7 @@ function dom(){
  for(const m of ['linkedin','file','provider','backup'])mk('button',{'data-mode':m},acquire);
  const panels={};
  for(const m of ['linkedin','file','provider','backup'])panels[m]=mk('section',{'data-mode-panel':m,hidden:''},acquire);
- mk('ul',{id:'lf-jobs'},panels.linkedin);const multi=mk('div',{id:'lf-jobs-multi',hidden:''},panels.linkedin);mk('p',{id:'lf-jobs-picked'},multi);mk('button',{id:'lf-jobs-open-selected'},multi);mk('p',{id:'lf-jobs-status'},panels.linkedin);mk('p',{id:'lf-ext-status'},panels.linkedin);mk('button',{id:'lf-jobs-refresh'},panels.linkedin);
+ mk('ul',{id:'lf-jobs'},panels.linkedin);const multi=mk('div',{id:'lf-jobs-multi',hidden:''},panels.linkedin);mk('p',{id:'lf-jobs-picked'},multi);mk('button',{id:'lf-jobs-toggle-all'},multi);mk('button',{id:'lf-jobs-open-selected'},multi);mk('p',{id:'lf-jobs-status'},panels.linkedin);mk('p',{id:'lf-ext-status'},panels.linkedin);mk('button',{id:'lf-jobs-refresh'},panels.linkedin);
  mk('button',{id:'radix-extension-link'},panels.linkedin);
  const sel=mk('select',{id:'contact-job-select'},panels.provider);mk('option',{value:''},sel);
  mk('button',{id:'contact-job-list'},panels.provider);mk('button',{id:'contact-job-load'},panels.provider);mk('p',{id:'contact-job-status'},panels.provider);
@@ -179,6 +203,26 @@ test('ticked lists open together through the workbench and the page moves to ste
  d.all.find(n=>n.attrs['data-go-step']==='1').click();
  d.window.radixLeadContacts.openJobs=async()=>null;d.get('lf-jobs-open-selected').click();await new Promise(r=>setImmediate(r));
  assert.equal(d.window.RadixLeadFlow.step(),1);
+});
+
+test('«Seleziona tutte» ticks every LinkedIn list, «Deseleziona tutte» clears them',async()=>{
+ const d=withJobs(),t=d.get('lf-jobs-toggle-all'),calls=[];
+ d.window.radixLeadContacts={openJobs:async ids=>{calls.push(ids);return null}};
+ assert.equal(t.textContent,'Seleziona tutte');
+ t.click();
+ assert.deepEqual(boxes(d).map(b=>b.checked),[true,true]);
+ assert.equal(t.textContent,'Deseleziona tutte');
+ assert.equal(d.get('lf-jobs-picked').textContent,'2 liste selezionate · 1272 contatti prima di unire i doppioni.');
+ assert.equal(d.get('lf-jobs-open-selected').disabled,false);
+ d.get('lf-jobs-open-selected').click();await new Promise(r=>setImmediate(r));
+ assert.equal(JSON.stringify(calls),JSON.stringify([[J1,J2]]),'only LinkedIn lists, not the Provider one');
+ t.click();
+ assert.deepEqual(boxes(d).map(b=>b.checked),[false,false]);assert.equal(t.textContent,'Seleziona tutte');
+ assert.equal(d.get('lf-jobs-open-selected').disabled,true);
+ // One ticked by hand: the toggle still selects all; unticking one by hand brings back «Seleziona tutte».
+ const [b1]=boxes(d);b1.checked=true;b1.click();assert.equal(t.textContent,'Seleziona tutte');
+ t.click();assert.deepEqual(boxes(d).map(b=>b.checked),[true,true]);
+ boxes(d)[1].checked=false;boxes(d)[1].click();assert.equal(t.textContent,'Seleziona tutte');
 });
 
 test('lists that disappear are unticked; no workspace hides the bar',()=>{

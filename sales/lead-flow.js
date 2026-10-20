@@ -127,12 +127,21 @@
  }
  // ---- several LinkedIn lists at once ----
  function picked(){
-  const n=state.picked.size,btn=$('lf-jobs-open-selected');
+  const n=state.picked.size,btn=$('lf-jobs-open-selected'),all=$('lf-jobs-toggle-all');
   if(btn)btn.disabled=!n||state.merging;
+  if(all){all.disabled=state.merging;all.textContent=n&&n===state.counts.size?'Deseleziona tutte':'Seleziona tutte'}
   const sum=[...state.picked].reduce((t,id)=>t+(state.counts.get(id)||0),0);
   say('lf-jobs-picked',!n?'Spunta due o più liste per aprirle insieme: chi compare in più liste resta una volta sola.'
    :n===1?'1 lista selezionata: spuntane un’altra per aprirle insieme.'
    :n+' liste selezionate · '+sum+' contatti prima di unire i doppioni.');
+ }
+ // «Seleziona tutte» / «Deseleziona tutte»: every LinkedIn list in the panel, or none.
+ function toggleAll(){
+  if(state.merging)return;
+  const every=state.picked.size===state.counts.size;state.picked.clear();
+  if(!every)for(const id of state.counts.keys())state.picked.add(id);
+  for(const b of document.querySelectorAll('#lf-jobs [data-pick]'))b.checked=state.picked.has(b.dataset.pick);
+  picked();
  }
  async function openPicked(){
   const open=window.radixLeadContacts?.openJobs;if(!open||!state.picked.size||state.merging)return;
@@ -199,6 +208,7 @@
  });
  $('lf-jobs-refresh')?.addEventListener('click',()=>refreshJobs(true));
  $('lf-jobs-open-selected')?.addEventListener('click',openPicked);
+ $('lf-jobs-toggle-all')?.addEventListener('click',toggleAll);
  for(const id of FOLLOWERS){const s=$(id);if(!s)continue;s.addEventListener('change',tidyPickers);new MutationObserver(tidyPickers).observe(s,{childList:true,attributes:true})}
  $('lp-crm')?.addEventListener('click',()=>{if(state.step!==3)setStep(3,{tab:'bulk'})});
  $('lp-more-leads')?.addEventListener('click',()=>setStep(1,{scroll:true}));
