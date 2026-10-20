@@ -16,7 +16,7 @@ const rows = entity => state.rows[entity] || [];
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
-window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a)};
+window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
