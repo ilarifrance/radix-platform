@@ -109,12 +109,30 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
     if(s.done)li.append(E('span','Fatto','pv-onboard-state'));else{const a=E('a','Vai','pv-onboard-go');a.href=s.href;a.setAttribute('aria-label','Vai: '+s.label);li.append(a)}ol.append(li)}
   p.append(ol,E('p','Si spuntano da soli leggendo i dati del workspace'+(d.partial?' (primi 100 record per tipo)':'')+'.','pv-note'));return p}
 
+// «Suggerimenti per oggi»: items from crm-home-core.js (fixed rules). Buttons only open Customer360 or a view.
+function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
+  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets')});
+  const p=E('section',undefined,'ch');p.setAttribute('aria-labelledby','ch-title');
+  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span','regole fisse, non AI','ch-tag'));p.append(h);
+  if(!res.items.length){const ok=E('div',undefined,'ch-ok');ok.append(E('b','Tutto in ordine'),E('small','Nessuna scadenza, trattativa ferma, ticket aperto o contatto da avviare.'));p.append(ok)}
+  const ol=E('ol',undefined,'ch-list');
+  for(const it of res.items){const li=E('li',undefined,'ch-item u'+it.urgency);const tx=E('div',undefined,'ch-text');
+    tx.append(E('small',(H.RULES.find(r=>r.id===it.rule)||{}).name||'','ch-rule'),E('b',it.title),E('span',it.reason,'ch-why'));
+    if(it.value>0)tx.append(E('span','€ '+eur(it.value),'ch-value'));
+    const b=E('button',it.label,'ch-go');b.type='button';b.dataset.rule=it.rule;b.setAttribute('aria-label',it.label+': '+it.title);
+    b.addEventListener('click',()=>{const a=it.action;if(a.kind==='view'){location.hash=a.hash;return}if(app?.state.busy)return;app?.openCustomer(a.subject,{id:a.id,name:a.name})});
+    li.append(tx,b);ol.append(li)}
+  if(res.items.length)p.append(ol);
+  const more=res.total>res.items.length?' Altri '+(res.total-res.items.length)+' non mostrati.':'';
+  const note=((res.items.length?'Ordine: prima le scadenze, poi il valore.':'')+more+(app?.state.me?'':' Attività personali non disponibili: utente non riconosciuto.')).trim();if(note)p.append(E('p',note,'ch-note'));
+  return p}
+
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}
   const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;const m=model(d);
   busy=true;sec.querySelector(':scope>.pv')?.remove();
   const root=E('div',undefined,'pv');const main=E('div',undefined,'pv-main');const mid=E('div',undefined,'pv-two');mid.append(funnel(m),trend(m));const low=E('div',undefined,'pv-two pv-two-b');low.append(risks(d,m),team(m));
-  const start=onboarding(d);if(start)main.append(start);main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
+  const start=onboarding(d);if(start)main.append(start);const tips=assistant(d);if(tips)main.append(tips);main.append(kpis(m),mid,low,focus(d,m));root.append(main,rail(d,m));if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
   document.documentElement.classList.add('pv-on');requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains("pv")||n.classList?.contains("cx")))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});

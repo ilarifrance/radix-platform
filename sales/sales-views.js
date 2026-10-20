@@ -11,7 +11,8 @@ function decorate(){
   /* show only the section the sidebar points to; unknown hashes keep the full page */
   const view=content.querySelector(':scope>section'+(/^#[a-z0-9-]+$/i.test(hash)?hash:'#dashboard'));
   for(const s of content.querySelectorAll(':scope>section.rx-view'))if(s!==view)s.classList.remove('rx-view');
-  if(view)view.classList.add('rx-view');document.documentElement.classList.toggle('rx-has-view',!!view);
+  // add only when missing: classList.add on a present class still fires a mutation, and the views re-render on it
+  if(view&&!view.classList.contains('rx-view'))view.classList.add('rx-view');document.documentElement.classList.toggle('rx-has-view',!!view);
   for(const h of content.querySelectorAll('section>article.card>h3:not([data-initials])'))h.dataset.initials=initials(h.textContent);
 }
 let queued=false;const later=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorate()})};
