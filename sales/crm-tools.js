@@ -305,12 +305,15 @@ window.RadixCrmTools={
  section(entity,section){
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
-  if(entity==='contacts'){const seg=segmentPanel(),bar=ioBar('contacts');head.append(bar);section.append(seg);
-   const reveal=box=>()=>{box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true})};
+  // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.
+  const tuck=box=>{box.hidden=true;box.addEventListener('toggle',()=>{if(!box.open)box.hidden=true});return box};
+  const reveal=(box,then)=>()=>{box.hidden=false;box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true});if(then)then(box)};
+  const findNow=box=>{const b=[...box.querySelectorAll('button')].find(x=>x.textContent==='Cerca doppioni');if(b&&!box.querySelector('.crm-dedupe-list').childElementCount)b.click()};
+  if(entity==='contacts'){const seg=tuck(segmentPanel()),bar=ioBar('contacts');head.append(bar);section.append(seg);
    bar.append(B('Segmenti',reveal(seg)));
-   if(window.RadixCrmCampaigns){const camp=RadixCrmCampaigns.panel(seg.filterOf);section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
-   if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel('contacts'))}
-  else if(entity==='companies'){head.append(ioBar('companies'));if(window.RadixCrmDedupe&&app().writable('companies'))section.append(dedupePanel('companies'))}
+   if(window.RadixCrmCampaigns){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
+   if(window.RadixCrmDedupe&&app().writable('contacts')){const dd=tuck(dedupePanel('contacts'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
+  else if(entity==='companies'){const bar=ioBar('companies');head.append(bar);if(window.RadixCrmDedupe&&app().writable('companies')){const dd=tuck(dedupePanel('companies'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}

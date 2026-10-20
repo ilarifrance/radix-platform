@@ -293,6 +293,8 @@ function recordSections(entity,row,host,references,selectControl){
      if(fd.type==='url')control.placeholder='https://';
      if(['vat','taxcode','sdi'].includes(fd.type)){control.autocapitalize='characters';control.spellcheck=false;}}
     if(fd.max)control.maxLength=fd.max;control.value=value;l.append(control);wrap.append(l);
+    // «Dipartimento»: suggestions from the values already used on companies and contacts.
+    if(fd.suggest){const dl=el('datalist');dl.id='rf-dl-'+entity+'-'+fd.key;for(const v of [...new Set([...rows('companies'),...rows('contacts')].map(r=>String(r?.[fd.key]??'').trim()).filter(Boolean))].sort((x,y)=>x.localeCompare(y,'it'))){const o=el('option');o.value=v;dl.append(o);}control.setAttribute('list',dl.id);wrap.append(dl);}
    }
    control.name=fd.key;if(fd.added&&missing){control.disabled=true;control.dataset.rfMissing='1';}
    if(fd.hint)wrap.append(el('small',fd.hint,'rf-hint'));
@@ -304,6 +306,8 @@ function recordSections(entity,row,host,references,selectControl){
   box.addEventListener('input',update);box.addEventListener('change',update);update();
   host.append(box);
  });
+ // A contact takes the Dipartimento of its company when the field is still empty.
+ if(entity==='contacts'&&inputs.company_id&&inputs.division&&!inputs.division.disabled)inputs.company_id.addEventListener('change',()=>{if(String(inputs.division.value||'').trim())return;const co=rows('companies').find(c=>c.id===inputs.company_id.value);if(co?.division){inputs.division.value=co.division;inputs.division.dispatchEvent(new Event('input',{bubbles:true}));}});
  if(entity==='contacts'){const name=host.querySelector('input[name="name"]'),hint=()=>{if(name)name.placeholder=RF.displayName(inputs.first_name?.value,inputs.last_name?.value)||'Vuoto = Nome e Cognome';};
   for(const k of ['first_name','last_name'])inputs[k]?.addEventListener('input',hint);hint();}
 }
