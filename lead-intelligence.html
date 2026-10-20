@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RADIX · Lead pipeline</title><link rel="stylesheet" href="/sales/lead-pipeline.css"><script src="/lib/lead-csv-parser.js" defer></script><script src="/lib/lead-intake-core.js" defer></script><script src="/lib/lead-xlsx-parser.js" defer></script><script src="/lib/lead-provider-adapter.js" defer></script><script src="/lib/salesnav-source.js" defer></script><script src="/lib/lead-contact-batches.js" defer></script><script src="/lib/lead-provider-contacts.js" defer></script><script src="/lib/lead-provider-callback.js" defer></script><script src="/sales/lead-contact-workbench.js" defer></script><script src="/sales/lead-salesnav-prefill.js" defer></script><script src="/sales/lead-premium.js" defer></script><script src="/sales/lead-icp-profiles.js" defer></script><script src="/sales/lead-outreach-core.js" defer></script><script src="/sales/lead-task-guard.js" defer></script><script src="/sales/lead-outreach.js" defer></script><script src="/sales/lead-crm-handoff.js" defer></script><script src="/sales/lead-outcomes-core.js" defer></script><script src="/sales/lead-outcomes.js" defer></script><script src="/sales/lead-crm-outcomes-core.js" defer></script><script src="/sales/lead-crm-outcomes.js" defer></script><script src="/sales/lead-journey.js" defer></script><script src="/sales/lead-intake.js" defer></script><script src="/sales/lead-archive.js" defer></script><script src="/sales/lead-growth-context.js" defer></script><script src="/sales/lead-bulk-crm-core.js" defer></script><script src="/sales/lead-pipeline.js" defer></script><script src="/sales/lead-tabs.js" defer></script><link rel="stylesheet" href="/sales/sales-nav.css"><link rel="stylesheet" href="/sales/crm-light.css"></head>
+<title>RADIX · Lead pipeline</title><link rel="stylesheet" href="/sales/lead-pipeline.css"><script src="/lib/lead-csv-parser.js" defer></script><script src="/lib/lead-intake-core.js" defer></script><script src="/lib/lead-xlsx-parser.js" defer></script><script src="/lib/lead-provider-adapter.js" defer></script><script src="/lib/salesnav-source.js" defer></script><script src="/lib/lead-contact-batches.js" defer></script><script src="/lib/lead-provider-contacts.js" defer></script><script src="/lib/lead-provider-callback.js" defer></script><script src="/sales/lead-contact-workbench.js" defer></script><script src="/sales/lead-salesnav-prefill.js" defer></script><script src="/sales/lead-premium.js" defer></script><script src="/sales/lead-icp-profiles.js" defer></script><script src="/sales/lead-outreach-core.js" defer></script><script src="/sales/lead-task-guard.js" defer></script><script src="/sales/lead-outreach.js" defer></script><script src="/sales/lead-crm-handoff.js" defer></script><script src="/sales/lead-outcomes-core.js" defer></script><script src="/sales/lead-outcomes.js" defer></script><script src="/sales/lead-crm-outcomes-core.js" defer></script><script src="/sales/lead-crm-outcomes.js" defer></script><script src="/sales/lead-journey.js" defer></script><script src="/sales/lead-intake.js" defer></script><script src="/sales/lead-archive.js" defer></script><script src="/sales/lead-growth-context.js" defer></script><script src="/sales/lead-bulk-crm-core.js" defer></script><script src="/sales/lead-pipeline.js" defer></script><script src="/sales/crm-email-ideas.js" defer></script><script src="/sales/crm-campaigns.js" defer></script><script src="/sales/lead-newsletter-core.js" defer></script><script src="/sales/lead-newsletter.js" defer></script><script src="/sales/lead-tabs.js" defer></script><link rel="stylesheet" href="/sales/sales-nav.css"><link rel="stylesheet" href="/sales/crm-light.css"></head>
 <body class="lp-page"><a class="skip" href="#main">Salta al contenuto</a><div class="app"><aside class="nav"><div class="logo">RADIX<small>SALES INTELLIGENCE</small></div><a href="/control-center-v2.html">⌘ Command Center</a><a href="/sales-orbit-higgsfield.html">◉ Sales Orbit</a><a href="/sales-pipeline-premium.html">▤ Pipeline CRM</a><a href="/radix-sales.html#companies">▣ Aziende</a><a href="/radix-sales.html#contacts">♧ Contatti</a><a href="/sales-growth-projects.html">▦ Progetti commerciali</a><a href="/sales-linkedin.html">♧ LinkedIn / Sales Navigator</a><a class="active" aria-current="page" href="/lead-intelligence.html">✧ Lead Intelligence</a><a href="/sales-growth-campaigns.html">➤ Campagne</a><a href="/radix-sales.html#tasks">☑ To-do e attività</a><a href="/radix-sales.html">↗ CRM operativo</a><div class="sidebar-bottom">✦ RADIX AI <span>Qualificazione spiegabile</span></div></aside><script src="/sales/sales-nav.js"></script>
 <main id="main"><div class="top"><div>Sales <span>/</span> Acquisizione <span>/</span> <strong>Lead Intelligence</strong></div><a href="/sales-pipeline-premium.html">Apri la Pipeline ↗</a></div>
 <section class="lp" id="lead-pipeline" aria-labelledby="lp-title">
@@ -43,12 +43,63 @@
 <div class="toolbar"><button id="lead-growth-apply-icp" type="button" class="outline">Applica ICP al form</button><a id="lead-growth-edit" href="/sales-growth-projects.html" class="outline">▦ Apri progetto</a><a id="lead-growth-campaigns" href="/sales-growth-campaigns.html" class="outline">➤ Campagne</a></div>
 <p id="lead-growth-context-status" class="muted" role="status">Nessuna modifica automatica dei dati già inseriti.</p>
 </section>
-<nav id="lp-tabs" class="lp-tabs" role="tablist" aria-label="Strumenti Lead Intelligence"><button type="button" role="tab" data-tab="importa">Importa e completa</button><button type="button" role="tab" data-tab="qualifica">Qualifica e revisione</button><button type="button" role="tab" data-tab="crm">CRM un lead alla volta</button><button type="button" role="tab" data-tab="contatto">Email e follow-up</button><button type="button" role="tab" data-tab="risultati">Risultati</button></nav>
+<nav id="lp-tabs" class="lp-tabs" role="tablist" aria-label="Strumenti Lead Intelligence"><button type="button" role="tab" data-tab="importa">Importa e completa</button><button type="button" role="tab" data-tab="qualifica">Qualifica e revisione</button><button type="button" role="tab" data-tab="crm">CRM un lead alla volta</button><button type="button" role="tab" data-tab="contatto">Email e follow-up</button><button type="button" role="tab" data-tab="newsletter">Newsletter</button><button type="button" role="tab" data-tab="risultati">Risultati</button></nav>
 <section class="lead-journey" data-panel="risultati" aria-label="Panoramica del percorso commerciale">
  <div class="journey-heading"><div><span class="eyebrow">RADIX / LEAD JOURNEY LIVE</span><h2>Dal prospect al risultato <em>misurabile.</em></h2></div><span id="lead-journey-total" class="journey-live">IN ATTESA DI QUALIFICAZIONE</span></div>
  <div class="journey-viewport"><div id="lead-journey-track" class="journey-track" aria-live="polite"></div></div>
  <div class="journey-next"><span class="journey-signal" aria-hidden="true"></span><div><strong>Prossima azione consigliata</strong><p id="lead-journey-next">Importa la lista e qualifica i prospect con il tuo ICP.</p></div><a href="#lead-import">Dati ↗</a></div>
  <p class="journey-disclaimer">Indicatori derivati dalle attività dichiarate o confermate in questa sessione: non indicano email inviate, intenzione d'acquisto o conversioni verificate automaticamente.</p>
+</section>
+<section class="lp-nl" id="lead-newsletter" data-panel="newsletter" aria-labelledby="nl-title">
+ <header class="lp-nl-head"><p class="lp-eyebrow"><span aria-hidden="true"></span>Newsletter con l’AI</p><h2 id="nl-title">Newsletter ai tuoi lead</h2><p class="lp-sub">Scegli chi la riceve, rispondi a quattro domande e l’AI ti propone 3 versioni. Ogni chiamata AI e ogni invio partono solo dal tuo clic.</p></header>
+ <ol class="lp-nl-steps">
+  <li class="lp-nl-step" id="nl-step-who"><h3><span aria-hidden="true">1</span> Chi la riceve</h3>
+   <p class="lp-fine">Solo referenti del CRM con consenso marketing ed email valida. I lead non ancora nel CRM vanno portati prima con «Porta nel CRM».</p>
+   <div class="lp-nl-grid"><label>Workspace CRM<select id="nl-workspace" disabled><option value="">Premi «Leggi il CRM»</option></select></label><label>Destinatari<select id="nl-source" disabled><option value="">Premi «Leggi il CRM»</option></select></label></div>
+   <div class="lp-nl-row"><button type="button" id="nl-load" class="lp-btn"><span aria-hidden="true">↻</span> Leggi il CRM</button></div>
+   <div id="nl-who" class="lp-nl-stats" aria-live="polite"></div>
+   <div id="nl-missing" class="lp-nl-note" hidden><p id="nl-missing-text"></p><button type="button" id="nl-to-crm" class="lp-btn">➤ Porta nel CRM</button></div>
+   <p id="nl-who-status" class="lp-sub" role="status"></p>
+  </li>
+  <li class="lp-nl-step" id="nl-step-ask"><h3><span aria-hidden="true">2</span> Quattro domande</h3>
+   <fieldset class="lp-nl-chips" id="nl-goal"><legend>Obiettivo</legend></fieldset>
+   <fieldset class="lp-nl-chips" id="nl-tone"><legend>Tono</legend></fieldset>
+   <div class="lp-nl-grid"><label>A chi scrivi<input id="nl-audience" maxlength="300" placeholder="Es. CFO di aziende cosmetiche del Nord"></label><label>Call to action<input id="nl-cta" maxlength="200" list="nl-cta-list" placeholder="Es. Prenota una call"><datalist id="nl-cta-list"></datalist></label><label>Link della call to action · facoltativo<input id="nl-cta-url" type="url" inputmode="url" maxlength="2000" placeholder="https://"></label></div>
+   <details class="lp-nl-facts" open><summary>Scheda del progetto: fatti e indicazioni</summary>
+    <p class="lp-fine">L’AI usa solo quello che scrivi qui e i dati dei referenti. Se un fatto non c’è, non lo inventa.</p>
+    <div class="lp-nl-grid"><label>Fatti (offerta, novità, casi reali)<textarea id="nl-facts" maxlength="3000" rows="5" placeholder="Es. Nuova linea bio da novembre. Webinar il 12/11 alle 11."></textarea></label><label>Indicazioni (cosa dire e cosa evitare)<textarea id="nl-indications" maxlength="1500" rows="5" placeholder="Es. Niente prezzi. Dai del lei."></textarea></label></div>
+    <button type="button" id="nl-project" class="lp-btn lp-ghost" hidden>▦ Usa i dati del progetto collegato</button>
+   </details>
+   <div class="lp-nl-row"><button type="button" id="nl-propose" class="lp-btn lp-primary"><span aria-hidden="true">✦</span> Proponimi 3 versioni</button></div>
+   <p id="nl-propose-status" class="lp-sub" role="status"></p>
+   <div id="nl-cards" class="lp-nl-cards"></div>
+  </li>
+  <li class="lp-nl-step" id="nl-step-text"><h3><span aria-hidden="true">3</span> Il testo</h3>
+   <label class="lp-nl-full">Oggetto<input id="nl-subject" maxlength="200" placeholder="Es. {{nome}}, una novità per {{azienda}}"></label>
+   <label class="lp-nl-full">Testo<textarea id="nl-body" maxlength="4000" rows="9" placeholder="Scegli una delle 3 versioni o scrivi qui."></textarea></label>
+   <div class="lp-nl-tags" id="nl-tags" aria-label="Campi dinamici: un clic li inserisce nel testo"></div>
+   <p id="nl-unknown" class="lp-error" hidden></p>
+   <details class="lp-nl-facts"><summary>Se un dato manca, scrivi…</summary><div id="nl-fallbacks" class="lp-nl-grid"></div></details>
+  </li>
+  <li class="lp-nl-step" id="nl-step-hooks"><h3><span aria-hidden="true">4</span> Frase personale dall’AI</h3>
+   <p class="lp-fine">Il campo <code>{{gancio}}</code> è una frase d’apertura scritta dall’AI per ogni destinatario, dai fatti del progetto e dai suoi dati nel CRM (ruolo, settore, azienda, città). Una chiamata AI ogni 10 destinatari. Puoi correggerla nell’anteprima.</p>
+   <div class="lp-nl-row"><button type="button" id="nl-hooks" class="lp-btn" disabled>✦ Scrivi le frasi con l’AI</button><button type="button" id="nl-hooks-stop" class="lp-btn lp-ghost" hidden>Ferma</button></div>
+   <progress id="nl-hooks-progress" value="0" max="1" hidden></progress>
+   <p id="nl-hooks-status" class="lp-sub" role="status"></p>
+  </li>
+  <li class="lp-nl-step" id="nl-step-preview"><h3><span aria-hidden="true">5</span> Anteprima per destinatario</h3>
+   <div class="lp-nl-row lp-nl-nav"><button type="button" id="nl-prev" class="lp-btn" aria-label="Destinatario precedente" disabled>‹</button><span id="nl-pos" role="status">Nessun destinatario</span><button type="button" id="nl-next" class="lp-btn" aria-label="Destinatario successivo" disabled>›</button></div>
+   <article class="lp-nl-mail" aria-live="polite"><p class="lp-nl-to"><small>A</small> <span id="nl-pv-to">—</span></p><p class="lp-nl-subj" id="nl-pv-subject">—</p><pre id="nl-pv-body">Scegli i destinatari e il testo per vedere l’anteprima.</pre></article>
+   <p id="nl-pv-missing" class="lp-fine"></p>
+   <label class="lp-nl-full" id="nl-pv-hook-wrap" hidden>Frase d’apertura per questo destinatario<input id="nl-pv-hook" maxlength="240"></label>
+  </li>
+  <li class="lp-nl-step" id="nl-step-send"><h3><span aria-hidden="true">6</span> Invio</h3>
+   <p class="lp-fine">Ogni email chiude con il link personale di disiscrizione del CRM e i link sono tracciati: chi clicca compare nei risultati delle campagne CRM. «Invia a tutti» chiede una conferma e invia al massimo 200 email per volta.</p>
+   <div class="lp-nl-row"><button type="button" id="nl-prepare" class="lp-btn" disabled>Prepara gli invii</button><button type="button" id="nl-send" class="lp-btn lp-primary" hidden>Invia a tutti</button></div>
+   <progress id="nl-send-progress" value="0" max="1" hidden></progress>
+   <p id="nl-send-status" class="lp-sub" role="status"></p>
+  </li>
+ </ol>
 </section>
 <div class="workspace"><div class="left">
 <section class="panel lead-archive-panel" id="lead-archive" data-panel="importa"><div class="panel-head"><div><div class="eyebrow">00 / WORKSPACE VAULT</div><h2>Archivio Lead Intelligence</h2></div><span class="tag">SALVATAGGIO ESPLICITO</span></div>
