@@ -43,9 +43,9 @@ async function exportCsv(kind,filter){
 }
 const post=(entity,action,data)=>app().api(entity,{body:{workspace:app().state.workspace,entity,action,data}});
 async function importCsv(kind,file){
- const a=app();if(!file)return;if(file.size>2e6){a.error('File troppo grande: massimo 2 MB.');return}
+ const a=app();if(!file)return;
  // The 011 fields are read too: an archive without them gets the same rows minus those fields (retry below).
- let mapped;try{const parsed=CSV().parse(await file.text());const C=window.RadixCrmCustom;
+ let mapped;try{const parsed=await CSV().readFile(file);const C=window.RadixCrmCustom;
   // Columns named like a field created with «Aggiungi campo» fill that field.
   const custom=C?C.columnsFor(await C.load(),kind,parsed.headers):{};
   mapped=CSV().mapRows(kind,parsed,{extended:true,custom})}catch(e){a.error(e.message);return}
@@ -64,10 +64,11 @@ async function importCsv(kind,file){
  if(!plan.rows.length){a.notice('Niente da importare: '+plan.dupes.length+' righe sono già nel CRM.');return}
  const one=plan.rows.length===1;const msg='Importare '+plan.rows.length+(kind==='contacts'?(one?' contatto':' contatti'):(one?' azienda':' aziende'))+(plan.newCompanies.length?' e creare '+plan.newCompanies.length+(plan.newCompanies.length===1?' nuova azienda':' nuove aziende'):'')+'?\n'+(plan.dupes.length?plan.dupes.length+' righe già presenti vengono saltate. ':'')+(mapped.skipped.length?mapped.skipped.length+' righe non valide vengono scartate. ':'')+(mapped.unknown?.length?'\nColonne non riconosciute, non importate: '+mapped.unknown.slice(0,8).join(', ')+(mapped.unknown.length>8?'…':'')+'. Per tenerle crea un campo con lo stesso nome da «Aggiungi campo» su una scheda, poi reimporta.':'')+'\nIl consenso marketing non viene importato: va registrato a mano per ogni contatto.';
  if(!window.confirm(msg))return;
- let done=0,failed=[];
+ // older: the archive refused the 011 fields once, so the rest go without them (read again after the run).
+ let done=0,failed=[],older=false;
  await run('Importazione in corso…',async()=>{
   for(const name of plan.newCompanies){try{const res=await post('companies','create',{name});const id=res.rows?.[0]?.id;if(id)plan.byName.set(low(name),id)}catch(e){failed.push(name+': '+e.message)}}
-  const added=window.RadixCrmFields?.ADDED[kind]||[];let older=false;
+  const added=window.RadixCrmFields?.ADDED[kind]||[];
   const bare=d=>{const o={...d};for(const k of added)delete o[k];return o};
   for(const r of plan.rows){let d={...r};delete d.company;if(kind==='contacts'&&r.company)d.company_id=plan.byName.get(low(r.company))||null;
    if(older)d=bare(d);
@@ -85,8 +86,8 @@ async function importCsv(kind,file){
 function ioBar(kind){
  const bar=E('div',undefined,'actions crm-tools');
  bar.append(B('Esporta CSV',()=>exportCsv(kind)));
- if(app().writable(kind)){const input=E('input');input.type='file';input.accept='.csv,text/csv';input.hidden=true;input.addEventListener('change',()=>{const f=input.files[0];input.value='';importCsv(kind,f)});
-  bar.append(B('Importa CSV',()=>input.click()),input)}
+ if(app().writable(kind)){const input=E('input');input.type='file';input.accept=CSV().ACCEPT;input.hidden=true;input.addEventListener('change',()=>{const f=input.files[0];input.value='';importCsv(kind,f)});
+  bar.append(Object.assign(B('Importa CSV o Excel',()=>input.click()),{title:'File .csv o .xlsx: la prima riga con i nomi delle colonne'}),input)}
  return bar;
 }
 // Segments: filters over the full contact export (with company data) and the loaded interactions.
