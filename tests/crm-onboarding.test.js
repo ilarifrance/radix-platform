@@ -19,6 +19,9 @@ test('steps are ticked only by real rows',()=>{
  assert.equal(r.campaign,false,'a single registered email is not a campaign');
  assert.equal(done({interactions:[{kind:'email',title:'Email: Novità di ottobre'}]}).campaign,true);
  assert.equal(done({interactions:[{kind:'note',title:'Email: appunto'}]}).campaign,false);
+ assert.equal(done({interactions:[{kind:'email',title:'Newsletter: Novità di ottobre'}]}).campaign,true,'the Lead Intelligence newsletter counts');
+ assert.equal(done({interactions:[{kind:'note',title:'Newsletter: bozza'}]}).campaign,false);
+ assert.equal(done({interactions:[{kind:'email',title:'Email registrata · Newsletter: x'}]}).campaign,false);
  assert.deepEqual(progress(steps({...d,processes:[P],stages:[{process_id:'p1'}],interactions:[{kind:'email',title:'Email: x'}]})),{done:6,total:6,complete:true});
 });
 
@@ -31,5 +34,12 @@ test('wiring: loaded before the dashboard, data loader reads leads and processes
  assert.ok(html.indexOf('sales/crm-onboarding-core.js')>0&&html.indexOf('sales/crm-onboarding-core.js')<html.indexOf('sales/dashboard-view.js'));
  assert.match(fs.readFileSync(__dirname+'/../sales/crm-data.js','utf8'),/'processes','leads'\]/);
  const v=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
- assert.match(v,/try\{if\(localStorage\.getItem\(key\)==='hidden'\)return null\}catch\{\}/);assert.match(v,/try\{localStorage\.setItem\(key,'hidden'\)\}catch\{\}/);
+ assert.match(v,/try\{hidden=localStorage\.getItem\(key\)==='hidden'\}catch\{\}/);assert.match(v,/try\{localStorage\.setItem\(key,'hidden'\)\}catch\{\}/);
+ assert.match(v,/'Mostra i primi passi'/,'a hidden card can be shown again');assert.match(v,/try\{localStorage\.removeItem\(key\)\}catch\{\}/);
+});
+
+test('the newsletter title format matches the Lead Intelligence recorder',()=>{
+ const p=__dirname+'/../sales/lead-newsletter.js';if(!fs.existsSync(p))return;
+ const m=fs.readFileSync(p,'utf8').match(/title:\('([^']+)'\+e\.subject\)/);
+ if(m)assert.equal(done({interactions:[{kind:'email',title:m[1]+'Ottobre'}]}).campaign,true);
 });

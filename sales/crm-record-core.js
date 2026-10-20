@@ -120,13 +120,25 @@ function localToUtc(value){
 // Now as a datetime-local value (for the default of the form).
 function localInput(ms){const d=new Date(ms??Date.now());const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
 
+// Who a call or meeting is with: the person when the record has one (an opportunity's contact,
+// then its company), otherwise the record's own name. Used for the default title.
+function counterpart(subject,rec,related){
+ if(!rec)return '';
+ if(subject==='opportunities'){
+  const find=(e,id)=>id?((related||[]).find(x=>x&&x.entity===e&&x.record&&x.record.id===id)||{}).record:null;
+  return nameOf(find('contacts',rec.contact_id))||nameOf(find('companies',rec.company_id))||nameOf(rec);
+ }
+ return nameOf(rec);
+}
+
 const TABS=[['email','Email'],['call','Chiamata'],['meeting','Evento'],['task','Attività']];
 // One composer form → {error} or {error:null, entity, data, send, label}. send is set only for a real send.
-function composerPlan(tab,input,subject,rec,now){
+// related: the Customer360 rows (optional), to name the opportunity's contact in the default title.
+function composerPlan(tab,input,subject,rec,now,related){
  const links=recordLinks(subject,rec);if(!links)return {error:'Scheda non caricata: riapri Customer360.'};
  const i=input||{},at=Number.isFinite(now)?now:Date.now();
  const text=k=>String(i[k]??'').trim();
- const who=nameOf(rec)||'scheda';
+ const who=counterpart(subject,rec,related)||'scheda';
  const bodyOk=b=>b.length<=4000;
  if(tab==='email'){
   const subj=text('subject'),body=text('body');
@@ -155,6 +167,6 @@ function composerPlan(tab,input,subject,rec,now){
  return {error:'Tipo non valido.'};
 }
 
-const core={SUBJECT_LABEL,TABS,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,localToUtc,localInput,composerPlan};
+const core={SUBJECT_LABEL,TABS,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
 if(typeof module==='object'&&module.exports)module.exports=core;else root.RadixCrmRecordCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

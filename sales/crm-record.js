@@ -85,7 +85,7 @@ async function save(ctx,rec,plan){
 function form(ctx,rec,tab,writableTasks){
  const f=E('form',undefined,'crm-rec-form');f.noValidate=true;
  const actions=E('div',undefined,'actions');
- const submit=(extra={})=>{const plan=core.composerPlan(tab,{...values(f),...extra},ctx.subject,rec,Date.now());if(plan.error){app().error(plan.error);return}app().error('');save(ctx,rec,plan)};
+ const submit=(extra={})=>{const plan=core.composerPlan(tab,{...values(f),...extra},ctx.subject,rec,Date.now(),ctx.rows);if(plan.error){app().error(plan.error);return}app().error('');save(ctx,rec,plan)};
  if(tab==='email'){
   const to=core.recipientFor(ctx.subject,rec,ctx.rows);
   f.append(E('p',to?'Destinatario: '+to:'Nessuna email valida su questa scheda: l’email si può solo registrare.','crm-rec-to'));
@@ -97,7 +97,7 @@ function form(ctx,rec,tab,writableTasks){
    emailConfigured().then(ready=>{if(!f.isConnected)return;if(ready){send.disabled=!!app().state.busy;actions.prepend(send)}note.textContent=ready?'«Invia e registra» manda un solo messaggio dalla casella Gmail configurata, dopo una conferma. «Registra email» lo segna soltanto.':'Invio diretto non configurato: l’email si registra soltanto.'})}
   f.append(actions,note);
  }else if(tab==='call'||tab==='meeting'){
-  field(f,'Titolo',input('title','text','',200)).placeholder=(tab==='call'?'Chiamata con ':'Riunione con ')+ctx.title;
+  field(f,'Titolo',input('title','text','',200)).placeholder=(tab==='call'?'Chiamata con ':'Riunione con ')+(core.counterpart(ctx.subject,rec,ctx.rows)||ctx.title);
   field(f,tab==='call'?'Quando (vuoto = adesso)':'Data e ora *',input('when','datetime-local',tab==='call'?core.localInput():''));
   field(f,tab==='call'?'Esito e note':'Note',area('body',4,tab==='call'?'Cosa vi siete detti, cosa avete deciso.':'Ordine del giorno, luogo, partecipanti.'));
   const ok=E('button',tab==='call'?'Registra chiamata':'Registra evento','primary');ok.type='submit';actions.append(ok);

@@ -80,7 +80,9 @@ test('composerPlan: email registers by default and sends only on request',()=>{
 
 test('composerPlan: call, event and task create the existing entities linked to the record',()=>{
  const call=core.composerPlan('call',{title:'',body:'Ok al prezzo',when:''},'opportunities',opp,NOW);
- assert.deepEqual(call.data,{title:'Chiamata con Fornitura 2027',kind:'call',occurred_at:'2026-10-19T10:00:00Z',body:'Ok al prezzo',company_id:K1,contact_id:C1,opportunity_id:O1});
+ assert.deepEqual(call.data,{title:'Chiamata con Fornitura 2027',kind:'call',occurred_at:'2026-10-19T10:00:00Z',body:'Ok al prezzo',company_id:K1,contact_id:C1,opportunity_id:O1},'without the related rows the deal title is the fallback');
+ assert.equal(core.composerPlan('call',{},'opportunities',opp,NOW,rows).data.title,'Chiamata con Giulia Rossi','on an opportunity the default title names the contact');
+ assert.equal(core.composerPlan('meeting',{when:'2026-10-21T15:30'},'opportunities',opp,NOW,rows).data.title,'Riunione con Giulia Rossi');
  const when='2026-10-21T15:30';const ev=core.composerPlan('meeting',{title:'Demo',when},'companies',company,NOW);
  assert.equal(ev.entity,'interactions');assert.equal(ev.data.kind,'meeting');assert.equal(ev.data.occurred_at,new Date(when).toISOString().slice(0,19)+'Z');
  assert.match(core.composerPlan('meeting',{title:'Demo',when:''},'companies',company,NOW).error,/data e ora/);
@@ -102,6 +104,14 @@ test('composer data passes the API validator of /api/sales',()=>{
   else{for(const k of Object.keys(p.data))assert.ok(['title','kind','occurred_at','body','company_id','contact_id','opportunity_id','status','priority','due_at','assignee_id'].includes(k),k);}}
 });
 
+test('counterpart: contact, then company, then the record itself',()=>{
+ assert.equal(core.counterpart('opportunities',opp,rows),'Giulia Rossi');
+ assert.equal(core.counterpart('opportunities',{...opp,contact_id:null},rows),'Rossi Srl');
+ assert.equal(core.counterpart('opportunities',{...opp,contact_id:null,company_id:null},rows),'Fornitura 2027');
+ assert.equal(core.counterpart('contacts',contact,rows),'Giulia Rossi');assert.equal(core.counterpart('companies',company,rows),'Rossi Srl');
+ assert.equal(core.counterpart('companies',null,rows),'');
+});
+
 test('localToUtc / localInput round-trip and reject bad values',()=>{
  const v=core.localInput(NOW);assert.match(v,/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);assert.equal(core.localToUtc(v),'2026-10-19T10:00:00Z');
  assert.equal(core.localToUtc(''),null);assert.equal(core.localToUtc('2026-13-40T99:00'),null);
@@ -120,4 +130,8 @@ test('page wiring: AI only on click, no workspace snapshot, scripts loaded in or
  assert.match(ui,/Generato da AI: verifica prima di usarlo\./);
  assert.match(ui,/window\.confirm\('Inviare ora l’email a '/,'a real send asks first');
  const app=fs.readFileSync(__dirname+'/../sales/sales.js','utf8');assert.match(app,/RadixCrmRecord\?\.mount\(panel/);assert.match(app,/openCustomer:/);
+});
+
+test('Riepilogo AI panel is not stretched to the composer height',()=>{
+ assert.match(fs.readFileSync(__dirname+'/../sales/crm-record.css','utf8'),/\.crm-rec\{[^}]*align-items:start/);
 });
