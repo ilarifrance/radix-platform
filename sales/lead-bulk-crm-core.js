@@ -95,7 +95,7 @@ function plan(leads,ix,target,segments){
    item.contact=same?{id:same.id,existing:true}:{create:contactPayload(l,segments?.get(leadKey(l)))};
   }
   const exists=item.contact?.id?ix.dealContacts.has(item.contact.id):!l.name&&item.company?.id&&ix.dealCompanies.has(item.company.id);
-  item.deal=exists?{existing:true}:{create:{entity:target.entity,data:{title:dealTitle(l),...(target.entity==='opportunities'?{process_id:target.process_id,stage_id:target.stage_id}:{})}}};
+  item.deal=exists?{existing:true}:{create:{entity:target.entity,data:{title:dealTitle(l),...(target.entity==='opportunities'?{process_id:target.process_id,stage_id:target.stage_id}:l.sourceLabel?{source:l.sourceLabel.slice(0,80)}:{})}}};
   if(!item.company?.ref&&!item.contact?.create&&exists){item.state='exists';item.reason='Già nel CRM'}
  }
  return {items,companies,target};

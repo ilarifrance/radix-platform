@@ -100,7 +100,7 @@ test('API on an archive without 011: the refused field is named, not a generic e
  const store={membership:async()=>({role:'member'}),command:async()=>{throw Object.assign(new Error('invalid field'),{code:'22023'})}};
  const r={headers:{},setHeader(){},status(v){this.code=v;return this},json(v){this.body=v;return this}};
  await createHandler({getSessionUser:()=>({uid:1}),getStore:()=>store})({method:'POST',query:{},body:body('companies','create',{name:'X',legal_name:'Y'}),headers:{'content-type':'application/json','x-radix-sales':'1'}},r);
- assert.equal(r.code,400);assert.match(r.body.error,/migrazione sales 011/);
+ assert.equal(r.code,400);assert.match(r.body.error,/ultima migrazione sales/);
 });
 test('store: calendar dates stay YYYY-MM-DD; the export carries the added fields only when the columns exist',async()=>{
  assert.deepEqual(normalize([{birthdate:new Date(1980,4,1),name:'X'}]),[{birthdate:'1980-05-01',name:'X'}]);

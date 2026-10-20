@@ -82,7 +82,13 @@ function createStore(rawSql){
  },
  command:async(c,u)=>{
    // One HTTP SQL statement calls one atomic PL/pgSQL function. No fake BEGIN/COMMIT across HTTP connections.
-   const rows=await sql('SELECT sales_command($1::uuid,$2::integer,$3::text,$4::text,$5::jsonb) AS result',[c.workspace,u,c.entity,c.action,JSON.stringify(c.data)]);
+   let rows;
+   try{rows=await sql('SELECT sales_command($1::uuid,$2::integer,$3::text,$4::text,$5::jsonb) AS result',[c.workspace,u,c.entity,c.action,JSON.stringify(c.data)]);}
+   catch(e){
+    // An archive before migration 012 knows no «convert» action.
+    if(c.action==='convert'&&e.code==='22023'&&e.message==='invalid command'){const err=new Error('«Converti» non è ancora disponibile in questo archivio: serve la migrazione sales 012 (da approvare).');err.status=400;throw err;}
+    throw e;
+   }
    return rows[0].result;
  }
  };
