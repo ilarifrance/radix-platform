@@ -9,7 +9,10 @@ const providerCallback=require('./_lead_provider_callback');
 const unsubscribe=require('./_sales_unsubscribe');
 const clicks=require('./_sales_clicks');
 const importToken=require('./_lead_import_token');
-const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at'],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
+// Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
+// description shared with the browser (sales/crm-fields-core.js), validated again here.
+const recordFields=require('../sales/crm-fields-core.js');
+const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes',...recordFields.ADDED.companies],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at',...recordFields.ADDED.contacts],leads:['title','company_id','contact_id'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
@@ -29,6 +32,19 @@ function segmentFilters(v){
  if(!object(v)||Object.keys(v).some(k=>!Object.hasOwn(SEGMENT_FILTERS,k)))return false;
  return Object.entries(v).every(([k,x])=>{const t=SEGMENT_FILTERS[k];if(t==='text')return typeof x==='string'&&x.length<=80&&!/[\u0000-\u001f\u007f]/.test(x);if(t==='days')return Number.isInteger(x)&&x>=0&&x<=3650;if(t==='score')return Number.isInteger(x)&&x>=0&&x<=100;return t.includes(x)});
 }
+// One added field (011) → normalized value, or a 400 with the reason. Empty string or null clears it.
+function addedField(entity,k,v,d){
+ if(v===null||v==='')return null;
+ const fd=recordFields.fieldOf(entity,k);
+ if(fd.type==='member'){if(!Number.isInteger(v)||v<1||v>2147483647)fail(400,'Responsabile non valido.');return v;}
+ if(fd.type==='money'){if(!Number.isSafeInteger(v)||v<0||v>recordFields.MAX_CENTS)fail(400,'Fatturato non valido: importo in centesimi, intero e non negativo.');return v;}
+ if(fd.type==='int'){if(!Number.isInteger(v)||v<0||v>recordFields.MAX_EMPLOYEES)fail(400,'Dipendenti: un numero intero da 0 a 10.000.000.');return v;}
+ if(typeof v!=='string')fail(400,fd.label+': valore non valido.');
+ if((fd.type==='company'||fd.type==='contact')&&!uuid(v))fail(400,'Identificativo non valido.');
+ const r=recordFields.parse(entity,k,v,{selfId:d.id});
+ if(r.error)fail(400,r.error);
+ return r.value;
+}
 function command(body){
  if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k)))fail(400,'Comando non valido.');
  const {workspace,entity,action}=body; let d=body.data;
@@ -39,7 +55,15 @@ function command(body){
  if(action==='delete')allowed=['id','version'];
  if(action==='transition'){if(entity!=='opportunities')fail(400,'Transizione non supportata.');allowed=['id','version','stage_id','key'];}
  if(Object.keys(d).some(k=>!allowed.includes(k)))fail(400,'Campo non consentito.');
+ // Contacts: a missing display name is «Nome Cognome» (on create, or when the name is sent empty).
+ if(entity==='contacts'&&['create','update'].includes(action)){
+  const full=recordFields.displayName(typeof d.first_name==='string'?d.first_name:'',typeof d.last_name==='string'?d.last_name:'');
+  const blank=d.name===undefined?action==='create':d.name===null||(typeof d.name==='string'&&!d.name.trim());
+  if(blank&&full)d={...d,name:full};
+ }
+ const added=['companies','contacts'].includes(entity)?recordFields.ADDED[entity]:[];
  for(const [k,v] of Object.entries(d)){
+   if(added.includes(k)){d={...d,[k]:addedField(entity,k,v,d)};continue;}
    if(k==='version'){if(!Number.isInteger(v)||v<1||v>2147483646)fail(400,'Versione non valida.');}
    else if(k==='expected_close'){if(v!==null&&!calendarDate(v))fail(400,'Data chiusura prevista non valida: usa YYYY-MM-DD.');}
    else if(['owner_id','assignee_id','task_assignee_id'].includes(k)){if(v!==null&&(!Number.isInteger(v)||v<1||v>2147483647))fail(400,'Assegnatario non valido.');}
@@ -165,6 +189,7 @@ function createHandler({getSessionUser,getStore}){
    }
    return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
  }catch(e){
+   if(e.code==='22023'&&e.message==='invalid field')return res.status(400).json({error:'Campi non ancora disponibili in questo archivio: serve la migrazione sales 011 (da approvare). Gli altri campi si salvano lasciando vuoti quelli nuovi.'});
    const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-010 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
    const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
  }

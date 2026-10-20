@@ -1,6 +1,7 @@
 /* List views for Contatti and Aziende (sales/crm-list.js), in the CRM light theme (--crm-* tokens of
    crm-light.css). «Tabella» hides the cards and the contact workspace of contacts-view.js; «Schede»
-   shows them again. The table scrolls sideways inside its box, never the page. */
+   shows them again. The table scrolls sideways inside its box, never the page; the default columns
+   and these paddings keep Contatti and Aziende inside a 1280px screen without that scroll. */
 html[data-lv-contacts="table"] #contacts>article.card,html[data-lv-contacts="table"] #contacts>.cx,
 html[data-lv-companies="table"] #companies>article.card{display:none!important}
 .lv [hidden]{display:none!important}
@@ -37,15 +38,15 @@ select.lv-view:focus-visible{outline:2px solid var(--crm-accent);outline-offset:
 .lv-table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px;background:var(--crm-card)}
 .lv-table th{position:sticky;top:0;background:var(--crm-head);color:var(--crm-muted);font-weight:600;font-size:13px;text-align:left;border-bottom:1px solid var(--crm-line-2);padding:0;white-space:nowrap}
 .lv-table th+th:not(.lv-cb):not(.lv-actions){border-left:1px solid var(--crm-line)}
-.lv-table td{padding:8px 12px;border-bottom:1px solid var(--crm-line);vertical-align:middle;color:var(--crm-text);white-space:nowrap}
+.lv-table td{padding:8px 10px;border-bottom:1px solid var(--crm-line);vertical-align:middle;color:var(--crm-text);white-space:nowrap}
 /* Long values are cut with «…» (full text in the title), as in a Salesforce list. */
-.lv-table td>a,.lv-table td>span:not(.cx-score):not(.lv-pill),.lv-table td>.lv-name,.lv-table td>.lv-link{display:inline-block;max-width:200px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;white-space:nowrap}
-.lv-table td[data-col="name"]>.lv-name{max-width:220px}
+.lv-table td>a,.lv-table td>span:not(.cx-score):not(.lv-pill),.lv-table td>.lv-name,.lv-table td>.lv-link{display:inline-block;max-width:180px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;white-space:nowrap}
+.lv-table td[data-col="name"]>.lv-name{max-width:200px}
 .lv-table tbody tr:hover{background:var(--crm-hover)}
 .lv-table tbody tr.on{background:var(--crm-accent-soft)}
 .lv-table .num{text-align:right}
 .lv-table th.num .lv-sort{justify-content:flex-end}
-.lv-sort{display:flex;align-items:center;gap:6px;width:100%;min-height:38px;padding:8px 12px;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:none}
+.lv-sort{display:flex;align-items:center;gap:6px;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:none}
 .lv-sort:hover{background:var(--crm-hover);color:var(--crm-text)}
 .lv-sort:focus-visible{outline:2px solid var(--crm-accent);outline-offset:-2px}
 .lv-arrow{font-size:10px;color:var(--crm-subtle)}
@@ -68,7 +69,7 @@ th.lv-cb{padding:0 8px}
 .lv-pill.no{color:var(--crm-muted);background:var(--crm-soft);box-shadow:inset 0 0 0 1px var(--crm-line)}
 .lv-table .cx-score{display:inline-flex;align-items:baseline;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px}
 .lv-actions{white-space:nowrap;text-align:right;width:1%}
-.lv-mini{min-height:28px;padding:2px 10px;font-size:12px;margin-left:4px}
+.lv-mini{min-height:28px;padding:2px 8px;font-size:12px;margin-left:4px}
 .lv-none{margin:0;padding:24px 18px;color:var(--crm-muted);text-align:center}
 .lv-note{margin:0;padding:10px 18px 14px;font-size:12px}
 .lv-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
