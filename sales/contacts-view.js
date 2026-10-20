@@ -81,7 +81,8 @@ async function render(){const section=document.getElementById('contacts');if(!se
   document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false;if(!section.isConnected)later()})}
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&n.classList?.contains('cx'))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+// Changes inside the list view (crm-list.js, class lv) are not ours to redraw.
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||(!r.target.closest?.('.lv')&&![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains('cx')||n.classList?.contains('lv'))))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 wsSelect.addEventListener('change',()=>{state.selected=null});
 addEventListener('hashchange',later);later();
 })();

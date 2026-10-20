@@ -237,6 +237,8 @@ function playbookBlock(opp){
  return box;
 }
 window.RadixCrmTools={
+ // CSV of a subset (the rows ticked in the list views): the same export, filtered by id.
+ exportCsv:(kind,filter)=>exportCsv(kind,filter),
  section(entity,section){
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
