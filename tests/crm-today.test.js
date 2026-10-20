@@ -102,3 +102,20 @@ test('web app manifest: linked from the CRM, allowed by the CSP, starts on «Ogg
  const vercel=JSON.parse(read('vercel.json'));
  assert.ok(vercel.headers.some(h=>h.source==='/manifest.webmanifest'&&h.headers.some(x=>x.key==='Content-Type'&&/application\/manifest\+json/.test(x.value))));
 });
+
+test('agenda: «Bozza follow-up» on today’s past meetings and calls reuses crm-follow-up.js, no second AI path',()=>{
+ const v=read('sales/crm-today.js');
+ assert.match(v,/fu\.KINDS\.includes\(e\.type\)/);assert.match(v,/fu\.mount\(li,inter\)/);
+ assert.doesNotMatch(v,/[^.]\bprompt\(|[^.]\bparse\(|send-email|crmScope/,'prompt, parsing and sending stay in crm-follow-up.js');
+ assert.match(read('sales/calendar-view.js'),/type:k,id:i\.id,/,'interaction events carry their row id');
+ const html=read('radix-sales.html');assert.ok(html.indexOf('sales/crm-follow-up.js')>0&&html.includes('href="sales/crm-record.css"'),'loaded with its styles');
+ assert.match(read('sales/crm-today.css'),/\.td-agenda \.crm-follow-up-wrap/);
+});
+
+test('copilot button on phones: a 48px round icon with its name in aria-label, and room under the page',()=>{
+ const js=read('sales/crm-copilot.js'),css=read('sales/crm-copilot.css');
+ assert.match(js,/b\.setAttribute\('aria-label','Copilota AI'\)/);assert.match(js,/'cc-fab-label'/);
+ const phone=css.slice(css.indexOf('@media (max-width:600px){\n .cc-fab'));
+ assert.match(phone,/width:48px;height:48px/);assert.match(phone,/\.cc-fab-label\{position:absolute;width:1px/);
+ assert.match(css,/body:has\(>\.cc-fab\)\{padding-bottom:calc\(72px/);
+});

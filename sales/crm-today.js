@@ -7,7 +7,9 @@
    - «Registra chiamata» opens a small sheet: esito + nota → one interactions create (kind call).
      With «Richiamare» the sheet then proposes a task for tomorrow at 9:00, created only on «Crea attività».
    - Agenda di oggi: the calendar's own events (calendar-view.js, RadixCrmCalendar), not a second copy.
-   Rules in crm-today-core.js; writes go through RadixSalesApp.api (sales.js), never on their own. AI is not involved. */
+     A meeting or call of today that already happened gets «Bozza follow-up», the same block as its card
+     (crm-follow-up.js, RadixCrmFollowUp.mount): the AI runs only after that tap and its confirmation.
+   Rules in crm-today-core.js; writes go through RadixSalesApp.api (sales.js), never on their own. */
 (()=>{
 const content=document.getElementById('content'),nav=document.getElementById('navigation'),core=window.RadixCrmTodayCore;if(!content||!nav||!core)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
@@ -137,7 +139,11 @@ function agendaBlock(d){
  const sec=E('section',undefined,'td-block td-agenda');const h=E('div',undefined,'td-head');h.append(E('h3','Agenda di oggi'),E('span',list.length,'td-count'));sec.append(h);
  if(!list.length){sec.append(E('p','Nessuna riunione, chiamata o chiusura prevista oggi.','td-empty'));return sec}
  const ul=E('ul',undefined,'td-list');
- for(const e of list){const li=E('li');const a=E('a',undefined,'td-event '+(cal.TYPES[e.type]?.[1]||''));a.href=e.href;a.append(E('time',e.allDay?'Tutto il giorno':hm(e.start)));const x=E('span');x.append(E('em',cal.TYPES[e.type]?.[0]||''),E('b',e.title));if(e.sub)x.append(E('small',e.sub));a.append(x);li.append(a);ul.append(li)}
+ for(const e of list){const li=E('li');const a=E('a',undefined,'td-event '+(cal.TYPES[e.type]?.[1]||''));a.href=e.href;a.append(E('time',e.allDay?'Tutto il giorno':hm(e.start)));const x=E('span');x.append(E('em',cal.TYPES[e.type]?.[0]||''),E('b',e.title));if(e.sub)x.append(E('small',e.sub));a.append(x);li.append(a);
+  // Past meetings and calls only: mount() checks it (eligible) and keeps the draft across renders.
+  const fu=window.RadixCrmFollowUp,inter=fu?.mount&&fu.KINDS.includes(e.type)&&e.id?d.interactions.find(i=>i.id===e.id):null;
+  if(inter)fu.mount(li,inter);
+  ul.append(li)}
  sec.append(ul);const more=E('a','Apri il calendario','td-more');more.href='#calendar';sec.append(more);return sec;
 }
 
@@ -160,7 +166,7 @@ async function render(){
  root.append(block('In scadenza oggi',g.today,d,me,'Nient’altro in scadenza oggi.'));
  const ag=agendaBlock(d);if(ag)root.append(ag);
  const all=E('a','Tutte le attività','td-more');all.href='#tasks';
- const note=E('p','Attività aperte dal server, prima le tue. «Fatto» e «Registra chiamata» salvano solo dopo il tuo tocco; nessun messaggio parte.','td-note');
+ const note=E('p','Attività aperte dal server, prima le tue. «Fatto» e «Registra chiamata» salvano solo dopo il tuo tocco; nessun messaggio parte senza «Invia» e una conferma.','td-note');
  root.append(all,note);
  sec.append(root);
  if(a.state.busy)root.querySelectorAll('button').forEach(n=>{n.dataset.preDisabled=String(n.disabled);n.disabled=true});

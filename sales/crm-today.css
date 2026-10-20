@@ -75,3 +75,8 @@ dialog.td-sheet h2{margin:0 0 4px;font-size:20px}
 @media (min-width:700px){
  .td-item{grid-template-columns:minmax(0,1fr) auto;align-items:center}
 }
+/* «Bozza follow-up» under a past meeting or call of the agenda (crm-follow-up.js, styled in crm-record.css). */
+.td-agenda .crm-follow-up-wrap{padding:0 0 10px 76px}
+.td-agenda .crm-follow-up-wrap>.actions{margin:0}
+.td-agenda .crm-follow-up-wrap>.actions button{min-height:44px;padding:8px 14px;border-radius:10px;font:600 14px/1.2 var(--td-font)}
+@media (max-width:600px){.td-agenda .crm-follow-up-wrap{padding-left:0}.td-agenda .crm-follow-up-wrap>.actions button{width:100%}}

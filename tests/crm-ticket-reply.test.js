@@ -33,3 +33,25 @@ test('ticket cards mount the reply block; the page loads it before crm-tools',()
  assert.ok(fs.readFileSync('sales/crm-tools.js','utf8').includes("RadixCrmTicketReply.mount(c,row)"));
  const html=fs.readFileSync('radix-sales.html','utf8');assert.ok(html.indexOf('sales/crm-ticket-reply.js')>0&&html.indexOf('sales/crm-ticket-reply.js')<html.indexOf('sales/crm-tools.js'));
 });
+
+// The card in a sandbox (tiny fake DOM, fake RadixSalesApp, no network): after a recorded reply the page
+// data is reloaded once the page is unlocked; refresh() is a no-op while it is locked (sales.js).
+test('after «Segna come inviata» and «Invia» the page refreshes once unlocked, so the ticket list updates',async()=>{
+ const vm=require('node:vm');
+ const node=tag=>({tag,children:[],textContent:'',listeners:{},className:'',append(...n){this.children.push(...n)},addEventListener(t,f){this.listeners[t]=f},focus(){}});
+ const find=(n,text)=>n.tag==='button'&&n.textContent===text?n:n.children.map(c=>find(c,text)).find(Boolean);
+ const calls=[],state={busy:false,workspace:'w1'};
+ const app={state,rows:()=>[{id:'c1',name:'Giulia Test',email:'giulia@test.it'}],writable:()=>true,notice(){},error(m){if(m)calls.push('error:'+m)},
+  lock(v){state.busy=v},api:async(entity,o)=>{calls.push(entity+':'+o.body.action)},refresh:async()=>{calls.push(state.busy?'refresh-ignored':'refresh')}};
+ const fetch=async url=>({ok:true,status:200,json:async()=>url==='/api/integrations/status'?{items:[{id:'email',configured:true}]}:{ok:true}});
+ const box={tag:'div',children:[],append(...n){this.children.push(...n)}};
+ const ctx={document:{createElement:node},window:{confirm:()=>true},fetch,RadixSalesApp:app};
+ vm.runInNewContext(fs.readFileSync('sales/crm-ticket-reply.js','utf8'),ctx);
+ assert.equal(ctx.RadixCrmTicketReply.mount(box,T),true);
+ const area=(function a(n){return n.tag==='textarea'?n:n.children.map(a).find(Boolean)})(box.children[0]);
+ area.value='Gentile Giulia, verifichiamo.';
+ await find(box.children[0],'Segna come inviata').listeners.click();
+ assert.deepEqual(calls,['interactions:create','tickets:update','refresh']);
+ calls.length=0;await find(box.children[0],'Invia').listeners.click();
+ assert.deepEqual(calls,['interactions:create','tickets:update','refresh']);assert.equal(state.busy,false);
+});
