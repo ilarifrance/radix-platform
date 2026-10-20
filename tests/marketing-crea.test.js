@@ -13,6 +13,8 @@ test('links point to pages that exist and carry the project',()=>{
  assert.equal(core.linkFor(core.card('social'),'doc-capital'),'/project-editorial.html?project=doc-capital#ped');
  assert.equal(core.linkFor(core.card('avatar'),'radix'),'/agency/avatar.html?project=radix');
  assert.equal(core.linkFor(core.card('images'),'radix'),null,'images open inline');
+ assert.equal(core.linkFor(core.card('video'),'radix'),null,'video opens inline');
+ assert.equal(core.card('video').inline,'video');assert.equal(core.card('video').hint,undefined,'no «avatar first» hint: the studio says it');
 });
 
 test('without a project only strategy leads somewhere (new project); agents never auto-send',()=>{
@@ -29,5 +31,11 @@ test('the page is first in the Marketing Agency menu',()=>{
  assert.match(shell,/group: 'agency'[^\n]*\n\s*\{ id: 'agency-crea', text: 'Cosa vuoi fare', href: '\/agency\/crea\.html'/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
  assert.match(html,/data-shell-page="agency-crea"/);
- for(const s of ['/lib/image-studio.js','/agency/crea-core.js','/agency/crea.js'])assert.ok(html.includes(s),s);
+ for(const s of ['/lib/image-studio.js','/lib/video-studio.js','/agency/crea-core.js','/agency/crea.js'])assert.ok(html.includes(s),s);
+});
+
+test('the Video card opens the Studio Video with the project avatar and the Video Producer memory',()=>{
+ const js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
+ assert.match(js,/videoStudio\(\{project,memoryScope,avatar:S\.savedAvatar\(current\.profile\),avatarUrl:'\/agency\/avatar\.html\?project='/);
+ assert.match(js,/agentId:video\?'video-producer':'art-director'/);
 });
