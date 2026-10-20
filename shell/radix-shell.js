@@ -55,6 +55,7 @@
     { id: 'agents', text: 'Agenti AI', href: '/agents.html', icon: 'bot', kw: 'chat orchestratore pipeline post' },
     { label: 'Aree' },
     { group: 'agency', text: 'Marketing Agency', icon: 'spark', items: [
+      { id: 'agency-crea', text: 'Cosa vuoi fare', href: '/agency/crea.html', kw: 'servizi crea sito seo geo strategia social post avatar immagini video' },
       { id: 'agency', text: 'Panoramica', href: '/agency/index.html' },
       { id: 'agency-divisions', text: 'Divisioni', href: '/agency/index.html#divisioni', kw: 'reparti team' },
       { id: 'agency-agents', text: 'Agenti AI', href: '/agency/index.html#agenti', kw: 'agenti agenzia' },
