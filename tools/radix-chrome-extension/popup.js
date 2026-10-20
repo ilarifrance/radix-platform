@@ -40,6 +40,10 @@
   $('run-bar').style.width=Math.min(100,Math.round(count/Math.max(1,run.max)*100))+'%';
   $('run-message').textContent=run.message||'';
   $('run-message').className='status '+(run.status==='imported'?'ok':['upload-error','blocked'].includes(run.status)?'bad':'');
+  // Stopped before the max or the last page: say why (also before sending) and how to go on from here.
+  const early=!running&&!uploading&&C.stoppedEarly(run);
+  $('run-hint').textContent=early?(run.endMessage&&!String(run.message||'').includes(run.endMessage)?run.endMessage+' ':'')+C.CONTINUE_HINT:'';
+  show('run-hint',early);
   show('stop',running);
   show('retry',!running&&!uploading&&run.status!=='imported'&&count>0);
   show('backup',!running&&count>0);

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "RADIX — Importa in RADIX",
   "short_name": "Importa in RADIX",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Importa in RADIX i contatti visibili in una ricerca o lista lead di LinkedIn Sales Navigator.",
   "minimum_chrome_version": "116",
   "action": {
