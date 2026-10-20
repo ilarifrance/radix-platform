@@ -8,6 +8,7 @@
     { label: 'Sales', items: [
       { href: '/sales-orbit-higgsfield.html', text: 'Sales Orbit', ic: 'globe' },
       { href: CRM + '#dashboard', text: 'Panoramica', ic: 'home' },
+      { href: CRM + '#today', text: 'Oggi', ic: 'clock' },
       { href: '/sales-pipeline-premium.html', text: 'Pipeline', ic: 'flow' },
       { href: CRM + '#companies', text: 'Aziende', ic: 'building' },
       { href: CRM + '#contacts', text: 'Contatti', ic: 'person' },
