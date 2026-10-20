@@ -11,7 +11,7 @@ const read=f=>fs.readFileSync(path.join(DIR,f),'utf8');
 
 test('manifest: MV3, minimal permissions, no cookies, no webRequest, LinkedIn only for Sales Navigator',()=>{
  const m=JSON.parse(read('manifest.json'));
- assert.equal(m.manifest_version,3);assert.equal(m.name,'RADIX — Importa in RADIX');
+ assert.equal(m.manifest_version,3);assert.equal(m.version,'1.0.1');assert.equal(m.name,'RADIX — Importa in RADIX');
  assert.deepEqual(m.permissions,['storage']);
  assert.deepEqual(m.host_permissions,['https://radix-platform.vercel.app/*']);
  assert.ok(!JSON.stringify(m).match(/cookies|webRequest|debugger|<all_urls>|scripting|tabs"/));
@@ -50,6 +50,18 @@ test('card normalisation matches the local agent and adds first/last name and lo
  assert.deepEqual([ours[1].jobTitle,ours[1].companyName,ours[1].lastName],['Responsabile acquisti','Acme SpA','De Luca']);
  assert.deepEqual([ours[2].jobTitle,ours[2].companyName,ours[2].location],['Direttore commerciale','Beta Srl','']);
  assert.equal(ours[0].email,undefined);
+});
+
+test('company written inside the title is split out; otherwise it stays empty',()=>{
+ const card=(roleText,extra)=>({fullName:'Luca Mussio',profileUrl:'https://www.linkedin.com/sales/lead/a,1',lines:[],roleText,...extra});
+ const pick=c=>{const [r]=X.normalizeVisibleCards([c],SOURCE);return [r.jobTitle,r.companyName]};
+ assert.deepEqual(pick(card("Titolare dell'azienda Tecnomac srl")),['Titolare','Tecnomac srl']);
+ assert.deepEqual(pick(card('Titolare dell’azienda Tecnomac srl')),['Titolare','Tecnomac srl']);
+ assert.deepEqual(pick(card('Amministratore delegato di Beta SpA')),['Amministratore delegato','Beta SpA']);
+ assert.deepEqual(pick(card('Owner at Gamma Ltd')),['Owner','Gamma Ltd']);
+ assert.deepEqual(pick(card('Proprietario')),['Proprietario','']);
+ assert.deepEqual(pick(card('Responsabile di produzione')),['Responsabile di produzione','']);
+ assert.deepEqual(pick(card('Titolare di Delta srl',{companyText:'Delta Srl'})),['Titolare di Delta srl','Delta Srl']);
 });
 
 test('splitName keeps missing parts empty and handles particles and credentials',()=>{
@@ -135,6 +147,24 @@ test('Lead Intelligence gets one isolated «Collega estensione» button and scri
  assert.equal((html.match(/\/sales\/lead-extension-link\.js/g)||[]).length,1);
  const page=fs.readFileSync(path.join(__dirname,'..','sales','lead-extension-link.js'),'utf8');
  assert.ok(page.includes("entity:'lead_import_token'")&&page.includes("'x-radix-sales':'1'")&&page.includes("credentials:'same-origin'"));
+});
+
+test('end of run: page number, early-stop reason kept after the upload, link that opens the job',()=>{
+ assert.equal(Core.pageFromUrl(SOURCE),1);assert.equal(Core.pageFromUrl(SOURCE+'&page=14'),14);
+ assert.equal(Core.pageFromUrl(SOURCE+'&page=x'),1);assert.equal(Core.pageFromUrl('nonsense'),1);
+ assert.equal(Core.finishMessage(272,'error','La pagina 14 non si è caricata in tempo (LinkedIn lento).'),'Importati 272 contatti in RADIX. La pagina 14 non si è caricata in tempo (LinkedIn lento).');
+ assert.equal(Core.finishMessage(1000,'done','Raggiunto il massimo di 1000 contatti.'),'Importati 1000 contatti in RADIX.');
+ assert.equal(Core.finishMessage(40,'done','Ultima pagina dei risultati raggiunta.'),'Importati 40 contatti in RADIX.');
+ assert.equal(Core.stoppedEarly({endReason:'error'}),true);assert.equal(Core.stoppedEarly({endReason:'stopped'}),true);
+ assert.equal(Core.stoppedEarly({endReason:'done'}),false);assert.equal(Core.stoppedEarly(null),false);
+ assert.match(Core.CONTINUE_HINT,/Resta su questa pagina e premi «Nuova importazione» per continuare da qui/);
+ const ws='11111111-1111-4111-8111-111111111111',job='22222222-2222-4222-8222-222222222222';
+ const url=Core.leadIntelligenceUrl('https://radix-platform.vercel.app/',{id:job,workspace:ws});
+ assert.equal(url,'https://radix-platform.vercel.app/lead-intelligence.html#lead-job='+job+'&ws='+ws);
+ assert.deepEqual(B.readOpenHash(new URL(url).hash),{job,workspace:ws});
+ assert.equal(Core.leadIntelligenceUrl('https://radix-platform.vercel.app'),'https://radix-platform.vercel.app/lead-intelligence.html');
+ assert.ok(read('popup.html').includes('id="run-hint"'));
+ assert.match(read('src/background.js'),/C\.finishMessage\(result\.count,latest\.endReason,latest\.endMessage\)/);
 });
 
 test('README states the LinkedIn terms risk in Italian and the install steps',()=>{

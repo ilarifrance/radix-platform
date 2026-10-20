@@ -25,7 +25,7 @@ async function upload(){
  try{
   const result=await C.uploadContacts({baseUrl,token,rows:run.rows,sourceUrl:run.sourceUrl,runId:run.id});
   const {run:latest}=await store.get('run');
-  await store.set({run:{...latest,status:'imported',result,openUrl:C.leadIntelligenceUrl(baseUrl),message:'Importati '+result.count+' contatti in RADIX.'}});
+  await store.set({run:{...latest,status:'imported',result,openUrl:C.leadIntelligenceUrl(baseUrl,result),message:C.finishMessage(result.count,latest.endReason,latest.endMessage)}});
  }catch(e){
   const {run:latest}=await store.get('run');
   await store.set({run:{...latest,status:'upload-error',message:e.message}});
@@ -51,7 +51,7 @@ const handlers={
   const {run}=await store.get('run');
   // Only the first end counts: a late duplicate must not import the same contacts twice.
   if(!run||run.id!==msg.id||run.status!=='running')return {ok:false};
-  const ended={...run,status:msg.reason==='blocked'?'blocked':'collected',endReason:msg.reason,message:msg.message||'',updatedAt:Date.now()};
+  const ended={...run,status:msg.reason==='blocked'?'blocked':'collected',endReason:msg.reason,endMessage:msg.message||'',message:msg.message||'',updatedAt:Date.now()};
   await store.set({run:ended});
   if(ended.rows.length)await upload();
   return {ok:true};

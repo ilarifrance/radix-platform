@@ -35,7 +35,17 @@
    const lines=(card?.innerText||'').split(/\n+/).map(clean).filter(Boolean).slice(0,25);
    const field=selector=>{const el=card?.querySelector(selector);return visible(el)?clean(el.innerText||el.textContent):''};
    const roleText=field('[data-anonymize="title"]');
-   const companyText=field('[data-anonymize="company-name"]');
+   let companyText=field('[data-anonymize="company-name"]');
+   // Company without data-anonymize: its company link, else the subtitle text next to the title
+   // (companies without a LinkedIn page are plain text; the «·» may be a CSS-only separator).
+   if(!companyText)for(const link of Array.from(card?.querySelectorAll('a[href*="/sales/company/"],a[href*="/company/"]')||[])){const v=visible(link)?clean(link.innerText||link.textContent):'';if(v&&v.length<=180){companyText=v;break}}
+   if(!companyText&&roleText){
+    const sub=card?.querySelector('[data-anonymize="title"]')?.parentElement;
+    const whole=sub&&!sub.contains(a)?clean(sub.innerText||sub.textContent):'';
+    const at=whole.indexOf(roleText);
+    const rest=whole.length<=300&&at>=0?clean(whole.slice(0,at)+' '+whole.slice(at+roleText.length)).replace(/^[\s·•|,–—-]+|[\s·•|,–—-]+$/g,'').replace(/^(?:at|presso|chez|@)\s+/i,''):'';
+    if(rest.length>=2&&rest.length<=180&&!/^\d+\s*[°º]|\b(?:anni|mesi|years|months|nel ruolo|in the role)\b/i.test(rest))companyText=rest;
+   }
    const locationText=field('[data-anonymize="location"]');
    let positionText='';
    if(!roleText||!companyText){
@@ -99,6 +109,11 @@
     if(!companyName)companyName=right;
     if(jobTitle&&companyName)break;
    }
+   // «Titolare dell'azienda Tecnomac srl»: the company is written inside the title.
+   if(jobTitle&&!companyName){
+    const own=jobTitle.match(/^(titolare|proprietari[oa]|owner|ceo|amministratore(?: delegato| unico)?|fondat(?:ore|rice)|founder|co-?founder)\s+(?:dell['’]azienda|della società|di|del|della|presso|at|of|@)\s+(.{2,120})$/i);
+    if(own){jobTitle=own[1];companyName=own[2].trim()}
+   }
    if(!jobTitle){
     jobTitle=body.find(x=>x.length<180&&/\b(ceo|founder|director|manager|head|responsabile|direttore|presidente|owner|proprietario|titolare|amministratore|imprenditore)\b/i.test(x)&&!/^informazioni:/i.test(x))||'';
    }
@@ -139,7 +154,17 @@
  }
  function lastProfileAnchor(doc){const list=profileAnchors(doc);return list.length?list[list.length-1].a:null}
  function firstProfileKey(doc){const list=profileAnchors(doc);return list.length?list[0].url.pathname:''}
- const api={visibleSearchCards,normalizeVisibleCards,splitName,findNextButton,detectChallenge,resultsTotalText,lastProfileAnchor,firstProfileKey};
+ // Nearest scrollable box around the results (Sales Navigator scrolls an inner container, not the window).
+ function scrollParent(el){
+  const view=el&&el.ownerDocument&&el.ownerDocument.defaultView;
+  for(let node=el&&el.parentElement;node&&view;node=node.parentElement){
+   if(node===node.ownerDocument.body||node===node.ownerDocument.documentElement)break;
+   const oy=view.getComputedStyle(node).overflowY;
+   if(/(auto|scroll|overlay)/.test(oy)&&node.scrollHeight>node.clientHeight+10)return node;
+  }
+  return null;
+ }
+ const api={visibleSearchCards,normalizeVisibleCards,splitName,findNextButton,detectChallenge,resultsTotalText,lastProfileAnchor,firstProfileKey,scrollParent};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.RadixExtract=api;
 })(typeof window!=='undefined'?window:globalThis);

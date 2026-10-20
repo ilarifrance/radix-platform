@@ -30,7 +30,9 @@ Per una **Preview** di RADIX genera il codice dalla Preview stessa: il codice co
 2. Apri l'estensione: vedi quante persone sono visibili nella pagina.
 3. Scegli il massimo (25, 100, 250 o 1000) e premi **Importa in RADIX**. In basso a destra nella pagina compare il badge **R** con l'avanzamento e il tasto **Ferma**.
 4. L'estensione scorre la pagina, legge le schede visibili e preme **Avanti** con pause casuali di alcuni secondi, come farebbe una persona. Puoi chiudere il popup; lascia aperta la scheda.
-5. Alla fine invia i contatti a RADIX: in **Lead Intelligence › Contatti individuali › Archivio contatti RADIX** premi **Aggiorna archivio** e apri il lavoro «LinkedIn Sales Navigator · data · N contatti».
+   Scorre la pagina (anche il riquadro interno dei risultati) finché vede tutte le 25 schede (anche quando Sales Navigator le carica lentamente), poi preme **Avanti**. Se LinkedIn è lento aspetta fino a 45 secondi; se la pagina non cambia preme **Avanti** una seconda volta prima di arrendersi.
+5. Alla fine invia i contatti a RADIX e mostra il motivo dell'arresto quando si ferma prima del massimo o dell'ultima pagina (per esempio «La pagina 14 non si è caricata in tempo»). In quel caso **resta sulla pagina di Sales Navigator e premi «Nuova importazione»** nel popup: la nuova importazione riparte dalla pagina aperta.
+6. **Apri in RADIX** apre Lead Intelligence nel workspace giusto con il lavoro appena creato già caricato nella **Lead pipeline**. Lo trovi anche in **Contatti individuali › Archivio contatti RADIX** (**Aggiorna archivio** e poi apri il lavoro «LinkedIn Sales Navigator · data · N contatti»).
 
 Se l'invio non riesce (rete, collegamento scaduto) i contatti restano nell'estensione: premi **Invia a RADIX** dopo aver risolto, oppure **Backup JSON** e poi in Lead Intelligence **Riprendi backup** (stesso formato del «Backup RADIX JSON» dell'agente locale).
 

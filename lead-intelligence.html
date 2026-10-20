@@ -4,7 +4,7 @@
 <body class="lp-page"><a class="skip" href="#main">Salta al contenuto</a><div class="app"><aside class="nav"><div class="logo">RADIX<small>SALES INTELLIGENCE</small></div><a href="/control-center-v2.html">⌘ Command Center</a><a href="/sales-orbit-higgsfield.html">◉ Sales Orbit</a><a href="/sales-pipeline-premium.html">▤ Pipeline CRM</a><a href="/radix-sales.html#companies">▣ Aziende</a><a href="/radix-sales.html#contacts">♧ Contatti</a><a href="/sales-growth-projects.html">▦ Progetti commerciali</a><a href="/sales-linkedin.html">♧ LinkedIn / Sales Navigator</a><a class="active" aria-current="page" href="/lead-intelligence.html">✧ Lead Intelligence</a><a href="/sales-growth-campaigns.html">➤ Campagne</a><a href="/radix-sales.html#tasks">☑ To-do e attività</a><a href="/radix-sales.html">↗ CRM operativo</a><div class="sidebar-bottom">✦ RADIX AI <span>Qualificazione spiegabile</span></div></aside><script src="/sales/sales-nav.js"></script>
 <main id="main"><div class="top"><div>Sales <span>/</span> Acquisizione <span>/</span> <strong>Lead Intelligence</strong></div><a href="/sales-pipeline-premium.html">Apri la Pipeline ↗</a></div>
 <section class="lp" id="lead-pipeline" aria-labelledby="lp-title">
- <header class="lp-head"><div><p class="lp-eyebrow"><span aria-hidden="true"></span>I tuoi lead</p><h1 id="lp-title">Lead pipeline</h1><p class="lp-sub">Tutti i lead importati in questa sessione: liste aziende e contatti individuali.</p></div>
+ <header class="lp-head"><div><p class="lp-eyebrow"><span aria-hidden="true"></span>I tuoi lead</p><h1 id="lp-title">Lead pipeline</h1><p class="lp-sub">Tutti i lead importati in questa sessione: liste aziende e contatti individuali.</p><p id="lp-open-status" class="lp-sub" role="status" hidden></p></div>
   <div class="lp-actions">
    <button type="button" id="lp-segment-add" class="lp-btn"><span aria-hidden="true">⊕</span> Aggiungi a segmento</button>
    <button type="button" id="lp-crm" class="lp-btn lp-primary"><span aria-hidden="true">➤</span> Porta nel CRM<span id="lp-crm-count"></span></button>
@@ -35,7 +35,7 @@
   <label><span class="sr">Stato</span><select id="lp-status"><option value="">Tutti gli stati</option><option>Nuovo</option><option>Nel CRM</option><option>Creato ora</option><option>Contattato</option><option>Da verificare</option></select></label>
   <label><span class="sr">Segmento</span><select id="lp-segment"><option value="">Tutti i segmenti</option></select></label></div>
  <div class="lp-tablewrap"><table class="lp-table"><thead><tr><th class="lp-check"><input id="lp-all" type="checkbox" aria-label="Seleziona tutti i lead visibili"></th><th>Nome</th><th>Email</th><th>Azienda</th><th>Dominio</th><th>Ruolo</th><th>Fonte</th><th>Stato</th></tr></thead><tbody id="lp-rows"></tbody></table>
-  <div id="lp-empty" class="lp-empty"><strong>Lead pipeline vuota</strong><p id="lp-empty-text">Nessun lead ancora. Importa un CSV/Excel o ripristina il backup JSON del LinkedIn local agent.</p></div></div>
+  <div id="lp-empty" class="lp-empty"><strong>Lead pipeline vuota</strong><p id="lp-empty-text">Nessun lead ancora. Apri un lavoro salvato in Contatti individuali › Archivio contatti RADIX, oppure importa un CSV/Excel o ripristina un backup JSON.</p></div></div>
  <div class="lp-foot"><span id="lp-more"></span><span id="lp-selected"></span><span id="lp-note" role="status"></span></div>
 </section>
 <section id="lead-growth-context" class="growth-context" hidden aria-label="Progetto commerciale collegato">

@@ -86,13 +86,58 @@ test('extension e2e on a fake Sales Navigator page',{skip:!chromium&&'playwright
   assert.equal(r0.email,'');
   const r3=job.data.payload.records[3];assert.equal(r3.jobTitle,'');assert.equal(r3.companyName,'Azienda 3 Srl');
   const r4=job.data.payload.records[4];assert.equal(r4.companyName,'');
+  // Company without data-anonymize: plain text with a CSS separator, a company link, inside the title.
+  const [r5,r6,r7]=job.data.payload.records.slice(5,8).map(r=>[r.jobTitle,r.companyName]);
+  assert.deepEqual(r5,['Proprietario','Officine Beltramini']);
+  assert.deepEqual(r6,['Proprietario','Elettra S.r.l.']);
+  assert.deepEqual(r7,['Titolare','Tecnomac srl']);
   assert.equal(new Set(job.data.payload.records.map(r=>r.profileUrl)).size,40);
   assert.match(job.data.title,/^LinkedIn Sales Navigator · /);
   assert.deepEqual(requests,['POST /api/sales']);
   const popup=await popupFor(context,sw);
   await popup.waitForSelector('#open:not([hidden])');
   assert.match(await popup.textContent('#run-message'),/Importati 40 contatti/);
-  assert.equal(await popup.getAttribute('#open','href'),RADIX+'/lead-intelligence.html');
+  assert.equal(await popup.getAttribute('#open','href'),RADIX+'/lead-intelligence.html#lead-job='+job.data.id+'&ws='+WS);
+ });
+ // Shared steps for the pagination tests below: start, wait for the end, return run, jobs and the page.
+ async function importFrom(t,query,max){
+  const {context,sw,jobs}=await launch(t);
+  const page=await context.newPage();
+  await page.goto('https://www.linkedin.com/sales/search/people?'+query);
+  await page.waitForSelector('#radix-import-badge',{state:'attached'});
+  await page.bringToFront();
+  const started=await toTab(sw,{type:'radix:start',max});
+  assert.equal(started.ok,true,JSON.stringify(started));
+  const run=await until(async()=>{const r=await runState(sw);return r&&!['running','uploading'].includes(r.status)&&r},90000);
+  return {context,sw,jobs,page,run,clicks:await page.evaluate(()=>window.__clicks)};
+ }
+ await t.test('reads all 25 cards per page when results scroll in an inner box and render slowly',async t=>{
+  const {context,sw,run,jobs}=await importFrom(t,'query=ceo&n=60&inner=1&lazy=900',100);
+  assert.equal(run.status,'imported',run.message);assert.equal(run.endReason,'done');
+  assert.equal(run.rows.length,60);assert.equal(run.page,3);assert.equal(jobs.length,1);
+  const popup=await popupFor(context,sw);
+  await popup.waitForSelector('#open:not([hidden])');
+  assert.equal(await popup.textContent('#run-message'),'Importati 60 contatti in RADIX.');
+  assert.equal(await popup.isVisible('#run-hint'),false);
+ });
+ await t.test('a slow next page (address changes first) is waited for, without pressing «Avanti» twice',async t=>{
+  const {run,clicks}=await importFrom(t,'query=ceo&n=60&slow=6000',100);
+  assert.equal(run.status,'imported',run.message);assert.equal(run.endReason,'done');
+  assert.equal(run.rows.length,60);assert.equal(run.page,3);assert.equal(clicks,2);
+ });
+ await t.test('a lost «Avanti» click is pressed once more and the import goes on',async t=>{
+  const {run,clicks}=await importFrom(t,'query=ceo&n=60&lost=2',100);
+  assert.equal(run.status,'imported',run.message);assert.equal(run.endReason,'done');
+  assert.equal(run.rows.length,60);assert.equal(clicks,3);
+ });
+ await t.test('when the next page never loads the reason stays visible with a hint to continue',async t=>{
+  const {context,sw,run,jobs}=await importFrom(t,'query=ceo&n=60&lost=1&lostTimes=2',100);
+  assert.equal(run.status,'imported');assert.equal(run.endReason,'error');assert.equal(run.rows.length,25);assert.equal(jobs.length,1);
+  assert.match(run.message,/^Importati 25 contatti in RADIX\. La pagina 2 non si è caricata/);
+  const popup=await popupFor(context,sw);
+  await popup.waitForSelector('#run-hint:not([hidden])');
+  assert.match(await popup.textContent('#run-message'),/La pagina 2 non si è caricata/);
+  assert.match(await popup.textContent('#run-hint'),/Resta su questa pagina e premi «Nuova importazione» per continuare da qui/);
  });
  await t.test('stops at an in-page CAPTCHA and still sends what was visible before',async t=>{
   const {context,sw,jobs}=await launch(t);
