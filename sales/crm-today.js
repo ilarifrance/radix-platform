@@ -122,7 +122,10 @@ function item(task,d,me,showOwner){
  const log=B('Registra chiamata',()=>openCall(task,tg),'td-btn td-log');log.disabled=!a.writable('interactions')||!tg.linked;
  if(!tg.linked)log.title='Attività senza azienda, contatto o opportunità';
  const ok=B('Fatto',()=>done(task),'td-btn td-done');ok.disabled=!a.writable('tasks');ok.setAttribute('aria-label','Fatto: '+task.title);
- acts.append(log,ok);li.append(text,acts);return li;
+ // A contact with a LinkedIn profile: «LinkedIn» opens the message panel (sales/crm-linkedin-message.js).
+ const person=task.contact_id&&window.RadixCrmLinkedIn?d.contacts.find(c=>c.id===task.contact_id):null;
+ const li2=person?window.RadixCrmLinkedIn.button(person,'td-btn td-li'):null;if(li2){li2.textContent='LinkedIn';li2.setAttribute('aria-label','Messaggio LinkedIn a '+(person.name||''))}
+ acts.append(log,...(li2?[li2]:[]),ok);li.append(text,acts);return li;
 }
 function block(title,list,d,me,empty,cls){
  const sec=E('section',undefined,'td-block'+(cls?' '+cls:''));const h=E('div',undefined,'td-head');h.append(E('h3',title),E('span',list.length,'td-count'));sec.append(h);
