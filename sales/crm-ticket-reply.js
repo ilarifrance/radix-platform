@@ -62,7 +62,8 @@ function mount(c,ticket){
  const load=async()=>{if(!loaded){contact=await contactOf(ticket);loaded=true}return contact};
  // Knowledge base and quick replies (sales/crm-knowledge.js) sit above the box and write into it.
  if(root.RadixCrmKnowledge&&root.RadixCrmKnowledge.attach)root.RadixCrmKnowledge.attach(box,area,ticket,load);
- const record=async p=>{if(p.interaction)await post('interactions','create',p.interaction);if(p.ticket)await post('tickets','update',p.ticket);await a.refresh(false)};
+ // refresh() does nothing while the page is locked: callers run it after run() has unlocked it.
+ const record=async p=>{if(p.interaction)await post('interactions','create',p.interaction);if(p.ticket)await post('tickets','update',p.ticket)};
  acts.append(B('Bozza con l’AI',async()=>{
   if(!await run('L’AI sta scrivendo la bozza…',async()=>{const ct=await load();
    const r=await fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role:'crm-copilot',crmScope:{workspace:a.state.workspace},messages:[{role:'user',content:aiPrompt(ticket,ct)}]})});
@@ -77,7 +78,7 @@ function mount(c,ticket){
   if(/\[DA COMPLETARE/i.test(p.body)&&!window.confirm('La risposta contiene ancora parti [DA COMPLETARE]. Inviarla comunque?'))return;
   if(!window.confirm('Inviare ora la risposta a '+p.to+'?\nOggetto: '+p.subject))return;
   if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,confirm:true})});
-   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record(p)}))a.notice('Risposta inviata a '+p.to+' e registrata.')}));
+   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record(p)})){await a.refresh(false);a.notice('Risposta inviata a '+p.to+' e registrata.')}}));
  acts.append(B('Apri nel programma email',async()=>{
   let p;if(!await run('Preparo l’email…',async()=>{p=plan(ticket,await load(),area.value);if(p.error)throw new Error(p.error)}))return;
   location.href='mailto:'+(p.to?encodeURIComponent(p.to):'')+'?subject='+encodeURIComponent(p.subject)+'&body='+encodeURIComponent(p.body);
@@ -85,7 +86,7 @@ function mount(c,ticket){
  acts.append(B('Segna come inviata',async()=>{
   let p;if(!await run('Registro la risposta…',async()=>{p=plan(ticket,await load(),area.value);if(p.error)throw new Error(p.error)}))return;
   if(!window.confirm('Registrare la risposta come inviata'+(p.ticket?' e mettere il ticket «in attesa» del cliente':'')+'?'))return;
-  if(await run('Registro la risposta…',()=>record(p)))a.notice('Risposta registrata'+(p.ticket?': ticket in attesa del cliente.':'.'))}));
+  if(await run('Registro la risposta…',()=>record(p))){await a.refresh(false);a.notice('Risposta registrata'+(p.ticket?': ticket in attesa del cliente.':'.'))}}));
  c.append(box);return true;
 }
 root.RadixCrmTicketReply.mount=mount;

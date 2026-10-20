@@ -39,7 +39,9 @@ function build(){
  $('workspace')?.addEventListener('change',()=>{messages=[];log.replaceChildren()});
 }
 function open(question){if(!panel)build();if(!panel.open)panel.showModal();if(question)ask(question);else input.focus()}
-function fab(){if(document.querySelector('.cc-fab'))return;css();const b=E('button','✦ Copilota AI','cc-fab');b.type='button';b.onclick=()=>open();document.body.append(b)}
+// On phones only the icon shows (crm-copilot.css): the name stays in aria-label and title.
+function fab(){if(document.querySelector('.cc-fab'))return;css();const b=E('button',undefined,'cc-fab');b.type='button';b.setAttribute('aria-label','Copilota AI');b.title='Copilota AI';
+ const i=E('span','✦','cc-fab-icon');i.setAttribute('aria-hidden','true');b.append(i,E('span','Copilota AI','cc-fab-label'));b.onclick=()=>open();document.body.append(b)}
 window.RadixCrmCopilot={open};
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',fab);else fab();
 })();
