@@ -320,6 +320,8 @@ window.RadixCrmTools={
   if(entity==='tickets'&&!readonly&&window.RadixCrmTicketReply?.mount&&RadixCrmTicketReply.mount(c,row))return;
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');
    bar.append(B('Bozza di risposta con AI',()=>RadixCrmCopilot.open('Scrivi una bozza di risposta cortese e concreta per il ticket di assistenza «'+row.title+'»'+(row.body?'. Richiesta del cliente: «'+String(row.body).slice(0,1500)+'»':'')+'. Usa solo i dati del CRM, indica cosa verificare prima di inviarla e non promettere nulla che non risulti dai dati.')));c.append(bar);return}
+  // Meetings and calls, in the Interazioni list and in Customer360: «Bozza follow-up» (sales/crm-follow-up.js).
+  if(entity==='interactions'&&window.RadixCrmFollowUp?.mount){RadixCrmFollowUp.mount(c,row);return}
   if(entity==='opportunities'&&!readonly&&window.RadixCrmPlaybook&&app().writable('tasks')&&(!row.outcome||row.outcome==='open')){c.append(playbookBlock(row));return}
   if(entity!=='contacts'||readonly)return;
   if(window.RadixCrmScore){const s=RadixCrmScore.score(row,scoreData());const p=E('p','Punteggio '+s.total+' · '+s.band+' — '+RadixCrmScore.explain(s),'crm-score crm-score-'+s.band);p.dataset.score=String(s.total);c.append(p)}

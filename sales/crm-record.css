@@ -75,3 +75,13 @@
 .pv-onboard-state{font-size:11px;color:var(--crx-faint)}
 .pv-onboard-show{margin:0;font-size:12px}
 .pv-onboard-show button{min-height:30px;padding:4px 0;background:none;border:0;color:var(--crx-link);text-decoration:underline;font-size:12px;cursor:pointer}
+
+/* ---------- Bozza follow-up on meeting and call cards (crm-follow-up.js) ---------- */
+.crm-follow-up{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,12rem);gap:8px 10px;margin-top:10px;padding:12px;border:1px solid var(--crx-border-soft);border-radius:12px;background:var(--crx-surface-2)}
+.crm-follow-up label{font-size:12px;color:var(--crx-muted);display:grid;gap:4px;min-width:0}
+.crm-follow-up label:nth-of-type(-n+2){grid-column:1/-1}
+.crm-follow-up input,.crm-follow-up textarea{width:100%;box-sizing:border-box;min-height:38px;font:inherit;font-size:14px}
+.crm-follow-up textarea{min-height:240px;resize:vertical;line-height:1.45}
+.crm-follow-up .actions,.crm-follow-up p{grid-column:1/-1;margin:0}
+.crm-follow-up p{font-size:12px}
+@media (max-width:560px){.crm-follow-up{grid-template-columns:minmax(0,1fr)}}
