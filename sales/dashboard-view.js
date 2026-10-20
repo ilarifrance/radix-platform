@@ -8,8 +8,10 @@ const content=document.getElementById('content');if(!content)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const NS='http://www.w3.org/2000/svg',S=(tag,attrs)=>{const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,String(attrs[k]));return n};
 const eur=c=>{const v=Number(c||0)/100;return v>=1e6?(v/1e6).toLocaleString('it-IT',{maximumFractionDigits:1})+'M':v>=1e4?Math.round(v/1e3).toLocaleString('it-IT')+'K':v.toLocaleString('it-IT',{maximumFractionDigits:0})};
+// Open/won/lost: one rule for every CRM view, RadixCrmForecast.isOpen (analytics-view.js).
+const isOpen=o=>window.RadixCrmForecast.isOpen(o);
 const DAY=864e5,today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
-const dd=v=>{const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
+const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
 const fmtDay=v=>{const d=dd(v);return d?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):'—'};
 const initials=t=>String(t||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
 const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -20,7 +22,7 @@ function spark(values,cls){const svg=S('svg',{viewBox:'0 0 100 30',preserveAspec
 
 function model(d){const t0=today(),open=d.tasks.filter(t=>t.status!=='done');
   const stages=d.stages.filter(s=>d.opportunities.some(o=>o.process_id===s.process_id)).sort((a,b)=>a.position-b.position);
-  const opps=d.opportunities,total=opps.reduce((s,o)=>s+Number(o.amount_cents||0),0);
+  const opps=d.opportunities.filter(isOpen),total=opps.reduce((s,o)=>s+Number(o.amount_cents||0),0);
   const months=[...Array(6)].map((_,i)=>{const m=new Date(t0.getFullYear(),t0.getMonth()+i,1);return{label:MONTHS[m.getMonth()],y:m.getFullYear(),m:m.getMonth(),value:0,count:0}});
   for(const o of opps){const c=dd(o.expected_close);if(!c)continue;const slot=months.find(x=>x.y===c.getFullYear()&&x.m===c.getMonth());if(slot){slot.value+=Number(o.amount_cents||0);slot.count++}}
   const weeks=[...Array(6)].map((_,i)=>({from:+t0+i*7*DAY,to:+t0+(i+1)*7*DAY}));
@@ -35,6 +37,7 @@ function model(d){const t0=today(),open=d.tasks.filter(t=>t.status!=='done');
   const board=[...owners.entries()].map(([id,v])=>({name:d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnato',v})).sort((a,b)=>b.v-a.v);
   return{t0,open,stages,opps,total,months,dueWeeks,closeWeeks,due,in30,risk,board}}
 
+window.RadixCrmDashboardView={model};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'—';
 const panel=(title,cls,link)=>{const p=E('section',undefined,'pv-panel '+(cls||''));const h=E('div',undefined,'pv-head');h.append(E('h3',title));if(link){const a=E('a',link[0]);a.href=link[1];h.append(a)}p.append(h);return p};
 
@@ -123,7 +126,7 @@ function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H
 
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;const m=model(d);
+  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;if(!window.RadixCrmForecast){later();return}const m=model(d);
   busy=true;sec.querySelector(':scope>.pv')?.remove();
   const root=E('div',undefined,'pv');const main=E('div',undefined,'pv-main');const mid=E('div',undefined,'pv-two');mid.append(funnel(m),trend(m));const low=E('div',undefined,'pv-two pv-two-b');low.append(risks(d,m),team(m));
   // Order: today's actions, onboarding (collapsed when done), then KPI and charts. No side rail.

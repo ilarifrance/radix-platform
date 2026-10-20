@@ -22,6 +22,8 @@
 .cc-form button{background:#2fc79f;color:#022;border:0;border-radius:10px;padding:0 16px;font-weight:700;cursor:pointer}
 .cc-form button:disabled,.cc-chips button:disabled{opacity:.5;cursor:not-allowed}
 @media (max-width:600px){.cc-fab{right:12px;bottom:12px}}
+/* Room under the page so the floating button never hides the last content. */
+body:has(>.cc-fab){padding-bottom:84px}
 .cc-chips button{display:inline-block;width:auto;margin:0}
 .cc-form textarea{height:58px;min-height:0;width:auto}
 .cc-form button{align-self:stretch;height:auto;margin:0}

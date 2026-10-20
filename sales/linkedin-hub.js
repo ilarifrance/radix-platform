@@ -2,7 +2,7 @@
 (()=>{
  const $=id=>document.getElementById(id),S=window.RadixSalesnavSource;
  if(!S)return;
- const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
  const say=(id,value)=>{$(id).textContent=value};
  const addOption=(target,value,label)=>{const opt=document.createElement('option');opt.value=value;opt.textContent=label;target.append(opt)};
  const workspace=()=>{const id=$('linkedin-workspace').value;if(!UUID.test(id))throw Error('Seleziona un workspace RADIX');return id};
