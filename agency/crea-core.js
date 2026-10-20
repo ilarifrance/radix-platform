@@ -1,5 +1,5 @@
 /* «Cosa vuoi fare oggi?»: the single Marketing panel. One card per service, each opening the tool that already does it
-   (strategy, PED, avatar) or a guided studio inline (photo, avatar video) or, for the services still being built, the right agent with a ready request.
+   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, SEO and GEO) or, for the services still being built, the right agent with a ready request.
    Pure part (cards, links) runs in Node for the tests; the page lives in agency/crea.html. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrea=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
@@ -13,10 +13,10 @@ const CARDS=[
  {id:'avatar',icon:'☺',title:'Avatar',line:'Il volto del brand per i video: disegnato dall’AI o dalla tua foto.',state:'ready',action:'Crea l’avatar',cost:'Ogni passo HeyGen chiede conferma.',href:'/agency/avatar.html?project={p}'},
  {id:'video',icon:'▶',title:'Video',line:'Video brevi con l’avatar che parla: poche domande, 3 copioni, scegli e crei la bozza.',state:'ready',action:'Fai parlare l’avatar',cost:'Una chiamata AI per i copioni e una bozza HeyGen, ognuna con conferma.',inline:'video'},
  {id:'site',icon:'⌂',title:'Sito web',line:'Struttura, testi e pagine del sito. Il flusso guidato è in arrivo.',state:'agent',action:'Chiedi al Web Developer',cost:'Scrivi tu la richiesta; l’agente risponde solo quando la invii.',agent:'web-developer',ask:'Proponimi la struttura del sito per questo progetto: pagine, sezioni e testi principali, partendo dai fatti confermati.'},
- {id:'seo',icon:'⌖',title:'SEO e GEO',line:'Farsi trovare su Google e nelle risposte delle AI. Il flusso guidato è in arrivo.',state:'agent',action:'Chiedi allo specialista SEO',cost:'Scrivi tu la richiesta; l’agente risponde solo quando la invii.',agent:'seo-geo',ask:'Prepara un piano SEO e GEO per questo progetto: parole chiave, domande a cui rispondere e testi da ottimizzare, partendo dai fatti confermati.'}
+ {id:'seo',icon:'⌖',title:'SEO e GEO',line:'Farsi trovare su Google e citare dalle AI: poche domande, 3 strategie, scegli e salvi il piano.',state:'ready',action:'Prepara la strategia SEO',cost:'Una chiamata AI allo Specialista SEO e GEO, con conferma.',inline:'seo'}
 ];
 const ID=/^[a-z0-9-]{1,80}$/i;
-// Where a card leads for a project; null when it opens inline (photo or video studio) or needs a project that is missing.
+// Where a card leads for a project; null when it opens inline (photo, video or SEO studio) or needs a project that is missing.
 function linkFor(card,projectId){
  const p=ID.test(String(projectId||''))?String(projectId):'';
  if(card.inline)return null;

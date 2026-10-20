@@ -1,6 +1,6 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
-   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js) and Video the Studio Video
-   (lib/video-studio.js) right here. Nothing is generated
+   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
+   (lib/video-studio.js) and SEO e GEO the Studio SEO (lib/seo-studio.js) right here. Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
 const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,KEY='radix-crea-project';
@@ -23,16 +23,24 @@ function render(){
   li.append(go);return li}));
 }
 function closePanel(){openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render()}
+// The inline studios: which module, what it needs a project for, and whose memory the AI call uses.
+const STUDIOS={
+ photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
+ video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
+ seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'}
+};
 function openInline(c){
- const video=c.inline==='video';
- if(!current){say(video?'Scegli prima un progetto: il video usa il suo avatar e i suoi fatti.':'Scegli prima un progetto: l’immagine usa i suoi colori e i suoi fatti.');return}
- const S=video?window.RadixVideoStudio:window.RadixImageStudio,rt=window.RadixAgents;
- if(!S||!rt){say((video?'Lo Studio Video':'Lo Studio Foto')+' non si è caricato: ricarica la pagina.');return}
+ const st=STUDIOS[c.inline];if(!st)return;
+ if(!current){say('Scegli prima un progetto: '+st.need+'.');return}
+ const S=window[st.global],rt=window.RadixAgents;
+ if(!S||!rt){say(st.name+' non si è caricato: ricarica la pagina.');return}
  openCard=c.id;render();
  $('crPanelTitle').textContent=c.title+' · '+current.name;
- const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:video?'video-producer':'art-director'};
- $('crPanelBody').replaceChildren(video
-  ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+encodeURIComponent(current.id)})
+ const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:st.agent},pid=encodeURIComponent(current.id);
+ $('crPanelBody').replaceChildren(c.inline==='video'
+  ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+pid})
+  :c.inline==='seo'
+  ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :S.photoStudio({project,memoryScope,concept:'',headline:''}));
  $('crPanel').hidden=false;$('crPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
