@@ -11,7 +11,7 @@
  const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
  const say=(id,msg,bad)=>{const n=$(id);n.textContent=msg||'';n.classList.toggle('lp-nl-bad',Boolean(bad))};
  const PAGE=100,MAX_PAGES=20;
- const state={ws:'',wsName:'',rows:[],companies:[],segments:[],clicks:null,recipients:[],skipped:{consent:0,email:0},missing:[],hooks:new Map(),at:0,plan:null,sent:new Set(),busy:false,stop:false,gmail:null};
+ const state={audienceAuto:'',ws:'',wsName:'',rows:[],companies:[],segments:[],clicks:null,recipients:[],skipped:{consent:0,email:0},missing:[],hooks:new Map(),at:0,plan:null,sent:new Set(),busy:false,stop:false,gmail:null};
 
  // ---- CRM (same endpoints and headers as lead-pipeline.js and crm-campaigns.js) ----
  async function get(params){
@@ -57,7 +57,8 @@
   add('consent','Tutti i contatti CRM con consenso','CRM');
   const groups=new Map();for(const [v,t,g] of opts){if(!groups.has(g)){const og=document.createElement('optgroup');og.label=g;groups.set(g,og)}const o=el('option',t);o.value=v;groups.get(g).append(o)}
   sel.replaceChildren(...groups.values());sel.disabled=false;
-  if([...sel.options].some(o=>o.value===cur))sel.value=cur;
+  const n=lp?(lp.selected()||lp.targets().length):0;
+  sel.value=N.defaultSource([...sel.options].map(o=>o.value),cur,n);
  }
  async function compute(){
   const v=$('nl-source').value,lp=window.RadixLeadPipeline;let rows=[],segment='',note='';state.missing=[];
@@ -74,14 +75,15 @@
   const e=N.eligible(rows);state.skipped=e.skipped;
   state.recipients=e.ok.map(r=>({contact:r,fields:N.fieldsOf(r,r.companyRow),segment:rows.segmentOf?rows.segmentOf(r.id):segment}));
   state.at=0;state.plan=null;state.sent.clear();
-  if(!$('nl-audience').value.trim()&&segment)$('nl-audience').value=segment;
+  const aud=N.audienceFor($('nl-audience').value,state.audienceAuto,segment);$('nl-audience').value=aud.value;state.audienceAuto=aud.auto;
   const box=$('nl-who');box.replaceChildren();
   const stat=(n,t)=>{const d=el('div');d.append(el('strong',n),el('span',t));box.append(d)};
   stat(state.recipients.length,'pronti a ricevere');stat(state.skipped.consent,'senza consenso');stat(state.skipped.email,'senza email valida');
   if(v==='pipeline'||v.startsWith('lp:'))stat(state.missing.length,'non ancora nel CRM');
   $('nl-missing').hidden=!state.missing.length;
   $('nl-missing-text').textContent=state.missing.length?state.missing.length+(state.missing.length===1?' lead non è':' lead non sono')+' ancora nel CRM: portali con «Porta nel CRM», dai il consenso ai referenti che l’hanno dato, poi premi «Rileggi il CRM».':'';
-  say('nl-who-status',(state.recipients.length?'Workspace «'+state.wsName+'».':'Nessun destinatario pronto: servono referenti nel CRM con consenso ed email.')+(note?' '+note:''));
+  const inCrm=state.recipients.length||v==='consent'?0:N.eligible(state.rows).ok.length;
+  say('nl-who-status',(state.recipients.length?'Workspace «'+state.wsName+'».':inCrm?'Nessun destinatario pronto in questa scelta. Nel CRM '+(inCrm===1?'c’è 1 contatto pronto':'ci sono '+inCrm+' contatti pronti')+': scegli «Tutti i contatti CRM con consenso».':'Nessun destinatario pronto: servono referenti nel CRM con consenso ed email.')+(note?' '+note:''));
   refresh();
  }
 

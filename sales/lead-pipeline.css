@@ -284,4 +284,6 @@ footer{margin-top:28px;font-size:12px;color:var(--lp-subtle)}
 .lp-nl-mail pre{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 var(--lp-font);color:var(--lp-text)}
 .lp-nl-bad{color:var(--lp-err)}
 @media (max-width:700px){.lp-nl-step{padding:16px}.lp-nl-row .lp-btn{white-space:normal}}
+/* Phone: the six tabs wrap on two rows, so «Newsletter» and «Risultati» are on screen. */
+@media (max-width:700px){.lp-tabs{flex-wrap:wrap;overflow-x:visible;gap:0 2px;margin-top:28px}.lp-tabs button{padding:10px 10px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}

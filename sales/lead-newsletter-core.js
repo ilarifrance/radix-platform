@@ -152,8 +152,25 @@ function buildEmails(recipients,draft,hooks){
   return {contact:r.contact,to:str(r.contact.email).toLowerCase(),subject:oneLine(s.text).slice(0,200),body:b.text.slice(0,4000),missing:[...new Set([...s.missing,...b.missing])]};
  });
 }
+// «A chi scrivi» follows the recipients choice: it takes the segment name, and is cleared when the choice has
+// none, but only while it still holds what was filled in automatically. Text typed by the user is kept.
+// Returns {value, auto}: auto is what to remember as «filled in automatically».
+function audienceFor(current,lastAuto,segment){
+ const cur=str(current),seg=str(segment),prev=str(lastAuto);
+ if(cur&&cur!==prev)return {value:cur,auto:prev};
+ return {value:seg,auto:seg};
+}
+// Recipients source after reading the CRM: keep the current choice unless it is the empty pipeline list;
+// otherwise the pipeline when it has leads, else every CRM contact with consent.
+function defaultSource(values,current,pipelineCount){
+ const has=v=>(values||[]).includes(v);
+ if(current&&has(current)&&!(current==='pipeline'&&!(pipelineCount>0)))return current;
+ if(has('pipeline')&&pipelineCount>0)return 'pipeline';
+ return has('consent')?'consent':(values||[])[0]||'';
+}
+
 // Campaign name for click tracking (≤80 characters, no tags), as crm-campaigns.js does.
 function campaignName(subject,now){const s=str(subject).replace(TAG_RE,'').replace(/\s+/g,' ').replace(/^[\s,;:.!?-]+|[\s,;:-]+$/g,'').trim();return ('Newsletter · '+(s||new Date(now||Date.now()).toISOString().slice(0,10))).slice(0,80)}
 
-return Object.freeze({TAGS,LABELS,FALLBACKS,GOALS,TONES,CTAS,HOOK_BATCH,fieldsOf,unknownTags,render,projectFacts,proposalsPrompt,parseProposals,batches,callsFor,hookData,hooksPrompt,parseHooks,joinCompanies,segmentFilter,matchLeads,eligible,buildEmails,campaignName});
+return Object.freeze({TAGS,LABELS,FALLBACKS,GOALS,TONES,CTAS,HOOK_BATCH,fieldsOf,unknownTags,render,projectFacts,proposalsPrompt,parseProposals,batches,callsFor,hookData,hooksPrompt,parseHooks,joinCompanies,segmentFilter,matchLeads,eligible,buildEmails,campaignName,audienceFor,defaultSource});
 });

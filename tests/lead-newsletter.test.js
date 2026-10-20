@@ -78,3 +78,33 @@ test('page wiring: tab, scripts in order, no AI call or send without a click and
  assert.match(js,/i\.id==='email'&&i\.configured/);assert.match(js,/confirm:true/);
  assert.doesNotMatch(js,/localStorage|sessionStorage|innerHTML/);
 });
+
+
+test('«A chi scrivi» follows the recipients choice and keeps what the user typed',()=>{
+ let a=N.audienceFor('','','Clienti Nord');assert.deepEqual(a,{value:'Clienti Nord',auto:'Clienti Nord'});
+ a=N.audienceFor(a.value,a.auto,'');assert.deepEqual(a,{value:'',auto:''},'back to «tutti i contatti»: the segment name goes away');
+ a=N.audienceFor('Clienti Nord','Clienti Nord','Acquisti');assert.equal(a.value,'Acquisti');
+ a=N.audienceFor('CFO cosmetica','Acquisti','');assert.deepEqual(a,{value:'CFO cosmetica',auto:'Acquisti'},'typed text is kept');
+ assert.equal(N.audienceFor(' CFO ','','Seg').value,'CFO');
+ assert.doesNotMatch(N.proposalsPrompt({audience:N.audienceFor('Clienti Nord','Clienti Nord','').value}),/Clienti Nord/,'the AI prompt reads the current choice');
+});
+
+test('recipients source: no empty pipeline list by default after reading the CRM',()=>{
+ const all=['pipeline','lp:Nord','crm:s1','consent'];
+ assert.equal(N.defaultSource(all,'',0),'consent');
+ assert.equal(N.defaultSource(all,'pipeline',0),'consent','empty pipeline list is replaced');
+ assert.equal(N.defaultSource(all,'',4),'pipeline');
+ assert.equal(N.defaultSource(all,'crm:s1',0),'crm:s1','a real choice is kept');
+ assert.equal(N.defaultSource(all,'crm:gone',4),'pipeline');
+ assert.equal(N.defaultSource(['crm:s1','consent'],'pipeline',3),'consent','no pipeline on the page');
+ assert.equal(N.defaultSource([],'',0),'');
+});
+
+test('page wiring: audience and source helpers used, tabs wrap on a phone',()=>{
+ const js=fs.readFileSync(__dirname+'/../sales/lead-newsletter.js','utf8');
+ assert.match(js,/N\.audienceFor\(\$\('nl-audience'\)\.value,state\.audienceAuto,segment\)/);
+ assert.match(js,/sel\.value=N\.defaultSource\(/);
+ assert.doesNotMatch(js,/if\(!\$\('nl-audience'\)\.value\.trim\(\)&&segment\)/,'no one-way fill');
+ const css=fs.readFileSync(__dirname+'/../sales/lead-pipeline.css','utf8');
+ assert.match(css,/@media \(max-width:700px\)\{\.lp-tabs\{flex-wrap:wrap/);
+});
