@@ -60,6 +60,8 @@ function mount(c,ticket){
  const note=E('p','','muted');const acts=E('div',undefined,'actions');box.append(label,acts,note);
  let contact,loaded=false;
  const load=async()=>{if(!loaded){contact=await contactOf(ticket);loaded=true}return contact};
+ // Knowledge base and quick replies (sales/crm-knowledge.js) sit above the box and write into it.
+ if(root.RadixCrmKnowledge&&root.RadixCrmKnowledge.attach)root.RadixCrmKnowledge.attach(box,area,ticket,load);
  const record=async p=>{if(p.interaction)await post('interactions','create',p.interaction);if(p.ticket)await post('tickets','update',p.ticket);await a.refresh(false)};
  acts.append(B('Bozza con l’AI',async()=>{
   if(!await run('L’AI sta scrivendo la bozza…',async()=>{const ct=await load();

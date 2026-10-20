@@ -246,6 +246,7 @@ window.RadixCrmTools={
    if(window.RadixCrmCampaigns){const camp=RadixCrmCampaigns.panel(seg.filterOf);section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
    if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel())}
   else if(entity==='companies')head.append(ioBar('companies'));
+  else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
