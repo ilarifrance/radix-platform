@@ -103,7 +103,8 @@
   const pipes=C.pipelines(processes,stages),name=state.workspaces.find(w=>w.id===ws)?.name||'';
   state.crm={ws,name,ix:C.indexCrm({companies,contacts,leads,opportunities}),pipes};
   const sel=$('bulk-target'),cur=sel.value;
-  sel.replaceChildren(...pipes.map((p,i)=>{const o=el('option','Opportunità · '+p.title+' → fase «'+p.stage+'»');o.value='p'+i;return o}),Object.assign(el('option','Lead CRM (senza pipeline)'),{value:'leads'}));
+  // Default «Lead nel CRM», as in Salesforce: qualify there, then «Converti» into an opportunity.
+  sel.replaceChildren(Object.assign(el('option','Lead nel CRM: da qualificare, poi «Converti»'),{value:'leads'}),...pipes.map((p,i)=>{const o=el('option','Subito opportunità · '+p.title+' → fase «'+p.stage+'»');o.value='p'+i;return o}));
   if([...sel.options].some(o=>o.value===cur))sel.value=cur;sel.disabled=false;
   render();
  }
