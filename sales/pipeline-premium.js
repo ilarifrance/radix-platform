@@ -86,7 +86,9 @@ async function load(){const generation=++state.generation;error('');$('status').
  metrics();
  $('coverage').textContent=state.complete?'Pagine lette':'Parziale';$('status').textContent='Dati CRM autorizzati · '+(state.complete?'copertura delle pagine lette (snapshot non garantito)':'almeno una risorsa ha altre pagine non caricate');
  render()
-}catch(e){if(generation===state.generation){error(e.message);$('status').textContent='Impossibile caricare la pipeline.';}}}
-async function init(){try{const rows=await api('workspaces');state.workspaces=rows;const sel=$('workspace');sel.replaceChildren();if(!rows.length){sel.append(E('option','Nessun workspace autorizzato'));$('status').textContent='Nessun workspace disponibile';return}rows.forEach(w=>{const opt=E('option',w.name||w.id);opt.value=w.id;sel.append(opt)});sel.disabled=false;state.workspace=sel.value;await load()}catch(e){error(e.message);$('status').textContent='Accesso non disponibile.'}}
+}catch(e){if(generation===state.generation){error(e.message);$('status').textContent='Impossibile caricare la pipeline.';idle('Pipeline non disponibile: premi Aggiorna per riprovare.');}}}
+// The board starts with a loading line (sales-pipeline-premium.html); when nothing can load it says why instead.
+function idle(msg){$('board').replaceChildren(E('div',msg,'empty'))}
+async function init(){try{const rows=await api('workspaces');state.workspaces=rows;const sel=$('workspace');sel.replaceChildren();if(!rows.length){sel.append(E('option','Nessun workspace autorizzato'));$('status').textContent='Nessun workspace disponibile';idle('Nessun workspace CRM disponibile per questo account.');return}rows.forEach(w=>{const opt=E('option',w.name||w.id);opt.value=w.id;sel.append(opt)});sel.disabled=false;state.workspace=sel.value;await load()}catch(e){error(e.message);$('status').textContent='Accesso non disponibile.';idle('Accesso al CRM non disponibile.')}}
 $('workspace').onchange=()=>{state.workspace=$('workspace').value;transitionKeys.clear();load()};$('reload').onclick=load;$('filter').oninput=render;$('process').onchange=()=>{state.processId=$('process').value;metrics();render()};init();
 })(typeof window!=='undefined'?window:globalThis);

@@ -136,8 +136,8 @@ function geo(){const r=stage.querySelector('.so-core').getBoundingClientRect(),c
 function frame(t){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,Ht);const g=geo(),{cx,cy,R}=g;
   for(const[x,y,r,f]of stars){ctx.globalAlpha=.35+.5*Math.abs(Math.sin(t*.0006+f*9));ctx.fillStyle=f>.85?'#ffe2a8':'#bfffee';ctx.fillRect(x,y,r,r)}ctx.globalAlpha=1;
   /* the planet horizon at the bottom left, as in the photo */
-  const hx=W*.1,hy=Ht*1.62,hr=Ht*.95,hz=ctx.createRadialGradient(hx-hr*.2,hy-hr*.4,hr*.2,hx,hy,hr);hz.addColorStop(0,'#0a3a44');hz.addColorStop(.7,'#05212b');hz.addColorStop(1,'#031820');
-  ctx.fillStyle=hz;ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fill();ctx.save();ctx.lineWidth=1.6;ctx.strokeStyle='rgba(140,255,235,.55)';ctx.shadowColor='rgba(80,255,220,.9)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(hx,hy,hr,-Math.PI*.95,-Math.PI*.12);ctx.stroke();ctx.restore();
+  /* only its glowing rim: the hero behind is green fading to white (orbit-light.css), a filled disc would show the canvas edge */
+  const hx=W*.1,hy=Ht*1.62,hr=Ht*.95;ctx.save();ctx.lineWidth=1.6;ctx.strokeStyle='rgba(140,255,235,.55)';ctx.shadowColor='rgba(80,255,220,.9)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(hx,hy,hr,-Math.PI*.95,-Math.PI*.12);ctx.stroke();ctx.restore();
   const G=window.RadixGlobe,rot=.35+t*.00006;if(G)G.orbits(ctx,g,t,false);
   const cr=cv.getBoundingClientRect();
   for(const p of stage.querySelectorAll('.so-planet i')){const r=p.getBoundingClientRect();if(!r.width)continue;const x=r.left+r.width/2-cr.left,y=r.top+r.height/2-cr.top,dx=x-cx,dy=y-cy,d=Math.hypot(dx,dy)||1;
