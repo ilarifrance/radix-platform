@@ -101,7 +101,8 @@ const NS='http://www.w3.org/2000/svg',S=(tag,a)=>{const n=document.createElement
 const eur=c=>{const v=Number(c||0)/100;return '€ '+(v>=1e6?(v/1e6).toLocaleString('it-IT',{maximumFractionDigits:1})+'M':v>=1e4?Math.round(v/1e3).toLocaleString('it-IT')+'K':v.toLocaleString('it-IT',{maximumFractionDigits:0}))};
 const pct=(a,b)=>b?Math.round(a/b*100):0;
 const MN=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-const TONES=['#26d796','#36c9e0','#4aa3ff','#a48cff','#f2c063'];
+// Chart colours follow the page theme (--crm-chart-* in crm-light.css); the hex values are the fallback.
+const TONES=['#26d796','#36c9e0','#4aa3ff','#a48cff','#f2c063'].map((c,i)=>'var(--crm-chart-'+(i+1)+','+c+')');
 
 function ensure(){if(!nav.querySelector('a[href="#analytics"]')){const a=E('a','Analisi');a.href='#analytics';const c=nav.querySelector('a[href="#calendar"]')||nav.querySelector('a[href="#tasks"]');c?c.after(a):nav.append(a)}
   if((location.hash||'')!=='#analytics'){document.getElementById('analytics')?.remove();return null}
@@ -146,7 +147,7 @@ function build(d){const all=d.opportunities,opps=all.filter(isOpen),fc=forecast(
   const per=months.map(m=>stages.map(s=>opps.filter(o=>o.stage_id===s.id&&o.expected_close&&new Date(o.expected_close).getFullYear()===m.getFullYear()&&new Date(o.expected_close).getMonth()===m.getMonth()).reduce((a,o)=>a+val(o),0)));
   const max=Math.max(1,...per.map(r=>r.reduce((a,b)=>a+b,0)));const svg=S('svg',{viewBox:'0 0 620 260',class:'an-chart',role:'img','aria-label':'Valore per mese di chiusura e fase'});
   for(let i=0;i<=4;i++){const y=20+i*50;svg.append(S('line',{x1:60,x2:610,y1:y,y2:y,class:'grid'}));const t=S('text',{x:52,y:y+4,class:'ax','text-anchor':'end'});t.textContent=eur(max*(4-i)/4);svg.append(t)}
-  per.forEach((r,i)=>{let y=220;const x=90+i*88;r.forEach((v,j)=>{if(!v)return;const h=v/max*200;y-=h;svg.append(S('rect',{x,y,width:44,height:h,rx:3,fill:TONES[j%5]}))});const t=S('text',{x:x+22,y:244,class:'ax','text-anchor':'middle'});t.textContent=MN[months[i].getMonth()]+' '+String(months[i].getFullYear()).slice(2);svg.append(t)});
+  per.forEach((r,i)=>{let y=220;const x=90+i*88;r.forEach((v,j)=>{if(!v)return;const h=v/max*200;y-=h;const bar=S('rect',{x,y,width:44,height:h,rx:3});bar.style.fill=TONES[j%5];svg.append(bar)});const t=S('text',{x:x+22,y:244,class:'ax','text-anchor':'middle'});t.textContent=MN[months[i].getMonth()]+' '+String(months[i].getFullYear()).slice(2);svg.append(t)});
   vel.append(svg);const lg=E('p',undefined,'an-legend');stages.forEach((s,j)=>{const x=E('span',s.title);x.style.setProperty('--c',TONES[j%5]);lg.append(x)});vel.append(lg);
   /* funnel */
   const fun=panel('Funnel per fase','an-funnel','Quota del valore in ogni fase');const fw=E('div',undefined,'an-fun');
@@ -191,7 +192,7 @@ function simPanel(all){const b=simBaseline(all,Date.now());
     const line=(a,c)=>{const x=E('p',undefined,'an-line');x.append(E('span',a),E('b',c));out.append(x)};
     line('Incasso simulato in '+r.months+' mesi',eur(r.total));line('Dalla pipeline aperta',eur(r.fromPipeline));line('Da nuove opportunità',eur(r.fromNew)+(r.deals?' · circa '+r.deals.toLocaleString('it-IT')+' contratti':''));
     const max=Math.max(1,...r.monthly.map(x=>x.total)),bars=E('div',undefined,'an-sim-bars'),t0=new Date();
-    r.monthly.forEach((x,i)=>{const c=E('div');c.title=eur(x.total);const st=E('span');const seg=(v,cls)=>{const q=E('i',undefined,cls);q.style.height=(v/max*100)+'%';return q};st.append(seg(x.fresh,'new'),seg(x.pipeline,'pipe'));const d=new Date(t0.getFullYear(),t0.getMonth()+i+1,1);c.append(st,E('small',MN[d.getMonth()]));bars.append(c)});out.append(bars);const lg=E('p',undefined,'an-legend');[['Dalla pipeline aperta','#26d796'],['Da nuove opportunità','#4aa3ff']].forEach(([t,col])=>{const x=E('span',t);x.style.setProperty('--c',col);lg.append(x)});out.append(lg);
+    r.monthly.forEach((x,i)=>{const c=E('div');c.title=eur(x.total);const st=E('span');const seg=(v,cls)=>{const q=E('i',undefined,cls);q.style.height=(v/max*100)+'%';return q};st.append(seg(x.fresh,'new'),seg(x.pipeline,'pipe'));const d=new Date(t0.getFullYear(),t0.getMonth()+i+1,1);c.append(st,E('small',MN[d.getMonth()]));bars.append(c)});out.append(bars);const lg=E('p',undefined,'an-legend');[['Dalla pipeline aperta',TONES[0]],['Da nuove opportunità','var(--crm-chart-2,#4aa3ff)']].forEach(([t,col])=>{const x=E('span',t);x.style.setProperty('--c',col);lg.append(x)});out.append(lg);
     if(r.fromNew===0&&Number(inputs.cycleMonths.value)>=r.months)out.append(E('p','Le nuove opportunità chiudono dopo l’orizzonte scelto: allunga l’orizzonte per vederle.','an-note'))};
   for(const i of [...Object.values(inputs),hz])i.addEventListener('input',()=>{simEdits[i.name]=i.value===''?null:i.name==='months'?Number(i.value):Number(i.value);draw()});
   draw();return p}
