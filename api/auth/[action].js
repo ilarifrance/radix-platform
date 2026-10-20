@@ -27,6 +27,15 @@ async function login(req, res) {
   if (!user || !verifyPassword(password, user.password_hash)) {
     return res.status(401).json({ error: 'Email o password errati.' });
   }
+  // Accounts created by the accounting sign-up (/contabilita/) are clients: they use their own session and
+  // never get a team session. Databases without the accounting tables have no client accounts.
+  try {
+    const client = sql();
+    const found = await client`SELECT 1 FROM acc_client_accounts WHERE user_id = ${user.id} LIMIT 1`;
+    if (found.length) return res.status(401).json({ error: 'Email o password errati.' });
+  } catch (err) {
+    if (!err || err.code !== '42P01') return res.status(500).json({ error: 'Errore database durante l\'accesso.' });
+  }
   const token = signSessionToken({ uid: user.id, email: user.email, name: user.name });
   res.setHeader('Set-Cookie', buildSessionCookie(token));
   return res.status(200).json({ ok: true, user: { id: user.id, email: user.email, name: user.name } });

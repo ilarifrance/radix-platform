@@ -9,5 +9,5 @@ test('all admin paths retain authentication, including optional Memory migration
 });
 test('Vercel entrypoint budget stays below the 12-function ceiling',()=>{
  const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.name.startsWith('_')?[]:e.isDirectory()?walk(path.join(dir,e.name)):/\.(js|ts|mjs|cjs)$/.test(e.name)?[path.join(dir,e.name)]:[]);
- const files=walk('api');assert.equal(files.length,9);assert.ok(files.includes('api/workspace.js'));assert.ok(files.includes('api/admin/[action].js'));assert.ok(!fs.existsSync('api/admin/users.js'));assert.ok(!fs.existsSync('api/admin/migrate.js'));assert.ok(files.includes('api/integrations/[service].js'));
+ const files=walk('api');assert.equal(files.length,11);assert.ok(files.includes('api/accounting-stripe.js'));assert.ok(files.includes('api/accounting.js'));assert.ok(files.includes('api/workspace.js'));assert.ok(files.includes('api/admin/[action].js'));assert.ok(!fs.existsSync('api/admin/users.js'));assert.ok(!fs.existsSync('api/admin/migrate.js'));assert.ok(files.includes('api/integrations/[service].js'));
 });

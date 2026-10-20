@@ -1,6 +1,6 @@
 /* RADIX shell — injects the global sidebar, top bar and search palette. Source of truth: /DESIGN.md
    Page contract (on <body>):
-     data-shell-area   cc | agency | sales | studio | pm | system   (accent + area name under the wordmark)
+     data-shell-area   cc | agency | sales | studio | accounting | pm | system   (accent + area name under the wordmark)
      data-shell-page   id of the active nav item (see NAV below)
      data-shell-state  live | demo | partial | off                   (data-state badge, optional)
    Elements marked data-rx-local-nav (the page's old sidebar) are hidden by radix-shell.css. */
@@ -11,7 +11,7 @@
 
   var AREAS = {
     cc: 'Command Center', agency: 'Marketing Agency', sales: 'Sales Intelligence',
-    studio: 'Studio', pm: 'Project Management', system: 'AI Operating System'
+    studio: 'Studio', accounting: 'Accounting', pm: 'Project Management', system: 'AI Operating System'
   };
   var STATES = {
     live: ['Live', 'Dati reali dal database RADIX'],
@@ -78,8 +78,19 @@
     { id: 'pm', text: 'Project Management', href: '/radix-pm-concept.html', icon: 'gantt', project: 'project', kw: 'pm gantt attività' },
     { group: 'studio', text: 'Studio', icon: 'scale', items: [
       { id: 'commercial', text: 'Commerciale', href: '/commercial/index.html' },
-      { id: 'legal', text: 'Legal', href: '/legal/index.html' },
-      { id: 'accounting', text: 'Accounting', href: '/accounting/index.html' }
+      { id: 'legal', text: 'Legal', href: '/legal/index.html' }
+    ] },
+    { group: 'accounting', text: 'Accounting', icon: 'chart', items: [
+      { id: 'accounting', text: 'Panoramica', href: '/accounting/index.html', kw: 'contabilità commercialista' },
+      { id: 'acc-invoices', text: 'Fatture', href: '/accounting/index.html#fatture', kw: 'fattura elettronica xml fornitori clienti' },
+      { id: 'acc-journal', text: 'Prima nota', href: '/accounting/index.html#prima-nota', kw: 'registrazioni partita doppia' },
+      { id: 'acc-bank', text: 'Banca e scadenze', href: '/accounting/index.html#banca', kw: 'estratto conto riconciliazione scadenzario' },
+      { id: 'acc-vat', text: 'IVA', href: '/accounting/index.html#iva', kw: 'liquidazione f24 lipe registri' },
+      { id: 'acc-reports', text: 'Bilancio', href: '/accounting/index.html#bilancio', kw: 'conto economico stato patrimoniale verifica' },
+      { id: 'acc-control', text: 'Controllo di gestione', href: '/accounting/index.html#gestione', kw: 'budget margini cash flow kpi' },
+      { id: 'acc-close', text: 'Chiusure', href: '/accounting/index.html#chiusure', kw: 'ammortamenti cespiti ratei risconti chiusura mese' },
+      { id: 'acc-copilot', text: 'Copilota', href: '/accounting/index.html#copilota', kw: 'assistente ai domande anomalie controlli' },
+      { id: 'acc-studio', text: 'Studio AI', href: '/accounting/studio.html', kw: 'commercialista agenti' }
     ] },
     { id: 'executive', text: 'Executive', icon: 'crown', soon: true },
     { id: 'venture', text: 'Venture Studio', icon: 'rocket', soon: true },

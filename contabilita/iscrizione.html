@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Iscriviti · RADIX Contabilità</title>
+<link rel="stylesheet" href="/contabilita/fonts/fonts.css">
+<link rel="stylesheet" href="/contabilita/contabilita.css">
+<script src="/lib/accounting/pricing.js" defer></script>
+<script src="/contabilita/account.js" defer></script>
+</head>
+<body class="ct">
+<header class="ct-top">
+ <a class="ct-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="ct-word">RADIX</span><span class="ct-area">Contabilità</span></a>
+ <nav class="ct-nav" aria-label="Sezioni"><a href="/contabilita/#incluso">Cosa è incluso</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
+ <a class="ct-btn ghost small" href="/contabilita/accedi.html">Accedi</a>
+</header>
+<main id="main" class="ct-form-page">
+ <section class="ct-form-wrap">
+  <p class="ct-eyebrow">Iscrizione</p>
+  <h1 class="ct-form-title">Attiva la contabilità della tua azienda</h1>
+  <p class="ct-muted">Commercialista compreso, disdici quando vuoi. Dopo il pagamento trovi l'azienda pronta con il piano dei conti.</p>
+  <p class="ct-alert" id="ctMsg" role="status" hidden></p>
+  <form id="ctSignup" class="ct-form" novalidate>
+   <fieldset><legend>La tua azienda</legend>
+    <label>Ragione sociale<input name="cname" required maxlength="200" autocomplete="organization"></label>
+    <div class="ct-row"><label>Partita IVA<input name="vat" required maxlength="16" placeholder="IT01234567890" inputmode="text"></label>
+     <label>Forma giuridica<select name="legal_form"><option value="srl">S.r.l.</option><option value="srls">S.r.l.s.</option><option value="spa">S.p.A.</option><option value="snc">S.n.c.</option><option value="sas">S.a.s.</option><option value="ditta">Ditta individuale</option><option value="professionista">Professionista</option><option value="altro">Altro</option></select></label></div>
+    <div class="ct-row"><label>Regime contabile<select name="regime"><option value="ordinario">Ordinario</option><option value="semplificato">Semplificato</option><option value="forfettario">Forfettario</option></select></label>
+     <label>Liquidazione IVA<select name="vat_periodicity"><option value="quarterly">Trimestrale</option><option value="monthly">Mensile</option></select></label></div>
+   </fieldset>
+   <fieldset><legend>Sede e fatturazione</legend>
+    <small>Servono per la fattura elettronica del canone, che ricevi ogni mese.</small>
+    <label>Indirizzo della sede<input name="address" required maxlength="200" autocomplete="street-address"></label>
+    <div class="ct-row"><label>CAP<input name="zip" required maxlength="5" inputmode="numeric" pattern="\d{5}" autocomplete="postal-code"></label>
+     <label>Comune<input name="city" required maxlength="80" autocomplete="address-level2"></label>
+     <label>Provincia<input name="province" required maxlength="2" pattern="[A-Za-z]{2}" placeholder="MI" autocomplete="address-level1"></label></div>
+    <div class="ct-row"><label>Codice destinatario<input name="sdi_code" maxlength="7" pattern="[A-Za-z0-9]{7}" placeholder="7 caratteri"></label>
+     <label>oppure PEC<input name="pec" type="email" maxlength="254"></label></div>
+   </fieldset>
+   <fieldset><legend>Il pacchetto</legend>
+    <label>Pacchetto<select name="size" id="ctSize" aria-describedby="ctSizeHelp"><option value="base">Base, 39 € al mese + IVA</option><option value="crescita">Crescita, 69 € al mese + IVA</option><option value="strutturata">Strutturata, 139 € al mese + IVA</option></select><small id="ctSizeHelp">Fino a 100 fatture al mese, 1 conto bancario, 100 domande al copilota, 3 utenti.</small></label>
+    <small><a href="/contabilita/#prezzo" target="_blank" rel="noopener">Confronta i pacchetti</a>. Per cambiarlo più avanti basta scriverci.</small>
+   </fieldset>
+   <fieldset><legend>Il tuo accesso</legend>
+    <label>Nome e cognome<input name="name" required maxlength="120" autocomplete="name"></label>
+    <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+    <label>Password<input name="password" type="password" required minlength="10" maxlength="200" autocomplete="new-password" aria-describedby="pwHelp"><small id="pwHelp">Almeno 10 caratteri.</small></label>
+   </fieldset>
+   <div class="ct-checks">
+    <label class="ct-check"><input type="checkbox" name="accept" required><span>Dichiaro di agire per la mia attività d'impresa o professionale e accetto le <a href="/contabilita/condizioni.html" target="_blank" rel="noopener">condizioni del servizio</a>. Ho letto l'<a href="/contabilita/privacy.html" target="_blank" rel="noopener">informativa sulla privacy</a>.</span></label>
+    <label class="ct-check"><input type="checkbox" name="accept_clauses" required><span>Ai sensi degli artt. 1341 e 1342 del Codice civile approvo specificamente le clausole 4, 5, 6, 10, 12 e 13 delle condizioni, elencate all'<a href="/contabilita/condizioni.html#approvazione" target="_blank" rel="noopener">articolo 14</a>.</span></label>
+   </div>
+   <button class="ct-btn" type="submit">Continua al pagamento</button>
+   <p class="ct-note">Il pagamento avviene sulla pagina sicura di Stripe.</p>
+  </form>
+ </section>
+</main>
+<footer class="ct-foot"><span class="ct-word">RADIX</span><span><a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a></span></footer>
+</body>
+</html>
