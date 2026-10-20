@@ -215,7 +215,7 @@ function render(){
     if(entity==='opportunities')groups.push({name:'Vinte',matches:r=>r.outcome==='won'},{name:'Perse',matches:r=>r.outcome==='lost'});
     groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
    }else rows(entity).forEach(r=>section.append(card(entity,r)));
-   window.RadixCrmTools?.section(entity,section);
+   window.RadixCrmTools?.section(entity,section);window.RadixCrmImportDeals?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
    if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
