@@ -43,10 +43,10 @@ test('the extension link selects the workspace, opens the job and shows the Lead
  assert.equal(p.location.replaced,'/lead-intelligence.html');
 });
 
-test('a failed open says so in Italian and points to the Archivio contatti',async()=>{
+test('a failed open says so in Italian and points to the LinkedIn step',async()=>{
  const p=page({hash:'#lead-job='+JOB+'&ws='+WS,status:403});
  await settle(p,()=>/Non riesco/.test(p.els['lp-open-status']?.textContent||''));
- assert.match(p.els['lp-open-status'].textContent,/^Non riesco ad aprire i contatti importati: Accesso negato\. Puoi aprirli da Contatti individuali › Archivio contatti RADIX\.$/);
+ assert.match(p.els['lp-open-status'].textContent,/^Non riesco ad aprire i contatti importati: Accesso negato\. Puoi aprirli dal passo 1 › LinkedIn, nell’elenco delle importazioni\.$/);
  assert.equal(p.scrolled(),false);assert.equal(p.window.radixLeadContacts.records().length,0);
 });
 
@@ -56,8 +56,8 @@ test('without the hash nothing is opened',async()=>{
  assert.deepEqual(p.calls,[]);assert.equal(p.els['lp-open-status'],undefined);
 });
 
-test('Lead pipeline empty state points to the Archivio contatti RADIX',()=>{
+test('Lead pipeline empty state points to step 1',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','lead-intelligence.html'),'utf8'),js=fs.readFileSync(path.join(__dirname,'..','sales','lead-pipeline.js'),'utf8');
- for(const s of [html,js])assert.match(s,/Apri un lavoro salvato in Contatti individuali › Archivio contatti RADIX/);
+ for(const s of [html,js])assert.match(s,/Nessun lead ancora\. Scegli da dove prenderli al passo 1: LinkedIn, file CSV\/Excel, provider o backup\./);
  assert.ok(html.includes('id="lp-open-status"'));
 });

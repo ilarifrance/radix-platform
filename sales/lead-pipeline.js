@@ -63,7 +63,7 @@
    tr.append(c0,c1,c2,c3,c4,c5,c6,c7);body.append(tr);
   }
   $('lp-empty').hidden=rows.length>0;
-  $('lp-empty-text').textContent=state.leads.length?'Nessun lead corrisponde ai filtri.':'Nessun lead ancora. Apri un lavoro salvato in Contatti individuali › Archivio contatti RADIX, oppure importa un CSV/Excel o ripristina un backup JSON.';
+  $('lp-empty-text').textContent=state.leads.length?'Nessun lead corrisponde ai filtri.':'Nessun lead ancora. Scegli da dove prenderli al passo 1: LinkedIn, file CSV/Excel, provider o backup.';
   $('lp-more').textContent=rows.length>SHOW?'Mostrati i primi '+SHOW+' lead su '+rows.length+': usa la ricerca o i filtri per gli altri.':rows.length?rows.length+' lead in elenco':'';
   selection();
  }
@@ -94,7 +94,7 @@
   if(state.workspaces)return state.workspaces;
   const all=await get({entity:'workspaces'}),ok=all.filter(w=>['owner','admin','member'].includes(w.role));
   if(!ok.length)throw Error('Nessun workspace CRM in cui puoi scrivere');
-  state.workspaces=ok;const sel=$('bulk-workspace');sel.replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));sel.disabled=false;
+  state.workspaces=ok;const sel=$('bulk-workspace');sel.replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));window.RadixLeadFlow?.preferWorkspace(sel);sel.disabled=false;
   return ok;
  }
  async function loadCrm(){

@@ -33,13 +33,13 @@
  async function apiStatus(test){
   try{
    const workspace=$('archive-workspace')?.value;
-   if(!workspace)throw Error('Seleziona prima un workspace nell’Archivio Lead Intelligence');
+   if(!workspace)throw Error('Scegli prima il workspace in alto');
    const options=test?{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace,entity:'lead_provider_status',action:'test',data:{}})}:{credentials:'same-origin'};
    const path=test?'/api/sales':'/api/sales?entity=lead_provider_status&workspace='+encodeURIComponent(workspace);
    text('contact-api-result','Verifica in corso...');
    const response=await fetch(path,options),body=await response.json();
    if(!response.ok)throw Error(body.error||'Provider non disponibile');
-   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata in Preview, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY e CAPTAIN_DATA_USER_UID nelle variabili Preview di Vercel.');
+   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY e CAPTAIN_DATA_USER_UID nelle variabili Preview di Vercel.');
   }catch(e){text('contact-api-result','Verifica API: '+e.message)}
  }
  $('contact-api-status').onclick=()=>apiStatus(false);
@@ -90,7 +90,7 @@
  };
  const workspace=()=>{
   const id=$('archive-workspace')?.value||'';
-  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Seleziona prima un workspace nell’Archivio RADIX');
+  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Scegli prima il workspace in alto');
   return id;
  };
  const api=async(method,entity,data,ws,id)=>{
@@ -104,10 +104,10 @@
  async function listJobs(selected){
   const ws=workspace(),rows=await api('GET','lead_contact_jobs',null,ws);
   const menu=$('contact-job-select');menu.replaceChildren();
-  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona un lavoro...';menu.append(placeholder);
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona una lista…';menu.append(placeholder);
   for(const row of rows){const option=document.createElement('option');option.value=row.id;option.textContent=row.title+' · '+row.contact_count+' contatti · v'+row.version;menu.append(option)}
   menu.value=selected||'';
-  text('contact-job-status',rows.length+' lavori disponibili nel workspace. Nessun dato sovrascritto.');
+  text('contact-job-status',rows.length+' liste salvate nel workspace. Nessun dato sovrascritto.');
  }
  const callbackUrl=()=>location.origin+'/api/sales?workspace='+encodeURIComponent(vault.workspace)+'&job='+encodeURIComponent(vault.id);
  function updateCallbackInfo(){
@@ -129,7 +129,7 @@
    if(vault.id&&vault.workspace!==ws)throw Error('Il workspace è cambiato: crea un nuovo lavoro o torna al workspace precedente');
    if(!title||title.length>120)throw Error('Indica un titolo valido');
    const action=vault.id?'update':'create';
-   if(!window.confirm('Salvare '+job.records.length+' contatti individuali nel database Preview isolato del workspace? Verifica provenienza e trattamento dei dati.'))return;
+   if(!window.confirm('Salvare '+job.records.length+' contatti nel workspace? Verifica provenienza e trattamento dei dati.'))return;
    const payload={...job};delete payload.last;
    const runUid=$('contact-provider-run-uid').value.trim();
    if(runUid&&!/^[a-zA-Z0-9_-]{1,40}$/.test(runUid))throw Error('run_uid provider non valido');
@@ -183,7 +183,7 @@
    history.replaceState(null,'',location.pathname+location.search);
    $('lead-pipeline')?.scrollIntoView({behavior:'smooth',block:'start'});
   }catch(e){
-   say('Non riesco ad aprire i contatti importati: '+e.message+'. Puoi aprirli da Contatti individuali › Archivio contatti RADIX.');
+   say('Non riesco ad aprire i contatti importati: '+e.message+'. Puoi aprirli dal passo 1 › LinkedIn, nell’elenco delle importazioni.');
    text('contact-job-status','Apertura non riuscita: '+e.message);
   }
  }
@@ -198,7 +198,7 @@
    const ws=workspace(),id=$('contact-job-select').value;
    if(!id)throw Error('Seleziona il lavoro da eliminare');
    if(id!==vault.id||ws!==vault.workspace||!vault.version)throw Error('Apri prima il lavoro, così RADIX ne verifica la versione aggiornata');
-   if(!window.confirm('Eliminare definitivamente questo lavoro contatti dal workspace Preview?'))return;
+   if(!window.confirm('Eliminare definitivamente questa lista di contatti dal workspace?'))return;
    await api('POST','lead_contact_jobs',{action:'delete',data:{id,version:vault.version}},ws);
    job=null;vault={id:'',version:0,workspace:'',dirty:false};show();updateCallbackInfo();await listJobs('');
    text('contact-job-status','Lavoro eliminato dall’archivio.');
