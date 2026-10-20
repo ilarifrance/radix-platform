@@ -10,7 +10,7 @@
 <div class="notice"><strong>Archivio condiviso del team.</strong> I clienti sono salvati sul server RADIX e visibili a tutti gli account del team. Se qualcuno modifica la stessa scheda prima di te, ricarica e riprova. Evita dati personali sensibili, contratti e credenziali.</div>
 <div class="stats" id="stats" aria-label="Riepilogo clienti"></div>
 <div class="tools"><input id="search" type="search" placeholder="Cerca nome, settore, referente…" aria-label="Cerca clienti" disabled><select id="filter" aria-label="Filtra stato" disabled><option value="all">Tutti gli stati</option><option value="prospect">Prospect</option><option value="active">Attivi</option><option value="paused">In pausa</option><option value="archived">Archiviati</option></select><button id="new" disabled>＋ Nuovo cliente</button><button id="export" disabled>↓ Esporta JSON</button><span id="message" class="hint" role="status">Verifica accesso…</span></div>
-<div class="layout"><section class="panel"><h2>Clienti registrati</h2><div class="cards" id="cards" aria-live="polite"><p class="empty">Accedi a RADIX per consultare la rubrica locale.</p></div></section>
+<div class="layout"><section class="panel"><h2>Clienti registrati</h2><div class="cards" id="cards" aria-live="polite"><p class="empty">Caricamento della rubrica clienti…</p></div></section>
 <section class="panel"><h2 id="heading">Nuovo cliente</h2><form id="form"><div class="formgrid">
 <label class="wide">Nome cliente / brand *<input id="name" maxlength="120" required placeholder="Nome azienda o brand"></label>
 <label>Stato<select id="status"><option value="prospect">Prospect</option><option value="active">Attivo</option><option value="paused">In pausa</option><option value="archived">Archiviato</option></select></label>
@@ -46,6 +46,6 @@ $('delete').addEventListener('click',()=>{const c=selected&&clients.find(x=>x.id
 $('export').addEventListener('click',()=>{if(!available)return;const url=URL.createObjectURL(new Blob([JSON.stringify({schemaVersion:1,clients,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='radix-agency-clienti.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 window.addEventListener('focus',()=>{if(available&&!busy)load()});
 setControls(false);
-ws.ready().then(user=>{if(!user)throw Error('Accesso RADIX richiesto');return load()}).catch(e=>setMessage(e.message));
+ws.ready().then(user=>{if(!user)throw Error('Accesso RADIX richiesto');return load()}).catch(e=>{setMessage(e.message);$('cards').innerHTML='<p class="empty">Accedi a RADIX per consultare la rubrica locale.</p>'});
 })();
 </script></body></html>
