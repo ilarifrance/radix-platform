@@ -323,6 +323,8 @@ window.RadixCrmTools={
   // Meetings and calls, in the Interazioni list and in Customer360: «Bozza follow-up» (sales/crm-follow-up.js).
   if(entity==='interactions'&&window.RadixCrmFollowUp?.mount){RadixCrmFollowUp.mount(c,row);return}
   if(entity==='opportunities'&&!readonly&&window.RadixCrmPlaybook&&app().writable('tasks')&&(!row.outcome||row.outcome==='open')){c.append(playbookBlock(row));return}
+  // Contacts with a LinkedIn profile (often imported from Sales Navigator, without email): «Messaggio LinkedIn» (sales/crm-linkedin-message.js).
+  if(entity==='contacts'&&window.RadixCrmLinkedIn?.mount)RadixCrmLinkedIn.mount(c,row);
   if(entity!=='contacts'||readonly)return;
   if(window.RadixCrmScore){const s=RadixCrmScore.score(row,scoreData());const p=E('p','Punteggio '+s.total+' · '+s.band+' — '+RadixCrmScore.explain(s),'crm-score crm-score-'+s.band);p.dataset.score=String(s.total);c.append(p)}
   const bar=E('div',undefined,'actions crm-gdpr');
