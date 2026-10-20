@@ -16,7 +16,7 @@ const rows = entity => state.rows[entity] || [];
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
-window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
+window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
@@ -109,10 +109,12 @@ function card(entity,row,readonly=false){
    const save=button('Conferma stato',()=>{if(control.select.value!==row.status)mutate(entity,'update',{id:row.id,version:row.version,status:control.select.value},'Portare «'+title(row)+'» in «'+ticketStatus[control.select.value]+'»?');});save.disabled=!writable(entity);c.append(control.wrap,save);}
  }
  if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button('Customer360',()=>openCustomer(entity,row)));
- if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.'),'danger'));c.append(a);}
+ if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>removeRecord(entity,row),'danger'));c.append(a);}
  window.RadixCrmTools?.card(entity,row,c,readonly);
  return c;
 }
+// The one delete of a record, shared by the cards and the list views (sales/crm-list.js).
+function removeRecord(entity,row){return mutate(entity,'delete',{id:row.id,version:row.version},'Eliminare definitivamente «'+title(row)+'»? I collegamenti potrebbero impedire l’eliminazione.');}
 async function searchRecords(entity,value){
  if(state.busy || !state.workspace || !['companies','contacts'].includes(entity))return;
  if(value.length>200 || /[\u0000-\u001f\u007f]/.test(value)){error('Ricerca non valida: massimo 200 caratteri, senza caratteri di controllo.');return;}
