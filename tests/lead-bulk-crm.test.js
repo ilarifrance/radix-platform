@@ -25,7 +25,7 @@ test('local agent contact maps to CRM company and contact columns that exist',()
  assert.equal(co.website,'https://phitogenspa.it');
  for(const k of Object.keys(co))assert.ok(fields.companies.includes(k),k);
  for(const k of Object.keys(ct))assert.ok(fields.contacts.includes(k),k);
- assert.equal(ct.email,'roberto.gabrielli@phitogenspa.it');assert.equal(ct.role,'Chief Executive Officer');assert.equal(ct.linkedin_url,'https://www.linkedin.com/in/roberto-gabrielli');
+ assert.equal(ct.email,'roberto.gabrielli@phitogenspa.it');assert.equal(ct.role,'Titolare / CEO');assert.equal(ct.title,'Chief Executive Officer');assert.equal(co.industry,'Chimica e farmaceutica');assert.equal(ct.linkedin_url,'https://www.linkedin.com/in/roberto-gabrielli');
  assert.match(ct.notes,/Segmento: Cosmetica Nord/);
  // The real server validator accepts both payloads.
  assert.doesNotThrow(()=>command({workspace:W,entity:'companies',action:'create',data:co}));

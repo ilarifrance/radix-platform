@@ -279,8 +279,10 @@ function recordSections(entity,row,host,references,selectControl){
   const grid=el('div',undefined,'rf-grid');box.append(grid);
   for(const fd of sec.fields){
    const value=RF.formValue(entity,fd.key,row);let control,wrap;
-   if(['select','member','company','contact'].includes(fd.type)){
-    let choices=fd.type==='select'?[['','Non impostato'],...fd.options]:references(fd.type==='member'?'members':fd.type==='company'?'companies':'contacts',row?.[fd.key]);
+   if(['select','choice','member','company','contact'].includes(fd.type)){
+    let choices=['select','choice'].includes(fd.type)?[['','Non impostato'],...fd.options]:references(fd.type==='member'?'members':fd.type==='company'?'companies':'contacts',row?.[fd.key]);
+    // Settore / Ruolo written before the list: kept as an option until a voice is picked.
+    if(fd.type==='choice'&&value&&!fd.options.some(([v])=>v===value))choices=[...choices,[value,value+' (da scegliere nell’elenco)']];
     if(row&&((fd.type==='company'&&entity==='companies')||(fd.type==='contact'&&entity==='contacts')))choices=choices.filter(([v])=>v!==row.id);
     const c=selectControl(fd.label,choices,value);control=c.select;wrap=c.wrap;
    }else{
@@ -400,7 +402,7 @@ $('editor-form').addEventListener('submit',event=>{
  for(const [key,value] of new FormData(event.currentTarget)){
   // Aziende e Contatti: every field of crm-fields-core.js is parsed (and checked) the same way.
   if(record&&key==='name'&&entity==='contacts'){data.name=value.trim();continue;}
-  if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
+  if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id,current:row?.[key]});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
   if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
   else if(['owner_id','assignee_id','task_assignee_id','task_due_days'].includes(key)){
    if(!value.trim())data[key]=null;

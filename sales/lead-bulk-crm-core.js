@@ -5,6 +5,7 @@
    Dedupe order: normalized email, then LinkedIn profile, then person name within the same company
    (company matched by domain, then by name without legal suffixes such as S.p.A. or S.r.l.). */
 (function(root){
+const fields=()=>root.RadixCrmFields||(typeof require==='function'?require('./crm-fields-core.js'):null);
 const str=v=>String(v??'').normalize('NFKC').trim();
 // Accents removed, letters and digits of any script kept, everything else collapsed to one space.
 const norm=s=>str(s).normalize('NFD').replace(/\p{M}/gu,'').toLocaleLowerCase('it').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
@@ -40,13 +41,13 @@ const leadKey=l=>l.email?'e:'+l.email:l.linkedin?'l:'+linkKey(l.linkedin):'n:'+p
 
 function companyPayload(l){
  const notes=[l.country&&'Paese: '+l.country,l.size&&'Dimensione: '+l.size,l.location&&'Sede: '+l.location,l.source&&'Fonte: '+l.source].filter(Boolean).join('\n');
- const d={name:(l.company||l.domain).slice(0,200)};if(l.domain)d.website='https://'+l.domain;if(l.industry)d.industry=l.industry.slice(0,120);if(notes)d.notes='Importata da Lead Intelligence\n'+notes.slice(0,3900);
+ const d={name:(l.company||l.domain).slice(0,200)};if(l.domain)d.website='https://'+l.domain;if(l.industry){const F=fields();d.industry=F?(F.classify('companies','industry',l.industry)||'Altro'):l.industry.slice(0,120)}if(notes)d.notes='Importata da Lead Intelligence\n'+notes.slice(0,3900);
  return d;
 }
 function contactPayload(l,segment){
  const notes=[l.source&&'Fonte: '+l.source,l.location&&'Sede: '+l.location,segment&&'Segmento: '+segment,l.rawEmail&&!l.email&&'Email non valida nel file: '+l.rawEmail].filter(Boolean).join('\n');
  const d={name:l.name.slice(0,200)};if(l.email)d.email=l.email;const ph=l.phone.replace(/[\u0000-\u001f\u007f]/g,'');if(ph&&ph.length<=40)d.phone=ph;
- if(l.role)d.role=l.role.slice(0,120);if(l.linkedin)d.linkedin_url=l.linkedin;if(notes)d.notes=('Importato da Lead Intelligence\n'+notes).slice(0,4000);
+ if(l.role){const F=fields(),v=F&&F.classify('contacts','role',l.role);if(!F)d.role=l.role.slice(0,120);else{d.title=l.role.slice(0,120);if(v)d.role=v}}if(l.linkedin)d.linkedin_url=l.linkedin;if(notes)d.notes=('Importato da Lead Intelligence\n'+notes).slice(0,4000);
  return d;
 }
 const dealTitle=l=>(l.name&&(l.company||l.domain)?l.name+' · '+(l.company||l.domain):l.name||l.company||l.domain).slice(0,200);
