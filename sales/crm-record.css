@@ -25,7 +25,8 @@
 }
 
 /* ---------- Scheda del record (crm-record.js) ---------- */
-.crm-rec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin:6px 0 18px}
+/* align-items:start: the Riepilogo AI panel keeps its own height (no empty box beside the composer). */
+.crm-rec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin:6px 0 18px;align-items:start}
 .crm-rec>section{background:var(--crx-surface);border:1px solid var(--crx-border);border-radius:14px;box-shadow:var(--crx-shadow);padding:16px 18px;min-width:0;color:var(--crx-text)}
 .crm-rec h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--crx-heading)}
 .crm-rec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
@@ -72,3 +73,5 @@
 .pv-onboard-mark.ok{background:var(--crx-accent-strong);border-color:var(--crx-accent-strong);color:var(--crx-accent-ink);font-weight:700}
 .pv-onboard-go{font-size:12px;color:var(--crx-link);white-space:nowrap}
 .pv-onboard-state{font-size:11px;color:var(--crx-faint)}
+.pv-onboard-show{margin:0;font-size:12px}
+.pv-onboard-show button{min-height:30px;padding:4px 0;background:none;border:0;color:var(--crx-link);text-decoration:underline;font-size:12px;cursor:pointer}

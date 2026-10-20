@@ -4,8 +4,9 @@
    The card can be hidden per user and workspace (browser storage, see storageKey). */
 (function(root){
 const list=v=>Array.isArray(v)?v:[];
-// Campaign emails are recorded by sales/crm-campaigns.js as «Email: <oggetto>».
-const CAMPAIGN=/^Email: /;
+// Campaign emails are recorded by sales/crm-campaigns.js as «Email: <oggetto>» and by the
+// Lead Intelligence newsletter (sales/lead-newsletter.js) as «Newsletter: <oggetto>».
+const CAMPAIGN=/^(?:Email|Newsletter): /;
 function steps(d){
  const x=d||{};
  const processes=list(x.processes),stages=list(x.stages);
@@ -16,7 +17,7 @@ function steps(d){
   {id:'contact',label:'Aggiungi il primo contatto',hint:'La persona di riferimento in azienda.',done:list(x.contacts).length>0,href:'#contacts'},
   {id:'opportunity',label:'Apri la prima opportunità',hint:'Una trattativa con importo e fase.',done:list(x.opportunities).length>0,href:'#opportunities'},
   {id:'lead',label:'Porta il primo lead nel CRM',hint:'Da Lead Intelligence, con «Porta nel CRM».',done:list(x.leads).length>0,href:'/lead-intelligence.html'},
-  {id:'campaign',label:'Invia la prima campagna email',hint:'Da Contatti › Sequenze e campagne email.',done:list(x.interactions).some(i=>i&&i.kind==='email'&&CAMPAIGN.test(String(i.title||''))),href:'#contacts'}
+  {id:'campaign',label:'Invia la prima campagna email',hint:'Da Contatti › Sequenze e campagne email, o dalla Newsletter.',done:list(x.interactions).some(i=>i&&i.kind==='email'&&CAMPAIGN.test(String(i.title||''))),href:'#contacts'}
  ];
 }
 function progress(s){const done=s.filter(x=>x.done).length;return {done,total:s.length,complete:done===s.length};}
