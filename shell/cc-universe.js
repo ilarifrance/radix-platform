@@ -1,17 +1,17 @@
 // Command Center design layer (command-center-universo + layout mockups):
-// 1) the overview of the network view: RADIX CORE and each project as an elliptical cluster with its named satellites
-//    (the CRM planets live in Sales Orbit);
+// 1) the overview of the network view: RADIX as a green nucleus of particles, each project a nucleus of particles in its
+//    own colour around it, joined by animated energy trails; each project's sections open on hover or focus;
 // 2) connected systems in the top bar, one icon per service, from /api/integrations/status (key present or not);
 // 3) projects and a RADIX CORE box in the sidebar, Rivedi on the attention rows, icons and status rings in the activity.
 // Presentation only: it adds its own layer over the map renderNetwork() draws and never changes the page's nodes or handlers.
 'use strict';
 (function () {
-  // ---- The network overview (command-center-layout-mockup / cc-mockup-francesco-2232.png): RADIX CORE at the centre and
-  // each project as a large elliptical cluster: the project in the middle with its orchestrator (or where its flow stands)
-  // underneath, and around it named satellites from its own data only: the steps of its project flow, coloured by state,
-  // and the agents it has used, named by function. Inside a project the page's own map comes back: a click on a project or
-  // a satellite clicks the project's hub. Projects, colours and own workflows come from the map renderNetwork() just drew;
-  // the flow and the agents from /api/workspace?resource=projects&journey=1.
+  // ---- The network overview: RADIX at the centre as a nucleus of green particles and each project as a smaller nucleus in
+  // its own colour at an organic position around it, with its name and where its flow stands underneath. Its sections
+  // (the steps of its project flow coloured by state, the agents it has used by function, its own workflows) open in a
+  // small panel on hover or focus. Inside a project the page's own map comes back: a click on a project or a section clicks
+  // the project's hub. Projects, colours and own workflows come from the map renderNetwork() just drew; the flow and the
+  // agents from /api/workspace?resource=projects&journey=1.
   var svg = document.getElementById('networkSvg'), stage = document.getElementById('networkStage');
   var AGENT_NAMES = { 'marketing-orchestrator': 'Orchestratore Marketing', 'brand-strategist': 'Stratega di Marca', strategist: 'Digital Strategist', copywriter: 'Copywriter', 'art-director': 'Art Director', 'ai-specialist': 'AI Specialist', 'social-media-manager': 'Social Media Manager', 'seo-geo': 'SEO e GEO', 'web-content': 'Content e UX Writer', 'video-producer': 'Video Producer', 'paid-media': 'Paid Media', analytics: 'Analytics e CRO', orchestrator: 'Pipeline post', partner: 'Orchestratore Studio', 'commercialista-senior': 'Commercialista Senior', 'commercialista-operativo': 'Commercialista Operativo', contabilita: 'Contabilità', 'lavoro-paghe': 'Lavoro e Paghe', 'segreteria-studio': 'Segreteria', 'web-developer': 'Web Developer', 'legal-orchestrator': 'Orchestratore Legale', 'legal-gdpr': 'Privacy e GDPR', 'legal-contracts': 'Contratti e IP', 'legal-banking': 'Diritto Bancario', 'legal-risk-analyst': 'Rischio Legale', 'comm-orchestrator': 'Orchestratore Commerciale', 'comm-market-analyst': 'Analista di Mercato', 'comm-contact-finder': 'Ricerca Contatti', 'comm-email-outreach': 'Email Outreach', 'comm-crm-manager': 'CRM e Sales Ops' };
   // the function an agent covers, as the satellite label (the mockup's Research, Content, Strategy…)
@@ -37,8 +37,32 @@
     return (started ? 'Prossimo · ' : 'Da avviare · ') + next.label;
   }
 
+  // The overview is a particle field on black: RADIX is a green nucleus of dots at the centre, each project a smaller nucleus
+  // of dots in its own colour at an organic position around it, and luminous trails carry energy between the two (outwards
+  // and back, brighter where the project is active). Canvas 2D only; the names stay real buttons over the canvas, and the
+  // sections that used to orbit each project (brief, piano, incarichi, agenti, workflow) open on hover or focus.
   var MAX = 8, world = null, cv = null, ctx = null, nodes = null, W = 0, H = 0, dpr = 1, core = null, items = [], small = false, stars = [];
-  var reduce = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var raf = 0, clock = 0, lastStamp = 0, inView = true, sprites = {}, legendHtml = null;
+  var reduce = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: function () {} };
+  var CORE_GREEN = '#2dffa8';
+  // a distinct hue for every project: its own map colour first, the next free one when two projects would share it
+  var HUES = ['#4aa8ff', '#a27bff', '#f5b544', '#ff6f91', '#3fd8ff', '#d4f25a', '#ff8f4a', '#f07bf0', '#7f86ff', '#ffe066', '#e8eef0'];
+  var assigned = {};
+  function distinctColors(list) {
+    var used = ['#23e69b', '#3ff0b0', '#1ef28f', '#36edbd', '#2dffa8'], out = {}; // RADIX keeps the green
+    function rgb(c) { var n = parseInt(c.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
+    function gap(c) { var a = rgb(c); return used.reduce(function (m, u) { var b = rgb(u); return Math.min(m, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])); }, 1e9); }
+    function taken(c) { return gap(c) < 50; }
+    // keep every map colour that is free first, then give the clashing ones the next free hue
+    var keep = list.map(function (p) { var c = String(p.color || '').toLowerCase(); if (!/^#[0-9a-f]{6}$/.test(c) || taken(c)) return null; used.push(c); return c; });
+    list.forEach(function (p, i) {
+      var c = keep[i];
+      // the next free hue, or the one farthest from every colour already on the map
+      if (!c) { c = HUES.find(function (h) { return !taken(h); }) || HUES.reduce(function (best, h) { return gap(h) > gap(best) ? h : best; }, HUES[0]); used.push(c); }
+      out[p.name.trim()] = c; p.color = c;
+    });
+    assigned = out;
+  }
   function atRoot() {
     var crumb = document.getElementById('networkBreadcrumb');
     return !!svg.querySelector('.project-hub[data-network-type=project]') && !(crumb && crumb.querySelector('[data-level=project],[data-level=workflow]'));
@@ -47,107 +71,182 @@
     var clusters = svg.querySelectorAll('.network-cluster'), out = [];
     svg.querySelectorAll('.project-hub[data-network-type=project]').forEach(function (h, i) {
       var name = (h.getAttribute('aria-label') || '').split(' · ')[0], wf = [];
-      if (clusters[i]) clusters[i].querySelectorAll('.scene-satellite').forEach(function (s) { var l = (s.getAttribute('aria-label') || '').split(' · ')[0].trim(); if (l) wf.push(l); });
+      if (clusters[i]) clusters[i].querySelectorAll('.scene-satellite').forEach(function (s) {
+        var parts = (s.getAttribute('aria-label') || '').split(' · '), l = (parts[0] || '').trim(), st = /stato salvato: (\w+)/.exec(s.getAttribute('aria-label') || '');
+        if (l) wf.push({ label: l, status: st ? st[1] : '' });
+      });
       out.push({ hub: h, name: name, color: (h.style.getPropertyValue('--node-color') || '#36edbd').trim(), wf: wf });
     });
     return out;
   }
-  // Two rows of clusters, above and below the core (2 + 2 as in the mockup, up to 4 + 4); on a phone one column.
+  // seeded random: the same project keeps the same shape and position between renders
+  function seeded(text) { var s = 7; for (var i = 0; i < text.length; i++) s = (s * 31 + text.charCodeAt(i)) % 2147483647; s = s || 11; return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+  // A nucleus as a cloud of 3D points: a dense ball, a thin bright shell and (for RADIX) a tilted ring of dust.
+  function cloud(count, rnd, ring) {
+    var pts = new Float32Array(count * 5);
+    for (var k = 0; k < count; k++) {
+      var u = rnd(), v = rnd(), th = 2 * Math.PI * u, ph = Math.acos(2 * v - 1), kind = rnd(), rad, x, y, z;
+      if (ring && kind < .2) { var a = rnd() * Math.PI * 2; rad = 1.32 + rnd() * .34; x = Math.cos(a) * rad; z = Math.sin(a) * rad; y = (rnd() - .5) * .06; }
+      else {
+        rad = kind < .42 ? .96 + rnd() * .08 : Math.pow(rnd(), .62) * .95;
+        x = rad * Math.sin(ph) * Math.cos(th); y = rad * Math.cos(ph); z = rad * Math.sin(ph) * Math.sin(th);
+      }
+      pts[k * 5] = x; pts[k * 5 + 1] = y; pts[k * 5 + 2] = z; pts[k * 5 + 3] = .55 + rnd() * .9; pts[k * 5 + 4] = rnd() * 6.283;
+    }
+    return pts;
+  }
   function size() {
-    if (!cv) return; var r = stage.getBoundingClientRect(), z = stage.offsetWidth ? r.width / stage.offsetWidth : 1;
-    W = stage.offsetWidth; H = stage.offsetHeight; dpr = Math.min(2, (window.devicePixelRatio || 1) * z);
+    if (!cv || !world || world.hidden) return;
+    var r = stage.getBoundingClientRect(), z = stage.offsetWidth ? r.width / stage.offsetWidth : 1;
+    W = stage.offsetWidth; H = stage.offsetHeight; if (!W || !H) return;
+    dpr = Math.min(2, (window.devicePixelRatio || 1) * z);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     small = W < 640; world.classList.toggle('cc-small', small);
-    var s = 11, rnd = function () { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    stars = []; for (var k = 0; k < Math.round(W * H / 2200); k++) stars.push([rnd() * W, rnd() * H, rnd() * 1.1 + .3, rnd()]);
+    var rs = seeded('stars' + W + 'x' + H);
+    stars = []; for (var k = 0; k < Math.round(W * H / 5200); k++) stars.push([rs() * W, rs() * H, rs() * .9 + .3, rs()]);
+    var base = Math.min(W, H), bottom = small ? 14 : 58, top = small ? 14 : 16;
+    var R = Math.max(small ? 44 : 52, Math.min(base * (small ? .14 : .135), 84));
+    core = { cx: W / 2, cy: small ? H * .5 : top + (H - top - bottom) / 2, R: R };
+    var capEl = nodes.querySelector('.cc-core-label'), capH = capEl ? capEl.offsetHeight : 36;
     var n = items.length;
-    if (small) {
-      core = { cx: W / 2, cy: 64, R: 42 };
-      var rh = (H - 130) / Math.max(1, n);
-      items.forEach(function (it, i) { it.x = W / 2; it.y = 130 + rh * (i + .5); it.rx = Math.min(W * .42, 170); it.ry = Math.min(rh * .42, 62); });
-    } else {
-      var top = Math.ceil(n / 2), bottom = n - top, padY = 10, rowH = (H - padY - 48) / 2;
-      // with three or four clusters in a row there is no room for names: dots only, named in their tooltip
-      world.classList.toggle('cc-dense', W / Math.max(top, 2) < 260);
-      core = { cx: W / 2, cy: H / 2, R: Math.max(46, Math.min(W * .065, H * .12)) };
-      items.forEach(function (it, i) {
-        var up = i < top, m = up ? top : bottom, k = up ? i : i - top, colW = W / Math.max(m, 2);
-        // two per row sit left and right of the core; more spread across the row
-        it.x = m <= 2 ? (m === 1 ? W * (up ? .27 : .73) : W * (k ? .76 : .24)) : colW * (k + .5);
-        it.y = padY + rowH * (up ? .5 : 1.5);
-        it.rx = Math.min(m <= 2 ? W * .2 : colW * .46, 190); it.ry = Math.min(rowH * .44, 105);
-      });
+    items.forEach(function (it, i) {
+      it.r = Math.round(Math.max(small ? 20 : 22, Math.min(base * (small ? .065 : .056), 36)) * (.82 + .3 * it.level));
+      it.lw = it.label.offsetWidth; it.lh = it.label.offsetHeight;
+      // evenly spread angles with a seeded swing and alternating depths: organic, never a grid
+      var rnd = seeded(it.name), step = 2 * Math.PI / Math.max(n, 1);
+      var angle = -Math.PI / 2 + (n === 2 ? Math.PI / 2 : .42) + i * step + (rnd() - .5) * step * .32;
+      var depth = n <= 3 ? .9 : [.94, .74, .88, .7, .97, .78, .9, .72][i % 8];
+      var ex = W / 2 - Math.max(it.lw / 2, it.r) - 12, ey = (H - top - bottom) / 2 - it.r - it.lh / 2 - 8;
+      it.x = core.cx + Math.cos(angle) * ex * depth; it.y = core.cy + Math.sin(angle) * ey * depth;
+      // above the core the trail arrives from below: the name goes over the nucleus so the trail never crosses it
+      it.up = Math.sin(angle) < -.45;
+      if (small) {
+        // a phone is tall and narrow: half the projects above RADIX and half below, alternating sides with a little swing
+        var upper = Math.ceil(n / 2), mine = i < upper, k = mine ? i : i - upper, rows = mine ? upper : n - upper;
+        var y0 = mine ? top : core.cy + R + 30, y1 = mine ? core.cy - R * 1.1 : H - bottom, span = (y1 - y0) / Math.max(rows, 1);
+        it.up = mine; it.x = W * ((k + (mine ? 0 : 1)) % 2 ? .7 : .3) + (rnd() - .5) * W * .08;
+        it.y = mine ? y0 + span * (k + 1) - it.r - 6 : y0 + span * k + it.r + 6;
+      }
+      it.el.classList.toggle('cc-up', it.up);
+    });
+    // Separate everything that could touch: the RADIX nucleus with its name, each project's nucleus with its label.
+    function box(it) { var hw = Math.max(it.r + 6, it.lw / 2 + 8); return { l: it.x - hw, r: it.x + hw, t: it.y - it.r - (it.up ? 8 + it.lh : 6), b: it.y + it.r + (it.up ? 6 : 8 + it.lh) }; }
+    var coreBox = { l: core.cx - R * 1.95, r: core.cx + R * 1.95, t: core.cy - R * 1.12, b: core.cy + R + 12 + capH };
+    function clamp(it) {
+      var hw = Math.max(it.r + 6, it.lw / 2 + 8);
+      it.x = Math.min(W - hw - 4, Math.max(hw + 4, it.x));
+      it.y = it.up ? Math.min(H - bottom - it.r - 6, Math.max(top + it.r + 8 + it.lh, it.y)) : Math.min(H - bottom - it.r - 8 - it.lh, Math.max(top + it.r + 6, it.y));
     }
+    for (var pass = 0; pass < 160; pass++) {
+      var moved = false;
+      for (var a = 0; a < n; a++) {
+        var A = items[a];
+        for (var b = -1; b < n; b++) {
+          if (b === a) continue;
+          var B = b < 0 ? null : items[b], ba = box(A), bb = B ? box(B) : coreBox;
+          var ox = Math.min(ba.r, bb.r) - Math.max(ba.l, bb.l) + 10, oy = Math.min(ba.b, bb.b) - Math.max(ba.t, bb.t) + 10;
+          if (ox <= 0 || oy <= 0) continue;
+          moved = true;
+          var share = B ? .5 : 1, dirx = (ba.l + ba.r) / 2 >= (bb.l + bb.r) / 2 ? 1 : -1, diry = (ba.t + ba.b) / 2 >= (bb.t + bb.b) / 2 ? 1 : -1;
+          // slide along the cheaper axis, a little along the other so crowded rows can open up
+          if (ox < oy) { A.x += dirx * ox * share; if (B) B.x -= dirx * ox * share; A.y += diry * 1.5; if (B) B.y -= diry * 1.5; }
+          else { A.y += diry * oy * share; if (B) B.y -= diry * oy * share; A.x += dirx * 1.5; if (B) B.x -= dirx * 1.5; }
+          clamp(A); if (B) clamp(B);
+        }
+      }
+      if (!moved) break;
+    }
+    var rc = seeded('radix'), coreCount = small ? 460 : 620;
+    core.pts = cloud(coreCount, rc, true);
+    items.forEach(function (it, i) {
+      var rnd = seeded(it.name + '#');
+      it.pts = cloud(Math.round((small ? .75 : 1) * (150 + 100 * it.level)), rnd, false);
+      it.spin = (.00008 + rnd() * .00008) * (i % 2 ? -1 : 1); it.tilt = (rnd() - .5) * .9;
+      it.bend = (i % 2 ? 1 : -1) * (.16 + rnd() * .1);
+      var flows = Math.round((small ? .7 : 1) * (it.active ? 34 : 14)); it.flow = [];
+      for (var f = 0; f < flows; f++) it.flow.push({ u: rnd(), v: (it.active ? .07 : .045) + rnd() * .04, back: rnd() < .3, w: (rnd() - .5) * 2, ph: rnd() * 6.283, s: .7 + rnd() * .7 });
+    });
     layout();
+    paintOnce();
   }
   function layout() {
     if (!core) return;
     items.forEach(function (it) {
-      it.el.style.left = it.x + 'px'; it.el.style.top = it.y + 'px';
-      var n = it.sats.length, srx = it.rx * .62, sry = it.ry * .66;
-      it.sats.forEach(function (s, k) {
-        // spread over the upper arc, from left to right, leaving the bottom to the project's name
-        var a = (168 + k * (204 / Math.max(n - 1, 1))) * Math.PI / 180;
-        if (n === 1) a = -Math.PI / 2;
-        s.x = it.x + Math.cos(a) * srx; s.y = it.y + Math.sin(a) * sry; s.a = a;
-        s.el.style.left = s.x + 'px'; s.el.style.top = s.y + 'px';
-        s.el.classList.remove('cc-left', 'cc-up'); s.el.style.marginLeft = '';
-        if (Math.abs(Math.cos(a)) <= .2) s.el.classList.add('cc-up'); else if (Math.cos(a) < 0) s.el.classList.add('cc-left');
-        // a label that would leave the map goes above its dot instead, kept inside
-        var w = s.el.offsetWidth;
-        if ((Math.cos(a) < -.2 && s.x - w < 2) || (Math.cos(a) > .2 && s.x + w > W - 2)) {
-          s.el.classList.remove('cc-left'); s.el.classList.add('cc-up');
-          var half = s.el.offsetWidth / 2, shift = Math.min(0, W - 2 - (s.x + half)) + Math.max(0, 2 - (s.x - half));
-          if (shift) s.el.style.marginLeft = shift + 'px';
-        }
-      });
+      it.el.style.setProperty('--r', it.r + 'px');
+      it.hub.style.left = it.x + 'px'; it.hub.style.top = (it.up ? it.y + it.r - it.hub.offsetHeight : it.y - it.r) + 'px';
+      // the sections panel sits under the name, or over the nucleus when it would leave the map
+      var tw = it.tip.offsetWidth, th = it.tip.offsetHeight, ty;
+      if (it.up) { ty = it.y - it.r - it.lh - 10 - th; if (ty < 6) ty = it.y + it.r + 10; }
+      else { ty = it.y + it.r + it.lh + 10; if (ty + th > H - 6) ty = Math.max(6, it.y - it.r - th - 10); }
+      it.tip.style.left = Math.min(W - tw - 6, Math.max(6, it.x - tw / 2)) + 'px'; it.tip.style.top = ty + 'px';
     });
-    var cap = nodes.querySelector('.cc-core-label'); if (cap) { cap.style.left = core.cx + 'px'; cap.style.top = core.cy + 'px'; }
-    var more = nodes.querySelector('.cc-more'); if (more) { more.style.left = core.cx + 'px'; more.style.top = (core.cy + core.R + 26) + 'px'; }
+    var cap = nodes.querySelector('.cc-core-label'); if (cap) { cap.style.left = core.cx + 'px'; cap.style.top = (core.cy + core.R + 12) + 'px'; }
+    var more = nodes.querySelector('.cc-more'); if (more) { more.style.left = core.cx + 'px'; more.style.top = (core.cy + core.R + 58) + 'px'; }
+  }
+  function satList(p, j, agents) {
+    var list = [];
+    ((j && j.steps) || []).forEach(function (s) { if (STEP_SHORT[s.id]) list.push({ label: STEP_SHORT[s.id], kind: 'step-' + s.state, title: s.label + (s.detail ? ' · ' + s.detail : '') }); });
+    agents.forEach(function (a) { list.push({ label: AGENT_FN[a] || agentName(a), kind: 'agent', title: 'Agente · ' + agentName(a) }); });
+    if (!agents.length && j) list.push({ label: 'Agenti AI', kind: 'step-todo', title: 'Agenti AI · nessuna conversazione' });
+    p.wf.forEach(function (w) { list.push({ label: w.label, kind: 'wf', title: 'Workflow · ' + w.label + (w.status ? ' · ' + w.status : '') }); });
+    return list;
   }
   function build() {
     if (!svg || !stage) return;
     var on = atRoot();
     stage.classList.toggle('cc-world-on', on);
-    if (!on) { if (world) world.hidden = true; return; }
+    legend(on);
+    if (!on) { if (world) world.hidden = true; stop(); return; }
     if (!world) {
       world = node('div', 'cc-world'); cv = node('canvas', 'cc-world-sky'); cv.setAttribute('aria-hidden', 'true');
       nodes = node('div', 'cc-world-nodes'); world.append(cv, nodes); stage.append(world);
       ctx = cv.getContext('2d');
-      if (window.ResizeObserver) new ResizeObserver(size).observe(stage);
-      requestAnimationFrame(loop);
+      if (window.ResizeObserver) new ResizeObserver(function () { size(); }).observe(stage);
+      if (window.IntersectionObserver) new IntersectionObserver(function (e) { inView = e[0].isIntersecting; schedule(); }).observe(stage);
+      document.addEventListener('visibilitychange', function () { lastStamp = 0; schedule(); });
+      var pref = function () { stop(); paintOnce(); schedule(); };
+      if (reduce.addEventListener) reduce.addEventListener('change', pref);
     }
     world.hidden = false; nodes.replaceChildren();
     var cap = node('div', 'cc-core-label'); cap.append(node('b', '', 'RADIX'), node('small', '', 'CORE')); nodes.append(cap);
-    var all = mapProjects();
-    items = all.slice(0, MAX).map(function (p) {
+    var all = mapProjects(); distinctColors(all);
+    var caption = document.getElementById('networkCaption');
+    if (caption) caption.textContent = all.length + (all.length === 1 ? ' progetto' : ' progetti') + ' · passa sopra un nucleo per le sue sezioni';
+    var shown = all.slice(0, MAX);
+    items = shown.map(function (p) {
       var j = journeys[p.name.trim().toLowerCase()], agStep = j && j.steps && j.steps.find(function (s) { return s.id === 'agents'; });
       var agents = (agStep && Array.isArray(agStep.agents)) ? agStep.agents : [];
       // the dashboard's own per-project roster (most used first) and orchestrator, when the API sends them
       var sp = snap && (snap.projects || []).find(function (x) { return String(x.name || '').trim() === p.name.trim(); });
       if (sp && Array.isArray(sp.agents)) agents = sp.agents.map(function (a) { if (a.name && !AGENT_NAMES[a.id]) AGENT_NAMES[a.id] = a.name; return a.id; });
       var open = function () { p.hub.dispatchEvent(new MouseEvent('click', { bubbles: true })); };
-      var b = node('button', 'cc-hub'); b.type = 'button'; b.style.setProperty('--c', p.color);
+      var list = satList(p, j, agents);
+      // activity: steps under way or done, agents used and own workflows; active: something running or waiting on a person
+      var score = list.filter(function (s) { return s.kind !== 'step-todo'; }).length;
+      var active = list.some(function (s) { return s.kind === 'step-active' || s.kind === 'step-waiting'; }) || p.wf.some(function (w) { return /running|active|pending|error/.test(w.status); });
+      var wrap = node('div', 'cc-proj' + (active ? ' is-active' : '')); wrap.style.setProperty('--c', p.color);
+      var b = node('button', 'cc-hub'); b.type = 'button';
       var sub = sp && sp.orchestrator && sp.orchestrator.name ? sp.orchestrator.name : subtitle(j, agents), t = node('span', 'cc-hub-t'); t.append(node('b', '', p.name), node('small', '', sub));
-      b.append(node('i'), t); b.setAttribute('aria-label', 'Apri il progetto ' + p.name + ' · ' + sub);
-      b.addEventListener('click', open); nodes.append(b);
-      // satellites: the flow steps (state as colour) then the agents used (by function), then the project's own workflows
-      var list = [];
-      ((j && j.steps) || []).forEach(function (s) { if (STEP_SHORT[s.id]) list.push({ label: STEP_SHORT[s.id], kind: 'step-' + s.state, title: s.label + ' · ' + s.detail }); });
-      agents.forEach(function (a) { list.push({ label: AGENT_FN[a] || agentName(a), kind: 'agent', title: 'Agente · ' + agentName(a) }); });
-      if (!agents.length && j) list.push({ label: 'Agenti AI', kind: 'step-todo', title: 'Agenti AI · nessuna conversazione' });
-      p.wf.forEach(function (w) { list.push({ label: w, kind: 'wf', title: 'Workflow · ' + w }); });
-      if (list.length > 6) { var rest = list.splice(5); list.push({ label: '+' + rest.length, kind: 'more', title: rest.map(function (r) { return r.title; }).join('\n') }); }
-      var sats = list.map(function (s) {
-        var e = node('button', 'cc-sat cc-sat-' + s.kind); e.type = 'button'; e.tabIndex = -1; e.style.setProperty('--c', p.color); e.title = s.title;
-        e.append(node('i'), node('span', '', s.label)); e.addEventListener('click', open); nodes.append(e);
-        return { el: e, kind: s.kind };
+      b.append(node('i'), t); b.setAttribute('aria-label', 'Apri il progetto ' + p.name + ' · ' + sub + (active ? ' · attività in corso' : ''));
+      b.addEventListener('click', open);
+      var tip = node('div', 'cc-tip'); tip.setAttribute('role', 'group'); tip.setAttribute('aria-label', 'Sezioni di ' + p.name);
+      var head = node('div', 'cc-tip-head'); head.append(node('b', '', p.name), node('small', '', active ? 'Attività in corso' : 'Stato salvato')); tip.append(head);
+      var chips = node('div', 'cc-tip-list');
+      if (!list.length) chips.append(node('span', 'cc-tip-empty', 'Nessuna sezione avviata'));
+      list.forEach(function (s) {
+        var e = node('button', 'cc-sat cc-sat-' + s.kind); e.type = 'button'; e.title = s.title; e.setAttribute('aria-label', s.title + ' · apri il progetto ' + p.name);
+        e.append(node('i'), node('span', '', s.label)); e.addEventListener('click', open); chips.append(e);
       });
-      return { el: b, color: p.color, sats: sats };
+      tip.append(chips); wrap.append(b, tip); nodes.append(wrap);
+      var it = { el: wrap, hub: b, label: t, tip: tip, name: p.name, color: p.color, active: active, level: Math.min(1, score / 7), hot: false };
+      var hot = function (v) { return function () { it.hot = v || wrap.matches(':hover') || wrap.contains(document.activeElement); if (reduce.matches) paintOnce(); }; };
+      wrap.addEventListener('pointerenter', hot(true)); wrap.addEventListener('pointerleave', hot(false));
+      wrap.addEventListener('focusin', hot(true)); wrap.addEventListener('focusout', function () { setTimeout(hot(false)); });
+      return it;
     });
     if (all.length > MAX) {
       var m = node('button', 'cc-more'); m.type = 'button'; m.textContent = '+' + (all.length - MAX) + ' progetti';
-      m.addEventListener('click', function () { var l = Array.prototype.find.call(document.querySelectorAll('button'), function (x) { return x.textContent.trim() === 'Lista'; }); if (l) l.click(); });
+      m.addEventListener('click', function () { var l = document.getElementById('projectsTab'); if (l) l.click(); });
       nodes.append(m);
     }
     var un = svg.querySelector('.unassigned-node');
@@ -157,49 +256,92 @@
       u.addEventListener('click', function () { un.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
       nodes.append(u);
     }
-    size();
+    size(); schedule();
+  }
+  // The legend explains the particle view while it is shown; inside a project the page's own legend comes back.
+  function legend(on) {
+    var l = document.getElementById('networkLegend'); if (!l) return;
+    if (legendHtml === null) legendHtml = l.innerHTML;
+    if (on && !l.querySelector('.cc-legend')) {
+      l.replaceChildren();
+      [['cc-legend core', 'RADIX'], ['cc-legend proj', 'nucleo progetto'], ['cc-legend flow', 'scia: attività in corso']].forEach(function (r) { var s = node('span', r[0]); s.append(node('i'), document.createTextNode(r[1])); l.append(s); });
+    } else if (!on && l.querySelector('.cc-legend')) l.innerHTML = legendHtml;
   }
   function rgba(hex, a) { var h = hex.replace('#', ''); if (h.length === 3) h = h.replace(/./g, '$&$&'); var n = parseInt(h, 16); return isNaN(n) ? 'rgba(54,237,189,' + a + ')' : 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')'; }
+  // one soft glowing dot per colour, drawn once and stamped for every particle
+  function sprite(color) {
+    if (sprites[color]) return sprites[color];
+    var c = document.createElement('canvas'); c.width = c.height = 32; var g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.12, rgba(color, 1)); gr.addColorStop(.3, rgba(color, .85)); gr.addColorStop(.5, rgba(color, .22)); gr.addColorStop(1, rgba(color, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+    return (sprites[color] = c);
+  }
+  function drawNucleus(pts, cx, cy, R, color, t, spin, tilt, gain) {
+    var img = sprite(color), ca = Math.cos(t * spin), sa = Math.sin(t * spin), cb = Math.cos(tilt), sb = Math.sin(tilt), ringA = t * spin * 1.8, cr = Math.cos(ringA), sr = Math.sin(ringA);
+    var unit = Math.max(3.2, R * .085), n = pts.length / 5;
+    for (var k = 0; k < n; k++) {
+      var o = k * 5, x = pts[o], y = pts[o + 1], z = pts[o + 2], rx, rz;
+      if (x * x + z * z > 1.6) { rx = x * cr + z * sr; rz = -x * sr + z * cr; } else { rx = x * ca + z * sa; rz = -x * sa + z * ca; }
+      var ry = y * cb - rz * sb, dz = y * sb + rz * cb, near = (dz + 1.6) / 3.2;
+      var tw = .75 + .25 * Math.sin(t * .002 + pts[o + 4]);
+      ctx.globalAlpha = Math.min(1, (.3 + .7 * near) * tw * gain);
+      var s = unit * pts[o + 3] * (.7 + .5 * near);
+      ctx.drawImage(img, cx + rx * R - s / 2, cy + ry * R - s / 2, s, s);
+    }
+  }
   function frame(t) {
     if (!ctx || !core || !W) return;
-    var g = core;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
-    stars.forEach(function (s) { ctx.globalAlpha = .25 + .45 * Math.abs(Math.sin(t * .0005 + s[3] * 9)); ctx.fillStyle = s[3] > .8 ? '#9fffe0' : '#3fe8b0'; ctx.fillRect(s[0], s[1], s[2], s[2]); });
-    ctx.globalAlpha = 1;
+    var g = core, R = g.R * (1 + .018 * Math.sin(t * .0012));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    stars.forEach(function (s) { ctx.globalAlpha = .12 + .22 * Math.abs(Math.sin(t * .0004 + s[3] * 9)); ctx.fillStyle = s[3] > .85 ? '#b9ffe6' : '#5c8f80'; ctx.fillRect(s[0], s[1], s[2], s[2]); });
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'lighter';
+    var halo = ctx.createRadialGradient(g.cx, g.cy, 0, g.cx, g.cy, R * 2.6); halo.addColorStop(0, 'rgba(30,255,160,.16)'); halo.addColorStop(.4, 'rgba(30,255,160,.05)'); halo.addColorStop(1, 'rgba(30,255,160,0)');
+    ctx.fillStyle = halo; ctx.fillRect(g.cx - R * 2.6, g.cy - R * 2.6, R * 5.2, R * 5.2);
+    var green = sprite(CORE_GREEN);
     items.forEach(function (it) {
-      // the cluster: a soft field and a dashed ellipse in the project's colour
-      ctx.save(); ctx.translate(it.x, it.y); ctx.scale(1, it.ry / it.rx);
-      var fld = ctx.createRadialGradient(0, 0, 0, 0, 0, it.rx); fld.addColorStop(0, rgba(it.color, .1)); fld.addColorStop(.75, rgba(it.color, .04)); fld.addColorStop(1, rgba(it.color, 0));
-      ctx.fillStyle = fld; ctx.beginPath(); ctx.arc(0, 0, it.rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.strokeStyle = rgba(it.color, .42); ctx.lineWidth = 1; ctx.setLineDash([3, 5]); ctx.lineDashOffset = -t * .004;
-      ctx.beginPath(); ctx.ellipse(it.x, it.y, it.rx, it.ry, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-      ctx.strokeStyle = rgba(it.color, .16); ctx.beginPath(); ctx.ellipse(it.x, it.y, it.rx * .62, it.ry * .66, 0, 0, Math.PI * 2); ctx.stroke();
-      // spokes from the project to its satellites
-      it.sats.forEach(function (s) { var lg = ctx.createLinearGradient(it.x, it.y, s.x, s.y); lg.addColorStop(0, rgba(it.color, .55)); lg.addColorStop(1, rgba(it.color, .15)); ctx.strokeStyle = lg; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(it.x, it.y); ctx.lineTo(s.x, s.y); ctx.stroke(); });
-      // the beam from the core: glowing curve with a pulse running out to the project
-      if (small) return;
-      var dx = it.x - g.cx, dy = it.y - g.cy, d = Math.hypot(dx, dy) || 1, sx = g.cx + dx / d * g.R * 1.05, sy = g.cy + dy / d * g.R * 1.05, ex = it.x - dx / d * 30, ey = it.y - dy / d * 30;
-      var bend = (dx * dy < 0 ? 1 : -1) * 30, mx = (sx + ex) / 2 - dy / d * bend, my = (sy + ey) / 2 + dx / d * bend;
-      var lg = ctx.createLinearGradient(sx, sy, ex, ey); lg.addColorStop(0, 'rgba(70,255,190,.75)'); lg.addColorStop(1, rgba(it.color, .7));
-      ctx.save(); ctx.strokeStyle = lg; ctx.lineWidth = 1.6; ctx.shadowColor = '#2dffb0'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke(); ctx.restore();
-      for (var k = 0; k < 2; k++) {
-        var f = (t * .0003 + k * .5 + it.x * .001) % 1, q = 1 - f, px = q * q * sx + 2 * q * f * mx + f * f * ex, py = q * q * sy + 2 * q * f * my + f * f * ey;
-        ctx.fillStyle = '#eafff6'; ctx.shadowColor = '#2dffb0'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(px, py, 2, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;
-      }
+      // the trail: a faint curved channel from RADIX to the project, with particles of energy travelling along it
+      var dx = it.x - g.cx, dy = it.y - g.cy, d = Math.hypot(dx, dy) || 1, ux = dx / d, uy = dy / d;
+      var sx = g.cx + ux * R * 1.02, sy = g.cy + uy * R * 1.02, ex = it.x - ux * it.r * 1.08, ey = it.y - uy * it.r * 1.08;
+      var mx = (sx + ex) / 2 - uy * d * it.bend, my = (sy + ey) / 2 + ux * d * it.bend, gain = it.active ? 1 : .55;
+      if (it.hot) gain = 1.35;
+      var lg = ctx.createLinearGradient(sx, sy, ex, ey); lg.addColorStop(0, 'rgba(45,255,168,' + (.22 * gain) + ')'); lg.addColorStop(1, rgba(it.color, .22 * gain));
+      ctx.strokeStyle = lg; ctx.globalAlpha = 1;
+      ctx.lineWidth = 5; ctx.globalAlpha = .18; ctx.beginPath(); ctx.moveTo(sx, sy); ctx.quadraticCurveTo(mx, my, ex, ey); ctx.stroke();
+      ctx.lineWidth = 1; ctx.globalAlpha = .9; ctx.stroke();
+      var img = sprite(it.color), sec = t / 1000;
+      it.flow.forEach(function (p) {
+        var head = (p.u + sec * p.v) % 1;
+        for (var k = 0; k < 5; k++) {
+          var f = head - k * .014; if (f < 0) continue;
+          var u = p.back ? 1 - f : f, q = 1 - u, px = q * q * sx + 2 * q * u * mx + u * u * ex, py = q * q * sy + 2 * q * u * my + u * u * ey;
+          var wob = Math.sin(u * Math.PI) * 4 * p.w * Math.sin(t * .0016 + p.ph); px += -uy * wob; py += ux * wob;
+          var fade = Math.sin(u * Math.PI), a = fade * (1 - k / 5) * gain * .9, s = (k ? 2.6 : 4.2) * p.s;
+          ctx.globalAlpha = Math.min(1, a * (1 - u)); ctx.drawImage(green, px - s / 2, py - s / 2, s, s);
+          ctx.globalAlpha = Math.min(1, a * u); ctx.drawImage(img, px - s / 2, py - s / 2, s, s);
+        }
+      });
     });
-    // RADIX CORE: a glowing ring with rays and a slow rotating tick ring, as in the mockup
-    var R = g.R, rot = t * .00015;
-    var glow = ctx.createRadialGradient(g.cx, g.cy, R * .2, g.cx, g.cy, R * 2.2); glow.addColorStop(0, 'rgba(30,255,170,.28)'); glow.addColorStop(.45, 'rgba(30,255,170,.1)'); glow.addColorStop(1, 'rgba(30,255,170,0)');
-    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(g.cx, g.cy, R * 2.2, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(60,255,180,.18)'; ctx.lineWidth = 1;
-    for (var a = 0; a < 72; a++) { var an = a / 72 * Math.PI * 2 + rot * .5, r1 = R * 1.08, r2 = R * (1.25 + (a % 3) * .12); ctx.beginPath(); ctx.moveTo(g.cx + Math.cos(an) * r1, g.cy + Math.sin(an) * r1); ctx.lineTo(g.cx + Math.cos(an) * r2, g.cy + Math.sin(an) * r2); ctx.stroke(); }
-    var body = ctx.createRadialGradient(g.cx - R * .3, g.cy - R * .35, R * .1, g.cx, g.cy, R); body.addColorStop(0, '#0c3a2c'); body.addColorStop(.7, '#03140f'); body.addColorStop(1, '#020c09');
-    ctx.fillStyle = body; ctx.beginPath(); ctx.arc(g.cx, g.cy, R, 0, Math.PI * 2); ctx.fill();
-    ctx.save(); ctx.lineWidth = 2.4; ctx.strokeStyle = '#3dffb5'; ctx.shadowColor = '#22ffa8'; ctx.shadowBlur = 24; ctx.beginPath(); ctx.arc(g.cx, g.cy, R, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
-    ctx.strokeStyle = 'rgba(120,255,210,.55)'; ctx.lineWidth = 1; ctx.setLineDash([1, 6]); ctx.lineDashOffset = -t * .01;
-    ctx.beginPath(); ctx.arc(g.cx, g.cy, R * .86, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    // the project nuclei, then RADIX on top
+    items.forEach(function (it) {
+      var r = it.r * (it.hot ? 1.08 : 1), gl = ctx.createRadialGradient(it.x, it.y, 0, it.x, it.y, r * 2.1);
+      gl.addColorStop(0, rgba(it.color, it.active || it.hot ? .2 : .1)); gl.addColorStop(1, rgba(it.color, 0));
+      ctx.globalAlpha = 1; ctx.fillStyle = gl; ctx.fillRect(it.x - r * 2.1, it.y - r * 2.1, r * 4.2, r * 4.2);
+      drawNucleus(it.pts, it.x, it.y, r, it.color, t, it.spin, it.tilt, it.hot ? 1.25 : it.active ? 1 : .72);
+    });
+    drawNucleus(g.pts, g.cx, g.cy, R, CORE_GREEN, t, .00011, -.38, 1);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   }
-  function loop(t) { if (world && !world.hidden) frame(reduce.matches ? 0 : t); requestAnimationFrame(loop); }
+  function animating() { return !!(world && !world.hidden && !document.hidden && inView && !reduce.matches); }
+  function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; lastStamp = 0; }
+  function schedule() { if (!raf && animating()) raf = requestAnimationFrame(loop); }
+  function loop(stamp) {
+    raf = 0; if (!animating()) { lastStamp = 0; return; }
+    clock += lastStamp ? Math.min(50, stamp - lastStamp) : 0; lastStamp = stamp;
+    frame(clock); schedule();
+  }
+  // reduced motion: one still, fully formed frame (and again on resize or hover)
+  function paintOnce() { if (world && !world.hidden) frame(reduce.matches ? 4000 : clock); }
   if (svg && stage) {
     new MutationObserver(build).observe(svg, { childList: true });
     var crumb = document.getElementById('networkBreadcrumb'); if (crumb) new MutationObserver(build).observe(crumb, { childList: true, subtree: true, characterData: true });
@@ -237,6 +379,7 @@
   var COLORS = ['#3ff0b0', '#4aa8ff', '#a27bff', '#f5b544', '#ff7a9a', '#38d6e8'];
   function hubColor(name, i) {
     var hub = svg && Array.prototype.find.call(svg.querySelectorAll('.project-hub[data-network-type=project]'), function (h) { return String(h.getAttribute('aria-label') || '').split(' · ')[0].trim() === name; });
+    if (assigned[String(name || '').trim()]) return assigned[String(name || '').trim()];
     return (hub && getComputedStyle(hub).getPropertyValue('--node-color').trim()) || COLORS[i % COLORS.length];
   }
   function node(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
