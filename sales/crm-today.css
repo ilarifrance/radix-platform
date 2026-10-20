@@ -32,7 +32,7 @@ html[data-rx-view="today"] #content>aside.reminder{display:none}
 .td-sep{padding:12px 0 4px;border-top:1px solid var(--td-line);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--td-subtle)}
 .td-actions{display:flex;gap:8px}
 .td .td-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid var(--td-line-2);background:var(--td-card);color:var(--td-text);font:600 14px/1.2 var(--td-font);text-decoration:none;flex:none;white-space:nowrap}
-.td .td-log{flex:1 1 auto}
+.td .td-log{flex:1 1 auto;min-width:0}
 .td .td-btn:hover{border-color:var(--td-accent);color:var(--td-accent)}
 .td .td-call{border-color:var(--td-accent-line);background:var(--td-accent-soft);color:var(--td-accent)}
 .td .td-call::before{content:"";width:16px;height:16px;margin-right:6px;background:currentColor;-webkit-mask:url(/sales/icons/phone.svg) center/contain no-repeat;mask:url(/sales/icons/phone.svg) center/contain no-repeat}
@@ -63,6 +63,7 @@ dialog.td-sheet h2{margin:0 0 4px;font-size:20px}
 .td-sheet textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--td-line-2);resize:vertical}
 .td-sheet .td-ask{font-size:15px;margin:4px 0 8px}
 .td-sheet .muted{font-size:12.5px;margin:10px 0 0}
+@media (max-width:420px){.td .td-btn{padding:8px 10px}}
 @media (max-width:340px){.td-actions{flex-wrap:wrap}}
 @media (max-width:600px){
  html[data-rx-view="today"] #content>section.rx-view>.row:first-child{margin-bottom:10px}
