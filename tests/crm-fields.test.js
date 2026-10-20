@@ -115,7 +115,7 @@ test('store: calendar dates stay YYYY-MM-DD; the export carries the added fields
 });
 
 test('migration 011: idempotent, optional columns, workspace-scoped references, versioned sales_command',()=>{
- assert.match(MIG,/^-- CRM:/);assert.match(MIG,/NOT APPLIED ANYWHERE/);assert.match(MIG,/\nBEGIN;\n/);assert.match(MIG,/\nCOMMIT;\n$/);
+ assert.match(MIG,/^-- CRM:/);assert.match(MIG,/Applied on Neon radix-preview and radix-production/);assert.match(MIG,/\nBEGIN;\n/);assert.match(MIG,/\nCOMMIT;\n$/);
  assert.ok(!/\bDROP\b|NOT NULL DEFAULT|\bUPDATE sales_(companies|contacts)\b/i.test(MIG.replace(/CREATE OR REPLACE FUNCTION[\s\S]*\$\$;/,'')),'no destructive or backfilling statements');
  for(const [table,kind] of [['sales_companies','companies'],['sales_contacts','contacts']]){
   const block=MIG.slice(MIG.indexOf('ALTER TABLE '+table),MIG.indexOf(';',MIG.indexOf('ALTER TABLE '+table)));
