@@ -119,8 +119,10 @@ test('migration 011: idempotent, optional columns, workspace-scoped references, 
  assert.ok(!/\bDROP\b|NOT NULL DEFAULT|\bUPDATE sales_(companies|contacts)\b/i.test(MIG.replace(/CREATE OR REPLACE FUNCTION[\s\S]*\$\$;/,'')),'no destructive or backfilling statements');
  for(const [table,kind] of [['sales_companies','companies'],['sales_contacts','contacts']]){
   const block=MIG.slice(MIG.indexOf('ALTER TABLE '+table),MIG.indexOf(';',MIG.indexOf('ALTER TABLE '+table)));
-  for(const k of F.ADDED[kind])assert.match(block,new RegExp('ADD COLUMN IF NOT EXISTS '+k+' '),table+'.'+k);
-  assert.equal((block.match(/ADD COLUMN IF NOT EXISTS/g)||[]).length,F.ADDED[kind].length);
+  // «division» (Dipartimento) arrives with migration 014.
+  const in011=F.ADDED[kind].filter(k=>k!=='division');
+  for(const k of in011)assert.match(block,new RegExp('ADD COLUMN IF NOT EXISTS '+k+' '),table+'.'+k);
+  assert.equal((block.match(/ADD COLUMN IF NOT EXISTS/g)||[]).length,in011.length);
  }
  assert.match(MIG,/account_type IN\('cliente','prospect','partner','fornitore','altro'\)/);assert.match(MIG,/rating IN\('calda','tiepida','fredda'\)/);
  assert.match(MIG,/annual_revenue_cents bigint CHECK\(annual_revenue_cents BETWEEN 0 AND 9000000000000000\)/);assert.match(MIG,/employees integer CHECK\(employees BETWEEN 0 AND 10000000\)/);
@@ -133,7 +135,8 @@ test('migration 011: idempotent, optional columns, workspace-scoped references, 
  // sales_command: the same allowlists as the API, the rest identical to 009.
  const fn=MIG.slice(MIG.indexOf('CREATE OR REPLACE FUNCTION sales_command'));
  const arr=k=>{const m=new RegExp("WHEN '"+k+"' THEN ARRAY\\[([^\\]]*)\\]").exec(fn);return m[1].match(/'[a-z_]+'/g).map(x=>x.slice(1,-1))};
- assert.deepEqual(arr('companies'),fields.companies);assert.deepEqual(arr('contacts'),fields.contacts);
+ const no014=a=>a.filter(k=>k!=='division');
+ assert.deepEqual(arr('companies'),no014(fields.companies));assert.deepEqual(arr('contacts'),no014(fields.contacts));
  const prev=fs.readFileSync(__dirname+'/../migrations/sales/009_crm_tickets_segments.sql','utf8');const p9=prev.slice(prev.indexOf('CREATE OR REPLACE FUNCTION sales_command'),prev.indexOf('$$;',prev.indexOf('CREATE OR REPLACE FUNCTION sales_command'))+3);
  const strip=s=>s.replace(/WHEN 'companies' THEN ARRAY\[[^\]]*\]|WHEN 'contacts' THEN ARRAY\[[^\]]*\]/g,'').replace(/\s+/g,' ');
  assert.equal(strip(fn.slice(0,fn.indexOf('$$;')+3)),strip(p9));

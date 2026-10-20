@@ -11,6 +11,7 @@ html[data-lv-companies="table"] #companies>article.card{display:none!important}
 .lv-object{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--crm-subtle)}
 select.lv-view{align-self:flex-start;appearance:auto;font:600 20px/1.25 var(--crm-font);color:var(--crm-text);background:transparent;border:1px solid transparent;border-radius:8px;padding:2px 4px;margin:0 0 0 -5px;max-width:100%;min-height:0;width:auto}
 select.lv-view:hover{border-color:var(--crm-line)}
+select.lv-division{max-width:220px}
 select.lv-view:focus-visible{outline:2px solid var(--crm-accent);outline-offset:1px}
 .lv-meta{margin:0;font-size:13px;color:var(--crm-muted)}
 .lv-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}

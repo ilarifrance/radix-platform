@@ -59,7 +59,8 @@ test('an archive without migration 011 merges on the original fields only',()=>{
 });
 test('Aziende shows the panel and applies the plan through the CRM API, one record at a time',()=>{
  const src=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');
- assert.match(src,/entity==='companies'\)\{head\.append\(ioBar\('companies'\)\);if\(window\.RadixCrmDedupe&&app\(\)\.writable\('companies'\)\)section\.append\(dedupePanel\('companies'\)\)/);
+ // Hidden under the list until «Doppioni» in the heading row opens it (and starts the search).
+ assert.match(src,/entity==='companies'\)\{const bar=ioBar\('companies'\);head\.append\(bar\);if\(window\.RadixCrmDedupe&&app\(\)\.writable\('companies'\)\)\{const dd=tuck\(dedupePanel\('companies'\)\);section\.append\(dd\);bar\.append\(B\('Doppioni',reveal\(dd,findNow\)\)\)/);
  assert.match(src,/companyMergePlan\(keep,drop,/);assert.match(src,/post\(m\.entity,'update',\{id:m\.record\.id,version:m\.record\.version,\.\.\.m\.set\}\)/);
  assert.match(src,/window\.confirm\('Unire «'\+drop\.name\+'» in «'\+keep\.name\+'»\?/);assert.match(src,/post\('companies','delete'/);
 });

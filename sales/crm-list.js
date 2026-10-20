@@ -48,7 +48,14 @@ function mount(section,kind){
  const cols=E('details',undefined,'lv-cols');const sum=E('summary','Colonne');cols.append(sum);const colList=E('div',undefined,'lv-cols-list');cols.append(colList);
  const modes=E('div',undefined,'lv-mode');modes.setAttribute('role','group');modes.setAttribute('aria-label','Visualizzazione');
  const bTable=B('Tabella',()=>switchMode('table')),bCards=B('Schede',()=>switchMode('cards'));modes.append(bCards,bTable);
- tools.append(sWrap,cols,modes);head.append(titleBox,tools);
+ // «Dipartimento»: the company or department followed; options from the loaded rows, refreshed on each draw.
+ const divSel=E('select','', 'lv-division');divSel.setAttribute('aria-label','Filtra per dipartimento · '+NAME[kind].title);
+ divSel.addEventListener('change',()=>{p.division=divSel.value;save(kind);draw()});
+ function drawDivisions(all){const list=L().divisions(all),key=JSON.stringify([list,p.division]);if(divSel.dataset.key===key)return;divSel.dataset.key=key;divSel.replaceChildren();
+  const add=(v,t)=>{const o=E('option',t);o.value=v;divSel.append(o)};add('','Tutti i dipartimenti');for(const d of list)add(d.value,d.value+' ('+d.count+')');
+  if(p.division&&p.division!==L().NONE&&!list.some(d=>L().fold(d.value)===L().fold(p.division)))add(p.division,p.division+' (0)');
+  if(list.length||p.division===L().NONE)add(L().NONE,'Senza dipartimento');divSel.value=p.division||'';divSel.hidden=p.mode!=='table'||(!list.length&&!p.division)}
+ tools.append(divSel,sWrap,cols,modes);head.append(titleBox,tools);
  const bulk=E('div',undefined,'lv-bulk');bulk.hidden=true;bulk.setAttribute('role','region');bulk.setAttribute('aria-label','Azioni sui record selezionati');
  const scroll=E('div',undefined,'lv-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Tabella '+NAME[kind].title);
  const note=E('p',undefined,'lv-note muted');
@@ -72,7 +79,8 @@ function mount(section,kind){
   // A selection handed over from Aziende («Seleziona i loro contatti») shows every contact.
   if(st[kind].pending){st[kind].selected=new Set(st[kind].pending);st[kind].pending=null;p.view='all';viewSel.value='all';st[kind].query='';search.value=''}
   st[kind].selected=L().prune(st[kind].selected,all.map(r=>r.id));
-  return {all,shown:L().apply(kind,all,{view:p.view,query:st[kind].query,sort:p.sort},now),now,d}}
+  drawDivisions(all);
+  return {all,shown:L().apply(kind,all,{view:p.view,division:p.division,query:st[kind].query,sort:p.sort},now),now,d}}
 
  function cell(kind,col,r,now){const td=E('td');td.dataset.col=col.id;
   const link=(label,href,ext)=>{const a=E('a',label);a.href=href;if(ext){a.target='_blank';a.rel='noopener noreferrer'}return a};
