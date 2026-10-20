@@ -135,7 +135,9 @@ function detailsPanel(ctx){
  const F=window.RadixCrmFields,a=app(),rec=recordOf(ctx);if(!F||!rec||!['companies','contacts'].includes(ctx.subject))return null;
  const related=e=>(ctx.rows||[]).filter(x=>x.entity===e).map(x=>x.record);
  const lists={companies:[...related('companies'),...a.rows('companies')],contacts:[...related('contacts'),...a.rows('contacts')],members:a.rows('members')};
- const groups=F.details(ctx.subject,rec,lists);if(!groups.length)return null;
+ const groups=F.details(ctx.subject,rec,lists);
+ // «Campi aggiunti» (015), when the workspace has any and the record has a value.
+ const extra=window.RadixCrmCustom?.group(ctx.subject,rec);if(extra)groups.push(extra);if(!groups.length)return null;
  const box=E('section',undefined,'crm-rec-details');box.setAttribute('aria-labelledby','crm-rec-det-title');
  const head=E('div',undefined,'crm-rec-head');const h=E('h3','Dettagli');h.id='crm-rec-det-title';head.append(h);
  if(a.writable(ctx.subject))head.append(B('Modifica',()=>a.edit(ctx.subject,rec)));

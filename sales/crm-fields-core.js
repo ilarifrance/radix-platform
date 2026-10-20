@@ -7,19 +7,64 @@
 (function(root){
 const ACCOUNT_TYPES=Object.freeze([['cliente','Cliente'],['prospect','Prospect'],['partner','Partner'],['fornitore','Fornitore'],['altro','Altro']]);
 const RATINGS=Object.freeze([['calda','Calda'],['tiepida','Tiepida'],['fredda','Fredda']]);
+/* Closed lists for Settore (companies) and Ruolo (contacts): free text made filters useless.
+   Stored as the Italian label; a value typed before the list stays until someone changes it.
+   Each entry: [label, words that point to it in a free text (imports, LinkedIn titles)]. */
+const INDUSTRY_LIST=Object.freeze([
+ ['Agricoltura e alimentare',/agricol|agri ?food|aliment|\bfood|vinicol|\bvino|\bwine|caseari|bevand|beverage|zootecn/],
+ ['Moda e tessile',/\bmoda\b|fashion|tessil|textile|abbigliament|apparel|calzatur|luxury|lusso|gioiell|jewel/],
+ ['Arredo e design',/arred|mobilifici|furniture|interior|\bdesign\b|illuminazion|lighting/],
+ ['Automotive e meccanica',/automotive|automobil|meccanic|mechanic|macchinar|machinery|componentistic/],
+ ['Chimica e farmaceutica',/chimic|chemic|farmac|pharma|cosmet|biotech|life science/],
+ ['Edilizia e immobiliare',/ediliz|costruzion|construction|immobiliar|real ?estate|building|architett/],
+ ['Energia e ambiente',/energ|ambient|environment|utilit|rifiuti|waste|rinnovabil|renewable|\boil\b|\bgas\b|fotovoltaic|solar/],
+ ['Trasporti e logistica',/trasport|transport|logistic|spedizion|shipping|freight|corrier|courier/],
+ ['Turismo, hotel e ristorazione',/turism|touris|hotel|hospitality|ristora|restaurant|travel|viagg|catering/],
+ ['Informatica e software',/informatic|software|\bit\b|\bict\b|saas|technolog|tecnolog|digital|cloud|cyber|computer|web agency/],
+ ['Telecomunicazioni e media',/telecom|\bmedia\b|editori|publishing|broadcast|\btv\b|\bradio\b|entertainment|spettacol/],
+ ['Marketing e comunicazione',/marketing|comunicazion|communication|pubblicit|advertis|\bpr\b|eventi|events/],
+ ['Banche, finanza e assicurazioni',/banc|\bbank|finanz|financ|assicura|insurance|fintech|credit|invest|leasing/],
+ ['Consulenza e servizi professionali',/consulen|consult|servizi professional|professional services|\blegal|studio |commercialist|accounting|\baudit|\blaw\b|notai|outsourc/],
+ ['Sanità e benessere',/sanit|health|medic|ospedal|hospital|clinic|benessere|wellness|fitness|dental/],
+ ['Istruzione e formazione',/istruzion|educat|formazion|training|scuol|school|universit|e-?learning/],
+ ['Pubblica amministrazione e no profit',/pubblica amministrazione|government|public sector|\bcomune\b|regione|no ?profit|non ?profit|onlus|associazion|fondazion/],
+ ['Commercio al dettaglio',/dettaglio|retail|negoz|e-?commerce|\bgdo\b|supermercat/],
+ ['Commercio all’ingrosso',/ingrosso|wholesale|distribuzion|distribution|import ?export/],
+ ['Manifattura e industria',/manifattur|manufactur|industr|produzion|fabbric|plastic|packaging|imballagg|metallurg|steel|acciai/],
+ ['Altro',null]
+]);
+const ROLE_LIST=Object.freeze([
+ ['Assistenza clienti',/customer (service|care|success|support)|assistenza|supporto client|post ?vendita|after ?sales|help ?desk/],
+ ['Titolare / CEO',/\bceo\b|titolare|\bowner\b|founder|fondat|amministratore delegato|\bpresident|\bimprenditor|\bsocio\b|chief executive/],
+ ['Direzione generale',/direttore generale|direzione generale|general manager|managing director|\bcoo\b|\bdg\b|country manager|\bmanaging partner/],
+ ['Amministrazione e finanza',/\bcfo\b|financ|finanz|amministrazion|contabil|accounting|accountant|controller|controllo di gestione|tesorer|treasur/],
+ ['Marketing e comunicazione',/marketing|\bcmo\b|comunicazion|communication|\bbrand|social media|growth|\bpr manager/],
+ ['Commerciale e vendite',/\bsales|vendit|commercial|account manager|business develop|key account|\bexport|\bagente|\bbdr\b|\bsdr\b|area manager|revenue|\bcro\b/],
+ ['Acquisti',/acquist|purchas|procurement|\bbuyer|sourcing|approvvigion/],
+ ['Risorse umane',/\bhr\b|risorse umane|human resources|\bpeople\b|recruit|talent|\bpersonale\b/],
+ ['IT e digitale',/\bcto\b|\bcio\b|\bit\b|\bict\b|informatic|software|developer|sviluppator|\bdigital|\bdata\b|sistemi informativi|devops|\btech/],
+ ['Logistica',/logistic|supply chain|magazzin|warehouse|spedizion|shipping/],
+ ['Produzione e operations',/produzion|production|operation|\bplant\b|stabiliment|manufactur/],
+ ['Qualità',/qualit|quality|\bqa\b|\bhse\b|sicurezza sul lavoro/],
+ ['Ricerca e sviluppo',/r ?& ?d|\bricerca|research|sviluppo prodott|product develop|innovazion|innovation|\bproduct manager/],
+ ['Legale',/\blegal|avvocat|lawyer|counsel|compliance|giuridic/],
+ ['Altro',null]
+]);
+const INDUSTRIES=Object.freeze(INDUSTRY_LIST.map(([l])=>Object.freeze([l,l])));
+const ROLES=Object.freeze(ROLE_LIST.map(([l])=>Object.freeze([l,l])));
 const f=(key,label,type,o)=>Object.freeze({key,label,type,...(o||{})});
 const address=(p,label)=>[f(p+'street',label||'Via e numero civico','text',{max:200,added:true}),f(p+'zip','CAP','zip',{max:20,added:true}),f(p+'city','Città','text',{max:120,added:true}),f(p+'province','Provincia','text',{max:60,added:true,hint:'Sigla, es. MI'}),f(p+'country','Paese','text',{max:60,added:true})];
 /* Sections in the order of the form and of «Dettagli». `existing` fields predate 011. */
 const SECTIONS=Object.freeze({
  companies:Object.freeze([
-  {id:'info',label:'Informazioni',fields:[f('legal_name','Ragione sociale','text',{max:200,added:true}),f('account_type','Tipo','select',{options:ACCOUNT_TYPES,added:true}),f('rating','Valutazione','select',{options:RATINGS,added:true}),f('owner_id','Responsabile','member',{added:true}),f('parent_company_id','Azienda capogruppo','company',{added:true}),f('industry','Settore','text',{max:120}),f('website','Sito web','url',{max:300}),f('email','Email','email',{max:254}),f('phone','Telefono','tel',{max:40}),f('city','Città (sede)','text',{max:120}),f('annual_revenue_cents','Fatturato annuo (€)','money',{added:true}),f('employees','Dipendenti','int',{added:true})]},
+  {id:'info',label:'Informazioni',fields:[f('division','Dipartimento','text',{max:120,added:true,suggest:true,hint:'L’azienda o il dipartimento che segui per questo cliente'}),f('legal_name','Ragione sociale','text',{max:200,added:true}),f('account_type','Tipo','select',{options:ACCOUNT_TYPES,added:true}),f('rating','Valutazione','select',{options:RATINGS,added:true}),f('owner_id','Responsabile','member',{added:true}),f('parent_company_id','Azienda capogruppo','company',{added:true}),f('industry','Settore','choice',{options:INDUSTRIES,max:120}),f('website','Sito web','url',{max:300}),f('email','Email','email',{max:254}),f('phone','Telefono','tel',{max:40}),f('city','Città (sede)','text',{max:120}),f('annual_revenue_cents','Fatturato annuo (€)','money',{added:true}),f('employees','Dipendenti','int',{added:true})]},
   {id:'billing',label:'Indirizzo di fatturazione',fields:address('billing_')},
   {id:'shipping',label:'Indirizzo di spedizione',fields:address('shipping_')},
   {id:'tax',label:'Dati fiscali',fields:[f('vat_number','Partita IVA','vat',{max:20,added:true,hint:'11 cifre, anche con IT davanti; per l’estero il numero IVA UE'}),f('tax_code','Codice fiscale','taxcode',{max:16,added:true,hint:'11 cifre o 16 caratteri'}),f('pec','PEC','email',{max:254,added:true}),f('sdi_code','Codice destinatario SDI','sdi',{max:7,added:true,hint:'7 caratteri, 6 per la PA'})]},
   {id:'other',label:'Altro',fields:[f('description','Descrizione','area',{max:4000,added:true}),f('notes','Note','area',{max:4000})]}
  ].map(Object.freeze)),
  contacts:Object.freeze([
-  {id:'info',label:'Informazioni',fields:[f('first_name','Nome','text',{max:100,added:true}),f('last_name','Cognome','text',{max:100,added:true}),f('title','Qualifica','text',{max:120,added:true}),f('role','Ruolo','text',{max:120}),f('department','Reparto','text',{max:120,added:true}),f('company_id','Azienda','company'),f('reports_to_id','Riporta a','contact',{added:true}),f('owner_id','Responsabile','member',{added:true}),f('email','Email','email',{max:254}),f('phone','Telefono','tel',{max:40}),f('mobile','Cellulare','tel',{max:40,added:true}),f('linkedin_url','Profilo LinkedIn','url',{max:300})]},
+  {id:'info',label:'Informazioni',fields:[f('first_name','Nome','text',{max:100,added:true}),f('last_name','Cognome','text',{max:100,added:true}),f('title','Qualifica','text',{max:120,added:true}),f('role','Ruolo','choice',{options:ROLES,max:120,hint:'La funzione; il titolo esatto va in Qualifica'}),f('department','Reparto','text',{max:120,added:true}),f('company_id','Azienda','company'),f('division','Dipartimento','text',{max:120,added:true,suggest:true,hint:'L’azienda o il dipartimento che segui per questo contatto'}),f('reports_to_id','Riporta a','contact',{added:true}),f('owner_id','Responsabile','member',{added:true}),f('email','Email','email',{max:254}),f('phone','Telefono','tel',{max:40}),f('mobile','Cellulare','tel',{max:40,added:true}),f('linkedin_url','Profilo LinkedIn','url',{max:300})]},
   {id:'address',label:'Indirizzo',fields:address('')},
   {id:'other',label:'Altro',fields:[f('birthdate','Data di nascita','date',{added:true}),f('lead_source','Origine del contatto','text',{max:80,added:true,hint:'Es. Fiera, Sito web, Passaparola'}),f('preferred_language','Lingua preferita','text',{max:40,added:true}),f('notes','Note','area',{max:4000})]}
  ].map(Object.freeze))
@@ -69,6 +114,8 @@ function parse(kind,key,raw,opts){
  const o=opts||{};
  switch(fd.type){
   case 'select':return fd.options.some(([v])=>v===s)?{value:s}:{error:fd.label+': valore non previsto.'};
+  // A value written before the list existed is kept as it is until someone picks a voice.
+  case 'choice':return fd.options.some(([v])=>v===s)||(o.current!=null&&s===String(o.current).trim())?{value:s}:{error:fd.label+': scegli una voce dell’elenco.'};
   case 'member':{const n=Number(s);return /^\d+$/.test(s)&&Number.isSafeInteger(n)&&n>=1&&n<=2147483647?{value:n}:{error:'Responsabile non valido.'}}
   case 'company':case 'contact':if(!UUID.test(s))return {error:fd.label+': riferimento non valido.'};if(o.selfId&&s===o.selfId)return {error:fd.key==='parent_company_id'?'Un’azienda non può essere capogruppo di sé stessa.':'Un contatto non può riportare a sé stesso.'};return {value:s};
   case 'money':{const c=euroToCents(s);return Number.isSafeInteger(c)&&c>=0&&c<=MAX_CENTS?{value:c}:{error:'Fatturato: scrivi un importo in euro, ad esempio 1.250.000.'}}
@@ -119,6 +166,14 @@ function details(kind,row,ctx,skip){
  return (SECTIONS[kind]||[]).map(s=>({id:s.id,label:s.label,items:s.fields.filter(x=>!omit.has(x.key)).map(x=>{const text=display(kind,x.key,row,ctx);return text?{key:x.key,label:x.label,text,type:x.type,ref:['company','contact'].includes(x.type)?row[x.key]:null}:null}).filter(Boolean)})).filter(s=>s.items.length);
 }
 
-const api={ACCOUNT_TYPES,RATINGS,SECTIONS,FIELDS,ADDED,MAX_CENTS,MAX_EMPLOYEES,fieldOf,supported,vat,taxCode,sdi,pivaChecksum,cfChecksum,euroToCents,centsToEuro,parse,formValue,displayName,prune,display,details};
+/* Free text («Sales Manager EMEA», «Software house») → the voice of the list, or null when no word
+   points to one. A voice written with other capitals or accents is the voice itself. */
+const plain=v=>String(v??'').normalize('NFD').replace(/\p{M}/gu,'').replace(/[’']/g,'\'').toLocaleLowerCase('it').trim();
+function classify(kind,key,text){
+ const list=kind==='companies'&&key==='industry'?INDUSTRY_LIST:kind==='contacts'&&key==='role'?ROLE_LIST:null;const t=plain(text);if(!list||!t)return null;
+ for(const [l] of list)if(plain(l)===t)return l;
+ for(const [l,re] of list)if(re&&re.test(t))return l;
+ return null}
+const api={ACCOUNT_TYPES,RATINGS,INDUSTRIES,ROLES,classify,SECTIONS,FIELDS,ADDED,MAX_CENTS,MAX_EMPLOYEES,fieldOf,supported,vat,taxCode,sdi,pivaChecksum,cfChecksum,euroToCents,centsToEuro,parse,formValue,displayName,prune,display,details};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmFields=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

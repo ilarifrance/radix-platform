@@ -19,7 +19,7 @@ const profileUrl=v=>LI&&typeof LI.profileUrl==='function'?LI.profileUrl(v):null;
    Defaults stay narrow enough for a 1280px screen without sideways scroll; the rest is in «Colonne». */
 const COLUMNS=Object.freeze({
  contacts:Object.freeze([
-  {id:'name',label:'Nome',fixed:true},{id:'company',label:'Azienda'},{id:'role',label:'Ruolo'},
+  {id:'name',label:'Nome',fixed:true},{id:'company',label:'Azienda'},{id:'division',label:'Dipartimento',hidden:true,added:true},{id:'role',label:'Ruolo'},
   {id:'email',label:'Email'},{id:'phone',label:'Telefono',hidden:true},{id:'consent',label:'Consenso marketing',short:'Consenso'},
   {id:'score',label:'Punteggio',needsScore:true},{id:'lastAt',label:'Ultimo contatto',hidden:true},
   {id:'title',label:'Qualifica',hidden:true,added:true},{id:'department',label:'Reparto',hidden:true,added:true},
@@ -27,7 +27,7 @@ const COLUMNS=Object.freeze({
   {id:'owner',label:'Responsabile',hidden:true,added:true},{id:'leadSource',label:'Origine',hidden:true,added:true},
   {id:'linkedin',label:'LinkedIn',hidden:true},{id:'createdAt',label:'Creato il',hidden:true}]),
  companies:Object.freeze([
-  {id:'name',label:'Nome',fixed:true},{id:'accountType',label:'Tipo',added:true},{id:'industry',label:'Settore'},{id:'city',label:'Città'},
+  {id:'name',label:'Nome',fixed:true},{id:'division',label:'Dipartimento',added:true},{id:'accountType',label:'Tipo',added:true},{id:'industry',label:'Settore'},{id:'city',label:'Città',hidden:true},
   {id:'phone',label:'Telefono',hidden:true},{id:'website',label:'Sito',hidden:true},{id:'contacts',label:'N. contatti',short:'Contatti'},
   {id:'openValue',label:'Opportunità aperte',short:'Opp. aperte'},{id:'lastAt',label:'Ultima attività'},
   {id:'vat',label:'P.IVA',hidden:true,added:true},{id:'legalName',label:'Ragione sociale',hidden:true,added:true},
@@ -36,6 +36,11 @@ const COLUMNS=Object.freeze({
   {id:'province',label:'Provincia',hidden:true,added:true},
   {id:'email',label:'Email',hidden:true},{id:'createdAt',label:'Creata il',hidden:true}])
 });
+/* «Campi aggiunti» (migration 015): one hidden column per field of the workspace, id «cf:<field id>».
+   setCustom() is called with the definitions; every helper below sees them through cols(). */
+const EXTRA={contacts:[],companies:[]};
+function setCustom(kind,defs){if(!EXTRA[kind])return;EXTRA[kind]=list(defs).filter(d=>d&&d.entity===kind&&d.id).map(d=>Object.freeze({id:'cf:'+d.id,label:text(d.label)||'Campo',hidden:true,custom:d.id}))}
+const cols=kind=>[...(COLUMNS[kind]||[]),...(EXTRA[kind]||[])];
 /* Saved views: fixed filters over the loaded rows. «recent» = created in the last 30 days, newest first. */
 const VIEWS=Object.freeze({
  contacts:Object.freeze([
@@ -47,7 +52,7 @@ const VIEWS=Object.freeze({
   {id:'idle',label:'Senza attività da 30 giorni',sort:{key:'lastAt',dir:'asc'}}])
 });
 const RECENT_DAYS=30,IDLE_DAYS=30;
-const SEARCH=Object.freeze({contacts:['name','company','role','email','phone','title','mobile','city'],companies:['name','industry','city','phone','website','email','legalName','vat']});
+const SEARCH=Object.freeze({contacts:['name','company','division','role','email','phone','title','mobile','city'],companies:['name','division','industry','city','phone','website','email','legalName','vat']});
 const TYPES={cliente:'Cliente',prospect:'Prospect',partner:'Partner',fornitore:'Fornitore',altro:'Altro'},RATINGS={calda:'Calda',tiepida:'Tiepida',fredda:'Fredda'};
 const num=v=>v==null||v===''||!Number.isFinite(Number(v))?null:Number(v);
 
@@ -56,6 +61,7 @@ function latest(map,key,at){if(key==null||at==null)return;const old=map.get(key)
 
 /* One row per record. data: {contacts, companies, interactions, opportunities, stages, members}; opts.score: RadixCrmScore.score.
    Rows without the 011 fields (older archive) just give empty values for those columns. */
+const customOf=c=>{const o={};const v=c&&c.custom;if(v&&typeof v==='object')for(const [k,x] of Object.entries(v))o['cf:'+k]=text(x);return o};
 function buildRows(kind,data,opts){
  const d=data||{},o=opts||{},now=o.now??Date.now();
  const members=new Map(list(d.members).map(m=>[String(m.id),text(m.name)]));const owner=id=>id==null?'':members.get(String(id))||'';
@@ -67,8 +73,8 @@ function buildRows(kind,data,opts){
   return contacts.map(c=>{const co=c.company_id?byCompany.get(c.company_id):null;const l=last.get(c.id);
    let score=null,band=null,explain='';if(typeof o.score==='function'){try{const s=o.score(c,scoreData,now);score=s.total;band=s.band;explain=typeof o.explain==='function'?o.explain(s):''}catch{score=null}}
    return {id:c.id,record:c,name:text(c.name)||'(senza nome)',company:co?text(co.name):'',companyId:c.company_id||null,companyRecord:co||null,
-    role:text(c.role),email:text(c.email),phone:text(c.phone),linkedin:text(c.linkedin_url),linkedinUrl:profileUrl(c.linkedin_url),title:text(c.title),department:text(c.department),mobile:text(c.mobile),city:text(c.city),owner:owner(c.owner_id),leadSource:text(c.lead_source),consent:!!c.marketing_consent,consentAt:c.consent_at||null,
-    score,band,explain,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
+    division:text(c.division),role:text(c.role),email:text(c.email),phone:text(c.phone),linkedin:text(c.linkedin_url),linkedinUrl:profileUrl(c.linkedin_url),title:text(c.title),department:text(c.department),mobile:text(c.mobile),city:text(c.city),owner:owner(c.owner_id),leadSource:text(c.lead_source),consent:!!c.marketing_consent,consentAt:c.consent_at||null,
+    ...customOf(c),score,band,explain,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
  }
  if(kind==='companies'){
   const people=new Map(),contactCompany=new Map();for(const c of contacts){if(!c.company_id)continue;people.set(c.company_id,(people.get(c.company_id)||0)+1);contactCompany.set(c.id,c.company_id)}
@@ -77,9 +83,9 @@ function buildRows(kind,data,opts){
   for(const i of inter){const at=ts(i.occurred_at);if(at==null||at>now+DAY)continue;const ids=new Set([i.company_id,contactCompany.get(i.contact_id),oppCompany.get(i.opportunity_id)].filter(Boolean));for(const k of ids)latest(last,k,{at,kind:i.kind||''})}
   return companies.map(c=>{const v=open.get(c.id)||{count:0,value:0};const l=last.get(c.id);
    return {id:c.id,record:c,name:text(c.name)||'(senza nome)',industry:text(c.industry),city:text(c.city)||text(c.billing_city),
-    accountType:TYPES[c.account_type]||text(c.account_type),legalName:text(c.legal_name),vat:text(c.vat_number),owner:owner(c.owner_id),rating:RATINGS[c.rating]||text(c.rating),
+    division:text(c.division),accountType:TYPES[c.account_type]||text(c.account_type),legalName:text(c.legal_name),vat:text(c.vat_number),owner:owner(c.owner_id),rating:RATINGS[c.rating]||text(c.rating),
     employees:num(c.employees),revenue:num(c.annual_revenue_cents),province:text(c.billing_province),phone:text(c.phone),website:text(c.website),email:text(c.email),
-    contacts:people.get(c.id)||0,openCount:v.count,openValue:v.value,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
+    ...customOf(c),contacts:people.get(c.id)||0,openCount:v.count,openValue:v.value,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
  }
  return [];
 }
@@ -100,7 +106,7 @@ function inView(kind,view,row,now){
  }
  return true;
 }
-function matches(kind,row,query){const q=fold(query);if(!q)return true;const keys=SEARCH[kind]||['name'];return q.split(/\s+/).every(w=>keys.some(k=>fold(row[k]).includes(w)))}
+function matches(kind,row,query){const q=fold(query);if(!q)return true;const keys=[...(SEARCH[kind]||['name']),...Object.keys(row).filter(k=>k.startsWith('cf:'))];return q.split(/\s+/).every(w=>keys.some(k=>fold(row[k]).includes(w)))}
 
 /* Sort: empty values always last; text in Italian order; ties by name. */
 const collator=typeof Intl!=='undefined'?new Intl.Collator('it',{sensitivity:'base',numeric:true}):null;
@@ -117,20 +123,26 @@ function sortRows(kind,rows,sort){
   let c=0;if(x!=null&&y!=null)c=typeof x==='number'&&typeof y==='number'?x-y:cmpText(String(x),String(y));
   return c*dir||cmpText(a.name,b.name)||String(a.id).localeCompare(String(b.id))});
 }
-function apply(kind,rows,state,now){const s=state||{};return sortRows(kind,list(rows).filter(r=>inView(kind,s.view,r,now)&&matches(kind,r,s.query)),s.sort)}
+/* «Dipartimento» filter: '' = all, NONE = records without one, else the exact value (case and accents ignored). */
+const NONE='__none__';
+const inDivision=(row,division)=>!division||(division===NONE?!row.division:fold(row.division)===fold(division));
+/* Values for the filter: the Dipartimenti used in the given rows, with how many records each. */
+function divisions(rows){const m=new Map();for(const r of list(rows)){const v=text(r.division);if(!v)continue;const k=fold(v);const e=m.get(k)||{value:v,count:0};e.count++;m.set(k,e)}return [...m.values()].sort((a,b)=>cmpText(a.value,b.value))}
+function apply(kind,rows,state,now){const s=state||{};return sortRows(kind,list(rows).filter(r=>inView(kind,s.view,r,now)&&inDivision(r,s.division)&&matches(kind,r,s.query)),s.sort)}
 
 /* Preferences saved per workspace (localStorage in the page): only known values survive. */
 const storageKey=(workspace,kind)=>'radix-crm-list:'+String(workspace||'')+':'+kind;
 // opts.score false: no score column; opts.added false: the archive has no 011 fields, so no such columns.
-function columnsFor(kind,opts){return (COLUMNS[kind]||[]).filter(c=>!(c.needsScore&&opts&&opts.score===false)&&!(c.added&&opts&&opts.added===false))}
-function defaults(kind){const cols=COLUMNS[kind]||[];return {view:'all',mode:'table',columns:cols.filter(c=>!c.hidden).map(c=>c.id),sort:{key:'name',dir:'asc'}}}
+function columnsFor(kind,opts){return cols(kind).filter(c=>!(c.needsScore&&opts&&opts.score===false)&&!(c.added&&opts&&opts.added===false))}
+function defaults(kind){const cols=COLUMNS[kind]||[];return {view:'all',division:'',mode:'table',columns:cols.filter(c=>!c.hidden).map(c=>c.id),sort:{key:'name',dir:'asc'}}}
 function normalize(kind,saved){
  const def=defaults(kind);if(!saved||typeof saved!=='object')return def;
- const cols=COLUMNS[kind]||[],ids=new Set(cols.map(c=>c.id)),views=(VIEWS[kind]||[]).map(v=>v.id);
+ const all=cols(kind),ids=new Set(all.map(c=>c.id)),views=(VIEWS[kind]||[]).map(v=>v.id);
  const out={...def};
  if(views.includes(saved.view))out.view=saved.view;
  if(saved.mode==='cards'||saved.mode==='table')out.mode=saved.mode;
- if(Array.isArray(saved.columns)){const chosen=cols.filter(c=>c.fixed||saved.columns.includes(c.id)).map(c=>c.id);if(chosen.length)out.columns=chosen}
+ if(typeof saved.division==='string'&&saved.division.length<=120)out.division=saved.division;
+ if(Array.isArray(saved.columns)){const chosen=all.filter(c=>c.fixed||saved.columns.includes(c.id)).map(c=>c.id);if(chosen.length)out.columns=chosen}
  if(saved.sort&&ids.has(saved.sort.key))out.sort={key:saved.sort.key,dir:saved.sort.dir==='desc'?'desc':'asc'};
  return out;
 }
@@ -138,7 +150,7 @@ function parse(kind,raw){try{return normalize(kind,raw?JSON.parse(raw):null)}cat
 /* Header click: same column flips the direction; a new column starts ascending (dates and numbers descending). */
 const DESC_FIRST=new Set(['score','lastAt','createdAt','contacts','openValue','consent','employees','revenue']);
 function nextSort(sort,key){if(sort&&sort.key===key)return {key,dir:sort.dir==='asc'?'desc':'asc'};return {key,dir:DESC_FIRST.has(key)?'desc':'asc'}}
-function toggleColumn(kind,columns,id){const col=(COLUMNS[kind]||[]).find(c=>c.id===id);if(!col||col.fixed)return list(columns).slice();const set=new Set(list(columns));set.has(id)?set.delete(id):set.add(id);return (COLUMNS[kind]||[]).filter(c=>c.fixed||set.has(c.id)).map(c=>c.id)}
+function toggleColumn(kind,columns,id){const col=cols(kind).find(c=>c.id===id);if(!col||col.fixed)return list(columns).slice();const set=new Set(list(columns));set.has(id)?set.delete(id):set.add(id);return cols(kind).filter(c=>c.fixed||set.has(c.id)).map(c=>c.id)}
 
 /* Selection: a Set of ids. «Seleziona tutti» works on the rows on screen. */
 function selectionState(selected,visibleIds){const ids=list(visibleIds);if(!ids.length)return 'none';const n=ids.filter(id=>selected.has(id)).length;return n===0?'none':n===ids.length?'all':'some'}
@@ -155,6 +167,6 @@ const telHref=v=>{const s=text(v).replace(/[^\d+]/g,'');return s.replace(/\D/g,'
 /* «oggi», «ieri», «12 g fa»; older than a year shows the date. */
 function ago(at,now){if(at==null)return '';const n=Math.floor(((now??Date.now())-at)/DAY);if(n<=0)return 'oggi';if(n===1)return 'ieri';if(n<365)return n+' g fa';const d=new Date(at);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 
-const api={KINDS,COLUMNS,VIEWS,RECENT_DAYS,IDLE_DAYS,buildRows,inView,matches,sortRows,apply,storageKey,columnsFor,defaults,normalize,parse,nextSort,toggleColumn,selectionState,toggleAll,prune,contactsOf,websiteHref,mailHref,telHref,profileUrl,ago,fold};
+const api={KINDS,COLUMNS,setCustom,cols,VIEWS,NONE,divisions,inDivision,RECENT_DAYS,IDLE_DAYS,buildRows,inView,matches,sortRows,apply,storageKey,columnsFor,defaults,normalize,parse,nextSort,toggleColumn,selectionState,toggleAll,prune,contactsOf,websiteHref,mailHref,telHref,profileUrl,ago,fold};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmList=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

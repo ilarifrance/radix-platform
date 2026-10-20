@@ -27,7 +27,9 @@ const label=(key,v)=>v==null?'':((window.RadixCrmFields?.fieldOf('companies',key
 const member=id=>id==null?'':(app().rows('members').find(m=>String(m.id)===String(id))||{}).name||String(id);
 const ref=(kind,id)=>id?(app().rows(kind).find(r=>r.id===id)||{}).name||id:'';
 const supports=(kind,rows)=>!!window.RadixCrmFields&&rows.some(r=>window.RadixCrmFields.supported(kind,r));
-const cols=(kind,rows)=>[...COLUMNS[kind],...(rows&&supports(kind,rows)?ADDED_COLUMNS[kind]:[])].map(([label,k])=>typeof k==='function'?{label,value:k}:{label,key:k});
+const cols=(kind,rows)=>[...COLUMNS[kind],...(rows&&supports(kind,rows)?ADDED_COLUMNS[kind]:[])].map(([label,k])=>typeof k==='function'?{label,value:k}:{label,key:k})
+ // «Campi aggiunti» (015) after the fixed columns, named as in the workspace.
+ .concat(window.RadixCrmCustom?window.RadixCrmCustom.of(window.RadixCrmCustom.defs(),kind).map(f=>({label:f.label,value:r=>(r.custom&&r.custom[f.id])||''})):[]);
 async function run(label,fn){
  const a=app();if(a.state.busy)return;a.lock(true);a.error('');a.notice(label);let ok=false;
  try{await fn();ok=true}catch(e){a.error(e.message||String(e));a.notice('Operazione non completata.')}
@@ -35,7 +37,7 @@ async function run(label,fn){
  return ok;
 }
 async function exportCsv(kind,filter){
- await run('Preparo il file…',async()=>{let rows=await exportRows(kind);if(filter)rows=rows.filter(filter);
+ await run('Preparo il file…',async()=>{await window.RadixCrmCustom?.load();let rows=await exportRows(kind);if(filter)rows=rows.filter(filter);
   download((kind==='contacts'?'contatti':'aziende')+'-'+stamp()+'.csv',CSV().toCsv(rows,cols(kind,rows)),'text/csv;charset=utf-8');
   app().notice(rows.length+' righe esportate.')});
 }
@@ -43,7 +45,10 @@ const post=(entity,action,data)=>app().api(entity,{body:{workspace:app().state.w
 async function importCsv(kind,file){
  const a=app();if(!file)return;if(file.size>2e6){a.error('File troppo grande: massimo 2 MB.');return}
  // The 011 fields are read too: an archive without them gets the same rows minus those fields (retry below).
- let mapped;try{mapped=CSV().mapRows(kind,CSV().parse(await file.text()),{extended:true})}catch(e){a.error(e.message);return}
+ let mapped;try{const parsed=CSV().parse(await file.text());const C=window.RadixCrmCustom;
+  // Columns named like a field created with «Aggiungi campo» fill that field.
+  const custom=C?C.columnsFor(await C.load(),kind,parsed.headers):{};
+  mapped=CSV().mapRows(kind,parsed,{extended:true,custom})}catch(e){a.error(e.message);return}
  if(!mapped.rows.length){a.error('Nessuna riga valida. Servono almeno le colonne Nome'+(kind==='contacts'?' (o Nome e Cognome)':'')+'.'+(mapped.skipped.length?' Righe scartate: '+mapped.skipped.length+'.':''));return}
  let plan;
  const ready=await run('Controllo i duplicati…',async()=>{
@@ -57,7 +62,7 @@ async function importCsv(kind,file){
  });
  if(!ready)return;
  if(!plan.rows.length){a.notice('Niente da importare: '+plan.dupes.length+' righe sono già nel CRM.');return}
- const one=plan.rows.length===1;const msg='Importare '+plan.rows.length+(kind==='contacts'?(one?' contatto':' contatti'):(one?' azienda':' aziende'))+(plan.newCompanies.length?' e creare '+plan.newCompanies.length+(plan.newCompanies.length===1?' nuova azienda':' nuove aziende'):'')+'?\n'+(plan.dupes.length?plan.dupes.length+' righe già presenti vengono saltate. ':'')+(mapped.skipped.length?mapped.skipped.length+' righe non valide vengono scartate. ':'')+'\nIl consenso marketing non viene importato: va registrato a mano per ogni contatto.';
+ const one=plan.rows.length===1;const msg='Importare '+plan.rows.length+(kind==='contacts'?(one?' contatto':' contatti'):(one?' azienda':' aziende'))+(plan.newCompanies.length?' e creare '+plan.newCompanies.length+(plan.newCompanies.length===1?' nuova azienda':' nuove aziende'):'')+'?\n'+(plan.dupes.length?plan.dupes.length+' righe già presenti vengono saltate. ':'')+(mapped.skipped.length?mapped.skipped.length+' righe non valide vengono scartate. ':'')+(mapped.unknown?.length?'\nColonne non riconosciute, non importate: '+mapped.unknown.slice(0,8).join(', ')+(mapped.unknown.length>8?'…':'')+'. Per tenerle crea un campo con lo stesso nome da «Aggiungi campo» su una scheda, poi reimporta.':'')+'\nIl consenso marketing non viene importato: va registrato a mano per ogni contatto.';
  if(!window.confirm(msg))return;
  let done=0,failed=[];
  await run('Importazione in corso…',async()=>{
@@ -305,12 +310,15 @@ window.RadixCrmTools={
  section(entity,section){
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
-  if(entity==='contacts'){const seg=segmentPanel(),bar=ioBar('contacts');head.append(bar);section.append(seg);
-   const reveal=box=>()=>{box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true})};
+  // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.
+  const tuck=box=>{box.hidden=true;box.addEventListener('toggle',()=>{if(!box.open)box.hidden=true});return box};
+  const reveal=(box,then)=>()=>{box.hidden=false;box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true});if(then)then(box)};
+  const findNow=box=>{const b=[...box.querySelectorAll('button')].find(x=>x.textContent==='Cerca doppioni');if(b&&!box.querySelector('.crm-dedupe-list').childElementCount)b.click()};
+  if(entity==='contacts'){const seg=tuck(segmentPanel()),bar=ioBar('contacts');head.append(bar);section.append(seg);
    bar.append(B('Segmenti',reveal(seg)));
-   if(window.RadixCrmCampaigns){const camp=RadixCrmCampaigns.panel(seg.filterOf);section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
-   if(window.RadixCrmDedupe&&app().writable('contacts'))section.append(dedupePanel('contacts'))}
-  else if(entity==='companies'){head.append(ioBar('companies'));if(window.RadixCrmDedupe&&app().writable('companies'))section.append(dedupePanel('companies'))}
+   if(window.RadixCrmCampaigns){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
+   if(window.RadixCrmDedupe&&app().writable('contacts')){const dd=tuck(dedupePanel('contacts'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
+  else if(entity==='companies'){const bar=ioBar('companies');head.append(bar);if(window.RadixCrmDedupe&&app().writable('companies')){const dd=tuck(dedupePanel('companies'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
   else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
