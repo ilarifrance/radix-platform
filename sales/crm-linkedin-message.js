@@ -27,7 +27,8 @@ async function copy(text,area){
  try{if(!root.navigator?.clipboard?.writeText)throw new Error('no clipboard');await root.navigator.clipboard.writeText(text);return true}
  catch{try{area.focus();area.select();if(doc.execCommand&&doc.execCommand('copy'))return true}catch{}return false}
 }
-function openTab(url){const l=E('a');l.href=url;l.target='_blank';l.rel='noopener noreferrer';l.hidden=true;doc.body.append(l);l.click();l.remove()}
+// window.open in the click itself (before any await), so pop-up blockers let it through; anchor as fallback.
+function openTab(url){if(typeof root.open==='function'){root.open(url,'_blank','noopener,noreferrer');return}const l=E('a');l.href=url;l.target='_blank';l.rel='noopener noreferrer';l.hidden=true;doc.body.append(l);l.click();l.remove()}
 
 function build(){
  const d=E('dialog',undefined,'li-sheet');d.id='linkedin-message';d.setAttribute('aria-labelledby','li-title');
@@ -100,7 +101,8 @@ async function copyOpen(){
  if(!text){say('Il messaggio è vuoto.',true);return}
  if(/\[DA COMPLETARE/i.test(text)&&!root.confirm('Il messaggio contiene ancora parti [DA COMPLETARE]. Copiarlo comunque?'))return;
  if(c.over&&!root.confirm('Il messaggio supera '+c.limit+' caratteri: LinkedIn potrebbe non accettarlo. Copiarlo comunque?'))return;
- const ok=await copy(text,ui.area);openTab(ui.url);
+ // The clipboard write starts first (the page still has focus), the tab opens in the same tick, then we wait for the copy.
+ const copying=copy(text,ui.area);openTab(ui.url);const ok=await copying;
  say(ok?'Testo copiato. Incollalo su LinkedIn e invialo da lì; poi premi «Segna come inviato».':'Copia non riuscita: il testo è selezionato, copialo con Ctrl+C (o tieni premuto sul telefono). Il profilo è aperto in una nuova scheda.',!ok);
 }
 async function markSent(){

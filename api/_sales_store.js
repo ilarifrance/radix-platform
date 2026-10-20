@@ -6,6 +6,7 @@ function flatten(kind){return rows=>rows.map(({added,...r})=>{const out={...r};i
 const {createLeadListStore}=require('./_lead_lists_store');
 const {createLeadContactJobsStore}=require('./_lead_contact_jobs_store');
 const {createGrowthProjectsStore}=require('./_lead_growth_projects_store');
+const {createDocumentsStore}=require('./_sales_documents');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
@@ -31,6 +32,7 @@ function createStore(rawSql){
  leadLists:createLeadListStore(leadSql),
  leadContactJobs:createLeadContactJobsStore(leadSql),
  growthProjects:createGrowthProjectsStore(leadSql),
+ documents:createDocumentsStore(sql),
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';
@@ -82,7 +84,13 @@ function createStore(rawSql){
  },
  command:async(c,u)=>{
    // One HTTP SQL statement calls one atomic PL/pgSQL function. No fake BEGIN/COMMIT across HTTP connections.
-   const rows=await sql('SELECT sales_command($1::uuid,$2::integer,$3::text,$4::text,$5::jsonb) AS result',[c.workspace,u,c.entity,c.action,JSON.stringify(c.data)]);
+   let rows;
+   try{rows=await sql('SELECT sales_command($1::uuid,$2::integer,$3::text,$4::text,$5::jsonb) AS result',[c.workspace,u,c.entity,c.action,JSON.stringify(c.data)]);}
+   catch(e){
+    // An archive before migration 012 knows no «convert» action.
+    if(c.action==='convert'&&e.code==='22023'&&e.message==='invalid command'){const err=new Error('«Converti» non è ancora disponibile in questo archivio: serve la migrazione sales 012 (da approvare).');err.status=400;throw err;}
+    throw e;
+   }
    return rows[0].result;
  }
  };

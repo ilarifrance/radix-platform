@@ -78,7 +78,11 @@ function mount(section,kind){
   const link=(label,href,ext)=>{const a=E('a',label);a.href=href;if(ext){a.target='_blank';a.rel='noopener noreferrer'}return a};
   const v=r[col.id];
   switch(col.id){
-   case 'name':{const b=B(r.name,()=>open(kind,r.record),'lv-name');b.title='Apri Customer360 · '+r.name;td.append(b);break}
+   case 'name':{const b=B(r.name,()=>open(kind,r.record),'lv-name');b.title='Apri Customer360 · '+r.name;td.append(b);
+    // Contacts with a valid LinkedIn profile: a compact «in» opening «Messaggio LinkedIn» (crm-linkedin-message.js).
+    if(kind==='contacts'&&r.linkedinUrl&&window.RadixCrmLinkedIn){const li=B('in',e=>{e.stopPropagation();if(!app()?.state.busy)window.RadixCrmLinkedIn.open(r.record)},'lv-li');
+     li.title='Messaggio LinkedIn · '+r.name;li.setAttribute('aria-label','Messaggio LinkedIn a '+r.name);li.setAttribute('aria-haspopup','dialog');td.append(li);td.classList.add('lv-has-li')}
+    break}
    case 'company':if(r.companyRecord){const b=B(r.company,()=>open('companies',r.companyRecord),'lv-link');b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(E('span','—','lv-empty'));break;
    case 'email':{const h=L().mailHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
    case 'phone':case 'mobile':{const h=L().telHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}

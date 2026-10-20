@@ -16,7 +16,7 @@ const rows = entity => state.rows[entity] || [];
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
-window.RadixSalesApp={state,rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
+window.RadixSalesApp={state,mutate:(...a)=>mutate(...a),rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
@@ -78,6 +78,7 @@ function card(entity,row,readonly=false){
  if(entity==='opportunities'&&row.outcome&&row.outcome!=='open')c.append(el('p',row.outcome==='won'?'Vinta'+(row.closed_at?' il '+row.closed_at.slice(0,10):''):'Persa'+(row.lost_reason?' · '+row.lost_reason:''),'outcome outcome-'+row.outcome));
  if(entity==='opportunities'&&(row.probability!=null||stageProbability(row)!=null))c.append(el('p','Probabilità: '+(row.probability??stageProbability(row))+'%'+(row.probability==null?' (dalla fase)':''),'muted'));
  if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
+ if(entity==='opportunities'){const q=el('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(row.id)+'#quotes/new';c.append(q);}
  if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close || 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
@@ -214,7 +215,8 @@ function render(){
     groups.push({name:'Fase non assegnata / non caricata',matches:r=>open(r)&&!configured.some(g=>g.matches(r)) && !(entity==='tasks' && !r.process_id && !r.stage_id)});
     if(entity==='opportunities')groups.push({name:'Vinte',matches:r=>r.outcome==='won'},{name:'Perse',matches:r=>r.outcome==='lost'});
     groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
-   }else rows(entity).forEach(r=>section.append(card(entity,r)));
+   }else if(entity==='leads'&&window.RadixCrmLeads?.section(section)){/* lead view: sales/crm-leads.js */}
+   else rows(entity).forEach(r=>section.append(card(entity,r)));
    window.RadixCrmTools?.section(entity,section);window.RadixCrmImportDeals?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
    if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
@@ -255,12 +257,13 @@ function customerPanel(){
  return panel;
 }
 async function mutate(entity,action,data,confirmation){
- if(state.busy || !writable(entity))return;if(!window.confirm(confirmation))return;
+ if(state.busy || !writable(entity))return false;if(confirmation&&!window.confirm(confirmation))return false;
  lock(true);error('');notice('Salvataggio sul server…');let saved=false;
  const generation=state.generation;
  try{await api(entity,{body:{workspace:state.workspace,entity,action,data}});if(!current(generation))return;saved=true;$('editor').close();await reload();notice(state.ready?'Modifica confermata dal server.':'Modifica salvata; ricaricamento parziale.');}
  catch(e){const advice=[401,403].includes(e.status)?' Accesso invalidato: verifica sessione e membership, poi premi Aggiorna.':e.status===409?' Conflitto: premi Aggiorna prima di modificare nuovamente.':' Verifica con Aggiorna prima di ripetere una richiesta incerta.';error(e.message+(saved?' La modifica è stata salvata.':advice));notice('Operazione non completata o da verificare.');}
  finally{lock(false);}
+ return saved;
 }
 // Aziende e Contatti as in Salesforce: «Informazioni», addresses, «Dati fiscali», «Altro», each a
 // section that folds (closed on a phone except the first). Fields from sales/crm-fields-core.js.
@@ -327,6 +330,14 @@ function openEditor(entity,row=null){
  if(['contacts','leads','opportunities','tasks','interactions','tickets'].includes(entity)&&!(record&&entity==='contacts'))addSelect('company_id','Azienda',references('companies',row?.company_id),row?.company_id);
  if(['leads','opportunities','tasks','interactions','tickets'].includes(entity))addSelect('contact_id','Contatto',references('contacts',row?.contact_id),row?.contact_id);
  if(['leads','opportunities','tasks','interactions'].includes(entity))fields.append(el('p','Se scegli un contatto, indica la sua azienda. Se colleghi un’opportunità, riporta esattamente la sua azienda e il suo contatto (anche i valori non assegnati). Il server rifiuta combinazioni incoerenti.','muted'));
+ // Lead (migration 012): status, source, owner, notes. «Convertito» only through «Converti» in the lead view.
+ if(entity==='leads'){
+  const L=window.RadixCrmLeadsCore;
+  if(row?.status==='convertito')fields.append(el('p','Lead convertito'+(row.converted_at?' il '+row.converted_at.slice(0,10):'')+': lo stato non cambia più.','muted'));
+  else addSelect('status','Stato *',L?L.EDITABLE:[['nuovo','Nuovo']],row?.status||'nuovo',true);
+  addText('status_reason','Motivo (se non qualificato)',500);addText('source','Fonte (es. LinkedIn, sito, evento)',80);
+  addSelect('owner_id','Responsabile',references('members',row?.owner_id),row?.owner_id);addArea('notes','Note',4000);
+ }
  if(entity==='interactions')fields.append(el('p','Collega almeno un’azienda, un contatto o un’opportunità. Registrare un’email non la invia.','muted'));
  if(entity==='tickets'){
   fields.append(el('p','Se scegli un contatto, indica anche la sua azienda: il server rifiuta combinazioni incoerenti.','muted'));
@@ -399,7 +410,7 @@ $('editor-form').addEventListener('submit',event=>{
    const v=value.trim();if(!v && key==='due_at')data[key]=null;
    else if(!validUTC(v)){error('Usa una data reale ISO UTC esplicita, ad esempio 2026-10-10T14:30:00Z.');return;}else data[key]=v;
   }
-  else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason','resolution'].includes(key))data[key]=value.trim()||null;
+  else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason','resolution','source','status_reason'].includes(key))data[key]=value.trim()||null;
   else if(key==='marketing_consent')continue;
   else if(key==='outcome')data[key]=value;
   else if(key==='probability'){const v=value.trim();if(!v)data[key]=null;else{const n=Number(v);if(!/^\d+$/.test(v)||n>100){error('La probabilità è un numero da 0 a 100.');return;}data[key]=n;}}
@@ -422,6 +433,13 @@ $('editor-form').addEventListener('submit',event=>{
  if(entity==='opportunities'&&row){if(data.outcome==='lost'&&!data.lost_reason){error('Indica il motivo della perdita.');return;}if(data.outcome!=='lost')delete data.lost_reason;
   // Unchanged fields are not resent: the server rejects lost_reason on an open/won deal.
   for(const k of ['outcome','lost_reason','probability'])if(Object.hasOwn(data,k)&&data[k]===(row[k]??null))delete data[k];}
+ if(entity==='leads'){
+  if(data.status==='non_qualificato'&&!data.status_reason){error('Scrivi perché il lead non è qualificato.');return;}
+  if(data.status&&data.status!=='non_qualificato'&&data.status_reason&&data.status_reason===(row?.status_reason??null))data.status_reason=null;
+  // Values left as stored (or at their default on a new lead) are not resent: an archive before 012 still saves the rest.
+  const stored=k=>row?(row[k]??(k==='status'?'nuovo':null)):(k==='status'?'nuovo':null);
+  for(const k of ['status','status_reason','source','owner_id','notes'])if(Object.hasOwn(data,k)&&data[k]===stored(k))delete data[k];
+ }
  if(row){data.id=row.id;data.version=row.version;}
  mutate(entity,row?'update':'create',data,'Confermare il salvataggio di «'+(data.name || data.title)+'» nel workspace corrente?');
 });

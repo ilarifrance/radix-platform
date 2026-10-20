@@ -10,6 +10,9 @@ const ts=v=>{const n=Date.parse(v||'');return Number.isFinite(n)?n:null};
 const text=v=>v==null?'':String(v).trim();
 const fold=v=>text(v).normalize('NFD').replace(/[̀-ͯ]/g,'').toLocaleLowerCase('it');
 const KINDS=['contacts','companies'];
+// The LinkedIn profile check of «Messaggio LinkedIn» (same rule for the row icon and the view).
+const LI=typeof module==='object'&&module.exports?require('./crm-linkedin-message-core.js'):root.RadixCrmLinkedInCore;
+const profileUrl=v=>LI&&typeof LI.profileUrl==='function'?LI.profileUrl(v):null;
 
 /* Columns: id, label (short: narrower table header), sort key on the row, shown by default. «name» is always shown. `added`: a field
    of migration sales 011 (crm-fields-core.js), offered only when the archive has it.
@@ -37,7 +40,8 @@ const COLUMNS=Object.freeze({
 const VIEWS=Object.freeze({
  contacts:Object.freeze([
   {id:'all',label:'Tutti i contatti'},{id:'recent',label:'Creati di recente',sort:{key:'createdAt',dir:'desc'}},
-  {id:'consent',label:'Con consenso marketing'},{id:'no-email',label:'Senza email'}]),
+  {id:'consent',label:'Con consenso marketing'},{id:'no-email',label:'Senza email'},
+  {id:'linkedin-no-email',label:'Solo con LinkedIn, senza email'}]),
  companies:Object.freeze([
   {id:'all',label:'Tutte le aziende'},{id:'open',label:'Con opportunità aperte',sort:{key:'openValue',dir:'desc'}},
   {id:'idle',label:'Senza attività da 30 giorni',sort:{key:'lastAt',dir:'asc'}}])
@@ -63,7 +67,7 @@ function buildRows(kind,data,opts){
   return contacts.map(c=>{const co=c.company_id?byCompany.get(c.company_id):null;const l=last.get(c.id);
    let score=null,band=null,explain='';if(typeof o.score==='function'){try{const s=o.score(c,scoreData,now);score=s.total;band=s.band;explain=typeof o.explain==='function'?o.explain(s):''}catch{score=null}}
    return {id:c.id,record:c,name:text(c.name)||'(senza nome)',company:co?text(co.name):'',companyId:c.company_id||null,companyRecord:co||null,
-    role:text(c.role),email:text(c.email),phone:text(c.phone),linkedin:text(c.linkedin_url),title:text(c.title),department:text(c.department),mobile:text(c.mobile),city:text(c.city),owner:owner(c.owner_id),leadSource:text(c.lead_source),consent:!!c.marketing_consent,consentAt:c.consent_at||null,
+    role:text(c.role),email:text(c.email),phone:text(c.phone),linkedin:text(c.linkedin_url),linkedinUrl:profileUrl(c.linkedin_url),title:text(c.title),department:text(c.department),mobile:text(c.mobile),city:text(c.city),owner:owner(c.owner_id),leadSource:text(c.lead_source),consent:!!c.marketing_consent,consentAt:c.consent_at||null,
     score,band,explain,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
  }
  if(kind==='companies'){
@@ -86,6 +90,7 @@ function inView(kind,view,row,now){
   if(view==='recent')return row.createdAt!=null&&n-row.createdAt<=RECENT_DAYS*DAY;
   if(view==='consent')return row.consent;
   if(view==='no-email')return !row.email;
+  if(view==='linkedin-no-email')return !!row.linkedinUrl&&!row.email;
   return true;
  }
  if(kind==='companies'){
@@ -150,6 +155,6 @@ const telHref=v=>{const s=text(v).replace(/[^\d+]/g,'');return s.replace(/\D/g,'
 /* «oggi», «ieri», «12 g fa»; older than a year shows the date. */
 function ago(at,now){if(at==null)return '';const n=Math.floor(((now??Date.now())-at)/DAY);if(n<=0)return 'oggi';if(n===1)return 'ieri';if(n<365)return n+' g fa';const d=new Date(at);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 
-const api={KINDS,COLUMNS,VIEWS,RECENT_DAYS,IDLE_DAYS,buildRows,inView,matches,sortRows,apply,storageKey,columnsFor,defaults,normalize,parse,nextSort,toggleColumn,selectionState,toggleAll,prune,contactsOf,websiteHref,mailHref,telHref,ago,fold};
+const api={KINDS,COLUMNS,VIEWS,RECENT_DAYS,IDLE_DAYS,buildRows,inView,matches,sortRows,apply,storageKey,columnsFor,defaults,normalize,parse,nextSort,toggleColumn,selectionState,toggleAll,prune,contactsOf,websiteHref,mailHref,telHref,profileUrl,ago,fold};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmList=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

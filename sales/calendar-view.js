@@ -21,7 +21,7 @@ function ensureSection(){let s=document.getElementById('calendar');if(s&&s.paren
 // Every CRM event, unfiltered; also read by the «Oggi» view (crm-today.js) for today's agenda.
 function collect(d){const out=[],company=id=>d.companies.find(c=>c.id===id)?.name||'',ownerOf=r=>String(r.assignee_id??r.owner_id??'');
   for(const t of d.tasks){if(!t.due_at)continue;const s=new Date(t.due_at);if(!Number.isFinite(+s))continue;out.push({type:'task',title:t.title,sub:company(t.company_id),start:s,end:new Date(+s+60*6e4),done:t.status==='done',owner:ownerOf(t),href:'#tasks'})}
-  for(const i of d.interactions){if(!i.occurred_at)continue;const s=new Date(i.occurred_at);if(!Number.isFinite(+s))continue;const k=TYPES[i.kind]?i.kind:'note';out.push({type:k,title:i.title,sub:company(i.company_id),start:s,end:new Date(+s+30*6e4),owner:'',href:'#interactions'})}
+  for(const i of d.interactions){if(!i.occurred_at)continue;const s=new Date(i.occurred_at);if(!Number.isFinite(+s))continue;const k=TYPES[i.kind]?i.kind:'note';out.push({type:k,id:i.id,title:i.title,sub:company(i.company_id),start:s,end:new Date(+s+30*6e4),owner:'',href:'#interactions'})}
   for(const o of d.opportunities){if(!o.expected_close)continue;const s=new Date(o.expected_close+'T00:00:00');if(!Number.isFinite(+s))continue;out.push({type:'close',title:o.title,sub:company(o.company_id),start:s,allDay:true,owner:String(o.owner_id??''),href:'#opportunities'})}
   return out.sort((a,b)=>a.start-b.start)}
 function events(d){return collect(d).filter(e=>!state.off.has(e.type)&&(!state.owner||e.owner===state.owner))}
