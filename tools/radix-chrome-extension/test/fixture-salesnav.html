@@ -1,15 +1,23 @@
 <!doctype html>
 <html lang="it">
 <head><meta charset="utf-8"><title>Sales Navigator (finto, solo per test)</title>
-<style>body{font-family:sans-serif;margin:0}header{height:60px;background:#0a66c2;color:#fff;padding:16px}#results{list-style:none;padding:0 20px;margin:0}li.artdeco-list__item{height:150px;border-bottom:1px solid #ddd;padding:10px}.dot{margin:0 4px}footer{padding:20px}.captcha{padding:40px}</style></head>
+<style>body{font-family:sans-serif;margin:0}header{height:60px;background:#0a66c2;color:#fff;padding:16px}#results{list-style:none;padding:0 20px;margin:0}li.artdeco-list__item{height:150px;border-bottom:1px solid #ddd;padding:10px}.dot{margin:0 4px}footer{padding:20px}.captcha{padding:40px}body.inner{overflow:hidden}body.inner main{height:calc(100vh - 92px);overflow-y:auto}.separator--middot::before{content:'·';margin:0 4px}</style></head>
 <body>
 <header><span>Sales Navigator</span> · <span id="total"></span></header>
 <main><ol id="results"></ol><footer><button class="artdeco-pagination__button--next" aria-label="Avanti" type="button">Avanti</button></footer></main>
 <script>
 // Fake Sales Navigator results page for automated tests only: lazy rendering on
 // scroll, SPA pagination via the visible «Avanti» button, optional challenges.
+// inner=1 results scroll in an inner box (like the real page) · lazy=ms delay
+// before more cards render · slow=ms next page renders late (address changes
+// at once) · lost=N the «Avanti» click on page N is ignored lostTimes times.
 const params=new URLSearchParams(location.search);
 const N=Number(params.get('n')||60),SIZE=25,CAPTCHA=Number(params.get('captcha')||0),CHECKPOINT=Number(params.get('checkpoint')||0);
+const INNER=params.get('inner')==='1',LAZY=Number(params.get('lazy')||0),SLOW=Number(params.get('slow')||0),LOST=Number(params.get('lost')||0);
+let lostLeft=Number(params.get('lostTimes')||1),loading=false,pending=false;
+window.__clicks=0;
+if(INNER)document.body.classList.add('inner');
+const box=INNER?document.querySelector('main'):null;
 const people=Array.from({length:N},(_,i)=>({
  id:'ACwAA'+String(i).padStart(4,'0'),
  name:['Giulia Bianchi','Marco De Santis','Luca Rossi','Anna Maria Verdi','Paolo Esposito'][i%5]+' '+i,
@@ -19,8 +27,22 @@ const people=Array.from({length:N},(_,i)=>({
 }));
 let page=Number(params.get('page')||1),shown=0;
 document.getElementById('total').textContent=N.toLocaleString('it-IT')+' risultati';
-function card(p){
+// Company shapes seen on the real page, on results 5, 6 and 7: plain-text company with a CSS-only
+// separator, company link without data-anonymize, company written inside the title.
+const SHAPES={5:'plain',6:'link',7:'intitle'};
+function card(p,i){
  const li=document.createElement('li');li.className='artdeco-list__item';
+ const shape=SHAPES[i];
+ if(shape){
+  li.innerHTML='<div><a href="/sales/lead/'+p.id+',NAME_SEARCH,x1?_ntb=abc"><span data-anonymize="person-name"></span></a> <span>· 2°</span></div>'
+   +'<div class="artdeco-entity-lockup__subtitle"><span data-anonymize="title"></span>'+(shape==='intitle'?'':'<span class="separator--middot" aria-hidden="true"></span>'+(shape==='link'?'<a href="/sales/company/9'+i+'?_ntb=x"></a>':'<span class="co"></span>'))+'</div>'
+   +'<div><span data-anonymize="location">Bergamo, Lombardia, Italia</span></div><div>3 anni nel ruolo</div><button type="button">Salva</button>';
+  li.querySelector('[data-anonymize="person-name"]').textContent=p.name;
+  li.querySelector('[data-anonymize="title"]').textContent=shape==='intitle'?"Titolare dell'azienda Tecnomac srl":'Proprietario';
+  if(shape==='link')li.querySelector('a[href^="/sales/company/"]').textContent='Elettra S.r.l.';
+  if(shape==='plain')li.querySelector('.co').textContent='Officine Beltramini';
+  return li;
+ }
  li.innerHTML='<div><a href="/sales/lead/'+p.id+',NAME_SEARCH,x1?_ntb=abc"><span data-anonymize="person-name"></span></a> <span>· 2°</span></div>'
   +'<div class="pos">'+(p.title?'<span data-anonymize="title"></span>':'')+(p.title&&p.company?'<span class="dot">·</span>':'')+(p.company?'<a href="/sales/company/1" data-anonymize="company-name"></a>':'')+'</div>'
   +(p.location?'<div><span data-anonymize="location"></span></div>':'')+'<button type="button">Salva</button> <button type="button">Messaggio</button>';
@@ -31,19 +53,26 @@ function card(p){
  return li;
 }
 function slice(){return people.slice((page-1)*SIZE,page*SIZE)}
-function more(){const list=slice();const add=list.slice(shown,shown+6);for(const p of add)document.getElementById('results').append(card(p));shown+=add.length}
+function more(){if(LAZY){if(pending)return;pending=true;setTimeout(()=>{pending=false;add()},LAZY);return}add()}
+function add(){const items=slice().slice(shown,shown+6);for(const p of items)document.getElementById("results").append(card(p,people.indexOf(p)));shown+=items.length}
 function render(){
  const ol=document.getElementById('results');ol.replaceChildren();shown=0;
  if(CAPTCHA&&page>=CAPTCHA){ol.innerHTML='<div class="captcha"><h2>Verifica di sicurezza</h2><iframe title="captcha" src="about:blank"></iframe></div>';return}
  more();
  const next=document.querySelector('[aria-label="Avanti"]');next.disabled=page*SIZE>=N;
- window.scrollTo(0,0);
+ window.scrollTo(0,0);if(box)box.scrollTop=0;
 }
-window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.scrollHeight-200)more()});
+if(box)box.addEventListener('scroll',()=>{if(box.clientHeight+box.scrollTop>=box.scrollHeight-200)more()});
+else window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.scrollHeight-200)more()});
 document.querySelector('[aria-label="Avanti"]').addEventListener('click',()=>{
+ window.__clicks++;
+ if(loading)return;
  if(CHECKPOINT&&page+1>=CHECKPOINT){location.href='https://www.linkedin.com/checkpoint/challenge/test';return}
+ if(LOST&&page===LOST&&lostLeft>0){lostLeft--;return}
+ loading=true;
  document.getElementById('results').replaceChildren();
- setTimeout(()=>{page++;params.set('page',page);history.pushState(null,'','?'+params);render()},500);
+ if(SLOW){params.set('page',page+1);history.pushState(null,'','?'+params)}
+ setTimeout(()=>{loading=false;page++;params.set('page',page);history.pushState(null,'','?'+params);render()},SLOW||500);
 });
 render();
 </script>

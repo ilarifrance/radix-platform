@@ -125,7 +125,7 @@
  <div class="lf-next"><p id="lf-next-text" role="status">Nessun lead ancora.</p><button type="button" class="lp-btn lp-primary" data-go-step="2">Rivedi i lead →</button></div>
 </section>
 <section class="lp" id="lead-pipeline" data-step="2" aria-labelledby="lp-title">
- <header class="lp-head"><div><p class="lp-eyebrow"><span aria-hidden="true"></span>I tuoi lead</p><h1 id="lp-title">Lead pipeline</h1><p class="lp-sub">Tutti i lead importati in questa sessione: liste aziende e contatti individuali.</p></div>
+ <header class="lp-head"><div><p class="lp-eyebrow"><span aria-hidden="true"></span>I tuoi lead</p><h1 id="lp-title">Lead pipeline</h1><p class="lp-sub">Tutti i lead importati in questa sessione: liste aziende e contatti individuali.</p><p id="lp-open-status" class="lp-sub" role="status" hidden></p></div>
   <div class="lp-actions">
    <button type="button" id="lp-segment-add" class="lp-btn"><span aria-hidden="true">⊕</span> Aggiungi a segmento</button>
    <button type="button" id="lp-crm" class="lp-btn lp-primary"><span aria-hidden="true">➤</span> Porta nel CRM<span id="lp-crm-count"></span></button>
@@ -145,7 +145,7 @@
   <label><span class="sr">Stato</span><select id="lp-status"><option value="">Tutti gli stati</option><option>Nuovo</option><option>Nel CRM</option><option>Creato ora</option><option>Contattato</option><option>Da verificare</option></select></label>
   <label><span class="sr">Segmento</span><select id="lp-segment"><option value="">Tutti i segmenti</option></select></label></div>
  <div class="lp-tablewrap"><table class="lp-table"><thead><tr><th class="lp-check"><input id="lp-all" type="checkbox" aria-label="Seleziona tutti i lead visibili"></th><th>Nome</th><th>Email</th><th>Azienda</th><th>Dominio</th><th>Ruolo</th><th>Fonte</th><th>Stato</th></tr></thead><tbody id="lp-rows"></tbody></table>
-  <div id="lp-empty" class="lp-empty"><strong>Lead pipeline vuota</strong><p id="lp-empty-text">Nessun lead ancora. Importa un CSV/Excel o ripristina il backup JSON del LinkedIn local agent.</p></div></div>
+  <div id="lp-empty" class="lp-empty"><strong>Lead pipeline vuota</strong><p id="lp-empty-text">Nessun lead ancora. Scegli da dove prenderli al passo 1: LinkedIn, file CSV/Excel, provider o backup.</p></div></div>
  <div class="lp-foot"><span id="lp-more"></span><span id="lp-selected"></span><span id="lp-note" role="status"></span></div>
 </section>
 <nav id="lp-tabs" class="lp-tabs" data-step="2 3 4" aria-label="Strumenti di questo passo"><span class="lf-tabs-label" data-step="2">Strumenti in più</span><button type="button" data-tab="qualifica" data-step="2" data-toggle aria-pressed="false">Qualifica e revisione (ICP)</button><button type="button" data-tab="risultati" data-step="2" data-toggle aria-pressed="false">Risultati</button><button type="button" data-tab="bulk" data-step="3" aria-pressed="false">Tutti insieme</button><button type="button" data-tab="crm" data-step="3" aria-pressed="false">Un lead alla volta</button><button type="button" data-tab="contatto" data-step="4" aria-pressed="false">Email e follow-up</button><button type="button" data-tab="newsletter" data-step="4" aria-pressed="false">Newsletter</button><button type="button" data-tab="campagne" data-step="4" aria-pressed="false">Campagne</button></nav>
