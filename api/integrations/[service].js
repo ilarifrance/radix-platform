@@ -10,6 +10,8 @@ const handlers = Object.freeze({
   'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),
   'send-email': () => require('../_send-email'),
+  // Vercel Cron worker of the CRM «Coda invii» (CRON_SECRET bearer, not the session cookie).
+  'send-queue': () => require('../_sales_send_worker'),
   'status': () => require('../_integrations-status')
 });
 module.exports = async function integrationRoute(req, res) {

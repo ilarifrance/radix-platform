@@ -4,7 +4,9 @@
    prepare one personalised email per contact with marketing consent; each email is sent after a
    confirmation (/api/send-email requires it), one at a time or all together with «Invia a tutti» (one
    confirmation, up to 200 per round, one every 1.2 s, stops at the first error), or opened in the mail client,
-   always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent without a confirmation. */
+   always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent without a confirmation.
+   «Metti in coda» (sales/crm-mailboxes.js) hands the same subject, text and segment to the server queue: same rules, sent
+   by the connected mailboxes in working hours within their daily limits, after one confirmation. */
 (function(root){
 const DAY=864e5;
 const SEQUENCES=Object.freeze([
@@ -60,7 +62,9 @@ function withTracking(plan,clicks,urls,campaign,origin){
 // «Invia a tutti»: the emails not yet sent, at most BULK_MAX per round (Gmail daily limits), in list order.
 const BULK_MAX=200,BULK_GAP_MS=1200;
 function bulkQueue(emails,sent,max){const done=sent instanceof Set?sent:new Set(sent||[]);const todo=(emails||[]).filter(e=>e&&!done.has(e.to));const n=Math.max(1,Math.min(BULK_MAX,Number(max)||BULK_MAX));return {now:todo.slice(0,n),later:Math.max(0,todo.length-n)}}
-const core={SEQUENCES,planSequence,planCampaign,withUnsubscribe,withTracking,urlsIn,fill,bulkQueue,BULK_MAX};
+// Pure: campaign name for click tracking and the queue (≤80 characters, no placeholders).
+function campaignName(subject,today){return String(subject).trim().replace(/\{[a-z_]+\}/g,'').replace(/\s+/g,' ').trim().replace(/^[,;:.!?\-–—\s]+/,'').slice(0,80)||'Campagna '+today}
+const core={SEQUENCES,planSequence,planCampaign,withUnsubscribe,withTracking,urlsIn,fill,bulkQueue,BULK_MAX,campaignName};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmCampaignCore=core;
 
@@ -111,12 +115,23 @@ function campaignPanel(filterOf){
  const row=E('div',undefined,'actions');row.append(ai,prep);
  const results=E('div',undefined,'crm-campaign-results');
  row.append(B('Risultati: chi ha cliccato',()=>showClicks(results)));
- box.append(ls,lb,row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma, oppure tutte insieme con «Invia a tutti» (una conferma, al massimo 200 per volta). Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
+ // «Metti in coda»: the server sends it from the «Caselle email» in working hours, with daily limits.
+ if(root.RadixCrmMailboxes){
+  const queue=B('Metti in coda',async()=>{
+   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
+   let ids=[];if(!await run('Leggo il segmento…',async()=>{ids=(await segmentContacts(filterOf)).map(c=>c.id)}))return;
+   if(!ids.length){app().notice('Nessun contatto nel segmento.');return}
+   if(ids.length>5000){app().error('Segmento troppo grande per una coda: massimo 5000 contatti.');return}
+   const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:ids});if(r)RadixCrmMailboxes.showStatus(results,r.message)});
+  queue.classList.add('crm-queue-button');
+  row.insertBefore(queue,prep.nextSibling);row.append(B('Stato della coda',()=>RadixCrmMailboxes.showStatus(results)));
+ }
+ box.append(ls,lb,row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma, oppure tutte insieme con «Invia a tutti» (una conferma, al massimo 200 per volta), oppure con «Metti in coda»: partono da sole dalle «Caselle email», in orario di lavoro e entro il limite giornaliero di ogni casella. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
  async function prepare(){
   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
   let plan,configured=false;
   if(!await run('Preparo gli invii…',async()=>{plan=planCampaign(subject.value.trim(),body.value.trim(),await segmentContacts(filterOf));
-   const ids=plan.emails.map(e=>e.contact.id),links={},clicks={},urls=urlsIn(body.value),campaign=subject.value.trim().replace(/\{[a-z_]+\}/g,'').replace(/\s+/g,' ').trim().slice(0,80)||'Campagna '+new Date().toISOString().slice(0,10);
+   const ids=plan.emails.map(e=>e.contact.id),links={},clicks={},urls=urlsIn(body.value),campaign=campaignName(subject.value,new Date().toISOString().slice(0,10));
    for(let i=0;i<ids.length;i+=300){const d=await app().api('unsubscribe_links',{body:{workspace:app().state.workspace,entity:'unsubscribe_links',action:'create',data:{contacts:ids.slice(i,i+300),...(urls.length?{campaign,urls}:{})}}});Object.assign(links,d.links||{});Object.assign(clicks,d.clicks||{})}
    plan=withUnsubscribe(withTracking(plan,clicks,urls,campaign,location.origin),links,location.origin);configured=await emailConfigured()}))return;
   out.replaceChildren(E('p',plan.emails.length+' email pronte'+(plan.skipped.consent?' · '+plan.skipped.consent+' senza consenso escluse':'')+(plan.skipped.email?' · '+plan.skipped.email+' senza email valida':'')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(plan.emails.some(e=>e.tracked)?' · i link sono tracciati: chi clicca compare nei risultati e nella sua cronologia':'')+(configured?'':' · invio diretto non configurato (manca Gmail): usa «Apri nel programma email»'),'muted'));

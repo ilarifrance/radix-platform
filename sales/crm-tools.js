@@ -318,6 +318,8 @@ window.RadixCrmTools={
   if(entity==='contacts'){const seg=tuck(segmentPanel()),bar=ioBar('contacts');head.append(bar);section.append(seg);
    bar.append(B('Segmenti',reveal(seg)));
    if(window.RadixCrmCampaigns){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
+   // «Caselle email» (sales/crm-mailboxes.js): the mailboxes the campaign queue sends from; owner/admin manage them.
+   if(window.RadixCrmMailboxes&&app().writable('interactions')){const mb=tuck(RadixCrmMailboxes.panel());section.append(mb);bar.append(B('Caselle email',reveal(mb)))}
    if(window.RadixCrmDedupe&&app().writable('contacts')){const dd=tuck(dedupePanel('contacts'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='companies'){const bar=ioBar('companies');head.append(bar);if(window.RadixCrmDedupe&&app().writable('companies')){const dd=tuck(dedupePanel('companies'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}

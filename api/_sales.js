@@ -13,6 +13,8 @@ const importToken=require('./_lead_import_token');
 const docs=require('./_sales_documents');
 // «Aggiungi campo» (migration sales 015): field definitions per workspace, values in «custom».
 const customFields=require('./_sales_custom_fields');
+// «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
+const mailq=require('./_sales_mailboxes');
 // Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
 // description shared with the browser (sales/crm-fields-core.js), validated again here.
 const recordFields=require('../sales/crm-fields-core.js');
@@ -156,7 +158,7 @@ function createHandler({getSessionUser,getStore}){
    let c;
    if(req.method==='POST'){
      let body=req.body;if(typeof body==='string'){if(Buffer.byteLength(body)>200000)fail(413,'Richiesta troppo grande.');try{body=JSON.parse(body);}catch{fail(400,'JSON non valido.');}}
-     if(Buffer.byteLength(JSON.stringify(body)||'')>(['lead_lists','lead_contact_jobs'].includes(body?.entity)?1700000:['lead_growth_projects','documents'].includes(body?.entity)?150000:16384))fail(413,'Richiesta troppo grande.');if(body?.entity==='lead_provider_status'){
+     if(Buffer.byteLength(JSON.stringify(body)||'')>(['lead_lists','lead_contact_jobs'].includes(body?.entity)?1700000:body?.entity==='send_queue'?250000:['lead_growth_projects','documents'].includes(body?.entity)?150000:16384))fail(413,'Richiesta troppo grande.');if(body?.entity==='lead_provider_status'){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='test'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Verifica provider non valida.');
        c={workspace:body.workspace,entity:'lead_provider_status',data:{}};
      }else if(body?.entity==='lead_public_lookup'){
@@ -171,12 +173,14 @@ function createHandler({getSessionUser,getStore}){
        // Optional tracked links: up to 10 distinct urls of the email, signed per contact.
        if(d.urls!==undefined&&(!Array.isArray(d.urls)||d.urls.length>10||!d.urls.every(clicks.validUrl)||!clicks.validCampaign(d.campaign)))fail(400,'Link tracciati non validi: massimo 10 indirizzi http(s) e un nome campagna fino a 80 caratteri.');
        c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)],...(d.urls?.length?{campaign:d.campaign.trim(),urls:[...new Set(d.urls)]}:{})}};
-     }else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
+     }else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
+     else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
      else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};
-     if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace'].includes(k))||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
+     if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
+     else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace'].includes(k))||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
      else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)))fail(400,'Parametro non consentito.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
@@ -209,6 +213,8 @@ function createHandler({getSessionUser,getStore}){
      const result=await publicLookup.lookup(c.data);
      return res.status(200).json(result);
    }
+   // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.
+   if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req}));
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.customFields)return res.status(200).json({rows:[await store.customFields.command(c,user.uid)]});
