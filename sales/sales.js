@@ -78,6 +78,7 @@ function card(entity,row,readonly=false){
  if(entity==='opportunities'&&row.outcome&&row.outcome!=='open')c.append(el('p',row.outcome==='won'?'Vinta'+(row.closed_at?' il '+row.closed_at.slice(0,10):''):'Persa'+(row.lost_reason?' · '+row.lost_reason:''),'outcome outcome-'+row.outcome));
  if(entity==='opportunities'&&(row.probability!=null||stageProbability(row)!=null))c.append(el('p','Probabilità: '+(row.probability??stageProbability(row))+'%'+(row.probability==null?' (dalla fase)':''),'muted'));
  if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
+ if(entity==='opportunities'){const q=el('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(row.id)+'#quotes/new';c.append(q);}
  if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close || 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
