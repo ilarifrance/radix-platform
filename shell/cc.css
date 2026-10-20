@@ -146,47 +146,63 @@
 .cc-core-row{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-size:12.5px;color:#a9c4b9}
 .cc-core-row b{min-width:22px;color:#3ff0b0;font:700 15px/1 Inter,system-ui,sans-serif}
 .cc-core-row:last-child b{color:#f5b544}
-/* ---- The network overview: the RADIX earth as core, each project a constellation of its agents and workflows ---- */
+/* ---- The network overview: RADIX and every project as nuclei of particles on black, joined by energy trails ---- */
 .network-stage.cc-world-on>svg{visibility:hidden}
-.cc-world{position:absolute;inset:0;z-index:3}
+.network-wrap:has(.cc-world-on){background:#000}
+.cc-world{position:absolute;inset:0;z-index:3;background:#000}
 .cc-world[hidden]{display:none}
-.cc-world-sky{position:absolute;inset:0;width:100%;height:100%}
+.cc-world-sky{position:absolute;inset:0;width:100%;height:100%;display:block}
 .cc-world-nodes{position:absolute;inset:0}
-.cc-core-label{position:absolute;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
-.cc-core-label b{display:block;font:700 22px/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.08em;color:#f2fffa;text-shadow:0 0 14px #2dffb0}
-.cc-core-label small{display:block;margin-top:6px;font:600 9.5px/1 Inter,system-ui,sans-serif;letter-spacing:.3em;padding-left:.3em;color:#4ff3b8}
-.cc-hub{--c:#36edbd;position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;gap:6px;transform:translate(-50%,-17px);padding:0;border:0;background:none;color:#eafff7;cursor:pointer;font:inherit;text-align:center}
-.cc-hub>i{width:34px;height:34px;border-radius:50%;transition:transform .2s,box-shadow .2s;
-  background:radial-gradient(circle at 50% 50%,#fff 0 9%,color-mix(in srgb,var(--c) 90%,#fff) 20%,color-mix(in srgb,var(--c) 60%,#021512) 62%,#021512 100%);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 80%,transparent),0 0 0 7px color-mix(in srgb,var(--c) 12%,transparent),0 0 30px color-mix(in srgb,var(--c) 75%,transparent)}
-.cc-hub-t{display:flex;flex-direction:column;align-items:center;text-shadow:0 1px 6px #000}
-.cc-hub-t b{font:600 16px/1.2 'Space Grotesk',Inter,system-ui,sans-serif;max-width:220px}
-.cc-hub-t small{margin-top:2px;font-size:11px;white-space:nowrap;color:color-mix(in srgb,var(--c) 55%,#cfe9e2)}
-.cc-hub:hover>i,.cc-hub:focus-visible>i{transform:scale(1.12);box-shadow:0 0 0 4px color-mix(in srgb,var(--c) 45%,transparent),0 0 42px var(--c)}
-.cc-hub:focus-visible{outline:none}.cc-hub:focus-visible b{text-decoration:underline}
-.cc-sat{--c:#36edbd;position:absolute;z-index:1;display:flex;align-items:center;gap:6px;transform:translate(-8px,-50%);padding:0;border:0;background:none;color:#cfe5de;font:500 11px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}
-.cc-sat.cc-left{flex-direction:row-reverse;transform:translate(calc(-100% + 8px),-50%)}
-.cc-sat.cc-up{flex-direction:column-reverse;gap:3px;transform:translate(-50%,calc(-100% + 8px))}
-.cc-sat i{flex:none;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 50% 45%,#fff 0 14%,var(--c) 38%,color-mix(in srgb,var(--c) 35%,#021512) 100%);box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 0 12px color-mix(in srgb,var(--c) 80%,transparent)}
-.cc-sat-step-todo i{background:#04140f;box-shadow:0 0 0 1.5px color-mix(in srgb,var(--c) 45%,transparent)}
+.cc-core-label{position:absolute;transform:translate(-50%,0);text-align:center;pointer-events:none}
+.cc-core-label b{display:block;font:700 15px/1 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.32em;padding-left:.32em;color:#effff8;text-shadow:0 0 12px rgba(45,255,168,.7),0 1px 4px #000}
+.cc-core-label small{display:block;margin-top:5px;font:600 9px/1 Inter,system-ui,sans-serif;letter-spacing:.34em;padding-left:.34em;color:#3ff0b0;opacity:.8}
+/* each project: an invisible round target over its nucleus, the name and status line under it, its sections on demand */
+.cc-proj{--c:#36edbd;--r:26px;position:absolute;left:0;top:0;width:0;height:0}
+.cc-hub{position:absolute;z-index:2;width:max-content;display:flex;flex-direction:column;align-items:center;gap:8px;transform:translateX(-50%);padding:0;border:0;background:none;color:#eafff7;cursor:pointer;font:inherit;text-align:center}
+.cc-proj.cc-up .cc-hub{flex-direction:column-reverse}
+.cc-hub>i{width:calc(var(--r) * 2);height:calc(var(--r) * 2);border-radius:50%;transition:box-shadow .2s}
+.cc-hub-t{position:relative;display:flex;flex-direction:column;align-items:center;max-width:190px;text-shadow:0 1px 6px #000,0 0 2px #000}
+/* a soft dark backdrop so a trail passing behind a name never hurts its legibility */
+.cc-hub-t::before{content:'';position:absolute;inset:-6px -14px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.82),rgba(0,0,0,.55) 60%,transparent);pointer-events:none}
+.cc-hub-t b{font:600 14px/1.2 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.01em;color:#f4fffb}
+.cc-hub-t small{margin-top:3px;font:500 11px/1.25 Inter,system-ui,sans-serif;color:color-mix(in srgb,var(--c) 60%,#cfe9e2)}
+.cc-proj.is-active .cc-hub-t b::after{content:'';display:inline-block;width:6px;height:6px;margin:0 0 2px 7px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);vertical-align:middle}
+.cc-hub:hover>i,.cc-hub:focus-visible>i{box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent),0 0 0 7px color-mix(in srgb,var(--c) 14%,transparent)}
+.cc-hub:focus-visible{outline:none}.cc-hub:focus-visible b{text-decoration:underline;text-underline-offset:3px}
+.cc-tip{position:absolute;z-index:5;width:max-content;max-width:248px;padding:10px 11px 11px;border-radius:12px;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);background:#030a08;box-shadow:0 14px 40px rgba(0,0,0,.6),0 0 24px color-mix(in srgb,var(--c) 14%,transparent);
+  visibility:hidden;opacity:0;transform:translateY(4px);transition:opacity .16s,transform .16s,visibility 0s .22s}
+.cc-proj:hover .cc-tip,.cc-proj:focus-within .cc-tip{visibility:visible;opacity:1;transform:none;transition-delay:0s}
+.cc-tip-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:8px}
+.cc-tip-head b{font:600 12px/1.2 Inter,system-ui,sans-serif;color:#f2fffa}
+.cc-tip-head small{font:500 10px/1 Inter,system-ui,sans-serif;letter-spacing:.04em;color:color-mix(in srgb,var(--c) 70%,#cfe9e2)}
+.cc-tip-list{display:flex;flex-wrap:wrap;gap:5px}
+.cc-tip-empty{font-size:11px;color:#7f9d94}
+.cc-sat{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:3px 9px 3px 7px;border-radius:999px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.035);color:#d6ebe4;font:500 11px/1.2 Inter,system-ui,sans-serif;white-space:nowrap;cursor:pointer}
+.cc-sat:hover,.cc-sat:focus-visible{border-color:color-mix(in srgb,var(--c) 60%,transparent);color:#fff;outline:none}
+.cc-sat i{flex:none;width:7px;height:7px;border-radius:50%;background:var(--c);box-shadow:0 0 6px var(--c)}
+.cc-sat-step-todo i{background:transparent;box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--c) 50%,transparent)}
 .cc-sat-step-todo span{color:#7f9d94}
-.cc-sat-step-waiting i{background:radial-gradient(circle at 50% 45%,#fff 0 14%,#f5b544 40%,#5a3a07 100%);box-shadow:0 0 0 1px #f5b544aa,0 0 12px #f5b544}
+.cc-sat-step-waiting i{background:#f5b544;box-shadow:0 0 6px #f5b544}
 .cc-sat-step-waiting span{color:#f7cf86}
-.cc-sat-wf i{width:12px;height:12px;background:#04140f;border:2px solid var(--c);box-shadow:none}
-.cc-sat-more i{display:none}
-.cc-sat-more span{padding:2px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:#04161acc}
-.cc-sat span{max-width:130px;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 5px #000}
-.cc-sat:hover span{color:#fff}
-@media (prefers-reduced-motion:reduce){.cc-hub>i{transition:none}}
-.cc-world.cc-dense .cc-sat:not(.cc-sat-more) span{display:none}
-.cc-world.cc-small .cc-hub-t b{font-size:13.5px;max-width:170px}
-.cc-world.cc-small .cc-sat span{font-size:10px;max-width:84px}
-.cc-world.cc-small .cc-sat i{width:12px;height:12px}
-.cc-world.cc-small .cc-core-label b{font-size:16px}
-.cc-more{position:absolute;z-index:2;transform:translate(-50%,0);padding:5px 12px;border-radius:999px;border:1px solid #2a6a5a;background:#04161acc;color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
-.cc-shared{position:absolute;right:14px;top:12px;z-index:2;padding:6px 12px;border-radius:999px;border:1px solid #2a6a5a;background:#04161acc;color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
+.cc-sat-wf i{background:transparent;border-radius:2px;box-shadow:inset 0 0 0 1.5px var(--c)}
+.cc-sat span{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+@media (prefers-reduced-motion:reduce){.cc-hub>i,.cc-tip{transition:none}}
+.cc-world.cc-small .cc-hub-t{max-width:150px}
+.cc-world.cc-small .cc-hub-t b{font-size:13px}
+.cc-world.cc-small .cc-hub-t small{font-size:10.5px}
+.cc-world.cc-small .cc-tip{max-width:220px}
+.cc-more{position:absolute;z-index:2;transform:translate(-50%,0);padding:5px 12px;border-radius:999px;border:1px solid #1d4a3e;background:rgba(0,0,0,.7);color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
+.cc-shared{position:absolute;right:14px;top:12px;z-index:2;padding:6px 12px;border-radius:999px;border:1px solid #1d4a3e;background:rgba(0,0,0,.7);color:#bff5e4;font:500 12px Inter,system-ui,sans-serif;cursor:pointer}
 .cc-shared:hover,.cc-shared:focus-visible,.cc-more:hover,.cc-more:focus-visible{border-color:#36edbd;color:#fff;outline:none}
+.network-wrap:has(.cc-world-on) .network-caption,.network-wrap:has(.cc-world-on) .legend{background:rgba(0,0,0,.72);border-color:#163a31}
+.legend .cc-legend{white-space:nowrap}
+.legend .cc-legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.legend .cc-legend.core i{background:#2dffa8;box-shadow:0 0 8px #2dffa8}
+.legend .cc-legend.proj i{background:radial-gradient(circle,#fff 0 20%,#4aa8ff 45%,transparent 75%);box-shadow:0 0 6px #4aa8ff}
+.legend .cc-legend.flow i{width:16px;height:2px;border-radius:2px;background:linear-gradient(90deg,#2dffa8,#a27bff)}
 @media (max-width:640px){.network-wrap:has(.cc-world-on){height:auto!important;overflow:hidden}.network-stage.cc-world-on{height:760px!important}}
+/* the expanded map covers the shell's sidebar and top bar too, so nothing is cut off on the left */
+body.network-expanded-active .network-panel.network-expanded{z-index:65}
 
 /* ---- Page polish from the 22:32 mockup: quieter hero, labelled flow steppers, sidebar counts ---- */
 .rx-cc .welcome-message .eyebrow{display:none}
