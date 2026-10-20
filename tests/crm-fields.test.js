@@ -135,7 +135,8 @@ test('migration 011: idempotent, optional columns, workspace-scoped references, 
  // sales_command: the same allowlists as the API, the rest identical to 009.
  const fn=MIG.slice(MIG.indexOf('CREATE OR REPLACE FUNCTION sales_command'));
  const arr=k=>{const m=new RegExp("WHEN '"+k+"' THEN ARRAY\\[([^\\]]*)\\]").exec(fn);return m[1].match(/'[a-z_]+'/g).map(x=>x.slice(1,-1))};
- const no014=a=>a.filter(k=>k!=='division');
+ // «division» arrives with 014, «custom» with 015.
+ const no014=a=>a.filter(k=>!['division','custom'].includes(k));
  assert.deepEqual(arr('companies'),no014(fields.companies));assert.deepEqual(arr('contacts'),no014(fields.contacts));
  const prev=fs.readFileSync(__dirname+'/../migrations/sales/009_crm_tickets_segments.sql','utf8');const p9=prev.slice(prev.indexOf('CREATE OR REPLACE FUNCTION sales_command'),prev.indexOf('$$;',prev.indexOf('CREATE OR REPLACE FUNCTION sales_command'))+3);
  const strip=s=>s.replace(/WHEN 'companies' THEN ARRAY\[[^\]]*\]|WHEN 'contacts' THEN ARRAY\[[^\]]*\]/g,'').replace(/\s+/g,' ');
@@ -157,7 +158,7 @@ test('CSV: Italian and Salesforce headers for the new fields; values the CRM wou
 });
 test('CSV import and export keep working on an archive without 011',()=>{
  const src=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');
- assert.match(src,/mapRows\(kind,CSV\(\)\.parse\(await file\.text\(\)\),\{extended:true\}\)/);
+ assert.match(src,/mapRows\(kind,parsed,\{extended:true,custom\}\)/);
  assert.match(src,/e\.status===400&&\/011\/\.test\(e\.message\)/,'retry without the added fields');
  assert.match(src,/CSV\(\)\.toCsv\(rows,cols\(kind,rows\)\)/,'added columns only when the rows have them');
  assert.match(src,/supported\('contacts',row\)\?\{first_name:null/,'GDPR erase clears the added personal fields when present');

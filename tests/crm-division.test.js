@@ -25,7 +25,8 @@ test('migration 014: two columns, and sales_command = 012 plus «division» in t
  const fn=body(MIG),prev=body(fs.readFileSync(__dirname+'/../migrations/sales/012_crm_lead_status.sql','utf8'));
  const arr=k=>/WHEN 'companies' THEN/.test(fn)&&new RegExp("WHEN '"+k+"' THEN ARRAY\\[([^\\]]*)\\]").exec(fn)[1].match(/'[a-z_]+'/g).map(x=>x.slice(1,-1));
  const sorted=a=>[...a].sort();
- assert.deepEqual(sorted(arr('companies')),sorted(fields.companies));assert.deepEqual(sorted(arr('contacts')),sorted(fields.contacts));
+ const no015=a=>a.filter(k=>k!=='custom');
+ assert.deepEqual(sorted(arr('companies')),sorted(no015(fields.companies)));assert.deepEqual(sorted(arr('contacts')),sorted(no015(fields.contacts)));
  assert.equal(fn.replace(/,'division'\]/g,']'),prev,'identical to 012 apart from the two allowlists');
 });
 test('list views: Dipartimento column, search and filter',()=>{

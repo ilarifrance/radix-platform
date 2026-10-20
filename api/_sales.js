@@ -11,10 +11,12 @@ const clicks=require('./_sales_clicks');
 const importToken=require('./_lead_import_token');
 // Prodotti, Listini, Preventivi, Fatture (migration sales 013): own validator and atomic SQL command.
 const docs=require('./_sales_documents');
+// «Aggiungi campo» (migration sales 015): field definitions per workspace, values in «custom».
+const customFields=require('./_sales_custom_fields');
 // Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
 // description shared with the browser (sales/crm-fields-core.js), validated again here.
 const recordFields=require('../sales/crm-fields-core.js');
-const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes',...recordFields.ADDED.companies],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at',...recordFields.ADDED.contacts],leads:['title','company_id','contact_id','status','status_reason','source','owner_id','notes'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
+const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes',...recordFields.ADDED.companies,'custom'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at',...recordFields.ADDED.contacts,'custom'],leads:['title','company_id','contact_id','status','status_reason','source','owner_id','notes'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
@@ -83,6 +85,7 @@ function command(body){
  const added=['companies','contacts'].includes(entity)?recordFields.ADDED[entity]:[];
  for(const [k,v] of Object.entries(d)){
    if(added.includes(k)){d={...d,[k]:addedField(entity,k,v,d)};continue;}
+   if(k==='custom'){d={...d,custom:customFields.values(v)};continue;}
    if(k==='version'){if(!Number.isInteger(v)||v<1||v>2147483646)fail(400,'Versione non valida.');}
    else if(k==='expected_close'){if(v!==null&&!calendarDate(v))fail(400,'Data chiusura prevista non valida: usa YYYY-MM-DD.');}
    else if(['owner_id','assignee_id','task_assignee_id'].includes(k)){if(v!==null&&(!Number.isInteger(v)||v<1||v>2147483647))fail(400,'Assegnatario non valido.');}
@@ -168,11 +171,13 @@ function createHandler({getSessionUser,getStore}){
        // Optional tracked links: up to 10 distinct urls of the email, signed per contact.
        if(d.urls!==undefined&&(!Array.isArray(d.urls)||d.urls.length>10||!d.urls.every(clicks.validUrl)||!clicks.validCampaign(d.campaign)))fail(400,'Link tracciati non validi: massimo 10 indirizzi http(s) e un nome campagna fino a 80 caratteri.');
        c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)],...(d.urls?.length?{campaign:d.campaign.trim(),urls:[...new Set(d.urls)]}:{})}};
-     }else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
+     }else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
+     else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};
-     if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
+     if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace'].includes(k))||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
+     else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
      else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)))fail(400,'Parametro non consentito.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
      if(q.due!==undefined && (q.entity!=='tasks'||!['all','overdue','upcoming','unscheduled'].includes(q.due)))fail(400,'Filtro scadenza non valido.');
@@ -206,11 +211,13 @@ function createHandler({getSessionUser,getStore}){
    }
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
+     if(c.customFields)return res.status(200).json({rows:[await store.customFields.command(c,user.uid)]});
      if(c.documents){if(c.entity!=='documents'&&!['owner','admin'].includes(membership.role))fail(403,'Catalogo, listini e intestazione si modificano solo da owner o admin.');return res.status(200).json({rows:[await store.documents.command(c,user.uid)]});}
      if(c.entity==='lead_import_token')return res.status(200).json(importToken.sign({uid:user.uid,workspace:c.workspace},process.env.JWT_SECRET));
      if(c.entity==='unsubscribe_links'){const secret=unsubscribe.secretOf(process.env);return res.status(200).json({links:await unsubscribe.links(store.sql,c.workspace,c.data.contacts,secret),...(c.data.urls?{clicks:await clicks.links(store.sql,c.workspace,c.data.contacts,c.data.campaign,c.data.urls,secret),urls:c.data.urls}:{})})}
      return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):c.entity==='members'?store.memberCommand(c,user.uid):store.command(c,user.uid))]});
    }
+   if(c.customFields)return res.status(200).json({rows:await store.customFields.read(c,user.uid)});
    if(c.documents)return res.status(200).json({rows:await store.documents.read(c,user.uid),limit:500,offset:c.offset});
    return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
  }catch(e){
