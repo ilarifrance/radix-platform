@@ -175,16 +175,16 @@ function drawView(kind,box,list){
    span2.style.left=pos(grp.start);span2.style.width='calc('+pos(grp.end+1)+' - '+pos(grp.start)+')';gt.append(span2);
    const gl=node('div',undefined,'g-label');gl.append(node('strong',grp.name),node('small',' '+grp.done+'/'+grp.total+' · '+grp.progress+'%'));gr.append(gl,gt);body.append(gr);
    for(const r of grp.rows){
-    const row=node('div',undefined,'g-row'),track=node('div',undefined,'g-track'),bar=node('button',undefined,'g-bar'+(r.status==='Completato'?' done':'')+(r.late?' late':'')+(r.milestone?' ms':''));
+    const row=node('div',undefined,'g-row'),track=node('div',undefined,'g-track'),bar=node('button',undefined,'g-bar'+(r.status==='Completato'?' done':'')+(r.late?' late':'')+(r.milestone?' ms':'')+(r.critical?' critical':''));
     bar.type='button';bar.dataset.id=r.id;bar.style.left=pos(r.start);bar.style.width=r.milestone?'':'calc('+pos(r.end+1)+' - '+pos(r.start)+')';if(r.milestone)bar.style.left='calc('+pos(r.end)+' - 7px)';
-    bar.title=r.title+' · '+r.status+' · '+date(views.fromDay(r.start))+' → '+date(views.fromDay(r.end))+(r.late?' · in ritardo':'')+(r.dependencies.length?' · dopo '+r.dependencies.length+' dipendenze':'');bar.setAttribute('aria-label',bar.title);bar.onclick=()=>pick(r.id);bars[r.id]=bar;
+    bar.title=r.title+' · '+r.status+' · '+date(views.fromDay(r.start))+' → '+date(views.fromDay(r.end))+(r.late?' · in ritardo':'')+(r.critical?' · percorso critico: un giorno di ritardo sposta la fine del progetto':r.slack!=null?' · margine '+r.slack+(r.slack===1?' giorno':' giorni'):'')+(r.dependencies.length?' · dopo '+r.dependencies.length+' dipendenze':'');bar.setAttribute('aria-label',bar.title);bar.onclick=()=>pick(r.id);bars[r.id]=bar;
     const today=node('div',undefined,'g-today');today.style.left=pos(g.today);track.append(today,bar);
     const label=node('div',(r.milestone?'◇ ':'')+r.title,'g-label sub');label.title=r.title+' · '+r.owner;row.append(label,track);body.append(row);
    }
   }
   drawLinks(body,ph.links,bars);
   if(ph.groups.length){const prog=node('div',undefined,'g-progress');prog.append(node('h3','Avanzamento per fase'));for(const grp of ph.groups){const line=node('div',undefined,'g-prog-row'),b2=node('span',undefined,'pm-progress');b2.style.setProperty('--p',(grp.progress/100).toFixed(2));line.append(node('span',grp.name),b2,node('strong',grp.progress+'%'));prog.append(line);}prog.append(node('small','Attività completate più le sotto-attività spuntate di quelle aperte.','muted'));box.append(prog);}
-  box.append(node('p','Le frecce collegano un’attività a quelle che dipendono da lei (tratteggiate finché è aperta). Barre rosse: in ritardo. Rombi: milestone. La linea verde è oggi. Le date si cambiano da «Modifica attività».','muted'));
+  box.append(node('p','Le frecce collegano un’attività a quelle che dipendono da lei (tratteggiate finché è aperta). Barre rosse: in ritardo. Bordo arancione: percorso critico, dove un giorno di ritardo sposta la fine del progetto (passa il mouse su una barra per vedere il margine). Rombi: milestone. La linea verde è oggi. Le date si cambiano da «Modifica attività».','muted'));
   return;
  }
  const cap=project().capacity||3,w=views.workload(list,undefined,6,cap);

@@ -84,6 +84,7 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-gantt button.g-bar:hover:not(:disabled){filter:brightness(1.15);background:linear-gradient(90deg,var(--pm-todo),var(--pm-doing))}
 .rx-pm .pm-gantt button.g-bar.done,.rx-pm .pm-gantt button.g-bar.done:hover{background:color-mix(in srgb,var(--pm-done) 55%,var(--rx-surface-2));box-shadow:none}
 .rx-pm .pm-gantt button.g-bar.late,.rx-pm .pm-gantt button.g-bar.late:hover{background:linear-gradient(90deg,color-mix(in srgb,var(--rx-error) 70%,var(--pm-doing)),var(--rx-error));box-shadow:0 0 12px color-mix(in srgb,var(--rx-error) 40%,transparent)}
+.rx-pm .pm-gantt button.g-bar.critical{outline:2px solid #ff9f43;outline-offset:1px}
 .rx-pm .pm-gantt button.g-bar.ms{top:13px;width:14px!important;height:14px;min-width:0;margin-left:-7px;border-radius:3px;transform:rotate(45deg);background:var(--pm-doing);box-shadow:0 0 14px color-mix(in srgb,var(--pm-doing) 60%,transparent)}
 .rx-pm .pm-gantt button.g-bar.ms.done{background:var(--pm-done);box-shadow:none}
 .rx-pm .pm-gantt button.g-bar:focus-visible{outline:2px solid var(--rx-core);outline-offset:3px}
