@@ -1,6 +1,5 @@
 -- CRM: Salesforce-style Account/Contact fields and Italian fiscal data (Aziende e Contatti).
--- DRAFT, NOT APPLIED ANYWHERE: needs the owner's OK before it runs on any shared database
--- (Preview or production). Tried only on a throwaway local database.
+-- Applied on Neon radix-preview and radix-production on 2026-10-20 with the owner's OK.
 -- Apply after 001-010. Idempotent: columns use ADD COLUMN IF NOT EXISTS, named constraints and
 -- indexes are created only when missing, sales_command is a full versioned replacement of 009.
 -- Needs PostgreSQL 15+ for ON DELETE SET NULL (column): deleting a parent company, a manager
