@@ -16,6 +16,12 @@
       { href: CRM + '#tickets', text: 'Assistenza', ic: 'chat' },
       { href: CRM + '#calendar', text: 'Calendario', ic: 'cal' },
       { href: CRM + '#analytics', text: 'Analisi', ic: 'chart' }
+   
+    ] },
+    { label: 'Vendite', items: [
+      { href: '/sales-vendite.html#quotes', text: 'Preventivi', ic: 'steps' },
+      { href: '/sales-vendite.html#invoices', text: 'Fatture', ic: 'check' },
+      { href: '/sales-vendite.html#products', text: 'Prodotti e listini', ic: 'building' }
     ] },
     { label: 'Acquisizione', items: [
       { href: '/lead-intelligence.html', text: 'Lead Intelligence', ic: 'magnet' },
