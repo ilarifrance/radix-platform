@@ -63,7 +63,7 @@
    tr.append(c0,c1,c2,c3,c4,c5,c6,c7);body.append(tr);
   }
   $('lp-empty').hidden=rows.length>0;
-  $('lp-empty-text').textContent=state.leads.length?'Nessun lead corrisponde ai filtri.':'Nessun lead ancora. Importa un CSV/Excel o ripristina il backup JSON del LinkedIn local agent.';
+  $('lp-empty-text').textContent=state.leads.length?'Nessun lead corrisponde ai filtri.':'Nessun lead ancora. Apri un lavoro salvato in Contatti individuali › Archivio contatti RADIX, oppure importa un CSV/Excel o ripristina un backup JSON.';
   $('lp-more').textContent=rows.length>SHOW?'Mostrati i primi '+SHOW+' lead su '+rows.length+': usa la ricerca o i filtri per gli altri.':rows.length?rows.length+' lead in elenco':'';
   selection();
  }

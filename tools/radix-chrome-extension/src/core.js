@@ -128,8 +128,19 @@
   if(!row||!row.id)throw Error('Risposta RADIX inattesa');
   return {id:row.id,title:row.title||title,version:row.version,count:payload.records.length,workspace:info.workspace};
  }
- function leadIntelligenceUrl(baseUrl){return normalizeBaseUrl(baseUrl)+'/lead-intelligence.html'}
- const api={DEFAULT_BASE,MAX_CHOICES,MAX_CONTACTS,BATCH_SIZE,SOURCE_LABEL,LINK_PREFIX,clampMax,normalizeBaseUrl,makeLinkCode,parseLinkCode,tokenInfo,isSupportedUrl,isBlockedUrl,sourceUrlFor,mergeRows,jobTitle,buildJob,importBody,randomDelay,checkLink,uploadContacts,leadIntelligenceUrl};
+ // With the created job, the link opens it straight away in the Lead pipeline of its workspace.
+ function leadIntelligenceUrl(baseUrl,job){return normalizeBaseUrl(baseUrl)+'/lead-intelligence.html'+(job&&B&&B.openHash?B.openHash(job.workspace,job.id):'')}
+ // Results page number from the Sales Navigator address (?page=N), 1 when absent.
+ function pageFromUrl(href){try{const n=Number(new URL(String(href)).searchParams.get('page'));return Number.isInteger(n)&&n>0?n:1}catch{return 1}}
+ // A run ended before its natural end (max reached or last page): error, block or stop by the user.
+ const stoppedEarly=run=>!!(run&&run.endReason&&run.endReason!=='done');
+ // Final message after the upload: keeps visible why the run ended when it ended early.
+ function finishMessage(count,endReason,endMessage){
+  const base='Importati '+count+' contatti in RADIX.';
+  return endReason&&endReason!=='done'&&endMessage?base+' '+endMessage:base;
+ }
+ const CONTINUE_HINT='Resta su questa pagina e premi «Nuova importazione» per continuare da qui.';
+ const api={DEFAULT_BASE,MAX_CHOICES,MAX_CONTACTS,BATCH_SIZE,SOURCE_LABEL,LINK_PREFIX,clampMax,normalizeBaseUrl,makeLinkCode,parseLinkCode,tokenInfo,isSupportedUrl,isBlockedUrl,sourceUrlFor,mergeRows,jobTitle,buildJob,importBody,randomDelay,checkLink,uploadContacts,leadIntelligenceUrl,pageFromUrl,stoppedEarly,finishMessage,CONTINUE_HINT};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.RadixImportCore=api;
 })(typeof window!=='undefined'?window:globalThis);

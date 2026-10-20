@@ -8,7 +8,7 @@
  const X=window.RadixExtract,C=window.RadixImportCore;
  const state={running:false,stop:false,id:''};
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
- const timing=window.__radixTiming||{scroll:[800,1800],page:[4000,9000],wait:20000,poll:400};
+ const timing=window.__radixTiming||{scroll:[800,1800],page:[4000,9000],wait:45000,poll:400};
  const wait=range=>sleep(C.randomDelay(range[0],range[1]));
  const send=msg=>new Promise(resolve=>{
   try{chrome.runtime.sendMessage(msg,r=>{void chrome.runtime.lastError;resolve(r||{ok:false,error:'Estensione non raggiungibile: ricarica la pagina'})})}
@@ -26,19 +26,31 @@
   return check();
  }
  const blocked=()=>C.isBlockedUrl(location.href)||!!X.detectChallenge(document);
+ const PAGE_SIZE=25;
+ // Scrolls the results (window and the inner results box) until the page's 25
+ // profiles are rendered, or nothing new appears for a while; then down to «Avanti».
  async function collectPage(){
-  const seen=new Map();let still=0;
-  for(let step=0;step<14&&!state.stop;step++){
+  const seen=new Map(),take=()=>{for(const row of readVisible())if(!seen.has(row.profileUrl))seen.set(row.profileUrl,row)};
+  let still=0;
+  for(let step=0;step<25&&!state.stop;step++){
    if(blocked())return null;
-   const before=seen.size;
-   for(const row of readVisible())if(!seen.has(row.profileUrl))seen.set(row.profileUrl,row);
+   const before=seen.size;take();
    still=seen.size===before?still+1:0;
-   if(still>=3&&step>=3)break;
-   const last=X.lastProfileAnchor(document);
+   if(seen.size>=PAGE_SIZE||still>=5)break;
+   const last=X.lastProfileAnchor(document),box=X.scrollParent(last);
    if(last)last.scrollIntoView({block:'center'});
+   if(box)box.scrollBy(0,Math.round(box.clientHeight*0.6));
    window.scrollBy(0,Math.round(window.innerHeight*0.6));
    await wait(timing.scroll);
   }
+  if(state.stop)return Array.from(seen.values());
+  if(blocked())return null;
+  const next=X.findNextButton(document),last=X.lastProfileAnchor(document),box=X.scrollParent(last);
+  if(box)box.scrollTop=box.scrollHeight;
+  if(next)next.scrollIntoView({block:'center'});else window.scrollTo(0,document.documentElement.scrollHeight);
+  await wait(timing.scroll);
+  if(blocked())return null;
+  take();
   return Array.from(seen.values());
  }
  async function run(max){
@@ -50,7 +62,7 @@
   if(!started.ok)return started;
   Object.assign(state,{running:true,stop:false,id});
   (async()=>{
-   let total=0,page=1,reason='done',message='';
+   let total=0,page=C.pageFromUrl(location.href),reason='done',message='';
    try{
     const limit=C.clampMax(max);
     while(!state.stop){
@@ -68,14 +80,30 @@
      if(state.stop)break;
      const next=X.findNextButton(document);
      if(!next){message='Ultima pagina dei risultati raggiunta.';break}
-     const firstKey=X.firstProfileKey(document);
+     const firstKey=X.firstProfileKey(document),fromPage=C.pageFromUrl(location.href);
+     // Moved: other profiles on screen, or the address shows the next page and its results are there.
+     const urlMoved=()=>C.pageFromUrl(location.href)!==fromPage;
+     const moved=()=>blocked()||(X.firstProfileKey(document)&&X.firstProfileKey(document)!==firstKey)||(urlMoved()&&readVisible().length>0);
      await wait([600,1400]);
      next.scrollIntoView({block:'center'});
      next.click();
-     const moved=await waitFor(()=>blocked()||(X.firstProfileKey(document)&&X.firstProfileKey(document)!==firstKey),timing.wait);
+     let ok=await waitFor(moved,timing.wait);
+     // LinkedIn can be slow: if the address already changed keep waiting, otherwise press «Avanti» once more.
+     if(!ok&&!state.stop){
+      if(!urlMoved()){
+       const again=X.findNextButton(document);
+       if(again){await wait([1500,3500]);if(!moved()){again.scrollIntoView({block:'center'});again.click()}}
+      }
+      ok=await waitFor(moved,timing.wait);
+     }
      if(state.stop)break;
-     if(!moved){reason='error';message='La pagina successiva non si è caricata.';break}
-     page++;
+     if(!ok){reason='error';message='La pagina '+(page+1)+' non si è caricata in tempo (LinkedIn lento).';break}
+     if(blocked())continue;
+     // Address changed but the old profiles are still shown: give LinkedIn a little longer to swap them.
+     const changed=()=>X.firstProfileKey(document)!==firstKey;
+     if(!changed())await waitFor(()=>blocked()||changed(),Math.round(timing.wait/3));
+     if(state.stop)break;
+     page=Math.max(page+1,C.pageFromUrl(location.href));
      await wait(timing.page);
     }
     if(state.stop&&reason==='done'){reason='stopped';message='Importazione fermata da te.'}
