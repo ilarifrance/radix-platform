@@ -59,6 +59,10 @@ th.lv-cb{padding:0 8px}
 .lv-cb input,.lv-check input{width:16px;height:16px;min-height:0;min-width:0;padding:0;margin:0;vertical-align:middle;accent-color:var(--crm-accent)}
 .lv-name,.lv-link{border:0;background:none;padding:0;min-height:0;font:inherit;color:var(--crm-link);text-align:left;cursor:pointer;box-shadow:none;border-radius:2px}
 .lv-name{font-weight:600}
+.lv-table td.lv-has-li>.lv-name{max-width:172px}
+.lv-li{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-height:0;min-width:0;margin-left:6px;padding:0;border:1px solid var(--crm-link);border-radius:4px;background:var(--crm-card);color:var(--crm-link);font:700 12px/1 var(--crm-font);letter-spacing:-.02em;vertical-align:middle;cursor:pointer;box-shadow:none}
+.lv-li:hover{background:var(--crm-link);color:var(--crm-card)}
+.lv-li:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
 .lv-name:hover,.lv-link:hover{text-decoration:underline}
 .lv-table a{color:var(--crm-link);text-decoration:none}
 .lv-table a:hover{text-decoration:underline}

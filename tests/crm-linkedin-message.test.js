@@ -110,11 +110,13 @@ function fixture(opts={}){
  const fetch=async(url,o)=>{requests.push(url);const body=JSON.parse(o.body);requests.prompt=body.messages[0].content;requests.chat=body;
   if(opts.aiFails)return {ok:false,status:503,json:async()=>({error:'AI non disponibile.'})};
   return {ok:true,status:200,json:async()=>({reply:'```json\n{"message":"Buongiorno Giulia, ho visto il lavoro di Rossi Meccanica: mi farebbe piacere collegarci."}\n```'})}};
- const ctx={document:dom.document,fetch,confirm:m=>{confirms.push(m);return true},navigator:{clipboard:{writeText:async t=>{copied.push(t)}}},RadixSalesApp:app,URL,JSON,Date,Object,Promise};
+ const opened=[],order=[];
+ const ctx={document:dom.document,fetch,confirm:m=>{confirms.push(m);return true},navigator:{clipboard:{writeText:async t=>{order.push('copy');copied.push(t)}}},RadixSalesApp:app,URL,JSON,Date,Object,Promise,
+  open:(...a)=>{order.push('open');opened.push(a);return null}};
  ctx.globalThis=ctx;
  vm.runInNewContext(fs.readFileSync('sales/crm-linkedin-message-core.js','utf8'),ctx);
  vm.runInNewContext(fs.readFileSync('sales/crm-linkedin-message.js','utf8'),ctx);
- return {dom,ctx,app,requests,posts,confirms,copied};
+ return {dom,ctx,app,requests,posts,confirms,copied,opened,order};
 }
 
 test('DOM: no button without a LinkedIn profile; the card gets «Messaggio LinkedIn» when there is one',()=>{
@@ -143,7 +145,7 @@ test('DOM: purpose, AI draft after a confirmation, live counter, copy + open, «
  // Copy and open: clipboard, then the profile in a new tab with rel=noopener.
  await dom.button('Copia e apri LinkedIn').click();
  assert.deepEqual(f.copied,['Buongiorno Giulia, grazie!']);
- const tab=dom.find(n=>n.tagName==='A'&&n.clicked);assert.equal(tab.href,CONTACT.linkedin_url);assert.equal(tab.target,'_blank');assert.match(tab.rel,/noopener/);
+ assert.equal(f.opened.length,1);const [href,target,features]=f.opened[0];assert.equal(href,CONTACT.linkedin_url);assert.equal(target,'_blank');assert.match(features,/noopener/);
  assert.equal(f.posts.length,0,'nothing recorded by copying');
  // Recorded only after the confirmation.
  await dom.button('Segna come inviato').click();
@@ -162,6 +164,23 @@ test('DOM: AI failure falls back to the template, labelled «modello, non AI»; 
  assert.match(area.value,/^Buongiorno Giulia, ho visto il suo profilo \(Responsabile acquisti\)/);
  assert.equal(dom.find(n=>n.className==='li-tag').textContent,'modello, non AI');
  const err=dom.find(n=>n.className==='notice li-error');assert.equal(err.hidden,false);assert.match(err.textContent,/AI non disponibile\. Ti propongo un modello senza AI\./);
+});
+
+test('«Copia e apri LinkedIn»: window.open runs in the click itself, before the first await (pop-up blockers)',async()=>{
+ const f=fixture(),dom=f.dom;f.ctx.RadixCrmLinkedIn.open({...CONTACT,id:'k9'});
+ await dom.button('Usa un modello').click();dom.find(n=>n.id==='li-text').value='Buongiorno Giulia, piacere di conoscerla.';
+ let settled=false;
+ // The handler is not awaited: whatever runs before its first await has run when click() returns.
+ const p=dom.find(n=>n.tagName==='BUTTON'&&n.textContent==='Copia e apri LinkedIn').listeners.click[0]({preventDefault(){}});
+ Promise.resolve(p).then(()=>{settled=true});
+ assert.equal(f.opened.length,1,'opened synchronously');assert.equal(settled,false,'the handler had not yielded yet');
+ assert.deepEqual(f.order,['copy','open'],'the clipboard write starts first, in the same tick');
+ await p;assert.deepEqual(f.copied,['Buongiorno Giulia, piacere di conoscerla.']);
+ assert.match(dom.find(n=>n.className==='li-status').textContent,/^Testo copiato/);
+ // Clipboard refused: the tab is still opened and the text left selected for Ctrl+C.
+ const g=fixture();g.ctx.navigator.clipboard.writeText=async()=>{throw new Error('denied')};g.ctx.RadixCrmLinkedIn.open({...CONTACT,id:'k10'});
+ await g.dom.button('Usa un modello').click();g.dom.find(n=>n.id==='li-text').value='Ciao';
+ await g.dom.button('Copia e apri LinkedIn').click();assert.equal(g.opened.length,1);assert.match(g.dom.find(n=>n.className==='notice li-error').textContent,/Copia non riuscita/);
 });
 
 test('page wiring: scripts after crm-follow-up.js, stylesheet, card, contact sheet and «Oggi» hooks',()=>{
