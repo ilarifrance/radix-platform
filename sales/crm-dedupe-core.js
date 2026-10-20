@@ -12,7 +12,9 @@ const norm=s=>String(s||'').normalize('NFD').replace(/\p{M}/gu,'').toLocaleLower
 const email=s=>String(s||'').trim().toLowerCase();
 // Phones: digits only; with an international prefix (+ or 00) the Italian 39 is dropped, so +39 333… matches 333….
 const phone=s=>{const raw=String(s||'').trim();let d=raw.replace(/\D/g,'');if(/^(\+|00)/.test(raw)){d=d.replace(/^00/,'');if(d.startsWith('39'))d=d.slice(2)}return d.length>=8?d:''};
-const FILL=['email','phone','role','linkedin_url'],NOTES_MAX=4000;
+// The fields added by migration sales 011 are filled the same way when the archive has them (not
+// first and last name: the kept contact keeps its own name).
+const FILL=['email','phone','role','linkedin_url','title','department','mobile','street','zip','city','province','country','birthdate','lead_source','preferred_language'],NOTES_MAX=4000;
 
 // contacts: [{id,name,email,phone,company}] (company may be a name or an id; it only has to match within the list)
 function groups(contacts){

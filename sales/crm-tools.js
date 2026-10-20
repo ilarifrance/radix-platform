@@ -15,7 +15,19 @@ const COLUMNS={
  contacts:[['Nome','name'],['Ruolo','role'],['Azienda','company'],['Email','email'],['Telefono','phone'],['LinkedIn','linkedin_url'],['Consenso marketing',r=>r.marketing_consent?'sì':'no'],['Data consenso','consent_at'],['Note','notes']],
  companies:[['Azienda','name'],['Settore','industry'],['Sito','website'],['Email','email'],['Telefono','phone'],['Città','city'],['Note','notes']]
 };
-const cols=kind=>COLUMNS[kind].map(([label,k])=>typeof k==='function'?{label,value:k}:{label,key:k});
+// Columns of migration sales 011 (crm-fields-core.js): exported only when the archive has them.
+const ADDED_COLUMNS={
+ contacts:[['Nome proprio','first_name'],['Cognome','last_name'],['Qualifica','title'],['Reparto','department'],['Cellulare','mobile'],['Indirizzo','street'],['CAP','zip'],['Città','city'],['Provincia','province'],['Paese','country'],['Data di nascita','birthdate'],['Origine','lead_source'],['Lingua preferita','preferred_language'],['Riporta a',r=>ref('contacts',r.reports_to_id)],['Responsabile',r=>member(r.owner_id)]],
+ companies:[['Ragione sociale','legal_name'],['Tipo',r=>label('account_type',r.account_type)],['Valutazione',r=>label('rating',r.rating)],['Responsabile',r=>member(r.owner_id)],['Azienda capogruppo',r=>ref('companies',r.parent_company_id)],['Fatturato annuo (€)',r=>r.annual_revenue_cents==null?'':window.RadixCrmFields?.centsToEuro(r.annual_revenue_cents)],['Dipendenti','employees'],
+  ['Indirizzo fatturazione','billing_street'],['CAP fatturazione','billing_zip'],['Città fatturazione','billing_city'],['Provincia fatturazione','billing_province'],['Paese fatturazione','billing_country'],
+  ['Indirizzo spedizione','shipping_street'],['CAP spedizione','shipping_zip'],['Città spedizione','shipping_city'],['Provincia spedizione','shipping_province'],['Paese spedizione','shipping_country'],
+  ['Partita IVA','vat_number'],['Codice fiscale','tax_code'],['PEC','pec'],['Codice SDI','sdi_code'],['Descrizione','description']]
+};
+const label=(key,v)=>v==null?'':((window.RadixCrmFields?.fieldOf('companies',key)?.options||[]).find(([k])=>k===v)||[v,v])[1];
+const member=id=>id==null?'':(app().rows('members').find(m=>String(m.id)===String(id))||{}).name||String(id);
+const ref=(kind,id)=>id?(app().rows(kind).find(r=>r.id===id)||{}).name||id:'';
+const supports=(kind,rows)=>!!window.RadixCrmFields&&rows.some(r=>window.RadixCrmFields.supported(kind,r));
+const cols=(kind,rows)=>[...COLUMNS[kind],...(rows&&supports(kind,rows)?ADDED_COLUMNS[kind]:[])].map(([label,k])=>typeof k==='function'?{label,value:k}:{label,key:k});
 async function run(label,fn){
  const a=app();if(a.state.busy)return;a.lock(true);a.error('');a.notice(label);let ok=false;
  try{await fn();ok=true}catch(e){a.error(e.message||String(e));a.notice('Operazione non completata.')}
@@ -24,13 +36,14 @@ async function run(label,fn){
 }
 async function exportCsv(kind,filter){
  await run('Preparo il file…',async()=>{let rows=await exportRows(kind);if(filter)rows=rows.filter(filter);
-  download((kind==='contacts'?'contatti':'aziende')+'-'+stamp()+'.csv',CSV().toCsv(rows,cols(kind)),'text/csv;charset=utf-8');
+  download((kind==='contacts'?'contatti':'aziende')+'-'+stamp()+'.csv',CSV().toCsv(rows,cols(kind,rows)),'text/csv;charset=utf-8');
   app().notice(rows.length+' righe esportate.')});
 }
 const post=(entity,action,data)=>app().api(entity,{body:{workspace:app().state.workspace,entity,action,data}});
 async function importCsv(kind,file){
  const a=app();if(!file)return;if(file.size>2e6){a.error('File troppo grande: massimo 2 MB.');return}
- let mapped;try{mapped=CSV().mapRows(kind,CSV().parse(await file.text()))}catch(e){a.error(e.message);return}
+ // The 011 fields are read too: an archive without them gets the same rows minus those fields (retry below).
+ let mapped;try{mapped=CSV().mapRows(kind,CSV().parse(await file.text()),{extended:true})}catch(e){a.error(e.message);return}
  if(!mapped.rows.length){a.error('Nessuna riga valida. Servono almeno le colonne Nome'+(kind==='contacts'?' (o Nome e Cognome)':'')+'.'+(mapped.skipped.length?' Righe scartate: '+mapped.skipped.length+'.':''));return}
  let plan;
  const ready=await run('Controllo i duplicati…',async()=>{
@@ -49,12 +62,20 @@ async function importCsv(kind,file){
  let done=0,failed=[];
  await run('Importazione in corso…',async()=>{
   for(const name of plan.newCompanies){try{const res=await post('companies','create',{name});const id=res.rows?.[0]?.id;if(id)plan.byName.set(low(name),id)}catch(e){failed.push(name+': '+e.message)}}
-  for(const r of plan.rows){const d={...r};delete d.company;if(kind==='contacts'&&r.company)d.company_id=plan.byName.get(low(r.company))||null;
-   try{await post(kind,'create',d);done++;if(done%10===0)a.notice('Importati '+done+' di '+plan.rows.length+'…')}catch(e){failed.push(r.name+': '+e.message)}}
+  const added=window.RadixCrmFields?.ADDED[kind]||[];let older=false;
+  const bare=d=>{const o={...d};for(const k of added)delete o[k];return o};
+  for(const r of plan.rows){let d={...r};delete d.company;if(kind==='contacts'&&r.company)d.company_id=plan.byName.get(low(r.company))||null;
+   if(older)d=bare(d);
+   try{try{await post(kind,'create',d)}catch(e){
+     // Archive without migration 011: save the row without the added fields, and stop sending them.
+     if(e.status===400&&/011/.test(e.message)&&added.some(k=>Object.hasOwn(d,k))){older=true;await post(kind,'create',bare(d))}else throw e}
+    done++;if(done%10===0)a.notice('Importati '+done+' di '+plan.rows.length+'…')}catch(e){failed.push(r.name+': '+e.message)}}
  });
  await a.refresh(false);
  a.notice('Importati '+done+' di '+plan.rows.length+'.'+(failed.length?' Non riusciti: '+failed.length+'.':''));
  if(failed.length)a.error('Righe non importate: '+failed.slice(0,5).join(' · ')+(failed.length>5?' …':''));
+ const warn=[...(mapped.warnings||[]).map(w=>'riga '+w.line+': '+w.why)];if(older)warn.unshift('ragione sociale, indirizzi e dati fiscali non salvati: l’archivio non ha ancora la migrazione sales 011');
+ if(warn.length)a.notice('Importati '+done+' di '+plan.rows.length+'. Campi lasciati vuoti — '+warn.slice(0,4).join(' · ')+(warn.length>4?' …':''));
 }
 function ioBar(kind){
  const bar=E('div',undefined,'actions crm-tools');
@@ -171,13 +192,15 @@ async function gdprExport(row){
 }
 async function gdprErase(row){
  const a=app();
- if(!window.confirm('Anonimizzare «'+row.name+'»?\nNome, email, telefono, ruolo, LinkedIn, note e consenso vengono cancellati, e il testo delle interazioni e dei ticket collegati viene svuotato. Trattative e attività restano per lo storico. Non si può annullare.'))return;
+ if(!window.confirm('Anonimizzare «'+row.name+'»?\nNome, email, telefono, ruolo, LinkedIn, note, indirizzo, data di nascita e consenso vengono cancellati, e il testo delle interazioni e dei ticket collegati viene svuotato. Trattative e attività restano per lo storico. Non si può annullare.'))return;
  const failed=[];
  await run('Anonimizzo il contatto…',async()=>{
   const d=await a.api('customer360',{subject:'contacts',id:row.id,offset:0});
   for(const x of (d.rows||[]).filter(r=>r.entity==='interactions').map(r=>r.record)){if(x.contact_id!==row.id)continue;try{await post('interactions','update',{id:x.id,version:x.version,title:'Interazione anonimizzata',body:''})}catch(e){failed.push(e.message)}}
   for(const x of (d.rows||[]).filter(r=>r.entity==='tickets').map(r=>r.record)){if(x.contact_id!==row.id)continue;try{await post('tickets','update',{id:x.id,version:x.version,title:'Ticket anonimizzato',body:'',resolution:null})}catch(e){failed.push(e.message)}}
-  await post('contacts','update',{id:row.id,version:row.version,name:'Contatto anonimizzato',email:null,phone:null,role:null,linkedin_url:null,notes:null,marketing_consent:false,consent_at:null});
+  // With migration 011 the personal fields added there are cleared too (an older archive does not have them).
+  const personal=window.RadixCrmFields?.supported('contacts',row)?{first_name:null,last_name:null,title:null,department:null,mobile:null,street:null,zip:null,city:null,province:null,country:null,birthdate:null,lead_source:null,preferred_language:null}:{};
+  await post('contacts','update',{id:row.id,version:row.version,name:'Contatto anonimizzato',email:null,phone:null,role:null,linkedin_url:null,notes:null,marketing_consent:false,consent_at:null,...personal});
  });
  await a.refresh(false);a.notice('Contatto anonimizzato.');if(failed.length)a.error('Alcune interazioni non sono state svuotate: '+failed.join(' · '));
 }
