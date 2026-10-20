@@ -69,6 +69,10 @@ function mapRows(kind,parsed,opts){
     if(o.birthdate)o.birthdate=isoDate(o.birthdate);
    }
    if(kind==='companies'&&!o.name&&o.legal_name)o.name=o.legal_name.slice(0,200);
+   // Settore and Ruolo are closed lists: free text goes to the nearest voice. The exact job title
+   // stays in Qualifica; a sector no word points to becomes «Altro» and is reported.
+   if(F&&kind==='contacts'&&o.role){const v=F.classify('contacts','role',o.role);if(!o.title&&v!==o.role)o.title=o.role.slice(0,120);if(v)o.role=v;else delete o.role}
+   if(F&&kind==='companies'&&o.industry){const v=F.classify('companies','industry',o.industry);if(!v)warnings.push({line:i+2,field:'industry',why:'settore «'+o.industry.slice(0,40)+'» messo in Altro'});o.industry=v||'Altro'}
    for(const k of Object.keys(EXTENDED[kind])){
     if(o[k]===undefined||['phone'].includes(k))continue;
     if(VALUE_WORDS[k])o[k]=VALUE_WORDS[k][String(o[k]).normalize('NFKC').trim().toLocaleLowerCase('it')]||o[k];
