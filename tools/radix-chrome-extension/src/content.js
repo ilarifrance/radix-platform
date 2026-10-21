@@ -8,7 +8,7 @@
  const X=window.RadixExtract,C=window.RadixImportCore;
  const state={running:false,stop:false,id:''};
  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
- const timing=window.__radixTiming||{scroll:[800,1800],page:[4000,9000],wait:45000,poll:400};
+ const timing=window.__radixTiming||{scroll:[800,1800],page:[4000,9000],wait:45000,poll:400,pager:20000};
  const wait=range=>sleep(C.randomDelay(range[0],range[1]));
  const send=msg=>new Promise(resolve=>{
   try{chrome.runtime.sendMessage(msg,r=>{void chrome.runtime.lastError;resolve(r||{ok:false,error:'Estensione non raggiungibile: ricarica la pagina'})})}
@@ -53,6 +53,21 @@
   take();
   return Array.from(seen.values());
  }
+ // «Avanti» is drawn late, at the very bottom of the results: keep scrolling the window and the results box to
+ // the end until it shows up (or a disabled one says this is the last page).
+ async function nextButton(){
+  const end=Date.now()+(timing.pager||20000);
+  for(;;){
+   if(state.stop||blocked())return {state:'none',el:null};
+   const s=X.paginationState(document);
+   if(s.state!=='none')return s;
+   if(Date.now()>=end)return s;
+   const box=X.scrollParent(X.lastProfileAnchor(document));
+   if(box)box.scrollTop=box.scrollHeight;
+   window.scrollTo(0,document.documentElement.scrollHeight);
+   await sleep(timing.poll*2);
+  }
+ }
  async function run(max){
   if(state.running)return {ok:false,error:'Importazione già in corso'};
   if(!C.isSupportedUrl(location.href))return {ok:false,error:'Apri una ricerca persone o una lista lead di Sales Navigator'};
@@ -78,8 +93,13 @@
      total=saved.count;
      if(total>=limit){message='Raggiunto il massimo di '+limit+' contatti.';break}
      if(state.stop)break;
-     const next=X.findNextButton(document);
-     if(!next){message='Ultima pagina dei risultati raggiunta.';break}
+     const pager=await nextButton();
+     if(state.stop)break;
+     if(blocked())continue;
+     if(pager.state==='last'){message='Ultima pagina dei risultati raggiunta.';break}
+     // No pagination at all is not the last page: say so, so the user can go on from here.
+     if(pager.state!=='next'){reason='error';message='Non trovo il pulsante «Avanti» a pagina '+page+': scorri in fondo ai risultati e premi «Nuova importazione».';break}
+     const next=pager.el;
      const firstKey=X.firstProfileKey(document),fromPage=C.pageFromUrl(location.href);
      // Moved: other profiles on screen, or the address shows the next page and its results are there.
      const urlMoved=()=>C.pageFromUrl(location.href)!==fromPage;

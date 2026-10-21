@@ -103,7 +103,10 @@ test('amounts: «12 mila euro», 12.000 €, € 1.250,50, «1,5 milioni», numb
  assert.equal(D.normAmount('12 mila euro'),1200000);assert.equal(D.normAmount('12mila'),1200000);assert.equal(D.normAmount('12k'),1200000);
  assert.equal(D.normAmount('12.000 €'),1200000);assert.equal(D.normAmount('€ 1.250,50'),125050);assert.equal(D.normAmount('1,5 milioni'),150000000);
  assert.equal(D.normAmount('mille euro'),100000);assert.equal(D.normAmount(12000),1200000);assert.equal(D.normAmount(''),null);
- assert.ok(Number.isNaN(D.normAmount('tanti soldi')));assert.ok(Number.isNaN(D.normAmount('-5')));
+ assert.ok(Number.isNaN(D.normAmount('tanti soldi')));
+ assert.equal(D.normAmount('dodicimila euro'),1200000);assert.equal(D.normAmount('duemilacinquecento'),250000);assert.equal(D.normAmount('centottanta'),18000);
+ assert.equal(D.normAmount('un milione'),100000000);assert.equal(D.normAmount('tre milioni e duecentomila'),320000000);assert.equal(D.normAmount('ventunomila'),2100000);
+ assert.equal(D.normAmount('milleduecento euro'),120000);assert.equal(D.numberWords('tanti'),null);assert.equal(D.numberWords('mila'),null);assert.equal(D.normInt('trentotto'),38);assert.ok(Number.isNaN(D.normAmount('-5')));
  const amt=D.specs('opportunities',CTX,'create').find(s=>s.key==='amount_cents');
  assert.deepEqual(D.check('opportunities',amt,'12 mila euro',CTX),{value:1200000,show:'€ 12.000'});
  assert.match(D.check('opportunities',amt,'un sacco',CTX).error,/non è un importo/);

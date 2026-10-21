@@ -15,6 +15,10 @@ const core=require('./_sales_queue_core');
 const campaigns=require('../sales/crm-campaigns.js');
 const unsubscribe=require('./_sales_unsubscribe');
 const clicks=require('./_sales_clicks');
+// «I member vedono solo i propri record» (PR #172): recipients, the per-campaign status and «Annulla» cover only contacts
+// visible to the caller (TRUE for owners/admins and workspaces without the switch). The dedup read of the queue stays
+// workspace-wide on purpose: one email per contact/address per campaign, whoever queued it; it returns only counts.
+const vis=require('./_sales_visibility');
 class QueueError extends Error{constructor(status,message){super(message);this.status=status}}
 const fail=(s,m)=>{throw new QueueError(s,m)};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -115,10 +119,10 @@ function publicMailbox(r,load={},today){
 }
 
 /* Plan for a campaign: recipients (same rules as the campaign panel), skipped, mailboxes, times. */
-async function planQueue(sql,c,{req,env,now,random}){
+async function planQueue(sql,c,user,{req,env,now,random}){
  const d=c.data,origin=originOf(req,d.origin);
  const contacts=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,co.name AS company FROM sales_contacts t
-  LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[])`,[c.workspace,d.contacts]);
+  LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`,[c.workspace,d.contacts,user]);
  // Already in this campaign: these contacts, and these addresses (one email per address).
  const inCampaign=await sql('SELECT q.contact_id,lower(btrim(c.email)) AS email FROM sales_send_queue q JOIN sales_contacts c ON c.workspace_id=q.workspace_id AND c.id=q.contact_id WHERE q.workspace_id=$1 AND q.campaign=$2',[c.workspace,d.campaign]);
  const queued=new Set(inCampaign.map(r=>r.contact_id).filter(id=>d.contacts.includes(id)));
@@ -138,7 +142,7 @@ async function planQueue(sql,c,{req,env,now,random}){
  return {summary,emails:plan.emails,slots:sched.slots};
 }
 async function enqueue(sql,c,user,ctx){
- const p=await planQueue(sql,c,ctx);
+ const p=await planQueue(sql,c,user,ctx);
  if(!p.summary.active_mailboxes)fail(400,'Nessuna casella attiva: collegane una in «Caselle email» prima di mettere in coda.');
  if(!p.summary.recipients)return {...p.summary,queued:0};
  if(p.summary.unplanned)fail(400,'Troppi destinatari per le caselle collegate: '+p.summary.unplanned+' email resterebbero fuori dai prossimi mesi. Riduci il segmento o collega altre caselle.');
@@ -152,11 +156,11 @@ async function enqueue(sql,c,user,ctx){
  }
  return {...p.summary,queued:inserted};
 }
-async function status(sql,workspace){
+async function status(sql,workspace,user){
  return sql(`SELECT campaign,count(*) FILTER (WHERE status IN ('queued','sending'))::int AS queued,count(*) FILTER (WHERE status='sent')::int AS sent,count(*) FILTER (WHERE status='failed')::int AS failed,
   count(*) FILTER (WHERE status='skipped')::int AS skipped,count(*) FILTER (WHERE status='cancelled')::int AS cancelled,${iso("min(scheduled_at) FILTER (WHERE status='queued')")} AS next_at,
   ${iso("max(scheduled_at) FILTER (WHERE status='queued')")} AS last_at,${iso('max(sent_at)')} AS last_sent_at,(array_agg(error ORDER BY updated_at DESC) FILTER (WHERE status='failed'))[1] AS last_error
-  FROM sales_send_queue WHERE workspace_id=$1 GROUP BY campaign ORDER BY max(created_at) DESC LIMIT 50`,[workspace]);
+  FROM sales_send_queue q WHERE workspace_id=$1 AND ${vis.contact('q.contact_id','$1','$2')} GROUP BY campaign ORDER BY max(created_at) DESC LIMIT 50`,[workspace,user]);
 }
 
 // Lazy, so tests and pages that never send do not load nodemailer.
@@ -224,16 +228,16 @@ async function handle(c,opts){
 async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport}){
  if(req.method==='GET'){
   if(c.entity==='mailboxes'){const rows=await listMailboxes(sql,c.workspace,now);return {rows,max:core.MAX_MAILBOXES,encryption:mcrypto.configured(env),can_manage:roleAdmin(role)}}
-  return {rows:await status(sql,c.workspace)};
+  return {rows:await status(sql,c.workspace,user)};
  }
  if(c.entity==='mailboxes'){
   if(!roleAdmin(role))fail(403,'Solo owner e admin gestiscono le caselle email.');
   return {rows:[await mailboxCommand(sql,c,user,{env,now,createTransport})]};
  }
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
- if(c.action==='cancel'){const r=await sql("UPDATE sales_send_queue SET status='cancelled',error='Annullata dall’utente.',updated_at=now() WHERE workspace_id=$1 AND campaign=$2 AND status='queued' RETURNING id",[c.workspace,c.data.campaign]);return {rows:[{campaign:c.data.campaign,cancelled:r.length}]}}
+ if(c.action==='cancel'){const r=await sql("UPDATE sales_send_queue q SET status='cancelled',error='Annullata dall’utente.',updated_at=now() WHERE workspace_id=$1 AND campaign=$2 AND status='queued' AND "+vis.contact('q.contact_id','$1','$3')+" RETURNING id",[c.workspace,c.data.campaign,user]);return {rows:[{campaign:c.data.campaign,cancelled:r.length}]}}
  const ctx={req,env,now,random};
- if(c.action==='plan')return {rows:[(await planQueue(sql,c,ctx)).summary]};
+ if(c.action==='plan')return {rows:[(await planQueue(sql,c,user,ctx)).summary]};
  return {rows:[await enqueue(sql,c,user,ctx)]};
 }
 module.exports={command,query,handle,publicMailbox,originOf,transportOptions,fromOf,mailboxData,ENTITIES:['mailboxes','send_queue'],MAX_CONTACTS,PUBLIC};

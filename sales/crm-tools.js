@@ -132,7 +132,8 @@ function segmentPanel(){
  const current=()=>{const f={};for(const [k,el] of [['role',role],['industry',industry],['city',city]])if(el.value.trim())f[k]=el.value.trim();if(consent.value)f.consent=consent.value;if(silent.value!==''){const n=Number(silent.value);if(!Number.isInteger(n)||n<0||n>3650)throw new Error('Giorni senza contatto: un numero intero da 0 a 3650.');f.silent_days=n}if(minScore.value!==''){const n=Number(minScore.value);if(!Number.isInteger(n)||n<0||n>100)throw new Error('Punteggio minimo: un numero intero da 0 a 100.');f.min_score=n}if(clicked.value)f.clicked=clicked.value;if(campaign.value)f.clicked_campaign=campaign.value;return f};
  const saved=E('select');saved.setAttribute('aria-label','Segmenti salvati');const savedRows=new Map();
  const fillSaved=rows=>{savedRows.clear();saved.replaceChildren();const o=E('option',rows.length?'Segmenti salvati…':'Nessun segmento salvato');o.value='';saved.append(o);for(const r of rows){savedRows.set(r.id,r);const x=E('option',r.name);x.value=r.id;saved.append(x)}};
- const loadSaved=async()=>{try{fillSaved((await app().api('segments')).rows||[])}catch(e){fillSaved([]);out.replaceChildren(E('p','Segmenti salvati non disponibili: '+e.message,'notice'))}};
+ // Saved reports (sales/crm-report.js) share the table as {report:…}: they are not contact segments.
+ const loadSaved=async()=>{try{fillSaved(((await app().api('segments')).rows||[]).filter(r=>!(r.filters&&r.filters.report)))}catch(e){fillSaved([]);out.replaceChildren(E('p','Segmenti salvati non disponibili: '+e.message,'notice'))}};
  saved.addEventListener('change',()=>{const r=savedRows.get(saved.value);if(!r)return;const f=r.filters||{};role.value=f.role||'';industry.value=f.industry||'';city.value=f.city||'';consent.value=f.consent||'';silent.value=f.silent_days??'';minScore.value=f.min_score??'';clicked.value=f.clicked||'';addCampaign(f.clicked_campaign);campaign.value=f.clicked_campaign||'';app().notice('Segmento «'+r.name+'» caricato: premi Mostra segmento.')});
  const keep=E('div',undefined,'actions crm-saved');keep.append(saved);
  if(app().writable('contacts')){
@@ -169,7 +170,9 @@ async function followUps(days){
  await a.refresh(false);a.notice('Create '+done+' attività di follow-up.');if(failed.length)a.error('Non create: '+failed.join(' · '));
 }
 // Automations: each rule shows how many tasks it would create; one confirmation per rule.
+// With sales/crm-rules.js the panel is the configurable one («Regole» and «Registro»); the fixed rules are its defaults.
 function automationsPanel(){
+ if(window.RadixCrmRules&&window.RadixCrmRules.panel)return window.RadixCrmRules.panel();
  const R=window.RadixCrmAutomations;if(!R)return null;
  const box=E('details',undefined,'panel crm-automations');box.append(E('summary','Automazioni'));
  const list=E('div',undefined,'crm-automation-list');box.append(E('p','Le regole propongono attività dai dati caricati: nulla parte da solo, confermi tu. Le attività automatiche all’ingresso in una fase si impostano sulla fase della pipeline.','muted'),list);
@@ -309,6 +312,8 @@ window.RadixCrmTools={
  // CSV of a subset (the rows ticked in the list views): the same export, filtered by id.
  exportCsv:(kind,filter)=>exportCsv(kind,filter),
  section(entity,section){
+  if(entity==='tickets')window.RadixCrmSla?.section(section);
+  if(entity==='members')window.RadixCrmVisibility?.section?.(section);
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
   // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.
@@ -327,6 +332,7 @@ window.RadixCrmTools={
   else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
  card(entity,row,c,readonly){
+  if(entity==='tickets')window.RadixCrmSla?.mount(c,row);
   // The reply block has its own AI draft; the Copilota shortcut stays for roles that cannot record replies.
   if(entity==='tickets'&&!readonly&&window.RadixCrmTicketReply?.mount&&RadixCrmTicketReply.mount(c,row))return;
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');

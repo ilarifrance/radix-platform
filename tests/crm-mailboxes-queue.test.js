@@ -202,6 +202,20 @@ test('queue: recipients with the campaign rules — consent skipped, unsubscribe
  await assert.rejects(mailq.handle(mailq.command({workspace:W,entity:'send_queue',action:'enqueue',data:{...data,confirm:true}}),{...ctx,role:'viewer'}),/Permessi/);
 });
 
+test('queue: «I member vedono solo i propri record» (PR #172) — recipients, status and cancel go through the visibility predicate',async()=>{
+ const vis=require('../api/_sales_visibility.js'),calls=[],flat=s=>s.replace(/\s+/g,' ');
+ const sql=async(text,params=[])=>{calls.push({text:flat(text),params});return []};
+ const ctx={sql,user:7,role:'member',req:REQ,env:ENV,now:at('2026-10-20T08:00:00Z'),random:seq(0.5)};
+ const data={campaign:'Ottobre',subject:'Ciao',body:'Testo',contacts:[C1],origin:'https://radix.example'};
+ await mailq.handle(mailq.command({workspace:W,entity:'send_queue',action:'plan',data}),ctx);
+ const recipients=calls.find(c=>/FROM sales_contacts t LEFT JOIN sales_companies/.test(c.text));
+ assert.ok(recipients.text.includes(flat(vis.visible('contacts','t','$1','$3')))&&recipients.params[2]===7,'recipients: only contacts visible to the caller');
+ calls.length=0;await mailq.handle(mailq.query({workspace:W,entity:'send_queue'}),{...ctx,req:{method:'GET',headers:{}}});
+ assert.ok(calls[0].text.includes(flat(vis.contact('q.contact_id','$1','$2')))&&calls[0].params[1]===7,'status: counts only visible contacts');
+ calls.length=0;await mailq.handle(mailq.command({workspace:W,entity:'send_queue',action:'cancel',data:{campaign:'Ottobre'}}),ctx);
+ assert.ok(/^UPDATE sales_send_queue q/.test(calls[0].text)&&calls[0].text.includes(flat(vis.contact('q.contact_id','$1','$3')))&&calls[0].params[2]===7,'cancel: only rows of visible contacts');
+});
+
 // ---------- worker ----------
 // In-memory version of the worker's database interface, with the same claim rule as the SQL one.
 function memoryDb(rows,{contacts,mailboxes}){

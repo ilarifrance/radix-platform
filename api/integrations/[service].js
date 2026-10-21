@@ -12,6 +12,7 @@ const handlers = Object.freeze({
   'send-email': () => require('../_send-email'),
   // Vercel Cron worker of the CRM «Coda invii» (CRON_SECRET bearer, not the session cookie).
   'send-queue': () => require('../_sales_send_worker'),
+  'site-publish': () => require('../_site_publish'),
   'status': () => require('../_integrations-status')
 });
 module.exports = async function integrationRoute(req, res) {

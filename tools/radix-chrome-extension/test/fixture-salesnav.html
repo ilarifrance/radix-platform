@@ -10,10 +10,12 @@
 // scroll, SPA pagination via the visible «Avanti» button, optional challenges.
 // inner=1 results scroll in an inner box (like the real page) · lazy=ms delay
 // before more cards render · slow=ms next page renders late (address changes
-// at once) · lost=N the «Avanti» click on page N is ignored lostTimes times.
+// at once) · lost=N the «Avanti» click on page N is ignored lostTimes times ·
+// latepag=ms pagination drawn only once scrolled to the bottom, after ms · nopag=1 no pagination at all.
 const params=new URLSearchParams(location.search);
 const N=Number(params.get('n')||60),SIZE=25,CAPTCHA=Number(params.get('captcha')||0),CHECKPOINT=Number(params.get('checkpoint')||0);
 const INNER=params.get('inner')==='1',LAZY=Number(params.get('lazy')||0),SLOW=Number(params.get('slow')||0),LOST=Number(params.get('lost')||0);
+const LATEPAG=Number(params.get('latepag')||0),NOPAG=params.get('nopag')==='1';
 let lostLeft=Number(params.get('lostTimes')||1),loading=false,pending=false;
 window.__clicks=0;
 if(INNER)document.body.classList.add('inner');
@@ -60,10 +62,14 @@ function render(){
  if(CAPTCHA&&page>=CAPTCHA){ol.innerHTML='<div class="captcha"><h2>Verifica di sicurezza</h2><iframe title="captcha" src="about:blank"></iframe></div>';return}
  more();
  const next=document.querySelector('[aria-label="Avanti"]');next.disabled=page*SIZE>=N;
- window.scrollTo(0,0);if(box)box.scrollTop=0;
+ window.scrollTo(0,0);if(box)box.scrollTop=0;hidePager();
 }
-if(box)box.addEventListener('scroll',()=>{if(box.clientHeight+box.scrollTop>=box.scrollHeight-200)more()});
-else window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.scrollHeight-200)more()});
+const footer=document.querySelector('footer');let pagerTimer=null;
+// Like the real page: the pagination appears only after the results were scrolled to the end.
+function hidePager(){if(NOPAG||LATEPAG){footer.style.display='none';clearTimeout(pagerTimer);pagerTimer=null}}
+function atEnd(){if(NOPAG||!LATEPAG||pagerTimer||footer.style.display!=='none'||shown<slice().length)return;pagerTimer=setTimeout(()=>{footer.style.display=''},LATEPAG)}
+if(box)box.addEventListener('scroll',()=>{if(box.clientHeight+box.scrollTop>=box.scrollHeight-200){more();atEnd()}});
+else window.addEventListener('scroll',()=>{if(window.innerHeight+window.scrollY>=document.body.scrollHeight-200){more();atEnd()}});
 document.querySelector('[aria-label="Avanti"]').addEventListener('click',()=>{
  window.__clicks++;
  if(loading)return;

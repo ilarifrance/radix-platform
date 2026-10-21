@@ -4,7 +4,8 @@
    - Invio: an «email» interaction titled «Email: …» on a contact (crm-campaigns.js records one per email sent
      or marked as sent). It belongs to a campaign through the k= parameter of its tracked links (exact name used
      by the click log); a send without tracked links is grouped by identical title when 2+ contacts got it.
-     Inviate = distinct contacts; a contact sent twice counts once, at the first send.
+     Inviate = distinct contacts; a contact sent twice counts once, at the first send. Oggetti = the subjects of
+     the sends (personalised, so up to 3 variants, most frequent first); the body is not read here.
    - Clic: rows of sales_email_clicks for the campaign. Unici = distinct contacts; tasso di clic = recipients who
      clicked / inviate (null when nothing was sent).
    - Disiscritti dopo l'invio: the unsubscribe link stamps the contact notes with «Disiscrizione dalle email
@@ -70,16 +71,16 @@ function buildReport(data,opts){
  const d=data||{},o=opts||{},days=normDays(o.days),now=Number.isFinite(ms(o.now))?ms(o.now):Date.now();
  const contacts=new Map();for(const c of d.contacts||[])if(c&&c.id)contacts.set(c.id,c);
  const groups=new Map();
- const group=(key,name,tracked)=>{let g=groups.get(key);if(!g){g={key,name,tracked,recipients:new Map(),records:0,clicks:[]};groups.set(key,g)}return g};
+ const group=(key,name,tracked)=>{let g=groups.get(key);if(!g){g={key,name,tracked,recipients:new Map(),records:0,clicks:[],subjects:new Map()};groups.set(key,g)}return g};
  // Sends: tracked ones by campaign name, the others by identical title.
  const loose=new Map();
  for(const s of d.sends||[]){
   if(!isSend(s))continue;const t=ms(s.occurred_at),name=decodeK(s.k);
   let g;if(name)g=group('k:'+name,name,true);else{const title=s.title.slice(SEND_PREFIX.length).trim()||s.title;if(!loose.has(title))loose.set(title,[]);loose.get(title).push(s);continue}
-  add(g,s.contact_id,t);
+  add(g,s.contact_id,t,s.title);
  }
- for(const [title,list] of loose){if(new Set(list.map(s=>s.contact_id)).size<2)continue;const g=group('t:'+title,title,false);for(const s of list)add(g,s.contact_id,ms(s.occurred_at))}
- function add(g,id,t){g.records++;const prev=g.recipients.get(id);if(prev===undefined||t<prev)g.recipients.set(id,t)}
+ for(const [title,list] of loose){if(new Set(list.map(s=>s.contact_id)).size<2)continue;const g=group('t:'+title,title,false);for(const s of list)add(g,s.contact_id,ms(s.occurred_at),s.title)}
+ function add(g,id,t,title){g.records++;const sub=String(title||'').slice(SEND_PREFIX.length).trim();if(sub)g.subjects.set(sub,(g.subjects.get(sub)||0)+1);const prev=g.recipients.get(id);if(prev===undefined||t<prev)g.recipients.set(id,t)}
  for(const k of d.clicks||[]){if(!k||!k.contact_id||typeof k.campaign!=='string'||!Number.isFinite(ms(k.clicked_at)))continue;const name=k.campaign.trim();if(!name)continue;group('k:'+name,name,true).clicks.push({contact_id:k.contact_id,url:String(k.url||''),at:ms(k.clicked_at)})}
  // Every send of a contact, for unsubscribe attribution (latest send at or before the stamp minute).
  const sendsOf=new Map();
@@ -121,6 +122,7 @@ function buildReport(data,opts){
   campaigns.push({key:g.key,name:g.name,tracked:g.tracked,sent,sendRecords:g.records,firstSentAt:times.length?Math.min(...times):null,lastSentAt:times.length?Math.max(...times):null,
    clickers:clickBy.size,clickersSent,clickersWithoutSend:clickBy.size-clickersSent,clicks:g.clicks.length,repeatClicks:g.clicks.length-clickBy.size,clickRate:rate(clickersSent,sent),
    lastClickAt:g.clicks.length?Math.max(...g.clicks.map(k=>k.at)):null,links,
+   subjects:[...g.subjects].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],'it')).slice(0,3).map(([s])=>s),
    unsubscribed:unsub,unsubscribedNoDate:noDate,unsubscribeRate:rate(unsub,sent),
    conversions:conv,conversionRate:rate(conv,sent),conversionsBy:by,windowOpen:open,people});
  }

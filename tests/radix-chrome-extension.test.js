@@ -11,7 +11,7 @@ const read=f=>fs.readFileSync(path.join(DIR,f),'utf8');
 
 test('manifest: MV3, minimal permissions, no cookies, no webRequest, LinkedIn only for Sales Navigator',()=>{
  const m=JSON.parse(read('manifest.json'));
- assert.equal(m.manifest_version,3);assert.equal(m.version,'1.0.1');assert.equal(m.name,'RADIX — Importa in RADIX');
+ assert.equal(m.manifest_version,3);assert.equal(m.version,'1.0.2');assert.equal(m.name,'RADIX — Importa in RADIX');
  assert.deepEqual(m.permissions,['storage']);
  assert.deepEqual(m.host_permissions,['https://radix-platform.vercel.app/*']);
  assert.ok(!JSON.stringify(m).match(/cookies|webRequest|debugger|<all_urls>|scripting|tabs"/));

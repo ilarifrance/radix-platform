@@ -43,7 +43,8 @@
     $('nl-workspace').replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));window.RadixLeadFlow?.preferWorkspace($('nl-workspace'));$('nl-workspace').disabled=false;
    }
    state.ws=$('nl-workspace').value;state.wsName=$('nl-workspace').selectedOptions[0]?.textContent||'';
-   const [contacts,companies,segments]=await Promise.all([get({entity:'export',subject:'contacts',workspace:state.ws}),get({entity:'export',subject:'companies',workspace:state.ws}),rowsOf('segments').catch(()=>[])]);
+   const [contacts,companies,segments,defs]=await Promise.all([get({entity:'export',subject:'contacts',workspace:state.ws}),get({entity:'export',subject:'companies',workspace:state.ws}),rowsOf('segments').then(l=>l.filter(r=>!(r.filters&&r.filters.report))).catch(()=>[]),get({entity:'custom_fields',workspace:state.ws}).then(d=>d.rows||[]).catch(()=>[])]);
+   N.useCustomFields(defs);drawTags();
    state.companies=companies.rows||[];state.rows=N.joinCompanies(contacts.rows||[],state.companies);state.segments=segments;state.clicks=null;state.plan=null;
    sources();await compute();
   }catch(e){say('nl-who-status','CRM non disponibile: '+e.message,true)}
@@ -141,7 +142,7 @@
   const r=state.recipients[state.at],m=N.buildEmails([r],d,state.hooks)[0];
   $('nl-pos').textContent='Destinatario '+(state.at+1)+' di '+n;
   $('nl-pv-to').textContent=(r.contact.name||'')+' · '+m.to;$('nl-pv-subject').textContent=m.subject||'(oggetto vuoto)';$('nl-pv-body').textContent=m.body||'(testo vuoto)';
-  $('nl-pv-missing').textContent=m.missing.length?'Dati mancanti, uso il testo di riserva: '+m.missing.map(k=>N.LABELS[k]||k).join(', ')+'.':'Tutti i campi usati hanno un valore.';
+  $('nl-pv-missing').textContent=m.missing.length?'Dati mancanti, uso il testo di riserva: '+m.missing.map(N.labelOf).join(', ')+'.':'Tutti i campi usati hanno un valore.';
   const uses=/\{\{\s*gancio/i.test(d.subject+d.body);$('nl-pv-hook-wrap').hidden=!uses;if(uses&&document.activeElement!==$('nl-pv-hook'))$('nl-pv-hook').value=state.hooks.get(r.contact.id)||'';
  }
  function refresh(){
@@ -190,8 +191,15 @@
  // ---- wiring ----
  chips('nl-goal',N.GOALS,'nl-goal');chips('nl-tone',N.TONES,'nl-tone');
  $('nl-cta-list').replaceChildren(...N.CTAS.map(x=>{const o=el('option');o.value=x;return o}));
- for(const t of N.TAGS){const b=el('button','{{'+t+'}}','lp-nl-tag');b.type='button';b.title=N.LABELS[t];b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>insertTag(t));$('nl-tags').append(b)}
- for(const t of N.TAGS){const l=el('label',t==='gancio'?'Frase di riserva al posto della frase AI':N.LABELS[t]+' mancante'),i=el('input');i.maxLength=120;i.dataset.tag=t;i.value=N.FALLBACKS[t];i.placeholder=t==='gancio'?'Es. Le scrivo per una novità che riguarda il suo lavoro.':'(niente)';i.addEventListener('input',refresh);l.append(i);$('nl-fallbacks').append(l)}
+ // Tag buttons and fallbacks: the standard tags plus the workspace's own CRM fields, redrawn after each CRM read.
+ // Fallbacks already typed are kept.
+ function drawTags(){
+  const kept=fallbacks(),tags=[],inputs=[];
+  for(const t of N.allTags()){const b=el('button','{{'+t+'}}','lp-nl-tag');b.type='button';b.title=N.labelOf(t);b.addEventListener('mousedown',e=>e.preventDefault());b.addEventListener('click',()=>insertTag(t));tags.push(b)}
+  for(const t of N.allTags()){const l=el('label',t==='gancio'?'Frase di riserva al posto della frase AI':N.labelOf(t)+' mancante'),i=el('input');i.maxLength=120;i.dataset.tag=t;i.value=t in kept?kept[t]:(N.FALLBACKS[t]||'');i.placeholder=t==='gancio'?'Es. Le scrivo per una novità che riguarda il suo lavoro.':'(niente)';i.addEventListener('input',refresh);l.append(i);inputs.push(l)}
+  $('nl-tags').replaceChildren(...tags);$('nl-fallbacks').replaceChildren(...inputs);
+ }
+ drawTags();
  $('nl-load').addEventListener('click',load);
  $('nl-workspace').addEventListener('change',()=>{state.hooks.clear();load()});
  $('nl-source').addEventListener('change',()=>{compute().catch(e=>say('nl-who-status',e.message,true))});
