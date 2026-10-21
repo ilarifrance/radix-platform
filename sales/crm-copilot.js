@@ -28,7 +28,10 @@ function build(){
  css();panel=E('dialog',undefined,'cc-panel');panel.setAttribute('aria-labelledby','cc-title');
  const head=E('div',undefined,'cc-head');const h=E('h2','Copilota commerciale');h.id='cc-title';
  const close=E('button','Chiudi','cc-close');close.type='button';close.onclick=()=>panel.close();
- head.append(h,close);
+ // «Detta» (sales/crm-dictation.js, only where the CRM page is loaded): a spoken note becomes CRM fields.
+ const tools=E('div',undefined,'cc-tools');
+ if(window.RadixCrmDictation?.available()){const mic=E('button','🎙 Detta','cc-dictate');mic.type='button';mic.title='Detta una nota: l’AI propone i campi del CRM, tu controlli e salvi';mic.onclick=()=>{panel.close();window.RadixCrmDictation.open()};tools.append(mic)}
+ tools.append(close);head.append(h,tools);
  const note=E('p','Risponde sui dati di questo workspace, letti ora. Non modifica il CRM e non invia messaggi.','cc-note');
  log=E('div',undefined,'cc-log');log.setAttribute('aria-live','polite');
  const chips=E('div',undefined,'cc-chips');SUGGEST.forEach(s=>{const b=E('button',s);b.type='button';b.onclick=()=>ask(s);chips.append(b)});
