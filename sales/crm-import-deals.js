@@ -94,8 +94,10 @@ async function write(kind,p,{progress,go,cancel}){
 }
 window.RadixCrmImportDeals={
  importCsv,
- // «Importa CSV» in the heading row of the opportunities and tasks lists.
+ // «Importa CSV» in the heading row of the opportunities and tasks lists, «Importa storico» in the interactions list.
  section(entity,section){
+  // Interactions: «Importa storico» (crm-import-storico.js).
+  if(entity==='interactions'){window.RadixCrmImportStorico?.section(section);return}
   if(!['opportunities','tasks'].includes(entity)||!app()?.writable(entity)||!C()||!window.RadixCrmCsv)return;
   const head=section.querySelector(':scope>.row')||section,bar=E('div',undefined,'actions crm-tools crm-import-bar');
   const input=E('input');input.type='file';input.accept=window.RadixCrmCsv.ACCEPT;input.hidden=true;input.addEventListener('change',()=>{const f=input.files[0];input.value='';importCsv(entity,f)});
