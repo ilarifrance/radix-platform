@@ -98,11 +98,12 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
     if(s.done)li.append(E('span','Fatto','pv-onboard-state'));else{const a=E('a','Vai','pv-onboard-go');a.href=s.href;a.setAttribute('aria-label','Vai: '+s.label);li.append(a)}ol.append(li)}
   body.append(ol,E('p','Si spuntano da soli leggendo i dati del workspace'+(d.partial?' (primi 100 record per tipo)':'')+'.','pv-note'));return p}
 
-// «Suggerimenti per oggi»: items from crm-home-core.js (fixed rules). Buttons only open Customer360 or a view.
-function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
-  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets'),sla:window.RadixCrmSla?.current()});
+// «Suggerimenti per oggi»: items from crm-home-core.js (fixed rules, as switched by the workspace's «Regole»). Buttons only open Customer360 or a view.
+// rules: the shared read of the workspace's «Regole» (crm-rules.js); null = fixed rules, as before.
+function assistant(d,rules){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
+  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets'),sla:window.RadixCrmSla?.current(),...(rules&&rules.loaded?{rules:rules.list,quotes:rules.quotes}:{})});
   const p=E('section',undefined,'ch');p.setAttribute('aria-labelledby','ch-title');
-  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span','regole fisse, non AI','ch-tag'));p.append(h);
+  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span',rules&&rules.loaded&&window.RadixCrmRules?.effective(rules.list).some(r=>!r.builtin&&r.on)?'regole del workspace, non AI':'regole fisse, non AI','ch-tag'));p.append(h);
   // Team summary (was «Focus di oggi»): counts of all open tasks and the last interaction.
   const s=H.pulse(d,{now:Date.now()});const sum=E('p',undefined,'ch-pulse');
   for(const [n,label,cls] of [[s.overdue,s.overdue===1?'scaduta':'scadute',s.overdue?'late':''],[s.today,'oggi',''],[s.open,s.open===1?'aperta':'aperte',''],[s.done+' di '+s.total,'completate','']]){const c=E('span',undefined,'ch-chip'+(cls?' '+cls:''));c.append(E('b',n),document.createTextNode(' '+label));sum.append(c)}
@@ -112,7 +113,7 @@ function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H
   const ol=E('ol',undefined,'ch-list');
   // On a phone only the first PHONE items show; the rest behind «Mostra tutti» (CSS, crm-home.css).
   const PHONE=3;res.items.forEach((it,i)=>{const li=E('li',undefined,'ch-item u'+it.urgency+(i>=PHONE?' ch-more':''));const tx=E('div',undefined,'ch-text');
-    tx.append(E('small',(H.RULES.find(r=>r.id===it.rule)||{}).name||'','ch-rule'),E('b',it.title),E('span',it.reason,'ch-why'));
+    tx.append(E('small',it.ruleName||(H.RULES.find(r=>r.id===it.rule)||{}).name||'','ch-rule'),E('b',it.title),E('span',it.reason,'ch-why'));
     if(it.value>0)tx.append(E('span','€ '+eur(it.value),'ch-value'));
     const b=E('button',it.label,'ch-go');b.type='button';b.dataset.rule=it.rule;b.setAttribute('aria-label',it.label+': '+it.title);
     b.addEventListener('click',()=>{const a=it.action;if(a.kind==='view'){app?.closeCustomer?.();location.hash=a.hash;return}if(app?.state.busy)return;app?.openCustomer(a.subject,{id:a.id,name:a.name})});
@@ -126,11 +127,13 @@ function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H
 
 let busy=false;
 async function render(){const sec=document.getElementById('dashboard');if(!sec||!sec.classList.contains('rx-view')){document.documentElement.classList.remove('pv-on');return}
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;if(!window.RadixCrmForecast){later();return}const m=model(d);
+  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;if(!window.RadixCrmForecast){later();return}
+  // The workspace's «Regole», read once and shared with the Automazioni panel (crm-rules.js); a failed read = fixed rules.
+  const rules=window.RadixCrmRules?.load?await window.RadixCrmRules.load().catch(()=>null):null;if(!sec.isConnected)return;const m=model(d);
   busy=true;sec.querySelector(':scope>.pv')?.remove();
   const root=E('div',undefined,'pv');const main=E('div',undefined,'pv-main');const mid=E('div',undefined,'pv-two');mid.append(funnel(m),trend(m));const low=E('div',undefined,'pv-two pv-two-b');low.append(risks(d,m),team(m));
   // Order: today's actions, onboarding (collapsed when done), then KPI and charts. No side rail.
-  const tips=assistant(d);if(tips)main.append(tips);const start=onboarding(d);if(start)main.append(start);main.append(kpis(m),mid,low);root.classList.add('pv-solo');root.append(main);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
+  const tips=assistant(d,rules);if(tips)main.append(tips);const start=onboarding(d);if(start)main.append(start);main.append(kpis(m),mid,low);root.classList.add('pv-solo');root.append(main);if(d.partial)root.append(E('p','Calcolato sui primi 100 record per tipo.','pv-note'));sec.append(root);
   document.documentElement.classList.add('pv-on');requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains("pv")||n.classList?.contains("cx")))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});

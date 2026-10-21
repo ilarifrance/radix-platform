@@ -74,7 +74,7 @@ function createStore(rawSql){
    // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
    // Support queue: open first, then by due date.
    if(c.entity==='tickets')return sql("SELECT t.* FROM sales_tickets t WHERE t.workspace_id=$1 AND "+guard+" ORDER BY array_position(ARRAY['open','pending','resolved','closed'],t.status),t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3",[c.workspace,u,c.offset]);
-   // Reserved rows (CRM settings such as «__sla__», sales/crm-sla-core.js) are not contact segments: each is read only on request.
+   // Reserved rows («__regole__» and «__sla__», see RESERVED in api/_sales.js) are not contact segments: each is read only on request.
    if(c.entity==='segments')return c.reserved?sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))=$4 ORDER BY t.id LIMIT 1 OFFSET $3',[c.workspace,u,c.offset,c.reserved])
     :sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))<>ALL($4::text[]) ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,RESERVED_SEGMENTS]);
    if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);

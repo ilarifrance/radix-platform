@@ -78,6 +78,9 @@ test('server: «__sla__» is validated, kept apart from segments and hidden from
  assert.throws(()=>cmd('create',{name:'__sla__',filters:{sla:{...sla,urgent:{response:9,resolution:8}}}}),/Scadenze SLA non valide: Priorità urgente/);
  assert.throws(()=>cmd('create',{name:'__sla__',filters:{sla,city:'Roma'}}),/Scadenze SLA non valide|riservato/);
  assert.equal(cmd('update',{id:ID,version:1,filters:{sla}}).data.filters.sla.urgent.response,1);
+ assert.throws(()=>cmd('create',{name:'__sla__',filters:{rules:[]}}),/riservato/,'one reserved name, its own filters');
+ assert.throws(()=>cmd('create',{name:'__regole__',filters:{sla}}),/riservato/);
+ assert.throws(()=>cmd('create',{name:'X',filters:{sla,rules:[]}}),/non valid/);
  // Store: the plain list excludes reserved rows; subject=sla reads only that one.
  const seen=[];const store=createStore(async(q,p)=>{seen.push([q,p]);return []});
  await store.read({workspace:W,entity:'segments',offset:0},7);
@@ -92,7 +95,8 @@ test('server: «__sla__» is validated, kept apart from segments and hidden from
  const post=async(action,data)=>{const r=res();await h({method:'POST',headers:{'x-radix-sales':'1','content-type':'application/json'},query:{},body:{workspace:W,entity:'segments',action,data}},r);return r};
  let r=await get({entity:'segments',workspace:W,subject:'sla'});assert.equal(r.code,200);assert.equal(r.body.rows[0].c.reserved,'__sla__');
  r=await get({entity:'segments',workspace:W});assert.equal(r.body.rows[0].c.reserved,undefined);
- assert.equal((await get({entity:'segments',workspace:W,subject:'rules'})).code,400);
+ r=await get({entity:'segments',workspace:W,subject:'rules'});assert.equal(r.code,200);assert.equal(r.body.rows[0].c.reserved,'__regole__','the rules row shares the same helper');
+ assert.equal((await get({entity:'segments',workspace:W,subject:'reports'})).code,400);
  assert.equal((await get({entity:'segments',workspace:W,subject:'sla',offset:'100'})).code,400);
  r=await post('create',{name:'__sla__',filters:{sla}});assert.equal(r.code,403);assert.match(r.body.error,/owner e admin/);
  r=await post('update',{id:ID,version:1,filters:{sla}});assert.equal(r.code,403);
@@ -102,6 +106,7 @@ test('server: «__sla__» is validated, kept apart from segments and hidden from
  role='admin';existing='__sla__';
  r=await post('update',{id:ID,version:1,filters:{sla:{...sla,business:true}}});assert.equal(r.code,200);
  r=await post('update',{id:ID,version:1,filters:{city:'Milano'}});assert.equal(r.code,400,'the SLA row stays SLA');
+ r=await post('update',{id:ID,version:1,filters:{rules:[]}});assert.equal(r.code,400,'the SLA row cannot become the rules row');
  r=await post('create',{name:'__sla__',filters:{sla}});assert.equal(r.code,200);
 });
 

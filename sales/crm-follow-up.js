@@ -118,7 +118,8 @@ async function related(inter){
  return out;
 }
 
-function draftBox(inter,entry){
+// opts (CRM «Regole», sales/crm-rules.js): {send:false} hides «Invia» (a rule only proposes a draft), note: the hint, extra: more buttons.
+function draftBox(inter,entry,opts){
  const a=app(),box=E('div',undefined,'crm-follow-up');box.setAttribute('aria-label','Bozza follow-up di «'+(inter.title||'')+'»');
  const sl=E('label','Oggetto'),subject=E('input');subject.maxLength=180;subject.value=entry.subject;sl.append(subject);
  const bl=E('label','Testo'),body=E('textarea');body.rows=9;body.maxLength=4000;body.value=entry.body;bl.append(body);
@@ -126,11 +127,11 @@ function draftBox(inter,entry){
  const dl=E('label','Scadenza (solo se è nelle note)'),due=E('input');due.type='date';due.value=entry.nextStep.due;dl.append(due);
  const keep=()=>{entry.subject=subject.value;entry.body=body.value;entry.nextStep={title:next.value,due:due.value}};
  [subject,body,next,due].forEach(x=>x.addEventListener('input',keep));
- const note=E('p',entry.sent?'Follow-up inviato a '+entry.sent+' e registrato.':'Bozza dell’AI: controlla fatti e date, completa le parti tra parentesi quadre. Nulla parte senza «Invia» e una conferma.','muted');note.setAttribute('role','status');
+ const note=E('p',entry.sent?'Follow-up inviato a '+entry.sent+' e registrato.':opts&&opts.note||'Bozza dell’AI: controlla fatti e date, completa le parti tra parentesi quadre. Nulla parte senza «Invia» e una conferma.','muted');note.setAttribute('role','status');
  const acts=E('div',undefined,'actions');
  acts.append(B('Copia',async()=>{keep();const text='Oggetto: '+entry.subject+'\n\n'+entry.body;
   try{await navigator.clipboard.writeText(text);note.textContent='Oggetto e testo copiati.'}catch{body.select();note.textContent='Copia non disponibile: testo selezionato, usa Ctrl+C.'}}));
- if(a.writable('interactions')){const send=B(entry.sent?'Inviata':'Invia',async()=>{keep();
+ if(a.writable('interactions')&&!(opts&&opts.send===false)){const send=B(entry.sent?'Inviata':'Invia',async()=>{keep();
   let p;if(!await run('Preparo l’invio…',async()=>{p=sendPlan(inter,entry.contact,entry.subject,entry.body);if(p.error)throw new Error(p.error);
    if(!p.to)throw new Error('Il contatto non ha un’email valida: usa «Copia» e invialo da un altro canale.');
    if(!await emailConfigured())throw new Error('Invio diretto non configurato (manca Gmail): usa «Copia».')}))return;
@@ -146,6 +147,7 @@ function draftBox(inter,entry){
   const p=taskPlan(inter,entry.nextStep.title,entry.nextStep.due,a.state.me);if(p.error){a.error(p.error);next.focus();return}
   if(!window.confirm('Creare l’attività «'+p.data.title+'»'+(entry.nextStep.due?' con scadenza '+new Date(entry.nextStep.due+'T12:00').toLocaleDateString('it-IT'):' senza scadenza')+'?'))return;
   if(await run('Creo l’attività…',()=>post('tasks','create',p.data))){await a.refresh(false);a.notice('Attività «'+p.data.title+'» creata.')}}));
+ if(opts&&opts.extra)acts.append(...opts.extra);
  box.append(sl,bl,nl,dl,acts,note);return box;
 }
 
@@ -165,4 +167,5 @@ function mount(c,inter){
  bar.append(btn);wrap.append(bar);paint();c.append(wrap);return true;
 }
 root.RadixCrmFollowUp.mount=mount;
+root.RadixCrmFollowUp.draft=draftBox;
 })(typeof globalThis!=='undefined'?globalThis:this);
