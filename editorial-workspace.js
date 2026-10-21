@@ -186,13 +186,28 @@ async function attachSlides(item){const slides=media.parseSlides(item.slides||''
  return attachCanvases(item,slides.map((x,i)=>media.renderSlide(x,i,slides.length,null,project)))}
 async function renderAttached(item,box){try{const d=await api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id));const p=document.createElement('p');p.className='muted';
   p.textContent=d.items.length?'📎 '+d.items.length+(d.items.length===1?' immagine allegata':' immagini allegate')+': partono con il post su Buffer.':'Nessuna immagine allegata al post.';box.append(p)}catch(e){}}
+// «Scarica il post»: one .zip with the text (hashtag, CTA, canale, data), every graphic as PNG, the Studio Foto photo
+// through the same-origin proxy and, for a video, only its link. Drawn locally: no AI, no paid generation.
+const pngBytes=c=>new Promise((ok,ko)=>c.toBlob(b=>b?b.arrayBuffer().then(x=>ok(new Uint8Array(x)),ko):ko(Error('PNG non creato')),'image/png'));
+const nearRatio=img=>{const r=img.width/img.height;return [['4:5',.8],['1:1',1],['9:16',.5625],['16:9',16/9]].sort((a,b)=>Math.abs(a[1]-r)-Math.abs(b[1]-r))[0][0]};
+async function downloadPost(item,btn){const Z=window.RadixZip;if(!Z){notify('Download non disponibile: ricarica la pagina.');return}const label=btn.textContent;btn.disabled=true;btn.textContent='Preparo il .zip…';
+ try{const prof=rt&&registryProject&&rt.profileFor(registryProject),notes=[],opts={project:project&&project.name||'',timezone:core.timeZoneOf(state),notes},sl=media&&item.slides?media.parseSlides(item.slides):[];
+  if(sl.length){try{if(document.fonts){const g=media.styleGuide(prof);await Promise.all(['400 40px Inter','700 40px Inter','800 40px Montserrat',...(g?['400 40px '+g.font,'700 40px '+g.font]:[])].map(f=>document.fonts.load(f)));await document.fonts.ready}}catch(e){}
+   try{opts.slides=await Promise.all(sl.map((x,i)=>pngBytes(media.renderSlide(x,i,sl.length,null,prof))))}catch(e){notes.push('Grafiche non disegnate: '+e.message)}}
+  if(item.photo&&item.photo.requestId){const S=window.RadixImageStudio;try{if(!S||!S.photoBlob)throw Error('Studio Foto non caricato');const blob=await S.photoBlob(item.photo.requestId);opts.photo={data:new Uint8Array(await blob.arrayBuffer()),type:blob.type};
+   if(item.photo.headline&&media){const u=URL.createObjectURL(blob);try{const img=await S.loadImage(u,false);opts.photoPost=await pngBytes(media.renderPhotoPost(img,item.photo.headline,prof,nearRatio(img)))}catch(e){notes.push('Foto con titolo non composta: '+e.message)}finally{URL.revokeObjectURL(u)}}}
+   catch(e){opts.photoError=e.message||'errore'}}
+  const files=pv.postBundle(item,opts),name=pv.postBundleName(item,project&&project.name),u=URL.createObjectURL(new Blob([Z.zip(files)],{type:'application/zip'})),a=document.createElement('a');
+  a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);notify('Post scaricato: '+name+' · '+files.length+' file.')}
+ catch(e){notify('Download non riuscito: '+e.message)}finally{btn.disabled=false;btn.textContent=label}}
+function downloadButton(item){const b=document.createElement('button');b.type='button';b.className='download-post';b.textContent='⬇ Scarica il post';b.title='Un unico .zip con testo, immagini (PNG), foto e link del video';b.onclick=()=>downloadPost(state.contents.find(x=>x.id===item.id)||item,b);return b}
 function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!item||!media)return;const kind=pv.mediaKind(item);
- const head=document.createElement('p');head.className='muted';box.append(head);
+ const head=document.createElement('p');head.className='muted';box.append(downloadButton(item),head);
  if(kind==='email'){head.textContent='Newsletter via email: si invia dal CRM ai contatti con consenso marketing, con link tracciati e disiscrizione.';
   const b=document.createElement('button');b.type='button';b.textContent='✉ Prepara la campagna nel CRM';b.disabled=!item.copy.trim();
   b.onclick=()=>{try{localStorage.setItem('radix-crm-campaign-draft',JSON.stringify({subject:String(item.title||'').slice(0,200),body:String(item.copy||'').slice(0,4000),source:'PED · '+(project&&project.name||''),at:Date.now()}))}catch(e){notify('Il browser non permette di passare la bozza al CRM: copia il testo a mano.');return}location.href='/radix-sales.html#contacts'};
   box.append(b);return}
- if(kind==='video'){head.textContent='Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';const t=item.copy.trim()&&media.videoTool(item.copy,{avatar:registryProject&&registryProject.profile&&registryProject.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(projectId)});if(t)box.append(t);return}
+ if(kind==='video'){head.textContent='Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';const t=item.copy.trim()&&media.videoTool(item.copy,{onReady:url=>{const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={url,at:new Date().toISOString()};persist('Link del video salvato nel post (scade dopo 7 giorni).')},avatar:registryProject&&registryProject.profile&&registryProject.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(projectId)});if(t)box.append(t);return}
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'🎨 Rigenera la grafica':(kind==='carousel'?'🎨 Crea le slide del carosello':'🎨 Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
  b.onclick=async()=>{if(writing||!rt)return;if(!confirm('Chiedere la grafica all’Art Director AI? Consuma crediti API.'))return;writing=true;b.disabled=true;notify('Art Director AI al lavoro…');
@@ -252,7 +267,7 @@ function postPreview(item){const art=document.createElement('article');art.class
    if(!res.numbers.length)core.review(state,next.id,'request');persist('Post riscritto con la tua nota.');
    const fresh=state.contents.find(x=>x.id===next.id),card=postPreview(fresh);if(res.numbers.length){card.dataset.state='check';card.querySelector('.pp-state').textContent='Riscritto, ma ha numeri da verificare: aprilo dalla Libreria prima di approvarlo.';card.querySelector('.pp-actions button.primary').disabled=true}else card.querySelector('.pp-state').textContent='Riscritto con la tua nota: rileggilo.';art.replaceWith(card);updateReviewFooter()}
   catch(e){state_.textContent='Non riscritto: '+e.message;go.disabled=ok.disabled=redo.disabled=false}};
- bar.append(ok,redo,state_);art.append(head,title,body,pic,bar,form);return art}
+ bar.append(ok,redo,downloadButton(item),state_);art.append(head,title,body,pic,bar,form);return art}
 function updateReviewFooter(){const open=[...document.querySelectorAll('#reviewList .post-preview:not([data-state])')].length,b=$('reviewApproveRest');b.hidden=!open;b.textContent='✓ Approva i '+open+' rimasti'+(core.isPlanApproved(state)?'':' e la pianificazione');$('reviewCount').textContent=open?open+' da decidere':'Tutti decisi';if(!open&&!core.isPlanApproved(state)&&state.contents.length){$('reviewPlan').hidden=false}else $('reviewPlan').hidden=true}
 // ---- Identità visiva: the project's colours, font and signature, proposed by the AI or read from a moodboard image ----
 const ID_FIELDS={cover:'idCover',page:'idPage',key:'idKey',accent:'idAccent',text:'idText'};let identitySource='';
