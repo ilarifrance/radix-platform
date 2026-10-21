@@ -68,5 +68,5 @@ function section(sec){
  if(!canEdit())return;
  const head=sec.querySelector(':scope>.row');const p=panel();if(head)head.after(p);else sec.prepend(p);
 }
-Object.assign(V,{load,note,section});
+Object.assign(V,{load,note,section,panel});// panel: also mounted by impostazioni.html (shell/settings.js)
 })(typeof globalThis!=='undefined'?globalThis:this);

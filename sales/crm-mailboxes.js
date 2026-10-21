@@ -1,6 +1,6 @@
 'use strict';
 /* «Caselle email» and «Coda invii» in the CRM (api/_sales_mailboxes.js, migration sales 016).
-   - Panel «Caselle email» (Contatti › Caselle email): up to 5 sending mailboxes per workspace, Gmail with a
+   - Panel «Caselle email» (Impostazioni › Caselle email, shell/settings.js): up to 5 sending mailboxes per workspace, Gmail with a
      «password per le app» or any SMTP server; «Prova invio» sends one email to your own address after a
      confirmation; pause, resume, delete. Only owner and admin change them; the password is never shown again.
    - «Metti in coda» in the campaign panel (sales/crm-campaigns.js): the server plans the segment with the
@@ -98,7 +98,7 @@ async function enqueue(input){
  const a=app(),data={campaign:input.campaign,subject:input.subject,body:input.body,contacts:input.contacts,origin:location.origin};
  let p;if(!await run('Preparo la coda…',async()=>{p=(await post('send_queue','plan',data)).rows[0]}))return null;
  a.notice('');
- if(!p.active_mailboxes){a.error('Nessuna casella attiva: collegane una in Contatti › Caselle email prima di mettere in coda.');return null}
+ if(!p.active_mailboxes){a.error('Nessuna casella attiva: collegane una in Impostazioni › Caselle email prima di mettere in coda.');return null}
  if(!p.recipients){a.notice('Nessuna email da mettere in coda'+skippedText(p)+'.');return null}
  const lines=['Mettere in coda «'+p.campaign+'»?','',n(p.recipients,'destinatario','destinatari')+' con consenso marketing ed email valida.'];
  if(p.skipped.consent)lines.push(n(p.skipped.consent,'contatto escluso','contatti esclusi')+' perché senza consenso.');

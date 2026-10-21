@@ -31,3 +31,4 @@ details.crm-mailboxes>summary{color:var(--crm-text,inherit)}
 .crm-mb-stat[data-kind=failed]{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
 .crm-mb-stat[data-kind=skipped],.crm-mb-stat[data-kind=cancelled]{background:var(--crm-soft,#f8f7fb);color:var(--crm-muted,#55516a)}
 @media (max-width:600px){.crm-mb-list,.crm-mb-grid{grid-template-columns:1fr}.crm-mb-card .actions button{flex:1 1 auto}}
+.crm-mb-link{align-self:center;font-size:13px;font-weight:500;white-space:nowrap}

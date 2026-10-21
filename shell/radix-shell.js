@@ -40,7 +40,8 @@
     search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
-    chev: '<path d="m9 6 6 6-6 6"/>'
+    chev: '<path d="m9 6 6 6-6 6"/>',
+    sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>'
   };
   function svg(name, cls) {
     return '<svg class="' + (cls || 'rx-ico') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>';
@@ -93,6 +94,7 @@
   var FOOT = [
     { id: 'coordination', text: 'Control Room', href: '/coordination/index.html', icon: 'radar' },
     { id: 'ecosystem', text: 'Tutte le aree', href: '/radix-ecosystem.html', icon: 'globe' },
+    { id: 'impostazioni', text: 'Impostazioni', href: '/impostazioni.html', icon: 'sliders', kw: 'password profilo lingua membri ruoli caselle email collegamenti chiavi estensione sla automazioni' },
     { id: 'admin', text: 'Amministrazione', href: '/admin.html', icon: 'cog' }
   ];
 
