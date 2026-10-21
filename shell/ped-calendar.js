@@ -128,6 +128,7 @@
     a('Calendario', '#calendar', 'calendar', show('calendar')).dataset.section = 'calendar';
     a('Libreria contenuti', '#board', 'library', show('library')).dataset.section = 'library';
     a('Analytics', '#analytics', 'analytics', show('analytics')).dataset.section = 'analytics';
+    a('Risultati', '#results', 'results', show('results')).dataset.section = 'results';
     sect('Canali');
     var chBox = document.createElement('div'); chBox.className = 'ped-rail-channels'; r.append(chBox);
     sect('Progetti');
@@ -140,6 +141,7 @@
     root.dataset.pedSection = section;
     [].slice.call(page.querySelectorAll('.ped-rail-link[data-section]')).forEach(function (x) { if (x.dataset.section === section) x.setAttribute('aria-current', 'true'); else x.removeAttribute('aria-current'); });
     var an = document.getElementById('analytics'); if (section === 'analytics' && an && an.tagName === 'DETAILS') an.open = true;
+    var rs = document.getElementById('results'); if (section === 'results' && rs && rs.tagName === 'DETAILS') rs.open = true;
     if (section === 'calendar') later();
     window.scrollTo({ top: 0 });
   }
