@@ -312,6 +312,7 @@ window.RadixCrmTools={
  exportCsv:(kind,filter)=>exportCsv(kind,filter),
  section(entity,section){
   if(entity==='tickets')window.RadixCrmSla?.section(section);
+  if(entity==='members')window.RadixCrmVisibility?.section?.(section);
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
   // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.

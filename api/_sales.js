@@ -21,6 +21,8 @@ class SalesError extends Error { constructor(status,message){super(message);this
 function fail(status,message){throw new SalesError(status,message);}
 // Reserved sales_segments rows («__regole__», «__sla__»): api/_sales_reserved.js.
 const reserved=require('./_sales_reserved');
+// «I member vedono solo i propri record» (sales/crm-visibility-core.js): the SQL predicate lives in api/_sales_visibility.js.
+const vis=require('./_sales_visibility');
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
 function object(v){return v && typeof v==='object' && !Array.isArray(v) && Object.getPrototypeOf(v)===Object.prototype;}
 function timestamp(v){
@@ -146,6 +148,16 @@ async function reservedGuard(store,c,role){
   if(c.action==='update'&&r[0]){const named=d.name!==undefined?reserved.byName(d.name):row,bad=(d.filters!==undefined&&held!==row)?held||row:named!==row?named||row:null;if(bad)fail(400,reserved.nameTaken(bad));}}
  if(row&&!['owner','admin'].includes(role))fail(403,'Solo owner e admin possono modificare '+reserved.RESERVED[row].edit+'.');
 }
+// A member under «solo i propri record» cannot change, nor link to, a record hidden from them: 404, as a missing one.
+// Linking matters too: a task on someone else's company would make that company «linked to a task of mine».
+const REFS=Object.freeze({company_id:'companies',contact_id:'contacts',opportunity_id:'opportunities'});
+async function visibilityGuard(store,c,uid){
+ const d=c.data||{},checks=[];
+ if(c.entity==='unsubscribe_links')checks.push(['contacts',d.contacts]);
+ else if(vis.ENTITIES.includes(c.entity)&&c.action!=='create'&&uuid(d.id))checks.push([c.entity,[d.id]]);
+ for(const [k,e] of Object.entries(REFS))if(uuid(d[k]))checks.push([e,[d[k]]]);
+ for(const [e,ids] of checks)if((await store.hidden(e,c.workspace,uid,ids)).length)fail(404,'Record non trovato.');
+}
 function createHandler({getSessionUser,getStore}){
  return async function(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
@@ -198,8 +210,8 @@ function createHandler({getSessionUser,getStore}){
        if(Object.keys(q).some(k=>!['entity','workspace','offset','report'].includes(k))||!uuid(q.workspace)||(q.report!==undefined&&q.report!=='campaigns'))fail(400,'Parametri clic non validi.');
        const store=getStore(),m=await store.membership(q.workspace,user.uid);if(!m||!['owner','admin','member','viewer'].includes(m.role))fail(403,'Membership esplicita richiesta per questo workspace.');
        // report=campaigns adds the rows of the «Report campagna» (sends, unsubscribe stamps, later contacts, opportunities).
-       if(q.report==='campaigns'){const [base,data]=await Promise.all([clicks.report(store.sql,q.workspace),clicks.campaignData(store.sql,q.workspace)]);return res.status(200).json({...base,report:data});}
-       return res.status(200).json(await clicks.report(store.sql,q.workspace));
+       if(q.report==='campaigns'){const [base,data]=await Promise.all([clicks.report(store.sql,q.workspace,user.uid),clicks.campaignData(store.sql,q.workspace,user.uid)]);return res.status(200).json({...base,report:data});}
+       return res.status(200).json(await clicks.report(store.sql,q.workspace,user.uid));
      }
      if(q.entity==='workspaces'){const store=getStore();return res.status(200).json({rows:await store.workspaces(user.uid)});}
      if(q.entity==='lead_workspaces'){
@@ -228,6 +240,8 @@ function createHandler({getSessionUser,getStore}){
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.entity==='segments')await reservedGuard(store,c,membership.role);
+     // store.hidden is part of every real store (api/_sales_store.js); only test doubles of other features lack it.
+     if(membership.role==='member'&&store.hidden)await visibilityGuard(store,c,user.uid);
      if(c.customFields)return res.status(200).json({rows:[await store.customFields.command(c,user.uid)]});
      if(c.documents){if(c.entity!=='documents'&&!['owner','admin'].includes(membership.role))fail(403,'Catalogo, listini e intestazione si modificano solo da owner o admin.');return res.status(200).json({rows:[await store.documents.command(c,user.uid)]});}
      if(c.entity==='lead_import_token')return res.status(200).json(importToken.sign({uid:user.uid,workspace:c.workspace},process.env.JWT_SECRET));
