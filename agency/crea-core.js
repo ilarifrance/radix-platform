@@ -1,5 +1,5 @@
 /* «Cosa vuoi fare oggi?»: the single Marketing panel. One card per service, each opening the tool that already does it
-   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, identity kit, and the text services of
+   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, identity kit, print with no AI (lib/print-studio.js), and the text services of
    lib/copy-studio.js: inline 'copy:<service>'). Each card has a `group`, one of GROUPS, for the panel's filters.
    Pure part (cards, groups, links) runs in Node for the tests; the page lives in agency/crea.html. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrea=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
@@ -23,12 +23,13 @@ const CARDS=[
  {id:'site',group:'Web e annunci',icon:'⌂',title:'Sito web',line:'Una landing o un piccolo sito: poche domande, 3 proposte con anteprima, scegli e scarichi o salvi.',state:'ready',action:'Prepara il sito',cost:'Una chiamata AI al Web Developer, con conferma.',inline:'site'},
  {id:'seo',group:'Web e annunci',icon:'⌖',title:'SEO e GEO',line:'Farsi trovare su Google e citare dalle AI: poche domande, 3 strategie, scegli e salvi il piano.',state:'ready',action:'Prepara la strategia SEO',cost:'Una chiamata AI allo Specialista SEO e GEO, con conferma.',inline:'seo'},
  {id:'annunci',group:'Web e annunci',icon:'◆',title:'Testi per annunci Google e Meta',line:'Titoli e descrizioni nei limiti di Google e Meta: 3 set, scegli e copi. Le campagne restano nel tuo account.',state:'ready',action:'Scrivi gli annunci',cost:'Una chiamata AI al Paid Media Specialist, con conferma.',inline:'copy:annunci'},
+ {id:'stampa',group:'Stampa e documenti',icon:'⎙',title:'Stampa e documenti',line:'Biglietto da visita, flyer, locandina, carta intestata e brochure a 3 ante: anteprima con i colori del kit e PDF pronto per la tipografia.',state:'ready',action:'Prepara il PDF',cost:'Nessuna chiamata AI: il PDF si crea qui, senza costi.',inline:'print',hint:'Colori in RGB: la tipografia li converte in CMYK.'},
  {id:'brochure',group:'Stampa e documenti',icon:'▤',title:'Brochure e company profile',line:'I testi di una brochure o del company profile, sezione per sezione: 3 versioni, scegli tu.',state:'ready',action:'Scrivi la brochure',cost:'Una chiamata AI al Copywriter, con conferma.',inline:'copy:brochure'},
  {id:'scheda',group:'Stampa e documenti',icon:'▥',title:'Scheda tecnica',line:'Caratteristiche, misure e materiali in ordine, solo dai dati che scrivi tu: 3 impostazioni, scegli tu.',state:'ready',action:'Prepara la scheda',cost:'Una chiamata AI al Copywriter, con conferma.',inline:'copy:scheda',hint:'Nessun dato inventato: i numeri che non hai scritto vengono segnalati.'},
  {id:'presentazione',group:'Stampa e documenti',icon:'▭',title:'Presentazione',line:'La scaletta slide per slide: titolo, punti e cosa dire. 3 versioni, scegli e modifichi.',state:'ready',action:'Prepara la scaletta',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'copy:presentazione'}
 ];
 const ID=/^[a-z0-9-]{1,80}$/i;
-// Where a card leads for a project; null when it opens inline (photo, video, site, SEO, identity or text studio) or needs a project that is missing.
+// Where a card leads for a project; null when it opens inline (photo, video, site, SEO, identity, print or text studio) or needs a project that is missing.
 function linkFor(card,projectId){
  const p=ID.test(String(projectId||''))?String(projectId):'';
  if(card.inline)return null;
