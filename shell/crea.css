@@ -92,7 +92,12 @@
 .cr-panel .site-studio .st-view iframe{display:block;border:0;background:#fff}
 .cr-panel .site-studio .st-view[data-mode=desktop] iframe{width:100%;height:min(640px,70vh);border-radius:8px}
 .cr-panel .site-studio .st-view[data-mode=mobile] iframe{width:390px;max-width:100%;height:min(720px,75vh);border-radius:22px;box-shadow:0 0 0 7px #1b2440}
-.cr-panel .site-studio .st-later{margin:0}
+.cr-panel .site-studio .st-online{margin:0;overflow-wrap:anywhere}.cr-panel .site-studio .st-online a{color:var(--cyan,#42dcf7);font-weight:600}
+.cr-panel .site-studio .st-publish{display:flex;flex-direction:column;gap:10px;padding-top:10px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .site-studio .st-publish h4{margin:0;font-size:15px}.cr-panel .site-studio .st-publish p{margin:0;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-domain{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px;border:1px solid var(--border,#2c3a63);border-radius:12px}
+.cr-panel .site-studio .st-dns{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:8px 0 0;font-size:14px}.cr-panel .site-studio .st-dns dt{color:var(--muted,#aeb9da)}.cr-panel .site-studio .st-dns dd{margin:0;font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-own{margin-top:10px;padding:10px 12px;border:1px solid var(--border,#2c3a63);border-radius:12px}.cr-panel .site-studio .st-own summary{cursor:pointer;font-weight:600}.cr-panel .site-studio .st-own ol{margin:8px 0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
 .cr-panel .site-studio .tool-status{margin:0;color:#cfd7ef}
 .cr-panel .site-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
 /* Filters above the cards: «Tutti» and the groups of agency/crea-core.js. */

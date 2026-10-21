@@ -117,6 +117,6 @@ test('the widget confirms before the one AI call, uses the Web Developer memory 
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(|innerHTML|insertAdjacentHTML|eval\(|new Function/.test(src),'no requests of its own and no HTML injected into RADIX');
  assert.match(src,/f\.setAttribute\('sandbox',''\)/);assert.ok(!/allow-scripts/.test(src));assert.match(src,/f\.srcdoc=html/);
- assert.match(src,/Pubblicazione online: in arrivo, con la tua conferma\./);assert.match(src,/Scarica il sito \(\.html\)/);
+ assert.match(src,/if\(!root\.confirm\(PUBLISH_CONFIRM\)\)return;\s*btn\.disabled=true/);assert.match(src,/Sarà pubblicato su internet/);assert.match(src,/'Aggiorna il sito online'/);assert.match(src,/Scarica il sito \(\.html\)/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','lib/radix-agent-runtime.js'),'utf8'),/id:'web-developer'/);
 });
