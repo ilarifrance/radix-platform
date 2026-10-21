@@ -1,18 +1,25 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
-   (lib/seo-studio.js) right here. Nothing is generated
+   (lib/seo-studio.js) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
+   The filter chips above the cards show one group at a time (remembered in this browser). Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
-const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,KEY='radix-crea-project';
-let projects=[],current=null,openCard='';
+const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,KEY='radix-crea-project',GROUP_KEY='radix-crea-group';
+let projects=[],current=null,openCard='',group=remembered(GROUP_KEY);
 function node(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n}
 function say(t){$('crMessage').textContent=t||''}
-function remember(id){try{localStorage.setItem(KEY,id)}catch(e){}}
-function remembered(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}}
+function remember(id,key){try{localStorage.setItem(key||KEY,id)}catch(e){}}
+function remembered(key){try{return localStorage.getItem(key||KEY)||''}catch(e){return ''}}
+// «Tutti» plus the groups that have cards; an unknown remembered group falls back to «Tutti».
+function renderFilters(){
+ if(!core.groups().includes(group))group='';
+ $('crFilters').replaceChildren(...[['','Tutti']].concat(core.groups().map(g=>[g,g])).map(([g,t])=>{const b=node('button','cr-filter',t);b.type='button';b.dataset.group=g;b.setAttribute('aria-pressed',String(group===g));
+  b.addEventListener('click',()=>{group=g;remember(g,GROUP_KEY);render()});return b}));
+}
 function render(){
- const pid=current?current.id:'';
- $('crCards').replaceChildren(...core.CARDS.map(c=>{
+ const pid=current?current.id:'';renderFilters();
+ $('crCards').replaceChildren(...core.inGroup(group).map(c=>{
   const li=node('li','cr-card');li.dataset.card=c.id;li.dataset.open=String(openCard===c.id);
   const top=node('div','cr-top'),badge=node('span','cr-badge',c.state==='ready'?'Guidato':'Con l’agente');badge.dataset.state=c.state;
   top.append(node('i','cr-icon',c.icon),badge);
@@ -29,22 +36,27 @@ const STUDIOS={
  photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  site:{global:'RadixSiteStudio',name:'Lo Studio Sito',need:'il sito parte dai suoi fatti confermati e dai suoi colori',agent:'web-developer'},
- seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'}
+ seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'},
+ copy:{global:'RadixCopyStudio',name:'Lo Studio Testi',need:'i testi partono dai suoi fatti confermati',agent:''}
 };
 function openInline(c){
- const st=STUDIOS[c.inline];if(!st)return;
+ const [kind,service]=String(c.inline).split(':'),st=STUDIOS[kind];if(!st)return;
  if(!current){say('Scegli prima un progetto: '+st.need+'.');return}
  const S=window[st.global],rt=window.RadixAgents;
- if(!S||!rt){say(st.name+' non si è caricato: ricarica la pagina.');return}
+ const svc=service&&S&&S.service(service);
+ if(!S||!rt||(service&&!svc)){say(st.name+' non si è caricato: ricarica la pagina.');return}
+ const agent=svc?svc.role:st.agent;
  openCard=c.id;render();
  $('crPanelTitle').textContent=c.title+' · '+current.name;
- const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:st.agent},pid=encodeURIComponent(current.id);
+ const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:agent},pid=encodeURIComponent(current.id);
  $('crPanelBody').replaceChildren(c.inline==='video'
   ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+pid})
   :c.inline==='site'
   ?S.siteStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'
   ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  :kind==='copy'
+  ?S.copyStudio({service,project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent='+agent+'&project='+pid})
   :S.photoStudio({project,memoryScope,concept:'',headline:''}));
  $('crPanel').hidden=false;$('crPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }

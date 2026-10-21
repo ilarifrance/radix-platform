@@ -95,3 +95,29 @@
 .cr-panel .site-studio .st-later{margin:0}
 .cr-panel .site-studio .tool-status{margin:0;color:#cfd7ef}
 .cr-panel .site-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+/* Filters above the cards: «Tutti» and the groups of agency/crea-core.js. */
+.cr-filters{display:flex;flex-wrap:wrap;gap:8px}
+.cr-filter{font:inherit;font-size:14px;cursor:pointer;padding:7px 14px;border-radius:999px;border:1px solid var(--border,#2c3a63);background:transparent;color:#cfd7ef}
+.cr-filter:hover{border-color:var(--violet,#a68bff)}
+.cr-filter[aria-pressed=true]{border-color:var(--cyan,#42dcf7);background:rgba(66,220,247,.12);color:#f3f4ff;font-weight:600}
+.cr-filter:focus-visible{outline:2px solid var(--cyan,#42dcf7);outline-offset:2px}
+/* Studio Testi (lib/copy-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .copy-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .copy-studio h4{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .copy-studio .ps-form{display:flex;flex-direction:column;gap:12px}
+.cr-panel .copy-studio .cs-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.cr-panel .copy-studio .cs-fields label{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.cr-panel .copy-studio .cs-wide{grid-column:1/-1}
+.cr-panel .copy-studio .cs-note{margin:0;padding:10px 12px;border:1px solid rgba(245,181,68,.45);border-radius:10px;color:#f5c76b;font-size:13px}
+.cr-panel .copy-studio .cs-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
+.cr-panel .copy-studio .cs-card{padding:12px;gap:10px;min-width:0}
+.cr-panel .copy-studio .cs-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .copy-studio .cs-sec ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px;color:#cfd7ef;overflow-wrap:anywhere}
+.cr-panel .copy-studio .cs-text{margin:0;font-size:13px;color:#cfd7ef;white-space:pre-line;overflow-wrap:anywhere}
+.cr-panel .copy-studio .cs-count{color:var(--muted,#aeb9da);font-size:11px}
+.cr-panel .copy-studio .cs-count[data-over=true]{color:#f5c76b}
+.cr-panel .copy-studio .cs-issues{margin:0;padding:8px 10px 8px 26px;border:1px solid rgba(245,181,68,.45);border-radius:10px;color:#f5c76b;font-size:12px;display:flex;flex-direction:column;gap:3px}
+.cr-panel .copy-studio .cs-result{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .copy-studio .cs-result textarea{min-height:260px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
+.cr-panel .copy-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .copy-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
