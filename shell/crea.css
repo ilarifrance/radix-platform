@@ -39,3 +39,18 @@
 .cr-panel .photo-studio .muted{color:var(--muted,#aeb9da);font-size:13px}
 .cr-panel .photo-studio textarea,.cr-panel .photo-studio input[type=text],.cr-panel .photo-studio input:not([type]){box-sizing:border-box;width:100%;background:#081129;color:#f3f4ff;border:1px solid var(--border,#2c3a63);border-radius:10px;padding:10px;font:inherit}
 .cr-panel .photo-studio .ps-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+/* Studio Video (lib/video-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .video-studio h3{margin:0;font-size:16px}
+.cr-panel .video-studio .vs-who{display:flex;align-items:center;gap:10px;font-size:14px;color:#cfd7ef}
+.cr-panel .video-studio .vs-who img{width:44px;height:44px;border-radius:50%;object-fit:cover}
+.cr-panel .video-studio .vs-missing{margin:0;padding:10px 12px;border:1px solid rgba(245,181,68,.45);border-radius:10px;color:#f5c76b;font-size:14px}
+.cr-panel .video-studio .vs-missing a{color:var(--cyan,#42dcf7);font-weight:600}
+.cr-panel .video-studio .vs-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.cr-panel .video-studio .vs-card{padding:12px;gap:8px}
+.cr-panel .video-studio .vs-card textarea{min-height:150px;resize:vertical;line-height:1.45}
+.cr-panel .video-studio .vs-meta[data-long=true]{color:#f5c76b}
+.cr-panel .video-studio .vs-draft{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .video-studio .vs-view{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.cr-panel .video-studio .vs-view video{width:min(100%,300px);aspect-ratio:9/16;border-radius:12px;background:#000}
+.cr-panel .video-studio .vs-view a{color:var(--cyan,#42dcf7)}
+.cr-panel .video-studio .tool-status{margin:0;color:#cfd7ef}

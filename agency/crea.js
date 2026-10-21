@@ -1,5 +1,6 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
-   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js) right here. Nothing is generated
+   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js) and Video the Studio Video
+   (lib/video-studio.js) right here. Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
 const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,KEY='radix-crea-project';
@@ -23,12 +24,16 @@ function render(){
 }
 function closePanel(){openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render()}
 function openInline(c){
- if(!current){say('Scegli prima un progetto: l’immagine usa i suoi colori e i suoi fatti.');return}
- const S=window.RadixImageStudio,rt=window.RadixAgents;
- if(!S||!rt){say('Lo Studio Foto non si è caricato: ricarica la pagina.');return}
+ const video=c.inline==='video';
+ if(!current){say(video?'Scegli prima un progetto: il video usa il suo avatar e i suoi fatti.':'Scegli prima un progetto: l’immagine usa i suoi colori e i suoi fatti.');return}
+ const S=video?window.RadixVideoStudio:window.RadixImageStudio,rt=window.RadixAgents;
+ if(!S||!rt){say((video?'Lo Studio Video':'Lo Studio Foto')+' non si è caricato: ricarica la pagina.');return}
  openCard=c.id;render();
  $('crPanelTitle').textContent=c.title+' · '+current.name;
- $('crPanelBody').replaceChildren(S.photoStudio({project:rt.profileFor(current),memoryScope:{projectId:current.id,clientId:String(current.client_id||''),agentId:'art-director'},concept:'',headline:''}));
+ const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:video?'video-producer':'art-director'};
+ $('crPanelBody').replaceChildren(video
+  ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+encodeURIComponent(current.id)})
+  :S.photoStudio({project,memoryScope,concept:'',headline:''}));
  $('crPanel').hidden=false;$('crPanel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function choose(id){
