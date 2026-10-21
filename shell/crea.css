@@ -70,3 +70,28 @@
 .cr-panel .seo-studio .ss-plan textarea{min-height:220px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
 .cr-panel .seo-studio .tool-status{margin:0;color:#cfd7ef}
 .cr-panel .seo-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+/* Studio Sito (lib/site-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .site-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .site-studio .ps-form{display:flex;flex-direction:column;gap:12px}
+.cr-panel .site-studio .st-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.cr-panel .site-studio input[type=text]{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .site-studio .st-colours{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cr-panel .site-studio .st-swatch{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.35);vertical-align:middle}
+.cr-panel .site-studio .st-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
+.cr-panel .site-studio .st-card{padding:12px;gap:8px;min-width:0}
+.cr-panel .site-studio .st-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .site-studio .st-concept{margin:0;color:#cfd7ef;font-size:14px}
+.cr-panel .site-studio .st-meta{margin:0;color:var(--muted,#aeb9da);font-size:12px;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-thumb{position:relative;width:100%;aspect-ratio:1280/860;overflow:hidden;border-radius:10px;background:#fff;border:1px solid var(--border,#2c3a63)}
+.cr-panel .site-studio .st-thumb iframe{position:absolute;left:0;top:0;width:1280px;height:860px;border:0;transform:scale(var(--s,.22));transform-origin:0 0;pointer-events:none}
+.cr-panel .site-studio .st-site{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .site-studio .st-modes{display:inline-flex;gap:4px;align-self:flex-start;padding:3px;border:1px solid var(--border,#2c3a63);border-radius:12px}
+.cr-panel .site-studio .st-modes button{border:0;background:transparent;padding:6px 14px}
+.cr-panel .site-studio .st-modes button[aria-pressed=true]{background:linear-gradient(90deg,#6c5cf7,#4c7dff);font-weight:600}
+.cr-panel .site-studio .st-view{display:flex;justify-content:center;padding:12px;border-radius:12px;background:#050b1c}
+.cr-panel .site-studio .st-view iframe{display:block;border:0;background:#fff}
+.cr-panel .site-studio .st-view[data-mode=desktop] iframe{width:100%;height:min(640px,70vh);border-radius:8px}
+.cr-panel .site-studio .st-view[data-mode=mobile] iframe{width:390px;max-width:100%;height:min(720px,75vh);border-radius:22px;box-shadow:0 0 0 7px #1b2440}
+.cr-panel .site-studio .st-later{margin:0}
+.cr-panel .site-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .site-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
