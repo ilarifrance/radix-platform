@@ -1,7 +1,8 @@
 'use strict';
 /* Lead Intelligence «Newsletter»: pure logic, shared by the page (sales/lead-newsletter.js) and the node tests.
-   - Dynamic fields: {{nome}}, {{nome_completo}}, {{azienda}}, {{ruolo}}, {{settore}}, {{città}} filled from the CRM
-     contact and its company, with a default fallback per field or an inline one ({{nome|Buongiorno}}).
+   - Dynamic fields: {{nome}}, {{cognome}}, {{nome_completo}}, {{azienda}}, {{ruolo}}, {{qualifica}}, {{reparto}},
+     {{settore}}, {{città}} filled from the CRM contact and its company, with a default fallback per field or an inline
+     one ({{nome|Buongiorno}}). The workspace's own fields («Aggiungi campo») become tags too, named from their label.
    - AI-filled field: {{gancio}}, one opening line per recipient written by the AI from the project's facts and
      indications plus that recipient's CRM data, in batches (one AI call per batch, only after a click).
    - The three proposals reuse the JSON shape and parser of the CRM email ideas (sales/crm-email-ideas.js).
@@ -16,26 +17,48 @@ const oneLine=v=>str(v).replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' 
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ---- dynamic fields ----
-const TAGS=Object.freeze(['nome','nome_completo','azienda','ruolo','settore','città','gancio']);
+const TAGS=Object.freeze(['nome','cognome','nome_completo','azienda','ruolo','qualifica','reparto','settore','città','gancio']);
 const ALIAS={citta:'città','città':'città'};
-const LABELS=Object.freeze({nome:'Nome',nome_completo:'Nome e cognome',azienda:'Azienda',ruolo:'Ruolo',settore:'Settore',città:'Città',gancio:'Frase d’apertura (AI)'});
+const LABELS=Object.freeze({nome:'Nome',cognome:'Cognome',nome_completo:'Nome e cognome',azienda:'Azienda',ruolo:'Ruolo',qualifica:'Qualifica',reparto:'Reparto',settore:'Settore',città:'Città',gancio:'Frase d’apertura (AI)'});
 // What a field becomes when the CRM has no value; an inline {{tag|testo}} wins over these.
-const FALLBACKS=Object.freeze({nome:'',nome_completo:'',azienda:'la vostra azienda',ruolo:'',settore:'il vostro settore',città:'',gancio:''});
+const FALLBACKS=Object.freeze({nome:'',cognome:'',nome_completo:'',azienda:'la vostra azienda',ruolo:'',qualifica:'',reparto:'',settore:'il vostro settore',città:'',gancio:''});
 const canon=t=>{const k=str(t).toLocaleLowerCase('it');return ALIAS[k]||k};
 const TAG_RE=/\{\{\s*([^{}|]{1,40}?)\s*(?:\|([^{}]{0,120}))?\}\}/g;
 
+// ---- the workspace's own fields («Aggiungi campo», /api/sales?entity=custom_fields) ----
+// Each definition {id,entity,label} becomes a tag named from its label: «Fonte evento» → {{fonte_evento}}.
+// A name already taken (a standard tag or another field) gets the entity added: {{settore_azienda}}.
+let custom=[];
+const slug=v=>str(v).toLocaleLowerCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,36);
+function useCustomFields(defs){
+ const taken=new Set(TAGS),out=[];
+ for(const d of Array.isArray(defs)?defs:[]){
+  if(!d||!d.id||!['contacts','companies'].includes(d.entity))continue;
+  const label=oneLine(d.label).slice(0,60),base=slug(label);if(!base)continue;
+  let tag=base;if(taken.has(tag))tag=(base+(d.entity==='companies'?'_azienda':'_contatto')).slice(0,40);
+  if(taken.has(tag))continue;taken.add(tag);
+  out.push({tag,id:String(d.id),entity:d.entity,label:label+(d.entity==='companies'?' (azienda)':'')});
+ }
+ custom=out;return out.map(c=>({tag:c.tag,label:c.label}));
+}
+const allTags=()=>[...TAGS,...custom.map(c=>c.tag)];
+const labelOf=t=>LABELS[t]||custom.find(c=>c.tag===t)?.label||t;
+
 // The field values of one recipient (contact export row + company export row). Only real values, never guessed.
+// The structured name fields win over the split of the display name; the contact's own city over the company's.
 function fieldsOf(contact,company){
- const full=oneLine(contact?.name),co=company||{};
- return {nome:full.split(' ')[0]||'',nome_completo:full,azienda:oneLine(contact?.company||co.name),ruolo:oneLine(contact?.role),settore:oneLine(co.industry),città:oneLine(co.city)};
+ const full=oneLine(contact?.name),co=company||{},first=oneLine(contact?.first_name),last=oneLine(contact?.last_name);
+ const f={nome:first||full.split(' ')[0]||'',cognome:last||(first?'':full.split(' ').slice(1).join(' ')),nome_completo:full,azienda:oneLine(contact?.company||co.name),ruolo:oneLine(contact?.role),qualifica:oneLine(contact?.title),reparto:oneLine(contact?.department),settore:oneLine(co.industry),città:oneLine(contact?.city)||oneLine(co.city)};
+ for(const c of custom){const src=c.entity==='companies'?co.custom:contact?.custom;f[c.tag]=oneLine(src&&typeof src==='object'?src[c.id]:'').slice(0,200)}
+ return f;
 }
 // Tags the page does not know (they would go out as they are).
-function unknownTags(text){const out=new Set();for(const m of String(text||'').matchAll(TAG_RE))if(!TAGS.includes(canon(m[1])))out.add('{{'+m[1].trim()+'}}');return [...out]}
+function unknownTags(text){const known=allTags(),out=new Set();for(const m of String(text||'').matchAll(TAG_RE))if(!known.includes(canon(m[1])))out.add('{{'+m[1].trim()+'}}');return [...out]}
 // Fill the tags. Returns the text and the fields that used a fallback because the value was missing.
 function render(template,fields,fallbacks){
- const fb={...FALLBACKS,...(fallbacks||{})},missing=new Set();
+ const fb={...FALLBACKS,...(fallbacks||{})},missing=new Set(),known=allTags();
  let text=String(template||'').replace(TAG_RE,(all,name,inline)=>{
-  const k=canon(name);if(!TAGS.includes(k))return all;
+  const k=canon(name);if(!known.includes(k))return all;
   const v=oneLine(fields?.[k]);if(v)return v;
   missing.add(k);return inline!==undefined?oneLine(inline):oneLine(fb[k]);
  });
@@ -73,7 +96,7 @@ function proposalsPrompt(a){
   DATA_RULE+NO_INVENT+'Usa solo i fatti qui sotto.\n'+
   block('fatti',a?.facts,3000)+'\n'+block('indicazioni',a?.indications,1500)+'\n'+block('pubblico',a?.audience,300)+'\n'+
   'Call to action (una sola): '+cta+'.'+(/^https?:\/\//i.test(url)?' Metti questo link così com’è, una volta sola: '+url+'.':' Non inserire link.')+'\n'+
-  'Campi dinamici, scritti esattamente così: {{nome}}, {{azienda}}, {{ruolo}}, {{settore}}, {{città}}. '+
+  'Campi dinamici, scritti esattamente così: {{nome}}, {{azienda}}, {{ruolo}}, {{settore}}, {{città}}'+(custom.length?', e i campi del CRM '+custom.slice(0,20).map(c=>'{{'+c.tag+'}} ('+c.label+')').join(', '):'')+'. '+
   'Inizia il corpo con il saluto e poi {{gancio}} da solo su una riga: è una frase personale che verrà scritta dopo per ogni destinatario. '+
   'Massimo 160 parole di corpo, testo semplice senza markdown, niente firma inventata, niente riga di disiscrizione (la aggiunge il sistema). Le tre versioni devono differire per angolo e oggetto.\n'+
   'Rispondi SOLO con questo JSON: {"emails":[{"angle":"2-4 parole","subject":"…","body":"…"}]}';
@@ -86,12 +109,12 @@ function batches(list,size){const n=Math.max(1,Math.min(50,Number(size)||HOOK_BA
 const callsFor=(count,size)=>Math.ceil(Math.max(0,Number(count)||0)/Math.max(1,Math.min(50,Number(size)||HOOK_BATCH)));
 // What the AI sees of a recipient: only non-empty CRM fields, short, with a local id (never the email or the CRM id).
 function hookData(rows){
- return rows.map((r,i)=>{const f=r.fields||{},d={id:'r'+(i+1)};for(const k of ['nome','azienda','ruolo','settore','città'])if(oneLine(f[k]))d[k]=oneLine(f[k]).slice(0,120);if(oneLine(r.segment))d.segmento=oneLine(r.segment).slice(0,80);return d});
+ return rows.map((r,i)=>{const f=r.fields||{},d={id:'r'+(i+1)};for(const k of ['nome','azienda','ruolo','qualifica','reparto','settore','città'])if(oneLine(f[k]))d[k]=oneLine(f[k]).slice(0,120);if(oneLine(r.segment))d.segmento=oneLine(r.segment).slice(0,80);return d});
 }
 function hooksPrompt(a,rows){
  const g=pick(GOALS,a?.goal),t=pick(TONES,a?.tone);
  return 'Per ogni destinatario scrivi UNA frase d’apertura personale per una newsletter (massimo 30 parole, in italiano, tono '+t[1]+'). Scopo della newsletter: '+g[1]+'.\n'+
-  DATA_RULE+NO_INVENT+'Interpreta solo i dati del destinatario (ruolo, settore, azienda, città) e collegali ai fatti del progetto. Non attribuire al destinatario problemi, progetti o notizie che i dati non dicono. Se i dati sono troppo pochi, scrivi una frase sobria legata al suo ruolo o settore, senza dettagli inventati. Niente saluto (c’è già), niente link, niente segnaposto.\n'+
+  DATA_RULE+NO_INVENT+'Interpreta solo i dati del destinatario (ruolo, qualifica, reparto, settore, azienda, città) e collegali ai fatti del progetto. Non attribuire al destinatario problemi, progetti o notizie che i dati non dicono. Se i dati sono troppo pochi, scrivi una frase sobria legata al suo ruolo o settore, senza dettagli inventati. Niente saluto (c’è già), niente link, niente segnaposto.\n'+
   block('fatti',a?.facts,3000)+'\n'+block('indicazioni',a?.indications,1500)+'\n'+
   block('destinatari',JSON.stringify(hookData(rows)),6000)+'\n'+
   'Rispondi SOLO con questo JSON, un elemento per ogni id: {"hooks":[{"id":"r1","hook":"…"}]}';
@@ -172,5 +195,5 @@ function defaultSource(values,current,pipelineCount){
 // Campaign name for click tracking (≤80 characters, no tags), as crm-campaigns.js does.
 function campaignName(subject,now){const s=str(subject).replace(TAG_RE,'').replace(/\s+/g,' ').replace(/^[\s,;:.!?-]+|[\s,;:-]+$/g,'').trim();return ('Newsletter · '+(s||new Date(now||Date.now()).toISOString().slice(0,10))).slice(0,80)}
 
-return Object.freeze({TAGS,LABELS,FALLBACKS,GOALS,TONES,CTAS,HOOK_BATCH,fieldsOf,unknownTags,render,projectFacts,proposalsPrompt,parseProposals,batches,callsFor,hookData,hooksPrompt,parseHooks,joinCompanies,segmentFilter,matchLeads,eligible,buildEmails,campaignName,audienceFor,defaultSource});
+return Object.freeze({TAGS,LABELS,FALLBACKS,useCustomFields,allTags,labelOf,GOALS,TONES,CTAS,HOOK_BATCH,fieldsOf,unknownTags,render,projectFacts,proposalsPrompt,parseProposals,batches,callsFor,hookData,hooksPrompt,parseHooks,joinCompanies,segmentFilter,matchLeads,eligible,buildEmails,campaignName,audienceFor,defaultSource});
 });
