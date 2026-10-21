@@ -19,8 +19,10 @@
 // Azioni (query 'action' su GET, body.action su POST):
 //   GET  ?action=channels                          -> { channels: [{id, name, service}] }
 //   POST { action:'create', channelId, text }       -> { postId, dueAt }
+//   POST { action:'stats', postIds:[…] }             -> { items:[{postId, channel, publishedAt, link, metrics, engagementRate}], errors:[{postId, error}] }
 
 const { getSessionUser } = require('./_auth');
+const pedResults = require('../lib/ped-results.js');
 
 const BUFFER_BASE = 'https://api.buffer.com';
 
@@ -85,6 +87,43 @@ async function createPost(apiKey, { channelId, text, dueAt, images }) {
   return { postId: result.post.id, dueAt: result.post.dueAt || null };
 }
 
+// Numbers of sent posts (developers.buffer.com/guides/post-metrics.html): personal API key with insightsRead,
+// refreshed by Buffer once a day. Up to 20 posts per request as aliased fields, ids as inline literals like the
+// other calls; when Buffer rejects the batch (one id unknown), each post is read on its own so the rest still arrive.
+const STATS_FIELDS = '{ id channelId channelService sentAt dueAt externalLink metrics { type value unit } metricsUpdatedAt }';
+const validPostId = (id) => /^[A-Za-z0-9_-]{1,64}$/.test(String(id || ''));
+async function postStats(apiKey, postIds) {
+  const ids = [...new Set((Array.isArray(postIds) ? postIds : []).map(String).filter(validPostId))].slice(0, 100);
+  const items = [];
+  const errors = [];
+  const one = (id, alias) => (alias || '') + 'post(input: { id: ' + JSON.stringify(id) + ' }) ' + STATS_FIELDS;
+  const keep = (p, id) => {
+    const n = pedResults.normalizeBufferPost(p);
+    if (n) items.push(n);
+    else errors.push({ postId: id, error: 'Post non trovato su Buffer' });
+  };
+  const denied = (e) => e && (e.status === 401 || e.status === 403);
+  for (let i = 0; i < ids.length; i += 20) {
+    const chunk = ids.slice(i, i + 20);
+    try {
+      const data = await bufferGraphQL(apiKey, 'query {\n' + chunk.map((id, j) => '  ' + one(id, 'p' + j + ': ')).join('\n') + '\n}');
+      chunk.forEach((id, j) => keep(data && data['p' + j], id));
+    } catch (err) {
+      if (denied(err)) throw err;
+      for (const id of chunk) {
+        try {
+          const d = await bufferGraphQL(apiKey, 'query { ' + one(id) + ' }');
+          keep(d && d.post, id);
+        } catch (e) {
+          if (denied(e)) throw e;
+          errors.push({ postId: id, error: String((e && e.message) || e).slice(0, 300) });
+        }
+      }
+    }
+  }
+  return { items, errors };
+}
+
 module.exports = async (req, res) => {
   const user = getSessionUser(req);
   if (!user) {
@@ -147,7 +186,17 @@ module.exports = async (req, res) => {
       return;
     }
 
-    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: channels, create." });
+    if (req.method === 'POST' && action === 'stats') {
+      const ids = (postBody || {}).postIds;
+      if (!Array.isArray(ids) || !ids.some(validPostId)) {
+        res.status(400).json({ error: "Manca 'postIds': nessun post inviato a Buffer da leggere." });
+        return;
+      }
+      res.status(200).json(await postStats(apiKey, ids));
+      return;
+    }
+
+    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: channels, create, stats." });
   } catch (err) {
     res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502).json({
       error: 'Chiamata a Buffer fallita: ' + (err && err.message ? err.message : String(err)),
@@ -156,3 +205,4 @@ module.exports = async (req, res) => {
 };
 module.exports.createPost = createPost;
 module.exports.bufferGraphQL = bufferGraphQL;
+module.exports.postStats = postStats;
