@@ -13,26 +13,33 @@ function node(tag,cls,text){const n=document.createElement(tag);if(cls)n.classNa
 function say(t){$('crMessage').textContent=t||''}
 function remember(id,key){try{localStorage.setItem(key||KEY,id)}catch(e){}}
 function remembered(key){try{return localStorage.getItem(key||KEY)||''}catch(e){return ''}}
-// «Tutti» plus the groups that have cards; an unknown remembered group falls back to «Tutti».
+// «Tutti» plus the groups that have cards, each with how many services it holds; an unknown remembered group falls
+// back to «Tutti». Icons and area colours: agency/marketing-look.js.
+const L=window.RadixMarketingLook,look=c=>L.AREAS[core.areaOf(c.group)]||{color:'#a68bff'};
 function renderFilters(){
  if(!core.groups().includes(group))group='';
- $('crFilters').replaceChildren(...[['','Tutti']].concat(core.groups().map(g=>[g,g])).map(([g,t])=>{const b=node('button','cr-filter',t);b.type='button';b.dataset.group=g;b.setAttribute('aria-pressed',String(group===g));
+ $('crFilters').replaceChildren(...[['','Tutti']].concat(core.groups().map(g=>[g,g])).map(([g,t])=>{const b=node('button','cr-filter');b.type='button';b.dataset.group=g;b.setAttribute('aria-pressed',String(group===g));
+  if(g)b.style.setProperty('--c',(L.AREAS[core.areaOf(g)]||{}).color||'');
+  b.append(node('span','',t),node('span','cr-filter-n',String(core.inGroup(g).length)));
   b.addEventListener('click',()=>{group=g;remember(g,GROUP_KEY);render()});return b}));
 }
 function render(){
  const pid=current?current.id:'';renderFilters();
  $('crCards').replaceChildren(...core.inGroup(group).map(c=>{
-  const li=node('li','cr-card');li.dataset.card=c.id;li.dataset.open=String(openCard===c.id);
-  const top=node('div','cr-top'),badge=node('span','cr-badge',c.state==='ready'?'Guidato':'Con l’agente');badge.dataset.state=c.state;
-  top.append(node('i','cr-icon',c.icon),badge);
-  li.append(top,node('h2','',c.title),node('p','',c.line),node('span','cr-cost',c.cost));
-  if(c.hint)li.append(node('span','cr-hint',c.hint));
+  const li=node('li','cr-card');li.dataset.card=c.id;li.dataset.open=String(openCard===c.id);li.style.setProperty('--c',look(c).color);
+  const top=node('div','cr-top'),badge=c.state==='ready'?node('span','cr-group',c.group):node('span','cr-badge','Con l’agente');badge.dataset.state=c.state;
+  top.append(L.icon(L.CARDS[c.id]||look(c).icon,'cr-icon'),badge);
+  const cost=node('p','cr-cost');cost.append(L.icon(/^Nessuna chiamata AI/.test(c.cost)?'check':'coin','cr-meta-icon'),node('span','',c.cost));
+  li.append(top,node('h2','',c.title),node('p','cr-line',c.line),cost);
+  if(c.hint){const h=node('p','cr-hint');h.append(L.icon('info','cr-meta-icon'),node('span','',c.hint));li.append(h)}
   const href=core.linkFor(c,pid);let go;
   if(c.inline){go=node('button','cr-go',c.action+' →');go.type='button';go.addEventListener('click',()=>openInline(c))}
   else{go=node('a','cr-go',c.action+' →');if(href)go.href=href;else{go.setAttribute('aria-disabled','true');go.title='Scegli prima un progetto'}}
   li.append(go);return li}));
 }
-function closePanel(){openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render()}
+// From the Chiudi button (an event) the focus goes back to the card that opened the studio.
+function closePanel(e){const was=openCard;openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render();
+ const back=was&&document.querySelector('.cr-card[data-card="'+was+'"] .cr-go');if(e&&back)back.focus({preventScroll:true})}
 // The inline studios: which module, what it needs a project for, and whose memory the AI call uses.
 const STUDIOS={
  photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
@@ -53,6 +60,7 @@ function openInline(c){
  const agent=svc?svc.role:st.agent;
  openCard=c.id;render();
  $('crPanelTitle').textContent=c.title+' · '+current.name;
+ $('crPanelIcon').replaceChildren(L.icon(L.CARDS[c.id]||look(c).icon));$('crPanel').style.setProperty('--c',look(c).color);
  const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:agent},pid=encodeURIComponent(current.id);
  $('crPanelBody').replaceChildren(c.inline==='video'
   ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+pid})

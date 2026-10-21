@@ -56,16 +56,30 @@ test('counts are real or missing: never invented',()=>{
  for(const s of orbit.SECTIONS.filter(s=>s.count))assert.ok(s.count in orbit.counts({})&&s.unit.length===2,s.id);
 });
 
-test('orbit geometry: planets stay on the stage, two rings, depth drives scale',()=>{
- const n=7;
- for(const [w,h] of [[780,520],[1100,560],[358,210]])for(let t=0;t<200;t+=7.3)for(let i=0;i<n;i++){
-  const p=orbit.orbitPoint(i,n,t,w,h);
-  assert.ok(p.x>=0&&p.x<=w&&p.y>=0&&p.y<=h,[w,h,t,i,p.x,p.y].join(' '));
-  assert.ok(p.depth>=-1&&p.depth<=1&&p.scale>=.84&&p.scale<=1);
+test('orbit geometry: planets sit still on one ring, labels under them never touch a planet, a label or the core',()=>{
+ const n=orbit.planets().length;
+ for(let w=600;w<=1100;w+=20)for(const h of [480,500,540,580]){
+  const r=orbit.ring(n,w,h),boxes=r.planets.flatMap(p=>[p.sphere,p.label]);
+  assert.equal(r.planets.length,n);
+  for(const [i,b] of boxes.entries()){
+   assert.ok(b.x>=8&&b.y>=8&&b.x+b.w<=w-8&&b.y+b.h<=h-8,'inside the stage '+[w,h,i]);
+   assert.ok(orbit.reach(r.cx,r.cy,b)>=r.core+8,'clear of the core '+[w,h,i]);
+   for(const c of boxes.slice(i+1))assert.ok(!orbit.hit(b,c),'no overlap '+[w,h,i]);
+  }
  }
- assert.equal(orbit.orbitPoint(0,n,0,800,500).ring,0);assert.equal(orbit.orbitPoint(1,n,0,800,500).ring,1);
- assert.ok(orbit.orbitPoint(1,n,0,800,500).rx<orbit.orbitPoint(0,n,0,800,500).rx,'inner ring is smaller');
- const a=orbit.orbitPoint(0,n,0,800,500),b=orbit.orbitPoint(2,n,0,800,500);assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>100,'planets of a ring are spread');
+ const r=orbit.ring(n,800,540);
+ assert.ok(Math.abs(r.planets[0].x-r.cx)<1e-9&&r.planets[0].y<r.cy,'the first area sits on top');
+ assert.ok(r.rx>r.ry,'a flattened ring, as seen from above');
+ assert.ok(orbit.hit({x:0,y:0,w:10,h:10},{x:5,y:5,w:10,h:10})&&!orbit.hit({x:0,y:0,w:10,h:10},{x:10,y:0,w:10,h:10}));
+});
+
+test('one line icon set: every area, section and service card has a drawn icon, no unicode symbols',()=>{
+ const look=require('../agency/marketing-look.js');
+ for(const p of orbit.planets())assert.ok(look.has(p.icon),p.slug);
+ for(const s of orbit.SECTIONS)assert.ok(look.has(s.icon),s.id);
+ for(const c of crea.CARDS)assert.ok(look.has(look.CARDS[c.id]),c.id);
+ assert.deepEqual(Object.keys(look.AREAS),Object.keys(crea.AREAS));
+ for(const name of look.NAMES){const m=look.svg(name);assert.match(m,/^<svg class="ml-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1\.5"[^>]*aria-hidden="true"/);assert.ok(!/https?:/.test(m))}
 });
 
 test('the page: shell area, planets as real links, pause button, reduced motion, no AI and no external URLs',()=>{
@@ -79,7 +93,7 @@ test('the page: shell area, planets as real links, pause button, reduced motion,
  assert.ok(!/RadixAgents|\/api\/chat|reply\(/.test(js),'no AI call');
  assert.deepEqual([...js.matchAll(/fetch\('([^']+)'/g)].map(m=>m[1]),['/api/state?view=dashboard'],'only the Command Center summary');
  assert.match(js,/prefers-reduced-motion: reduce/);assert.match(js,/a=node\('a','mo-planet'\);a\.href=p\.href/);assert.match(js,/setAttribute\('aria-label'/);
- assert.match(css,/@media \(prefers-reduced-motion:reduce\)/);assert.match(css,/@media \(max-width:640px\)/);
+ assert.match(css,/@media \(prefers-reduced-motion:reduce\)/);assert.ok(at('/agency/marketing-look.js')>0&&at('/agency/marketing-look.js')<at('/agency/orbit-core.js'));assert.match(css,/@media \(max-width:640px\)/);
  new vm.Script(js,{filename:'agency/orbit.js'});
 });
 
