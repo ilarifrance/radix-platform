@@ -12,6 +12,7 @@ const SERVICES=Object.freeze([
  {id:'heygen',label:'HeyGen',use:'Video con avatar',env:['HEYGEN_API_KEY']},
  {id:'email',label:'Email (Gmail)',use:'Invio email dagli agenti commerciali',env:['GMAIL_USER','GMAIL_APP_PASSWORD']},
  {id:'higgsfield',label:'Higgsfield',use:'Generazione di immagini e video per Agency e PED',env:['HIGGSFIELD_API_KEY']},
+ {id:'vercel-sites',label:'Siti online (Vercel)',use:'«Metti online il sito» dallo Studio Sito',env:['VERCEL_SITES_TOKEN']},
  {id:'captain-data',label:'Captain Data',use:'Verifica dei lead in Lead Intelligence',env:['CAPTAIN_DATA_API_KEY','CAPTAIN_DATA_USER_UID']}
 ]);
 function status(env){
