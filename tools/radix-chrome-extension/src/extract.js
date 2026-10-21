@@ -122,16 +122,29 @@
   }
   return rows;
  }
- // Visible "Next"/"Avanti" pagination control, only when enabled.
- function findNextButton(doc){
-  doc=doc||document;
-  const nodes=doc.querySelectorAll('button.artdeco-pagination__button--next,button[aria-label*="Next" i],button[aria-label*="Avanti" i],button[aria-label*="Successiv" i],a[aria-label*="Next" i],a[aria-label*="Avanti" i],a[aria-label*="Successiv" i]');
-  for(const el of Array.from(nodes)){
-   if(!visible(el)||el.disabled||el.getAttribute('aria-disabled')==='true'||/disabled/.test(el.className||''))continue;
-   return el;
-  }
-  return null;
+ // "Next"/"Avanti" pagination controls: by class, by aria-label, or a button or link whose own text is the word.
+ const NEXT_SEL='button.artdeco-pagination__button--next,button[aria-label*="Next" i],button[aria-label*="Avanti" i],button[aria-label*="Successiv" i],a[aria-label*="Next" i],a[aria-label*="Avanti" i],a[aria-label*="Successiv" i]';
+ const NEXT_TEXT=/^(avanti|next|successiv[ao])$/i;
+ function nextCandidates(doc){
+  const out=new Set(Array.from(doc.querySelectorAll(NEXT_SEL)));
+  for(const el of Array.from(doc.querySelectorAll('button,a[role="button"]')))if(NEXT_TEXT.test(clean(el.textContent)))out.add(el);
+  return Array.from(out);
  }
+ const disabledEl=el=>el.disabled||el.getAttribute('aria-disabled')==='true'||/disabled/.test(el.className||'');
+ // Where the pagination stands: 'next' (an enabled «Avanti» is on screen, in el), 'last' (only a disabled one:
+ // last page) or 'none' (no pagination rendered yet: Sales Navigator draws it late, at the bottom).
+ function paginationState(doc){
+  doc=doc||document;
+  let last=false;
+  for(const el of nextCandidates(doc)){
+   if(!visible(el))continue;
+   if(disabledEl(el)){last=true;continue}
+   return {state:'next',el};
+  }
+  return {state:last?'last':'none',el:null};
+ }
+ // Visible "Next"/"Avanti" pagination control, only when enabled.
+ function findNextButton(doc){return paginationState(doc).el}
  // Any login, checkpoint or CAPTCHA screen stops the import: the user resolves it by hand.
  function detectChallenge(doc){
   doc=doc||document;
@@ -164,7 +177,7 @@
   }
   return null;
  }
- const api={visibleSearchCards,normalizeVisibleCards,splitName,findNextButton,detectChallenge,resultsTotalText,lastProfileAnchor,firstProfileKey,scrollParent};
+ const api={visibleSearchCards,normalizeVisibleCards,splitName,findNextButton,detectChallenge,resultsTotalText,lastProfileAnchor,firstProfileKey,scrollParent,paginationState};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.RadixExtract=api;
 })(typeof window!=='undefined'?window:globalThis);

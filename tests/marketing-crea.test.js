@@ -3,9 +3,41 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const core=require('../agency/crea-core.js');
 const root=path.join(__dirname,'..');
 
-test('the panel has the eight services of the approved proposal',()=>{
- assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Social e post','Post grafici','Immagini','Avatar','Video','Sito web','SEO e GEO']);
+test('the panel has the services of the approved proposal plus the text services',()=>{
+ assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Nome e slogan','Social e post','Post grafici','Testi per sito, blog e prodotti','Newsletter','Immagini','Avatar','Video','Sito web','SEO e GEO','Testi per annunci Google e Meta','Brochure e company profile','Scheda tecnica','Presentazione']);
  for(const c of core.CARDS)assert.ok(c.cost&&c.action&&c.line,c.id);
+ assert.equal(new Set(core.CARDS.map(c=>c.id)).size,core.CARDS.length,'unique ids');
+});
+
+test('every card has one of the 7 groups; the filters list only groups with cards',()=>{
+ assert.deepEqual(core.GROUPS,['Brand','Strategia','Web e annunci','Social e contenuti','Stampa e documenti','Immagini','Video']);
+ for(const c of core.CARDS)assert.ok(core.GROUPS.includes(c.group),c.id+' '+c.group);
+ const by=g=>core.CARDS.filter(c=>c.group===g).map(c=>c.id);
+ assert.deepEqual(by('Strategia'),['strategy','lancio']);assert.deepEqual(by('Brand'),['naming']);
+ assert.deepEqual(by('Social e contenuti'),['social','graphics','testi','newsletter']);
+ assert.deepEqual(by('Web e annunci'),['site','seo','annunci']);assert.deepEqual(by('Stampa e documenti'),['brochure','scheda','presentazione']);
+ assert.deepEqual(by('Immagini'),['images']);assert.deepEqual(by('Video'),['avatar','video']);
+ assert.deepEqual(core.groups(),core.GROUPS);
+ assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming']);
+ assert.equal(core.inGroup('').length,core.CARDS.length,'«Tutti»');assert.equal(core.inGroup('boh').length,core.CARDS.length,'unknown group: all');
+});
+
+test('the text cards open the Studio Testi inline, one service each, with the role of the service',()=>{
+ const cs=require('../lib/copy-studio.js');
+ const copy=core.CARDS.filter(c=>/^copy:/.test(c.inline));
+ assert.deepEqual(copy.map(c=>c.inline.slice(5)).sort(),cs.SERVICES.map(s=>s.id).sort());
+ for(const c of copy){const s=cs.service(c.inline.slice(5));assert.equal(core.linkFor(c,'radix'),null,c.id);assert.equal(c.title,s.title);assert.match(c.cost,/^Una chiamata AI [^,]+, con conferma\.$/);
+  assert.ok(c.cost.includes(cs.whoOf(s.id,'a')),c.id)}
+ const js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
+ assert.match(js,/copy:\{global:'RadixCopyStudio'/);
+ assert.match(js,/const agent=svc\?svc\.role:st\.agent;/);
+ assert.match(js,/S\.copyStudio\(\{service,project,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent='\+agent\+'&project='\+pid\}\)/);
+ assert.match(js,/GROUP_KEY='radix-crea-group'/);assert.match(js,/try\{localStorage\.setItem/);
+ const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
+ assert.ok(html.indexOf('id="crFilters"')<html.indexOf('id="crCards"'),'filters above the cards');
+ assert.ok(html.indexOf('/lib/copy-studio.js')>0&&html.indexOf('/lib/copy-studio.js')<html.indexOf('/agency/crea.js'));
+ const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');
+ assert.match(css,/\.cr-filter\[aria-pressed=true\]/);assert.match(css,/\.cr-panel \.copy-studio \.cs-grid/);
 });
 
 test('links point to pages that exist and carry the project',()=>{
@@ -22,7 +54,7 @@ test('without a project only strategy leads somewhere (new project); no card goe
  assert.equal(core.linkFor(core.card('social'),''),null);
  assert.equal(core.linkFor(core.card('social'),'bad id!'),null);
  assert.deepEqual(core.CARDS.filter(c=>c.state!=='ready').map(c=>c.id),[],'every card is guided');
- assert.deepEqual(core.CARDS.filter(c=>c.inline).map(c=>c.inline),['photo','video','site','seo']);
+ assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['photo','video','site','seo']);
  // an agent card would still open the agent with the request prefilled, never sent on its own
  assert.match(core.linkFor({agent:'web-developer',ask:'ciao'},'radix'),/^\/agents\.html\?agent=web-developer&project=radix&q=ciao$/);
  assert.match(fs.readFileSync(path.join(root,'agents-page.js'),'utf8'),/prefilled, never sent on its own/);
@@ -33,7 +65,7 @@ test('the page is first in the Marketing Agency menu',()=>{
  assert.match(shell,/group: 'agency'[^\n]*\n\s*\{ id: 'agency-crea', text: 'Cosa vuoi fare', href: '\/agency\/crea\.html'/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
  assert.match(html,/data-shell-page="agency-crea"/);
- for(const s of ['/lib/image-studio.js','/lib/video-studio.js','/lib/site-studio.js','/lib/seo-studio.js','/agency/crea-core.js','/agency/crea.js'])assert.ok(html.includes(s),s);
+ for(const s of ['/lib/copy-studio.js','/lib/image-studio.js','/lib/video-studio.js','/lib/site-studio.js','/lib/seo-studio.js','/agency/crea-core.js','/agency/crea.js'])assert.ok(html.includes(s),s);
 });
 
 test('the Video card opens the Studio Video with the project avatar and the Video Producer memory',()=>{
@@ -41,7 +73,7 @@ test('the Video card opens the Studio Video with the project avatar and the Vide
  assert.match(js,/videoStudio\(\{project,memoryScope,avatar:S\.savedAvatar\(current\.profile\),avatarUrl:'\/agency\/avatar\.html\?project='/);
  assert.match(js,/video:\{global:'RadixVideoStudio'[^}]*agent:'video-producer'\}/);
  assert.match(js,/photo:\{global:'RadixImageStudio'[^}]*agent:'art-director'\}/);
- assert.match(js,/agentId:st\.agent\}/);
+ assert.match(js,/agentId:agent\}/);
 });
 
 test('the SEO e GEO card opens the Studio SEO inline with the specialist memory and the project to save in',()=>{

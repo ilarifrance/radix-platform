@@ -60,7 +60,7 @@ function mount(section,kind){
  const scroll=E('div',undefined,'lv-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Tabella '+NAME[kind].title);
  const note=E('p',undefined,'lv-note muted');
  box.append(head,bulk,scroll,note);
- let campaign=null;
+ let campaign=null,mass=null;
 
  function switchMode(m){p.mode=m;save(kind);applyMode()}
  function applyMode(){setMode(kind,p.mode);bTable.setAttribute('aria-pressed',String(p.mode==='table'));bCards.setAttribute('aria-pressed',String(p.mode==='cards'));scroll.hidden=p.mode!=='table';if(p.mode!=='table'){bulk.hidden=true;if(campaign)campaign.hidden=true}
@@ -140,7 +140,8 @@ function mount(section,kind){
  }
 
  function drawBulk(shown){
-  const sel=st[kind].selected,n=sel.size;bulk.hidden=!n||p.mode!=='table';if(!n){if(campaign)campaign.hidden=true;return}
+  const sel=st[kind].selected,n=sel.size;bulk.hidden=!n||p.mode!=='table';if(!n){if(campaign)campaign.hidden=true;if(mass)mass.hidden=true;return}
+  if(mass&&!mass.hidden)mass.refresh();
   const hiddenN=[...sel].filter(id=>!shown.some(r=>r.id===id)).length;
   bulk.replaceChildren(E('strong',n+(n===1?' '+NAME[kind].one+' selezionat'+(kind==='contacts'?'o':'a'):' '+NAME[kind].many+' selezionat'+(kind==='contacts'?'i':'e'))+(hiddenN?' ('+hiddenN+' fuori da questa vista)':'')));
   const ids=()=>new Set(st[kind].selected);
@@ -151,6 +152,10 @@ function mount(section,kind){
    campaign.hidden=false;campaign.open=true;campaign.scrollIntoView({block:'nearest',behavior:'smooth'})}),{title:'Solo i contatti spuntati. Nulla parte da solo: ogni invio chiede conferma e le email vanno solo a chi ha il consenso marketing.'}));
   if(kind==='companies')bulk.append(B('Seleziona i loro contatti',()=>{const c=L().contactsOf([...ids()],app().rows('contacts'));if(!c.length){app().notice('Nessun contatto caricato per le aziende selezionate.');return}
    st.contacts.pending=c;app().notice(c.length+(c.length===1?' contatto selezionato':' contatti selezionati')+' in Contatti.');if(location.hash!=='#contacts')location.hash='#contacts';else rescan()}));
+  // «Modifica in blocco»: one field, one value, on the selected records (sales/crm-mass-edit.js).
+  if(window.RadixCrmMassEdit&&app().writable(kind))bulk.append(Object.assign(B('Modifica in blocco',()=>{
+   if(!mass){mass=window.RadixCrmMassEdit.panel(kind,()=>[...st[kind].selected],{added:hasAdded(),done:()=>draw()});bulk.after(mass)}
+   mass.hidden=false;mass.refresh();mass.scrollIntoView({block:'nearest',behavior:'smooth'})}),{title:'Imposta lo stesso valore di un campo su tutti i record spuntati, con anteprima e conferma.'}));
   bulk.append(B('Deseleziona',()=>{st[kind].selected=new Set();draw()},'lv-ghost'));
  }
 
