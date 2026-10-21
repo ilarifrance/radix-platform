@@ -16,6 +16,9 @@ const customFields=require('./_sales_custom_fields');
 // Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
 // description shared with the browser (sales/crm-fields-core.js), validated again here.
 const recordFields=require('../sales/crm-fields-core.js');
+// CRM «Report» (sales/crm-report-core.js): saved report definitions ride in sales_segments.filters as
+// {report:<definition>}, validated by the same rule the browser uses. No new table.
+const reportCore=require('../sales/crm-report-core.js');
 const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes',...recordFields.ADDED.companies,'custom'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at',...recordFields.ADDED.contacts,'custom'],leads:['title','company_id','contact_id','status','status_reason','source','owner_id','notes'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
@@ -49,6 +52,7 @@ function convertCommand(workspace,d){
 }
 const SEGMENT_FILTERS=Object.freeze({role:'text',industry:'text',city:'text',consent:['yes','no'],silent_days:'days',min_score:'score',clicked:['yes','no'],clicked_campaign:'text'});
 function segmentFilters(v){
+ if(object(v)&&Object.hasOwn(v,'report'))return Object.keys(v).length===1&&reportCore.validate(v.report).ok;
  if(!object(v)||Object.keys(v).some(k=>!Object.hasOwn(SEGMENT_FILTERS,k)))return false;
  return Object.entries(v).every(([k,x])=>{const t=SEGMENT_FILTERS[k];if(t==='text')return typeof x==='string'&&x.length<=80&&!/[\u0000-\u001f\u007f]/.test(x);if(t==='days')return Number.isInteger(x)&&x>=0&&x<=3650;if(t==='score')return Number.isInteger(x)&&x>=0&&x<=100;return t.includes(x)});
 }
@@ -230,4 +234,4 @@ function createHandler({getSessionUser,getStore}){
  }
  };
 }
-module.exports={createHandler,command,LEAD_STATUSES,memberCommand,segmentFilters,uuid,fields,timestamp,calendarDate};
+module.exports={createHandler,command,LEAD_STATUSES,memberCommand,segmentFilters,SEGMENT_FILTERS,uuid,fields,timestamp,calendarDate};
