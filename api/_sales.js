@@ -150,7 +150,8 @@ async function reservedGuard(store,c,role){
 }
 // A member under «solo i propri record» cannot change, nor link to, a record hidden from them: 404, as a missing one.
 // Linking matters too: a task on someone else's company would make that company «linked to a task of mine».
-const REFS=Object.freeze({company_id:'companies',contact_id:'contacts',opportunity_id:'opportunities'});
+// «Azienda capogruppo» and «Riporta a» (011) are links too.
+const REFS=Object.freeze({company_id:'companies',contact_id:'contacts',opportunity_id:'opportunities',parent_company_id:'companies',reports_to_id:'contacts'});
 async function visibilityGuard(store,c,uid){
  const d=c.data||{},checks=[];
  if(c.entity==='unsubscribe_links')checks.push(['contacts',d.contacts]);

@@ -179,3 +179,26 @@ test('page: settings panel in Membri for owners/admins, header note for members,
  assert.match(ui,/V\.limits\(v\.row,app\(\)\.role\(\)\)/);assert.match(ui,/V\.NOTE/);
  assert.doesNotMatch(ui,/api\/chat|innerHTML/);
 });
+
+test('review: joined names, campaign interactions and the 011 links follow the rule too',async()=>{
+ // CSV export of contacts: the company name comes only from a company the member may see.
+ const seen=[];const sql=async(q,p)=>{seen.push([q,p]);return []};const store=createStore(sql);
+ await store.read({workspace:W,entity:'export',subject:'contacts',offset:0},2);
+ assert.ok(seen.at(-1)[0].includes('c.id=t.company_id AND '+vis.visible('companies','c')),'export: hidden company name');
+ // Campaign report: sends and later contacts are interactions, so only the member's own (or of their opportunities).
+ let n=seen.length;await clicks.campaignData(sql,W,2);const cd=seen.slice(n).map(x=>x[0]);
+ assert.ok(cd[0].includes(vis.visible('interactions','s')),'campaign sends');assert.ok(cd[3].includes(vis.visible('interactions','i')),'campaign follow-ups');
+ n=seen.length;await clicks.campaignData(sql,W);assert.ok(seen.slice(n).every(([q,p])=>!q.includes('__visibilita__')&&p.length===1),'no caller: unchanged');
+ // Copilot: company and contact names joined to interactions and contacts come only from visible records.
+ const qs=[];await snapshot(async q=>{qs.push(q);return /sales_workspaces/.test(q)?[{role:'member',name:'Demo',own_only:true}]:[]},2,W);
+ const inter=qs.find(q=>/^SELECT i\.kind/.test(q)),cont=qs.find(q=>/^SELECT k\.name/.test(q));
+ assert.ok(inter.includes('c.id=i.company_id AND '+vis.visible('companies','c')),'copilot interaction company');
+ assert.ok(inter.includes('k.id=i.contact_id AND '+vis.visible('contacts','k')),'copilot interaction contact');
+ assert.ok(cont.includes('c.id=k.company_id AND '+vis.visible('companies','c')),'copilot contact company');
+ // Writes: «Azienda capogruppo» and «Riporta a» (011) are links like company_id.
+ const db=fakeDb();db.ownOnly=true;const s2=createStore(db.sql);
+ const post=async(uid,entity,action,data)=>{const r=res();await createHandler({getSessionUser:()=>({uid}),getStore:()=>s2})({method:'POST',headers:{'x-radix-sales':'1','content-type':'application/json'},query:{},body:{workspace:W,entity,action,data}},r);return r};
+ let r=await post(2,'companies','update',{id:id(1),version:1,parent_company_id:id(2)});assert.equal(r.code,404,'parent company hidden');
+ r=await post(2,'contacts','update',{id:id(13),version:1,reports_to_id:id(12)});assert.equal(r.code,404,'reports-to contact hidden');
+ r=await post(2,'companies','update',{id:id(1),version:1,parent_company_id:id(4)});assert.equal(r.code,200,'a visible parent goes through');
+});

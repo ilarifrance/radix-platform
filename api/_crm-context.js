@@ -22,9 +22,9 @@ async function snapshot(sql,uid,workspace){
   q(`SELECT t.title,t.status,t.priority,t.due_at,u.name AS assignee,c.name AS company FROM sales_tasks t LEFT JOIN users u ON u.id=t.assignee_id LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id
      WHERE t.workspace_id=$1 AND t.status<>'done'${vis.and('tasks','t')} ORDER BY t.due_at NULLS LAST LIMIT 30`),
   q(`SELECT k.name,k.role,c.name AS company,(SELECT max(i.occurred_at) FROM sales_interactions i WHERE i.workspace_id=k.workspace_id AND i.contact_id=k.id${vis.and('interactions','i')}) AS last_touch
-     FROM sales_contacts k LEFT JOIN sales_companies c ON c.workspace_id=k.workspace_id AND c.id=k.company_id WHERE k.workspace_id=$1${vis.and('contacts','k')} ORDER BY last_touch NULLS FIRST LIMIT 40`),
-  q(`SELECT i.kind,i.title,i.body,i.occurred_at,c.name AS company,k.name AS contact FROM sales_interactions i LEFT JOIN sales_companies c ON c.workspace_id=i.workspace_id AND c.id=i.company_id
-     LEFT JOIN sales_contacts k ON k.workspace_id=i.workspace_id AND k.id=i.contact_id WHERE i.workspace_id=$1${vis.and('interactions','i')} ORDER BY i.occurred_at DESC LIMIT 15`),
+     FROM sales_contacts k LEFT JOIN sales_companies c ON c.workspace_id=k.workspace_id AND c.id=k.company_id${vis.and('companies','c')} WHERE k.workspace_id=$1${vis.and('contacts','k')} ORDER BY last_touch NULLS FIRST LIMIT 40`),
+  q(`SELECT i.kind,i.title,i.body,i.occurred_at,c.name AS company,k.name AS contact FROM sales_interactions i LEFT JOIN sales_companies c ON c.workspace_id=i.workspace_id AND c.id=i.company_id${vis.and('companies','c')}
+     LEFT JOIN sales_contacts k ON k.workspace_id=i.workspace_id AND k.id=i.contact_id${vis.and('contacts','k')} WHERE i.workspace_id=$1${vis.and('interactions','i')} ORDER BY i.occurred_at DESC LIMIT 15`),
   q(`SELECT x.outcome,count(*)::int AS n,COALESCE(sum(x.amount_cents),0)::text AS cents,array_remove(array_agg(x.lost_reason),NULL) AS reasons FROM sales_opportunities x WHERE x.workspace_id=$1 AND x.outcome<>'open'${vis.and('opportunities','x')} GROUP BY x.outcome`),
   q(`SELECT u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND $2::integer IS NOT NULL ORDER BY u.name LIMIT 30`),
   // Older databases without migration 009 simply have no support queue.

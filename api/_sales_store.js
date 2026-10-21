@@ -58,7 +58,7 @@ function createStore(rawSql){
    if(c.entity==='export'){
     // The added fields of migration 011 come through to_jsonb only when the columns exist: an
     // archive without them exports the same columns as before, never an «undefined column» error.
-    if(c.subject==='contacts')return sql('SELECT t.id,t.name,t.role,t.email,t.phone,t.linkedin_url,t.marketing_consent,t.consent_at,t.notes,c.name AS company,t.created_at,to_jsonb(t) AS added FROM sales_contacts t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id WHERE t.workspace_id=$1 AND '+guard+vis.and('contacts')+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]).then(flatten('contacts'));
+    if(c.subject==='contacts')return sql('SELECT t.id,t.name,t.role,t.email,t.phone,t.linkedin_url,t.marketing_consent,t.consent_at,t.notes,c.name AS company,t.created_at,to_jsonb(t) AS added FROM sales_contacts t LEFT JOIN sales_companies c ON c.workspace_id=t.workspace_id AND c.id=t.company_id'+vis.and('companies','c')+' WHERE t.workspace_id=$1 AND '+guard+vis.and('contacts')+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]).then(flatten('contacts'));
     if(c.subject==='companies')return sql('SELECT t.id,t.name,t.industry,t.website,t.email,t.phone,t.city,t.notes,t.created_at,to_jsonb(t) AS added FROM sales_companies t WHERE t.workspace_id=$1 AND '+guard+vis.and('companies')+' ORDER BY t.name,t.id LIMIT 5000',[c.workspace,u]).then(flatten('companies'));
     throw new Error('invalid export');
    }
