@@ -309,6 +309,7 @@ window.RadixCrmTools={
  // CSV of a subset (the rows ticked in the list views): the same export, filtered by id.
  exportCsv:(kind,filter)=>exportCsv(kind,filter),
  section(entity,section){
+  if(entity==='tickets')window.RadixCrmSla?.section(section);
   // List actions sit together in the heading row, next to «Crea»: CSV, then shortcuts that open the panels below.
   const head=section.querySelector(':scope>.row')||section;
   // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.
@@ -325,6 +326,7 @@ window.RadixCrmTools={
   else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
  },
  card(entity,row,c,readonly){
+  if(entity==='tickets')window.RadixCrmSla?.mount(c,row);
   // The reply block has its own AI draft; the Copilota shortcut stays for roles that cannot record replies.
   if(entity==='tickets'&&!readonly&&window.RadixCrmTicketReply?.mount&&RadixCrmTicketReply.mount(c,row))return;
   if(entity==='tickets'&&!readonly&&window.RadixCrmCopilot&&['open','pending'].includes(row.status)){const bar=E('div',undefined,'actions crm-ticket-ai');

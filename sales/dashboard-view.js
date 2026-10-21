@@ -100,7 +100,7 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
 
 // «Suggerimenti per oggi»: items from crm-home-core.js (fixed rules). Buttons only open Customer360 or a view.
 function assistant(d){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
-  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets')});
+  const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets'),sla:window.RadixCrmSla?.current()});
   const p=E('section',undefined,'ch');p.setAttribute('aria-labelledby','ch-title');
   const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span','regole fisse, non AI','ch-tag'));p.append(h);
   // Team summary (was «Focus di oggi»): counts of all open tasks and the last interaction.
