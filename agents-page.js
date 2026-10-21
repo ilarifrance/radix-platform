@@ -38,12 +38,14 @@ function persist(){
    const fresh=(await doc.load())||{conversations:{}};
    for(const [k,v] of Object.entries(fresh.conversations||{}))if(k!==id)data.conversations[k]=v;
    if(!prefsDirty)data.prefs=fresh.prefs||{};
+   data.seoResults=fresh.seoResults;
    await doc.save(clean(data));prefsDirty=false;
   }
  }).catch(e=>say('Salvataggio non riuscito: '+e.message));
  return saving;
 }
-function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
+// seoResults (lib/seo-results-core.js: the Search Console imports of the Studio SEO e GEO) is kept as it is.
+function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};if(d.seoResults)out.seoResults=d.seoResults;for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
 
 // ---- rendering ----
 function renderRoster(){
@@ -399,7 +401,7 @@ $('project').onchange=()=>{if(busy){$('project').value=project.id;return}openPro
 async function checkApi(){const el=$('api-status');try{const r=await fetch('/api/chat',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.configured){el.textContent='● Agenti collegati';el.dataset.state='ok'}else{el.textContent=r.status===401?'● Accesso richiesto':'● Agenti non configurati sul server';el.dataset.state='err'}}catch(e){el.textContent='● Agenti non raggiungibili';el.dataset.state='err'}}
 $('logout').onclick=async()=>{if(busy&&!confirm('Un agente sta ancora lavorando. Uscire comunque?'))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
 // Colleagues' replies appear when you come back to the tab, without reloading the page.
-document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&data)data.seoResults=fresh.seoResults;if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
 async function boot(){
  renderRoster();checkApi();
  try{
