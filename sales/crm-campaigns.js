@@ -6,7 +6,8 @@
    confirmation, up to 200 per round, one every 1.2 s, stops at the first error), or opened in the mail client,
    always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent without a confirmation.
    «Metti in coda» (sales/crm-mailboxes.js) hands the same subject, text and segment to the server queue: same rules, sent
-   by the connected mailboxes in working hours within their daily limits, after one confirmation. */
+   by the connected mailboxes in working hours within their daily limits, after one confirmation.
+   «Risultati e report campagne» opens the per-campaign report (crm-campaign-report.js); without it, the plain click list. */
 (function(root){
 const DAY=864e5;
 const SEQUENCES=Object.freeze([
@@ -114,7 +115,7 @@ function campaignPanel(filterOf){
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
  const results=E('div',undefined,'crm-campaign-results');
- row.append(B('Risultati: chi ha cliccato',()=>showClicks(results)));
+ row.append(B('Risultati e report campagne',()=>window.RadixCrmCampaignReport?RadixCrmCampaignReport.render(results):showClicks(results)));
  // «Metti in coda»: the server sends it from the «Caselle email» in working hours, with daily limits.
  if(root.RadixCrmMailboxes){
   const queue=B('Metti in coda',async()=>{

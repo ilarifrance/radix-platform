@@ -11,7 +11,7 @@ const {createCustomFieldsStore}=require('./_sales_custom_fields');
 // PostgreSQL JSON timestamptz uses offsets/microseconds. Public API intentionally uses UTC milliseconds.
 function normalize(value,key=''){
  if(value===null||value===undefined)return value;
- if(['due_at','occurred_at','created_at','updated_at','consent_at','closed_at','resolved_at'].includes(key)){
+ if(['due_at','occurred_at','created_at','updated_at','consent_at','closed_at','resolved_at','clicked_at','last_at'].includes(key)){
   const date=new Date(value);if(!Number.isFinite(date.getTime()))throw new Error('invalid stored timestamp');return date.toISOString();
  }
  // Calendar dates (birthdate, 011) stay YYYY-MM-DD: a driver Date is local midnight, so local parts are exact.
