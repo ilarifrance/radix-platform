@@ -121,5 +121,5 @@ test('provider errors never echo the token; routing, status list and studio wiri
  const status=require('../api/_integrations-status.js');const v=status.status({VERCEL_SITES_TOKEN:TOKEN}).find(s=>s.id==='vercel-sites');
  assert.equal(v.configured,true);assert.ok(!JSON.stringify(status.status({VERCEL_SITES_TOKEN:TOKEN})).includes(TOKEN));
  const ws=fs.readFileSync('lib/radix-workspace-client.js','utf8');assert.match(ws,/'\/api\/integrations\/site-publish'/);assert.match(ws,/sites,/);
- const ui=fs.readFileSync('lib/site-studio.js','utf8');assert.match(ui,/publishBox\(html\)/);assert.match(ui,/Usa il tuo dominio/);assert.match(ui,/cname\.vercel-dns\.com/);assert.match(ui,/Namecheap/);
+ const ui=fs.readFileSync('lib/site-studio.js','utf8');assert.match(ui,/publishBox\(\(\)=>html\)/);assert.match(ui,/Usa il tuo dominio/);assert.match(ui,/cname\.vercel-dns\.com/);assert.match(ui,/Namecheap/);
 });
