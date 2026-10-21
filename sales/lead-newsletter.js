@@ -43,7 +43,7 @@
     $('nl-workspace').replaceChildren(...ok.map(w=>{const o=el('option',w.name||w.id);o.value=w.id;return o}));window.RadixLeadFlow?.preferWorkspace($('nl-workspace'));$('nl-workspace').disabled=false;
    }
    state.ws=$('nl-workspace').value;state.wsName=$('nl-workspace').selectedOptions[0]?.textContent||'';
-   const [contacts,companies,segments,defs]=await Promise.all([get({entity:'export',subject:'contacts',workspace:state.ws}),get({entity:'export',subject:'companies',workspace:state.ws}),rowsOf('segments').catch(()=>[]),get({entity:'custom_fields',workspace:state.ws}).then(d=>d.rows||[]).catch(()=>[])]);
+   const [contacts,companies,segments,defs]=await Promise.all([get({entity:'export',subject:'contacts',workspace:state.ws}),get({entity:'export',subject:'companies',workspace:state.ws}),rowsOf('segments').then(l=>l.filter(r=>!(r.filters&&r.filters.report))).catch(()=>[]),get({entity:'custom_fields',workspace:state.ws}).then(d=>d.rows||[]).catch(()=>[])]);
    N.useCustomFields(defs);drawTags();
    state.companies=companies.rows||[];state.rows=N.joinCompanies(contacts.rows||[],state.companies);state.segments=segments;state.clicks=null;state.plan=null;
    sources();await compute();
