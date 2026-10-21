@@ -120,7 +120,7 @@ test('the Kit identità card opens the Studio Identità inline with the Stratega
 test('the Stampa e documenti card opens the Studio Stampa inline: no AI, the raw profile with the kit, the Art Director thread to save in',()=>{
  const k=core.card('stampa');
  assert.equal(k.group,'Stampa e documenti');assert.equal(k.inline,'print');assert.equal(k.state,'ready');assert.equal(core.linkFor(k,'radix'),null);
- assert.match(k.line,/tipografia/);assert.match(k.cost,/Nessuna chiamata AI/);assert.match(k.hint,/RGB[^.]*CMYK/);
+ assert.match(k.line,/tipografia/);assert.match(k.cost,/Nessuna chiamata AI/);assert.match(k.hint,/PDF\/X-1a in CMYK FOGRA39[^.]*preflight/);
  const js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
  assert.match(js,/print:\{global:'RadixPrintStudio'[^}]*agent:'art-director'\}/);
  assert.match(js,/S\.printStudio\(\{project,profile:current\.profile,projectName:current\.name,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=art-director&project='\+pid\}\)/);
