@@ -3,6 +3,7 @@
 // command() checks every field before the database sees it; the store calls sales_document_command (one atomic
 // PL/pgSQL function, like sales_command) and reads with the same membership guard as api/_sales_store.js.
 const {randomUUID}=require('node:crypto');
+const vis=require('./_sales_visibility');
 const ENTITIES=Object.freeze(['products','price_books','price_book_entries','documents','document_settings']);
 const READS=Object.freeze(['products','price_books','price_book_entries','documents','document','document_settings']);
 class DocError extends Error{constructor(status,message){super(message);this.status=status;}}
@@ -149,8 +150,9 @@ function createDocumentsStore(sql){
     if(c.entity==='document_settings')return await sql('SELECT t.* FROM sales_document_settings t WHERE t.workspace_id=$1 AND '+guard,[c.workspace,u]);
     // Dates as text: a driver Date is local midnight and could shift the calendar day.
     const cols='t.*,t.issue_date::text AS issue_date,t.valid_until::text AS valid_until,t.due_date::text AS due_date,t.paid_at::text AS paid_at';
-    if(c.entity==='documents')return await sql('SELECT '+cols+' FROM sales_documents t WHERE t.workspace_id=$1 AND '+guard+(c.kind?' AND t.kind=$4':'')+' ORDER BY t.issue_date DESC,t.created_at DESC,t.id LIMIT 500 OFFSET $3',c.kind?[...p,c.kind]:p);
-    const doc=await sql('SELECT '+cols+' FROM sales_documents t WHERE t.workspace_id=$1 AND t.id=$3::uuid AND '+guard,[c.workspace,u,c.id]);
+    // Quotes and invoices follow «I member vedono solo i propri record» (api/_sales_visibility.js); products and price books do not.
+    if(c.entity==='documents')return await sql('SELECT '+cols+' FROM sales_documents t WHERE t.workspace_id=$1 AND '+guard+vis.and('documents')+(c.kind?' AND t.kind=$4':'')+' ORDER BY t.issue_date DESC,t.created_at DESC,t.id LIMIT 500 OFFSET $3',c.kind?[...p,c.kind]:p);
+    const doc=await sql('SELECT '+cols+' FROM sales_documents t WHERE t.workspace_id=$1 AND t.id=$3::uuid AND '+guard+vis.and('documents'),[c.workspace,u,c.id]);
     if(!doc.length)return [];
     const lines=await sql('SELECT l.*,l.quantity::float8 AS quantity FROM sales_document_lines l WHERE l.workspace_id=$1 AND l.document_id=$2::uuid ORDER BY l.position',[c.workspace,c.id]);
     return [{...doc[0],lines}];
