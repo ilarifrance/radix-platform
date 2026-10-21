@@ -123,7 +123,8 @@ test('Panoramica: «Scadenza SLA» only with settings, and it wins over «Ticket
 
 test('page wiring: scripts in order, hooks on the ticket cards and section, settings for owners/admins',()=>{
  const html=fs.readFileSync(__dirname+'/../radix-sales.html','utf8'),i=f=>html.indexOf(f);
- assert.ok(i('sales/crm-sla-core.js')>0&&i('sales/crm-sla-core.js')<i('sales/crm-sla.js')&&i('sales/crm-sla.js')<i('sales/crm-tools.js'));
+ assert.ok(i('sales/crm-sla-core.js')>i('sales/crm-tools.js')&&i('sales/crm-sla-core.js')<i('sales/crm-sla.js'),'deferred: both run before the first render');
+ assert.ok(i('src="sales/crm-sla.js" defer')>0&&i('src="sales/crm-sla-core.js" defer')>0);
  assert.ok(i('sales/crm-sla.css')>0);
  const tools=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');
  assert.match(tools,/entity==='tickets'\)window\.RadixCrmSla\?\.mount\(c,row\)/);assert.match(tools,/entity==='tickets'\)window\.RadixCrmSla\?\.section\(section\)/);
