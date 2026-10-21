@@ -89,3 +89,8 @@ th.lv-cb{padding:0 8px}
  .lv-note{padding:10px 12px 12px}
  select.lv-view{font-size:18px}
 }
+.lv-mass{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 18px 12px;padding:10px 12px;border:1px solid var(--crm-accent-line);border-radius:10px;background:var(--crm-card)}
+.lv-mass strong{font-size:14px;color:var(--crm-accent)}
+.lv-mass select,.lv-mass input{min-height:32px;max-width:100%}
+.lv-mass button{min-height:32px;padding:4px 12px;font-size:13px}
+.lv-mass-out{flex-basis:100%;margin:0;font-size:13px;color:var(--crm-muted)}
