@@ -56,6 +56,25 @@
 .crm-crep-facts .is-conv .crm-crep-link{font-size:12px}
 .crm-crep-foot{margin:0;font-size:12px}
 
+/* «Suggerisci la prossima email» (crm-campaign-next-core.js): insights and one card per proposal. */
+.crm-crep-next{display:grid;gap:8px;min-width:0;padding:10px 12px;border:1px solid var(--crm-line);border-left:3px solid var(--crm-accent);border-radius:10px;background:var(--crm-soft)}
+.crm-crep-next h6{margin:0}
+.crm-crep-next>p{margin:0;font-size:13px}
+.crm-crep-next>strong{font-size:13px;font-weight:600;color:var(--crm-text)}
+.crm-crep-next-go{justify-self:start;min-height:36px}
+.crm-crep-insights{margin:0;padding-left:18px;font-size:13px;color:var(--crm-text)}
+.crm-crep-insights li{margin:3px 0;overflow-wrap:anywhere}
+.crm-crep-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.crm-crep-card{display:grid;gap:6px;align-content:start;min-width:0;padding:10px;border:1px solid var(--crm-line);border-radius:8px;background:var(--crm-card);font-size:13px}
+.crm-crep-card-seg{font-size:12px;color:var(--crm-accent);font-weight:600}
+.crm-crep-card-subj{font-size:14px;color:var(--crm-text);overflow-wrap:anywhere}
+.crm-crep-card-prev{margin:0;color:var(--crm-muted);overflow-wrap:anywhere}
+.crm-crep-card ol{margin:0;padding-left:18px}
+.crm-crep-card li{margin:2px 0;overflow-wrap:anywhere}
+.crm-crep-card-meta{display:grid;gap:2px;margin:0;font-size:12px;color:var(--crm-muted)}
+.crm-crep-card .actions{display:flex;flex-wrap:wrap;gap:6px}
+.crm-crep-next button:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+
 .crm-crep-sortbar{display:flex;align-items:center;gap:8px;padding:8px 10px 0;font-size:13px;color:var(--crm-muted)}
 .crm-crep-sortbar select{font:inherit;font-size:13px;min-height:36px;padding:4px 8px;border:1px solid var(--crm-line-2);border-radius:8px;background:var(--crm-card);color:var(--crm-text);min-width:0;flex:1;max-width:280px}
 
