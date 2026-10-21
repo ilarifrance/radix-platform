@@ -1,7 +1,7 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
-   (lib/seo-studio.js), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
+   (lib/seo-studio.js), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The filter chips above the cards show one group at a time (remembered in this browser). Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
@@ -39,6 +39,7 @@ const STUDIOS={
  seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
  print:{global:'RadixPrintStudio',name:'Lo Studio Stampa',need:'i materiali partono dal nome, dai contatti e dal kit identità del progetto',agent:'art-director'},
+ catalog:{global:'RadixCatalogStudio',name:'Lo Studio Catalogo',need:'il catalogo usa il nome, i contatti e il kit identità del progetto',agent:''},
  copy:{global:'RadixCopyStudio',name:'Lo Studio Testi',need:'i testi partono dai suoi fatti confermati',agent:''}
 };
 function openInline(c){
@@ -61,6 +62,8 @@ function openInline(c){
   ?S.identityStudio({project,memoryScope,projectId:current.id,workspace:ws,visual:project.visual,agentsUrl:'/agents.html?agent=brand-strategist&project='+pid,onSaved:p=>{current={...current,...p}}})
   :c.inline==='print'
   ?S.printStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid})
+  :c.inline==='catalog'
+  ?S.catalogStudio({project,profile:current.profile,projectName:current.name})
   :kind==='copy'
   ?S.copyStudio({service,project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent='+agent+'&project='+pid})
   :S.photoStudio({project,memoryScope,concept:'',headline:''}));
