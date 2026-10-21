@@ -129,3 +129,46 @@
 .cr-panel .copy-studio .cs-result textarea{min-height:260px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
 .cr-panel .copy-studio .tool-status{margin:0;color:#cfd7ef}
 .cr-panel .copy-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+/* Studio Identità (lib/identity-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .identity-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .identity-studio h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .identity-studio .ps-form{display:flex;flex-direction:column;gap:12px}
+.cr-panel .identity-studio .is-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.cr-panel .identity-studio .is-fields label{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.cr-panel .identity-studio input[type=text]{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .identity-studio .is-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));align-items:start}
+.cr-panel .identity-studio .is-card{padding:12px;gap:10px;min-width:0}
+.cr-panel .identity-studio .is-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .identity-studio .is-why{margin:0;color:#cfd7ef;font-size:14px}
+.cr-panel .identity-studio .is-logos{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cr-panel .identity-studio .is-logo{display:flex;align-items:center;justify-content:center;min-height:96px;padding:12px;border-radius:10px;border:1px solid var(--border,#2c3a63)}
+.cr-panel .identity-studio .is-logo img,.cr-panel .identity-studio .ps-card .is-logo img{display:block;width:100%;height:72px;aspect-ratio:auto;object-fit:contain;border-radius:0;background:none}
+.cr-panel .identity-studio .is-swatches{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.cr-panel .identity-studio .is-swatch{display:flex;flex-direction:column;gap:2px;min-width:0;font-size:11px;color:#cfd7ef}
+.cr-panel .identity-studio .is-chip{display:flex;align-items:center;justify-content:center;height:46px;border-radius:8px;border:1px solid rgba(255,255,255,.25);font-size:16px}
+.cr-panel .identity-studio .is-role{color:var(--muted,#aeb9da);overflow-wrap:anywhere}
+.cr-panel .identity-studio .is-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cr-panel .identity-studio .is-swatch code{font-size:11px;color:#f3f4ff}
+.cr-panel .identity-studio .is-badge{align-self:flex-start;max-width:100%;box-sizing:border-box;padding:1px 6px;border-radius:8px;font-size:10px;font-weight:600;line-height:1.3;background:rgba(61,214,140,.16);color:#7be3ac}
+.cr-panel .identity-studio .is-badge[data-ok=false]{background:rgba(245,181,68,.16);color:#f5c76b}
+.cr-panel .identity-studio .is-flags{margin:0;font-size:12px;color:#7be3ac}
+.cr-panel .identity-studio .is-flags[data-warn=true]{color:#f5c76b}
+.cr-panel .identity-studio .is-font{display:flex;flex-direction:column;gap:2px;padding:10px;border-radius:10px;background:#f7f5f0;color:#1c1c1e;min-width:0}
+.cr-panel .identity-studio .is-font strong{font-size:22px;line-height:1.2;overflow-wrap:anywhere}
+.cr-panel .identity-studio .is-font span{font-size:14px}
+.cr-panel .identity-studio .is-font small.muted{color:#5b6070;font-size:11px}
+.cr-panel .identity-studio .is-fonts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+.cr-panel .identity-studio .is-tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.cr-panel .identity-studio .is-tags span{padding:3px 9px;border-radius:999px;border:1px solid var(--border,#2c3a63);font-size:12px;color:#cfd7ef}
+.cr-panel .identity-studio .is-kit .is-swatches{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
+.cr-panel .identity-studio .is-kit .is-logo{min-height:120px}
+.cr-panel .identity-studio .is-kit .is-logo img{height:96px}
+.cr-panel .identity-studio .is-kit{display:flex;flex-direction:column;gap:12px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .identity-studio .is-sec ul:not(.is-swatches):not(.is-checks){margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px;color:#cfd7ef;overflow-wrap:anywhere}
+.cr-panel .identity-studio .is-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px;color:#cfd7ef}
+.cr-panel .identity-studio .is-checks li{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cr-panel .identity-studio .is-checks small{flex-basis:100%}
+.cr-panel .identity-studio .is-pair{display:inline-flex;align-items:center;justify-content:center;width:38px;height:24px;border-radius:6px;font-weight:700;border:1px solid rgba(255,255,255,.2)}
+.cr-panel .identity-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .identity-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+@media (max-width:480px){.cr-panel .identity-studio .is-swatches{grid-template-columns:repeat(3,minmax(0,1fr))}}

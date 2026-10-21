@@ -1,5 +1,5 @@
 /* «Cosa vuoi fare oggi?»: the single Marketing panel. One card per service, each opening the tool that already does it
-   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, and the text services of
+   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, identity kit, and the text services of
    lib/copy-studio.js: inline 'copy:<service>'). Each card has a `group`, one of GROUPS, for the panel's filters.
    Pure part (cards, groups, links) runs in Node for the tests; the page lives in agency/crea.html. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrea=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
@@ -12,6 +12,7 @@ const CARDS=[
  {id:'strategy',group:'Strategia',icon:'◎',title:'Strategia',line:'Obiettivi, pubblico e tono: RADIX propone 3 direzioni e tu scegli.',state:'ready',action:'Imposta la strategia',cost:'Una chiamata AI, con conferma.',href:'/project-editorial.html?project={p}#brief',noProject:'/agency/new-project.html'},
  {id:'lancio',group:'Strategia',icon:'➚',title:'Piano di lancio prodotto',line:'Fasi, canali e messaggi per lanciare un prodotto: 3 piani a 30, 60 e 90 giorni, scegli tu.',state:'ready',action:'Prepara il lancio',cost:'Una chiamata AI al Digital Strategist, con conferma.',inline:'copy:lancio'},
  {id:'naming',group:'Brand',icon:'✦',title:'Nome e slogan',line:'Idee di nome per la marca o un prodotto e lo slogan: 3 proposte, scegli tu.',state:'ready',action:'Trova nome e slogan',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'copy:naming',hint:'Il marchio va verificato su UIBM, TMview e WIPO prima di usarlo.'},
+ {id:'identita',group:'Brand',icon:'◐',title:'Kit identità',line:'Logo, palette, font e moodboard: 3 direzioni con il contrasto già controllato, scegli e scarichi il kit.',state:'ready',action:'Crea il kit identità',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'identity',hint:'Il logo è una bozza: verifica il marchio su UIBM, TMview e WIPO prima di usarlo.'},
  {id:'social',group:'Social e contenuti',icon:'▦',title:'Social e post',line:'Il piano editoriale del mese: calendario, testi e pubblicazione su Buffer.',state:'ready',action:'Apri il piano editoriale',cost:'Ogni testo AI chiede conferma; pubblicare è sempre un tuo clic.',href:'/project-editorial.html?project={p}#ped'},
  {id:'graphics',group:'Social e contenuti',icon:'▣',title:'Post grafici',line:'Caroselli e post con testo sopra, nei colori del brand.',state:'ready',action:'Crea dai post del piano',cost:'L’Art Director AI chiede conferma prima di disegnare.',href:'/project-editorial.html?project={p}#ped',hint:'Apri un post del piano e premi «Grafica».'},
  {id:'testi',group:'Social e contenuti',icon:'¶',title:'Testi per sito, blog e prodotti',line:'Una pagina del sito, un articolo o una descrizione prodotto: 3 versioni, scegli e modifichi.',state:'ready',action:'Scrivi un testo',cost:'Una chiamata AI al Content e UX Writer, con conferma.',inline:'copy:testi'},
@@ -27,7 +28,7 @@ const CARDS=[
  {id:'presentazione',group:'Stampa e documenti',icon:'▭',title:'Presentazione',line:'La scaletta slide per slide: titolo, punti e cosa dire. 3 versioni, scegli e modifichi.',state:'ready',action:'Prepara la scaletta',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'copy:presentazione'}
 ];
 const ID=/^[a-z0-9-]{1,80}$/i;
-// Where a card leads for a project; null when it opens inline (photo, video, site, SEO or text studio) or needs a project that is missing.
+// Where a card leads for a project; null when it opens inline (photo, video, site, SEO, identity or text studio) or needs a project that is missing.
 function linkFor(card,projectId){
  const p=ID.test(String(projectId||''))?String(projectId):'';
  if(card.inline)return null;
