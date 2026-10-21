@@ -4,7 +4,7 @@ const N=require('../sales/lead-newsletter-core.js'),bulk=require('../sales/lead-
 
 test('merge tags: values from the CRM, default and inline fallbacks, no «Ciao ,» left behind',()=>{
  const f=N.fieldsOf({name:'Giulia  Neri',role:'CFO',company:'Alfa S.r.l.'},{name:'Alfa S.r.l.',industry:'Cosmetica',city:'Milano'});
- assert.deepEqual(f,{nome:'Giulia',nome_completo:'Giulia Neri',azienda:'Alfa S.r.l.',ruolo:'CFO',settore:'Cosmetica',città:'Milano'});
+ assert.deepEqual(f,{nome:'Giulia',cognome:'Neri',nome_completo:'Giulia Neri',azienda:'Alfa S.r.l.',ruolo:'CFO',qualifica:'',reparto:'',settore:'Cosmetica',città:'Milano'});
  const r=N.render('Ciao {{nome}}, novità per {{ azienda }} a {{citta}} ({{settore}})',f);
  assert.equal(r.text,'Ciao Giulia, novità per Alfa S.r.l. a Milano (Cosmetica)');assert.deepEqual(r.missing,[]);
  const e=N.render('Ciao {{nome}},\n{{gancio}}\n\n\nPer {{azienda}} nel {{settore}}. {{ruolo|Gentile cliente}}',{});
@@ -107,4 +107,24 @@ test('page wiring: audience and source helpers used, tabs wrap on a phone',()=>{
  assert.doesNotMatch(js,/if\(!\$\('nl-audience'\)\.value\.trim\(\)&&segment\)/,'no one-way fill');
  const css=fs.readFileSync(__dirname+'/../sales/lead-pipeline.css','utf8');
  assert.match(css,/@media \(max-width:700px\)\{\.lp-tabs\{flex-wrap:wrap/);
+});
+
+test('CRM fields: structured name, qualifica, reparto, own city, and the workspace fields as tags',()=>{
+ const f=N.fieldsOf({name:'Maria De Luca',first_name:'Maria',last_name:'De Luca',title:'Direttrice acquisti',department:'Acquisti',city:'Bergamo',company:'Beta'},{name:'Beta',city:'Milano'});
+ assert.equal(f.nome,'Maria');assert.equal(f.cognome,'De Luca');assert.equal(f.qualifica,'Direttrice acquisti');assert.equal(f.reparto,'Acquisti');assert.equal(f.città,'Bergamo');
+ assert.equal(N.fieldsOf({name:'Anna',first_name:'Anna'},{}).cognome,'');
+ try{
+  const tags=N.useCustomFields([{id:'f1',entity:'contacts',label:'Fonte evento'},{id:'f2',entity:'companies',label:'Settore'},{id:'f3',entity:'companies',label:'Fonte evento'},{id:'f4',entity:'contacts',label:'  '},{id:'f5',entity:'deals',label:'X'},{id:'f6',entity:'contacts',label:'Città d’origine'}]);
+  assert.deepEqual(tags,[{tag:'fonte_evento',label:'Fonte evento'},{tag:'settore_azienda',label:'Settore (azienda)'},{tag:'fonte_evento_azienda',label:'Fonte evento (azienda)'},{tag:'citta_d_origine',label:'Città d’origine'}]);
+  assert.ok(N.allTags().includes('settore_azienda'));assert.equal(N.labelOf('fonte_evento'),'Fonte evento');assert.equal(N.labelOf('reparto'),'Reparto');
+  const g=N.fieldsOf({name:'Luca Bianchi',custom:{f1:'Fiera Milano',f6:''}},{name:'Gamma',custom:{f2:'Retail'}});
+  assert.equal(g.fonte_evento,'Fiera Milano');assert.equal(g.settore_azienda,'Retail');assert.equal(g.fonte_evento_azienda,'');
+  const r=N.render('Ci siamo visti a {{fonte_evento}} ({{settore_azienda}}). {{citta_d_origine|}}{{sconto}}',g);
+  assert.equal(r.text,'Ci siamo visti a Fiera Milano (Retail). {{sconto}}');assert.deepEqual(r.missing,['citta_d_origine']);
+  assert.deepEqual(N.unknownTags('{{fonte_evento}} {{qualifica}} {{sconto}}'),['{{sconto}}']);
+  assert.match(N.proposalsPrompt({}),/\{\{fonte_evento\}\} \(Fonte evento\)/);
+  // The AI never sees the workspace fields, only the standard ones.
+  assert.deepEqual(N.hookData([{fields:{...g,qualifica:'CEO'}}]),[{id:'r1',nome:'Luca',azienda:'Gamma',qualifica:'CEO'}]);
+ }finally{N.useCustomFields([])}
+ assert.deepEqual(N.unknownTags('{{fonte_evento}}'),['{{fonte_evento}}']);assert.doesNotMatch(N.proposalsPrompt({}),/campi del CRM/);
 });
