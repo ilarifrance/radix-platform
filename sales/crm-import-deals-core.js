@@ -169,7 +169,7 @@ function plan(kind,parsed,ctx,opts){
 }
 // Body of the note interaction that keeps the «Note» column of an imported opportunity.
 function noteFor(created,text,now){return {title:'Note importate da CSV',kind:'note',occurred_at:new Date(now??Date.now()).toISOString(),body:String(text).slice(0,4000),opportunity_id:created.id,company_id:created.company_id||null,contact_id:created.contact_id||null}}
-const api={ALIASES,STATUS,PRIORITY,hkey,vkey,columns,unsafe,amountCents,calendarDay,dueAt,percent,plan,noteFor};
+const api={ALIASES,STATUS,PRIORITY,hkey,vkey,columns,unsafe,amountCents,calendarDay,dueAt,percent,plan,noteFor,matcher};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.RadixCrmImportDealsCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
