@@ -74,7 +74,8 @@ function createStore(rawSql){
    // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
    // Support queue: open first, then by due date.
    if(c.entity==='tickets')return sql("SELECT t.* FROM sales_tickets t WHERE t.workspace_id=$1 AND "+guard+" ORDER BY array_position(ARRAY['open','pending','resolved','closed'],t.status),t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3",[c.workspace,u,c.offset]);
-   if(c.entity==='segments')return sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   // The «__regole__» row (CRM rules, sales/crm-rules-core.js) is not a contact segment: it is read only on request.
+   if(c.entity==='segments')return sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+" AND (lower(btrim(t.name))='__regole__')="+(c.rules?'true':'false')+' ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.
    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);

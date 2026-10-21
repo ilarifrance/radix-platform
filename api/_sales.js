@@ -22,6 +22,11 @@ const reportCore=require('../sales/crm-report-core.js');
 const fields = Object.freeze({companies:['name','website','industry','email','phone','city','notes',...recordFields.ADDED.companies,'custom'],contacts:['name','company_id','email','phone','role','linkedin_url','notes','marketing_consent','consent_at',...recordFields.ADDED.contacts,'custom'],leads:['title','company_id','contact_id','status','status_reason','source','owner_id','notes'],processes:['title','kind'],stages:['title','process_id','position','task_title','task_assignee_id','task_priority','task_due_days','probability'],opportunities:['title','company_id','contact_id','process_id','stage_id','amount_cents','owner_id','expected_close','probability','outcome','lost_reason'],tasks:['title','company_id','contact_id','opportunity_id','process_id','stage_id','status','assignee_id','priority','due_at'],interactions:['title','kind','occurred_at','body','company_id','contact_id','opportunity_id'],tickets:['title','body','status','priority','channel','company_id','contact_id','assignee_id','due_at','resolution'],segments:['name','filters']});
 class SalesError extends Error { constructor(status,message){super(message);this.status=status;} }
 function fail(status,message){throw new SalesError(status,message);}
+// CRM «Regole» (sales/crm-rules-core.js): the workspace's rules ride in ONE sales_segments row named «__regole__»
+// with filters={rules:[…]}, validated by the same rule the browser uses. No new table; owners/admins only.
+const rulesCore=require('../sales/crm-rules-core.js');
+const isRulesName=n=>typeof n==='string'&&n.trim().toLowerCase()===rulesCore.RESERVED;
+const rulesFilters=v=>object(v)&&Object.hasOwn(v,'rules')&&Object.keys(v).length===1&&rulesCore.validateSet(v.rules).ok;
 function uuid(v){return typeof v==='string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);}
 function object(v){return v && typeof v==='object' && !Array.isArray(v) && Object.getPrototypeOf(v)===Object.prototype;}
 function timestamp(v){
@@ -110,7 +115,7 @@ function command(body){
    else if(k==='kind'&&!(entity==='interactions'?['note','call','meeting','email']:['opportunity','task']).includes(v))fail(400,'Tipo processo non valido.');
    else if(k==='status'&&!(entity==='tickets'?['open','pending','resolved','closed']:['todo','doing','done']).includes(v))fail(400,'Stato non valido.');
    else if(k==='channel'&&!['email','phone','chat','web','other'].includes(v))fail(400,'Canale non valido.');
-   else if(k==='filters'){if(!segmentFilters(v))fail(400,'Filtri del segmento non validi.');}
+   else if(k==='filters'){if(!rulesFilters(v)&&!segmentFilters(v))fail(400,object(v)&&Object.hasOwn(v,'rules')?'Regole non valide: '+(rulesCore.validateSet(v.rules).error||'formato non previsto.'):'Filtri del segmento non validi.');}
  }
  if(action!=='create'&&(!d.id||!d.version))fail(400,'Identificativo e versione obbligatori.');
  if(action==='create'){
@@ -118,6 +123,9 @@ function command(body){
    if(entity==='interactions')required.push('kind','occurred_at');if(entity==='processes')required.push('kind');if(entity==='stages')required.push('process_id','position');if(entity==='opportunities')required.push('process_id','stage_id');
    if(required.some(k=>d[k]===undefined||d[k]===null))fail(400,'Campi obbligatori mancanti.');
  }
+ // The reserved name and the rules filters go together: a segment cannot hold rules, the rules row cannot hold a segment.
+ if(entity==='segments'&&action!=='delete'){const named=d.name!==undefined&&isRulesName(d.name),ruled=object(d.filters)&&Object.hasOwn(d.filters,'rules');
+  if((action==='create'&&named!==ruled)||(action==='update'&&((named&&d.filters!==undefined&&!ruled)||(ruled&&d.name!==undefined&&!named))))fail(400,'Il nome «'+rulesCore.RESERVED+'» è riservato alle regole di automazione.');}
  if(action==='update'&&Object.keys(d).length===2)fail(400,'Nessuna modifica.');
  if(d.outcome==='lost'&&(typeof d.lost_reason!=='string'||!d.lost_reason.trim()))fail(400,'Indica il motivo della perdita.');
  if(d.lost_reason&&Object.hasOwn(d,'outcome')&&d.outcome!=='lost')fail(400,'Il motivo vale solo per le trattative perse.');
@@ -136,6 +144,14 @@ function memberCommand(body){
  else if(body.action==='update'){if(keys!=='role,user_id'||!Number.isInteger(d.user_id)||d.user_id<1||!roles.includes(d.role))fail(400,'Membro o ruolo non validi.');}
  else if(keys!=='user_id'||!Number.isInteger(d.user_id)||d.user_id<1)fail(400,'Membro non valido.');
  return {workspace:body.workspace,entity:'members',action:body.action,data:{...d,...(d.email?{email:d.email.trim()}:{})}};
+}
+// «__regole__» row: only owners and admins write it, and an update keeps it a rules row (and a segment a segment).
+async function rulesGuard(store,c,role){
+ const d=c.data,ruled=object(d.filters)&&Object.hasOwn(d.filters,'rules');let rules=c.action==='create'?ruled:false;
+ if(c.action!=='create'){const r=await store.sql('SELECT name FROM sales_segments WHERE workspace_id=$1 AND id=$2',[c.workspace,d.id]);
+  rules=!!r[0]&&isRulesName(r[0].name);
+  if(c.action==='update'&&r[0]&&(rules?(d.filters!==undefined&&!ruled)||(d.name!==undefined&&!isRulesName(d.name)):ruled||(d.name!==undefined&&isRulesName(d.name))))fail(400,'Il nome «'+rulesCore.RESERVED+'» è riservato alle regole di automazione.');}
+ if(rules&&!['owner','admin'].includes(role))fail(403,'Solo owner e admin possono modificare le regole di automazione.');
 }
 function createHandler({getSessionUser,getStore}){
  return async function(req,res){
@@ -201,8 +217,9 @@ function createHandler({getSessionUser,getStore}){
      const offset=q.offset===undefined?0:Number(q.offset);if(!Number.isSafeInteger(offset)||offset<0||offset>1000000||Array.isArray(q.offset))fail(400,'Pagina non valida.');
      if(q.entity==='customer360'){if(!['companies','contacts','opportunities'].includes(q.subject)||!uuid(q.id))fail(400,'Cliente non valido.');}
      else if(q.entity==='export'){if(!['companies','contacts'].includes(q.subject)||q.id!==undefined)fail(400,'Esportazione non valida.');}
+     else if(q.entity==='segments'&&q.subject!==undefined){if(q.subject!=='rules'||q.id!==undefined||offset!==0)fail(400,'Filtro non consentito.');}
      else if(q.subject!==undefined||(q.id!==undefined&&(!['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)||!uuid(q.id))))fail(400,'Filtro non consentito.');
-     c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='export'?{subject:q.subject}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};}
+     c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='export'?{subject:q.subject}:{}),...(q.entity==='segments'&&q.subject==='rules'?{rules:true}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};}
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
@@ -217,6 +234,7 @@ function createHandler({getSessionUser,getStore}){
    }
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
+     if(c.entity==='segments')await rulesGuard(store,c,membership.role);
      if(c.customFields)return res.status(200).json({rows:[await store.customFields.command(c,user.uid)]});
      if(c.documents){if(c.entity!=='documents'&&!['owner','admin'].includes(membership.role))fail(403,'Catalogo, listini e intestazione si modificano solo da owner o admin.');return res.status(200).json({rows:[await store.documents.command(c,user.uid)]});}
      if(c.entity==='lead_import_token')return res.status(200).json(importToken.sign({uid:user.uid,workspace:c.workspace},process.env.JWT_SECRET));
