@@ -394,6 +394,7 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .pp-media img,.pp-media canvas{width:100%;height:auto;border-radius:10px;display:block}
 .pp-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.pp-state{margin:0;font-size:13px;color:var(--rx-muted)}
 .pp-redo{display:flex;flex-direction:column;gap:8px}.pp-redo textarea{width:100%}
+.pp-quality{border:1px solid #e0a030;border-radius:10px;padding:8px 10px;font-size:13px;background:color-mix(in srgb,#e0a030 10%,var(--rx-surface))}.pp-quality p{margin:0 0 4px;font-weight:600}.pp-quality ul{margin:0 0 8px;padding-left:18px}
 .post-preview header>div{flex:1;text-align:left}
 .review-tools{display:flex;gap:8px;align-items:center}
 .identity-start{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px 20px}

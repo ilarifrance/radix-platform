@@ -100,3 +100,27 @@ test('visual identity: moodboard colours get a role, AI proposals are checked, t
  assert.deepEqual(pv.identityProblems(g),[]);assert.equal(pv.identityProblems({...g,page:'#1A2B44'}).length>=1,true);
  assert.match(pv.identityPrompt({brand:'Studio'},'Prova'),/«Prova»[\s\S]*Brand e contesto: Studio[\s\S]*JSON/);
 });
+
+test('copyPrompt gives the channel playbook, the personal-brand voice and the style rules',()=>{
+ const li=pv.copyPrompt({brand:'Mario Rossi – Personal branding'},{title:'T',channel:'LinkedIn',copy:''});
+ assert.match(li,/Regole LinkedIn/);assert.match(li,/Chiudi con una domanda precisa/);assert.match(li,/prima persona singolare/);assert.match(li,/non è X, è Y/);
+ const ig=pv.copyPrompt({brand:'Acme srl'},{title:'T',channel:'Instagram',copy:''});
+ assert.match(ig,/Regole Instagram/);assert.doesNotMatch(ig,/prima persona singolare/);
+ assert.doesNotMatch(pv.copyPrompt({},{title:'T',channel:'YouTube'}),/Regole LinkedIn/);
+ assert.match(pv.copyPrompt({},{title:'T',channel:'Pinterest'}),/Adatta lunghezza/);
+});
+test('postProblems flags what makes a LinkedIn post underperform',()=>{
+ const weak="L'imprenditore che non delega paga un costo: non è il tempo che perde, è la crescita che blocca.\n\nUn imprenditore dedica in media metà settimana alla vendita.\n\nIl costo non si misura in ore: si misura in opportunità.\n\nE liberare il proprio tempo!\n\n#PMI";
+ const ids=pv.postProblems(weak,'LinkedIn',{personal:true}).map(x=>x.id);
+ for(const id of ['short','cta','voice','cliche','stat'])assert.ok(ids.includes(id),id);
+ const good='Ho sbagliato a non delegare il commerciale per due anni.\n\n'+Array(6).fill('Ho imparato tre cose, una per volta, lavorando con imprenditori come te, giorno dopo giorno.').join('\n\n')+'\n\nTu quale cliente non riesci a lasciare a un venditore?\n\n#vendite #PMI';
+ assert.deepEqual(pv.postProblems(good,'LinkedIn',{personal:true}),[]);
+ assert.ok(pv.postProblems('x'.repeat(250)+'\n\nAltro?','LinkedIn').some(p=>p.id==='hook'));
+ assert.ok(pv.postProblems('Guarda https://a.it e dimmi?','LinkedIn').some(p=>p.id==='link'));
+ assert.deepEqual(pv.postProblems('',''),[]);
+ assert.match(pv.problemsNote([{hint:'a'},{hint:'b'}]),/^- a\n- b$/);
+});
+test('planPrompt and slidesPrompt steer formats and the image claim',()=>{
+ assert.match(pv.planPrompt({brief:{},contents:[]},'2026-10-21'),/Alterna i formati/);
+ assert.match(pv.slidesPrompt({channel:'LinkedIn',title:'T',copy:'c'},{}),/non il titolo ripetuto/);
+});
