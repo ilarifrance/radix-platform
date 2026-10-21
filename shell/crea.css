@@ -195,3 +195,18 @@
 .cr-panel .print-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
 .cr-panel .print-studio input[type=number],.cr-panel .print-studio select{font:inherit;color:inherit;background:transparent;border:1px solid var(--rx-border-strong,#26324a);border-radius:9px;padding:8px 10px}
 .cr-panel .print-studio select option{background:#09142d}
+/* Studio Catalogo (lib/catalog-studio.js): the Studio Stampa pieces plus the sheet, the columns and the options. */
+.cr-panel .catalog-studio h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .catalog-studio .ct-pick,.cr-panel .catalog-studio .ct-more{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px dashed var(--border,#2c3a63);border-radius:10px;font-size:13px}
+.cr-panel .catalog-studio .ct-more{flex-direction:row;flex-wrap:wrap;align-items:center;padding:8px 12px}
+.cr-panel .catalog-studio input[type=file]{max-width:100%;color:inherit}
+.cr-panel .catalog-studio .ct-map-grid,.cr-panel .catalog-studio .ct-opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+.cr-panel .catalog-studio .ct-map-grid label,.cr-panel .catalog-studio .ct-opt-grid label,.cr-panel .catalog-studio .ct-opts>label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.cr-panel .catalog-studio .ct-opts{display:flex;flex-direction:column;gap:10px}
+.cr-panel .catalog-studio .ct-per{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;border:0}
+.cr-panel .catalog-studio .ct-per legend{margin-bottom:6px;font-size:13px}
+.cr-panel .catalog-studio .ct-checks{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .catalog-studio .ct-need{margin:6px 0 0;color:#f5c76b;font-size:13px}
+.cr-panel .catalog-studio .ct-count{margin:0;font-size:13px;color:#cfd7ef;font-weight:600}
+.cr-panel .catalog-studio .pr-page[data-format=catalogo]{flex:1 1 200px;max-width:300px}
+.cr-panel .catalog-studio .ct-more-pages{flex-basis:100%;margin:0;font-size:12px}
