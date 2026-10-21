@@ -54,3 +54,19 @@
 .cr-panel .video-studio .vs-view video{width:min(100%,300px);aspect-ratio:9/16;border-radius:12px;background:#000}
 .cr-panel .video-studio .vs-view a{color:var(--cyan,#42dcf7)}
 .cr-panel .video-studio .tool-status{margin:0;color:#cfd7ef}
+/* Studio SEO e GEO (lib/seo-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .seo-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .seo-studio h4{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .seo-studio .ss-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.cr-panel .seo-studio .ss-competitors{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.cr-panel .seo-studio .ss-label{color:inherit}
+.cr-panel .seo-studio input[type=text]{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .seo-studio .ss-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
+.cr-panel .seo-studio .ss-card{padding:12px;gap:10px;min-width:0}
+.cr-panel .seo-studio .ss-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .seo-studio .ss-focus{margin:0;color:#cfd7ef;font-size:14px}
+.cr-panel .seo-studio .ss-sec ul,.cr-panel .seo-studio .ss-sec ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px;color:#cfd7ef;overflow-wrap:anywhere}
+.cr-panel .seo-studio .ss-plan{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .seo-studio .ss-plan textarea{min-height:220px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
+.cr-panel .seo-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .seo-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
