@@ -10,6 +10,7 @@ const handlers = Object.freeze({
   'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),
   'send-email': () => require('../_send-email'),
+  'site-publish': () => require('../_site_publish'),
   'status': () => require('../_integrations-status')
 });
 module.exports = async function integrationRoute(req, res) {

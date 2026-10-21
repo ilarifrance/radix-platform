@@ -1,7 +1,8 @@
 'use strict';
 /* «Report campagna» inside «Sequenze e campagne email» (crm-campaigns.js, button «Risultati e report campagne»).
    One read: GET /api/sales?entity=email_clicks&report=campaigns. The numbers come from
-   crm-campaign-report-core.js; this file only draws them. No writes, no AI. */
+   crm-campaign-report-core.js; this file only draws them. No writes, no AI: the «Suggerisci la prossima email»
+   block of each campaign comes from crm-campaign-next.js. */
 (function(){
 const core=window.RadixCrmCampaignReportCore;if(!core)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
@@ -15,7 +16,8 @@ const day=t=>t===null||t===undefined?'—':core.formatRome(t,false);
 // Loads the rows, then draws the report into out. State (window, sort, selection) lives on the node.
 async function render(out){
  const a=app();if(!a||a.state.busy)return;
- const st={days:core.DEFAULT_DAYS,sort:'date',dir:'desc',selected:null,filter:'all',data:null};
+ // next: the AI suggestions per campaign key (crm-campaign-next.js), kept here because draw() rebuilds the DOM.
+ const st={days:core.DEFAULT_DAYS,sort:'date',dir:'desc',selected:null,filter:'all',data:null,next:new Map()};
  a.lock(true);a.error('');a.notice('Carico il report delle campagne…');
  try{st.data=await loadReport()}catch(e){a.error(e.message||String(e));return}finally{a.lock(false)}
  a.notice('');draw(out,st);
@@ -92,6 +94,8 @@ function detail(c,rep,st,out){
   for(const l of c.links.slice(0,5)){const li=E('li');const u=E('span',l.url,'crm-crep-url');u.title=l.url;li.append(u,E('small',n(l.people)+(l.people===1?' persona':' persone')+' · '+n(l.clicks)+' clic'));ol.append(li)}lk.append(ol);d.append(lk)}
  else if(c.tracked)d.append(E('p','Nessun clic sui link di questa campagna.','muted'));
  else d.append(E('p','Email senza link tracciati: per questa campagna i clic non sono misurabili.','muted'));
+ // «Suggerisci la prossima email» (crm-campaign-next.js), when loaded; it redraws through draw().
+ const nx=window.RadixCrmCampaignNext;if(nx)d.append(nx.section(c,rep,st,out,()=>draw(out,st)));
  d.append(people(c,st,out));return d;
 }
 const FILTERS=[['all','Tutti'],['clicked','Hanno cliccato'],['converted','Convertiti'],['unsubscribed','Disiscritti']];
