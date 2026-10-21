@@ -9,6 +9,7 @@ const VALUES={name:'Forno Bianchi',payoff:'Pane buono, ogni mattina',person:'Ann
  headline:'Apriamo in via Roma!',body:'Pane, focacce e dolci ogni mattina dalle 7.',cta:'Vieni sabato 12',vat:'Forno Bianchi srl · P. IVA 01234567890',flapTitle:'Chi siamo',flapText:'Tre generazioni di fornai.',
  p1Title:'Il pane',p1Text:'Lievito madre.',p2Title:'I dolci',p2Text:'Crostate.',p3Title:'Orari',p3Text:'Lun–Sab 7–19.',closing:'Ti aspettiamo!'};
 const brand=P.brandOf(PROFILE);
+const pt=mm=>Math.round(mm*72/25.4*1000)/1000;
 const ascii=b=>Buffer.from(b).toString('latin1');
 // A small PDF reader: header, xref offsets pointing at their objects, trailer, pages.
 function parse(bytes){const s=ascii(bytes);assert.ok(s.startsWith('%PDF-1.4\n'),'header');assert.ok(s.trimEnd().endsWith('%%EOF'),'eof');
@@ -25,29 +26,29 @@ test('mm → pt: 72 pt per inch of 25.4 mm, and back',()=>{
  assert.ok(Math.abs(P.ptToMm(P.mmToPt(3))-3)<1e-12);assert.equal(P.BLEED,3);assert.equal(P.SAFE,4);
 });
 
-test('formats and page sizes: print = trim + 3 mm bleed per side, web = trim',()=>{
+test('formats and page sizes: print page = trim + 3 mm bleed + 6 mm slug per side, bleed box = trim + 3 mm; web = trim',()=>{
  assert.deepEqual(P.FORMATS.map(f=>[f.id,f.w,f.h,f.pages.length]),[['biglietto',85,55,2],['flyer',148,210,1],['locandina-a4',210,297,1],['locandina-a3',297,420,1],['carta',210,297,1],['brochure',297,210,2]]);
- const b=P.pageSize('biglietto','print');assert.equal(b.w,91);assert.equal(b.h,61);assert.equal(Math.round(b.wPt*100)/100,257.95);
+ const b=P.pageSize('biglietto','print');assert.deepEqual([b.w,b.h,b.bleedW,b.bleedH,b.bleed,b.slug],[103,73,91,61,3,6]);assert.equal(Math.round(b.wPt*100)/100,291.97);
  assert.deepEqual([P.pageSize('biglietto','web').w,P.pageSize('biglietto','web').h],[85,55]);
- assert.deepEqual([P.pageSize('locandina-a3','print').w,P.pageSize('locandina-a3','print').h],[303,426]);
- assert.deepEqual([P.pageSize('brochure','print').w,P.pageSize('brochure','print').h],[303,216]);
+ assert.deepEqual([P.pageSize('locandina-a3','print').bleedW,P.pageSize('locandina-a3','print').bleedH],[303,426]);
+ assert.deepEqual([P.pageSize('brochure','print').w,P.pageSize('brochure','print').h],[315,228]);
  assert.deepEqual(P.format('brochure').panels.map(p=>p.reduce((a,x)=>a+x,0)),[297,297],'panels fill the sheet');
  assert.throws(()=>P.pageSize('boh'),/Formato sconosciuto/);
 });
 
-test('crop marks sit in the bleed corners, on the trim lines, 1 mm away from the trim; folds marked on the brochure',()=>{
+test('crop and fold marks sit in the slug: on the trim lines and folds, from the page edge to 1 mm before the bleed edge',()=>{
  const doc=P.layout('biglietto',VALUES,brand),m=P.marks(doc.pages[0]);
- assert.equal(m.length,8);assert.ok(m.every(x=>x.kind==='crop'));
+ assert.equal(P.SLUG,6);assert.equal(m.length,8);assert.ok(m.every(x=>x.kind==='crop'));
  const v=m.filter(x=>x.x1===x.x2),h=m.filter(x=>x.y1===x.y2);
- assert.deepEqual([...new Set(v.map(x=>x.x1))],[3,88],'vertical marks on the left and right trim lines');
- assert.deepEqual([...new Set(h.map(x=>x.y1))],[3,58],'horizontal marks on the top and bottom trim lines');
- for(const x of v)assert.ok(x.y2<=2||x.y1>=59,'vertical mark outside the trim height, 1 mm gap');
- for(const x of h)assert.ok(x.x2<=2||x.x1>=89,'horizontal mark outside the trim width, 1 mm gap');
- for(const x of m)for(const k of ['x1','x2'])assert.ok(x[k]>=0&&x[k]<=91);
+ assert.deepEqual([...new Set(v.map(x=>x.x1))],[9,94],'vertical marks on the left and right trim lines (slug 6 + bleed 3)');
+ assert.deepEqual([...new Set(h.map(x=>x.y1))],[9,64],'horizontal marks on the top and bottom trim lines');
+ assert.deepEqual(v.map(x=>[x.y1,x.y2]),[[0,5],[68,73],[0,5],[68,73]],'outside the bleed box (6–67 mm), 1 mm gap');
+ assert.deepEqual(h.map(x=>[x.x1,x.x2]),[[0,5],[98,103],[0,5],[98,103]],'outside the bleed box (6–97 mm), 1 mm gap');
+ for(const x of m){const inBleed=(a,b,lo,hi)=>Math.max(a,b)>lo&&Math.min(a,b)<hi;assert.ok(!(inBleed(x.x1,x.x2,6,97)&&inBleed(x.y1,x.y2,6,67)),'no mark over the artwork')}
  const br=P.layout('brochure',VALUES,brand);
  assert.deepEqual(br.pages.map(p=>p.folds),[[97,197],[100,200]],'roll fold: outside and inside folds mirror');
- assert.deepEqual(P.marks(br.pages[0]).filter(x=>x.kind==='fold').map(x=>x.x1),[100,100,200,200]);
- assert.deepEqual(P.marks(br.pages[1]).filter(x=>x.kind==='fold').map(x=>x.x1),[103,103,203,203]);
+ assert.deepEqual(P.marks(br.pages[0]).filter(x=>x.kind==='fold').map(x=>[x.x1,x.y1,x.y2]),[[106,0,5],[106,223,228],[206,0,5],[206,223,228]]);
+ assert.deepEqual(P.marks(br.pages[1]).filter(x=>x.kind==='fold').map(x=>x.x1),[109,109,209,209]);
 });
 
 test('safe area: the default layouts keep text 4 mm from trim and folds; smaller margins and long lines are flagged',()=>{
@@ -71,12 +72,14 @@ test('Helvetica metrics and WinAnsi: widths, accents, euro, wrapping',()=>{
  assert.ok(P.layout('flyer',{...VALUES,headline:'Pane ✓'},brand).warnings.some(w=>w.kind==='glyph'));
 });
 
-test('PDF for the print shop: %PDF, valid xref, page = trim + bleed, TrimBox = trim, crop marks, Helvetica not embedded',()=>{
+test('PDF for the print shop: %PDF, valid xref, MediaBox with slug, BleedBox = trim + bleed, TrimBox = trim, crop marks in the slug, Helvetica not embedded',()=>{
  const doc=P.layout('biglietto',VALUES,brand),{s,pages,count}=parse(P.pdf(doc,{mode:'print',date:new Date(Date.UTC(2026,9,21))}));
  assert.equal(count,2);
- for(const p of pages){assert.deepEqual(p.media,[0,0,257.953,172.913]);assert.deepEqual(p.bleed,p.media);assert.deepEqual(p.trim,[8.504,8.504,249.449,164.409])}
+ for(const p of pages){assert.deepEqual(p.media,[0,0,103,73].map(pt));assert.deepEqual(p.bleed,[6,6,97,67].map(pt));assert.deepEqual(p.trim,[9,9,94,64].map(pt))}
+ assert.match(s,new RegExp('^q '+[6,6,91,61].map(pt).join(' ').replace(/\\./g,'\\.')+' re W n','m'),'artwork clipped to the bleed box');
  assert.match(s,/\/BaseFont \/Helvetica \/Encoding \/WinAnsiEncoding/);assert.match(s,/\/BaseFont \/Helvetica-Bold/);assert.ok(!/FontFile/.test(s),'standard fonts, not embedded');
- assert.match(s,/q 0 0 0 RG 0\.3 w [\d. ]+ m [\d. ]+ l S Q/,'crop marks drawn');assert.equal((s.match(/q 0 0 0 RG 0\.3 w /g)||[]).length,16,'8 marks per page');
+ assert.match(s,/q 0 0 0 RG 0\.25 w [\d. ]+ m [\d. ]+ l S Q/,'crop marks drawn, 0.25 pt black');assert.equal((s.match(/q 0 0 0 RG 0\.25 w /g)||[]).length,16,'8 marks per page');assert.ok(!/1 1 1 RG/.test(s),'no white underlay');
+ const first=/q 0 0 0 RG 0\.25 w ([\d.]+) ([\d.]+) m ([\d.]+) ([\d.]+) l S Q/.exec(s).slice(1).map(Number);assert.deepEqual(first,[9,73,9,68].map(pt),'first mark: left trim line, top slug');
  assert.match(s,/\/Title \(Biglietto da visita \\267 Forno Bianchi \\267 tipografia\)/,'title in WinAnsi');
  assert.match(s,/\/CreationDate \(D:20261021000000Z\)/);
  // text is real text (vector), the colours RGB
@@ -85,10 +88,10 @@ test('PDF for the print shop: %PDF, valid xref, page = trim + bleed, TrimBox = t
 
 test('PDF for the web: page = trim, no bleed, no marks; brochure has 2 pages',()=>{
  const {s,pages}=parse(P.pdf(P.layout('biglietto',VALUES,brand),{mode:'web'}));
- assert.deepEqual(pages[0].media,[0,0,240.945,155.906]);assert.deepEqual(pages[0].trim,pages[0].media);assert.ok(!/0\.3 w /.test(s),'no marks');assert.match(s,/re W n/,'clipped to the trim');
+ assert.deepEqual(pages[0].media,[0,0,240.945,155.906]);assert.deepEqual(pages[0].trim,pages[0].media);assert.ok(!/0\.25 w /.test(s),'no marks');assert.match(s,/re W n/,'clipped to the trim');
  const br=P.layout('brochure',VALUES,brand),print=parse(P.pdf(br)),web=parse(P.pdf(br,{mode:'web'}));
- assert.equal(print.count,2);assert.equal(web.count,2);assert.deepEqual(print.pages[0].media,[0,0,858.898,612.283]);assert.deepEqual(web.pages[1].media,[0,0,841.89,595.276]);
- assert.equal((print.s.match(/\[1\.5 1\] 0 d/g)||[]).length,8,'4 fold marks per page, dashed');
+ assert.equal(print.count,2);assert.equal(web.count,2);assert.deepEqual(print.pages[0].media,[0,0,315,228].map(pt));assert.deepEqual(print.pages[0].bleed,[6,6,309,222].map(pt));assert.deepEqual(web.pages[1].media,[0,0,841.89,595.276]);
+ assert.equal((print.s.match(/\[2 1\] 0 d/g)||[]).length,8,'4 fold marks per page, dashed');
  for(const f of ['flyer','locandina-a4','locandina-a3','carta'])assert.equal(parse(P.pdf(P.layout(f,VALUES,brand))).count,1,f);
 });
 
@@ -136,7 +139,7 @@ test('preview SVG: same items, bleed veil, trim line, dashed safe areas per pane
 
 test('saved in the project: one exchange in the Art Director thread, with format, texts, colours, checks and print notes',async()=>{
  const doc=P.layout('biglietto',{...VALUES,margin:2},brand),md=P.toMarkdown(doc,{date:'2026-10-21'});
- assert.match(md,/^# Stampa · Biglietto da visita · Forno Bianchi/);assert.match(md,/PDF per la tipografia 91 × 61 mm \(abbondanza 3 mm per lato, segni di taglio\) · margine 2 mm · 2026-10-21/);
+ assert.match(md,/^# Stampa · Biglietto da visita · Forno Bianchi/);assert.match(md,/PDF per la tipografia: formato \+ 3 mm di abbondanza per lato \(91 × 61 mm\), segni di taglio fuori dall’abbondanza \(pagina 103 × 73 mm\) · margine 2 mm · 2026-10-21/);
  assert.match(md,/- \*\*Nome e cognome\*\*: Anna Bianchi/);assert.match(md,/## Colori \(RGB\)\n\n- Primario: #2F5D50/);assert.match(md,/## Da controllare\n\n- (Fronte|Retro): /);assert.match(md,/Helvetica/);
  assert.equal(P.filename(doc,'print'),'stampa-biglietto-forno-bianchi-tipografia.pdf');assert.equal(P.filename(doc,'web'),'stampa-biglietto-forno-bianchi-web.pdf');
  class ConflictError extends Error{}let saved=null,tries=0;
