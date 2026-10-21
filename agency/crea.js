@@ -2,11 +2,13 @@
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
    (lib/seo-studio.js), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
-   The filter chips above the cards show one group at a time (remembered in this browser). Nothing is generated
+   The filter chips above the cards show one group at a time (remembered in this browser); ?area= and ?open= (from the
+   Marketing Orbit, agency/orbit.html) pick the group and open a studio. Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
 const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,KEY='radix-crea-project',GROUP_KEY='radix-crea-group';
-let projects=[],current=null,openCard='',group=remembered(GROUP_KEY);
+const asked=core.fromQuery(location.search);
+let projects=[],current=null,openCard='',group=asked.group||remembered(GROUP_KEY);if(asked.group)remember(asked.group,GROUP_KEY);
 function node(tag,cls,text){const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n}
 function say(t){$('crMessage').textContent=t||''}
 function remember(id,key){try{localStorage.setItem(key||KEY,id)}catch(e){}}
@@ -86,6 +88,7 @@ async function load(){
   sel.value=projects.some(p=>p.id===want)?want:projects[0].id;
   sel.addEventListener('change',()=>choose(sel.value));
   await choose(sel.value);
+  if(asked.open&&current)openInline(core.card(asked.open));
  }catch(e){say(e.message)}
 }
 $('crClose').addEventListener('click',closePanel);

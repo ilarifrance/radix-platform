@@ -44,6 +44,9 @@ html.rx-shell .shell,html.rx-shell .app{min-height:calc(100vh - var(--rx-topbar)
 .rx-chev{margin-left:auto;width:16px;height:16px;transition:transform .15s ease-out;opacity:.7}
 .rx-group[open]>summary .rx-chev{transform:rotate(90deg)}
 .rx-group[data-active="true"]>summary{color:var(--rx-text)}
+html.rx-shell .rx-sidebar a.rx-group-link{color:inherit;text-decoration:none}
+.rx-group-link:hover{text-decoration:underline;text-underline-offset:3px}
+.rx-group-link:focus-visible{outline:2px solid var(--rx-core);outline-offset:2px;border-radius:4px}
 .rx-sub{display:flex;flex-direction:column;gap:1px;margin:2px 0 6px 20px;padding-left:12px;border-left:1px solid var(--rx-border)}
 .rx-sub .rx-item{min-height:32px;padding:6px 10px;font-size:13px}
 .rx-soon{margin-left:auto;font-size:11px;color:var(--rx-subtle);border:1px solid var(--rx-border);border-radius:999px;padding:2px 7px}

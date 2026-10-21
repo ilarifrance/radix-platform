@@ -192,6 +192,7 @@
   var tzSel = document.getElementById('timezone'); if (tzSel) tzSel.addEventListener('change', later);
   setInterval(function () { if (root.classList.contains('ped-grid')) later(); }, 60000);
   rail();
-  setSection('calendar');
+  // #results (the Marketing Orbit «Risultati» link) opens the Risultati section; otherwise the calendar.
+  setSection(location.hash === '#results' ? 'results' : 'calendar');
   later();
 })();

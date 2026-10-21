@@ -1,0 +1,73 @@
+/* Marketing Orbit (agency/orbit.html): the entry page of the Marketing Agency. Palette from shell/agency.css,
+   pink #ff5fa2 is Marketing's colour in the Command Center. Planets are positioned by agency/orbit.js. */
+.mo-main{max-width:1320px;margin:0 auto;padding:26px 24px 56px;display:flex;flex-direction:column;gap:30px;min-width:0}
+.mo-hero{position:relative;display:grid;grid-template-columns:minmax(260px,340px) minmax(0,1fr);gap:18px;align-items:center;min-width:0}
+.mo-eyebrow{margin:0;font-size:12px;letter-spacing:.2em;color:var(--cyan,#42dcf7)}
+.mo-copy h1{margin:8px 0 10px;font:700 clamp(38px,4.4vw,60px)/1.02 var(--rx-display,"Space Grotesk",Inter,sans-serif);letter-spacing:-.035em;color:#f3f4ff}
+.mo-copy h1 em{font-style:normal;background:linear-gradient(100deg,#ff5fa2 0%,#a68bff 50%,#42dcf7 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.mo-lead{margin:0;color:var(--muted,#aeb9da);font-size:16px;line-height:1.55}
+.mo-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}
+.mo-cta,.mo-ghost{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:10px 18px;border-radius:12px;font-weight:600;text-decoration:none}
+.mo-cta{background:linear-gradient(100deg,#ff5fa2,#a068ff);color:#fff;box-shadow:0 8px 30px rgba(255,95,162,.28)}
+.mo-cta:hover{filter:brightness(1.08)}
+.mo-ghost{border:1px solid var(--border,#2c3a63);color:#dfe4ff;background:rgba(12,22,48,.6)}
+.mo-ghost:hover{border-color:var(--violet,#a68bff)}
+.mo-note{margin:14px 0 0;min-height:1.3em;font-size:13px;color:var(--muted,#aeb9da)}
+.mo-stage{position:relative;height:clamp(420px,46vw,560px);border-radius:24px;overflow:hidden;min-width:0;
+  background:radial-gradient(ellipse at 50% 50%,rgba(160,104,255,.16),transparent 62%),radial-gradient(ellipse at 85% 10%,rgba(66,220,247,.08),transparent 45%),linear-gradient(160deg,#071027,#040818);
+  border:1px solid #1d2a52;box-shadow:inset 0 0 80px rgba(3,6,20,.8)}
+.mo-sky{position:absolute;inset:0;width:100%;height:100%;display:block}
+.mo-core{position:absolute;left:50%;top:50%;z-index:4;width:132px;height:132px;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;text-align:center;
+  background:radial-gradient(circle at 34% 28%,#ffd0e6 0%,#ff5fa2 22%,#8a4dff 60%,#2a1667 100%);
+  box-shadow:0 0 40px rgba(255,95,162,.55),0 0 110px rgba(160,104,255,.35),inset -14px -16px 30px rgba(20,8,60,.7)}
+.mo-core::after{content:'';position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(255,190,225,.25);animation:mo-pulse 4.5s ease-in-out infinite}
+.mo-core span{font:600 12px/1.15 var(--rx-font,Inter,sans-serif);letter-spacing:.14em;text-transform:uppercase;color:#ffe9f3}
+.mo-core b{display:block;font:700 22px/1.1 var(--rx-display,"Space Grotesk",Inter,sans-serif);letter-spacing:.02em;text-transform:none;color:#fff}
+@keyframes mo-pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.08);opacity:.25}}
+.mo-planets{list-style:none;margin:0;padding:0;position:absolute;inset:0;pointer-events:none}
+.mo-orbiter{position:absolute;left:0;top:0;pointer-events:auto;will-change:transform}
+.mo-orbiter[data-depth=back] .mo-planet{opacity:.82}
+.mo-planet{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 7px;border-radius:999px;text-decoration:none;color:#f3f4ff;white-space:nowrap;
+  background:rgba(8,14,36,.78);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);backdrop-filter:blur(6px);
+  box-shadow:0 0 22px color-mix(in srgb,var(--c) 26%,transparent);transition:border-color .15s,box-shadow .15s,opacity .15s}
+.mo-planet i{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:50%;font-style:normal;font-size:17px;color:#071027;
+  background:radial-gradient(circle at 32% 28%,#fff 0%,var(--c) 38%,color-mix(in srgb,var(--c) 45%,#071027) 100%);box-shadow:0 0 16px var(--c)}
+.mo-planet b{display:block;font-size:14px;line-height:1.2}
+.mo-planet small{display:block;font-size:12px;color:#c3cbe8}
+.mo-planet:hover,.mo-planet:focus-visible{border-color:var(--c);box-shadow:0 0 34px color-mix(in srgb,var(--c) 55%,transparent);opacity:1}
+.mo-planet:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.mo-pause{position:absolute;right:12px;bottom:12px;z-index:8;min-height:34px;padding:6px 12px;border-radius:10px;border:1px solid #33437a;background:rgba(8,14,36,.82);color:#dfe4ff;font:500 12px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.mo-pause:hover{border-color:var(--violet,#a68bff)}
+.mo-pause[hidden]{display:none}
+.mo-sections h2{margin:0 0 14px;font-size:22px}
+.mo-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.mo-card{display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:16px;border:1px solid var(--border,#2c3a63);background:linear-gradient(150deg,#101c3e,#0a1430);min-width:0;transition:border-color .15s,transform .15s}
+.mo-card:hover,.mo-card:focus-within{border-color:var(--violet,#a68bff);transform:translateY(-2px)}
+.mo-card-head{display:flex;align-items:center;gap:12px;text-decoration:none;color:#f3f4ff}
+.mo-card-head i{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:12px;font-style:normal;font-size:19px;color:#ff9cc6;background:rgba(255,95,162,.12);border:1px solid rgba(255,95,162,.3)}
+.mo-card-head h3{margin:0;font-size:17px}
+.mo-card-head:hover h3{text-decoration:underline;text-underline-offset:3px}
+.mo-card-head:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:3px;border-radius:10px}
+.mo-count{font:700 22px/1.1 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:#fff}
+.mo-count[hidden]{display:none}
+.mo-card p{margin:0;color:var(--muted,#aeb9da);font-size:13px;line-height:1.5}
+.mo-links{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.mo-links a{display:inline-flex;align-items:center;min-height:32px;padding:5px 11px;border-radius:999px;border:1px solid #33437a;background:#0c1630;color:#dfe4ff;font-size:12px;text-decoration:none}
+.mo-links a:hover,.mo-links a:focus-visible{border-color:#ff5fa2;color:#fff}
+.mo-foot{margin:0;color:#8f9bc2;font-size:12px}
+@media (max-width:1100px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-copy{max-width:640px}}
+/* Phones: the orbit stays as a picture around the core, the planets become a list you can tap. */
+@media (max-width:640px){
+  .mo-main{padding:18px 16px 44px;gap:24px}
+  .mo-stage{height:auto;min-height:0;display:flex;flex-direction:column;align-items:stretch;padding:210px 12px 56px}
+  .mo-core{top:105px;width:108px;height:108px}
+  .mo-core b{font-size:19px}
+  .mo-planets{position:relative;inset:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;pointer-events:auto;z-index:5}
+  .mo-orbiter{position:static;transform:none!important}
+  .mo-orbiter[data-depth] .mo-planet{opacity:1}
+  .mo-planet{white-space:normal;border-radius:14px;padding:7px 10px 7px 7px;min-height:52px}
+  .mo-planet i{width:32px;height:32px;flex-basis:32px;font-size:15px}
+  .mo-planet b{font-size:13px}
+  .mo-copy h1{font-size:38px}
+}
+@media (prefers-reduced-motion:reduce){.mo-core::after{animation:none}.mo-card,.mo-planet{transition:none}.mo-card:hover,.mo-card:focus-within{transform:none}}

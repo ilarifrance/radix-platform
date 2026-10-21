@@ -6,6 +6,8 @@
 'use strict';
 // The panel's filters, in order; every card has one.
 const GROUPS=['Brand','Strategia','Web e annunci','Social e contenuti','Stampa e documenti','Immagini','Video'];
+// Short URL names of the groups, for links from other pages (Marketing Orbit): /agency/crea.html?area=web.
+const AREAS=Object.freeze({brand:'Brand',strategia:'Strategia',web:'Web e annunci',social:'Social e contenuti',stampa:'Stampa e documenti',immagini:'Immagini',video:'Video'});
 // state: 'ready' = guided tool in RADIX, 'agent' = for now an agent with a prefilled request (never sent on its own).
 // cost: what the person is asked to confirm before anything is spent; no prices are invented here.
 const CARDS=[
@@ -42,5 +44,13 @@ function card(id){return CARDS.find(c=>c.id===id)||null}
 // The filters that have cards, in GROUPS order; '' (or an unknown group) is «Tutti».
 const groups=()=>GROUPS.filter(g=>CARDS.some(c=>c.group===g));
 const inGroup=group=>groups().includes(group)?CARDS.filter(c=>c.group===group):CARDS;
-return Object.freeze({CARDS,GROUPS,linkFor,card,groups,inGroup});
+const areaOf=group=>Object.keys(AREAS).find(k=>AREAS[k]===group)||'';
+// ?area=<slug> picks the filter, ?open=<card id> also opens that studio once a project is chosen (its group wins
+// when no area is given). Unknown values are ignored: {group:'',open:''} is the page as it always was.
+function fromQuery(search){
+ let q;try{q=new URLSearchParams(String(search||''))}catch(e){return {group:'',open:''}}
+ const a=String(q.get('area')||'').toLowerCase(),c=card(String(q.get('open')||'')),open=c&&c.inline?c.id:'';
+ return {group:AREAS[a]&&groups().includes(AREAS[a])?AREAS[a]:c?c.group:'',open};
+}
+return Object.freeze({CARDS,GROUPS,AREAS,linkFor,card,groups,inGroup,areaOf,fromQuery});
 });

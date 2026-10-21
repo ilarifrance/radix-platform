@@ -60,9 +60,9 @@ test('without a project only strategy leads somewhere (new project); no card goe
  assert.match(fs.readFileSync(path.join(root,'agents-page.js'),'utf8'),/prefilled, never sent on its own/);
 });
 
-test('the page is first in the Marketing Agency menu',()=>{
+test('the page comes right after the Marketing Orbit in the Marketing Agency menu',()=>{
  const shell=fs.readFileSync(path.join(root,'shell/radix-shell.js'),'utf8');
- assert.match(shell,/group: 'agency'[^\n]*\n\s*\{ id: 'agency-crea', text: 'Cosa vuoi fare', href: '\/agency\/crea\.html'/);
+ assert.match(shell,/group: 'agency'[^\n]*\n\s*\{ id: 'agency-orbit', text: 'Marketing Orbit', href: '\/agency\/orbit\.html'[^\n]*\n\s*\{ id: 'agency-crea', text: 'Cosa vuoi fare', href: '\/agency\/crea\.html'/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
  assert.match(html,/data-shell-page="agency-crea"/);
  for(const s of ['/lib/copy-studio.js','/lib/print-studio.js','/lib/catalog-studio.js','/lib/lead-xlsx-parser.js','/sales/crm-csv-core.js','/lib/zip-lite.js','/lib/identity-studio.js','/lib/image-studio.js','/lib/video-studio.js','/lib/site-studio.js','/lib/seo-studio.js','/agency/crea-core.js','/agency/crea.js'])assert.ok(html.includes(s),s);
