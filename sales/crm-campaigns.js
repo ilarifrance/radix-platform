@@ -4,7 +4,8 @@
    prepare one personalised email per contact with marketing consent; each email is sent after a
    confirmation (/api/send-email requires it), one at a time or all together with «Invia a tutti» (one
    confirmation, up to 200 per round, one every 1.2 s, stops at the first error), or opened in the mail client,
-   always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent without a confirmation. */
+   always with the contact's own unsubscribe link (api/_sales_unsubscribe.js), and is then recorded as an «email» interaction. Nothing is sent without a confirmation.
+   «Risultati e report campagne» opens the per-campaign report (crm-campaign-report.js); without it, the plain click list. */
 (function(root){
 const DAY=864e5;
 const SEQUENCES=Object.freeze([
@@ -110,7 +111,7 @@ function campaignPanel(filterOf){
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
  const results=E('div',undefined,'crm-campaign-results');
- row.append(B('Risultati: chi ha cliccato',()=>showClicks(results)));
+ row.append(B('Risultati e report campagne',()=>window.RadixCrmCampaignReport?RadixCrmCampaignReport.render(results):showClicks(results)));
  box.append(ls,lb,row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma, oppure tutte insieme con «Invia a tutti» (una conferma, al massimo 200 per volta). Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
  async function prepare(){
   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
