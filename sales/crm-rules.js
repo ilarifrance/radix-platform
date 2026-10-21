@@ -18,6 +18,24 @@ const num=(value,min,max)=>{const i=E('input');i.type='number';i.min=String(min)
 const text=(value,max)=>{const i=E('input');i.maxLength=max;i.value=value||'';return i};
 const plural=(n,one,many)=>n+' '+(n===1?one:many);
 
+// The rules row (and the quotes a «preventivo accettato» rule needs), read once per workspace and shared by this
+// panel and the home «Suggerimenti per oggi» (dashboard-view.js). fresh: read again (after a save).
+// → {row,list,loaded,quotes,quoteNote,error}; a failed read is not kept, so the next call tries again.
+let shared=null;
+function load(fresh){
+ const a=app(),ws=a&&a.state.workspace;if(!ws)return Promise.resolve(null);
+ if(!fresh&&shared&&shared.ws===ws)return shared.promise;
+ const promise=(async()=>{const out={row:null,list:[],loaded:false,quotes:[],quoteNote:'',error:''};
+  try{const d=await a.api('segments',{subject:'rules'});out.row=(d.rows||[])[0]||null;out.list=out.row&&out.row.filters&&Array.isArray(out.row.filters.rules)?out.row.filters.rules:[];out.loaded=true}
+  catch(e){out.error=e.message||String(e)}
+  if(R.effective(out.list).some(r=>r.on&&!r.builtin&&r.when.type==='quote-accepted')){
+   try{const q=new URLSearchParams({entity:'documents',workspace:ws,kind:'quote'});const r=await fetch('/api/sales?'+q,{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'errore '+r.status);out.quotes=d.rows||[]}
+   catch(e){out.quoteNote='Preventivi non leggibili ('+(e.message||e)+'): la regola sui preventivi accettati non propone nulla.'}}
+  if(!out.loaded&&shared&&shared.promise===promise)shared=null;
+  return out})();
+ shared={ws,promise};return promise;
+}
+R.load=load;
 function panel(){
  const st={row:null,list:[],loaded:false,quotes:[],quoteNote:'',tab:'regole',editing:null,openDrafts:new Set(),drafts:new Map()};
  const box=E('details',undefined,'panel crm-automations crm-rules');box.append(E('summary','Automazioni'));
@@ -27,13 +45,9 @@ function panel(){
  box.append(intro,tabs,body);
  const data=()=>{const a=app();return {opportunities:a.rows('opportunities'),tasks:a.rows('tasks'),tickets:a.rows('tickets'),contacts:a.rows('contacts'),companies:a.rows('companies'),interactions:a.rows('interactions'),stages:a.rows('stages'),leads:a.rows('leads'),quotes:st.quotes}};
  const opts=()=>({now:Date.now(),assignee:app().state.me||null,score:root.RadixCrmScore&&root.RadixCrmScore.score});
- async function load(){
-  try{const d=await app().api('segments',{subject:'rules'});st.row=(d.rows||[])[0]||null;st.list=st.row&&st.row.filters&&Array.isArray(st.row.filters.rules)?st.row.filters.rules:[];st.loaded=true}
-  catch(e){st.row=null;st.list=[];st.loaded=false;app().error('Regole del workspace non disponibili: valgono le regole predefinite. '+(e.message||''))}
-  st.quotes=[];st.quoteNote='';
-  if(R.effective(st.list).some(r=>r.on&&!r.builtin&&r.when.type==='quote-accepted')){
-   try{const q=new URLSearchParams({entity:'documents',workspace:app().state.workspace,kind:'quote'});const r=await fetch('/api/sales?'+q,{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'errore '+r.status);st.quotes=d.rows||[]}
-   catch(e){st.quoteNote='Preventivi non leggibili ('+(e.message||e)+'): la regola sui preventivi accettati non propone nulla.'}}
+ async function load(fresh){
+  const r=await R.load(fresh);Object.assign(st,{row:null,list:[],loaded:false,quotes:[],quoteNote:''},r?{row:r.row,list:r.list,loaded:r.loaded,quotes:r.quotes,quoteNote:r.quoteNote}:{});
+  if(r&&r.error)app().error('Regole del workspace non disponibili: valgono le regole predefinite. '+r.error);
  }
  async function save(list,done){
   const v=R.validateSet(list);if(!v.ok){app().error(v.error);return false}
@@ -43,7 +57,7 @@ function panel(){
    else if(st.row)await post('segments','update',{id:st.row.id,version:st.row.version,filters:{rules:list}});
    else if(!empty)await post('segments','create',{name:R.RESERVED,filters:{rules:list}});
   });
-  if(ok){await load();a.notice(done||'Regole salvate.');draw()}else{await load();draw()}
+  if(ok){await load(true);a.notice(done||'Regole salvate.');draw()}else{await load(true);draw()}
   return ok;
  }
  function drawTabs(){tabs.replaceChildren();for(const [id,label] of [['regole','Regole'],['registro','Registro']]){const b=B(label,()=>{st.tab=id;st.editing=null;draw()},'crm-rules-tab');b.setAttribute('role','tab');b.setAttribute('aria-selected',String(st.tab===id));tabs.append(b)}}

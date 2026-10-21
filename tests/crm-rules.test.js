@@ -233,3 +233,37 @@ test('page wiring: rules load after the fixed rules, the panel replaces the old 
  assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b|rgba?\(/i);assert.deepEqual([...new Set(css.match(/var\(--[a-z0-9-]+/g).map(v=>v.slice(4,10)))],['--crm-']);
  assert.match(fs.readFileSync(__dirname+'/../sales/crm-follow-up.js','utf8'),/opts\.send===false/);
 });
+
+const H=require('../sales/crm-home-core.js');
+const homeData=()=>{const d=base();d.opportunities.push({id:ids(4),title:'Scaduta',expected_close:'2026-10-01',owner_id:3,amount_cents:900000,created_at:'2026-10-10T10:00:00Z'});d.contacts.push({id:ids(24),name:'Nuovo',created_at:'2026-10-15T10:00:00Z'});return d};
+const FIXED=['close-overdue','stale-deal','new-contact'];
+test('home: no rules row (or only defaults switched on) gives exactly today’s suggestions',()=>{
+ const d=homeData(),me={now,me:3},today=H.suggestions(d,me),raw=H.collect(d,me);
+ for(const k of FIXED)assert.ok(raw.some(x=>x.rule===k),'fixture exercises '+k);
+ for(const rules of [undefined,null,[],[{id:'stale-deal',on:true}],[{id:'hot-contact',on:false}]]){assert.deepEqual(H.suggestions(d,{...me,rules}),today);assert.deepEqual(H.collect(d,{...me,rules}),raw)}
+});
+test('home: a default switched off in «Regole» disappears; home-only rules stay',()=>{
+ const d=homeData(),me={now,me:3};
+ const all=H.collect(d,me).map(x=>x.rule),off=H.collect(d,{...me,rules:FIXED.map(id=>({id,on:false}))}).map(x=>x.rule);
+ for(const k of FIXED)assert.ok(!off.includes(k),k);
+ assert.deepEqual(off,all.filter(k=>!FIXED.includes(k)));assert.ok(off.length>0);
+ assert.deepEqual(H.collect(d,{...me,rules:[{id:'stale-deal',on:false}]}).map(x=>x.rule),all.filter(k=>k!=='stale-deal'));
+});
+test('home: custom rules add their proposals under their name, and a disabled one adds nothing',()=>{
+ const d=homeData(),rule=task({id:'rhome1',name:'Ticket caldi',when:{type:'ticket-high',hours:4},do:{type:'task',kind:'call',title:'Richiama il cliente',days:0,to:'owner'}});
+ const items=H.collect(d,{now,rules:[rule]}).filter(x=>x.rule==='rhome1');
+ assert.equal(items.length,1);assert.equal(items[0].ruleName,'Ticket caldi');assert.equal(items[0].title,'Server giù');
+ assert.equal(items[0].reason,'Regola «Ticket caldi»: proponi l’attività «Chiama: Richiama il cliente».');assert.deepEqual(items[0].action,{kind:'view',hash:'#tickets'});
+ const mail=task({id:'rhome2',name:'Grazie preventivo',when:{type:'quote-accepted'},do:{type:'email',subject:'Grazie {nome}',body:'Testo'}});
+ const q=H.collect(d,{now,rules:[mail],quotes:d.quotes}).find(x=>x.rule==='rhome2');
+ assert.deepEqual(q.action,{kind:'customer',subject:'opportunities',id:ids(1),name:'Acme rinnovo'});assert.match(q.reason,/proponi la bozza email «Grazie Anna»/);assert.equal(q.key,'opportunities:'+ids(1));
+ assert.equal(H.collect(d,{now,rules:[{...rule,on:false}]}).some(x=>x.rule==='rhome1'),false);
+ // One item per record: a record already suggested by a fixed rule keeps a single item.
+ const r=H.suggestions(d,{now,rules:[task({id:'rhome3',name:'In proposta'})]});
+ assert.equal(r.items.filter(x=>x.key==='opportunities:'+ids(1)).length,1);
+});
+test('page: one shared read of the rules row for the home and the Automazioni panel',()=>{
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-rules.js','utf8'),dash=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
+ assert.equal((ui.match(/subject:'rules'/g)||[]).length,1);assert.match(ui,/R\.load=load/);assert.match(ui,/await R\.load\(fresh\)/);
+ assert.match(dash,/RadixCrmRules\.load\(\)/);assert.match(dash,/regole del workspace, non AI/);assert.match(dash,/it\.ruleName\|\|/);assert.doesNotMatch(dash,/subject:'rules'/);
+});
