@@ -1,7 +1,7 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
-   (lib/seo-studio.js) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
+   (lib/seo-studio.js), Kit identità the Studio Identità (lib/identity-studio.js) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The filter chips above the cards show one group at a time (remembered in this browser). Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
 (function(){'use strict';
@@ -37,6 +37,7 @@ const STUDIOS={
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  site:{global:'RadixSiteStudio',name:'Lo Studio Sito',need:'il sito parte dai suoi fatti confermati e dai suoi colori',agent:'web-developer'},
  seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'},
+ identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
  copy:{global:'RadixCopyStudio',name:'Lo Studio Testi',need:'i testi partono dai suoi fatti confermati',agent:''}
 };
 function openInline(c){
@@ -55,6 +56,8 @@ function openInline(c){
   ?S.siteStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'
   ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  :c.inline==='identity'
+  ?S.identityStudio({project,memoryScope,projectId:current.id,workspace:ws,visual:project.visual,agentsUrl:'/agents.html?agent=brand-strategist&project='+pid,onSaved:p=>{current={...current,...p}}})
   :kind==='copy'
   ?S.copyStudio({service,project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent='+agent+'&project='+pid})
   :S.photoStudio({project,memoryScope,concept:'',headline:''}));
