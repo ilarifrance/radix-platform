@@ -22,7 +22,7 @@ function testCopy(){
  const m=JSON.parse(fs.readFileSync(path.join(dir,'manifest.json'),'utf8'));
  m.host_permissions=['http://127.0.0.1/*'];fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify(m));
  const c=path.join(dir,'src','content.js');
- fs.writeFileSync(c,fs.readFileSync(c,'utf8').replace(/window\.__radixTiming\|\|\{[^}]+\}/,'{scroll:[150,250],page:[300,500],wait:4000,poll:100}'));
+ fs.writeFileSync(c,fs.readFileSync(c,'utf8').replace(/window\.__radixTiming\|\|\{[^}]+\}/,'{scroll:[150,250],page:[300,500],wait:4000,poll:100,pager:3000}'));
  return dir;
 }
 async function launch(t){
@@ -138,6 +138,19 @@ test('extension e2e on a fake Sales Navigator page',{skip:!chromium&&'playwright
   await popup.waitForSelector('#run-hint:not([hidden])');
   assert.match(await popup.textContent('#run-message'),/La pagina 2 non si è caricata/);
   assert.match(await popup.textContent('#run-hint'),/Resta su questa pagina e premi «Nuova importazione» per continuare da qui/);
+ });
+ await t.test('a pagination drawn late at the bottom is waited for and the import goes on',async t=>{
+  const {run}=await importFrom(t,'query=ceo&n=60&inner=1&latepag=1500',100);
+  assert.equal(run.status,'imported',run.message);assert.equal(run.endReason,'done');
+  assert.equal(run.rows.length,60);assert.equal(run.page,3);
+ });
+ await t.test('no pagination at all is not taken for the last page: the reason is shown',async t=>{
+  const {context,sw,run}=await importFrom(t,'query=ceo&n=60&nopag=1',100);
+  assert.equal(run.status,'imported');assert.equal(run.endReason,'error');assert.equal(run.rows.length,25);
+  assert.match(run.message,/Non trovo il pulsante «Avanti» a pagina 1/);
+  const popup=await popupFor(context,sw);
+  await popup.waitForSelector('#run-hint:not([hidden])');
+  assert.match(await popup.textContent('#run-message'),/Non trovo il pulsante «Avanti» a pagina 1/);
  });
  await t.test('stops at an in-page CAPTCHA and still sends what was visible before',async t=>{
   const {context,sw,jobs}=await launch(t);
