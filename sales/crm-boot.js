@@ -4,7 +4,7 @@
 'use strict';
 (function () {
   var NAMES = { dashboard: 'Panoramica', today: 'Oggi', companies: 'Aziende', contacts: 'Contatti', tasks: 'Attività', tickets: 'Assistenza',
-    calendar: 'Calendario', analytics: 'Analisi', opportunities: 'Opportunità', leads: 'Lead', interactions: 'Interazioni',
+    calendar: 'Calendario', analytics: 'Analisi', report: 'Report', opportunities: 'Opportunità', leads: 'Lead', interactions: 'Interazioni',
     members: 'Membri', processes: 'Processi', stages: 'Fasi' };
   var boot = document.getElementById('crm-boot');
   if (!boot) return;
