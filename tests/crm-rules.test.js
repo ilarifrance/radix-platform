@@ -81,15 +81,15 @@ test('server: owners and admins write the rules row; members keep their segments
  h=harness('admin','Milano');
  assert.equal((await h.call('POST',{},body('update',{id:ids(3),version:1,filters:{rules:[]}}))).code,400);
  h=harness('viewer');
- assert.equal((await h.call('GET',{entity:'segments',workspace:W,subject:'rules'})).code,200);assert.equal(h.seen.at(-1).rules,true);
- assert.equal((await h.call('GET',{entity:'segments',workspace:W})).code,200);assert.equal(h.seen.at(-1).rules,undefined);
+ assert.equal((await h.call('GET',{entity:'segments',workspace:W,subject:'rules'})).code,200);assert.equal(h.seen.at(-1).reserved,'__regole__');
+ assert.equal((await h.call('GET',{entity:'segments',workspace:W})).code,200);assert.equal(h.seen.at(-1).reserved,undefined);
  assert.equal((await h.call('GET',{entity:'segments',workspace:W,subject:'reports'})).code,400);
 });
 
 test('store: the contact segments read skips the rules row, the rules read returns only it',async()=>{
  const qs=[];const store=createStore(async q=>{qs.push(q);return []});
- await store.read({workspace:W,entity:'segments',offset:0},7);await store.read({workspace:W,entity:'segments',offset:0,rules:true},7);
- assert.match(qs[0],/\(lower\(btrim\(t\.name\)\)='__regole__'\)=false/);assert.match(qs[1],/='__regole__'\)=true/);
+ await store.read({workspace:W,entity:'segments',offset:0},7);await store.read({workspace:W,entity:'segments',offset:0,reserved:'__regole__'},7);
+ assert.match(qs[0],/lower\(btrim\(t\.name\)\)<>ALL\(\$4::text\[\]\)/);assert.match(qs[1],/lower\(btrim\(t\.name\)\)=\$4/);
  // The newsletter and the Segmenti panel read the same entity without subject: they never see the row.
  assert.doesNotMatch(fs.readFileSync(__dirname+'/../sales/lead-newsletter.js','utf8'),/subject:'rules'/);
 });

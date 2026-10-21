@@ -1,5 +1,6 @@
 'use strict';
 const {fields}=require('./_sales');
+const reserved=require('./_sales_reserved');
 const recordFields=require('../sales/crm-fields-core.js');
 // Export rows: the added fields (011) arrive in one jsonb column and become ordinary keys.
 function flatten(kind){return rows=>rows.map(({added,...r})=>{const out={...r};if(added&&typeof added==='object')for(const k of recordFields.ADDED[kind])if(Object.hasOwn(added,k))out[k]=k==='birthdate'&&added[k]?String(added[k]).slice(0,10):added[k];if(added&&added.custom&&typeof added.custom==='object')out.custom=added.custom;return out;});}
@@ -74,8 +75,9 @@ function createStore(rawSql){
    // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
    // Support queue: open first, then by due date.
    if(c.entity==='tickets')return sql("SELECT t.* FROM sales_tickets t WHERE t.workspace_id=$1 AND "+guard+" ORDER BY array_position(ARRAY['open','pending','resolved','closed'],t.status),t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3",[c.workspace,u,c.offset]);
-   // The «__regole__» row (CRM rules, sales/crm-rules-core.js) is not a contact segment: it is read only on request.
-   if(c.entity==='segments')return sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+" AND (lower(btrim(t.name))='__regole__')="+(c.rules?'true':'false')+' ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   // Reserved rows («__regole__» and «__sla__», api/_sales_reserved.js) are not contact segments: each is read only on request.
+   if(c.entity==='segments')return c.reserved?sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))=$4 ORDER BY t.id LIMIT 1 OFFSET $3',[c.workspace,u,c.offset,c.reserved])
+    :sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))<>ALL($4::text[]) ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,reserved.NAMES]);
    if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.
    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);

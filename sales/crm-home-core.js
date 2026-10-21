@@ -23,6 +23,7 @@ const days=n=>n===1?'1 giorno':n+' giorni';
 const isOpenDeal=o=>!o.outcome||o.outcome==='open';
 const SOON=14;// «Chiusura vicina»: expected close within this many days and no open task on the deal
 const automations=()=>root.RadixCrmAutomations||(typeof require==='function'?require('./crm-automations-core.js'):null);
+const slaCore=()=>root.RadixCrmSla||(typeof require==='function'?require('./crm-sla-core.js'):null);
 const rulesCore=()=>root.RadixCrmRules||(typeof require==='function'?require('./crm-rules-core.js'):null);
 const open360=(subject,r)=>({kind:'customer',subject,id:r.id,name:r.name||r.title||''});
 const view=(hash)=>({kind:'view',hash});
@@ -33,11 +34,13 @@ const RULES=Object.freeze([
  {id:'close-soon',name:'Chiusura vicina'},
  {id:'stale-deal',name:'Trattativa ferma'},
  {id:'new-contact',name:'Primo contatto'},
+ {id:'ticket-sla',name:'Scadenza SLA'},
  {id:'ticket-open',name:'Ticket da seguire'},
  {id:'lead-new',name:'Lead da lavorare'}
 ]);
 
-// data: crm-data.js rows (+ tickets); opts: {now, me (user id), tickets, rules (stored «Regole» list), quotes}
+// data: crm-data.js rows (+ tickets); opts: {now, me (user id), tickets, rules (stored «Regole» list), quotes,
+// sla (settings of crm-sla-core.js: turns on «Scadenza SLA»)}
 function collect(data,opts){
  const d=data||{},o=opts||{},now=o.now||Date.now(),today=localDay(now),t0=midnight(now),t1=t0+DAY;
  const RC=o.rules!==undefined&&o.rules!==null?rulesCore():null,eff=RC?RC.effective(o.rules):null;
@@ -74,6 +77,12 @@ function collect(data,opts){
   if(on('new-contact'))for(const it of A.plan('new-contact',{contacts,opportunities:opps,tasks,interactions:inter},{now}).items){const c=it.record;const n=Math.floor((now-ts(c.created_at))/DAY);
    out.push({rule:'new-contact',key:'contacts:'+c.id,urgency:1,value:0,age:n,
     title:c.name||'Contatto',reason:'Nuovo contatto'+(companyName(c.company_id)?' di '+companyName(c.company_id):'')+' (da '+(n<1?'oggi':days(n))+'), ancora nessun primo contatto.',action:open360('contacts',c),label:'Apri'})}}
+ // 5a. Tickets past or near their SLA (sales/crm-sla-core.js); one item per ticket wins over «Ticket da seguire» at equal urgency.
+ const SLA=o.sla&&slaCore();
+ if(SLA){for(const k of tickets){const r=SLA.evaluate(k,{now,settings:o.sla,interactions:inter});if(!r||!r.active||(r.state!=='scaduto'&&r.state!=='in-scadenza'))continue;
+  const since=ts(k.created_at),n=since===null?0:Math.floor((now-since)/DAY);
+  out.push({rule:'ticket-sla',key:'tickets:'+k.id,urgency:r.state==='scaduto'?3:2,value:0,age:n,
+   title:k.title||'Ticket',reason:SLA.badge(r).text+' · priorità '+SLA.PRIORITY_LABEL[r.priority]+'.',action:view('#tickets'),label:'Vai all’assistenza'})}}
  // 5. Tickets to follow: open (waiting for us) and «In attesa del cliente» (pending: remind or close).
  for(const k of tickets){if(k.status!=='open'&&k.status!=='pending')continue;const wait=k.status==='pending';
   const since=ts(wait?(k.updated_at||k.created_at):k.created_at);const n=since===null?0:Math.floor((now-since)/DAY);const due=ts(k.due_at),late=due!==null&&due<now;
