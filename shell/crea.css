@@ -164,3 +164,34 @@
 .cr-panel .identity-studio .tool-status{margin:0;color:#cfd7ef}
 .cr-panel .identity-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
 @media (max-width:480px){.cr-panel .identity-studio .is-swatches{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* Studio Stampa (lib/print-studio.js) reuses the Studio Foto steps and chips; these are its own pieces. */
+.cr-panel .print-studio{display:flex;flex-direction:column;gap:12px}
+.cr-panel .print-studio .pr-formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px;margin:0;padding:0;border:0}
+.cr-panel .print-studio .pr-formats legend{margin-bottom:6px;font-size:13px;font-weight:600}
+.cr-panel .print-studio .pr-format{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:6px;row-gap:2px;padding:8px 10px;border-radius:10px;min-width:0}
+.cr-panel .print-studio .pr-format small{grid-column:2;font-size:11px;overflow-wrap:anywhere}
+.cr-panel .print-studio .pr-format:has(input:checked){border-color:var(--rx-agency,#7c5cff);box-shadow:0 0 0 1px var(--rx-agency,#7c5cff)}
+.cr-panel .print-studio .pr-brand{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0;font-size:13px;color:#cfd7ef}
+.cr-panel .print-studio .pr-swatches{display:inline-flex;gap:3px}
+.cr-panel .print-studio .pr-swatches i{display:block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.3)}
+.cr-panel .print-studio .pr-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:10px}
+.cr-panel .print-studio .pr-fields label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
+.cr-panel .print-studio .pr-wide{grid-column:1/-1}
+.cr-panel .print-studio input[type=text],.cr-panel .print-studio input[type=number],.cr-panel .print-studio textarea,.cr-panel .print-studio select{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .print-studio .pr-paste{padding:8px 12px;border:1px dashed var(--border,#2c3a63);border-radius:10px;font-size:13px}
+.cr-panel .print-studio .pr-paste summary{cursor:pointer;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .print-studio .pr-paste[open]{display:flex;flex-direction:column;gap:8px}
+.cr-panel .print-studio .pr-paste .ps-actions select{width:auto;max-width:100%}
+.cr-panel .print-studio .pr-preview{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.cr-panel .print-studio .pr-page{margin:0;display:flex;flex-direction:column;gap:6px;flex:1 1 280px;max-width:440px;min-width:0}
+.cr-panel .print-studio .pr-page[data-format=biglietto]{max-width:400px}
+.cr-panel .print-studio .pr-page[data-format=brochure]{flex-basis:100%;max-width:860px}
+.cr-panel .print-studio .pr-svg svg{display:block;width:100%;height:auto;background:#fff;border-radius:2px;box-shadow:0 2px 14px rgba(0,0,0,.35)}
+.cr-panel .print-studio figcaption{font-size:12px;color:var(--muted,#aeb9da)}
+.cr-panel .print-studio .pr-warn{margin:0;padding:8px 10px 8px 26px;border:1px solid rgba(61,214,140,.4);border-radius:10px;color:#7be3ac;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.cr-panel .print-studio .pr-warn[data-warn=true]{border-color:rgba(245,181,68,.45);color:#f5c76b}
+.cr-panel .print-studio .pr-notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted,#aeb9da)}
+.cr-panel .print-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .print-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+.cr-panel .print-studio input[type=number],.cr-panel .print-studio select{font:inherit;color:inherit;background:transparent;border:1px solid var(--rx-border-strong,#26324a);border-radius:9px;padding:8px 10px}
+.cr-panel .print-studio select option{background:#09142d}
