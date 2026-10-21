@@ -4,7 +4,7 @@ const core=require('../agency/crea-core.js');
 const root=path.join(__dirname,'..');
 
 test('the panel has the services of the approved proposal plus the text services',()=>{
- assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Nome e slogan','Kit identità','Social e post','Post grafici','Testi per sito, blog e prodotti','Newsletter','Immagini','Avatar','Video','Sito web','SEO e GEO','Testi per annunci Google e Meta','Stampa e documenti','Catalogo prodotti','Brochure e company profile','Scheda tecnica','Presentazione']);
+ assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Nome e slogan','Kit identità','Social e post','Post grafici','Testi per sito, blog e prodotti','Newsletter','Immagini','Avatar','Video','Sito web','SEO e GEO','Testi per annunci Google e Meta','Creatività per annunci','Stampa e documenti','Catalogo prodotti','Brochure e company profile','Scheda tecnica','Presentazione']);
  for(const c of core.CARDS)assert.ok(c.cost&&c.action&&c.line,c.id);
  assert.equal(new Set(core.CARDS.map(c=>c.id)).size,core.CARDS.length,'unique ids');
 });
@@ -15,7 +15,7 @@ test('every card has one of the 7 groups; the filters list only groups with card
  const by=g=>core.CARDS.filter(c=>c.group===g).map(c=>c.id);
  assert.deepEqual(by('Strategia'),['strategy','lancio']);assert.deepEqual(by('Brand'),['naming','identita']);
  assert.deepEqual(by('Social e contenuti'),['social','graphics','testi','newsletter']);
- assert.deepEqual(by('Web e annunci'),['site','seo','annunci']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','brochure','scheda','presentazione']);
+ assert.deepEqual(by('Web e annunci'),['site','seo','annunci','creativita']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','brochure','scheda','presentazione']);
  assert.deepEqual(by('Immagini'),['images']);assert.deepEqual(by('Video'),['avatar','video']);
  assert.deepEqual(core.groups(),core.GROUPS);
  assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita']);
@@ -54,7 +54,7 @@ test('without a project only strategy leads somewhere (new project); no card goe
  assert.equal(core.linkFor(core.card('social'),''),null);
  assert.equal(core.linkFor(core.card('social'),'bad id!'),null);
  assert.deepEqual(core.CARDS.filter(c=>c.state!=='ready').map(c=>c.id),[],'every card is guided');
- assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['identity','photo','video','site','seo','print','catalog']);
+ assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['identity','photo','video','site','seo','ads','print','catalog']);
  // an agent card would still open the agent with the request prefilled, never sent on its own
  assert.match(core.linkFor({agent:'web-developer',ask:'ciao'},'radix'),/^\/agents\.html\?agent=web-developer&project=radix&q=ciao$/);
  assert.match(fs.readFileSync(path.join(root,'agents-page.js'),'utf8'),/prefilled, never sent on its own/);
