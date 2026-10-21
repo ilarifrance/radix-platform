@@ -1,0 +1,97 @@
+/* «Cosa vuoi fare oggi?» (agency/crea.html): the single Marketing panel. Palette from shell/agency.css. */
+.cr-main{max-width:1180px;margin:0 auto;padding:30px 24px 60px;display:flex;flex-direction:column;gap:22px}
+.cr-head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.cr-eyebrow{margin:0;font-size:12px;letter-spacing:.16em;color:var(--cyan,#42dcf7)}
+.cr-head h1{margin:4px 0 6px;font-size:clamp(28px,3.4vw,42px);line-height:1.1}
+.cr-muted{margin:0;color:var(--muted,#aeb9da)}
+.cr-project{display:flex;flex-direction:column;gap:6px;min-width:240px;font-size:13px;color:var(--muted,#aeb9da)}
+.cr-project select{background:#081129;color:#f3f4ff;border:1px solid var(--border,#2c3a63);border-radius:10px;padding:10px 12px;font:inherit}
+.cr-message{margin:0;min-height:1.2em;color:var(--muted,#aeb9da)}
+.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;list-style:none;margin:0;padding:0}
+.cr-card{display:flex;flex-direction:column;gap:10px;padding:18px;border:1px solid var(--border,#2c3a63);border-radius:16px;background:linear-gradient(150deg,#101c3e,#0a1430);min-height:220px;transition:border-color .15s,transform .15s}
+.cr-card:hover,.cr-card:focus-within{border-color:var(--violet,#a68bff);transform:translateY(-2px)}
+.cr-card[data-open=true]{border-color:var(--cyan,#42dcf7)}
+.cr-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cr-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;font-size:20px;font-style:normal;background:rgba(166,139,255,.16);color:var(--violet,#a68bff)}
+.cr-badge{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid rgba(66,220,247,.4);color:var(--cyan,#42dcf7)}
+.cr-badge[data-state=agent]{border-color:rgba(245,181,68,.45);color:#f5c76b}
+.cr-card h2{margin:0;font-size:20px}
+.cr-card p{margin:0;color:var(--muted,#aeb9da)}
+.cr-cost{font-size:13px;color:#cfd7ef}
+.cr-cost::before{content:'● ';color:var(--cyan,#42dcf7)}
+.cr-hint{font-size:13px;color:#f5c76b}
+.cr-go{margin-top:auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 14px;border-radius:11px;border:0;background:linear-gradient(90deg,#6c5cf7,#4c7dff);color:#fff;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+.cr-go:hover{filter:brightness(1.1)}
+.cr-go:focus-visible{outline:2px solid var(--cyan,#42dcf7);outline-offset:2px}
+.cr-go[aria-disabled=true]{opacity:.5;pointer-events:none}
+.cr-panel{border:1px solid var(--cyan,#42dcf7);border-radius:16px;padding:18px;background:#081129}
+.cr-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.cr-panel-head h2{margin:0;font-size:20px}
+.cr-close{background:transparent;border:1px solid var(--border,#2c3a63);color:#f3f4ff;border-radius:9px;padding:7px 11px;cursor:pointer;font:inherit}
+.cr-note{font-size:13px;color:var(--muted,#aeb9da);border-top:1px solid var(--border,#2c3a63);padding-top:14px;margin:0}
+@media (max-width:640px){.cr-main{padding:18px 16px 40px}.cr-project{min-width:0;width:100%}.cr-card{min-height:0}}
+.cr-main [hidden]{display:none!important}
+.rx-agency .cr-main .cr-go{font-size:15px;line-height:1.3;text-align:center}
+/* the Studio Foto widget brings no button styles of its own (they come from the agents page) */
+.cr-panel .photo-studio button{font:inherit;cursor:pointer;border-radius:10px;padding:9px 14px;border:1px solid var(--border,#2c3a63);background:#101c3e;color:#f3f4ff}
+.cr-panel .photo-studio button.primary{border:0;background:linear-gradient(90deg,#6c5cf7,#4c7dff);font-weight:600}
+.cr-panel .photo-studio button:disabled{opacity:.55;cursor:default}
+.cr-panel .photo-studio .muted{color:var(--muted,#aeb9da);font-size:13px}
+.cr-panel .photo-studio textarea,.cr-panel .photo-studio input[type=text],.cr-panel .photo-studio input:not([type]){box-sizing:border-box;width:100%;background:#081129;color:#f3f4ff;border:1px solid var(--border,#2c3a63);border-radius:10px;padding:10px;font:inherit}
+.cr-panel .photo-studio .ps-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+/* Studio Video (lib/video-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .video-studio h3{margin:0;font-size:16px}
+.cr-panel .video-studio .vs-who{display:flex;align-items:center;gap:10px;font-size:14px;color:#cfd7ef}
+.cr-panel .video-studio .vs-who img{width:44px;height:44px;border-radius:50%;object-fit:cover}
+.cr-panel .video-studio .vs-missing{margin:0;padding:10px 12px;border:1px solid rgba(245,181,68,.45);border-radius:10px;color:#f5c76b;font-size:14px}
+.cr-panel .video-studio .vs-missing a{color:var(--cyan,#42dcf7);font-weight:600}
+.cr-panel .video-studio .vs-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.cr-panel .video-studio .vs-card{padding:12px;gap:8px}
+.cr-panel .video-studio .vs-card textarea{min-height:150px;resize:vertical;line-height:1.45}
+.cr-panel .video-studio .vs-meta[data-long=true]{color:#f5c76b}
+.cr-panel .video-studio .vs-draft{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .video-studio .vs-view{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.cr-panel .video-studio .vs-view video{width:min(100%,300px);aspect-ratio:9/16;border-radius:12px;background:#000}
+.cr-panel .video-studio .vs-view a{color:var(--cyan,#42dcf7)}
+.cr-panel .video-studio .tool-status{margin:0;color:#cfd7ef}
+/* Studio SEO e GEO (lib/seo-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .seo-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .seo-studio h4{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
+.cr-panel .seo-studio .ss-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
+.cr-panel .seo-studio .ss-competitors{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.cr-panel .seo-studio .ss-label{color:inherit}
+.cr-panel .seo-studio input[type=text]{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .seo-studio .ss-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
+.cr-panel .seo-studio .ss-card{padding:12px;gap:10px;min-width:0}
+.cr-panel .seo-studio .ss-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .seo-studio .ss-focus{margin:0;color:#cfd7ef;font-size:14px}
+.cr-panel .seo-studio .ss-sec ul,.cr-panel .seo-studio .ss-sec ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13px;color:#cfd7ef;overflow-wrap:anywhere}
+.cr-panel .seo-studio .ss-plan{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .seo-studio .ss-plan textarea{min-height:220px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
+.cr-panel .seo-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .seo-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
+/* Studio Sito (lib/site-studio.js) reuses the Studio Foto layout; these are its own pieces. */
+.cr-panel .site-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
+.cr-panel .site-studio .ps-form{display:flex;flex-direction:column;gap:12px}
+.cr-panel .site-studio .st-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px}
+.cr-panel .site-studio input[type=text]{box-sizing:border-box;width:100%;min-width:0}
+.cr-panel .site-studio .st-colours{margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cr-panel .site-studio .st-swatch{display:inline-block;width:16px;height:16px;border-radius:4px;border:1px solid rgba(255,255,255,.35);vertical-align:middle}
+.cr-panel .site-studio .st-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
+.cr-panel .site-studio .st-card{padding:12px;gap:8px;min-width:0}
+.cr-panel .site-studio .st-card>button{margin-top:auto;align-self:flex-start}
+.cr-panel .site-studio .st-concept{margin:0;color:#cfd7ef;font-size:14px}
+.cr-panel .site-studio .st-meta{margin:0;color:var(--muted,#aeb9da);font-size:12px;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-thumb{position:relative;width:100%;aspect-ratio:1280/860;overflow:hidden;border-radius:10px;background:#fff;border:1px solid var(--border,#2c3a63)}
+.cr-panel .site-studio .st-thumb iframe{position:absolute;left:0;top:0;width:1280px;height:860px;border:0;transform:scale(var(--s,.22));transform-origin:0 0;pointer-events:none}
+.cr-panel .site-studio .st-site{display:flex;flex-direction:column;gap:10px;padding-top:6px;border-top:1px solid var(--border,#2c3a63)}
+.cr-panel .site-studio .st-modes{display:inline-flex;gap:4px;align-self:flex-start;padding:3px;border:1px solid var(--border,#2c3a63);border-radius:12px}
+.cr-panel .site-studio .st-modes button{border:0;background:transparent;padding:6px 14px}
+.cr-panel .site-studio .st-modes button[aria-pressed=true]{background:linear-gradient(90deg,#6c5cf7,#4c7dff);font-weight:600}
+.cr-panel .site-studio .st-view{display:flex;justify-content:center;padding:12px;border-radius:12px;background:#050b1c}
+.cr-panel .site-studio .st-view iframe{display:block;border:0;background:#fff}
+.cr-panel .site-studio .st-view[data-mode=desktop] iframe{width:100%;height:min(640px,70vh);border-radius:8px}
+.cr-panel .site-studio .st-view[data-mode=mobile] iframe{width:390px;max-width:100%;height:min(720px,75vh);border-radius:22px;box-shadow:0 0 0 7px #1b2440}
+.cr-panel .site-studio .st-later{margin:0}
+.cr-panel .site-studio .tool-status{margin:0;color:#cfd7ef}
+.cr-panel .site-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}

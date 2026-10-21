@@ -176,14 +176,16 @@ function createHandler({getSessionUser,getStore}){
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};
-     if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace'].includes(k))||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
+     if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
-     else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)))fail(400,'Parametro non consentito.');
+     else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
      if(q.due!==undefined && (q.entity!=='tasks'||!['all','overdue','upcoming','unscheduled'].includes(q.due)))fail(400,'Filtro scadenza non valido.');
      if(q.entity==='email_clicks'){
-       if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||!uuid(q.workspace))fail(400,'Parametri clic non validi.');
+       if(Object.keys(q).some(k=>!['entity','workspace','offset','report'].includes(k))||!uuid(q.workspace)||(q.report!==undefined&&q.report!=='campaigns'))fail(400,'Parametri clic non validi.');
        const store=getStore(),m=await store.membership(q.workspace,user.uid);if(!m||!['owner','admin','member','viewer'].includes(m.role))fail(403,'Membership esplicita richiesta per questo workspace.');
+       // report=campaigns adds the rows of the «Report campagna» (sends, unsubscribe stamps, later contacts, opportunities).
+       if(q.report==='campaigns'){const [base,data]=await Promise.all([clicks.report(store.sql,q.workspace),clicks.campaignData(store.sql,q.workspace)]);return res.status(200).json({...base,report:data});}
        return res.status(200).json(await clicks.report(store.sql,q.workspace));
      }
      if(q.entity==='workspaces'){const store=getStore();return res.status(200).json({rows:await store.workspaces(user.uid)});}

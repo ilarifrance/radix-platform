@@ -71,4 +71,23 @@ async function report(sql,workspace){
  const byCampaign={};for(const r of pairs)(byCampaign[r.campaign]=byCampaign[r.campaign]||[]).push(r.contact_id);
  return {rows:people,campaigns,people,contacts:contacts.map(r=>r.contact_id),byCampaign};
 }
-module.exports={sign,verify,handle,links,report,validUrl,validCampaign,MAX_CAMPAIGN};
+// «Report campagna» (sales/crm-campaign-report-core.js computes the metrics): the raw rows it needs, read-only and
+// bounded to the last 400 days. Sends are the «Email: …» interactions recorded by crm-campaigns.js, with the campaign
+// name taken from the k= parameter of their tracked links (still URL-encoded); bodies never leave the database.
+// Unsubscribe stamps come from the note the unsubscribe link writes (api/_sales_unsubscribe.js), in Europe/Rome time.
+const SINCE="now()-interval '400 days'";
+const SENT="s.workspace_id=$1 AND s.kind='email' AND s.title LIKE 'Email: %' AND s.contact_id IS NOT NULL AND s.occurred_at>="+SINCE;
+async function campaignData(sql,workspace){
+ const [sends,clickRows,contacts,followups,opportunities]=await Promise.all([
+  sql(`SELECT s.contact_id,s.occurred_at,s.title,substring(s.body from '[?&]k=([^&[:space:]]+)&u=') AS k FROM sales_interactions s WHERE ${SENT} ORDER BY s.occurred_at DESC LIMIT 20000`,[workspace]),
+  sql(`SELECT contact_id,campaign,url,clicked_at FROM sales_email_clicks WHERE workspace_id=$1 AND clicked_at>=${SINCE} ORDER BY clicked_at DESC LIMIT 20000`,[workspace]),
+  sql(`SELECT c.id,c.name,c.company_id,c.marketing_consent,(SELECT array_agg(m[1]) FROM regexp_matches(coalesce(c.notes,''),'Disiscrizione dalle email commerciali tramite link: ([0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2})','g') m) AS unsubscribed
+ FROM sales_contacts c WHERE c.workspace_id=$1 AND (EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=c.id) OR EXISTS(SELECT 1 FROM sales_email_clicks k WHERE k.workspace_id=$1 AND k.contact_id=c.id AND k.clicked_at>=${SINCE})) LIMIT 20000`,[workspace]),
+  sql(`SELECT i.id,i.contact_id,i.kind,i.title,i.occurred_at FROM sales_interactions i WHERE i.workspace_id=$1 AND i.contact_id IS NOT NULL AND i.occurred_at>=${SINCE}
+ AND (i.kind IN ('meeting','call') OR (i.kind='email' AND i.title ~* '^\\s*(re|r|risposta)\\s*:'))
+ AND EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=i.contact_id) ORDER BY i.occurred_at DESC LIMIT 20000`,[workspace]),
+  sql(`SELECT o.id,o.title,o.contact_id,o.company_id,o.created_at FROM sales_opportunities o WHERE o.workspace_id=$1 AND o.created_at>=${SINCE} ORDER BY o.created_at DESC LIMIT 5000`,[workspace])
+ ]);
+ return {sends,clicks:clickRows,contacts,followups,opportunities};
+}
+module.exports={sign,verify,handle,links,report,campaignData,validUrl,validCampaign,MAX_CAMPAIGN};

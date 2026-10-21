@@ -396,6 +396,8 @@ function openEditor(entity,row=null){
   const stage=addSelect('stage_id','Fase',[],row?.stage_id,entity==='opportunities');
   const fill=()=>{stage.replaceChildren();const choices=[['','Nessuna fase'],...rows('stages').filter(s=>s.process_id===process.value).sort((a,b)=>a.position-b.position).map(s=>[s.id,s.title])];if(row?.stage_id && process.value===row.process_id && !choices.some(c=>c[0]===row.stage_id))choices.push([row.stage_id,'Fase corrente non caricata']);choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;stage.append(o);});stage.value=process.value===row?.process_id?row?.stage_id || '':'';stage.required=Boolean(process.value);};process.addEventListener('change',fill);fill();
  }
+ // «Detta i campi» (sales/crm-dictation.js): the dictated values go into this form, saved by its own button.
+ window.RadixCrmDictation?.editor(entity,row,fields);
  $('editor').showModal();fields.querySelector('input')?.focus();
 }
 $('editor-form').addEventListener('submit',event=>{
