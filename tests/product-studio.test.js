@@ -225,5 +225,6 @@ test('the panel card, the icon and the page wiring',()=>{
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8'),js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
  assert.match(html,/<script src="\/lib\/catalog-studio\.js"><\/script><script src="\/lib\/product-studio\.js"><\/script>/);assert.ok(html.indexOf('zip-lite.js')<html.indexOf('product-studio.js'));assert.ok(html.indexOf('crm-csv-core.js')<html.indexOf('product-studio.js'));
  assert.match(js,/feed:\{global:'RadixProductStudio'/);assert.match(js,/S\.productStudio\(\{project,projectName:current\.name,memoryScope,projectId:current\.id,workspace:ws/);
- const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');assert.match(css,/\.pf-studio/);assert.match(css,/\.pf-dialog/);
+ const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');assert.match(css,/\.pf-studio/);assert.doesNotMatch(css,/\.pf-dialog/,'the shared RADIX confirmation replaces the own dialog');
+ const lib=fs.readFileSync(path.join(root,'lib/product-studio.js'),'utf8');assert.match(lib,/function confirmCalls\(host,\{title,rows,note,ok\}\)\{return askConfirm\(\{title,facts:rows,cost:note/);assert.match(html,/<script src="\/lib\/radix-confirm\.js"><\/script>/);
 });

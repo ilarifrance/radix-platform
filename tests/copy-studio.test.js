@@ -159,7 +159,7 @@ test('the entry saved in the role thread is an agent document; saving keeps the 
 
 test('the widget confirms before the one AI call, uses the service role with its memory and saves the edited text',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/copy-studio.js'),'utf8');
- assert.match(src,/confirm\('Preparare 3 proposte di «'\+svc\.title\+'» con '\+who\+' AI\? È una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Preparare 3 proposte di «'\+svc\.title\+'» con '\+who\+' AI\?',cost:'È una sola chiamata AI: usa crediti API\.',ok:'Prepara le proposte'\}\)\)return;\s*lock\(true\)/);
  assert.match(src,/rt\.reply\(\{role:svc\.role,project:ctx\.project,memoryScope:ctx\.memoryScope,messages:\[\{role:'user',content:prompt\}\]\}\)/);
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(/.test(src),'no requests of its own');

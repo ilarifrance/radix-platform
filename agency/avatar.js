@@ -8,6 +8,8 @@ let projects=[],project=null,path='',chosen=null,voice=null,voices=null,busy=fal
 const say=t=>{$('avMessage').textContent=t||''};
 const node=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n};
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
+// The styled RADIX confirmation (lib/radix-confirm.js) before every HeyGen spend; the browser's confirm only if it is missing.
+const askConfirm=o=>window.RadixConfirm?window.RadixConfirm.ask(o):Promise.resolve(window.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')));
 async function api(method,query,body){const r=await fetch('/api/heygen'+(query?'?'+query:''),{method,credentials:'same-origin',headers:body?{'content-type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'HeyGen non risponde ('+r.status+')');return d}
 function step(n){document.querySelectorAll('[data-panel]').forEach(p=>{p.hidden=Number(p.dataset.panel)!==n});document.querySelectorAll('#avSteps li').forEach(li=>{const s=Number(li.dataset.step);li.dataset.state=s<n?'done':s===n?'current':'todo'});$('avSteps').hidden=false;window.scrollTo({top:0,behavior:'smooth'})}
 
@@ -32,7 +34,7 @@ function renderQuestions(){$('avQuestions').replaceChildren(...studio.QUESTIONS.
 function answers(){const a={appearance:$('avAppearance').value};for(const q of studio.QUESTIONS){const c=document.querySelector('input[name="'+q.id+'"]:checked');if(c)a[q.id]=c.value}return a}
 function choosePath(p){path=p;document.querySelectorAll('.av-path').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.path===p)));$('avDesign').hidden=p!=='design';$('avPhoto').hidden=p!=='photo';$('avLibrary').hidden=p!=='library';if(p==='library')loadLibrary()}
 async function design(e){e.preventDefault();if(busy)return;let payload;try{payload=studio.designPayload(answers(),$('avName').value)}catch(err){say(err.message);return}
- if(!confirm('Generare le proposte con HeyGen? Consuma crediti HeyGen.'))return;busy=true;$('avGenerate').disabled=true;step(2);$('avExamples').replaceChildren();$('avProgress').textContent='HeyGen sta disegnando le proposte…';
+ if(!await askConfirm({title:'Generare le proposte con HeyGen?',cost:'Consuma crediti HeyGen.',ok:'Genera le proposte'}))return;busy=true;$('avGenerate').disabled=true;step(2);$('avExamples').replaceChildren();$('avProgress').textContent='HeyGen sta disegnando le proposte…';
  try{const {generationId}=await api('POST','',{action:'design',confirm:true,name:payload.name,answers:answers()});
   for(let i=0;i<80;i++){const g=await api('GET','action=generation&id='+encodeURIComponent(generationId));const st=String(g.status||'').toLowerCase();
    if(st==='success'||st==='completed'){if(!g.images.length)throw Error('HeyGen non ha restituito immagini.');showExamples(g.images);return}
@@ -42,13 +44,13 @@ async function design(e){e.preventDefault();if(busy)return;let payload;try{paylo
  catch(err){$('avProgress').textContent='Non riuscito: '+err.message}finally{busy=false;$('avGenerate').disabled=false}}
 function showExamples(images){$('avProgress').textContent='Ecco '+images.length+(images.length===1?' proposta':' proposte')+': scegli quella che ti rappresenta meglio.';
  $('avExamples').replaceChildren(...images.map((im,i)=>{const card=node('figure',null,'av-example'),img=node('img');img.src=im.url;img.alt='Proposta '+(i+1);const b=node('button','Scegli questa','av-primary');b.type='button';b.onclick=()=>createFrom(im.key,im.url,$('avName').value,b);card.append(img,node('figcaption','Proposta '+(i+1)),b);return card}))}
-async function createFrom(imageKey,imageUrl,name,btn){if(busy)return;if(!confirm('Creare l’avatar su HeyGen con questa immagine? Consuma crediti HeyGen.'))return;if(btn)btn.disabled=true;if(!(await createFromConfirmed(imageKey,imageUrl,name))&&btn)btn.disabled=false}
+async function createFrom(imageKey,imageUrl,name,btn){if(busy)return;if(!await askConfirm({title:'Creare l’avatar su HeyGen con questa immagine?',cost:'Consuma crediti HeyGen.',ok:'Crea l’avatar'}))return;if(btn)btn.disabled=true;if(!(await createFromConfirmed(imageKey,imageUrl,name))&&btn)btn.disabled=false}
 // The photo shrunk to at most 1280px, as JPEG, so it stays under the upload limit.
 function shrink(file){return new Promise((ok,ko)=>{const u=URL.createObjectURL(file),img=new Image();img.onload=()=>{const k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL('image/jpeg',.9))};img.onerror=()=>{URL.revokeObjectURL(u);ko(Error('Foto non leggibile.'))};img.src=u})}
 let photoData='';
 async function pickPhoto(){const f=$('avFile').files[0];photoData='';$('avUsePhoto').disabled=true;if(!f)return;if(!/^image\/(jpeg|png)$/.test(f.type)){say('Carica una foto JPG o PNG.');return}
  try{photoData=await shrink(f);const p=$('avPhotoPreview');p.src=photoData;p.hidden=false;$('avUsePhoto').disabled=false;say('')}catch(e){say(e.message)}}
-async function usePhoto(e){e.preventDefault();if(!photoData||busy)return;if(!confirm('Caricare la foto su HeyGen e crearne l’avatar? Consuma crediti HeyGen.'))return;busy=true;$('avUsePhoto').disabled=true;say('Carico la foto su HeyGen…');
+async function usePhoto(e){e.preventDefault();if(!photoData||busy)return;if(!await askConfirm({title:'Caricare la foto su HeyGen e crearne l’avatar?',cost:'Consuma crediti HeyGen.',ok:'Carica e crea'}))return;busy=true;$('avUsePhoto').disabled=true;say('Carico la foto su HeyGen…');
  try{const up=await api('POST','',{action:'upload',dataUrl:photoData});busy=false;await createFromConfirmed(up.imageKey,up.url||photoData,$('avPhotoName').value)}catch(err){say('Foto non caricata: '+err.message);$('avUsePhoto').disabled=false}finally{busy=false}}
 // Returns true when the avatar exists on HeyGen and the voice step is open.
 async function createFromConfirmed(imageKey,imageUrl,name){busy=true;say('Creo l’avatar su HeyGen…');
@@ -74,7 +76,7 @@ async function save(){if(busy)return;let record;try{record=studio.avatarRecord({
   if(ws.memory)ws.memory.propose(studio.avatarMemory(record,project.id,project.client_id,path==='design'?$('avAppearance').value:'')).then(()=>say('Avatar salvato: i video del piano editoriale partono con '+record.name+'. Ho proposto la scelta anche in Memoria: confermala lì perché gli agenti la usino.')).catch(()=>{})}
  catch(e){say('Non salvato: '+e.message+(/revision|versione|modificat/i.test(e.message)?' Ricarica la pagina e riprova.':''))}finally{busy=false;$('avSave').disabled=false}}
 async function tryVideo(){if(busy||!chosen||!voice)return;const script=$('avScript').value.trim();if(!script){say('Scrivi un testo di prova.');return}
- if(!confirm('Generare un video di prova su HeyGen? Consuma crediti HeyGen.'))return;busy=true;$('avTry').disabled=true;const st=$('avTryState');st.textContent='Avvio il video…';
+ if(!await askConfirm({title:'Generare un video di prova su HeyGen?',cost:'Consuma crediti HeyGen.',ok:'Genera il video'}))return;busy=true;$('avTry').disabled=true;const st=$('avTryState');st.textContent='Avvio il video…';
  try{const d=await api('POST','',{action:'generate',script,voiceId:voice.id,...(chosen.type==='talking_photo'?{talkingPhotoId:chosen.id}:{avatarId:chosen.id})});
   for(let i=0;i<100;i++){const s=await api('GET','action=status&videoId='+encodeURIComponent(d.videoId));const x=String(s.status||'').toLowerCase();
    if(['completed','success','done'].includes(x)){st.textContent='Video di prova pronto.';if(/^https:\/\//.test(s.videoUrl||'')){const v=node('video');v.controls=true;v.src=s.videoUrl;$('avVideo').replaceChildren(v)}return}

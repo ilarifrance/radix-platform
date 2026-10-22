@@ -23,9 +23,9 @@ test('shell/crea.css: shared primitives for cards, results, loading, fields and 
  assert.match(read('lib/catalog-studio.js'),/'ps-switch pr-guides'/);assert.match(read('lib/doc-studio.js'),/'ps-switch ds-pad'/);
 });
 
-test('every paid step of the older studios still sits behind root.confirm',()=>{
+test('every paid step of the older studios still sits behind the RADIX confirmation',()=>{
  const want={image:1,video:2,site:2,seo:1,copy:1,identity:2};
  for(const [s,n] of Object.entries(want)){const src=read('lib/'+s+'-studio.js');
-  assert.equal(src.split('root.confirm(').length-1,n,s+': confirmations');
-  assert.ok(src.indexOf('root.confirm(')<src.lastIndexOf('rt.reply(')||!src.includes('rt.reply('),s+': confirm before the AI call')}
+  assert.equal(src.split('await askConfirm(').length-1,n,s+': confirmations');assert.ok(!src.includes('root.confirm(\''),s+': no native confirm left');
+  assert.ok(src.indexOf('await askConfirm(')<src.lastIndexOf('rt.reply(')||!src.includes('rt.reply('),s+': confirm before the AI call')}
 });

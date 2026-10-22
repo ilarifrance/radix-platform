@@ -82,8 +82,8 @@ test('the HeyGen draft reuses the existing «generate» action with the saved av
 
 test('the widget confirms before the AI call and before HeyGen, and uses the Video Producer',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/video-studio.js'),'utf8');
- assert.match(src,/confirm\('Scrivere 3 copioni[^']*una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
- assert.match(src,/confirm\('Creare la bozza video su HeyGen[^\n]*Consuma crediti HeyGen[^\n]*'\)\)return;/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Scrivere 3 copioni[^']*',cost:'È una sola chiamata AI: usa crediti API\.'[^}]*\}\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Creare la bozza video su HeyGen[^\n]*cost:'Consuma crediti HeyGen[^\n]*\}\)\)return;/);
  assert.match(src,/rt\.reply\(\{role:'video-producer',project:ctx\.project,memoryScope:ctx\.memoryScope/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','lib/radix-agent-runtime.js'),'utf8'),/id:'video-producer'/);
 });

@@ -148,8 +148,8 @@ test('the AI photo prompt asks for no text, and spends happen only behind a conf
  const p=A.photoPrompt({photo:'Mani infarinate su un tavolo'},{offer:'Corso di pane'},A.brandOf({name:'X'},{}));
  assert.match(p,/Mani infarinate/);assert.match(p,/No text, no letters, no logos/);
  const src=fs.readFileSync(path.join(root,'lib/ad-studio.js'),'utf8');
- const confirms=src.split('root.confirm(').slice(1).map(x=>x.split('))return;')[0]);assert.equal(confirms.length,2);
- assert.match(confirms[0],/Paid Media Specialist AI\? È una sola chiamata AI: usa crediti API/);assert.match(confirms[1],/1 foto con Higgsfield.*È 1 generazione: consuma il saldo API di Higgsfield/);
+ const confirms=src.split('if(!await askConfirm(').slice(1).map(x=>x.split('))return;')[0]);assert.equal(confirms.length,2);assert.ok(!src.includes('root.confirm(\''),'no native confirm left');
+ assert.match(confirms[0],/Paid Media Specialist AI\?',cost:'È una sola chiamata AI: usa crediti API/);assert.match(confirms[1],/1 foto con Higgsfield.*cost:'È 1 generazione: consuma il saldo API di Higgsfield/);
  // the paid calls sit right after their confirmation
  assert.ok(src.indexOf("rt.reply({role:AGENT")>src.indexOf(confirms[0]));assert.ok(src.indexOf('generatePhoto(photoPrompt')>src.indexOf(confirms[1]));assert.equal(src.split('generatePhoto(').length,3,'defined once, called once');
  assert.equal((src.match(/action:'generate'/g)||[]).length,1);assert.ok(!/https?:\/\//.test(src),'no external URLs');

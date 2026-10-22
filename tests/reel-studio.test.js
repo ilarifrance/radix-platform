@@ -180,8 +180,8 @@ test('save: reels in the agents document, every other key kept, retried on a con
 
 test('the only paid call sits behind its confirmation; image-to-video is a labelled TODO with no provider call',()=>{
  const src=fs.readFileSync(path.join(root,'lib/reel-studio.js'),'utf8');
- const confirms=src.split('root.confirm(').slice(1).map(x=>x.split('))return;')[0]);assert.equal(confirms.length,1);
- assert.match(confirms[0],/3 storyboard con il Video Producer AI\? È una sola chiamata AI: usa crediti API\. Il video poi si crea qui nel browser, senza crediti\./);
+ const confirms=src.split('if(!await askConfirm(').slice(1).map(x=>x.split('))return;')[0]);assert.equal(confirms.length,1);assert.ok(!src.includes('root.confirm(\''),'no native confirm left');
+ assert.match(confirms[0],/3 storyboard con il Video Producer AI\?',cost:'È una sola chiamata AI: usa crediti API\.',message:'Il video poi si crea qui nel browser, senza crediti\./);
  assert.ok(src.indexOf('rt.reply({role:AGENT')>src.indexOf(confirms[0]));assert.equal(src.split('rt.reply(').length,2,'one AI call');
  assert.ok(!/\/api\/higgsfield|\/api\/heygen|\/api\/integrations|fetch\(/.test(src),'no provider or network call in the studio');
  assert.ok(!/https?:\/\//.test(src),'no external URLs');

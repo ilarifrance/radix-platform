@@ -268,7 +268,7 @@ test('the card: «Analisi del sito» in Web e annunci, opens inline, free crawl 
  assert.deepEqual(core.fromQuery('?open=analisi'),{group:'Web e annunci',open:'analisi'});
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8'),js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8'),lib=fs.readFileSync(path.join(root,'lib/site-audit.js'),'utf8');
  assert.match(html,/<script src="\/lib\/site-audit\.js"><\/script>/);assert.match(js,/audit:\{global:'RadixSiteAudit'/);assert.match(js,/S\.siteAudit\(/);
- assert.match(lib,/root\.confirm\('Preparare il piano 30\/60\/90/);assert.ok(!/https?:\/\/(?:cdn|unpkg|fonts)/.test(lib),'no external CDN');
+ assert.match(lib,/if\(!await askConfirm\(\{title:'Preparare il piano 30\/60\/90/);assert.ok(!lib.includes('root.confirm(\''),'no native confirm left');assert.ok(!/https?:\/\/(?:cdn|unpkg|fonts)/.test(lib),'no external CDN');
  let sent=null;const d=await S.runCrawl('https://www.fornoaurora.it/',{fetch:async(u,o)=>{sent={u,o};return {ok:true,status:200,json:async()=>({pages:[]})}}});
  assert.equal(sent.u,'/api/integrations/site-audit');assert.equal(sent.o.method,'POST');assert.equal(sent.o.credentials,'same-origin');assert.deepEqual(JSON.parse(sent.o.body),{action:'crawl',url:'https://www.fornoaurora.it/'});assert.deepEqual(d,{pages:[]});
  await assert.rejects(S.runCrawl('x',{fetch:async()=>({ok:false,status:403,json:async()=>({error:'Il dominio punta a un indirizzo privato'})})}),/privato/);

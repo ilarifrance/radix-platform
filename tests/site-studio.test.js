@@ -112,12 +112,12 @@ test('the chosen site is saved in the Web Developer thread as a site page, keepi
 
 test('the widget confirms before the one AI call, uses the Web Developer memory and shows pages in a frame without scripts',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/site-studio.js'),'utf8');
- assert.match(src,/confirm\('Preparare 3 proposte di sito[^']*È una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Preparare 3 proposte di sito[^']*',cost:'È una sola chiamata AI: usa crediti API\.'[^}]*\}\)\)return;\s*lock\(true\)/);
  assert.match(src,/rt\.reply\(\{role:AGENT,project:ctx\.project,memoryScope:ctx\.memoryScope/);assert.equal(s.AGENT,'web-developer');
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(|innerHTML|insertAdjacentHTML|eval\(|new Function/.test(src),'no requests of its own and no HTML injected into RADIX');
  assert.match(src,/f\.setAttribute\('sandbox',''\)/);assert.ok(!/allow-scripts/.test(src));assert.match(src,/f\.srcdoc=html/);
- assert.match(src,/if\(!root\.confirm\(PUBLISH_CONFIRM\)\)return;\s*btn\.disabled=true/);assert.match(src,/Sarà pubblicato su internet/);assert.match(src,/'Aggiorna il sito online'/);assert.match(src,/Scarica il sito \(\.html\)/);
+ assert.match(src,/if\(!await askConfirm\(PUBLISH_CONFIRM\)\)return;\s*btn\.disabled=true/);assert.match(src,/Sarà pubblicato su internet/);assert.match(src,/'Aggiorna il sito online'/);assert.match(src,/Scarica il sito \(\.html\)/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','lib/radix-agent-runtime.js'),'utf8'),/id:'web-developer'/);
 });
 

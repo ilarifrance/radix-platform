@@ -180,8 +180,8 @@ test('wiring: the card in «Web e annunci», the studio in the page, every AI ca
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');assert.ok(html.indexOf('/lib/ad-studio.js')<html.indexOf('/lib/gbp-studio.js')&&html.indexOf('/lib/gbp-studio.js')<html.indexOf('/agency/crea.js'));
  const page=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');assert.match(page,/gbp:\{global:'RadixGbpStudio'/);assert.match(page,/S\.gbpStudio\(\{project,profile:current\.profile/);
  const src=fs.readFileSync(path.join(root,'lib/gbp-studio.js'),'utf8');
- assert.equal((src.match(/rt\.reply\(/g)||[]).length,2,'two AI calls');assert.equal((src.match(/root\.confirm\(/g)||[]).length,2,'two confirmations');
- for(const m of src.matchAll(/rt\.reply\(/g)){const before=src.slice(0,m.index),conf=before.lastIndexOf('root.confirm('),click=before.lastIndexOf('.onclick=async');assert.ok(conf>click&&click>0,'the call follows a click and a confirmation')}
+ assert.equal((src.match(/rt\.reply\(/g)||[]).length,2,'two AI calls');assert.equal((src.match(/if\(!await askConfirm\(/g)||[]).length,2,'two confirmations');assert.ok(!src.includes('root.confirm(\''),'no native confirm left');
+ for(const m of src.matchAll(/rt\.reply\(/g)){const before=src.slice(0,m.index),conf=before.lastIndexOf('if(!await askConfirm('),click=before.lastIndexOf('.onclick=async');assert.ok(conf>click&&click>0,'the call follows a click and a confirmation')}
  assert.doesNotMatch(src,/fetch\(/,'no network call of its own: no posting to Google');
  assert.match(src,/business\.google\.com/);
  const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');assert.match(css,/\.cr-panel \.gbp-studio/);

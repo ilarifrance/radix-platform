@@ -168,7 +168,7 @@ test('the panel: card in Email e SMS, inline studio, no AI, never sends',()=>{
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');assert.ok(html.indexOf('/lib/newsletter-studio.js')>0&&html.indexOf('/lib/newsletter-studio.js')<html.indexOf('/agency/crea.js'));
  const src=fs.readFileSync(path.join(root,'lib/newsletter-studio.js'),'utf8');
  assert.doesNotMatch(src,/\/api\/send-email|RadixAgents\.reply|api\/chat|fetch\(/,'no sending, no AI, no network');
- assert.match(src,/radix-crm-campaign-draft/);assert.match(src,/root\.confirm\('Passare oggetto e versione testo/);
+ assert.match(src,/radix-crm-campaign-draft/);assert.match(src,/if\(!await askConfirm\(\{title:'Passare oggetto e versione testo/);
  assert.match(src,/sandbox','allow-same-origin'/,'previews run no scripts');
  const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');assert.match(css,/\.cr-panel \.nl-props\{/);assert.match(css,/@media \(max-width:640px\)\{\n  \.cr-panel \.nl-studio \.nl-goals/);
 });
