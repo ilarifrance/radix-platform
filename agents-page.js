@@ -4,6 +4,8 @@
 (function(){
 'use strict';
 const ws=window.RadixWorkspace,rt=window.RadixAgents,media=window.RadixAgentMedia,$=id=>document.getElementById(id);
+// The one RADIX confirmation (lib/radix-confirm.js); the browser confirm only if that script is missing.
+const askConfirm=o=>window.RadixConfirm?window.RadixConfirm.ask(o):Promise.resolve(!!window.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')));
 const MAX_KEPT=60,MAX_ATTACH=5,MAX_BYTES=4*1024*1024,ACCEPTED=['xlsx','xls','csv','txt','md','docx','pdf'];
 const PIPELINE_STEPS={
  'strategist':'Dai la direzione strategica del post: pilastro, obiettivo, pubblico, angolo, formato e canale.',
@@ -38,12 +40,18 @@ function persist(){
    const fresh=(await doc.load())||{conversations:{}};
    for(const [k,v] of Object.entries(fresh.conversations||{}))if(k!==id)data.conversations[k]=v;
    if(!prefsDirty)data.prefs=fresh.prefs||{};
+   data.seoResults=fresh.seoResults;data.adCreatives=fresh.adCreatives;data.gbp=fresh.gbp;data.siteAudit=fresh.siteAudit;data.newsletters=fresh.newsletters;data.productSheets=fresh.productSheets;data.reels=fresh.reels;data.events=fresh.events;data.translations=fresh.translations;
    await doc.save(clean(data));prefsDirty=false;
   }
  }).catch(e=>say('Salvataggio non riuscito: '+e.message));
  return saving;
 }
-function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
+// seoResults (lib/seo-results-core.js: the Search Console imports of the Studio SEO e GEO), adCreatives (lib/ad-studio.js:
+// the saved ad creatives), gbp (lib/gbp-studio.js: the Google listing and the review replies) and siteAudit (lib/site-audit.js:
+// the saved site audits), newsletters (lib/newsletter-studio.js: the saved HTML newsletters) and productSheets
+// (lib/product-studio.js: the saved product sheets) and reels (lib/reel-studio.js: the saved reel storyboards) and events (lib/event-studio.js: the saved event kits) and translations (lib/translation-studio.js: the saved
+// translations) are kept as they are.
+function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};if(d.seoResults)out.seoResults=d.seoResults;if(d.adCreatives)out.adCreatives=d.adCreatives;if(d.gbp)out.gbp=d.gbp;if(d.siteAudit)out.siteAudit=d.siteAudit;if(d.newsletters)out.newsletters=d.newsletters;if(d.productSheets)out.productSheets=d.productSheets;if(d.reels)out.reels=d.reels;if(d.events)out.events=d.events;if(d.translations)out.translations=d.translations;for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
 
 // ---- rendering ----
 function renderRoster(){
@@ -300,7 +308,7 @@ function stepTools(msg,i){
  return wrap;
 }
 async function runStep(msg,i,note){
- if(busy)return;const n=msg.flow.nodes[i];if(!note&&!confirm('Rigenerare il lavoro di '+n.label+'? La chiamata consuma crediti e sostituisce la versione attuale.'))return;
+ if(busy)return;const n=msg.flow.nodes[i];if(!note&&(!await askConfirm({title:'Rigenerare il lavoro di '+n.label+'?',cost:'È una chiamata AI: consuma crediti API.',message:'La nuova versione sostituisce quella attuale.',ok:'Rigenera con l’AI'})||busy))return;
  busy=true;render();
  try{const k=await rt.rerunNode(msg.flow,i,{call:(role,text,onP)=>callOne(role,text,onP),note,onUpdate:()=>{render()}});say(n.status==='done'?n.label+' ha consegnato una nuova versione'+(k?'; '+k+(k===1?' passo successivo da aggiornare.':' passi successivi da aggiornare.'):'.'):n.label+' non è riuscito: '+n.output)}
  catch(e){say(e.message)}finally{busy=false;render();await persist()}
@@ -337,7 +345,7 @@ $('composer').onsubmit=async e=>{
 };
 $('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))$('composer').requestSubmit()});
 $('regenerate').onclick=async()=>{if(busy)return;const hist=conv();while(hist.length&&hist[hist.length-1].role!=='user')hist.pop();if(!hist.length)return;if(rt.agent(agentId).pipeline){const last=hist[hist.length-1];await runPipeline(last.content);return}await requestReply()};
-$('reset').onclick=async()=>{if(busy||!confirm('Cancellare per tutto il team la conversazione con '+rt.label(agentId)+' su questo progetto? I documenti scaricati restano sul tuo computer.'))return;data.conversations[agentId]=[];render();await persist();say('Conversazione cancellata.')};
+$('reset').onclick=async()=>{if(busy||!await askConfirm({title:'Cancellare la conversazione con '+rt.label(agentId)+'?',message:'Si cancella per tutto il team, su questo progetto.\nI documenti scaricati restano sul tuo computer.',ok:'Cancella conversazione',tone:'danger'})||busy)return;data.conversations[agentId]=[];render();await persist();say('Conversazione cancellata.')};
 $('filter').oninput=renderRoster;
 
 // ---- attachments (/api/parse-file, same limits as v3.7) ----
@@ -397,9 +405,9 @@ $('project').onchange=()=>{if(busy){$('project').value=project.id;return}openPro
 
 // Agent status light (free GET, as in v3.7) and the signed-in person with a logout.
 async function checkApi(){const el=$('api-status');try{const r=await fetch('/api/chat',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.configured){el.textContent='● Agenti collegati';el.dataset.state='ok'}else{el.textContent=r.status===401?'● Accesso richiesto':'● Agenti non configurati sul server';el.dataset.state='err'}}catch(e){el.textContent='● Agenti non raggiungibili';el.dataset.state='err'}}
-$('logout').onclick=async()=>{if(busy&&!confirm('Un agente sta ancora lavorando. Uscire comunque?'))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
+$('logout').onclick=async()=>{if(busy&&!await askConfirm({title:'Uscire mentre un agente lavora?',message:'Un agente sta ancora lavorando: uscendo, il lavoro in corso può andare perso.',ok:'Esci comunque',cancel:'Resta qui',tone:'danger'}))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
 // Colleagues' replies appear when you come back to the tab, without reloading the page.
-document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&data){data.events=fresh.events;data.translations=fresh.translations;data.reels=fresh.reels;data.newsletters=fresh.newsletters;data.productSheets=fresh.productSheets;data.siteAudit=fresh.siteAudit;data.seoResults=fresh.seoResults;data.adCreatives=fresh.adCreatives;data.gbp=fresh.gbp}if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
 async function boot(){
  renderRoster();checkApi();
  try{

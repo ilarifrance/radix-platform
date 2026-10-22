@@ -7,6 +7,7 @@
    (so score and Sales Orbit see it) and opens a high-priority follow-up task for whoever last emailed
    that contact (otherwise whoever created the contact, otherwise the workspace owner). A failed write still redirects. */
 const crypto=require('node:crypto');
+const vis=require('./_sales_visibility');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_URL=2000,MAX_CAMPAIGN=80;
 const key=secret=>{if(typeof secret!=='string'||secret.length<16)throw new Error('JWT_SECRET is not set in the environment.');return crypto.createHmac('sha256',secret).update('radix-crm-click-v1').digest()};
@@ -60,13 +61,17 @@ async function links(sql,workspace,ids,campaign,urls,secret){
 // Per campaign: clicks, people who clicked, last click; who clicked most recently; every contact who ever clicked
 // and who clicked each campaign (segments).
 // rows repeats people because the CRM client rejects GET answers without rows.
-async function report(sql,workspace){
+// uid (the caller) applies «I member vedono solo i propri record» (api/_sales_visibility.js): only clicks of visible contacts;
+// sends and later contacts are interactions, so they follow the interaction rule as well.
+const scoped=uid=>uid===undefined?{f:()=>'',w:()=>'',a:()=>'',p:w=>[w]}:{f:col=>' AND '+vis.contact(col),w:(col,e,al)=>vis.contact(col)+' AND '+(e?vis.visible(e,al)+' AND ':''),a:(e,al)=>vis.and(e,al),p:w=>[w,uid]};
+async function report(sql,workspace,uid){
+ const {f,p}=scoped(uid);
  const [campaigns,people,contacts,pairs]=await Promise.all([
-  sql('SELECT campaign,count(*)::int AS clicks,count(DISTINCT contact_id)::int AS people,max(clicked_at) AS last_at FROM sales_email_clicks WHERE workspace_id=$1 GROUP BY campaign ORDER BY max(clicked_at) DESC LIMIT 50',[workspace]),
-  sql('SELECT k.contact_id,c.name,k.campaign,count(*)::int AS clicks,max(k.clicked_at) AS last_at FROM sales_email_clicks k JOIN sales_contacts c ON c.workspace_id=k.workspace_id AND c.id=k.contact_id WHERE k.workspace_id=$1 GROUP BY k.contact_id,c.name,k.campaign ORDER BY max(k.clicked_at) DESC LIMIT 100',[workspace])
+  sql('SELECT campaign,count(*)::int AS clicks,count(DISTINCT contact_id)::int AS people,max(clicked_at) AS last_at FROM sales_email_clicks WHERE workspace_id=$1'+f('sales_email_clicks.contact_id')+' GROUP BY campaign ORDER BY max(clicked_at) DESC LIMIT 50',p(workspace)),
+  sql('SELECT k.contact_id,c.name,k.campaign,count(*)::int AS clicks,max(k.clicked_at) AS last_at FROM sales_email_clicks k JOIN sales_contacts c ON c.workspace_id=k.workspace_id AND c.id=k.contact_id WHERE k.workspace_id=$1'+f('k.contact_id')+' GROUP BY k.contact_id,c.name,k.campaign ORDER BY max(k.clicked_at) DESC LIMIT 100',p(workspace))
 ,
-  sql('SELECT DISTINCT contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 5000',[workspace]),
-  sql('SELECT DISTINCT campaign,contact_id FROM sales_email_clicks WHERE workspace_id=$1 LIMIT 20000',[workspace])
+  sql('SELECT DISTINCT contact_id FROM sales_email_clicks WHERE workspace_id=$1'+f('sales_email_clicks.contact_id')+' LIMIT 5000',p(workspace)),
+  sql('SELECT DISTINCT campaign,contact_id FROM sales_email_clicks WHERE workspace_id=$1'+f('sales_email_clicks.contact_id')+' LIMIT 20000',p(workspace))
  ]);
  const byCampaign={};for(const r of pairs)(byCampaign[r.campaign]=byCampaign[r.campaign]||[]).push(r.contact_id);
  return {rows:people,campaigns,people,contacts:contacts.map(r=>r.contact_id),byCampaign};
@@ -77,16 +82,17 @@ async function report(sql,workspace){
 // Unsubscribe stamps come from the note the unsubscribe link writes (api/_sales_unsubscribe.js), in Europe/Rome time.
 const SINCE="now()-interval '400 days'";
 const SENT="s.workspace_id=$1 AND s.kind='email' AND s.title LIKE 'Email: %' AND s.contact_id IS NOT NULL AND s.occurred_at>="+SINCE;
-async function campaignData(sql,workspace){
+async function campaignData(sql,workspace,uid){
+ const {f,w,a,p}=scoped(uid);
  const [sends,clickRows,contacts,followups,opportunities]=await Promise.all([
-  sql(`SELECT s.contact_id,s.occurred_at,s.title,substring(s.body from '[?&]k=([^&[:space:]]+)&u=') AS k FROM sales_interactions s WHERE ${SENT} ORDER BY s.occurred_at DESC LIMIT 20000`,[workspace]),
-  sql(`SELECT contact_id,campaign,url,clicked_at FROM sales_email_clicks WHERE workspace_id=$1 AND clicked_at>=${SINCE} ORDER BY clicked_at DESC LIMIT 20000`,[workspace]),
+  sql(`SELECT s.contact_id,s.occurred_at,s.title,substring(s.body from '[?&]k=([^&[:space:]]+)&u=') AS k FROM sales_interactions s WHERE ${w('s.contact_id','interactions','s')}${SENT} ORDER BY s.occurred_at DESC LIMIT 20000`,p(workspace)),
+  sql(`SELECT contact_id,campaign,url,clicked_at FROM sales_email_clicks WHERE workspace_id=$1 AND clicked_at>=${SINCE}${f('sales_email_clicks.contact_id')} ORDER BY clicked_at DESC LIMIT 20000`,p(workspace)),
   sql(`SELECT c.id,c.name,c.company_id,c.marketing_consent,(SELECT array_agg(m[1]) FROM regexp_matches(coalesce(c.notes,''),'Disiscrizione dalle email commerciali tramite link: ([0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2})','g') m) AS unsubscribed
- FROM sales_contacts c WHERE c.workspace_id=$1 AND (EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=c.id) OR EXISTS(SELECT 1 FROM sales_email_clicks k WHERE k.workspace_id=$1 AND k.contact_id=c.id AND k.clicked_at>=${SINCE})) LIMIT 20000`,[workspace]),
+ FROM sales_contacts c WHERE c.workspace_id=$1 AND (EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=c.id) OR EXISTS(SELECT 1 FROM sales_email_clicks k WHERE k.workspace_id=$1 AND k.contact_id=c.id AND k.clicked_at>=${SINCE}))${a('contacts','c')} LIMIT 20000`,p(workspace)),
   sql(`SELECT i.id,i.contact_id,i.kind,i.title,i.occurred_at FROM sales_interactions i WHERE i.workspace_id=$1 AND i.contact_id IS NOT NULL AND i.occurred_at>=${SINCE}
  AND (i.kind IN ('meeting','call') OR (i.kind='email' AND i.title ~* '^\\s*(re|r|risposta)\\s*:'))
- AND EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=i.contact_id) ORDER BY i.occurred_at DESC LIMIT 20000`,[workspace]),
-  sql(`SELECT o.id,o.title,o.contact_id,o.company_id,o.created_at FROM sales_opportunities o WHERE o.workspace_id=$1 AND o.created_at>=${SINCE} ORDER BY o.created_at DESC LIMIT 5000`,[workspace])
+ AND EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=i.contact_id)${f('i.contact_id')}${a('interactions','i')} ORDER BY i.occurred_at DESC LIMIT 20000`,p(workspace)),
+  sql(`SELECT o.id,o.title,o.contact_id,o.company_id,o.created_at FROM sales_opportunities o WHERE o.workspace_id=$1 AND o.created_at>=${SINCE}${a('opportunities','o')} ORDER BY o.created_at DESC LIMIT 5000`,p(workspace))
  ]);
  return {sends,clicks:clickRows,contacts,followups,opportunities};
 }

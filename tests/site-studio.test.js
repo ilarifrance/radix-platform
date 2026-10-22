@@ -112,11 +112,31 @@ test('the chosen site is saved in the Web Developer thread as a site page, keepi
 
 test('the widget confirms before the one AI call, uses the Web Developer memory and shows pages in a frame without scripts',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/site-studio.js'),'utf8');
- assert.match(src,/confirm\('Preparare 3 proposte di sito[^']*È una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Preparare 3 proposte di sito[^']*',cost:'È una sola chiamata AI: usa crediti API\.'[^}]*\}\)\)return;\s*lock\(true\)/);
  assert.match(src,/rt\.reply\(\{role:AGENT,project:ctx\.project,memoryScope:ctx\.memoryScope/);assert.equal(s.AGENT,'web-developer');
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(|innerHTML|insertAdjacentHTML|eval\(|new Function/.test(src),'no requests of its own and no HTML injected into RADIX');
  assert.match(src,/f\.setAttribute\('sandbox',''\)/);assert.ok(!/allow-scripts/.test(src));assert.match(src,/f\.srcdoc=html/);
- assert.match(src,/Pubblicazione online: in arrivo, con la tua conferma\./);assert.match(src,/Scarica il sito \(\.html\)/);
+ assert.match(src,/if\(!await askConfirm\(PUBLISH_CONFIRM\)\)return;\s*btn\.disabled=true/);assert.match(src,/Sarà pubblicato su internet/);assert.match(src,/'Aggiorna il sito online'/);assert.match(src,/Scarica il sito \(\.html\)/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','lib/radix-agent-runtime.js'),'utf8'),/id:'web-developer'/);
+});
+
+test('«Da completare»: markers listed once, filled with escaped values, the rest of the page unchanged',()=>{
+ const p={name:'Prova',headline:'Benvenuti [da completare: città]',sub:'Sotto',sections:[{title:'Prezzi',text:'Seduta: [da completare: prezzo] · pacchetto: [da completare: prezzo]'},{title:'Contatti',text:'Scrivici.'}],cta:'Vai'};
+ const html=s.buildPage(p,{name:'Studio',style:'essenziale'});
+ assert.deepEqual(s.todoMarkers(html).map(x=>x.key),['[da completare: città]','[da completare: prezzo]','[da completare: telefono, e-mail e orari]']);
+ assert.equal(s.todoMarkers('<p>[da completare: l&#39;orario]</p>')[0].label,"[da completare: l'orario]");
+ // escaping, every identical marker (highlighted, in the title and in the description), nothing else touched
+ const vals={'[da completare: città]':'Bergamo <script>x</script>','[da completare: prezzo]':'50 € & "IVA"','[da completare: telefono, e-mail e orari]':'035 123456'};
+ const full=s.fillTodos(html,vals),escd=['Bergamo &lt;script&gt;x&lt;/script&gt;','50 € &amp; &quot;IVA&quot;','035 123456'];
+ assert.equal(s.hasTodo(full),false);assert.equal(s.todoMarkers(full).length,0);assert.ok(!/<script>/.test(full));
+ assert.equal(full.split(escd[1]).length-1,2,'both identical markers filled');assert.match(full,/<title>Studio · Benvenuti Bergamo &lt;script&gt;/);
+ const norm=h=>h.replace(/<mark class="todo">(\[da completare:[^\]]*\])<\/mark>/g,'§').replace(/\[da completare:[^\]]*\]/g,'§');
+ assert.equal(escd.reduce((h,v)=>h.split(v).join('§'),full),norm(html),'only the markers changed');
+ // partial fill keeps the others; empty values and keys that are not markers do nothing
+ const part=s.fillTodos(html,{'[da completare: prezzo]':'50 €','[da completare: città]':'  ','<p>':'x'});
+ assert.deepEqual(s.todoMarkers(part).map(x=>x.key),['[da completare: città]','[da completare: telefono, e-mail e orari]']);assert.equal(s.hasTodo(part),true);
+ assert.ok(part.includes('<p>'));assert.equal(s.fillTodos(html,{}),html);
+ const src=fs.readFileSync(path.join(__dirname,'..','lib/site-studio.js'),'utf8');
+ assert.match(src,/html=next;big\.srcdoc=html;todoForm\(\);pub\.refresh\(\)/);assert.match(src,/sites\.publish\(ctx\.projectId,current\(\)\)/);assert.match(src,/todo=hasTodo\(current\(\)\)/);
 });

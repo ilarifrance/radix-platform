@@ -5,6 +5,8 @@
 'use strict';
 const $=id=>document.getElementById(id),rt=window.RadixAgents,ar=window.RadixV37Archive,ws=window.RadixWorkspace;
 const say=t=>{$('status').textContent=t};
+// The one RADIX confirmation (lib/radix-confirm.js); the browser confirm only if that script is missing.
+const askConfirm=o=>window.RadixConfirm?window.RadixConfirm.ask(o):Promise.resolve(!!window.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')));
 const PIPE='__pipeline',PROF='__profiles';
 let state=null,rows=[],current=null,projects=[],run=null,profs=[];
 const label=id=>{const a=rt.agent(id);return a?a.name:id};
@@ -49,7 +51,7 @@ async function saveAgents(pid,merge){
 }
 async function copyToProject(){
  const pid=$('project').value;if(!pid||!current||current===PROF)return;const p=projects.find(x=>x.id===pid),pipe=current===PIPE,agent=pipe?'orchestrator':current;
- if(!confirm((pipe?'Copiare l’ultima Pipeline post della v3.7':'Copiare la conversazione v3.7 con '+label(current))+' nel progetto «'+p.name+'»? Sarà visibile al team in Agenti AI; la v3.7 resta invariata.'))return;
+ if(!await askConfirm({title:(pipe?'Copiare l’ultima Pipeline post della v3.7':'Copiare la conversazione v3.7 con '+label(current))+'?',facts:[['Nel progetto',p.name]],message:'Sarà visibile al team in Agenti AI; la v3.7 resta invariata.',ok:'Copia nel progetto'}))return;
  $('import').disabled=true;say('Copia in corso…');
  try{
   const added=await saveAgents(pid,conv=>pipe?ar.mergePipeline(conv,run,label):ar.mergeInto(conv,current,state.history[current]));
@@ -64,7 +66,7 @@ async function fillProfile(v37,b){
   for(let i=0;i<3;i++){
    const pr=await ws.projects.get(pid),{changes,filled}=ar.profileFill(v37,pr);
    if(!filled.length){say('Il profilo di «'+pr.name+'» ha già tutti questi campi: nulla da copiare.');return}
-   if(i===0&&!confirm('Completare il profilo di «'+pr.name+'» con '+filled.map(f=>FIELD_LABELS[f]).join(', ')+' dal profilo v3.7 «'+(v37.name||'')+'»? I campi già compilati restano come sono.'))return;
+   if(i===0&&!await askConfirm({title:'Completare il profilo di «'+pr.name+'»?',facts:[['Dal profilo v3.7',v37.name||'senza nome'],['Campi',filled.map(f=>FIELD_LABELS[f]).join(', ')]],message:'I campi già compilati restano come sono.',ok:'Completa il profilo'}))return;
    try{await ws.projects.update(pid,pr.revision,changes);say('Profilo di «'+pr.name+'» completato: '+filled.map(f=>FIELD_LABELS[f]).join(', ')+'.');
     const link=$('openAgents');link.href='/project-profile.html?id='+encodeURIComponent(pid);link.textContent='Apri il profilo ↗';link.hidden=false;return}
    catch(e){if(!(e instanceof ws.ConflictError)||i===2)throw e}

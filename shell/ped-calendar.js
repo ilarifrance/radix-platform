@@ -23,9 +23,13 @@
     } catch (e) { var d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
   }
 
+  // Phones read the week as an agenda (one row per content, days stacked) instead of the hour grid.
+  var phone = window.matchMedia ? window.matchMedia('(max-width: 767px)') : { matches: false };
+  var WD = { lun: 1, mar: 2, mer: 3, gio: 4, ven: 5, sab: 6, dom: 7 };
   var busy = false;
   function decorate() {
-    var timed = /view-(week|day)/.test(cal.className);
+    var timed = /view-(week|day)/.test(cal.className) && !phone.matches;
+    root.classList.toggle('ped-agenda', phone.matches);
     root.classList.toggle('ped-grid', timed);
     busy = true;
     [].slice.call(cal.querySelectorAll('.calendar-event')).forEach(function (ev) {
@@ -39,6 +43,14 @@
         var ch = document.createElement('i'); ch.className = 'ped-ch'; ch.setAttribute('aria-hidden', 'true'); ev.prepend(ch);
       }
     });
+    // Today's column in every view; the month starts under its weekday.
+    var today = todayLabel().toLowerCase();
+    [].slice.call(cal.querySelectorAll('.calendar-column')).forEach(function (col, i) {
+      var head = ((col.querySelector('h3') || {}).textContent || '').toLowerCase();
+      col.classList.toggle('ped-today', !!today && head === today);
+      col.classList.toggle('ped-empty', !col.querySelector('.calendar-event'));
+      if (i === 0) col.style.gridColumnStart = /view-month/.test(cal.className) ? String(WD[head.slice(0, 3)] || 1) : '';
+    });
     if (timed) layoutGrid(); else clearGrid();
     busy = false;
   }
@@ -51,6 +63,7 @@
   function layoutGrid() {
     if (!cal.querySelector('.ped-hours')) {
       var hours = document.createElement('div'); hours.className = 'ped-hours'; hours.setAttribute('aria-hidden', 'true');
+      var corner = document.createElement('i'); corner.className = 'ped-corner'; corner.textContent = 'Senza orario'; hours.append(corner);
       for (var h = H0; h < H1; h++) { var s = document.createElement('span'); s.textContent = (h < 10 ? '0' : '') + h + ':00'; hours.append(s); }
       cal.prepend(hours);
     }
@@ -78,7 +91,7 @@
         var over = timed.filter(function (y) { return y.top < x.end - 1 && y.end > x.top + 1; });
         var n = Math.max.apply(null, over.map(function (y) { return y.lane; })) + 1;
         // Narrow day columns stack overlapping contents inside the hour instead of splitting it into slivers.
-        var stack = n > 1 && col.clientWidth < 240, h = stack ? ROW / n : ROW, top = x.top + (stack ? x.lane * h : 0);
+        var stack = n > 1 && col.clientWidth < 240, h = stack ? ROW / n : ROW, base = Math.min.apply(null, over.map(function (y) { return y.top; })), top = stack ? base + x.lane * h : x.top;
         x.ev.dataset.pedTop = top; x.ev.style.top = 'calc(var(--ped-off) + ' + top + 'px)'; x.ev.style.height = (h - 6) + 'px';
         x.ev.classList.toggle('ped-compact', stack);
         x.ev.style.left = stack ? '3px' : 'calc(' + (x.lane / n * 100) + '% + 3px)'; x.ev.style.width = stack ? 'calc(100% - 6px)' : 'calc(' + (100 / n) + '% - 6px)';
@@ -102,6 +115,7 @@
     var hMax = strips.reduce(function (m, s) { return Math.max(m, s.offsetHeight); }, 0);
     strips.forEach(function (s) { s.style.minHeight = hMax + 'px'; });
     cal.style.setProperty('--ped-allday', hMax + 'px');
+    cal.classList.toggle('ped-has-allday', hMax > 0);
     // Scroll the grid to the first content (or to the current hour) once per render.
     var tops = [].slice.call(cal.querySelectorAll('.calendar-event[data-ped-top]')).map(function (e) { return +e.dataset.pedTop; });
     var y = tops.length ? Math.min.apply(null, tops) : ((nowMinutes() || 9 * 60) - H0 * 60) / 60 * ROW;
@@ -118,6 +132,8 @@
     function sect(label) { var p = document.createElement('p'); p.className = 'ped-rail-label'; p.textContent = label; r.append(p); }
     function a(text, href, ic, onclick) {
       var x = document.createElement('a'); x.href = href; x.className = 'ped-rail-link'; x.dataset.ic = ic;
+      var L = window.RadixMarketingLook, icons = { overview: 'layers', calendar: 'calendar', library: 'folder', analytics: 'check', results: 'chart' };
+      if (L && icons[ic]) { x.insertAdjacentHTML('afterbegin', L.svg(icons[ic], 'ml-ico')); x.classList.add('has-ico'); }
       var s = document.createElement('span'); s.textContent = text; x.append(s);
       if (onclick) x.addEventListener('click', onclick);
       r.append(x); return x;
@@ -128,6 +144,7 @@
     a('Calendario', '#calendar', 'calendar', show('calendar')).dataset.section = 'calendar';
     a('Libreria contenuti', '#board', 'library', show('library')).dataset.section = 'library';
     a('Analytics', '#analytics', 'analytics', show('analytics')).dataset.section = 'analytics';
+    a('Risultati', '#results', 'results', show('results')).dataset.section = 'results';
     sect('Canali');
     var chBox = document.createElement('div'); chBox.className = 'ped-rail-channels'; r.append(chBox);
     sect('Progetti');
@@ -140,6 +157,7 @@
     root.dataset.pedSection = section;
     [].slice.call(page.querySelectorAll('.ped-rail-link[data-section]')).forEach(function (x) { if (x.dataset.section === section) x.setAttribute('aria-current', 'true'); else x.removeAttribute('aria-current'); });
     var an = document.getElementById('analytics'); if (section === 'analytics' && an && an.tagName === 'DETAILS') an.open = true;
+    var rs = document.getElementById('results'); if (section === 'results' && rs && rs.tagName === 'DETAILS') rs.open = true;
     if (section === 'calendar') later();
     window.scrollTo({ top: 0 });
   }
@@ -187,9 +205,11 @@
   var timer = 0;
   function later() { if (busy) return; clearTimeout(timer); timer = setTimeout(function () { decorate(); fillChannels(); }, 30); }
   new MutationObserver(later).observe(cal, { childList: true, attributes: true, attributeFilter: ['class'] });
+  if (phone.addEventListener) phone.addEventListener('change', later);
   var tzSel = document.getElementById('timezone'); if (tzSel) tzSel.addEventListener('change', later);
   setInterval(function () { if (root.classList.contains('ped-grid')) later(); }, 60000);
   rail();
-  setSection('calendar');
+  // #results (the Marketing Orbit «Risultati» link) opens the Risultati section; otherwise the calendar.
+  setSection(location.hash === '#results' ? 'results' : 'calendar');
   later();
 })();

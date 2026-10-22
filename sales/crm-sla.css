@@ -1,0 +1,19 @@
+/* «Scadenze SLA» in Assistenza (sales/crm-sla.js): badge on the ticket cards, filter bar and settings panel.
+   Colours from the --kb-* tokens of sales/crm-knowledge.css (CRM light theme with light fallbacks). */
+:root{--sla-ok:#1f7a4d;--sla-ok-soft:#e8f6ee;--sla-warn:var(--kb-warn,#a85b06);--sla-warn-soft:var(--kb-warn-soft,#fdf3e3);--sla-err:var(--kb-err,#b42318);--sla-err-soft:#fdecea}
+.crm-sla-badge{display:inline-block;margin:2px 0 6px;padding:2px 9px;border-radius:999px;border:1px solid currentColor;font-size:12px;font-weight:600;line-height:1.5;max-width:100%;overflow-wrap:anywhere}
+.crm-sla-badge.is-ok,.crm-sla-badge.is-rispettato{color:var(--sla-ok);background:var(--sla-ok-soft)}
+.crm-sla-badge.is-in-scadenza{color:var(--sla-warn);background:var(--sla-warn-soft)}
+.crm-sla-badge.is-scaduto{color:var(--sla-err);background:var(--sla-err-soft)}
+.crm-sla-bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 10px}
+.crm-sla-bar label{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600}
+.crm-sla-bar .muted{font-size:13px}
+.crm-sla-settings{margin:0 0 16px;padding:12px 14px;color:var(--kb-text,#1d1a27);background:var(--kb-bg,#fff);border:1px solid var(--kb-line,#e4e1ec);border-radius:12px;min-width:0}
+.crm-sla-settings>summary{cursor:pointer;font-weight:650;color:var(--kb-accent,#6d28d9)}
+.crm-sla-body{display:grid;gap:10px;margin-top:10px;min-width:0}
+.crm-sla-body p{margin:0;font-size:13px}
+.crm-sla-table{border-collapse:collapse;font-size:13px;max-width:100%}
+.crm-sla-table th,.crm-sla-table td{padding:4px 8px 4px 0;text-align:left;vertical-align:middle}
+.crm-sla-table input{width:6em;max-width:100%}
+.crm-sla-business{display:flex;gap:6px;align-items:flex-start;font-size:13px}
+#tickets .card[hidden]{display:none}

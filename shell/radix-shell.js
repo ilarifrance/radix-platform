@@ -40,7 +40,8 @@
     search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
     menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
-    chev: '<path d="m9 6 6 6-6 6"/>'
+    chev: '<path d="m9 6 6 6-6 6"/>',
+    sliders: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>'
   };
   function svg(name, cls) {
     return '<svg class="' + (cls || 'rx-ico') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>';
@@ -54,16 +55,17 @@
     { id: 'cc-approvals', text: 'Approvazioni', href: '/control-center-v2.html#approvals', icon: 'check' },
     { id: 'agents', text: 'Agenti AI', href: '/agents.html', icon: 'bot', kw: 'chat orchestratore pipeline post' },
     { label: 'Aree' },
-    { group: 'agency', text: 'Marketing Agency', icon: 'spark', items: [
+    { group: 'agency', text: 'Marketing Agency', icon: 'spark', href: '/agency/orbit.html', items: [
+      { id: 'agency-orbit', text: 'Marketing Orbit', href: '/agency/orbit.html', kw: 'marketing home ingresso sezioni orbita' },
       { id: 'agency-crea', text: 'Cosa vuoi fare', href: '/agency/crea.html', kw: 'servizi crea sito seo geo strategia social post avatar immagini video' },
-      { id: 'agency', text: 'Panoramica', href: '/agency/index.html' },
-      { id: 'agency-divisions', text: 'Divisioni', href: '/agency/index.html#divisioni', kw: 'reparti team' },
-      { id: 'agency-agents', text: 'Agenti AI', href: '/agency/index.html#agenti', kw: 'agenti agenzia' },
-      { id: 'agency-workflow', text: 'Workflow', href: '/agency/index.html#workflow', kw: 'flussi processi' },
       { id: 'agency-clients', text: 'Clienti', href: '/agency/clients.html' },
       { id: 'agency-projects', text: 'Progetti', href: '/agency/projects.html' },
       { id: 'agency-ped', text: 'Piano editoriale', href: '/project-editorial.html', project: 'project', kw: 'ped social calendario contenuti' },
       { id: 'agency-avatar', text: 'Studio Avatar', href: '/agency/avatar.html', project: 'project', kw: 'avatar heygen video voce' },
+      { id: 'agency', text: 'Agenzia e divisioni', href: '/agency/index.html', kw: 'panoramica' },
+      { id: 'agency-divisions', text: 'Divisioni', href: '/agency/index.html#divisioni', kw: 'reparti team' },
+      { id: 'agency-agents', text: 'Agenti AI', href: '/agency/index.html#agenti', kw: 'agenti agenzia' },
+      { id: 'agency-workflow', text: 'Workflow', href: '/agency/index.html#workflow', kw: 'flussi processi' },
       { id: 'agency-operations', text: 'Operations', href: '/agency/operations.html' },
       { id: 'agency-memory', text: 'Memoria', href: '/agency/memory.html' }
     ] },
@@ -93,6 +95,7 @@
   var FOOT = [
     { id: 'coordination', text: 'Control Room', href: '/coordination/index.html', icon: 'radar' },
     { id: 'ecosystem', text: 'Tutte le aree', href: '/radix-ecosystem.html', icon: 'globe' },
+    { id: 'impostazioni', text: 'Impostazioni', href: '/impostazioni.html', icon: 'sliders', kw: 'password profilo lingua membri ruoli caselle email collegamenti chiavi estensione sla automazioni' },
     { id: 'admin', text: 'Amministrazione', href: '/admin.html', icon: 'cog' }
   ];
 
@@ -120,10 +123,12 @@
   function navHtml() {
     return NAV.map(function (n) {
       if (n.label) return '<div class="rx-label">' + esc(n.label) + '</div>';
+      // A group with its own href (Marketing Agency → Marketing Orbit): the label is a link to that page, the rest of the row
+      // still opens and closes the group.
       if (n.group) {
         var active = n.items.some(function (s) { return s.id === page; });
         return '<details class="rx-group" data-active="' + active + '"' + (active ? ' open' : '') + '><summary title="' + esc(n.text) + '">' + svg(n.icon) +
-          '<span>' + esc(n.text) + '</span>' + svg('chev', 'rx-chev') + '</summary><div class="rx-sub">' + n.items.map(item).join('') + '</div></details>';
+          '<span>' + (n.href ? '<a class="rx-group-link" href="' + esc(n.href) + '">' + esc(n.text) + '</a>' : esc(n.text)) + '</span>' + svg('chev', 'rx-chev') + '</summary><div class="rx-sub">' + n.items.map(item).join('') + '</div></details>';
       }
       return item(n);
     }).join('');

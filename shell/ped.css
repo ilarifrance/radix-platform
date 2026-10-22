@@ -271,6 +271,7 @@ html.ped-grid .rx-ped .calendar-empty{display:none}
 .rx-ped .ped-rail>a[data-ic=calendar]::before{border-top-width:4px}
 .rx-ped .ped-rail>a[data-ic=library]::before{border-radius:2px;box-shadow:3px -3px 0 -1px currentColor}
 .rx-ped .ped-rail>a[data-ic=analytics]::before{border-width:0 0 1.5px 1.5px;border-radius:0}
+.rx-ped .ped-rail>a[data-ic=results]::before{border-width:0 0 1.5px 0;border-radius:0;box-shadow:inset 3px 0 0 -1.5px currentColor,inset -3px 0 0 -1.5px currentColor}
 .rx-ped .ped-rail>a[data-ic=overview]::before{border-radius:50%}
 .rx-ped .ped-rail-ch{border-left-width:3px!important;border-left-color:var(--ch)!important;min-height:34px}
 .rx-ped .ped-rail-channels,.rx-ped .ped-rail-projects{display:flex;flex-direction:column;gap:2px}
@@ -368,6 +369,9 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout:not(:has(#contentForm
 html[data-ped-section="overview"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,.filters,#groups,.layout),
 html[data-ped-section="analytics"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,.filters,#groups,.layout),
 html[data-ped-section="library"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,#analytics){display:none!important}
+html[data-ped-section] .rx-ped #pedPage>#results{display:none!important}
+html[data-ped-section="results"] .rx-ped #pedPage>#results{display:block!important}
+html[data-ped-section="results"] .rx-ped #pedPage>:is(.calendar-toolbar,#calendar,#planStatus,#metrics,#analytics,.filters,#groups,.layout,#planProposal){display:none!important}
 html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns:minmax(0,1fr)!important;margin-top:18px}
 /* Three-step guide of the PED (write, approve, schedule) */
 .rx-ped .ped-steps{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0;padding:0}
@@ -420,3 +424,26 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 
 .ped-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;max-width:min(640px,calc(100vw - 32px));padding:12px 18px;border-radius:12px;border:1px solid var(--rx-border-strong);background:var(--rx-surface,#0f1a17);color:inherit;font-size:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);cursor:pointer}
 .ped-toast[hidden]{display:none}.ped-toast-alert{border-color:#e0a030;color:#f3c66b}
+/* «Risultati»: social numbers of published posts */
+.rx-ped .results-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 22px 6px}
+.rx-ped .results-actions .stats-channel{display:flex;white-space:nowrap;align-items:center;gap:6px;font-size:12.5px;color:var(--rx-muted)}
+.rx-ped .results-actions .stats-channel select{min-height:36px}
+.rx-ped .stats-preview{margin:10px 22px;padding:14px;border:1px dashed var(--rx-border-strong);border-radius:12px;background:var(--rx-bg-raised)}
+.rx-ped .stats-preview .warn{color:var(--rx-error);margin:0}
+.rx-ped .stats-preview select{max-width:260px;min-height:32px;font-size:12.5px}
+.rx-ped .stats-preview tr.is-unmatched td{color:var(--rx-subtle)}
+.rx-ped .result-chart svg{display:block;max-width:100%;height:auto;overflow:visible}
+.rx-ped .rc-bar{fill:var(--rx-accent)}
+.rx-ped .rc-week.is-empty .rc-bar{fill:var(--rx-border-strong)}
+.rx-ped .rc-week:hover .rc-bar{fill:color-mix(in srgb,var(--rx-accent) 75%,var(--rx-text))}
+.rx-ped .rc-val{font:600 11px var(--rx-font);fill:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-ped .rc-lab{font:400 10.5px var(--rx-font);fill:var(--rx-subtle)}
+.rx-ped .rc-axis{stroke:var(--rx-border)}
+.rx-ped .result-posts-wrap{overflow-x:auto;margin-left:22px;margin-right:22px}
+.rx-ped .result-posts{width:100%;min-width:760px}
+.rx-ped .result-posts th button.sort,.rx-ped .result-posts td button.linkish{min-height:0;padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.rx-ped .result-posts td button.linkish{font-weight:500;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.rx-ped .result-posts td button.linkish:hover{color:var(--rx-agency);text-decoration:underline}
+.rx-ped .result-posts td:first-child{white-space:nowrap;font-weight:400}
+.rx-ped .ped-results #nextStepList{margin:10px 22px 22px}
+@media (max-width:900px){.rx-ped .results-actions,.rx-ped .stats-preview,.rx-ped .result-posts-wrap,.rx-ped .ped-results #nextStepList{margin-left:14px;margin-right:14px}}

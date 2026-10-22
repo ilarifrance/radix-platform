@@ -101,7 +101,7 @@ test('saving keeps the other agents, appends to the specialist thread and retrie
 
 test('the widget confirms before the one AI call and uses the SEO and GEO specialist with its memory',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/seo-studio.js'),'utf8');
- assert.match(src,/confirm\('Preparare 3 strategie SEO e GEO[^']*È una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Preparare 3 strategie SEO e GEO[^']*',cost:'È una sola chiamata AI: usa crediti API\.'[^}]*\}\)\)return;\s*lock\(true\)/);
  assert.match(src,/rt\.reply\(\{role:AGENT,project:ctx\.project,memoryScope:ctx\.memoryScope/);assert.equal(s.AGENT,'seo-geo');
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(/.test(src),'no requests of its own: the AI call goes through the agents runtime, the save through the workspace client');
