@@ -35,7 +35,7 @@ test('cost badges are read from the card cost line: free, one AI call, batches o
 });
 
 test('kits and area numbers come from the cards',()=>{
- assert.deepEqual(core.kits().map(k=>k.id),['identita','evento','creativita','documenti']);
+ assert.deepEqual(core.kits().map(k=>k.id),['identita','coordinato','evento','creativita','documenti']);
  for(const k of core.kits()){assert.equal(k.card,core.card(k.id));assert.ok(k.label&&k.files)}
  assert.deepEqual(core.groups().map(core.areaNumber),['01','02','03','04','05','06','07','08']);assert.equal(core.areaNumber(''),'');
 });
