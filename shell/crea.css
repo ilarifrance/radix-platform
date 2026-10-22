@@ -1591,3 +1591,74 @@ html.rx-shell body.cr-page{--line:rgba(150,165,230,.14)}
   .cr-panel :is(.ps-switch,.ad-switch){min-height:40px!important}
   .cr-panel :is(.sa-pages a,.sa-rewrite-top a,a.gb-golink){display:inline-flex;align-items:center;min-height:40px}
 }
+/* Studio Foto prodotto (lib/product-photo-studio.js): the Schede prodotto pieces (pf-*: cards, drop, tiles) plus the
+   thumbnails of the batch, the mask editor on a checkerboard, the three scenes and the checks per photo. */
+.cr-panel .product-photo-studio .fp-choices{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.cr-panel .product-photo-studio .fp-chips{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0;padding:0;border:0}
+.cr-panel .product-photo-studio .fp-chips legend{grid-column:1/-1;padding:0 0 6px;font-size:12.5px;color:var(--ink-2)}
+.cr-panel .product-photo-studio .fp-extras{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end}
+.cr-panel .product-photo-studio .fp-extras select{height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--field);color:var(--ink);font:500 13.5px var(--rx-font,Inter,sans-serif)}
+.cr-panel .product-photo-studio .fp-color input{width:64px;height:40px;padding:2px;border-radius:10px;border:1px solid var(--line-2);background:var(--field);cursor:pointer}
+.cr-panel .product-photo-studio .fp-thumbs{display:flex;flex-wrap:wrap;gap:10px}
+.cr-panel .product-photo-studio .fp-thumbs:empty{display:none}
+.cr-panel .product-photo-studio .fp-thumb-wrap{position:relative}
+.cr-panel .product-photo-studio .fp-thumb{display:flex;flex-direction:column;align-items:center;gap:6px;width:112px;padding:8px;border:1px solid var(--line-2);border-radius:12px;background:rgba(255,255,255,.02);color:var(--ink-2);cursor:pointer}
+.cr-panel .product-photo-studio .fp-thumb img{width:96px;height:96px;object-fit:contain;border-radius:8px;background:#fff}
+.cr-panel .product-photo-studio .fp-thumb small{font-size:11.5px;color:var(--subtle)}
+.cr-panel .product-photo-studio .fp-thumb[data-state=ok] small{color:#3dd68c}
+.cr-panel .product-photo-studio .fp-thumb[data-state=error] small{color:#ff9a9a}
+.cr-panel .product-photo-studio .fp-thumb[aria-pressed=true]{border-color:var(--mk);box-shadow:0 0 0 1px var(--mk)}
+.cr-panel .product-photo-studio .fp-thumb:focus-visible,.cr-panel .product-photo-studio .fp-thumb-x:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+.cr-panel .product-photo-studio .fp-thumb-x{position:absolute;top:-8px;right:-8px;display:grid;place-items:center;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--line-2);background:var(--card-2);color:var(--ink);font-size:16px;line-height:1;cursor:pointer}
+.cr-panel .product-photo-studio .fp-progress{display:flex;flex-direction:column;gap:6px}
+.cr-panel .product-photo-studio .fp-progress progress{width:100%;height:8px;appearance:none;-webkit-appearance:none;border:0;border-radius:999px;background:rgba(150,165,230,.18);overflow:hidden}
+.cr-panel .product-photo-studio .fp-progress progress::-webkit-progress-bar{background:rgba(150,165,230,.18);border-radius:999px}
+.cr-panel .product-photo-studio .fp-progress progress::-webkit-progress-value{background:var(--mk);border-radius:999px}
+.cr-panel .product-photo-studio .fp-progress progress::-moz-progress-bar{background:var(--mk);border-radius:999px}
+.cr-panel .product-photo-studio .fp-editor,.cr-panel .product-photo-studio .fp-two{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(240px,1fr);gap:18px;align-items:start}
+.cr-panel .product-photo-studio .fp-mask-wrap{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cr-panel .product-photo-studio .fp-mask-view{display:block;width:100%;max-width:560px;height:auto;border-radius:12px;border:1px solid var(--line);touch-action:none}
+.cr-panel .product-photo-studio .fp-mask-view[data-brush=erase],.cr-panel .product-photo-studio .fp-mask-view[data-brush=restore]{cursor:crosshair}
+.cr-panel .product-photo-studio .fp-tools,.cr-panel .product-photo-studio .fp-place{display:flex;flex-direction:column;gap:12px;min-width:0}
+.cr-panel .product-photo-studio .fp-tools h5,.cr-panel .product-photo-studio .fp-place h5,.cr-panel .product-photo-studio .fp-row-info h5{margin:0;font:600 11.5px/1.3 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--mk-soft)}
+.cr-panel .product-photo-studio .fp-slider>span{display:flex;justify-content:space-between;gap:8px;color:var(--ink-2)}
+.cr-panel .product-photo-studio .fp-slider output{font-variant-numeric:tabular-nums;color:var(--subtle)}
+.cr-panel .product-photo-studio .fp-slider input[type=range]{width:100%;min-height:24px;accent-color:var(--mk)}
+.cr-panel .product-photo-studio .fp-brush{display:flex;flex-wrap:nowrap;width:100%}
+.cr-panel .product-photo-studio .fp-brush button{flex:1 1 0;min-width:0;white-space:nowrap}
+.cr-panel .product-photo-studio .fp-reset{align-self:flex-start;min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--ink-2);cursor:pointer}
+.cr-panel .product-photo-studio .fp-license{margin:0;font-size:12px}
+.cr-panel .product-photo-studio .fp-license a{color:var(--subtle);text-underline-offset:3px}
+.cr-panel .product-photo-studio .fp-scene-form{display:flex;flex-direction:column;gap:12px}
+.cr-panel .product-photo-studio .fp-q{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .product-photo-studio .fp-scenes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cr-panel .product-photo-studio .fp-scene{margin:0;padding:10px;gap:8px}
+.cr-panel .product-photo-studio .fp-scene-view{display:grid;place-items:center;width:100%;aspect-ratio:var(--ratio,1/1);overflow:hidden;border-radius:10px;background:rgba(255,255,255,.04)}
+.cr-panel .product-photo-studio .fp-scene-view .fp-canvas{width:100%;height:100%;object-fit:cover}
+.cr-panel .product-photo-studio .fp-canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 0 0 1px var(--line)}
+.cr-panel .product-photo-studio .fp-bg-view{min-width:0;max-width:560px}
+.cr-panel .product-photo-studio .fp-row{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:16px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.015)}
+.cr-panel .product-photo-studio .fp-row[data-level=fail]{border-color:rgba(255,120,120,.45)}
+.cr-panel .product-photo-studio .fp-row[data-level=warn]{border-color:rgba(245,199,107,.4)}
+.cr-panel .product-photo-studio .fp-row-info{display:flex;flex-direction:column;gap:10px;min-width:0}
+.cr-panel .product-photo-studio .fp-row-info h5{overflow-wrap:anywhere;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)}
+.cr-panel .product-photo-studio .fp-row-info>button{align-self:flex-start}
+.cr-panel .product-photo-studio .fp-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cr-panel .product-photo-studio .fp-check{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;font-size:13px;line-height:1.45;color:var(--ink-2)}
+.cr-panel .product-photo-studio .fp-check::before{content:'';grid-row:1/3;width:8px;height:8px;margin-top:6px;border-radius:50%;background:#3dd68c}
+.cr-panel .product-photo-studio .fp-check strong{font-weight:600;color:var(--ink)}
+.cr-panel .product-photo-studio .fp-check span{overflow-wrap:anywhere}
+.cr-panel .product-photo-studio .fp-check[data-level=warn]::before{background:var(--amber)}
+.cr-panel .product-photo-studio .fp-check[data-level=fail]::before{background:#ff6b6b}
+.cr-panel .product-photo-studio .fp-check[data-level=fail] span{color:#ff9a9a}
+.cr-panel .product-photo-studio .fp-export-acts{padding-top:14px;border-top:1px solid var(--line)}
+@media (max-width:900px){
+ .cr-panel .product-photo-studio .fp-editor,.cr-panel .product-photo-studio .fp-two{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+ .cr-panel .product-photo-studio .fp-chips{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .product-photo-studio .fp-scenes{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .product-photo-studio .fp-row{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .product-photo-studio .fp-thumb{width:96px}.cr-panel .product-photo-studio .fp-thumb img{width:80px;height:80px}
+ .cr-panel .product-photo-studio .fp-export-acts>button{flex:1 1 auto}
+}

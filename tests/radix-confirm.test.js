@@ -133,7 +133,7 @@ test('every page with a studio loads the confirmation before the studios; no nat
  for(const p of ['agency/crea.html','agents.html','commercial/index.html','project-editorial.html','agency/avatar.html']){const h=read(p);
   assert.match(h,/<script src="\/lib\/radix-confirm\.js"( defer)?><\/script>/,p);assert.match(h,/<link rel="stylesheet" href="\/shell\/radix-confirm\.css">/,p);
   const first=Math.min(...['/lib/radix-agent-media.js','/lib/image-studio.js','/agency/avatar.js'].map(s=>h.indexOf(s)).filter(i=>i>=0));assert.ok(h.indexOf('/lib/radix-confirm.js')<first,p)}
- const files=['ad-studio','copy-studio','gbp-studio','identity-studio','image-studio','newsletter-studio','product-studio','reel-studio','seo-results','seo-studio','site-audit','site-studio','translation-studio','video-studio','radix-agent-media'].map(f=>'lib/'+f+'.js').concat('agency/avatar.js');
+ const files=['ad-studio','copy-studio','gbp-studio','identity-studio','image-studio','newsletter-studio','product-studio','product-photo-studio','reel-studio','seo-results','seo-studio','site-audit','site-studio','translation-studio','video-studio','radix-agent-media'].map(f=>'lib/'+f+'.js').concat('agency/avatar.js');
  for(const f of files){const src=read(f);
   assert.ok(!/(?:root|window)\.confirm\('|[^.\w]confirm\('/.test(src),f+': no native confirm with a message');
   assert.ok(/const askConfirm=o=>/.test(src),f+': the shared helper');
@@ -199,6 +199,27 @@ test('translation-studio: 3 tones, then the rest in batches; Annulla = no call, 
   answer=true;await go().onclick();await tick(10);assert.equal(asked.length,4,'one confirmation for all the batches');assert.equal(calls.length,4,'exactly one call per batch');
   assert.ok(!btn(/^Traduci gli altri/),'nothing left to translate');
   assert.ok(btn(/^Scarica tutto \(\.zip\)/),'the export');assert.ok(find(w,n=>n.tagName==='SMALL'&&n.textContent==='testo-en.md')||find(w,n=>n.tagName==='SMALL'&&/-en\.md$/.test(n.textContent)),'Markdown per language');
+ });
+});
+
+test('product-photo-studio: the 3 OpenAI backgrounds start only after the click and the RADIX confirmation; cut-out and white need none',async()=>{
+ const S=require('../lib/product-photo-studio.js');let asked=[],answer=false;const posts=[];
+ const {doc}=makeDom();
+ const fetch=async(url,o={})=>{posts.push({url,body:o.body?JSON.parse(o.body):null});return {ok:true,status:200,json:async()=>({image:'data:image/png;base64,AA=='})}};
+ class FakeImage{set src(v){this._src=v;this.naturalWidth=this.width=1024;this.naturalHeight=this.height=1024;setImmediate(()=>this.onload&&this.onload())}get src(){return this._src}}
+ await withGlobals({document:doc,fetch,Image:FakeImage,RadixConfirm:{ask:async o=>{asked.push(o);return answer}},confirm:()=>{throw Error('no native confirm')},RadixAgents:{reply:async()=>{throw Error('no AI call expected')}},requestAnimationFrame:f=>setImmediate(f)},async()=>{
+  const w=S.productPhotoStudio({project,profile:{identityKit:{palette:[{role:'primary',hex:'#7A3E1D'},{role:'light',hex:'#F6EFE6'}],keywords:['artigianale']}}});doc.body.append(w);await tick();
+  assert.equal(posts.length,0,'nothing on load');assert.equal(asked.length,0);
+  const scene=find(w,n=>n.tagName==='INPUT'&&n.type==='radio'&&n.value==='scene');scene.checked=true;scene.onchange();await tick();
+  const go=()=>find(w,n=>n.tagName==='BUTTON'&&/primary/.test(n.className)&&!n.disabled&&/^(Genera|Rigenera) 3 sfondi$/.test(n.textContent.trim()));
+  assert.ok(go(),'the go button');
+  await go().onclick();await tick();
+  assert.equal(asked.length,1);assert.match(asked[0].cost,/Sono 3 generazioni di immagini OpenAI[^.]*: consumano il saldo API di OpenAI/);assert.equal(asked[0].ok,'Genera 3 sfondi');
+  assert.equal(posts.length,0,'«Annulla» starts no generation');
+  answer=true;await go().onclick();await tick(8);
+  assert.equal(asked.length,2);assert.equal(posts.length,3,'exactly the 3 announced generations');
+  assert.ok(posts.every(p=>p.url==='/api/openai-image'&&p.body.shape==='square'&&p.body.quality==='medium'&&/EMPTY/.test(p.body.prompt)&&/#7A3E1D/.test(p.body.prompt)),'only the background, square 2000 format, brand colours');
+  assert.equal(w.radixState().scenes,3);
  });
 });
 
