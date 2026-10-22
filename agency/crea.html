@@ -1,13 +1,38 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RADIX · Cosa vuoi fare oggi?</title><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/agency.css"><link rel="stylesheet" href="/shell/photo-studio.css"><link rel="stylesheet" href="/shell/crea.css"><link rel="stylesheet" href="/shell/radix-confirm.css"><script src="/shell/radix-shell.js" defer></script></head>
-<body class="rx-agency cr-page" data-shell-state="live" data-shell-area="agency" data-shell-page="agency-crea">
-<main class="cr-main">
-<header class="cr-head"><div class="cr-head-copy"><p class="cr-eyebrow">MARKETING AGENCY</p><h1>Cosa vuoi fare oggi?</h1><p class="cr-muted">Scegli un servizio: poche domande, tre proposte, scegli tu. Prima di ogni generazione a pagamento ti chiedo conferma.</p></div>
-<label class="cr-project"><span>Per quale progetto</span><select id="crProject" disabled><option>Caricamento…</option></select></label></header>
-<p id="crMessage" class="cr-message" role="status"></p>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>RADIX · Cosa vuoi fare oggi?</title><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/agency.css"><link rel="stylesheet" href="/shell/photo-studio.css"><link rel="stylesheet" href="/shell/crea.css"><link rel="stylesheet" href="/shell/marketing-a.css"><link rel="stylesheet" href="/agency/crea.css"><link rel="stylesheet" href="/shell/radix-confirm.css"><script src="/shell/radix-shell.js" defer></script><script src="/agency/marketing-nav.js" defer></script><link rel="stylesheet" href="/agency/marketing-nav.css"></head>
+<body class="rx-agency cr-page ma-root" data-shell-state="live" data-shell-area="agency" data-shell-page="agency-crea">
+<main class="cr-main cp-main ma">
+<section class="cp-hero" aria-labelledby="crTitle">
+<div class="cp-copy">
+<p class="ma-eyebrow">Marketing Agency · Servizi guidati</p>
+<h1 class="ma-title" id="crTitle">Cosa vuoi <em>fare oggi?</em></h1>
+<p class="cp-lead" id="crLead">Scegli un servizio: poche domande, tre proposte, scegli tu. Prima di ogni generazione a pagamento ti chiedo conferma.</p>
+<form class="ma-command" id="crAskForm" role="search" aria-label="Cosa vuoi fare oggi?">
+<div class="ma-command-bar"><span class="ma-command-icon" id="crAskIcon" aria-hidden="true"></span>
+<label class="ma-sr" for="crAsk">Cosa vuoi fare oggi?</label>
+<input class="ma-command-input" id="crAsk" name="q" type="text" autocomplete="off" spellcheck="false" maxlength="200" placeholder="Descrivi cosa ti serve. Es. «un volantino per l’open day»" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="crSuggest" aria-describedby="crAskHelp">
+<button class="ma-btn ma-btn--primary" id="crAskGo" type="submit">Trova<span class="ma-btn-icon" id="crAskGoIcon" aria-hidden="true"></span></button></div>
+<p class="ma-command-head" id="crSuggestHead">Suggeriti per iniziare</p>
+<ul class="ma-suggest" id="crSuggest" role="listbox" aria-labelledby="crSuggestHead"></ul>
+<p class="ma-sr" id="crAskHelp">Frecce su e giù per scegliere un suggerimento, Invio per aprirlo. Nessuna richiesta all’AI parte da qui.</p>
+</form>
+<p id="crMessage" class="cr-message cp-message" role="status"></p>
+</div>
+<aside class="ma-glass cp-side" aria-labelledby="crSideTitle">
+<h2 class="ma-sr" id="crSideTitle">Progetto e come funziona</h2>
+<label class="cp-project"><span class="cp-label">Per quale progetto</span><span class="cp-select"><select id="crProject" disabled><option>Caricamento…</option></select></span></label>
+<dl class="cp-facts" id="crFacts"></dl>
+<p class="cp-label cp-how-title">Come funziona</p>
+<ol class="ma-steps cp-how"><li class="ma-step"><span class="ma-step-n" aria-hidden="true">1</span><div class="ma-step-text"><b>Scegli un servizio</b><small>Il costo è scritto sulla scheda, prima di aprirla.</small></div></li><li class="ma-step"><span class="ma-step-n" aria-hidden="true">2</span><div class="ma-step-text"><b>Rispondi a poche domande</b><small>Partiamo dai fatti confermati del progetto.</small></div></li><li class="ma-step"><span class="ma-step-n" aria-hidden="true">3</span><div class="ma-step-text"><b>Confermi, poi 3 proposte</b><small>Nessuna chiamata AI parte senza il tuo sì.</small></div></li></ol>
+</aside>
+</section>
 <section id="crPanel" class="cr-panel" hidden aria-labelledby="crPanelTitle"><div class="cr-panel-head"><span class="cr-panel-icon" id="crPanelIcon" aria-hidden="true"></span><div class="cr-panel-titles"><p class="cr-panel-eyebrow">Servizio guidato</p><h2 id="crPanelTitle"></h2></div><button type="button" class="cr-close" id="crClose">Chiudi</button></div><div id="crPanelBody"></div></section>
-<div class="cr-toolbar"><div id="crFilters" class="cr-filters" role="group" aria-label="Filtra i servizi"></div></div>
-<ul id="crCards" class="cr-grid" aria-label="Servizi"></ul>
-<p class="cr-note">Tutti i servizi ora sono guidati. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma.</p>
+<section class="cp-kits" aria-labelledby="crKitsTitle"><div class="ma-sec-head"><h2 id="crKitsTitle">Kit completi</h2><span class="ma-count" id="crKitsCount"></span><span class="cp-sec-note">Un solo flusso, tutti i file coordinati</span></div><ul class="cp-kit-row" id="crKits"></ul></section>
+<section class="cp-services" aria-labelledby="crServicesTitle">
+<div class="ma-sec-head"><h2 id="crServicesTitle">Servizi</h2><span class="ma-count" id="crCount"></span></div>
+<div id="crFilters" class="cp-tabs" role="group" aria-label="Filtra i servizi per area"></div>
+<div id="crCards" class="cp-index" aria-live="polite"></div>
+</section>
+<p class="cr-note cp-foot">Tutti i servizi ora sono guidati. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma.</p>
 </main>
-<script src="/lib/radix-workspace-client.js"></script><script src="/lib/radix-agent-runtime.js"></script><script src="/lib/radix-confirm.js"></script><script src="/lib/radix-agent-media.js"></script><script src="/lib/image-studio.js"></script><script src="/lib/video-studio.js"></script><script src="/lib/site-legal.js"></script><script src="/lib/site-studio.js"></script><script src="/lib/seo-studio.js"></script><script src="/lib/site-audit.js"></script><script src="/lib/copy-checks.js"></script><script src="/lib/copy-studio.js"></script><script src="/lib/zip-lite.js"></script><script src="/lib/identity-studio.js"></script><script src="/lib/ad-studio.js"></script><script src="/lib/reel-studio.js"></script><script src="/lib/gbp-studio.js"></script><script src="/lib/print-studio.js"></script><script src="/lib/pptx-lite.js"></script><script src="/lib/doc-studio.js"></script><script src="/lib/newsletter-studio.js"></script><script src="/lib/lead-xlsx-parser.js"></script><script src="/sales/crm-csv-core.js"></script><script src="/lib/catalog-studio.js"></script><script src="/lib/product-studio.js"></script><script src="/lib/translation-studio.js"></script><script src="/lib/event-studio.js"></script><script src="/agency/crea-core.js"></script><script src="/agency/marketing-look.js"></script><script src="/agency/crea.js"></script>
+<script src="/lib/radix-workspace-client.js"></script><script src="/lib/radix-agent-runtime.js"></script><script src="/lib/radix-confirm.js"></script><script src="/lib/radix-agent-media.js"></script><script src="/lib/image-studio.js"></script><script src="/lib/video-studio.js"></script><script src="/lib/site-legal.js"></script><script src="/lib/site-studio.js"></script><script src="/lib/seo-studio.js"></script><script src="/lib/site-audit.js"></script><script src="/lib/copy-checks.js"></script><script src="/lib/copy-studio.js"></script><script src="/lib/zip-lite.js"></script><script src="/lib/identity-studio.js"></script><script src="/lib/ad-studio.js"></script><script src="/lib/reel-studio.js"></script><script src="/lib/gbp-studio.js"></script><script src="/lib/print-studio.js"></script><script src="/lib/pptx-lite.js"></script><script src="/lib/doc-studio.js"></script><script src="/lib/coordinato-studio.js"></script><script src="/lib/newsletter-studio.js"></script><script src="/lib/lead-xlsx-parser.js"></script><script src="/sales/crm-csv-core.js"></script><script src="/lib/catalog-studio.js"></script><script src="/lib/product-studio.js"></script><script src="/lib/qr-lite.js"></script><script src="/lib/menu-studio.js"></script><script src="/lib/translation-studio.js"></script><script src="/lib/event-studio.js"></script><script src="/lib/product-photo-segment.js"></script><script src="/lib/product-photo-studio.js"></script><script src="/agency/crea-core.js"></script><script src="/agency/marketing-look.js"></script><script src="/agency/orbit-core.js"></script><script src="/agency/crea.js"></script>
 </body></html>

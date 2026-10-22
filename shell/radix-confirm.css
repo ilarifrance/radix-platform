@@ -1,34 +1,35 @@
 /* RADIX confirm (lib/radix-confirm.js): the confirmation before an AI call, a credit spend, a publication or a send.
-   Same look as the Marketing studios (shell/crea.css, the .pf-dialog of the product sheets). Self-contained tokens so
-   it renders the same on every page that loads it. */
-.rx-confirm{--rc-ink:#f3f4ff;--rc-ink-2:#d6dcf5;--rc-subtle:#7f8bb3;--rc-line:rgba(150,165,230,.14);--rc-line-2:rgba(150,165,230,.24);--rc-amber:#f5c76b;--rc-mk:#ff5fa2;--rc-mk-ink:#1a0610;
+   Same tokens as the Marketing studios (shell/marketing-a.css); the base below is the dark dialog of the other areas. Each token reads the --ma-* one
+   when the page has it (.ma-root on the <body>) and falls back to the same value, so it renders the same on every page
+   that loads it. The confirm button is the gradient of the Marketing primary buttons, white text. */
+.rx-confirm{--rc-ink:var(--ma-tx,#e9edff);--rc-ink-2:var(--ma-tx2,#b4bce0);--rc-subtle:var(--ma-mut,#8f99c4);--rc-line:var(--ma-line,rgba(128,146,255,.14));--rc-line-2:var(--ma-line-2,rgba(128,146,255,.26));--rc-amber:var(--ma-warn,#f4b552);--rc-btn:var(--ma-btn,linear-gradient(135deg,#6a5cff,#3f7bff));--rc-focus:var(--ma-focus,#7fe9ff);
   box-sizing:border-box;width:min(480px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;margin:auto;padding:24px;border:1px solid var(--rc-line-2);border-radius:20px;
-  background:linear-gradient(180deg,#121f47,#0a1330);color:var(--rc-ink);font:400 14px/1.5 var(--rx-font,Inter,system-ui,sans-serif);
-  box-shadow:0 40px 100px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,95,162,.12)}
+  background:linear-gradient(180deg,#141f52,#0b1334);color:var(--rc-ink);font:400 14px/1.5 var(--rx-font,Inter,system-ui,sans-serif);
+  box-shadow:0 40px 100px -30px rgba(0,0,0,.9),0 0 0 1px rgba(127,109,255,.18),0 0 80px -30px rgba(106,92,255,.55)}
 .rx-confirm[open]{animation:rx-confirm-in .16s ease-out}
-.rx-confirm::backdrop{background:rgba(3,6,18,.72);backdrop-filter:blur(4px)}
+.rx-confirm::backdrop{background:rgba(3,6,20,.72);backdrop-filter:blur(6px)}
 @keyframes rx-confirm-in{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.rx-confirm[open]{animation:none}}
 .rx-confirm *{box-sizing:border-box}
 .rx-confirm-title{margin:0 0 16px;font:600 19px/1.3 var(--rx-display,"Space Grotesk",Inter,sans-serif);letter-spacing:-.01em;color:var(--rc-ink);overflow-wrap:anywhere}
 .rx-confirm-body{display:flex;flex-direction:column;gap:12px}
-.rx-confirm-facts{margin:0;display:flex;flex-direction:column;border:1px solid var(--rc-line);border-radius:14px}
+.rx-confirm-facts{margin:0;display:flex;flex-direction:column;border:1px solid var(--rc-line);border-radius:14px;background:rgba(16,26,64,.45)}
 .rx-confirm-facts>div{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:12px;padding:10px 14px;border-top:1px solid var(--rc-line)}
 .rx-confirm-facts>div:first-child{border-top:0}
 .rx-confirm-facts dt{font-size:12.5px;color:var(--rc-subtle)}
 .rx-confirm-facts dd{margin:0;font-size:14px;line-height:1.45;color:var(--rc-ink);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
-.rx-confirm-cost{display:flex;gap:10px;align-items:baseline;margin:0;padding:12px 14px;border:1px solid rgba(245,199,107,.35);border-radius:12px;background:rgba(245,199,107,.06);font-size:13.5px;line-height:1.5;color:var(--rc-ink-2)}
-.rx-confirm-tag{flex:0 0 auto;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:rgba(245,199,107,.16);color:var(--rc-amber);font:600 10.5px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.06em;text-transform:uppercase}
+.rx-confirm-cost{display:flex;gap:10px;align-items:baseline;margin:0;padding:12px 14px;border:1px solid rgba(244,181,82,.34);border-radius:12px;background:rgba(244,181,82,.07);font-size:13.5px;line-height:1.5;color:var(--rc-ink-2)}
+.rx-confirm-tag{flex:0 0 auto;display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;background:rgba(244,181,82,.16);color:#ffd28a;font:600 10.5px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.06em;text-transform:uppercase}
 .rx-confirm--danger .rx-confirm-cost{border-color:rgba(255,120,120,.4);background:rgba(255,120,120,.07)}
 .rx-confirm--danger .rx-confirm-tag{background:rgba(255,120,120,.16);color:#ff9b9b}
 .rx-confirm-msg{margin:0;font-size:14px;line-height:1.55;color:var(--rc-ink-2);overflow-wrap:anywhere}
 .rx-confirm-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:22px}
-.rx-confirm-actions button{min-height:44px;padding:0 18px;border-radius:12px;font:600 14px/1.2 var(--rx-font,Inter,sans-serif);cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
-.rx-confirm-no{border:1px solid var(--rc-line-2);background:rgba(255,255,255,.04);color:var(--rc-ink)}
-.rx-confirm-no:hover{border-color:rgba(150,165,230,.4);background:rgba(255,255,255,.07)}
-.rx-confirm-yes{border:1px solid var(--rc-mk);background:var(--rc-mk);color:var(--rc-mk-ink);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 26px -12px rgba(255,95,162,.8)}
-.rx-confirm-yes:hover{background:#ff74b0;border-color:#ff74b0}
-.rx-confirm-actions button:focus-visible{outline:2px solid #9cc0ff;outline-offset:2px}
+.rx-confirm-actions button{min-height:44px;padding:0 18px;border-radius:12px;font:600 14px/1.2 var(--rx-font,Inter,sans-serif);cursor:pointer;transition:background-color .15s,border-color .15s,color .15s,filter .15s}
+.rx-confirm-no{border:1px solid var(--rc-line-2);background:rgba(20,30,72,.5);color:var(--rc-ink)}
+.rx-confirm-no:hover{border-color:rgba(160,170,255,.5);background:rgba(30,42,96,.6)}
+.rx-confirm-yes{border:0;background:var(--rc-btn);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 24px -8px rgba(80,100,255,.7)}
+.rx-confirm-yes:hover{filter:brightness(1.1)}
+.rx-confirm-actions button:focus-visible{outline:2px solid var(--rc-focus);outline-offset:2px}
 @media (max-width:480px){
   .rx-confirm{padding:20px 18px}
   .rx-confirm-title{font-size:18px}
@@ -36,3 +37,18 @@
   .rx-confirm-actions{flex-direction:column-reverse}
   .rx-confirm-actions button{width:100%}
 }
+.rx-confirm--danger .rx-confirm-yes{background:linear-gradient(135deg,#d63a4c,#b02b45)}
+/* Marketing pages (light «B chiaro», 22/10): the same dialog on a white card, the --ma-* tokens of shell/marketing-a.css
+   already light; only the hand-written dark surfaces of the base change. Other pages keep the dark dialog above. */
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm{background:#fff;color:var(--rc-ink);border-color:var(--ma-line,#e4e1ec);
+  box-shadow:0 30px 80px -24px rgba(29,26,39,.32),0 0 0 1px rgba(29,26,39,.04)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm::backdrop{background:rgba(29,26,39,.38);backdrop-filter:blur(3px)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-facts{background:#f8f7fb}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-cost{border-color:#f3d5a6;background:#fdf8ef;color:var(--rc-ink-2)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-tag{background:#fdf3e3;color:#9a4f00;box-shadow:inset 0 0 0 1px #f3d5a6}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-cost{border-color:#f6c9c4;background:#fdf3f2}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-tag{background:#fdecea;color:#b42318;box-shadow:inset 0 0 0 1px #f6c9c4}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-no{background:#fff;border-color:var(--rc-line-2);color:var(--rc-ink)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-no:hover{border-color:#b9b3c9;background:#f8f7fb}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-yes{box-shadow:0 1px 2px rgba(29,26,39,.08),0 6px 16px -8px rgba(79,70,229,.55)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-yes{background:#b42318;box-shadow:0 6px 16px -8px rgba(180,35,24,.5)}

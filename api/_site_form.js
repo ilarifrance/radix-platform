@@ -1,6 +1,7 @@
 'use strict';
 /* Modulo contatti dei siti del Studio Sito (lib/site-studio.js): ogni invio diventa un contatto e una nota nel CRM RADIX
-   del workspace scelto, con le tabelle e il comando che il CRM usa già (sales_contacts, sales_interactions via
+   del workspace scelto (un contatto nuovo apre anche un lead «nuovo» con fonte «sito», migrazione sales 012),
+   con le tabelle e il comando che il CRM usa già (sales_contacts, sales_interactions, sales_leads via
    sales_command, validati da command() di api/_sales.js). Nessuna tabella nuova, nessuna e-mail inviata.
 
    Il permesso è un token del sito, come quello dell'estensione Chrome (api/_lead_import_token.js): firmato HMAC con una
@@ -112,7 +113,13 @@ async function record(store,claims,f,{origin,now}){
  }
  const n=command({workspace:ws,entity:'interactions',action:'create',data:{title:TITLE,kind:'note',occurred_at:at,body:noteBody(f,{origin,at}),contact_id:contactId}});
  await store.command(n,claims.uid);
- return {contactId,interactionId:n.data.id,created};
+ // A new contact also opens a lead (status «nuovo», source «sito», migration sales 012) with the same command the CRM
+ // uses. The contact and the note are already saved, so a failed lead (an archive without 012) never fails the send:
+ // the visitor would otherwise send again and duplicate the note.
+ let leadId=null;
+ if(created){const l=command({workspace:ws,entity:'leads',action:'create',data:{title:('Richiesta dal sito: '+f.name).slice(0,200),contact_id:contactId,status:'nuovo',source:'sito'}});
+  try{await store.command(l,claims.uid);leadId=l.data.id}catch(e){leadId=null}}
+ return {contactId,interactionId:n.data.id,leadId,created};
 }
 
 // ---- the answer: a redirect to the site's thank-you page, or a small page / JSON ----

@@ -65,13 +65,17 @@ test('«Collega al CRM»: a writing member gets the token for the project; viewe
 test('a send from the site becomes a new CRM contact and a note, then redirects to grazie.html',async()=>{
  const fake=fakeStore(),r=await send(fake);
  assert.equal(r.status,303);assert.equal(r.headers.Location,'https://studio-fisio-ab12cd.radixinnovationstudio.com/grazie.html');assert.equal(r.headers['Cache-Control'],'no-store');
- assert.equal(fake.commands.length,2);const [contact,note]=fake.commands;
+ assert.equal(fake.commands.length,3);const [contact,note,lead]=fake.commands;
  assert.equal(contact.uid,7);assert.equal(contact.c.workspace,WS);assert.equal(contact.c.entity,'contacts');assert.equal(contact.c.action,'create');
  assert.equal(contact.c.data.name,'Mario Rossi');assert.equal(contact.c.data.email,'mario.rossi@example.it');assert.equal(contact.c.data.phone,'+39 035 123456');
  assert.equal(contact.c.data.marketing_consent,false,'marketing only with its own box');assert.equal(contact.c.data.consent_at,undefined);
  assert.match(contact.c.data.notes,/modulo del sito https:\/\/studio-fisio/);
  assert.equal(note.c.entity,'interactions');assert.equal(note.c.data.kind,'note');assert.equal(note.c.data.title,'Messaggio dal modulo del sito');assert.equal(note.c.data.contact_id,contact.c.data.id);
  assert.match(note.c.data.body,/^Vorrei un appuntamento\nper la schiena\.\n\n— Arrivato dal modulo contatti del sito https:\/\//);assert.match(note.c.data.body,/Consenso privacy: sì \(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ\)/);assert.match(note.c.data.body,/Consenso a ricevere novità: no/);
+ assert.equal(lead.c.entity,'leads');assert.equal(lead.c.action,'create');assert.deepEqual({...lead.c.data,id:undefined},{id:undefined,title:'Richiesta dal sito: Mario Rossi',contact_id:contact.c.data.id,status:'nuovo',source:'sito'});
+ // an archive without migration 012 refuses the lead: contact and note stay, the visitor still gets the thank-you
+ const old=fakeStore();const cmd=old.store.command;old.store.command=async(c,u)=>{if(c.entity==='leads'){const e=Error('invalid field');e.code='22023';throw e}return cmd(c,u)};
+ assert.equal((await send(old)).status,303);assert.deepEqual(old.commands.map(x=>x.c.entity),['contacts','interactions']);
  const read=fake.sql.find(q=>/FROM sales_contacts/.test(q.text));assert.match(read.text,/WHERE workspace_id=\$1 AND lower\(email\)=lower\(\$2\)/);assert.deepEqual(read.params,[WS,'mario.rossi@example.it']);
  // marketing box ticked: consent stored on the contact with its time
  const m=fakeStore();await send(m,{body:form({marketing:'1'})});assert.equal(m.commands[0].c.data.marketing_consent,true);assert.match(m.commands[0].c.data.consent_at,/Z$/);
@@ -81,7 +85,7 @@ test('a send from the site becomes a new CRM contact and a note, then redirects 
  // JSON clients get JSON; no origin → a small thank-you page
  const j=await send(fakeStore(),{headers:{...H,accept:'application/json'}});assert.equal(j.status,200);assert.deepEqual(j.body,{ok:true});
  const plain=await send(fakeStore(),{headers:{'content-type':'application/x-www-form-urlencoded'}});assert.equal(plain.status,200);assert.match(plain.body,/Grazie, abbiamo ricevuto il tuo messaggio/);
- const obj=fakeStore();assert.equal((await send(obj,{body:Object.fromEntries(new URLSearchParams(form()))})).status,303,'body already parsed by the platform');assert.equal(obj.commands.length,2);
+ const obj=fakeStore();assert.equal((await send(obj,{body:Object.fromEntries(new URLSearchParams(form()))})).status,303,'body already parsed by the platform');assert.equal(obj.commands.length,3);
 });
 
 test('validation, honeypot and consent: nothing is written for a bad or bot send',async()=>{
@@ -102,7 +106,7 @@ test('rate limit: per IP and site in memory, per workspace on the database',asyn
  // the handler uses the module limiter: drive it through a fresh IP
  const headers={...H,'x-forwarded-for':'203.0.113.9, 10.0.0.1'};const codes=[];
  for(let i=0;i<6;i++)codes.push((await call(h,{method:'POST',headers,body:form(),query:{site_form:'1'}})).status);
- assert.deepEqual(codes,[303,303,303,303,303,429]);assert.equal(fake.commands.length,10);
+ assert.deepEqual(codes,[303,303,303,303,303,429]);assert.equal(fake.commands.length,15);
  const other=await call(h,{method:'POST',headers:{...H,'x-forwarded-for':'203.0.113.10'},body:form(),query:{site_form:'1'}});assert.equal(other.status,303,'another visitor is not blocked');
  let t=0;for(let i=0;i<5;i++)assert.equal(limit('k',t+=1000),true);assert.equal(limit('k',t),false);assert.equal(limit('k',t+600001),true,'the window passes');
  const busy=fakeStore({recent:F.RATE.perWorkspaceHour});const r=await call(h,{method:'POST',headers:{...H,'x-forwarded-for':'203.0.113.11'},body:form(),query:{site_form:'1'}});

@@ -32,6 +32,7 @@ const P={
  browser:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M6.5 6.8h.01M9 6.8h.01"/>',
  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
  megaphone:'<path d="M4 10v4h3l7 4.5v-13L7 10Z"/><path d="M17.5 9a4 4 0 0 1 0 6M7 14l1 5h2.5l-1-4.2"/>',
+ menu:'<path d="M7 3.5v7a2 2 0 0 0 2 2v8"/><path d="M5 3.5v5M9 3.5v5"/><path d="M17 20.5v-17c-2.5 1-3.5 4-3.5 7.5 0 1.4.9 2.5 2 2.5H17"/>',
  bookOpen:'<path d="M3 5.5h6a3 3 0 0 1 3 3v11a2 2 0 0 0-2-2H3Z"/><path d="M21 5.5h-6a3 3 0 0 0-3 3v11a2 2 0 0 1 2-2h7Z"/>',
  map:'<path d="M3.5 6 9 4l6 2 5.5-2v14L15 20l-6-2-5.5 2Z"/><path d="M9 4v14M15 6v14"/>',
  clipboard:'<rect x="5" y="4.5" width="14" height="16.5" rx="2.5"/><path d="M9 4.5V3h6v1.5M9 10h6M9 13.5h6M9 17h3.5"/>',
@@ -54,6 +55,7 @@ const P={
  chev:'<path d="m9 6 6 6-6 6"/>',
  pause:'<path d="M9 6v12M15 6v12"/>',
  play:'<path d="M8 5.5v13l10.5-6.5Z"/>',
+ productPhoto:'<path d="M4 7V4h3M20 7V4h-3"/><path d="M10 3.5h4v2.8l1.5 2.2V17.5a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5V8.5L10 6.3Z"/><path d="M8.5 11.5h7v3.5h-7"/><path d="M4 21h16"/>',
  reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
 };
 // One colour and one icon per service area (the groups of agency/crea-core.js); pink is Marketing's colour in the
@@ -63,9 +65,9 @@ const AREAS=Object.freeze({
  social:{color:'#608dff',icon:'chat'},email:{color:'#9be15d',icon:'mail'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
-const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
- catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
+const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',social:'calendar',graphics:'layout',testi:'doc',
+ newsletter:'mail',images:'image',fotoprodotto:'productPhoto',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
+ catalogo:'bookOpen',menu:'menu',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
 // The <svg> markup of an icon: decorative (aria-hidden), stroke in currentColor.
