@@ -149,6 +149,36 @@ test('email signature: tables and inline styles, ≤ 600 px, readable without im
  assert.match(C.signatureText(m,PEOPLE[0]),/^-- \nGiulia Rossi\nTitolare · Forno Aurora\n/);
 });
 
+test('email signature: nothing is cut in a narrow window (long tokens wrap, columns stack, fixed widths fit)',()=>{
+ const m=model(),logo={src:'data:image/png;base64,iVBORw0KGgo=',w:480,h:144};
+ const long={nome:'Maria Antonietta Bianchi-Esposito',ruolo:'Responsabile amministrazione e contabilità',email:'amministrazione.contabilita.generale@fornoaurora-panificio.it',telefono:''};
+ // the two Classico columns fit side by side inside the stated width, with room to spare
+ assert.ok(C.SIG_LOGO_COL+C.SIG_TEXT_COL<=C.SIGNATURE_W,'logo + text columns ≤ '+C.SIGNATURE_W);
+ assert.ok(C.SIG_LOGO_COL<=C.SIG_FIXED_MAX&&C.SIG_TEXT_COL<=C.SIGNATURE_W);
+ for(const d of ['classico','moderno','audace'])for(const lg of [null,logo])for(const p of [null,PEOPLE[0],long]){
+  const html=C.signatureHtml(model({direction:d}),p,{logo:lg}),tag=d+(lg?' logo':' testo')+(p?' '+p.nome:'');
+  assert.deepEqual(C.signatureProblems(html,m),[],tag);
+  // every text cell wraps long emails and addresses
+  const cells=[...html.matchAll(/<td\b[^>]*style="([^"]*font-size:[1-9][^"]*)"/g)].map(x=>x[1]);
+  assert.ok(cells.length>=3,tag);for(const s of cells)assert.match(s,/overflow-wrap:anywhere/,tag+': '+s);
+  if(p&&p.email)assert.match(html,new RegExp('overflow-wrap:anywhere[^>]*><a href="mailto:'+p.email.replace(/\./g,'\\.')),tag+': the email cell wraps');
+  // outside the Outlook-only table: no fixed width wider than a phone; tables are fluid with a max-width
+  const plain=html.replace(/<!--\[if mso\]>[\s\S]*?<!\[endif\]-->/g,'');
+  for(const w of [...plain.matchAll(/(?:^|[^-])\bwidth(?:="(\d+)"|:(\d+)px)/g)].map(x=>+(x[1]||x[2])))assert.ok(w<=C.SIG_FIXED_MAX,tag+': fixed width '+w);
+  assert.match(plain,/^<!--[^>]*--><table role="presentation"[^>]*style="[^"]*width:100%;max-width:520px/,tag+': the outer table is fluid');
+  // the Outlook table: its fixed columns sum to no more than the stated width
+  const mso=[...html.matchAll(/<!--\[if mso\]>([\s\S]*?)<!\[endif\]-->/g)].map(x=>x[1]).join('');
+  const sum=[...mso.matchAll(/width="(\d+)"/g)].reduce((a,x)=>a+ +x[1],0);assert.ok(sum<=C.SIGNATURE_W,tag+': Outlook columns '+sum);
+  if(d==='classico'&&lg){
+   // logo beside the text when there is room, above it when not: two wrapping inline blocks
+   assert.equal((plain.match(/display:inline-block/g)||[]).length,2,tag);
+   assert.match(plain,/display:inline-block;vertical-align:top;width:100%;max-width:300px/,tag+': the text block shrinks');
+   const iw=+html.match(/<img [^>]*width="(\d+)"/)[1];assert.ok(iw<=C.SIG_LOGO_COL-16,tag+': logo '+iw)}}
+ // the rules catch a cell that cannot wrap and a fixed column too wide for a phone
+ assert.ok(C.signatureProblems('<table><tr><td style="font-size:13px">Forno Aurora</td></tr></table>',m).some(x=>/a capo/.test(x)));
+ assert.ok(C.signatureProblems('<table><tr><td width="400" style="font-size:13px;overflow-wrap:anywhere">Forno Aurora</td></tr></table>',m).some(x=>/400 px/.test(x)));
+});
+
 test('Word letterhead: a minimal OOXML package, well formed, header with the logo, footer with the company data',()=>{
  const m=model();
  const bytes=C.docxLetterhead(m,{logo:{data:PNG,w:480,h:144},date:DATE}),r=C.docxInspect(bytes);
