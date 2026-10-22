@@ -133,7 +133,7 @@ test('every page with a studio loads the confirmation before the studios; no nat
  for(const p of ['agency/crea.html','agents.html','commercial/index.html','project-editorial.html','agency/avatar.html']){const h=read(p);
   assert.match(h,/<script src="\/lib\/radix-confirm\.js"( defer)?><\/script>/,p);assert.match(h,/<link rel="stylesheet" href="\/shell\/radix-confirm\.css">/,p);
   const first=Math.min(...['/lib/radix-agent-media.js','/lib/image-studio.js','/agency/avatar.js'].map(s=>h.indexOf(s)).filter(i=>i>=0));assert.ok(h.indexOf('/lib/radix-confirm.js')<first,p)}
- const files=['ad-studio','copy-studio','gbp-studio','identity-studio','image-studio','newsletter-studio','product-studio','reel-studio','seo-results','seo-studio','site-audit','site-studio','video-studio','radix-agent-media'].map(f=>'lib/'+f+'.js').concat('agency/avatar.js');
+ const files=['ad-studio','copy-studio','gbp-studio','identity-studio','image-studio','newsletter-studio','product-studio','reel-studio','seo-results','seo-studio','site-audit','site-studio','translation-studio','video-studio','radix-agent-media'].map(f=>'lib/'+f+'.js').concat('agency/avatar.js');
  for(const f of files){const src=read(f);
   assert.ok(!/(?:root|window)\.confirm\('|[^.\w]confirm\('/.test(src),f+': no native confirm with a message');
   assert.ok(/const askConfirm=o=>/.test(src),f+': the shared helper');
@@ -155,6 +155,7 @@ const CASES=[
  {file:'reel-studio',make:S=>S.reelStudio({project,memoryScope:{projectId:'p1'}}),go:/^Prepara/,prep:async w=>{const f=find(w,n=>n.tagName==='INPUT'&&n.type==='file');f.files=[{name:'pane.jpg',type:'image/jpeg',size:2048}];await f.onchange()}},
  {file:'ad-studio',make:S=>S.adStudio({project,memoryScope:{projectId:'p1'}}),go:/^Prepara/},
  {file:'gbp-studio',make:S=>S.gbpStudio({project,memoryScope:{projectId:'p1'}}),go:/^Prepara/},
+ {file:'translation-studio',make:S=>S.translationStudio({project}),go:/^Prova 3 toni/},
 ];
 for(const c of CASES)test(c.file+': the AI call starts only after the click and the RADIX confirmation',async()=>{
  const S=require('../lib/'+c.file+'.js');let asked=[],answer=false,calls=0;
@@ -170,6 +171,34 @@ for(const c of CASES)test(c.file+': the AI call starts only after the click and 
   assert.equal(calls,0,c.file+': «Annulla» spends nothing');
   answer=true;await go().onclick();await tick(6);
   assert.equal(asked.length,2);assert.equal(calls,1,c.file+': exactly one AI call after the yes');
+ });
+});
+
+test('translation-studio: 3 tones, then the rest in batches; Annulla = no call, conferma = exactly one call per batch',async()=>{
+ const S=require('../lib/translation-studio.js');let asked=[],answer=true;const calls=[];
+ const tr=(list,langs,tag)=>list.map(x=>Object.assign({id:x.id},...langs.map(l=>({[l]:x.testo+' ['+l+(tag?' '+tag:'')+']'}))));
+ const reply=async({messages})=>{const p=messages[0].content,lines=p.split('\n'),list=JSON.parse(lines[lines.findIndex(l=>/^I testi( di questo lotto)? \(JSON\):$/.test(l))+1]);calls.push(p);
+  const langs=/^Traduci dall’italiano in: (.+)\.$/m.exec(p)[1].split('; ').map(x=>x.slice(0,2).toLowerCase());
+  return {text:/3 toni diversi/.test(p)?JSON.stringify({toni:['Fedele','Naturale','Marketing'].map(t=>({tono:t,traduzioni:tr(list,langs,t)}))}):JSON.stringify({traduzioni:tr(list,langs)})}};
+ const {doc}=makeDom();
+ await withGlobals({document:doc,RadixConfirm:{ask:async o=>{asked.push(o);return answer}},confirm:()=>{throw Error('no native confirm')},RadixAgents:{reply},requestAnimationFrame:f=>setImmediate(f)},async()=>{
+  const w=S.translationStudio({project});doc.body.append(w);await tick();
+  const btn=re=>find(w,n=>n.tagName==='BUTTON'&&!n.disabled&&re.test(n.textContent.trim()));
+  const de=find(w,n=>n.tagName==='INPUT'&&n.type==='checkbox'&&n.value==='de');de.checked=true;de.onchange();
+  const ta=find(w,n=>n.tagName==='TEXTAREA'&&n.getAttribute('aria-label')==='Il testo da tradurre');
+  ta.value=Array.from({length:25},(_,i)=>'Paragrafo '+(i+1)+': il pane AUR-'+String(i+1).padStart(3,'0')+' costa 4,50 € al chilo.').join('\n\n');
+  assert.equal(calls.length,0,'nothing on load');
+  answer=false;await btn(/^Prova 3 toni/).onclick();await tick();assert.equal(asked.length,1);assert.equal(calls.length,0,'Annulla: no call');
+  answer=true;await btn(/^Prova 3 toni/).onclick();await tick(6);assert.equal(asked.length,2);assert.equal(calls.length,1,'the tones: one call');
+  assert.ok(!calls[0].includes('AUR-001'),'codes never sent');
+  assert.ok(btn(/^Usa il tono Naturale$/),'three tones to choose from');btn(/^Usa il tono Naturale$/).onclick();await tick();
+  const go=()=>btn(/^Traduci gli altri 22 elementi$/);assert.ok(go(),'the rest: 22 items');
+  assert.ok(find(w,n=>/tr-check\b/.test(n.className)&&/Codici, SKU, link ed email identici/.test(n.textContent)),'the checks are shown');
+  answer=false;await go().onclick();await tick();assert.equal(asked.length,3);assert.equal(calls.length,1,'Annulla: no call');
+  assert.match(asked[2].cost,/Sono 3 chiamate AI, una per lotto/);assert.deepEqual(asked[2].facts.find(f=>f[0]==='Chiamate AI'),['Chiamate AI','3 al Copywriter, una per lotto']);
+  answer=true;await go().onclick();await tick(10);assert.equal(asked.length,4,'one confirmation for all the batches');assert.equal(calls.length,4,'exactly one call per batch');
+  assert.ok(!btn(/^Traduci gli altri/),'nothing left to translate');
+  assert.ok(btn(/^Scarica tutto \(\.zip\)/),'the export');assert.ok(find(w,n=>n.tagName==='SMALL'&&n.textContent==='testo-en.md')||find(w,n=>n.tagName==='SMALL'&&/-en\.md$/.test(n.textContent)),'Markdown per language');
  });
 });
 

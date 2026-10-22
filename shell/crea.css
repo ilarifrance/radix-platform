@@ -1441,6 +1441,76 @@
 .cr-panel .event-studio .ev-link:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
 @media (max-width:900px){.cr-panel .event-studio .ev-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.cr-panel .event-studio .ev-timeline,.cr-panel .event-studio .ev-files{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.cr-panel .event-studio .ev-fields{grid-template-columns:minmax(0,1fr)}.cr-panel .event-studio .ev-wide{grid-column:auto}.cr-panel .event-studio .ev-link{min-height:40px}}
+/* Studio Traduzione e localizzazione (lib/translation-studio.js): the Schede prodotto pieces (pf-*: cards, file drop,
+   three tone cards, progress, list, export) plus the language chips, the material tiles, the source picker, the
+   glossary, the five automatic checks and the original/translation pairs. */
+.cr-panel .translation-studio .tr-questions fieldset{display:flex;flex-wrap:wrap;margin:0}
+.cr-panel .translation-studio .tr-langs legend,.cr-panel .translation-studio .tr-materials legend{width:100%}
+.cr-panel .translation-studio .ps-chip.tr-lang{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:0 16px 0 12px;border-radius:12px}
+.cr-panel .translation-studio .tr-lang-text{display:inline-flex;align-items:center;gap:8px}
+.cr-panel .translation-studio .tr-lang-text b{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:22px;padding:0 6px;border-radius:6px;background:rgba(66,220,247,.1);color:var(--c,#42dcf7);font:700 11.5px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.06em}
+.cr-panel .translation-studio .ps-chip.tr-lang:has(input:checked){border-color:var(--mk);background:rgba(255,95,162,.08);color:var(--ink)}
+.cr-panel .translation-studio .ps-chip.tr-lang:has(input:checked) b{background:var(--mk);color:var(--mk-ink)}
+.cr-panel .translation-studio .ps-chip.tr-lang:has(input:focus-visible),.cr-panel .translation-studio .tr-pick:has(input:focus-visible),.cr-panel .translation-studio .tr-col:has(input:focus-visible){outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+.cr-panel .translation-studio .tr-materials{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.cr-panel .translation-studio .tr-materials legend{grid-column:1/-1}
+.cr-panel .translation-studio .tr-src-seg{align-self:flex-start}
+.cr-panel .translation-studio .tr-text-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start}
+.cr-panel .translation-studio .tr-text-row textarea{min-height:180px;font:400 14px/1.6 var(--rx-font,Inter,sans-serif)}
+.cr-panel .translation-studio .tr-empty{padding:12px 14px;border:1px dashed var(--line-2);border-radius:12px}
+.cr-panel .translation-studio .tr-picklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:8px}
+.cr-panel .translation-studio .tr-pick{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 14px;border:1px solid var(--line-2);border-radius:12px;background:rgba(255,255,255,.02);cursor:pointer}
+.cr-panel .translation-studio .tr-pick:has(input:checked){border-color:var(--mk);background:rgba(255,95,162,.06)}
+.cr-panel .translation-studio .tr-pick input{flex:0 0 auto;width:16px;height:16px;margin:0;accent-color:var(--mk)}
+.cr-panel .translation-studio .tr-pick-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cr-panel .translation-studio .tr-pick-text strong{font-size:13.5px;color:var(--ink);overflow-wrap:anywhere}
+.cr-panel .translation-studio .tr-pick-text small{font-size:12px;color:var(--subtle);overflow-wrap:anywhere}
+.cr-panel .translation-studio .tr-cols{display:flex;flex-direction:column;gap:10px}
+.cr-panel .translation-studio .tr-cols-grid{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .translation-studio .ps-chip.tr-col{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 14px 0 12px;border-radius:10px}
+.cr-panel .translation-studio .tr-col-max{font-size:11px;color:var(--subtle);font-variant-numeric:tabular-nums}
+.cr-panel .translation-studio .tr-col[data-personal=true]{opacity:.55;cursor:not-allowed;border-style:dashed}
+.cr-panel .translation-studio .tr-gloss-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.cr-panel .translation-studio .tr-gloss-grid textarea{font:400 13.5px/1.55 var(--rx-font,Inter,sans-serif)}
+.cr-panel .translation-studio .tr-gloss-info:empty,.cr-panel .translation-studio .tr-go-info:empty{display:none}
+.cr-panel .translation-studio .tr-go-info{padding:0 2px;font-variant-numeric:tabular-nums}
+/* step 2: the three tones */
+.cr-panel .translation-studio .tr-line{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:baseline}
+.cr-panel .translation-studio .tr-code{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:20px;padding:0 5px;border-radius:6px;background:rgba(66,220,247,.1);color:var(--c,#42dcf7);font:700 10.5px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.06em}
+.cr-panel .translation-studio .tr-line[data-level=fail] .tr-code{background:rgba(255,92,92,.16);color:#ff9a9a}
+.cr-panel .translation-studio .tr-line[data-level=warn] .tr-code{background:rgba(245,199,107,.14);color:var(--amber)}
+.cr-panel .translation-studio .tr-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;font-size:13px;line-height:1.5;color:var(--ink-2);overflow-wrap:anywhere}
+/* step 3: checks, runs, the items */
+.cr-panel .translation-studio .tr-checks{display:flex;flex-direction:column;gap:8px}
+.cr-panel .translation-studio .tr-checks h4{margin:0 0 4px;font:600 11.5px/1.3 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--mk-soft)}
+.cr-panel .translation-studio .tr-check{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.cr-panel .translation-studio .tr-check strong{font-size:13.5px;font-weight:600;color:var(--ink)}
+.cr-panel .translation-studio .tr-check ul{grid-column:2;margin:0;padding-left:18px;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.cr-panel .translation-studio .tr-check-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:24px;padding:0 10px;border-radius:999px;font:600 12px/1 var(--rx-font,Inter,sans-serif);white-space:nowrap;background:rgba(73,214,155,.14);color:#7ee8b8}
+.cr-panel .translation-studio .tr-check[data-state=warn] .tr-check-badge{background:rgba(245,199,107,.14);color:var(--amber)}
+.cr-panel .translation-studio .tr-check[data-state=warn] ul{color:var(--amber)}
+.cr-panel .translation-studio .tr-check[data-state=fail]{border-color:rgba(255,120,120,.4)}
+.cr-panel .translation-studio .tr-check[data-state=fail] .tr-check-badge{background:rgba(255,92,92,.16);color:#ffb0b0}
+.cr-panel .translation-studio .tr-check[data-state=fail] ul{color:#ffb3b3}
+.cr-panel .translation-studio .tr-check[data-state=off] .tr-check-badge{background:rgba(255,255,255,.05);color:var(--subtle)}
+.cr-panel .translation-studio .tr-segs{display:flex;flex-wrap:wrap;gap:10px}
+.cr-panel .translation-studio .tr-item-pills{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;flex:0 0 auto}
+.cr-panel .translation-studio .tr-review{padding:10px 12px;border:1px solid rgba(245,199,107,.35);border-radius:10px;background:rgba(245,199,107,.05);font-size:13px;line-height:1.45;color:var(--amber)}
+.cr-panel .translation-studio .tr-unit{display:flex;flex-direction:column;gap:6px;min-width:0;padding-top:12px;border-top:1px solid var(--line)}
+.cr-panel .translation-studio .tr-unit:first-of-type{border-top:0;padding-top:0}
+.cr-panel .translation-studio .tr-unit .pf-field-top{font-size:12.5px}
+.cr-panel .translation-studio .tr-src{padding:8px 12px;border-left:2px solid var(--line-2);font-size:13px;line-height:1.5;color:var(--muted);white-space:pre-line;overflow-wrap:anywhere}
+.cr-panel .translation-studio .tr-unit textarea{font:400 14px/1.55 var(--rx-font,Inter,sans-serif)}
+.cr-panel .translation-studio .tr-unit .pf-issues[hidden]{display:none}
+@media (max-width:1100px){.cr-panel .translation-studio .tr-materials{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){
+ .cr-panel .translation-studio .tr-materials{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .translation-studio .tr-text-row,.cr-panel .translation-studio .tr-gloss-grid{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .translation-studio .ps-chip.tr-lang{flex:1 1 calc(50% - 8px);min-height:44px}
+ .cr-panel .translation-studio .pf-prod-head{flex-wrap:wrap}
+ .cr-panel .translation-studio .tr-item-pills{justify-content:flex-start}
+ .cr-panel .translation-studio .tr-segs .ad-seg{width:100%}
+}
 /* ==== Shared studio primitives («rifinitura»): the pieces every guided studio has, in one look. The newest studios
    (Creatività, Reel, Schede prodotto, Newsletter HTML, Documenti) set it; these rules bring the older ones (Foto, Video,
    Sito, SEO e GEO, Testi, Identità, Stampa, Catalogo) to the same cards, headings, result bar, fields and loading state.
