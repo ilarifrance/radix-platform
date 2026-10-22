@@ -1,6 +1,6 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
-   (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
+   (lib/video-studio.js), Reel e video prodotto the Studio Reel (lib/reel-studio.js: one AI call for the storyboards, video rendered in the browser), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
    (lib/seo-studio.js), Analisi del sito the site audit (lib/site-audit.js: free crawl, optional AI plan), Creatività per annunci the Studio Creatività (lib/ad-studio.js), Scheda Google e recensioni the Studio Scheda Google (lib/gbp-studio.js), Schede prodotto e feed the Studio Schede prodotto (lib/product-studio.js: AI in batches with confirmation, free feed checks), Newsletter HTML the Studio Newsletter HTML (lib/newsletter-studio.js, no AI, never sends), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The filter chips above the cards show one group at a time (remembered in this browser); ?area= and ?open= (from the
    Marketing Orbit, agency/orbit.html) pick the group and open a studio. Nothing is generated
@@ -44,6 +44,7 @@ function closePanel(e){const was=openCard;openCard='';$('crPanel').hidden=true;$
 const STUDIOS={
  photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
+ reel:{global:'RadixReelStudio',name:'Lo Studio Reel',need:'il reel usa i suoi colori, il suo logo e i suoi fatti confermati',agent:'video-producer'},
  site:{global:'RadixSiteStudio',name:'Lo Studio Sito',need:'il sito parte dai suoi fatti confermati e dai suoi colori',agent:'web-developer'},
  seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'},
  audit:{global:'RadixSiteAudit',name:'L’Analisi del sito',need:'l’analisi si salva nel progetto e il piano parte dai suoi fatti',agent:'seo-geo'},
@@ -70,6 +71,8 @@ function openInline(c){
  const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:agent},pid=encodeURIComponent(current.id);
  $('crPanelBody').replaceChildren(c.inline==='video'
   ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+pid})
+  :c.inline==='reel'
+  ?S.reelStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=video-producer&project='+pid})
   :c.inline==='site'
   ?S.siteStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'

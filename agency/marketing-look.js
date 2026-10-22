@@ -51,7 +51,8 @@ const P={
  mapPin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><path d="m12 6.6 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3Z"/>',
  chev:'<path d="m9 6 6 6-6 6"/>',
  pause:'<path d="M9 6v12M15 6v12"/>',
- play:'<path d="M8 5.5v13l10.5-6.5Z"/>'
+ play:'<path d="M8 5.5v13l10.5-6.5Z"/>',
+ reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
 };
 // One colour and one icon per service area (the groups of agency/crea-core.js); pink is Marketing's colour in the
 // Command Center (shell/cc-universe.js).
@@ -61,7 +62,7 @@ const AREAS=Object.freeze({
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',avatar:'user',video:'video',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',emailhtml:'mailHtml',stampa:'printer',
+ newsletter:'mail',images:'image',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
