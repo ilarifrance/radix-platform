@@ -218,7 +218,7 @@ async function publications(req,res,db,uid,deps){
  if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
  if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
  const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
- if(core.approvalStatus(approved[0],editorial.approvalPayload(item))!=='approved')return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
+ if(!editorial.sameWordRevisions(item).some(revision=>core.approvalStatus(approved[0],editorial.approvalPayload({...item,revision}))==='approved'))return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
  // The page asks with a 5-minute margin; the server accepts down to 2 minutes so a slow click still goes through.
  const plan2=editorial.publishSchedule(plan,item,Date.now()-3*60*1000);
  if(r.mode==='scheduled'&&plan2.mode!=='scheduled')return send(res,409,{error:plan2.reason==='past'?'L’orario previsto è già passato: aggiorna data e ora o usa il prossimo slot libero':'Data e orario mancanti: usa il prossimo slot libero',stale:true});
