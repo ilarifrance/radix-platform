@@ -1,5 +1,5 @@
 'use strict';
-// The Piano editoriale in the Marketing look «A» (shell/ped-premium.css on the tokens of shell/marketing-a.css): the
+// The Piano editoriale in the light Marketing look (shell/ped-premium.css on the tokens of shell/marketing-a.css): the
 // palette points at the --ma-* tokens, the Marketing pink and the old green accents are gone, the four steps keep their
 // stepper, the post previews keep the client's own colours, and the phone keeps 44px controls.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),path=require('path');
@@ -26,10 +26,11 @@ test('shell/ped-premium.css: the PED palette reads the --ma-* tokens, no pink an
  assert.match(css,/:focus-visible\{outline:2px solid var\(--ma-focus\)/,'focus ring on the marketing-a token');
 });
 
-test('shell/ped-premium.css: primary buttons and the current step use the «A» gradient with white text at AA',()=>{
- assert.match(css,/--mk-btn:linear-gradient\(135deg,#5b4ce6,#3a6ae8\)/);
+test('shell/ped-premium.css: primary buttons and the current step use the light indigo button with white text at AA',()=>{
+ assert.match(css,/--mk-btn:var\(--ma-btn\)/);
+ assert.match(read('shell/marketing-a.css'),/--ma-btn:linear-gradient\(180deg,#5249e8,#4338ca\)/);
  const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
- for(const bg of ['#5b4ce6','#3a6ae8']){const r=1.05/(lum(bg)+.05);assert.ok(r>=4.5,bg+' '+r.toFixed(2))}
+ for(const bg of ['#5249e8','#4338ca']){const r=1.05/(lum(bg)+.05);assert.ok(r>=4.5,bg+' '+r.toFixed(2))}
  assert.match(css,/button\.primary,html\.rx-shell body\.rx-ped \.primary\{background:var\(--mk-btn\)/);
  assert.match(css,/\.ped-steps li\[data-state=current\]::after\{[^}]*background:var\(--ma-grad\)/,'gradient bar on the current step');
  assert.match(css,/\.ped-steps li\[data-state=current\] \.ps-go\{display:inline-flex;background:var\(--mk-btn\)/,'the step action is the primary');

@@ -125,9 +125,15 @@ test('Tab stays inside the dialog',async()=>{
 test('the stylesheet: same tokens as the studios, 390px layout, focus ring, reduced motion',()=>{
  const css=read('shell/radix-confirm.css');
  for(const s of ['.rx-confirm{','.rx-confirm::backdrop','.rx-confirm-title','.rx-confirm-cost','.rx-confirm-tag','.rx-confirm-actions','.rx-confirm-yes','.rx-confirm-no','focus-visible','prefers-reduced-motion','@media (max-width:480px)','width:min(480px,calc(100vw - 32px))'])assert.ok(css.includes(s),s);
- // the Marketing look «A»: each token reads shell/marketing-a.css with the same value as fallback; white text on the gradient
+ // each token reads shell/marketing-a.css; the fallbacks keep the dark dialog of the pages outside Marketing; white text on the button
  assert.match(css,/--rc-ink:var\(--ma-tx,#e9edff\)/);assert.match(css,/--rc-amber:var\(--ma-warn,#f4b552\)/);assert.match(css,/--rc-btn:var\(--ma-btn,linear-gradient\(135deg,#6a5cff,#3f7bff\)\)/);
- assert.match(css,/\.rx-confirm-yes\{[^}]*background:var\(--rc-btn\);color:#fff/);assert.ok(!/ff5fa2|255,95,162/.test(css),'no Marketing pink left');
+ assert.match(css,/\.rx-confirm-yes\{[^}]*background:var\(--rc-btn\);color:#fff/);
+ // the Marketing pages (light direction «B»): a white card on a light backdrop, the indigo button of marketing-a.css
+ const light=':is(.ma-root,body[data-shell-area="agency"]) .rx-confirm';
+ assert.ok(css.includes(light+'{background:#fff;color:var(--rc-ink);border-color:var(--ma-line,#e4e1ec)'),'white dialog on Marketing');
+ assert.ok(css.includes(light+'::backdrop{background:rgba(29,26,39,.38)'),'light backdrop');
+ assert.ok(css.includes(light+'-no{background:#fff;'),'secondary button on white');
+ assert.match(read('shell/marketing-a.css'),/--ma-tx:#1d1a27;[\s\S]*--ma-btn:linear-gradient\(180deg,#5249e8,#4338ca\)/);assert.ok(!/ff5fa2|255,95,162/.test(css),'no Marketing pink left');
  assert.ok(!/https?:\/\//.test(css+read('lib/radix-confirm.js')),'nothing external');
 });
 

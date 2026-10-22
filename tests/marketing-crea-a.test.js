@@ -1,6 +1,6 @@
 'use strict';
-// «Cosa vuoi fare oggi?» in the Marketing look «A»: the pure parts behind the command box (?q=, ?project=), the cost
-// badges, the kits and the area numbers, and the page wiring (no AI call on load, look «A» over the studio styles).
+// «Cosa vuoi fare oggi?» in the light Marketing look: the pure parts behind the command box (?q=, ?project=), the cost
+// badges, the kits and the area numbers, and the page wiring (no AI call on load, Marketing look over the studio styles).
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),path=require('path');
 const core=require('../agency/crea-core.js'),orbit=require('../agency/orbit-core.js');
 const root=path.join(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
@@ -40,7 +40,7 @@ test('kits and area numbers come from the cards',()=>{
  assert.deepEqual(core.groups().map(core.areaNumber),['01','02','03','04','05','06','07','08']);assert.equal(core.areaNumber(''),'');
 });
 
-test('the page: look «A» over the studio styles, the combobox, kits before tabs before cards, no AI call on load',()=>{
+test('the page: Marketing look over the studio styles, the combobox, kits before tabs before cards, no AI call on load',()=>{
  const html=read('agency/crea.html'),js=read('agency/crea.js'),at=s=>html.indexOf(s);
  assert.ok(at('/shell/crea.css')<at('/shell/marketing-a.css')&&at('/shell/marketing-a.css')<at('/agency/crea.css'));
  assert.match(html,/<main class="cr-main cp-main ma">/);

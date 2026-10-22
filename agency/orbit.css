@@ -1,4 +1,4 @@
-/* Marketing Agency home (agency/orbit.html, direction «A»): page layout only. Tokens and components (glass panels,
+/* Marketing Agency home (agency/orbit.html, light direction «B»): page layout only. Tokens and components (glass panels,
    command bar, area cards, table, steps, pills) live in shell/marketing-a.css. The globe labels are placed by
    agency/orbit.js with orbit-core globeLayout(): they never touch an orbit line, the earth or each other. */
 .mo-main{max-width:1240px;margin:0 auto;padding:28px 32px 64px;display:flex;flex-direction:column;gap:32px;min-width:0}
@@ -9,13 +9,13 @@
 .mo-project{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;margin-top:18px;color:var(--ma-tx2);font-size:13px;min-height:32px}
 .mo-project-name{display:inline-flex;align-items:center;gap:10px;color:var(--ma-tx);font-weight:600;min-height:32px}
 .mo-project-name:hover span{text-decoration:underline;text-underline-offset:3px}
-.mo-project-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#6a5cff,#2f7be0)}
+.mo-project-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--ma-vi)}
 .mo-project-fact b{color:var(--ma-tx);font-weight:600;font-variant-numeric:tabular-nums}
 .mo-sep{width:1px;height:16px;background:var(--ma-line-2)}
 .mo-project-empty{color:var(--ma-tx2)}
 .mo-note{display:flex;align-items:center;gap:8px;margin:10px 0 0;min-height:1.4em;font-size:12.5px;color:var(--ma-mut)}
 .mo-note::before{content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--ma-mut)}
-.mo-note[data-state=live]::before{background:var(--ma-ok);box-shadow:0 0 0 3px rgba(52,211,154,.15)}
+.mo-note[data-state=live]::before{background:var(--ma-ok);box-shadow:0 0 0 3px rgba(21,128,61,.14)}
 .mo-note[data-state=partial]::before,.mo-note[data-state=off]::before{background:var(--ma-warn)}
 .mo-note[data-state=error]::before{background:var(--ma-err)}
 /* Globe stage */
@@ -25,17 +25,17 @@
 .mo-gl-item{position:absolute;left:0;top:0;pointer-events:none}
 .mo-gl-item[hidden]{display:none}
 .mo-gl{display:inline-flex;align-items:flex-start;gap:8px;padding:4px 8px;border-radius:10px;white-space:nowrap;pointer-events:auto;color:var(--ma-tx);transition:background-color .15s,box-shadow .15s}
-.mo-gl-dot{width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent),0 0 10px var(--c);flex:none}
+.mo-gl-dot{width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 18%,transparent);flex:none}
 .mo-gl-text{display:flex;flex-direction:column}
-.mo-gl b{font:600 13px/18px var(--rx-font,Inter,sans-serif);letter-spacing:.01em;text-shadow:0 1px 8px rgba(4,8,24,.9)}
+.mo-gl b{font:600 13px/18px var(--rx-font,Inter,sans-serif);letter-spacing:.01em;text-shadow:0 0 6px #fff,0 0 2px #fff}
 .mo-gl small{font:500 12px/16px var(--rx-font,Inter,sans-serif);color:var(--ma-mut);font-variant-numeric:tabular-nums}
-.mo-gl:hover,.mo-gl:focus-visible{background:rgba(16,26,64,.8);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 55%,transparent)}
+.mo-gl:hover,.mo-gl:focus-visible{background:#fff;box-shadow:inset 0 0 0 1px var(--ma-line-2),0 6px 16px -8px rgba(29,26,39,.2)}
 .mo-stage.is-compact .mo-gl{pointer-events:none;padding:2px 4px;gap:6px}
 .mo-stage.is-compact .mo-gl b{font-size:12px;line-height:14px}
 .mo-stage.is-compact .mo-gl small{font-size:11px;line-height:13px}
 .mo-stage.is-compact .mo-gl-dot{width:6px;height:6px;margin-top:4px}
 .mo-pause{position:absolute;right:0;bottom:0;z-index:3;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px 0 10px;border-radius:999px;border:1px solid var(--ma-line);
-  background:rgba(5,10,28,.6);color:var(--ma-tx2);font:500 12px var(--rx-font,Inter,sans-serif);cursor:pointer;transition:color .18s,border-color .18s}
+  background:#fff;color:var(--ma-tx2);font:500 12px var(--rx-font,Inter,sans-serif);cursor:pointer;transition:color .18s,border-color .18s}
 .mo-pause-icon{display:grid}.mo-pause .ml-ico{width:14px;height:14px}
 .mo-pause:hover{color:var(--ma-tx);border-color:var(--ma-line-2)}
 .mo-pause[hidden]{display:none}

@@ -1,18 +1,18 @@
 /* Scheda fatti by guided questions (agency/facts-interview.js). */
-.fi-open{display:inline-block;margin:6px 0 8px;padding:8px 12px;border:1px solid #4fd1a5;border-radius:9px;background:#0d2a2a;color:#c9fbe9;font-weight:600;cursor:pointer}
-.fi-dialog{width:min(760px,96vw);max-height:92vh;border:1px solid #4c4988;border-radius:14px;background:#0d1431;color:#e8ecff;padding:0}
-.fi-dialog::backdrop{background:#020611d9}
+.fi-open{display:inline-block;margin:6px 0 8px;padding:8px 12px;border:1px solid #009870;border-radius:9px;background:#fff;color:#081d17;font-weight:600;cursor:pointer}
+.fi-dialog{width:min(760px,96vw);max-height:92vh;border:1px solid #4c4691;border-radius:14px;background:#fff;color:#161825;padding:0}
+.fi-dialog::backdrop{background:#fff}
 .fi-dialog form{display:grid;gap:12px;padding:0 20px 20px}
-.fi-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 -20px;padding:12px 20px;background:#101b38;border-bottom:1px solid #3f4a80}
+.fi-head{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 -20px;padding:12px 20px;background:#fff;border-bottom:1px solid #3b478f}
 .fi-head h2{margin:0;font-size:18px}
-.fi-note{margin:0;color:#9aa6d6;font-size:13px}
+.fi-note{margin:0;color:#5a67a5;font-size:13px}
 .fi-field{display:grid;gap:4px}
-.fi-field b{font-size:14px}.fi-field small{color:#9aa6d6;font-size:12px}
+.fi-field b{font-size:14px}.fi-field small{color:#5a67a5;font-size:12px}
 .fi-field textarea,.fi-field input{width:100%;box-sizing:border-box}
 .fi-dialog h3{margin:8px 0 0;font-size:15px}
 .fi-cases{display:grid;gap:10px}
-.fi-case{display:grid;gap:8px;border:1px solid #3a4580;border-radius:11px;padding:10px 12px}
-.fi-case legend{padding:0 6px;color:#9aa6d6;font-size:12px}
+.fi-case{display:grid;gap:8px;border:1px solid #37428b;border-radius:11px;padding:10px 12px}
+.fi-case legend{padding:0 6px;color:#5a67a5;font-size:12px}
 .fi-check{display:flex;align-items:center;gap:6px;font-size:13px}.fi-check input{width:auto}
 .fi-case>button{justify-self:start}
 .fi-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}

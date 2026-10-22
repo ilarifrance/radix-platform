@@ -1,5 +1,5 @@
 'use strict';
-// The guided studios in the Marketing look «A» (shell/crea.css on the tokens of shell/marketing-a.css): the palette
+// The guided studios in the light Marketing look (shell/crea.css on the tokens of shell/marketing-a.css): the palette
 // points at the --ma-* tokens, the Marketing pink is gone from the studios, the Studio Avatar and the RadixConfirm, the
 // three proposals mark the chosen one, and the phone keeps 44px controls.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),path=require('path');
@@ -26,8 +26,8 @@ test('shell/crea.css: the studio palette points at the marketing-a tokens, no pi
  assert.ok((css.match(/var\(--ma-focus\)/g)||[]).length>=20,'focus ring on the marketing-a token');
 });
 
-test('shell/crea.css: the «A» block styles the shared studio components',()=>{
- const css=read('shell/crea.css'),a=css.slice(css.indexOf('Marketing look «A» for every guided studio'));
+test('shell/crea.css: the Marketing block styles the shared studio components',()=>{
+ const css=read('shell/crea.css'),a=css.slice(css.indexOf('Marketing look for every guided studio'));
  assert.ok(a.length>2000,'the block is there');
  assert.match(a,/\.ps-steps li\[data-state=current\]\{[^}]*border-image:var\(--ma-grad\)/,'stepper');
  assert.match(a,/\.ps-chip:has\(input:checked\)\{[^}]*border-color:var\(--a-sel\)/,'chips');
@@ -44,7 +44,7 @@ test('shell/crea.css: the «A» block styles the shared studio components',()=>{
  assert.match(phone,/min-height:44px!important/,'44px controls on the phone');assert.match(phone,/\.ps-chip/,'chips too');
 });
 
-test('Studio Avatar and RadixConfirm: no pink, the «A» primary',()=>{
+test('Studio Avatar and RadixConfirm: no pink, the indigo primary',()=>{
  const av=read('shell/avatar.css'),rc=read('shell/radix-confirm.css');
  assert.ok(!PINK.test(av),'avatar');assert.ok(!PINK.test(rc),'confirm');
  assert.match(rc,/\.rx-confirm-actions button:focus-visible\{outline:2px solid var\(--rc-focus\)/);

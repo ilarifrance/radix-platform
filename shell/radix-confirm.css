@@ -1,5 +1,5 @@
 /* RADIX confirm (lib/radix-confirm.js): the confirmation before an AI call, a credit spend, a publication or a send.
-   Same look as the Marketing studios: the navy glass «A» of shell/marketing-a.css. Each token reads the --ma-* one
+   Same tokens as the Marketing studios (shell/marketing-a.css); the base below is the dark dialog of the other areas. Each token reads the --ma-* one
    when the page has it (.ma-root on the <body>) and falls back to the same value, so it renders the same on every page
    that loads it. The confirm button is the gradient of the Marketing primary buttons, white text. */
 .rx-confirm{--rc-ink:var(--ma-tx,#e9edff);--rc-ink-2:var(--ma-tx2,#b4bce0);--rc-subtle:var(--ma-mut,#8f99c4);--rc-line:var(--ma-line,rgba(128,146,255,.14));--rc-line-2:var(--ma-line-2,rgba(128,146,255,.26));--rc-amber:var(--ma-warn,#f4b552);--rc-btn:var(--ma-btn,linear-gradient(135deg,#6a5cff,#3f7bff));--rc-focus:var(--ma-focus,#7fe9ff);
@@ -38,3 +38,17 @@
   .rx-confirm-actions button{width:100%}
 }
 .rx-confirm--danger .rx-confirm-yes{background:linear-gradient(135deg,#d63a4c,#b02b45)}
+/* Marketing pages (light «B chiaro», 22/10): the same dialog on a white card, the --ma-* tokens of shell/marketing-a.css
+   already light; only the hand-written dark surfaces of the base change. Other pages keep the dark dialog above. */
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm{background:#fff;color:var(--rc-ink);border-color:var(--ma-line,#e4e1ec);
+  box-shadow:0 30px 80px -24px rgba(29,26,39,.32),0 0 0 1px rgba(29,26,39,.04)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm::backdrop{background:rgba(29,26,39,.38);backdrop-filter:blur(3px)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-facts{background:#f8f7fb}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-cost{border-color:#f3d5a6;background:#fdf8ef;color:var(--rc-ink-2)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-tag{background:#fdf3e3;color:#9a4f00;box-shadow:inset 0 0 0 1px #f3d5a6}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-cost{border-color:#f6c9c4;background:#fdf3f2}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-tag{background:#fdecea;color:#b42318;box-shadow:inset 0 0 0 1px #f6c9c4}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-no{background:#fff;border-color:var(--rc-line-2);color:var(--rc-ink)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-no:hover{border-color:#b9b3c9;background:#f8f7fb}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm-yes{box-shadow:0 1px 2px rgba(29,26,39,.08),0 6px 16px -8px rgba(79,70,229,.55)}
+:is(.ma-root,body[data-shell-area="agency"]) .rx-confirm--danger .rx-confirm-yes{background:#b42318;box-shadow:0 6px 16px -8px rgba(180,35,24,.5)}
