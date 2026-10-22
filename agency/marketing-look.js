@@ -39,6 +39,7 @@ const P={
  coin:'<circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.5 0-2.6.8-2.6 2s1.1 1.6 2.6 2 2.6.8 2.6 2-1.1 2-2.6 2c-1.1 0-2-.4-2.5-1.2M12 6.5V8M12 16v1.5"/>',
  adFormats:'<rect x="3" y="3.5" width="10" height="17" rx="2"/><rect x="15" y="5" width="6" height="6" rx="1.5"/><rect x="15" y="13.5" width="6" height="3.5" rx="1"/><path d="M6 15.5h4M6 17.8h2.5"/>',
  siteAudit:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18"/><circle cx="11" cy="13" r="2.6"/><path d="m13 15 2.4 2.4"/><path d="M8 21h8"/>',
+ mailHtml:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m3.5 6.5 8.5 5.5 8.5-5.5"/><path d="M7 14.5h4M7 17h7"/><rect x="14" y="13.5" width="4" height="3.5" rx=".8"/>',
  mapPin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><path d="m12 6.6 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2-1.6-1.5 2.2-.3Z"/>',
  chev:'<path d="m9 6 6 6-6 6"/>',
  pause:'<path d="M9 6v12M15 6v12"/>',
@@ -52,7 +53,7 @@ const AREAS=Object.freeze({
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',avatar:'user',video:'video',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',stampa:'printer',
+ newsletter:'mail',images:'image',avatar:'user',video:'video',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
 // The <svg> markup of an icon: decorative (aria-hidden), stroke in currentColor.

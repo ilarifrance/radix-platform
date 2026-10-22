@@ -1,5 +1,5 @@
 /* «Cosa vuoi fare oggi?»: the single Marketing panel. One card per service, each opening the tool that already does it
-   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, the SEO/GEO audit of the existing site (lib/site-audit.js, free crawl + optional AI plan), ad creatives in every format (lib/ad-studio.js), Google Business Profile listing and review replies (lib/gbp-studio.js), identity kit, print and product catalogue with no AI (lib/print-studio.js, lib/catalog-studio.js), and the text services of
+   (strategy, PED, avatar) or a guided studio inline (photo, avatar video, site, SEO and GEO, the SEO/GEO audit of the existing site (lib/site-audit.js, free crawl + optional AI plan), ad creatives in every format (lib/ad-studio.js), Google Business Profile listing and review replies (lib/gbp-studio.js), the responsive HTML newsletter with its checks (lib/newsletter-studio.js, no AI), identity kit, print and product catalogue with no AI (lib/print-studio.js, lib/catalog-studio.js), and the text services of
    lib/copy-studio.js: inline 'copy:<service>'). Each card has a `group`, one of GROUPS, for the panel's filters.
    Pure part (cards, groups, links) runs in Node for the tests; the page lives in agency/crea.html. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrea=api})(typeof globalThis!=='undefined'?globalThis:this,function(){
@@ -19,6 +19,7 @@ const CARDS=[
  {id:'graphics',group:'Social e contenuti',icon:'▣',title:'Post grafici',line:'Caroselli e post con testo sopra, nei colori del brand.',state:'ready',action:'Crea dai post del piano',cost:'L’Art Director AI chiede conferma prima di disegnare.',href:'/project-editorial.html?project={p}#ped',hint:'Apri un post del piano e premi «Grafica».'},
  {id:'testi',group:'Social e contenuti',icon:'¶',title:'Testi per sito, blog e prodotti',line:'Una pagina del sito, un articolo o una descrizione prodotto: 3 versioni, scegli e modifichi.',state:'ready',action:'Scrivi un testo',cost:'Una chiamata AI al Content e UX Writer, con conferma.',inline:'copy:testi'},
  {id:'newsletter',group:'Social e contenuti',icon:'✉',title:'Newsletter',line:'Oggetto, anteprima e testo della mail: 3 versioni, scegli e modifichi.',state:'ready',action:'Scrivi la newsletter',cost:'Una chiamata AI al Copywriter, con conferma.',inline:'copy:newsletter'},
+ {id:'emailhtml',group:'Social e contenuti',icon:'✉',title:'Newsletter HTML',line:'Dal testo della newsletter all’email pronta per le caselle: 3 modelli con i colori del kit, anteprima su computer e telefono, blocchi da rifinire e 10 controlli prima dell’export.',state:'ready',action:'Impagina la newsletter',cost:'Nessuna chiamata AI: l’HTML si crea qui, senza costi.',inline:'mail',hint:'RADIX non invia email da qui: scarichi l’HTML o passi il testo alla campagna CRM.'},
  {id:'images',group:'Immagini',icon:'◉',title:'Immagini',line:'Foto per post e sito: poche domande, 3 proposte, scegli e componi.',state:'ready',action:'Crea un’immagine',cost:'3 generazioni Higgsfield, con conferma.',inline:'photo'},
  {id:'avatar',group:'Video',icon:'☺',title:'Avatar',line:'Il volto del brand per i video: disegnato dall’AI o dalla tua foto.',state:'ready',action:'Crea l’avatar',cost:'Ogni passo HeyGen chiede conferma.',href:'/agency/avatar.html?project={p}'},
  {id:'video',group:'Video',icon:'▶',title:'Video',line:'Video brevi con l’avatar che parla: poche domande, 3 copioni, scegli e crei la bozza.',state:'ready',action:'Fai parlare l’avatar',cost:'Una chiamata AI per i copioni e una bozza HeyGen, ognuna con conferma.',inline:'video'},
@@ -35,7 +36,7 @@ const CARDS=[
  {id:'presentazione',group:'Stampa e documenti',icon:'▭',title:'Presentazione',line:'La scaletta slide per slide: titolo, punti e cosa dire. 3 versioni, scegli e modifichi.',state:'ready',action:'Prepara la scaletta',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'copy:presentazione'}
 ];
 const ID=/^[a-z0-9-]{1,80}$/i;
-// Where a card leads for a project; null when it opens inline (photo, video, site, SEO, site audit, ad creatives, Google listing, identity, print, catalogue or text studio) or needs a project that is missing.
+// Where a card leads for a project; null when it opens inline (photo, video, site, SEO, site audit, ad creatives, Google listing, HTML newsletter, identity, print, catalogue or text studio) or needs a project that is missing.
 function linkFor(card,projectId){
  const p=ID.test(String(projectId||''))?String(projectId):'';
  if(card.inline)return null;
