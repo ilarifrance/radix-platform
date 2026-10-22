@@ -1,7 +1,7 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Reel e video prodotto the Studio Reel (lib/reel-studio.js: one AI call for the storyboards, video rendered in the browser), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
-   (lib/seo-studio.js), Analisi del sito the site audit (lib/site-audit.js: free crawl, optional AI plan), Creatività per annunci the Studio Creatività (lib/ad-studio.js), Scheda Google e recensioni the Studio Scheda Google (lib/gbp-studio.js), Schede prodotto e feed the Studio Schede prodotto (lib/product-studio.js: AI in batches with confirmation, free feed checks), Newsletter HTML the Studio Newsletter HTML (lib/newsletter-studio.js, no AI, never sends), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
+   (lib/seo-studio.js), Analisi del sito the site audit (lib/site-audit.js: free crawl, optional AI plan), Creatività per annunci the Studio Creatività (lib/ad-studio.js), Scheda Google e recensioni the Studio Scheda Google (lib/gbp-studio.js), Schede prodotto e feed the Studio Schede prodotto (lib/product-studio.js: AI in batches with confirmation, free feed checks), Newsletter HTML the Studio Newsletter HTML (lib/newsletter-studio.js, no AI, never sends), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI), Evento o fiera the Studio Evento (lib/event-studio.js: one AI call, the kit files built here) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The filter chips above the cards show one group at a time (remembered in this browser); ?area= and ?open= (from the
    Marketing Orbit, agency/orbit.html) pick the group and open a studio. Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
@@ -56,6 +56,7 @@ const STUDIOS={
  print:{global:'RadixPrintStudio',name:'Lo Studio Stampa',need:'i materiali partono dal nome, dai contatti e dal kit identità del progetto',agent:'art-director'},
  catalog:{global:'RadixCatalogStudio',name:'Lo Studio Catalogo',need:'il catalogo usa il nome, i contatti e il kit identità del progetto',agent:''},
  docs:{global:'RadixDocStudio',name:'Lo Studio Documenti',need:'i documenti usano i testi salvati, i contatti e il kit identità del progetto',agent:'art-director'},
+ event:{global:'RadixEventStudio',name:'Lo Studio Evento',need:'il kit usa il nome, i contatti, il kit identità e i fatti confermati del progetto',agent:'brand-strategist'},
  copy:{global:'RadixCopyStudio',name:'Lo Studio Testi',need:'i testi partono dai suoi fatti confermati',agent:''}
 };
 function openInline(c){
@@ -95,6 +96,8 @@ function openInline(c){
   ?S.catalogStudio({project,profile:current.profile,projectName:current.name})
   :c.inline==='docs'
   ?S.docStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid})
+  :c.inline==='event'
+  ?S.eventStudio({project,profile:current.profile,projectName:current.name,memoryScope,projectId:current.id,workspace:ws,crmUrl:'/radix-sales.html#contacts',agentsUrl:'/agents.html?agent=brand-strategist&project='+pid})
   :kind==='copy'
   ?S.copyStudio({service,project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent='+agent+'&project='+pid})
   :S.photoStudio({project,memoryScope,concept:'',headline:''}));

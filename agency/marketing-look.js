@@ -14,6 +14,7 @@ const P={
  wand:'<path d="m4.5 19.5 10-10"/><path d="m13 8 3 3"/><path d="M17 3.5v3M15.5 5h3M19.5 10v2M18.5 11h2M9 3.5v2M8 4.5h2"/>',
  users:'<circle cx="9" cy="8.5" r="3.5"/><path d="M3 19.5a6 6 0 0 1 12 0"/><path d="M15.5 5a3.5 3.5 0 0 1 0 7M17.5 14.2a6 6 0 0 1 3.5 5.3"/>',
  folder:'<path d="M3.5 7a2 2 0 0 1 2-2h3.8l2 2.2h7.2a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2Z"/>',
+ ticket:'<path d="M3.5 8a2 2 0 0 0 2-2h13a2 2 0 0 0 2 2v2.2a1.8 1.8 0 0 0 0 3.6V16a2 2 0 0 0-2 2h-13a2 2 0 0 0-2-2v-2.2a1.8 1.8 0 0 0 0-3.6Z"/><path d="M14.5 6.5v11" stroke-dasharray="1.6 1.8"/><path d="M7.5 10.5h4M7.5 13.5h3"/>',
  calendar:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
  layers:'<path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8Z"/><path d="m3.5 12 8.5 4.5 8.5-4.5"/><path d="m3.5 16 8.5 4.5 8.5-4.5"/>',
  chart:'<path d="M4 20h16"/><path d="M7 16v-4M12 16V7M17 16v-6"/>',
@@ -64,7 +65,7 @@ const AREAS=Object.freeze({
 const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
  newsletter:'mail',images:'image',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
- comunicato:'news',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
+ comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
 // The <svg> markup of an icon: decorative (aria-hidden), stroke in currentColor.
 function svg(name,cls){

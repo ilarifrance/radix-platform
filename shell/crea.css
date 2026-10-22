@@ -1375,6 +1375,72 @@
  .cr-panel .rs-stage{padding:12px}
 }
 @media (prefers-reduced-motion:reduce){.cr-panel .rs-board.ad-skeleton{animation:none}}
+/* Studio Evento o fiera (lib/event-studio.js): the Creatività pieces (tiles, brand box, three directions, result tools)
+   plus the event fields, the checks, the timeline before/during/after, the materials by phase and the kit files. */
+.cr-panel .event-studio .ev-questions{grid-template-columns:minmax(0,1fr)}
+.cr-panel .event-studio .ev-stand{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cr-panel .event-studio .ev-stand[hidden],.cr-panel .event-studio .ev-field[hidden],.cr-panel .event-studio .ev-stand-custom[hidden]{display:none}
+.cr-panel .event-studio .ev-stand-custom{width:160px;max-width:100%}
+.cr-panel .event-studio .ev-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px 16px}
+.cr-panel .event-studio .ev-field{display:flex;flex-direction:column;gap:8px;min-width:0;font-size:13px}
+.cr-panel .event-studio .ev-field>span{font-weight:600;color:var(--ink-2)}
+.cr-panel .event-studio .ev-wide{grid-column:span 2}
+.cr-panel .event-studio .ev-fields .ev-field:last-child{grid-column:1/-1}
+.cr-panel .event-studio :is(input[type=date],input[type=time],input[type=url],input[type=datetime-local]){min-width:0;width:100%;box-sizing:border-box;background:var(--field);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;color:var(--ink);font:400 14px/1.45 var(--rx-font,Inter,sans-serif);min-height:42px;color-scheme:dark}
+.cr-panel .event-studio :is(input,textarea):focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:1px}
+.cr-panel .event-studio .ev-hint{padding:10px 12px;border-radius:10px;background:rgba(255,95,162,.06);border:1px solid rgba(255,95,162,.22);font-size:13px;color:var(--ink-2)}
+/* step 2: the three kit directions */
+.cr-panel .event-studio .ev-preview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;padding:12px;border-radius:14px;background:radial-gradient(120% 90% at 50% 0%,rgba(150,165,230,.1),rgba(6,10,26,.6) 70%),#070d22;box-shadow:inset 0 0 0 1px var(--line)}
+.cr-panel .event-studio .ev-preview img{display:block;width:100%;height:auto;border-radius:6px;box-shadow:0 12px 28px -16px rgba(0,0,0,.9),0 0 0 1px rgba(255,255,255,.06)}
+.cr-panel .event-studio .ev-dl{display:flex;flex-direction:column;gap:8px;margin:0}
+.cr-panel .event-studio .ev-dl dt{font-size:12px;color:var(--subtle)}
+.cr-panel .event-studio .ev-dl dd{margin:2px 0 0;font-size:13.5px;line-height:1.45;color:var(--ink);overflow-wrap:anywhere;white-space:pre-line}
+@media (max-width:1100px){.cr-panel .event-studio .ad-dir.ev-dir>.ev-preview{grid-column:1;grid-row:1/span 6}}
+@media (max-width:760px){.cr-panel .event-studio .ad-dir.ev-dir{display:flex;flex-direction:column}}
+/* step 3: event data, checks, timeline, materials */
+.cr-panel .event-studio .ev-data,.cr-panel .event-studio .ev-after{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:12px 16px;align-items:end}
+.cr-panel .event-studio .ev-tool input{min-height:40px}
+.cr-panel .event-studio .ev-checks{display:flex;flex-direction:column;gap:8px}
+.cr-panel .event-studio .ev-check{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
+.cr-panel .event-studio .ev-check strong{font-size:13.5px;color:var(--ink)}
+.cr-panel .event-studio .ev-check ul{grid-column:2;margin:0;padding-left:18px;font-size:12.5px;line-height:1.45;color:var(--amber)}
+.cr-panel .event-studio .ev-check-badge{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;font:600 12px/1 var(--rx-font,Inter,sans-serif);background:rgba(73,214,155,.14);color:#7ee8b8}
+.cr-panel .event-studio .ev-check[data-state=warn] .ev-check-badge{background:rgba(245,199,107,.14);color:var(--amber)}
+.cr-panel .event-studio .ev-check[data-state=fail]{border-color:rgba(255,120,120,.4)}
+.cr-panel .event-studio .ev-check[data-state=fail] .ev-check-badge{background:rgba(255,92,92,.16);color:#ffb0b0}
+.cr-panel .event-studio .ev-timeline,.cr-panel .event-studio .ev-files{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.cr-panel .event-studio .ev-timeline>h4{grid-column:1/-1}
+.cr-panel .event-studio .ev-phase{min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02);border-top:2px solid var(--mk)}
+.cr-panel .event-studio .ev-phase[data-phase=durante]{border-top-color:#8ab4ff}
+.cr-panel .event-studio .ev-phase[data-phase=dopo]{border-top-color:#49d69b}
+.cr-panel .event-studio .ev-phase h5{margin:0 0 8px;font:600 12px/1.2 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--mk-soft)}
+.cr-panel .event-studio .ev-phase ol,.cr-panel .event-studio .ev-phase ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cr-panel .event-studio .ev-timeline li{display:flex;flex-direction:column;gap:2px;font-size:13px;line-height:1.4;color:var(--ink-2)}
+.cr-panel .event-studio .ev-timeline time{font:600 12px/1.2 var(--rx-font,Inter,sans-serif);color:var(--ink);font-variant-numeric:tabular-nums}
+.cr-panel .event-studio .ev-materials{display:flex;flex-direction:column;gap:14px}
+.cr-panel .event-studio .ev-mat-phase{display:flex;flex-direction:column;gap:6px}
+.cr-panel .event-studio .ev-mat{border:1px solid var(--line);border-radius:10px;padding:0 12px;background:rgba(255,255,255,.015)}
+.cr-panel .event-studio .ev-mat>summary{display:flex;align-items:center;min-height:40px;cursor:pointer;font:600 13px/1.25 var(--rx-font,Inter,sans-serif);color:var(--ink-2)}
+.cr-panel .event-studio .ev-mat[open]>summary{color:var(--ink)}
+.cr-panel .event-studio .ev-mat>summary:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+.cr-panel .event-studio .ev-mat .ev-field{margin:0 0 12px}
+.cr-panel .event-studio .ev-mat textarea{font:400 13.5px/1.55 var(--rx-font,Inter,sans-serif)}
+/* step 4: the kit */
+.cr-panel .event-studio .ev-kit{display:flex;flex-direction:column;gap:16px;padding-top:22px;border-top:1px solid var(--line)}
+.cr-panel .event-studio .ev-kit[hidden]{display:none}
+.cr-panel .event-studio .ev-kit-head h3{margin:0 0 4px}
+.cr-panel .event-studio .ev-files li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.cr-panel .event-studio .ev-files li:first-child{border-top:0;padding-top:0}
+.cr-panel .event-studio .ev-file{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cr-panel .event-studio .ev-file strong{font-size:13px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.cr-panel .event-studio .ev-file small{font-size:12px;color:var(--subtle);overflow-wrap:anywhere}
+.cr-panel .event-studio .ev-dl-btn{flex:0 0 auto;min-height:34px;padding:0 12px;font-size:13px}
+.cr-panel .event-studio .ev-crm{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid rgba(73,214,155,.3);border-radius:14px;background:rgba(73,214,155,.05)}
+.cr-panel .event-studio .ev-link{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);color:var(--ink);text-decoration:none;font:500 14px/1.2 var(--rx-font,Inter,sans-serif)}
+.cr-panel .event-studio .ev-link:hover{border-color:rgba(255,156,198,.45)}
+.cr-panel .event-studio .ev-link:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+@media (max-width:900px){.cr-panel .event-studio .ev-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.cr-panel .event-studio .ev-timeline,.cr-panel .event-studio .ev-files{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.cr-panel .event-studio .ev-fields{grid-template-columns:minmax(0,1fr)}.cr-panel .event-studio .ev-wide{grid-column:auto}.cr-panel .event-studio .ev-link{min-height:40px}}
 /* ==== Shared studio primitives («rifinitura»): the pieces every guided studio has, in one look. The newest studios
    (Creatività, Reel, Schede prodotto, Newsletter HTML, Documenti) set it; these rules bring the older ones (Foto, Video,
    Sito, SEO e GEO, Testi, Identità, Stampa, Catalogo) to the same cards, headings, result bar, fields and loading state.
