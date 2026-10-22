@@ -24,6 +24,7 @@ const P={
  palette:'<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.4 0 2-.9 2-1.9 0-1.3-1-1.4-1-2.6 0-1 .9-1.9 2.2-1.9H18a2.5 2.5 0 0 0 2.5-2.5C20.5 7 16.7 3.5 12 3.5Z"/><circle cx="7.6" cy="11" r="1"/><circle cx="10" cy="7.4" r="1"/><circle cx="14.6" cy="7.4" r="1"/>',
  layout:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M3.5 9.5h17M10 9.5v11"/>',
  doc:'<path d="M6 3.5h8.5l3.5 3.5v13.5H6Z"/><path d="M14 3.5V7h4M9 11h6M9 14.5h6M9 18h3.5"/>',
+ pages:'<path d="M8.5 3.5h7l3.5 3.5v10.5H8.5Z"/><path d="M15 3.5V7h4"/><path d="M5.5 7v13.5h10"/><path d="M11.5 11h4.5M11.5 14h3"/>',
  mail:'<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 7 8.5 6 8.5-6"/>',
  user:'<circle cx="12" cy="9" r="3.8"/><path d="M5 20a7 7 0 0 1 14 0"/>',
  browser:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M3 9h18M6.5 6.8h.01M9 6.8h.01"/>',
@@ -50,7 +51,7 @@ const AREAS=Object.freeze({
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
  newsletter:'mail',images:'image',avatar:'user',video:'video',site:'browser',seo:'search',annunci:'megaphone',stampa:'printer',
- catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides'});
+ catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
 // The <svg> markup of an icon: decorative (aria-hidden), stroke in currentColor.
 function svg(name,cls){

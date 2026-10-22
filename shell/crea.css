@@ -364,3 +364,79 @@
 .cr-panel .seo-studio .ss-tabs button[aria-selected=true]{background:var(--card-2);color:#fff;font-weight:600;box-shadow:inset 0 0 0 1px var(--line-2)}
 .cr-panel .site-studio .st-modes button[aria-pressed=true]{background:var(--ink);color:#0a1026}
 @media (max-width:640px){.cr-panel .photo-studio .ps-steps li{font-size:12px}.cr-panel .photo-studio .ps-form>.ps-actions:last-child .primary{flex:1 1 100%;justify-content:center}}
+/* Studio Documenti (lib/doc-studio.js): the Studio Stampa pieces plus the document types, the three layouts as page
+   thumbnails, the section/slide/data editor and the page count. */
+.cr-panel .doc-studio h3{margin:0;font:600 16px/1.3 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:var(--ink)}
+.cr-panel .doc-studio h4.ds-sub{margin:4px 0 0;font-size:13px;font-weight:600;color:var(--ink-2)}
+.cr-panel .doc-studio .ds-types{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:10px}
+.cr-panel .doc-studio .ds-types legend,.cr-panel .doc-studio .ds-source legend{grid-column:1/-1}
+.cr-panel .doc-studio .ds-type{position:relative;display:flex;flex-direction:column;padding:12px 14px;border:1px solid var(--line-2);border-radius:12px;background:rgba(255,255,255,.02);cursor:pointer;min-width:0;transition:border-color .15s,background-color .15s}
+.cr-panel .doc-studio .ds-type:hover{border-color:rgba(255,156,198,.45)}
+.cr-panel .doc-studio .ds-type input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+.cr-panel .doc-studio .ds-type:has(input:checked){border-color:var(--mk);background:rgba(255,95,162,.08);box-shadow:0 0 0 1px var(--mk)}
+.cr-panel .doc-studio .ds-type:has(input:focus-visible){outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+.cr-panel .doc-studio .ds-type-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cr-panel .doc-studio .ds-type-text b{font-size:14px;color:var(--ink)}
+.cr-panel .doc-studio .ds-type-text small{font-size:12.5px;line-height:1.4;color:var(--muted)}
+.cr-panel .doc-studio .ds-type-text em{font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--amber)}
+.cr-panel .doc-studio .ds-source{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px 16px}
+.cr-panel .doc-studio .ds-source label{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0;align-self:start;justify-content:flex-start;height:auto}
+.cr-panel .doc-studio .ds-source select,.cr-panel .doc-studio .ds-source textarea{width:100%;box-sizing:border-box;min-width:0}
+.cr-panel .doc-studio .ds-hint{grid-column:1/-1;margin:0;font-size:12.5px;color:var(--subtle)}
+.cr-panel .doc-studio .ds-choose,.cr-panel .doc-studio .ds-refine,.cr-panel .doc-studio .ds-out{display:flex;flex-direction:column;gap:14px;padding-top:20px;border-top:1px solid var(--line)}
+.cr-panel .doc-studio .ds-choose[hidden],.cr-panel .doc-studio .ds-refine[hidden],.cr-panel .doc-studio .ds-out[hidden]{display:none}
+.cr-panel .doc-studio .ds-styles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cr-panel .doc-studio .ds-style{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line-2);border-radius:14px;background:rgba(255,255,255,.02);min-width:0}
+.cr-panel .doc-studio .ds-style[data-chosen=true]{border-color:var(--mk);box-shadow:0 0 0 1px var(--mk)}
+.cr-panel .doc-studio .ds-thumbs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:start;padding:10px;border-radius:10px;background:rgba(0,0,0,.22)}
+.cr-panel .doc-studio .ds-thumbs[data-kind=slides]{grid-template-columns:1fr 1fr}
+.cr-panel .doc-studio .ds-thumbs[data-kind=slides] .ds-thumb:first-child{grid-column:1/-1}
+.cr-panel .doc-studio .ds-thumb svg{display:block;width:100%;height:auto;background:#fff;border-radius:2px;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.cr-panel .doc-studio .ds-style-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cr-panel .doc-studio .ds-style-head h4{margin:0;font-size:15px;color:var(--ink)}
+.cr-panel .doc-studio .ds-meta{margin:0;font-size:12px;color:var(--subtle);white-space:nowrap}
+.cr-panel .doc-studio .ds-line{margin:0;font-size:12.5px;line-height:1.45;color:var(--muted);flex:1}
+.cr-panel .doc-studio .ds-style button.primary{align-self:stretch;justify-content:center}
+.cr-panel .doc-studio .ds-refine-head{display:flex;justify-content:space-between;align-items:center;gap:8px 16px;flex-wrap:wrap}
+.cr-panel .doc-studio .ds-count{margin:0;padding:6px 12px;border-radius:999px;border:1px solid rgba(245,181,68,.45);font-size:12.5px;font-weight:600;color:var(--amber)}
+.cr-panel .doc-studio .ds-count[data-ok=true]{border-color:rgba(61,214,140,.45);color:#7be3ac}
+.cr-panel .doc-studio .ds-opts{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end}
+.cr-panel .doc-studio .ds-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.cr-panel .doc-studio .ds-chips legend{width:100%}
+.cr-panel .doc-studio .ds-pad{height:auto;min-height:34px;padding:6px 14px;line-height:1.35}
+.cr-panel .doc-studio .ds-photo{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:13px;min-width:0}
+.cr-panel .doc-studio .ds-photo label{display:flex;flex-direction:column;gap:6px;min-width:0;max-width:100%}
+.cr-panel .doc-studio .ds-photo input[type=file]{max-width:100%;color:inherit;font-size:12.5px}
+.cr-panel .doc-studio .ds-photo button{min-height:30px;padding:0 10px;font-size:12.5px}
+.cr-panel .doc-studio .ds-photo-info{font-size:12px;color:var(--subtle);overflow-wrap:anywhere}
+.cr-panel .doc-studio .ds-photo-info:empty{display:none}
+.cr-panel .doc-studio .ds-editor{display:flex;flex-direction:column;gap:12px}
+.cr-panel .doc-studio .ds-editor>button{align-self:flex-start}
+.cr-panel .doc-studio .ds-editor label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;min-width:0}
+.cr-panel .doc-studio .ds-editor input,.cr-panel .doc-studio .ds-editor textarea,.cr-panel .doc-studio .ds-editor select{width:100%;box-sizing:border-box;min-width:0}
+.cr-panel .doc-studio .ds-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:10px 14px}
+.cr-panel .doc-studio .ds-rows{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cr-panel .doc-studio .ds-row{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02);min-width:0}
+.cr-panel .doc-studio .ds-row-top{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;min-width:0}
+.cr-panel .doc-studio .ds-row-top select{width:auto;flex:0 0 auto}
+.cr-panel .doc-studio .ds-num{flex:0 0 auto;align-self:center;margin-top:18px;font:700 15px/1 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:var(--mk-soft)}
+.cr-panel .doc-studio .ds-grow{flex:1 1 200px}
+.cr-panel .doc-studio .ds-row-acts{display:flex;gap:6px;flex:0 0 auto}
+.cr-panel .doc-studio .ds-row-acts button{min-height:40px;min-width:40px;padding:0 10px}
+.cr-panel .doc-studio .ds-spec{flex-direction:row;flex-wrap:wrap;align-items:flex-end}
+.cr-panel .doc-studio .ds-spec[data-missing=true]{border-color:rgba(245,181,68,.45)}
+.cr-panel .doc-studio .ds-spec[data-missing=true] input::placeholder{color:var(--amber)}
+.cr-panel .doc-studio .ds-checks{padding:10px 12px;border:1px solid rgba(245,181,68,.45);border-radius:10px;font-size:12.5px;color:#f5c76b}
+.cr-panel .doc-studio .ds-checks ul{margin:6px 0 0;padding-left:18px}
+.cr-panel .doc-studio .ds-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.cr-panel .doc-studio .ds-preview[data-kind=slides]{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.cr-panel .doc-studio .ds-preview .pr-page{max-width:none;flex:none}
+.cr-panel .doc-studio .ds-out .ps-actions{gap:10px 12px}
+@media (max-width:900px){.cr-panel .doc-studio .ds-styles{grid-template-columns:1fr}.cr-panel .doc-studio .ds-thumbs{max-width:520px}}
+@media (max-width:640px){
+ .cr-panel .doc-studio .ds-source{grid-template-columns:1fr}
+ .cr-panel .doc-studio .ds-preview{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .cr-panel .doc-studio .ds-preview[data-kind=slides]{grid-template-columns:1fr}
+ .cr-panel .doc-studio .ds-out .ps-actions button{flex:1 1 100%}
+ .cr-panel .doc-studio .ds-row-acts{margin-left:auto}
+}

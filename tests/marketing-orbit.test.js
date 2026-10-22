@@ -36,7 +36,7 @@ test('?area= and ?open= pick the filter and the studio in «Cosa vuoi fare»; un
 test('sections: every link is a page of the repo; studios open where they live',()=>{
  assert.deepEqual(orbit.SECTIONS.map(s=>s.title),['Cosa vuoi fare','Clienti','Progetti','Piano editoriale','Studi','Risultati','Approvazioni','Memoria']);
  for(const s of orbit.SECTIONS){assert.ok(exists(s.href),s.href);for(const l of s.links||[])assert.ok(exists(l.href),l.href)}
- assert.deepEqual(orbit.STUDIOS.map(s=>s.label),['Avatar','Immagini','Video','Sito','SEO e GEO','Identità','Stampa','Catalogo']);
+ assert.deepEqual(orbit.STUDIOS.map(s=>s.label),['Avatar','Immagini','Video','Sito','SEO e GEO','Identità','Stampa','Catalogo','Documenti']);
  for(const s of orbit.STUDIOS.slice(1)){const q=crea.fromQuery(new URL(s.href,'https://x').search);assert.ok(q.open&&crea.card(q.open).inline,s.label)}
  const res=orbit.SECTIONS.find(s=>s.id==='risultati');
  assert.deepEqual(res.links.map(l=>l.href),['/project-editorial.html#results','/agency/crea.html?open=seo']);

@@ -19,7 +19,7 @@ function planets(core){
 }
 // The studios and where each one starts: the avatar has its own page, the others open inline in the panel.
 const STUDIOS=[['Avatar','/agency/avatar.html'],['Immagini',CREA+'?open=images'],['Video',CREA+'?open=video'],['Sito',CREA+'?open=site'],
- ['SEO e GEO',CREA+'?open=seo'],['Identità',CREA+'?open=identita'],['Stampa',CREA+'?open=stampa'],['Catalogo',CREA+'?open=catalogo']].map(([label,href])=>({label,href}));
+ ['SEO e GEO',CREA+'?open=seo'],['Identità',CREA+'?open=identita'],['Stampa',CREA+'?open=stampa'],['Catalogo',CREA+'?open=catalogo'],['Documenti',CREA+'?open=documenti']].map(([label,href])=>({label,href}));
 // count: the key of counts() shown on the card, with its label; no key, no number.
 const SECTIONS=[
  {id:'servizi',icon:'wand',title:'Cosa vuoi fare',line:'Tutti i servizi guidati: poche domande, tre proposte, scegli tu.',href:CREA,count:'servizi',unit:['servizio','servizi']},
