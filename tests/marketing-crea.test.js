@@ -38,7 +38,7 @@ test('the text cards open the Studio Testi inline, one service each, with the ro
  assert.ok(html.indexOf('id="crFilters"')<html.indexOf('id="crCards"'),'filters above the cards');
  assert.ok(html.indexOf('/lib/copy-studio.js')>0&&html.indexOf('/lib/copy-studio.js')<html.indexOf('/agency/crea.js'));
  const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');
- assert.match(css,/\.cr-filter\[aria-pressed=true\]/);assert.match(css,/\.cr-panel \.copy-studio \.cs-grid/);
+ assert.match(fs.readFileSync(path.join(root,'agency/crea.css'),'utf8'),/\.cp-tab\[aria-pressed=true\]/);assert.match(css,/\.cr-panel \.copy-studio \.cs-grid/);
 });
 
 test('links point to pages that exist and carry the project',()=>{
@@ -100,7 +100,7 @@ test('the Sito web card opens the Studio Sito inline with the Web Developer memo
  assert.match(js,/site:\{global:'RadixSiteStudio'[^}]*agent:'web-developer'\}/);
  assert.match(js,/S\.siteStudio\(\{project,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=web-developer&project='\+pid\}\)/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
- assert.match(html,/<p class="cr-note">Tutti i servizi ora sono guidati\. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma\.<\/p>/);
+ assert.match(html,/<p class="cr-note cp-foot">Tutti i servizi ora sono guidati\. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma\.<\/p>/);
  assert.ok(html.indexOf('/lib/site-studio.js')<html.indexOf('/agency/crea.js'),'the studio loads before the page script');
  const css=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');
  assert.match(css,/\.cr-panel \.site-studio \.st-thumb iframe\{[^}]*pointer-events:none/);assert.match(css,/\.st-view\[data-mode=mobile\] iframe\{width:390px;max-width:100%/);

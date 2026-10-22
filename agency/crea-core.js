@@ -68,5 +68,66 @@ function fromQuery(search){
  const a=String(q.get('area')||'').toLowerCase(),c=card(String(q.get('open')||'')),open=c&&c.inline?c.id:'';
  return {group:AREAS[a]&&groups().includes(AREAS[a])?AREAS[a]:c?c.group:'',open};
 }
-return Object.freeze({CARDS,GROUPS,AREAS,linkFor,card,groups,inGroup,areaOf,fromQuery});
+// ---- The command box «Cosa vuoi fare oggi?» (here and on the Marketing home, agency/orbit-core.js): text matching
+// with no AI. Lower case, no accents, words of 2+ letters without the filler words.
+const STOP=new Set('di da del della dei degli delle il lo la le gli un una uno per con su tra fra in a e o ed al alla ai agli alle che mi ci si mio mia miei mie tuo tua voglio vorrei fare fai oggi nuovo nuova nuovi nuove cosa come'.split(' '));
+const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+const words=s=>fold(s).split(/[^a-z0-9]+/).filter(w=>w.length>=2&&!STOP.has(w));
+// Everyday words that name a service without its title (deterministic: no AI reads the text).
+const SYNONYMS=Object.freeze({post:['social','graphics'],instagram:['social'],facebook:['social'],linkedin:['social'],carosello:['graphics'],caroselli:['graphics'],
+ logo:['identita'],marchio:['identita','naming'],colori:['identita'],palette:['identita'],font:['identita'],recensioni:['google'],recensione:['google'],scheda:['google','scheda'],
+ mail:['newsletter','emailhtml'],email:['newsletter','sequenze'],sms:['sms'],whatsapp:['sms','tono'],sito:['site','analisi'],landing:['site'],pagina:['site','testi'],blog:['testi'],articolo:['testi'],
+ seo:['seo','analisi'],google:['seo','google','annunci'],geo:['seo'],audit:['analisi'],video:['video','reel'],reel:['reel'],tiktok:['reel'],avatar:['avatar'],
+ foto:['images'],fotografie:['images'],immagine:['images'],volantino:['stampa'],flyer:['stampa'],locandina:['stampa'],biglietto:['stampa'],biglietti:['stampa'],rollup:['stampa'],
+ catalogo:['catalogo'],brochure:['brochure'],presentazione:['presentazione'],slide:['presentazione'],traduci:['traduzione'],tradurre:['traduzione'],inglese:['traduzione'],tedesco:['traduzione'],
+ annunci:['annunci','creativita'],ads:['annunci','creativita'],banner:['creativita'],comunicato:['comunicato'],stampa:['comunicato','stampa'],evento:['evento'],fiera:['evento'],webinar:['evento'],
+ nome:['naming'],slogan:['naming'],concorrenti:['concorrenza'],concorrenza:['concorrenza'],persona:['persona'],pubblico:['persona','strategy'],lancio:['lancio'],lanciare:['lancio'],
+ tono:['tono'],influencer:['influencer'],prodotti:['schede','catalogo'],feed:['schede'],strategia:['strategy'],piano:['social','strategy'],calendario:['social']});
+const near=(t,w)=>t===w||(t.length>=4&&w.length>=4&&(w.startsWith(t)||t.startsWith(w)));
+// The services that match the typed text, best first: [{card,score}]; score 0 is never returned. Same text, same list.
+function matchServices(query,cards){
+ const list=Array.isArray(cards)?cards:CARDS,tokens=words(query);if(!tokens.length)return [];
+ return list.map((card,i)=>{
+  const title=words(card.title),group=words(card.group),line=words(card.line+' '+(card.action||''));let score=0;
+  for(const t of tokens){
+   if(title.some(w=>near(t,w)))score+=3;else if(group.some(w=>near(t,w)))score+=2;else if(line.some(w=>near(t,w)))score+=1;
+   if((SYNONYMS[t]||[]).includes(card.id))score+=4;
+  }
+  return {card,score,i};
+ }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.i-b.i).map(({card,score})=>({card,score}));
+}
+// A match is good enough to preselect from score 3 (a title word, or a synonym): the same bar as the home's Enter.
+const SURE=3;
+const best=q=>{const m=matchServices(q)[0];return m&&m.score>=SURE?m.card.id:''};
+// ?q=<text>&project=<id> (from the home's command box): the text to prefill, the project asked for and the service to
+// preselect (its id, '' when nothing matches well). Nothing is opened or generated from this.
+function fromAsk(search){
+ let s;try{s=new URLSearchParams(String(search||''))}catch(e){return {q:'',project:'',match:''}}
+ const q=String(s.get('q')||'').replace(/\s+/g,' ').trim().slice(0,200),p=String(s.get('project')||'');
+ return {q,project:ID.test(p)?p:'',match:q?best(q):''};
+}
+// The short cost badge of a card, read from its cost line (no prices or credits are invented): free, one AI call,
+// AI in batches, or the paid media service it uses. The full line stays on the card, before any click.
+function costBadge(c){
+ const t=String(c&&c.cost||'');
+ if(/^Nessuna chiamata AI/.test(t))return {tone:'free',label:/facoltativ/.test(t)?'Gratis · AI facoltativa':'Gratis, senza AI'};
+ const n=t.match(/^(\d+) generazioni Higgsfield/);if(n)return {tone:'media',label:n[1]+' foto Higgsfield'};
+ if(/HeyGen/.test(t))return {tone:'media',label:/chiamata AI/.test(t)?'AI + HeyGen':'Crediti HeyGen'};
+ if(/una ogni|una per lotto/.test(t))return {tone:'ai',label:'AI a lotti'};
+ if(/^Una chiamata AI per [^,]+ e una per/.test(t))return {tone:'ai',label:'2 chiamate AI'};
+ if(/^Una chiamata AI/.test(t))return {tone:'ai',label:'1 chiamata AI'};
+ return {tone:'ai',label:'AI con conferma'};
+}
+// The kits: the services that hand over a whole set of coordinated files in one guided flow (what they deliver comes
+// from the card's own line). Only cards that exist are returned.
+const KITS=Object.freeze([
+ {id:'identita',label:'Kit identità',files:'Logo, palette, font e moodboard'},
+ {id:'evento',label:'Kit evento',files:'Invito, landing, post, roll-up, slide ed email'},
+ {id:'creativita',label:'Kit annunci',files:'Meta, Google Display e LinkedIn in uno zip'},
+ {id:'documenti',label:'Kit documenti',files:'Company profile, brochure e slide in PDF e PowerPoint'}
+]);
+const kits=()=>KITS.map(k=>({...k,card:card(k.id)})).filter(k=>k.card);
+// The area number on tabs and headings: 01…08 in GROUPS order ('' for «Tutti» or an unknown group).
+const areaNumber=group=>{const i=groups().indexOf(group);return i<0?'':String(i+1).padStart(2,'0')};
+return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,groups,inGroup,areaOf,fromQuery,words,matchServices,best,fromAsk,costBadge,kits,areaNumber});
 });

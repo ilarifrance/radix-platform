@@ -19,7 +19,8 @@ test('Studio Avatar: the project select never widens the page, Marketing pink wi
 
 test('phone tap targets: crea filters and studio controls, Marketing home links (44px), PED toolbar and tabs are at least 40px',()=>{
  const c=css('shell/crea.css'),c640=media(c,'max-width:640px');
- assert.match(c640,/\.cr-filter\{height:40px\}/);
+ assert.match(media(css('agency/crea.css'),'max-width:640px'),/\.cp-tabs\{flex-wrap:nowrap;overflow-x:auto/,'area tabs scroll sideways on the phone');
+ assert.match(css('agency/crea.css'),/\.cp-tab\{[^}]*min-height:44px/);assert.match(css('agency/crea.css'),/\.cp-go\{[^}]*min-height:44px/);
  assert.match(c640,/\.cr-panel :is\(button,summary,select,[^)]*\)[^{]*\{min-height:40px!important\}/);
  const ma=media(css('shell/marketing-a.css'),'max-width:640px');
  assert.match(ma,/\.ma-area-services a\{[^}]*min-height:44px/);assert.match(ma,/\.ma-link\{min-height:44px\}/);assert.match(ma,/\.ma-area-title\{[^}]*min-height:44px/);

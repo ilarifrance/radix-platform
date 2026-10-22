@@ -82,33 +82,12 @@ function withParams(href,params){
  const [base,hash]=String(href).split('#'),q=Object.entries(params).filter(([,v])=>v!=null&&v!=='').map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
  return q?base+(base.includes('?')?'&':'?')+q+(hash!=null?'#'+hash:''):String(href);
 }
-// Text matching for the command bar: lower case, no accents, words of 2+ letters without the filler words.
-const STOP=new Set('di da del della dei degli delle il lo la le gli un una uno per con su tra fra in a e o ed al alla ai agli alle che mi ci si mio mia miei mie tuo tua voglio vorrei fare fai oggi nuovo nuova nuovi nuove cosa come'.split(' '));
-const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
-const words=s=>fold(s).split(/[^a-z0-9]+/).filter(w=>w.length>=2&&!STOP.has(w));
-// Everyday words that name a service without its title (deterministic: no AI reads the text).
-const SYNONYMS=Object.freeze({post:['social','graphics'],instagram:['social'],facebook:['social'],linkedin:['social'],carosello:['graphics'],caroselli:['graphics'],
- logo:['identita'],marchio:['identita','naming'],colori:['identita'],palette:['identita'],font:['identita'],recensioni:['google'],recensione:['google'],scheda:['google','scheda'],
- mail:['newsletter','emailhtml'],email:['newsletter','sequenze'],sms:['sms'],whatsapp:['sms','tono'],sito:['site','analisi'],landing:['site'],pagina:['site','testi'],blog:['testi'],articolo:['testi'],
- seo:['seo','analisi'],google:['seo','google','annunci'],geo:['seo'],audit:['analisi'],video:['video','reel'],reel:['reel'],tiktok:['reel'],avatar:['avatar'],
- foto:['images'],fotografie:['images'],immagine:['images'],volantino:['stampa'],flyer:['stampa'],locandina:['stampa'],biglietto:['stampa'],biglietti:['stampa'],rollup:['stampa'],
- catalogo:['catalogo'],brochure:['brochure'],presentazione:['presentazione'],slide:['presentazione'],traduci:['traduzione'],tradurre:['traduzione'],inglese:['traduzione'],tedesco:['traduzione'],
- annunci:['annunci','creativita'],ads:['annunci','creativita'],banner:['creativita'],comunicato:['comunicato'],stampa:['comunicato','stampa'],evento:['evento'],fiera:['evento'],webinar:['evento'],
- nome:['naming'],slogan:['naming'],concorrenti:['concorrenza'],concorrenza:['concorrenza'],persona:['persona'],pubblico:['persona','strategy'],lancio:['lancio'],lanciare:['lancio'],
- tono:['tono'],influencer:['influencer'],prodotti:['schede','catalogo'],feed:['schede'],strategia:['strategy'],piano:['social','strategy'],calendario:['social']});
-const near=(t,w)=>t===w||(t.length>=4&&w.length>=4&&(w.startsWith(t)||t.startsWith(w)));
+// Text matching for the command bar: one source, agency/crea-core.js (words, synonyms, scores), shared with
+// «Cosa vuoi fare oggi?» so the home and the panel pick the same service for the same text.
+const words=s=>crea().words(s);
+const SYNONYMS=crea().SYNONYMS;
 // The services that match the typed text, best first: [{card,score}]; score 0 is never returned.
-function matchServices(query,core){
- const c=core||crea(),tokens=words(query);if(!tokens.length)return [];
- return c.CARDS.map((card,i)=>{
-  const title=words(card.title),group=words(card.group),line=words(card.line+' '+(card.action||''));let score=0;
-  for(const t of tokens){
-   if(title.some(w=>near(t,w)))score+=3;else if(group.some(w=>near(t,w)))score+=2;else if(line.some(w=>near(t,w)))score+=1;
-   if((SYNONYMS[t]||[]).includes(card.id))score+=4;
-  }
-  return {card,score,i};
- }).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||a.i-b.i).map(({card,score})=>({card,score}));
-}
+function matchServices(query,core){const c=core||crea();return crea().matchServices(query,c.CARDS)}
 // What a waiting project step asks of a person, with where it is done.
 const STEP_HREF=Object.freeze({brief:'/project-editorial.html?project={p}#brief',ped:'/project-editorial.html?project={p}#ped',tasks:'/agency/project-workspace.html?id={p}',pm:'/radix-pm-concept.html?project={p}'});
 const STEP_ASK=Object.freeze({brief:'Approva la strategia',ped:'Approva i contenuti del piano',tasks:'Rivedi le bozze degli agenti',pm:'Rivedi le attività in revisione'});

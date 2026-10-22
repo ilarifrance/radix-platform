@@ -28,7 +28,7 @@ test('?area= and ?open= pick the filter and the studio in «Cosa vuoi fare»; un
  for(const q of ['','?area=boh','?open=boh','?area=constructor','?open=__proto__',null,undefined])assert.deepEqual(crea.fromQuery(q),{group:'',open:''},String(q));
  for(const [slug,group] of Object.entries(crea.AREAS)){assert.ok(crea.GROUPS.includes(group));assert.equal(crea.areaOf(group),slug)}
  const js=read('agency/crea.js');
- assert.match(js,/const asked=core\.fromQuery\(location\.search\);/);
+ assert.match(js,/const asked=core\.fromQuery\(location\.search\)[,;]/);
  assert.match(js,/group=asked\.group\|\|remembered\(GROUP_KEY\)/);
  assert.match(js,/if\(asked\.open&&current\)openInline\(core\.card\(asked\.open\)\);/);
 });

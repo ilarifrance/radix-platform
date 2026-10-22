@@ -3,45 +3,9 @@
    (agency/marketing-look.js). */
 .cr-page{--mk:#ff5fa2;--mk-soft:#ff9cc6;--mk-ink:#1a0610;--ink:#f3f4ff;--ink-2:#d6dcf5;--muted:#a3aed2;--subtle:#7f8bb3;--amber:#f5c76b;
   --line:rgba(150,165,230,.14);--line-2:rgba(150,165,230,.24);--card:rgba(13,22,50,.62);--card-2:rgba(18,30,66,.72);--field:#081129}
-.cr-main{max-width:1320px;margin:0 auto;padding:40px 32px 64px;display:flex;flex-direction:column;gap:24px;min-width:0}
-.cr-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px 32px;flex-wrap:wrap;padding-bottom:8px}
-.cr-head-copy{min-width:0;flex:1 1 460px}
-.cr-eyebrow{margin:0;font:600 12px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.2em;color:var(--mk-soft)}
-.cr-head h1{margin:12px 0 10px;font:700 clamp(30px,3.2vw,40px)/1.08 var(--rx-display,"Space Grotesk",Inter,sans-serif);letter-spacing:-.03em;color:var(--ink)}
-.cr-muted{margin:0;max-width:62ch;color:var(--muted);font-size:15px;line-height:1.55}
-.cr-project{position:relative;display:flex;flex-direction:column;gap:8px;width:300px;max-width:100%;font:500 12px/1 var(--rx-font,Inter,sans-serif);color:var(--subtle)}
-.cr-project select{appearance:none;-webkit-appearance:none;height:44px;padding:0 40px 0 14px;border-radius:12px;border:1px solid var(--line-2);background:var(--card-2);color:var(--ink);font:500 14px var(--rx-font,Inter,sans-serif);cursor:pointer;transition:border-color .15s}
-.cr-project select:hover{border-color:rgba(255,156,198,.45)}
-.cr-project select:disabled{opacity:.6;cursor:default}
-.cr-project select:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
-.cr-project::after{content:'';position:absolute;right:17px;bottom:19px;width:7px;height:7px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);pointer-events:none}
-.cr-project select option{background:var(--field);color:var(--ink)}
-.cr-message{margin:0;padding:12px 16px;border-radius:12px;border:1px solid rgba(245,199,107,.35);background:rgba(245,199,107,.06);color:var(--amber);font-size:14px}
+/* The page around the studio (hero, command box, kits, tabs, service cards) is the Marketing look «A»: agency/crea.css
+   on the tokens of shell/marketing-a.css. This file keeps the palette above and the open studio (.cr-panel). */
 .cr-message:empty{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0}
-/* Filters and total */
-.cr-toolbar{min-width:0}
-/* Cards */
-.cr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px;list-style:none;margin:0;padding:0}
-.rx-agency .cr-grid .cr-card[data-card]{--m:transparent;border:1px solid var(--line)!important;border-radius:16px}
-.cr-card{--c:#a68bff;position:relative;display:flex;flex-direction:column;gap:10px;padding:20px;background:linear-gradient(180deg,var(--card-2),var(--card));box-shadow:0 1px 0 rgba(255,255,255,.035) inset;min-width:0;transition:border-color .18s ease-out,transform .18s ease-out,box-shadow .18s ease-out}
-.rx-agency .cr-grid .cr-card[data-card]:hover,.rx-agency .cr-grid .cr-card[data-card]:focus-within{border-color:color-mix(in srgb,var(--c) 45%,transparent)!important;transform:translateY(-2px)}
-.rx-agency .cr-grid .cr-card[data-open=true]{border-color:var(--mk)!important;box-shadow:0 0 0 1px var(--mk),0 18px 40px -24px rgba(255,95,162,.6)}
-.cr-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
-.cr-icon{display:grid;place-items:center;width:40px;height:40px;flex:0 0 40px;border-radius:12px;color:color-mix(in srgb,var(--c) 70%,#fff);background:color-mix(in srgb,var(--c) 12%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 28%,transparent)}
-.cr-icon .ml-ico{width:20px;height:20px}
-.cr-group{font:500 12px/1.2 var(--rx-font,Inter,sans-serif);color:var(--subtle);text-align:right}
-.cr-badge{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid rgba(245,181,68,.45);color:var(--amber)}
-.rx-agency .cr-card h2{margin:0;font:600 17px/1.3 var(--rx-font,Inter,sans-serif);letter-spacing:-.01em;color:var(--ink)}
-.cr-card .cr-line{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
-.cr-cost,.cr-hint{display:flex;align-items:flex-start;gap:8px;margin:0;font-size:12.5px;line-height:1.45}
-.cr-cost{margin-top:4px;color:var(--ink-2)}
-.cr-hint{color:var(--amber)}
-.cr-meta-icon{display:grid;flex:0 0 16px;margin-top:1px}.cr-meta-icon .ml-ico{width:16px;height:16px}
-.cr-cost .cr-meta-icon{color:var(--subtle)}
-.rx-agency .cr-grid .cr-card .cr-go{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;padding:0 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--ink);font:600 14px/1.25 var(--rx-font,Inter,sans-serif);text-align:center;text-decoration:none;cursor:pointer;transition:background-color .18s ease-out,border-color .18s ease-out,color .18s ease-out}
-.cr-card:hover .cr-go,.cr-go:focus-visible{background:var(--mk);border-color:var(--mk);color:var(--mk-ink)}
-.cr-go:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
-.cr-go[aria-disabled=true]{opacity:.45;pointer-events:none}
 /* The guided studio, open above the cards */
 .cr-panel{--c:#ff5fa2;border:1px solid var(--line-2);border-radius:20px;padding:0;background:linear-gradient(180deg,rgba(18,30,66,.85),rgba(8,15,38,.92));box-shadow:0 0 0 1px color-mix(in srgb,var(--c) 22%,transparent),0 30px 80px -40px rgba(0,0,0,.9);overflow:hidden;scroll-margin-top:84px}
 .cr-panel-head{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
@@ -57,17 +21,6 @@
 #crPanelBody{padding:22px 24px 24px}
 .cr-note{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--subtle);border-top:1px solid var(--line);padding-top:20px;margin:16px 0 0}
 @media (max-width:640px){
-  .cr-main{padding:24px 16px 48px;gap:20px}
-  .cr-head{gap:18px}.cr-head-copy{flex-basis:100%}
-  .cr-muted{font-size:14px}
-  .cr-project{width:100%}
-  .cr-toolbar{margin:0 -16px}
-  .cr-card{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:14px;row-gap:8px;padding:18px}
-  .cr-card>*{grid-column:1/-1}
-  .cr-card>.cr-top{grid-column:1;grid-row:1;margin:0}
-  .rx-agency .cr-card>h2{grid-column:2;grid-row:1;align-self:center;font-size:16px}
-  .cr-group{display:none}
-  .rx-agency .cr-grid .cr-card .cr-go{margin-top:6px}
   .cr-panel{border-radius:16px;margin:0 -4px}
   .cr-panel-head{padding:14px 16px;gap:12px}
   .cr-panel-icon{width:38px;height:38px;flex-basis:38px}
@@ -76,7 +29,7 @@
   #crPanelBody{padding:16px}
 }
 .cr-main [hidden]{display:none!important}
-@media (prefers-reduced-motion:reduce){.cr-card,.cr-go,.cr-filter{transition:none}.rx-agency .cr-grid .cr-card[data-card]:hover,.rx-agency .cr-grid .cr-card[data-card]:focus-within{transform:none}}
+@media (prefers-reduced-motion:reduce){.cr-close{transition:none}}
 /* the Studio Foto widget brings no button styles of its own (they come from the agents page) */
 .cr-panel .photo-studio button{font:inherit;cursor:pointer;border-radius:10px;padding:9px 14px;border:1px solid var(--line-2);background:#101c3e;color:#f3f4ff}
 .cr-panel .photo-studio button.primary{border:0;background:linear-gradient(90deg,#6c5cf7,#4c7dff);font-weight:600}
@@ -148,16 +101,6 @@
 .cr-panel .site-studio .st-own{margin-top:10px;padding:10px 12px;border:1px solid var(--line-2);border-radius:12px}.cr-panel .site-studio .st-own summary{cursor:pointer;font-weight:600}.cr-panel .site-studio .st-own ol{margin:8px 0;padding-left:1.3em;display:flex;flex-direction:column;gap:4px}
 .cr-panel .site-studio .tool-status{margin:0;color:var(--ink-2)}
 .cr-panel .site-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
-/* Filters above the cards: «Tutti» and the groups of agency/crea-core.js, each with its count and area dot. */
-.cr-filters{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
-.cr-filter{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.02);color:var(--ink-2);font:500 13.5px/1 var(--rx-font,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
-.cr-filter:not([data-group=""])::before{content:'';width:7px;height:7px;flex:0 0 7px;margin-right:-2px;border-radius:50%;background:var(--c,#a68bff)}
-.cr-filter-n{margin-left:-2px;color:var(--subtle);font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
-.cr-filter:hover{border-color:var(--line-2);color:#fff;background:rgba(255,255,255,.04)}
-.cr-filter[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:#0a1026;font-weight:600}
-.cr-filter[aria-pressed=true] .cr-filter-n{color:rgba(10,16,38,.6)}
-.cr-filter:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
-@media (max-width:640px){.cr-filter{height:40px}.cr-filters{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px;scroll-padding:0 16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 24px),transparent)}.cr-filters::-webkit-scrollbar{display:none}}
 /* Studio Testi (lib/copy-studio.js) reuses the Studio Foto layout; these are its own pieces. */
 .cr-panel .copy-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
 .cr-panel .copy-studio h4{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
