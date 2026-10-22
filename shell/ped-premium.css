@@ -110,6 +110,8 @@ html.rx-shell body.rx-ped .ped-steps li[data-state=current]{background:linear-gr
 html.rx-shell body.rx-ped .ped-steps li[data-state=current]::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--mk)}
 html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-num{background:var(--mk);color:var(--mk-ink);box-shadow:0 0 0 4px rgba(255,95,162,.18)}
 html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-go{display:inline-flex;background:var(--mk);color:var(--mk-ink)}
+/* the current step's button goes under its text, so a narrow column does not squeeze the words into one per line */
+@media (min-width:768px){html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ped-step{grid-template-columns:32px minmax(0,1fr);row-gap:8px}html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-go{grid-column:2;justify-self:start;min-height:32px}}
 html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-num{font-size:0;background:rgba(62,224,143,.14);box-shadow:inset 0 0 0 1.5px rgba(62,224,143,.5)}
 html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-num::before{content:"";width:10px;height:5px;margin-top:-3px;border-left:2px solid var(--st-approved);border-bottom:2px solid var(--st-approved);transform:rotate(-45deg)}
 html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-body b{color:var(--ink-2)}
@@ -224,6 +226,9 @@ html.rx-shell body.rx-ped .ped-analytics>summary{padding:20px 24px;font:600 19px
 html.rx-shell body.rx-ped .ped-analytics>summary:hover{background:rgba(255,255,255,.02)}
 html.rx-shell body.rx-ped .ped-analytics>:not(summary){margin-left:24px;margin-right:24px}
 html.rx-shell body.rx-ped .kpi-tiles{grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:14px 24px 24px}
+/* six tiles: one row of 6 on wide screens, two rows of 3 otherwise (never 5 + 1 alone) */
+html.rx-shell body.rx-ped .kpi-tiles:has(>:nth-child(6):last-child){grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:1280px){html.rx-shell body.rx-ped .kpi-tiles:has(>:nth-child(6):last-child){grid-template-columns:repeat(6,minmax(0,1fr))}}
 html.rx-shell body.rx-ped .kpi{padding:16px 18px 14px;border:1px solid var(--line);border-radius:16px;background:rgba(5,10,28,.5);min-width:0}
 html.rx-shell body.rx-ped .kpi strong{font:700 28px/1.1 var(--rx-display);color:var(--ink);overflow-wrap:anywhere}
 html.rx-shell body.rx-ped .kpi span{font-size:13px;font-weight:600;color:var(--ink-2)}
@@ -391,17 +396,27 @@ html.rx-shell body.rx-ped #variants .two>button{align-self:end;height:42px;min-h
   html.rx-shell body.rx-ped #pedPage.ped-has-rail>.calendar-toolbar{order:0}
   html.rx-shell body.rx-ped .calendar-toolbar{display:grid;grid-template-columns:minmax(0,1fr);padding:10px}
   html.rx-shell body.rx-ped .calendar-toolbar .view-switch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
-  html.rx-shell body.rx-ped .calendar-toolbar .view-switch button{padding:0 4px}
+  html.rx-shell body.rx-ped .calendar-toolbar .view-switch button{min-height:40px;padding:0 4px}
+  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:40px}
+  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext){min-width:40px}
+  html.rx-shell body.rx-ped button.rx-logout,html.rx-shell body.rx-ped .rx-steps a{min-height:40px}
+  html.rx-shell body.rx-ped .rx-project-switch,html.rx-shell body.rx-ped .rx-project-extra a{display:inline-flex;align-items:center;min-height:40px}
+  html.rx-shell body.rx-ped #briefPage details>summary{padding:10px 0}
+  html.rx-shell body.rx-ped :is(#campaignList,#rubricList) .actions button,html.rx-shell body.rx-ped #rubricSuggest .chip,html.rx-shell body.rx-ped #contentViews button,html.rx-shell body.rx-ped #statsRefresh,html.rx-shell body.rx-ped #results .results-actions label.button{min-height:40px}
+  html.rx-shell body.rx-ped .result-posts th button.sort{display:inline-flex;align-items:center;min-height:40px}
+  html.rx-shell body.rx-ped .result-posts td button.linkish{min-height:40px;line-height:40px}
   html.rx-shell body.rx-ped .calendar-toolbar .period-nav{justify-content:space-between;margin:0}
   html.rx-shell body.rx-ped .calendar-toolbar #calendarLabel{flex:1;text-align:center;font-size:15px}
   html.rx-shell body.rx-ped .calendar-toolbar label.tz{display:none}
   html.rx-shell body.rx-ped .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
   html.rx-shell body.rx-ped .filters{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   html.rx-shell body.rx-ped .ped-analytics>:not(summary),html.rx-shell body.rx-ped .results-actions,html.rx-shell body.rx-ped .result-posts-wrap{margin-left:14px;margin-right:14px}
-  html.rx-shell body.rx-ped .kpi-tiles{grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 14px 18px}
+  html.rx-shell body.rx-ped .kpi-tiles,html.rx-shell body.rx-ped .kpi-tiles:has(>:nth-child(6):last-child){grid-template-columns:repeat(2,minmax(0,1fr));margin:12px 14px 18px}
   html.rx-shell body.rx-ped .kpi strong{font-size:22px}
   html.rx-shell body.rx-ped .ped-analytics>summary{padding:16px}
   html.rx-shell body.rx-ped .channel-table{display:block;overflow-x:auto}
+  html.rx-shell body.rx-ped .ped-analytics .two{grid-template-columns:minmax(0,1fr)}
+  html.rx-shell body.rx-ped .ped-analytics .two>*{min-width:0}
   .rx-ped .review-dialog{width:100vw;max-width:100vw;max-height:100dvh;height:100dvh;margin:0;border-radius:0}
   .rx-ped .review-head,.rx-ped .review-foot{padding:14px 16px}
   .rx-ped .review-head h2{font-size:19px}
@@ -435,3 +450,5 @@ html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .
 html.rx-shell body.rx-ped .results-actions label{margin:0}
 html.rx-shell body.rx-ped .results-actions label.button{min-height:38px}
 html.rx-shell body.rx-ped .result-posts th:nth-child(2),html.rx-shell body.rx-ped .result-posts td:nth-child(2){text-align:left}
+/* Guida «?»: white on the light Marketing violet was 2.6:1; dark ink reads at AA. */
+body.rx-ped button.rx-guide-fab{color:#140a2e}

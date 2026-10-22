@@ -29,7 +29,7 @@
   border:1px solid var(--line);box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 30px 80px -40px rgba(0,0,0,.8)}
 .mo-sky{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
 .mo-core{position:absolute;left:50%;top:calc(50% - 25px);z-index:3;width:128px;height:128px;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;text-align:center;
-  background:radial-gradient(circle at 35% 28%,#ffd6ea 0%,#ff7ab4 20%,#b052e6 55%,#3a1a7a 88%,#24124f 100%);
+  background:radial-gradient(circle at 50% 54%,rgba(36,10,80,.4),rgba(36,10,80,0) 46%),radial-gradient(circle at 35% 28%,#ffd6ea 0%,#ff7ab4 20%,#b052e6 55%,#3a1a7a 88%,#24124f 100%);
   box-shadow:0 0 0 1px rgba(255,200,230,.18),0 0 48px rgba(255,95,162,.38),0 0 120px rgba(166,139,255,.22),inset -16px -18px 34px rgba(26,10,70,.65)}
 .mo-core::after{content:'';position:absolute;inset:-12px;border-radius:50%;border:1px solid rgba(255,190,225,.2);animation:mo-pulse 5s ease-in-out infinite}
 .mo-core span{font:600 11px/1.2 var(--rx-font,Inter,sans-serif);letter-spacing:.18em;text-transform:uppercase;color:#fff;text-shadow:0 1px 6px rgba(60,10,90,.6)}
@@ -117,3 +117,4 @@
   .mo-foot{margin-top:-16px}
 }
 @media (prefers-reduced-motion:reduce){.mo-core::after{animation:none}.mo-card,.mo-planet,.mo-orb,.mo-orb::after,.mo-card-go,.mo-cta,.mo-cta span{transition:none}.mo-card:hover{transform:none}}
+@media (max-width:640px){.mo-links a{min-height:40px;padding:0 12px}}

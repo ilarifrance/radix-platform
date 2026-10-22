@@ -157,7 +157,7 @@
 .cr-filter[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:#0a1026;font-weight:600}
 .cr-filter[aria-pressed=true] .cr-filter-n{color:rgba(10,16,38,.6)}
 .cr-filter:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
-@media (max-width:640px){.cr-filters{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px;scroll-padding:0 16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 24px),transparent)}.cr-filters::-webkit-scrollbar{display:none}}
+@media (max-width:640px){.cr-filter{height:40px}.cr-filters{flex-wrap:nowrap;overflow-x:auto;padding:2px 16px;scroll-padding:0 16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 24px),transparent)}.cr-filters::-webkit-scrollbar{display:none}}
 /* Studio Testi (lib/copy-studio.js) reuses the Studio Foto layout; these are its own pieces. */
 .cr-panel .copy-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
 .cr-panel .copy-studio h4{margin:0 0 4px;font-size:13px;font-weight:600;color:var(--cyan,#42dcf7)}
@@ -221,6 +221,9 @@
 .cr-panel .identity-studio .tool-status{margin:0;color:var(--ink-2)}
 .cr-panel .identity-studio .tool-status a{color:var(--cyan,#42dcf7);font-weight:600}
 @media (max-width:480px){.cr-panel .identity-studio .is-swatches{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* a narrow direction card (three side by side): 3 swatches per row, so «Secondario» is not cut mid-word */
+.cr-panel .identity-studio .is-card{container-type:inline-size}
+@container (max-width:380px){.cr-panel .identity-studio .is-card .is-swatches{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:10px}}
 /* Studio Stampa (lib/print-studio.js) reuses the Studio Foto steps and chips; these are its own pieces. */
 .cr-panel .print-studio{display:flex;flex-direction:column;gap:12px}
 .cr-panel .print-studio .pr-formats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px;margin:0;padding:0;border:0}
@@ -1420,10 +1423,10 @@ html.rx-shell body.cr-page{--line:rgba(150,165,230,.14)}
 /* fields: one select with its own chevron, one file picker, one switch, checkbox chips that show their tick */
 .cr-panel .photo-studio select{appearance:none;-webkit-appearance:none;padding-right:36px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5l5-5' fill='none' stroke='%23a3aed2' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;cursor:pointer}
 .cr-panel .photo-studio select option{background:var(--field);color:var(--ink)}
-.cr-panel .photo-studio input[type=file]{max-width:100%;padding:0;border:0;outline:0;background:none;color:var(--ink-2);font:400 13px var(--rx-font,Inter,sans-serif)}
-.cr-panel .photo-studio input[type=file]:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:3px;border-radius:10px}
-.cr-panel .photo-studio input[type=file]::file-selector-button{margin-right:12px;min-height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);color:var(--ink);font:500 13px var(--rx-font,Inter,sans-serif);cursor:pointer;transition:border-color .15s,background-color .15s}
-.cr-panel .photo-studio input[type=file]::file-selector-button:hover{border-color:rgba(255,156,198,.45);background:rgba(255,95,162,.06)}
+.cr-panel input[type=file]{max-width:100%;padding:0;border:0;outline:0;background:none;color:var(--ink-2);font:400 13px var(--rx-font,Inter,sans-serif)}
+.cr-panel input[type=file]:focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:3px;border-radius:10px}
+.cr-panel input[type=file]::file-selector-button{margin-right:12px;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);color:var(--ink);font:500 13px var(--rx-font,Inter,sans-serif);cursor:pointer;transition:border-color .15s,background-color .15s}
+.cr-panel input[type=file]::file-selector-button:hover{border-color:rgba(255,156,198,.45);background:rgba(255,95,162,.06)}
 .cr-panel .photo-studio .ps-switch{display:inline-flex;flex-direction:row;align-items:center;gap:10px;min-height:38px;font-size:13.5px;color:var(--ink-2);cursor:pointer;align-self:flex-start}
 .cr-panel .photo-studio .ps-switch input{appearance:none;-webkit-appearance:none;position:relative;flex:0 0 38px;width:38px;height:22px;min-height:0;padding:0;border:0;margin:0;border-radius:999px;background:rgba(150,165,230,.25);cursor:pointer;transition:background-color .15s}
 .cr-panel .photo-studio .ps-switch input::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
@@ -1446,3 +1449,9 @@ html.rx-shell body.cr-page{--line:rgba(150,165,230,.14)}
  .cr-panel .copy-studio .cs-result>.ps-actions>button,.cr-panel .seo-studio .ss-plan>.ps-actions>button{flex:1 1 auto}
 }
 @media (prefers-reduced-motion:reduce){.cr-panel .cs-grid:empty::after,.cr-panel .ss-grid:empty::after,.cr-panel .st-grid:empty::after,.cr-panel .is-grid:empty::after,.cr-panel .vs-grid:empty::after{animation:none}.cr-panel .photo-studio .ps-switch input,.cr-panel .photo-studio .ps-switch input::after{transition:none}}
+/* Phone: every control of the open studio is at least 40px tall (tap targets), whatever the studio's own compact sizes. */
+@media (max-width:640px){
+  .cr-panel :is(button,summary,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=file])),.cr-panel-head .cr-close{min-height:40px!important}
+  .cr-panel :is(.ps-switch,.ad-switch){min-height:40px!important}
+  .cr-panel :is(.sa-pages a,.sa-rewrite-top a,a.gb-golink){display:inline-flex;align-items:center;min-height:40px}
+}
