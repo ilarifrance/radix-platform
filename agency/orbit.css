@@ -1,23 +1,86 @@
 /* Marketing Agency home (agency/orbit.html, light direction «B»): page layout only. Tokens and components (glass panels,
-   command bar, area cards, table, steps, pills) live in shell/marketing-a.css. The globe labels are placed by
+   command bar, area cards, rows, steps, pills) live in shell/marketing-a.css. The globe labels are placed by
    agency/orbit.js with orbit-core globeLayout(): they never touch an orbit line, the earth or each other. */
-.mo-main{max-width:1240px;margin:0 auto;padding:28px 32px 64px;display:flex;flex-direction:column;gap:32px;min-width:0}
-/* Hero */
-.mo-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,520px);gap:24px;align-items:center;min-width:0}
-.mo-copy{min-width:0}
-.mo-lead{margin:0 0 22px;max-width:60ch;color:var(--ma-tx2);font-size:16px;line-height:1.55}
-.mo-project{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;margin-top:18px;color:var(--ma-tx2);font-size:13px;min-height:32px}
-.mo-project-name{display:inline-flex;align-items:center;gap:10px;color:var(--ma-tx);font-weight:600;min-height:32px}
-.mo-project-name:hover span{text-decoration:underline;text-underline-offset:3px}
-.mo-project-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-style:normal;font-size:12px;font-weight:700;color:#fff;background:var(--ma-vi)}
-.mo-project-fact b{color:var(--ma-tx);font-weight:600;font-variant-numeric:tabular-nums}
-.mo-sep{width:1px;height:16px;background:var(--ma-line-2)}
-.mo-project-empty{color:var(--ma-tx2)}
-.mo-note{display:flex;align-items:center;gap:8px;margin:10px 0 0;min-height:1.4em;font-size:12.5px;color:var(--ma-mut)}
+.mo-main{max-width:1240px;margin:0 auto;padding:24px 32px 64px;display:flex;flex-direction:column;gap:16px;min-width:0}
+/* Header: project, chips, switcher and the two actions */
+.mo-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;min-width:0;margin-bottom:4px}
+.mo-head-text{min-width:0;flex:1 1 420px}
+.mo-crumb{margin:0 0 6px;font-size:13px;color:var(--ma-tx2)}
+.mo-head-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;min-width:0}
+.mo-title{margin:0;font:600 30px/1.15 var(--rx-display,"Space Grotesk",Inter,sans-serif);letter-spacing:-.02em;color:var(--ma-tx);overflow-wrap:anywhere;min-width:0}
+.mo-project{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0}
+.mo-chip{display:inline-flex;align-items:center;min-height:26px;padding:2px 10px;border-radius:7px;font-size:12.5px;color:var(--ma-tx2);background:var(--ma-panel-2);box-shadow:inset 0 0 0 1px var(--ma-line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mo-chip--ok{color:#15803d;background:#e9f7ef;box-shadow:inset 0 0 0 1px #bfe5cd}
+.mo-chip--muted{color:var(--ma-mut)}
+.mo-chip--link{color:var(--ma-link);background:#fff;box-shadow:inset 0 0 0 1px var(--ma-soft-line)}
+.mo-chip--link:hover{background:var(--ma-soft)}
+.mo-head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mo-head-actions a.ma-btn--primary{color:#fff}
+.mo-main a.ma-link{color:var(--ma-link)}
+.mo-switch{position:relative;display:inline-flex;align-items:center;min-width:0;max-width:280px}
+.mo-switch[hidden]{display:none}
+.mo-switch-icon{position:absolute;left:12px;color:var(--ma-mut);pointer-events:none}.mo-switch .ml-ico{width:16px;height:16px}
+.mo-switch select{appearance:none;-webkit-appearance:none;min-height:40px;max-width:100%;padding:0 34px 0 36px;border-radius:10px;border:1px solid var(--ma-line-2);font:500 13.5px var(--rx-font,Inter,sans-serif);color:var(--ma-tx);text-overflow:ellipsis;cursor:pointer;
+  background:#fff}
+.mo-switch::after{content:"";position:absolute;right:14px;top:50%;width:7px;height:7px;margin-top:-6px;border-right:1.6px solid var(--ma-mut);border-bottom:1.6px solid var(--ma-mut);transform:rotate(45deg);pointer-events:none}
+.mo-switch select:hover{border-color:#b9b3c9}
+.mo-note{display:flex;align-items:center;gap:8px;margin:8px 0 0;min-height:1.4em;font-size:12.5px;color:var(--ma-mut)}
 .mo-note::before{content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--ma-mut)}
 .mo-note[data-state=live]::before{background:var(--ma-ok);box-shadow:0 0 0 3px rgba(21,128,61,.14)}
 .mo-note[data-state=partial]::before,.mo-note[data-state=off]::before{background:var(--ma-warn)}
 .mo-note[data-state=error]::before{background:var(--ma-err)}
+/* Hero card: «Cosa vuoi fare oggi?» and «Aspettano te» */
+.mo-hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,340px);min-width:0;overflow:hidden}
+.mo-ask{padding:28px 24px 24px;min-width:0}
+.mo-ask-title{margin:0 0 6px;font:600 20px/1.25 var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
+.mo-lead{margin:0 0 18px;max-width:72ch;color:var(--ma-tx2);font-size:14px;line-height:1.55}
+.mo-ask .ma-command{border:0;border-radius:0;background:none;box-shadow:none;overflow:visible}
+.mo-ask .ma-command-bar{border:1px solid var(--ma-soft-line);border-radius:12px;background:#fff;box-shadow:0 0 0 4px rgba(79,70,229,.06)}
+.mo-ask .ma-command:focus-within{box-shadow:none}
+.mo-ask .ma-command:focus-within .ma-command-bar{border-color:var(--ma-vi);box-shadow:0 0 0 4px rgba(79,70,229,.14)}
+.mo-ask .ma-command-head{border:0;padding:14px 0 8px}
+.mo-ask .ma-suggest{display:flex;flex-wrap:wrap;gap:8px;padding:0}
+.mo-ask .ma-option-link{min-height:36px;padding:4px 12px 4px 10px;gap:8px;border-radius:8px;background:#fff;box-shadow:inset 0 0 0 1px var(--ma-line-2)}
+.mo-ask .ma-option-link:hover,.mo-ask .ma-option-link[aria-selected="true"]{background:var(--ma-soft);box-shadow:inset 0 0 0 1px var(--ma-soft-line)}
+.mo-ask .ma-option-icon .ml-ico{width:16px;height:16px}
+.mo-ask .ma-option-text b{font-size:13px}
+.mo-ask .ma-option-text small,.mo-ask .ma-option-go{display:none}
+.mo-wait{padding:22px 20px 20px;border-left:1px solid var(--ma-line);background:var(--ma-panel-2);min-width:0}
+.mo-wait-title{margin:0 0 12px;font:600 11.5px/1.2 var(--rx-font,Inter,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:var(--ma-tx2)}
+.mo-wait-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mo-wait-item{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 12px;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px var(--ma-line);transition:box-shadow .15s}
+.mo-wait-item:hover{box-shadow:inset 0 0 0 1px var(--ma-soft-line),0 4px 12px -8px rgba(29,26,39,.25)}
+.mo-wait-icon{width:30px;height:30px;border-radius:8px;color:var(--ma-vi);background:var(--ma-soft)}.mo-wait-icon .ml-ico{width:16px;height:16px}
+.mo-wait-item[data-kind=failed] .mo-wait-icon{color:var(--ma-err);background:#fdecea}
+.mo-wait-text{display:flex;flex-direction:column;min-width:0;flex:1}
+.mo-wait-text b{font-weight:500;font-size:13.5px;line-height:1.35;color:var(--ma-tx);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mo-wait-text small{font-size:12px;color:var(--ma-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-wait-go{font-size:12.5px;font-weight:600;color:var(--ma-link)}
+.mo-wait-empty{padding:14px 12px;border-radius:10px;border:1px dashed var(--ma-line-2);font-size:13px;line-height:1.5;color:var(--ma-mut);background:#fff}
+/* KPI tiles */
+.mo-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.mo-kpi{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:16px 20px;min-width:0}
+.mo-kpi-text{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mo-kpi-label{font-size:13px;color:var(--ma-tx2)}
+.mo-kpi-value{font:600 26px/1.1 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:var(--ma-tx);font-variant-numeric:tabular-nums}
+.mo-kpi-sub{font-size:12px;color:var(--ma-mut)}
+.mo-spark{display:block;width:96px;height:28px;flex:none}.mo-spark svg{display:block;width:100%;height:100%;overflow:visible}
+.mo-spark-line{fill:none;stroke:var(--ma-vi);stroke-width:1.5;stroke-linejoin:round;stroke-linecap:round}
+.mo-spark-area{fill:rgba(79,70,229,.09)}
+.mo-kpi-bar{flex:0 0 96px;min-width:0;margin-bottom:8px}
+/* Board: services and workflow on the left, work, team, globe and sections on the right */
+.mo-board{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start;margin-top:4px}
+.mo-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.mo-col>section{padding:18px 20px;min-width:0}
+.mo-flow-for{margin:-4px 0 12px;font-size:12.5px;color:var(--ma-mut)}
+.mo-job-list{list-style:none;margin:0 -8px;padding:0}
+.mo-job+.mo-job{border-top:1px solid var(--ma-line)}
+.mo-job-link{display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:10px}
+.mo-job-link:hover{background:var(--ma-hover)}
+.mo-job-top{display:flex;align-items:flex-start;gap:10px;justify-content:space-between}
+.mo-job-title{font-weight:500;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0}
+.mo-job-meta{font-size:12px;color:var(--ma-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-job .ma-bar{min-width:0}
 /* Globe stage */
 .mo-stage{position:relative;height:490px;min-width:0;isolation:isolate}
 .mo-sky{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
@@ -39,32 +102,35 @@
 .mo-pause-icon{display:grid}.mo-pause .ml-ico{width:14px;height:14px}
 .mo-pause:hover{color:var(--ma-tx);border-color:var(--ma-line-2)}
 .mo-pause[hidden]{display:none}
-/* Sections */
-.mo-area-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
-.mo-jobs{padding:20px 24px}
-.mo-jobs .ma-panel-head .mo-new{margin-left:auto;min-height:36px;padding:0 14px}
-.mo-jobs .ma-panel-head .mo-new+.ma-link{margin-left:8px}
-.mo-jobs .ma-td-status{width:150px}
-.mo-jobs .ma-td-agent{width:200px;color:var(--ma-tx2)}
-.mo-jobs .ma-td-progress{width:200px}
-.mo-jobs .ma-td-go{width:24px;color:var(--ma-mut)}
-.mo-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
-.mo-row>section{padding:20px;min-width:0}
-.mo-flow-for{margin:-4px 0 12px;font-size:12.5px;color:var(--ma-mut)}
-.mo-foot{margin:0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
-@media (max-width:1240px){.mo-area-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mo-row{grid-template-columns:repeat(2,minmax(0,1fr))}.mo-row>.mo-sections{grid-column:1/-1}}
-@media (max-width:1100px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-stage{order:-1;height:400px}}
-/* Phones: the globe on top, smaller; the labels become a picture (the area cards below are the links). */
+/* Area cards: two per row in the left column */
+.mo-area-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.mo-areas .ma-area{box-shadow:none}
+.mo-orbit .mo-stage{height:330px}
+.mo-foot{margin:8px 0 0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
+@media (max-width:1180px){.mo-board{grid-template-columns:minmax(0,1fr) 340px}.mo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:980px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-wait{border-left:0;border-top:1px solid var(--ma-line)}
+  /* one column: the work right after the services, as in the phone mockup */
+  .mo-board{display:flex;flex-direction:column;align-items:stretch;gap:16px}.mo-col{display:contents}
+  .mo-areas{order:1}.mo-jobs{order:2}.mo-agents{order:3}.mo-flow{order:4}.mo-orbit{order:5}.mo-sections{order:6}}
+/* Phones: one column; chips and rows at 44px; the globe stays a picture (the area cards are the links). */
 @media (max-width:640px){
-  .mo-main{padding:16px 16px 48px;gap:24px}
-  .mo-stage{height:330px}
-  .mo-lead{font-size:15px}
-  .mo-area-grid,.mo-row{grid-template-columns:minmax(0,1fr)}
-  .mo-jobs{padding:16px}
-  .mo-jobs .ma-panel-head{flex-wrap:wrap}
-  .mo-jobs .ma-panel-head .mo-new{min-height:44px;margin-left:0;order:5;flex:1 1 auto}
-  .mo-jobs .ma-panel-head .mo-new+.ma-link{order:6}
-  #moJobsCount{flex:1 1 auto}
+  .mo-main{padding:16px 16px 48px;gap:16px}
+  .mo-title{font-size:26px}
+  .mo-head-actions{width:100%}
+  .mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px;padding:0 12px}
+  .mo-switch{flex:1 1 100%;max-width:none}.mo-switch select{width:100%;min-height:44px}
+  .mo-chip--link{min-height:44px}
+  .mo-ask{padding:20px 16px 16px}
+  .mo-wait{padding:16px}
+  .mo-ask .ma-option-link{min-height:44px}
+  .mo-ask .ma-option-link{padding:4px 14px 4px 12px}
+  .mo-kpis{gap:10px}
+  .mo-kpi{flex-direction:column;align-items:stretch;padding:14px}
+  .mo-kpi-value{font-size:24px}
+  .mo-spark{width:100%}
+  .mo-kpi-bar{flex:none;width:100%}
+  .mo-area-grid{grid-template-columns:minmax(0,1fr)}
+  .mo-col>section{padding:16px}
+  .mo-job-link{min-height:44px}
   .mo-pause{min-height:44px;height:44px}
-  .mo-project-name,.mo-project .ma-link{min-height:44px}
 }

@@ -207,3 +207,68 @@ test('menu: Marketing Orbit first, the group label opens it, Command Center send
  const cc=read('shell/cc-universe.js');
  assert.match(cc,/\{ id: 'marketing', name: 'Marketing Agency', sub: '[^']*', href: '\/agency\/orbit\.html', color: '#ff5fa2', pages: \[\['Marketing Orbit', '\/agency\/orbit\.html'\]/);
 });
+
+test('home «B»: header with the project and its switcher, «Cosa vuoi fare oggi?» beside «Aspettano te», KPI tiles, board with the globe on the side',()=>{
+ const html=read('agency/orbit.html'),js=read('agency/orbit.js'),css=read('agency/orbit.css');
+ const at=s=>{const i=html.indexOf(s);assert.ok(i>0,s);return i};
+ assert.ok(at('id="moTitle"')<at('class="ma-glass mo-hero"')&&at('class="ma-glass mo-hero"')<at('id="moKpis"')&&at('id="moKpis"')<at('class="mo-board"'),'header, hero card, tiles, board');
+ assert.ok(at('id="moAskForm"')<at('id="moWait"'),'the ask box first, «Aspettano te» beside it');
+ assert.match(html,/<h2 class="mo-ask-title" id="moAskTitle">Cosa vuoi fare oggi\?<\/h2>/);
+ assert.match(html,/<span id="moWaitTitle">Aspettano te<\/span>/);
+ assert.match(html,/<label class="mo-switch" id="moSwitchBox" hidden>[^]*<select id="moSwitch" aria-label="Progetto"><\/select><\/label>/);
+ assert.match(html,/id="moNewJob" href="\/agency\/crea\.html"/);
+ assert.ok(at('id="moAreas"')<at('id="moJobs"')&&at('id="moJobs"')<at('id="moStage"'),'services left, work and the smaller globe in the side column');
+ assert.match(js,/O\.waiting\(\{project:state\.project,journey:state\.journey,projects:state\.projects,plans:state\.plans,approvals:state\.dashboard&&state\.dashboard\.approvals,roles:state\.roles\}\)/);
+ assert.match(js,/O\.kpis\(\{projects:state\.projects,plans:state\.plans,dashboard:state\.dashboard,approvals:c\.approvazioni\}\)/);
+ assert.match(js,/k\.value==null\?'—'/,'a tile without data shows a dash, never a number');
+ assert.match(js,/'Niente da decidere adesso: /,'honest empty state for «Aspettano te»');
+ assert.match(js,/\.filter\(x=>x\.kind!=='step'\)/,'steps waiting for a person live in «Aspettano te», not twice');
+ assert.match(js,/localStorage\.setItem\(KEY,p\.id\)/,'the switcher remembers the project, like «Cosa vuoi fare»');
+ assert.match(js,/compact=phone\.matches\|\|W<440/,'in the side column the globe labels are a picture');
+ assert.match(css,/\.mo-board\{display:grid;grid-template-columns:minmax\(0,1fr\) 380px/);
+ assert.match(css,/\.mo-orbit \.mo-stage\{height:330px\}/);
+ const phone=css.slice(css.indexOf('@media (max-width:640px)'));
+ for(const s of ['.mo-ask .ma-option-link{min-height:44px}','.mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px','.mo-switch select{width:100%;min-height:44px}','.mo-chip--link{min-height:44px}','.mo-job-link{min-height:44px}'])assert.ok(phone.includes(s),s);
+ assert.match(css,/\.mo-board\{display:flex;flex-direction:column;align-items:stretch;gap:16px\}\.mo-col\{display:contents\}/,'one column: no section wider than the page');
+ assert.match(css,/\.mo-wait-item\{[^}]*min-height:56px/);
+ // the smaller globe: the side column (340 wide inside a 380 column, 300 at 1180px) and the phone (326) still lay out
+ for(const [W,H] of [[340,330],[300,330],[326,330]]){const L=orbit.globeLayout(W,H,orbit.planets().map(p=>orbit.labelSize(p.group,true)),{blocked:[{x:W-176,y:H-44,w:176,h:44}]});assert.ok(L,W+'x'+H)}
+});
+
+test('«Aspettano te»: waiting steps, drafts and failed tasks per project, approvals awaiting a decision; nothing invented',()=>{
+ const fa={id:'fa',name:'Forno Aurora',status:'active'},sf={id:'sf',name:'Studio Fisio',status:'active'},old={id:'z',name:'Z',status:'archived'};
+ const plans=new Map([['fa',{tasks:[{role:'copywriter',status:'done'},{role:'seo-geo',status:'done'},{role:'x',status:'running'}]}],['sf',{tasks:[{role:'video-producer',status:'error'}]}],['z',{tasks:[{status:'done'}]}]]);
+ const approvals=[{id:'a1',awaiting:true,title:'Strategia · Primavera',reason:'Studio Fisio',href:'/project-editorial.html?project=sf'},{id:'a2',awaiting:false,title:'Vecchia',href:'/x.html'},
+  {id:'a3',awaiting:true,title:'Fuori',href:'https://evil.test/'},{id:'a4',awaiting:true,title:'Doppia barra',href:'//evil.test/'}];
+ const w=orbit.waiting({project:sf,journey:{steps:[{id:'brief',state:'waiting',detail:'Strategia da approvare'},{id:'tasks',state:'waiting'},{id:'ped',state:'todo'}]},projects:[fa,sf,old],plans,approvals,roles:{copywriter:'Copywriter','video-producer':'Video Producer'}});
+ assert.deepEqual(w.items.map(i=>i.label),['Approva la strategia','1 incarico non riuscito','Rivedi 2 bozze degli agenti','Strategia · Primavera'],'current project first, archived and external links left out');
+ assert.equal(w.total,4);
+ assert.equal(w.items[0].href,'/project-editorial.html?project=sf#brief');assert.equal(w.items[0].hint,'Studio Fisio · Strategia da approvare');
+ assert.equal(w.items[1].hint,'Studio Fisio · Video Producer');assert.equal(w.items[2].hint,'Forno Aurora · Copywriter, seo-geo');
+ assert.equal(w.items[2].href,'/agency/project-workspace.html?id=fa');
+ for(const i of w.items)assert.ok(exists(i.href),i.href);
+ assert.deepEqual(orbit.waiting({}),{total:0,items:[]});
+ assert.equal(orbit.waiting({projects:[fa],plans,limit:1}).items.length,1);
+});
+
+test('KPI tiles and sparklines: counts from the plans and the Command Center, a series only from dated data, a dash when missing',()=>{
+ const now=Date.parse('2026-10-22T12:00:00');
+ assert.deepEqual(orbit.daily([],{now}),new Array(14).fill(0));
+ const s=orbit.daily(['2026-10-22T09:00:00','2026-10-22T10:00:00','2026-10-20T10:00:00','2026-10-01T10:00:00','x',null],{now});
+ assert.equal(s.length,14);assert.equal(s[13],2);assert.equal(s[11],1);assert.equal(s.reduce((a,b)=>a+b,0),3,'outside the window or unreadable: left out');
+ assert.equal(orbit.sparkPath([0,0,0]),null,'no movement, no line');assert.equal(orbit.sparkPath([3]),null);
+ assert.deepEqual(orbit.sparkPath([0,2],96,28),{line:'M2 26 L94 2',area:'M2 26 L94 2 L94 26 L2 26 Z'});
+ const none=orbit.kpis({});
+ assert.deepEqual(none.map(k=>[k.id,k.value]),[['open',null],['review',null],['approvals',null],['activity',null]]);
+ for(const k of none){assert.equal(k.sub,'non disponibile');assert.ok(!k.series)}
+ const projects=[{id:'a',status:'active'},{id:'z',status:'archived'}];
+ const plans=new Map([['a',{tasks:[{status:'done'},{status:'done'},{status:'running'},{status:'approved'},{status:'error'},{status:'weird'}]}],['z',{tasks:[{status:'done'}]}]]);
+ const act=Array.from({length:3},(_,i)=>({at:'2026-10-2'+i+'T10:00:00'}));
+ const k=orbit.kpis({projects,plans,dashboard:{approvalsSupported:true,approvals:[{at:'2026-10-21T10:00:00'}],activity:act},approvals:1,now});
+ assert.deepEqual(k.map(x=>x.value),[4,2,1,3]);
+ assert.deepEqual(k[0].bar,{done:1,total:6});assert.match(k[1].sub,/1 non riuscito/);
+ assert.equal(k[2].series.length,14);assert.equal(k[3].series.reduce((a,b)=>a+b,0),3);
+ assert.equal(orbit.kpis({projects,plans,dashboard:{approvalsSupported:false,approvals:[]},approvals:null,now})[2].value,null,'approvals not active: no number');
+ const full=Array.from({length:24},()=>({at:'2026-10-22T08:00:00'}));
+ assert.equal(orbit.kpis({dashboard:{activity:full},now})[3].value,'24+','the summary keeps the last 24: at least, never exactly');
+});

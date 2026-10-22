@@ -207,8 +207,60 @@ function globeLayout(W,H,sizes,opts={}){
  }
  return fallback;
 }
+// ---- Home «B»: «Aspettano te», the KPI tiles and their sparklines. Only what the page loaded; nothing estimated. ----
+const plural=(n,one,many)=>n+' '+(n===1?one:many);
+const safeHref=h=>typeof h==='string'&&/^\/(?!\/)/.test(h)?h:'';
+// What waits for a person: the waiting steps of the current project, the agents' drafts to review and the failed
+// tasks of each project, the approvals awaiting a decision in the Command Center. [{id,kind,label,hint,icon,href}]
+function waiting({project=null,journey=null,projects=null,plans=null,approvals=null,roles={},limit=5}={}){
+ const out=[],get=id=>plans instanceof Map?plans.get(id):plans&&plans[id],pid=project&&project.id||'';
+ const steps=journey&&Array.isArray(journey.steps)?journey.steps:[];
+ for(const s of steps)if(s&&s.state==='waiting'&&s.id!=='tasks'&&STEP_ASK[s.id])out.push({id:'step-'+s.id,kind:'step',label:STEP_ASK[s.id],hint:[project.name,s.detail].filter(Boolean).map(String).join(' · '),icon:'check',href:stepHref(s.id,pid)});
+ const list=(Array.isArray(projects)?projects:[]).filter(p=>p&&p.status!=='archived');
+ list.sort((a,b)=>(b.id===pid)-(a.id===pid));
+ for(const p of list){const plan=get(p.id),tasks=(plan&&Array.isArray(plan.tasks)?plan.tasks:[]).filter(t=>t&&typeof t==='object');
+  const href='/agency/project-workspace.html?id='+encodeURIComponent(p.id),who=ts=>[...new Set(ts.map(t=>roles[t.role]||String(t.role||'')).filter(Boolean))].slice(0,2).join(', ');
+  const drafts=tasks.filter(t=>t.status==='done'),failed=tasks.filter(t=>t.status==='error');
+  if(drafts.length)out.push({id:'drafts-'+p.id,kind:'drafts',label:'Rivedi '+plural(drafts.length,'bozza','bozze')+' degli agenti',hint:[p.name,who(drafts)].filter(Boolean).join(' · '),icon:'doc',href});
+  if(failed.length)out.push({id:'failed-'+p.id,kind:'failed',label:plural(failed.length,'incarico non riuscito','incarichi non riusciti'),hint:[p.name,who(failed)].filter(Boolean).join(' · '),icon:'info',href});
+ }
+ for(const a of Array.isArray(approvals)?approvals:[])if(a&&a.awaiting&&a.title){const href=safeHref(a.href);if(href)out.push({id:'appr-'+a.id,kind:'approval',label:String(a.title).slice(0,120),hint:String(a.reason||'').slice(0,140),icon:'check',href})}
+ return {total:out.length,items:out.slice(0,limit)};
+}
+// Counts per day over the last `days` days (oldest first), from ISO dates; dates outside the window are left out.
+const DAY=864e5;
+function daily(dates,{days=14,now=Date.now()}={}){
+ const end=new Date(now);end.setHours(24,0,0,0);const start=end.getTime()-days*DAY,out=new Array(days).fill(0);
+ for(const d of Array.isArray(dates)?dates:[]){const t=Date.parse(d);if(!Number.isFinite(t)||t<start||t>=end.getTime())continue;out[Math.floor((t-start)/DAY)]++}
+ return out;
+}
+// The sparkline as an SVG path inside w x h (2px margin); null when there is no movement to draw.
+function sparkPath(series,w=96,h=28){
+ const s=(Array.isArray(series)?series:[]).map(Number).filter(Number.isFinite);if(s.length<2||!s.some(v=>v>0))return null;
+ const max=Math.max(...s),x=i=>2+i*(w-4)/(s.length-1),y=v=>h-2-(v/max)*(h-4),r=n=>Math.round(n*10)/10;
+ const line=s.map((v,i)=>(i?'L':'M')+r(x(i))+' '+r(y(v))).join(' ');
+ return {line,area:line+' L'+r(x(s.length-1))+' '+(h-2)+' L'+r(x(0))+' '+(h-2)+' Z'};
+}
+// The four tiles: open tasks and drafts from the Agency plans, approvals and team activity from the Command Center.
+// A tile without data says so (value null); a sparkline only where the data has dates.
+function kpis({projects=null,plans=null,dashboard=null,approvals=null,now=Date.now()}={}){
+ const get=id=>plans instanceof Map?plans.get(id):plans&&plans[id];let all=0,approved=0,open=0,review=0,failed=0;
+ for(const p of Array.isArray(projects)?projects:[]){if(!p||p.status==='archived')continue;const plan=get(p.id);
+  for(const t of plan&&Array.isArray(plan.tasks)?plan.tasks:[]){if(!t||typeof t!=='object')continue;all++;if(t.status==='approved')approved++;else if(t.status in TASK_RANK)open++;if(t.status==='done')review++;if(t.status==='error')failed++}}
+ const has=Array.isArray(projects),d=dashboard&&typeof dashboard==='object'?dashboard:null;
+ const appr=d&&d.approvalsSupported&&Array.isArray(d.approvals)?d.approvals:null;
+ const act=d&&Array.isArray(d.activity)?d.activity.filter(e=>e&&e.at):null;
+ const actSeries=act?daily(act.map(e=>e.at),{now}):null,actN=actSeries?actSeries.reduce((a,b)=>a+b,0):null,capped=act&&act.length>=24&&actN===act.length;
+ const apprSeries=appr?daily(appr.map(a=>a&&a.at),{now}):null;
+ return [
+  {id:'open',label:'Lavori in corso',value:has?open:null,sub:has?(all?plural(approved,'incarico approvato','incarichi approvati')+' su '+all:'nessun incarico degli agenti'):'non disponibile',bar:has&&all?{done:approved,total:all}:null},
+  {id:'review',label:'Da rivedere',value:has?review:null,sub:has?(review?'bozze degli agenti per te':'nessuna bozza in attesa')+(failed?' · '+plural(failed,'non riuscito','non riusciti'):''):'non disponibile'},
+  {id:'approvals',label:'Approvazioni',value:appr?approvals:null,sub:appr?'in attesa · richieste negli ultimi 14 giorni':'non disponibile',series:apprSeries},
+  {id:'activity',label:'Attività del team',value:act?(capped?actN+'+':actN):null,sub:act?(capped?'ultimi 14 giorni, almeno':'negli ultimi 14 giorni'):'non disponibile',series:actSeries}
+ ];
+}
 // Label size estimate for the tests and before the fonts load: dot, name at 13px/600, count under it.
 const labelSize=(name,compact)=>compact?{w:Math.ceil(18+String(name).length*6.4),h:30}:{w:Math.ceil(28+String(name).length*7.3),h:42};
 return Object.freeze({LOOK,STUDIOS,SECTIONS,SIZE,planets,counts,countText,ring,hit,reach,
- AREA_LINE,SYNONYMS,STEP_HREF,FLOW,ORBITS,GLOBE,serviceHref,withParams,words,matchServices,suggest,resolve,jobs,currentProject,orbitPoint,toBox,globeLayout,labelSize});
+ AREA_LINE,SYNONYMS,STEP_HREF,FLOW,ORBITS,GLOBE,serviceHref,withParams,words,matchServices,suggest,resolve,jobs,currentProject,orbitPoint,toBox,globeLayout,labelSize,waiting,daily,sparkPath,kpis});
 });

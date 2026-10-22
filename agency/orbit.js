@@ -1,6 +1,8 @@
-/* Marketing Agency home (agency/orbit.html, direction «A»): the command bar «Cosa vuoi fare oggi?» with suggestions
-   from the project's real state, the globe with the eight service areas in orbit, the numbers of the team registry,
-   the area cards, the open Agency tasks as a table, the project's workflow, the agents and every section.
+/* Marketing Agency home (agency/orbit.html, light layout «B»): the project header with its switcher, the command bar
+   «Cosa vuoi fare oggi?» with suggestions from the project's real state next to «Aspettano te» (steps, drafts and
+   approvals waiting for a person), the KPI tiles (sparklines only where the data has dates), the service areas, the
+   open Agency tasks, the agents, the globe with the eight areas (smaller, in the side column), the workflow and
+   every section.
    Pure parts: agency/orbit-core.js (suggestions, jobs, globe layout); painter: agency/marketing-globe.js; icons and
    area colours: agency/marketing-look.js. Nothing here calls an AI: suggestions are rules over what is typed and
    what the registry says, and every service asks its own confirmation before spending. Only the earth turns (labels
@@ -15,14 +17,16 @@ const KEY='radix-crea-project';
 const remembered=()=>{try{return localStorage.getItem(KEY)||''}catch(e){return ''}};
 const planets=O.planets();
 const state={project:null,journey:null,tasks:null,projects:null,plans:new Map(),roles:{},signed:null};
-$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');
-$('moLead').textContent=plural(C.CARDS.length,'servizio','servizi')+' in '+planets.length+' aree, con un team di agenti AI. Ogni lavoro arriva in 3 proposte: scegli tu, e niente parte senza la tua conferma.';
+$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moSwitchIcon').innerHTML=L.svg('folder');
+$('moLead').textContent='Scrivi cosa ti serve o scegli un servizio qui sotto: '+plural(C.CARDS.length,'servizio','servizi')+' in '+planets.length+' aree. Ogni lavoro arriva in 3 proposte e niente parte senza la tua conferma.';
+try{const d=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});$('moCrumb').textContent='Marketing Agency · '+d.charAt(0).toUpperCase()+d.slice(1)}catch(e){}
 
 // ---- Command bar: a combobox whose listbox of suggestions stays open under it. ----
 const input=$('moAsk'),list=$('moSuggest'),form=$('moAskForm');
 let items=[],cursor=-1;
 function suggestions(){
- items=O.suggest({query:input.value,project:state.project,journey:state.journey,tasks:state.tasks});cursor=-1;
+ // What waits for a person is in «Aspettano te» beside the bar: here only the services.
+ items=O.suggest({query:input.value,project:state.project,journey:state.journey,tasks:state.tasks}).filter(x=>x.kind!=='step');cursor=-1;
  const q=input.value.trim();
  $('moSuggestHead').textContent=q?(items.length?'Servizi per «'+q.slice(0,40)+'»':'Nessun servizio con queste parole: Invio apre «Cosa vuoi fare» con il testo'):state.project?'Suggeriti per '+state.project.name:'Suggeriti per iniziare';
  list.replaceChildren(...items.map((s,i)=>{const li=node('li','ma-option'),a=node('a','ma-option-link');li.setAttribute('role','none');
@@ -49,33 +53,59 @@ form.addEventListener('submit',e=>{e.preventDefault();
 });
 suggestions();
 
-// ---- Project strip under the bar: the project the suggestions are for, with its real numbers. ----
-function projectStrip(){
- const box=$('moProject'),p=state.project;box.replaceChildren();
- if(state.signed===false)return;
- if(!p){if(state.projects){box.append(node('span','mo-project-empty','Nessun progetto attivo.'));const a=node('a','ma-btn ma-btn--ghost','Nuovo progetto');a.href='/agency/new-project.html';a.prepend(ico('folder','ma-btn-icon'));box.append(a)}return}
- const who=node('a','mo-project-name');who.href='/agency/project-workspace.html?id='+encodeURIComponent(p.id);
- const ini=node('i','mo-project-mark',String(p.name||'?').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase());ini.setAttribute('aria-hidden','true');
- who.append(ini,node('span','',p.name));box.append(who);
- if(p.client_name&&p.client_name!==p.name)box.append(node('span','mo-project-client',p.client_name));
- const open=(state.tasks||[]).filter(t=>t&&t.status in {proposed:1,running:1,done:1,changes_requested:1,error:1}).length,review=(state.tasks||[]).filter(t=>t&&t.status==='done').length;
- const fact=(n,text)=>{const s=node('span','mo-project-fact');const b=node('b','',String(n));s.append(b,' '+text);return s};
- if(state.tasks){box.append(node('span','mo-sep'),fact(open,open===1?'incarico aperto':'incarichi aperti'));if(review)box.append(node('span','mo-sep'),fact(review,'da rivedere'))}
- if(state.journey&&Number.isInteger(state.journey.done))box.append(node('span','mo-sep'),fact(state.journey.done+' di '+state.journey.total,'fasi'));
+// ---- Header: the project the page is about (name, client, kind, phases) and the switcher between active projects. ----
+const KIND={agency:'Progetto Agency',brand:'Brand',internal:'Progetto interno',personal:'Personal brand'};
+function header(){
+ const box=$('moProject'),p=state.project,title=$('moTitle');box.replaceChildren();
+ title.textContent=p?String(p.name||'Progetto'):'Marketing Agency';
+ $('moNewJob').href=p?'/agency/crea.html?project='+encodeURIComponent(p.id):'/agency/crea.html';
+ const live=Array.isArray(state.projects)?state.projects.filter(x=>x&&x.status!=='archived'):[],sw=$('moSwitch');
+ $('moSwitchBox').hidden=live.length<2;
+ if(live.length>1){sw.replaceChildren(...live.slice().sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it')).map(x=>{const o=node('option','',x.name||x.id);o.value=x.id;return o}));if(p)sw.value=p.id}
+ if(state.signed===false||!p){if(state.projects&&!p)box.append(node('span','mo-chip mo-chip--muted','Nessun progetto attivo'));return}
+ const kind=p.profile&&p.profile.kind||p.profile&&p.profile.brief&&p.profile.brief.industry||KIND[p.kind]||'';
+ const chips=[p.client_name&&p.client_name!==p.name?p.client_name:'',kind].filter(Boolean);
+ chips.forEach(t=>box.append(node('span','mo-chip',String(t).slice(0,60))));
+ if(state.journey&&Number.isInteger(state.journey.done)&&state.journey.total)box.append(node('span','mo-chip mo-chip--ok',state.journey.done+' di '+state.journey.total+' fasi fatte'));
+ const open=node('a','mo-chip mo-chip--link','Apri il progetto');open.href='/agency/project-workspace.html?id='+encodeURIComponent(p.id);box.append(open);
+}
+$('moSwitch').addEventListener('change',e=>{const p=(state.projects||[]).find(x=>x&&x.id===e.target.value);if(!p)return;
+ try{localStorage.setItem(KEY,p.id)}catch(err){}choose(p);render();
+ if(!state.plans.has(p.id)&&ws)ws.documents.load(p.id,'agency-workspace').then(d=>{if(d&&d.data)state.plans.set(p.id,d.data);if(state.project===p){choose(p);render()}}).catch(()=>{});
+});
+function choose(p){state.project=p||null;state.journey=p&&p.journey||null;const plan=p&&state.plans.get(p.id);state.tasks=p?(plan&&Array.isArray(plan.tasks)?plan.tasks:[]):null}
+
+// ---- «Aspettano te»: what waits for a person, from the project state, the agents' plans and the Command Center. ----
+function waitingPanel(){
+ const box=$('moWait'),count=$('moWaitCount');
+ if(state.signed===false){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Accedi dal Command Center per vedere cosa aspetta te.'));return}
+ if(!state.projects){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Caricamento…'));return}
+ const w=O.waiting({project:state.project,journey:state.journey,projects:state.projects,plans:state.plans,approvals:state.dashboard&&state.dashboard.approvals,roles:state.roles});
+ count.textContent=w.total?' · '+w.total:'';
+ if(!w.items.length){box.replaceChildren(node('li','mo-wait-empty','Niente da decidere adesso: bozze, approvazioni e passi da confermare compaiono qui.'));return}
+ box.replaceChildren(...w.items.map(it=>{const li=node('li'),a=node('a','mo-wait-item');a.href=it.href;a.dataset.kind=it.kind;
+  const t=node('span','mo-wait-text');t.append(node('b','',it.label));if(it.hint)t.append(node('small','',it.hint));
+  a.append(ico(it.icon,'mo-wait-icon'),t,node('span','mo-wait-go','Apri'));li.append(a);return li}));
 }
 
-// ---- KPIs: only numbers the registry gave; «—» with the reason otherwise. ----
-function kpis(c,j){
- const tiles=[['Incarichi aperti',j?j.total:null,'negli ultimi progetti del team'],['Bozze da rivedere',j?j.review:null,'aspettano la tua scelta'],
-  ['Progetti attivi',c.progetti,'nel registro del team'],['Approvazioni',c.approvazioni,'in attesa nel Command Center']];
- $('moKpis').replaceChildren(...tiles.map(([label,v,sub])=>{const d=node('div','ma-kpi');d.append(node('span','ma-kpi-label',label));
-  const n=node('strong','ma-kpi-value',v==null?'—':String(v));d.append(n,node('span','ma-kpi-sub',v==null?'non disponibile':sub));return d}));
+// ---- KPI tiles: only numbers the registry and the Command Center gave; «—» with the reason otherwise. ----
+// The sparkline: drawn from the tested path, parsed as inline SVG (no namespace URL in the page).
+function spark(series,label){const p=O.sparkPath(series,96,28);if(!p)return null;
+ const box=node('span','mo-spark');box.setAttribute('role','img');box.setAttribute('aria-label',label+', ultimi 14 giorni: '+series.join(', '));
+ box.innerHTML='<svg viewBox="0 0 96 28" aria-hidden="true"><path class="mo-spark-area" d="'+p.area+'"/><path class="mo-spark-line" d="'+p.line+'"/></svg>';return box}
+function kpis(c){
+ const tiles=O.kpis({projects:state.projects,plans:state.plans,dashboard:state.dashboard,approvals:c.approvazioni});
+ $('moKpis').replaceChildren(...tiles.map(k=>{const d=node('div','ma-glass mo-kpi');d.dataset.kpi=k.id;
+  const txt=node('div','mo-kpi-text');txt.append(node('span','mo-kpi-label',k.label),node('strong','mo-kpi-value',k.value==null?'—':String(k.value)),node('span','mo-kpi-sub',k.sub));d.append(txt);
+  const g=k.series&&spark(k.series,k.label);if(g)d.append(g);
+  else if(k.bar){const bar=node('span','ma-bar mo-kpi-bar'),fill=node('span');fill.style.width=Math.round(k.bar.done/k.bar.total*100)+'%';bar.append(fill);bar.setAttribute('role','img');bar.setAttribute('aria-label',k.bar.done+' di '+k.bar.total+' incarichi approvati');d.append(bar)}
+  return d}));
 }
 
 // ---- Area cards: number, icon, how many services, the first four as links, the rest behind «+N». ----
 function areas(){
  const pid=state.project&&state.project.id;
- $('moAreasCount').textContent=plural(C.CARDS.length,'servizio','servizi');
+ $('moAreasCount').textContent=plural(C.CARDS.length,'servizio','servizi')+' in '+plural(planets.length,'area','aree');$('moOrbitCount').textContent=plural(planets.length,'area','aree');
  $('moAreas').replaceChildren(...planets.map((p,i)=>{
   const li=node('li','ma-glass ma-area');li.style.setProperty('--c',p.color);li.dataset.area=p.slug;
   const head=node('div','ma-area-head');head.append(ico(p.icon,'ma-area-icon'),node('span','ma-area-num',String(i+1).padStart(2,'0')),node('span','ma-pill ma-pill--count',plural(p.count,'servizio','servizi')));
@@ -86,7 +116,7 @@ function areas(){
   li.append(head,h,node('p','ma-area-line',O.AREA_LINE[p.slug]||''),ul);return li}));
 }
 
-// ---- Work in progress: the open Agency tasks of the team projects, as a dense table. ----
+// ---- Work in progress: the open Agency tasks of the team projects, drafts to review first, as a list. ----
 function jobsTable(){
  const box=$('moJobs'),count=$('moJobsCount');
  if(state.signed===false){count.textContent='';box.replaceChildren(empty('Accedi dal Command Center per vedere i lavori del team.','Vai al Command Center','/control-center-v2.html'));return null}
@@ -94,18 +124,14 @@ function jobsTable(){
  const j=O.jobs(state.projects,state.plans,{roles:state.roles,status:DV?DV.STATUS:{}});
  count.textContent=j.total?plural(j.total,'aperto','aperti'):'';
  if(!j.rows.length){box.replaceChildren(empty('Nessun lavoro in corso','Inizia un lavoro','/agency/crea.html',state.projects.length?'Scegli un servizio qui sopra: gli incarichi degli agenti compaiono qui.':'Crea un progetto, poi scegli un servizio: gli incarichi compaiono qui.'));return j}
- const t=node('table','ma-table'),cap=node('caption','ma-sr','Incarichi aperti degli agenti, le bozze da rivedere per prime');t.append(cap);
- const head=node('thead'),hr=node('tr');['Stato','Lavoro','Agente','Avanzamento progetto',''].forEach((h,i)=>{const th=node('th','',h);th.scope='col';if(i===4)th.append(node('span','ma-sr','Apri'));hr.append(th)});head.append(hr);
- const body=node('tbody');
- j.rows.forEach(r=>{const tr=node('tr');
-  const s=node('td','ma-td-status');s.append(node('span','ma-pill ma-pill--'+r.tone,r.label));
-  const w=node('td','ma-td-work');const a=node('a','ma-row-link',r.title);a.href=r.href;w.append(a,node('small','',r.project.name+(r.project.client&&r.project.client!==r.project.name?' · '+r.project.client:'')));
-  const ag=node('td','ma-td-agent',r.agent);
-  const pr=node('td','ma-td-progress'),bar=node('span','ma-bar'),fill=node('span');fill.style.width=(r.progress.total?Math.round(r.progress.done/r.progress.total*100):0)+'%';bar.append(fill);
-  bar.setAttribute('role','img');bar.setAttribute('aria-label',r.progress.done+' di '+r.progress.total+' incarichi approvati');pr.append(bar,node('small','',r.progress.done+' di '+r.progress.total+' approvati'));
-  const go=node('td','ma-td-go');go.append(ico('chev'));
-  tr.append(s,w,ag,pr,go);body.append(tr)});
- t.append(head,body);box.replaceChildren(t);return j;
+ const ul=node('ul','mo-job-list');
+ j.rows.forEach(r=>{const li=node('li','mo-job'),a=node('a','mo-job-link');a.href=r.href;
+  const top=node('span','mo-job-top');top.append(node('b','mo-job-title',r.title),node('span','ma-pill ma-pill--'+r.tone,r.label));
+  const meta=node('small','mo-job-meta',r.project.name+' · '+r.agent);
+  const bar=node('span','ma-bar'),fill=node('span');fill.style.width=(r.progress.total?Math.round(r.progress.done/r.progress.total*100):0)+'%';bar.append(fill);
+  bar.setAttribute('role','img');bar.setAttribute('aria-label',r.progress.done+' di '+r.progress.total+' incarichi approvati nel progetto');
+  a.append(top,meta,bar);li.append(a);ul.append(li)});
+ box.replaceChildren(ul);return j;
 }
 function empty(title,cta,href,line){const d=node('div','ma-empty');d.append(ico('layers','ma-empty-icon'),node('b','',title));if(line)d.append(node('p','',line));if(cta){const a=node('a','ma-btn ma-btn--ghost',cta);a.href=href;d.append(a)}return d}
 
@@ -153,11 +179,11 @@ const els=planets.map((p,i)=>{const li=node('li','mo-gl-item'),a=node('a','mo-gl
  a.addEventListener('pointerenter',on);a.addEventListener('pointerleave',off);a.addEventListener('focus',on);a.addEventListener('blur',off);
  return {li,a}});
 function place(){
- const r=stage.getBoundingClientRect(),W=Math.max(1,Math.round(r.width)),H=Math.max(1,Math.round(r.height)),compact=phone.matches;
+ const r=stage.getBoundingClientRect(),W=Math.max(1,Math.round(r.width)),H=Math.max(1,Math.round(r.height)),compact=phone.matches||W<440;
  stage.classList.toggle('is-compact',compact);
- // On phones the labels are a picture: the area cards right below are the links (44px taps).
+ // In the narrow side column and on phones the labels are a picture: the area cards are the links (44px taps).
  els.forEach(({a},i)=>{if(compact){a.removeAttribute('href');a.setAttribute('aria-hidden','true')}else{a.href=planets[i].href;a.removeAttribute('aria-hidden')}});
- input.placeholder=compact?'Cosa vuoi fare oggi?':'Cosa vuoi fare oggi? Es. «i post per il pane di Natale»';
+ input.placeholder=phone.matches?'Es. «i post per il pane di Natale»':'Es. «i post per il pane di Natale, dal 1° dicembre»';
  const sizes=els.map(({li})=>{li.style.transform='';return {w:Math.ceil(li.offsetWidth)+1,h:Math.ceil(li.offsetHeight)}});
  const pr=pauseBtn.hidden?null:pauseBtn.getBoundingClientRect(),blocked=pr&&pr.width?[{x:pr.left-r.left,y:pr.top-r.top,w:pr.width,h:pr.height}]:[];
  layout=O.globeLayout(W,H,sizes,{blocked});
@@ -185,11 +211,11 @@ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refresh);
 refresh();
 
 // ---- First paint without data, then the registry. ----
-function render(){const c=O.counts({clients:state.clients,projects:state.projects,dashboard:state.dashboard});showCounts(c);projectStrip();areas();const j=jobsTable();kpis(c,j);flow();agents();suggestions()}
+function render(){const c=O.counts({clients:state.clients,projects:state.projects,dashboard:state.dashboard});showCounts(c);header();waitingPanel();areas();jobsTable();kpis(c);flow();agents();suggestions()}
 render();
 async function live(){
  const note=$('moNote'),set=(t,s)=>{note.textContent=t;note.dataset.state=s};
- fetch('/agency/catalog.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.roles&&typeof c.roles==='object'){state.roles=c.roles;agents();if(state.projects)jobsTable()}}).catch(()=>{});
+ fetch('/agency/catalog.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.roles&&typeof c.roles==='object'){state.roles=c.roles;agents();if(state.projects){jobsTable();waitingPanel()}}}).catch(()=>{});
  if(!ws){set('Registro del team non caricato: ricarica la pagina.','error');return}
  try{
   if(!(await ws.ready())){state.signed=false;render();set('Accedi dal Command Center per vedere clienti, progetti e lavori.','off');return}
@@ -198,11 +224,10 @@ async function live(){
    fetch('/api/state?view=dashboard',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null)]);
   Object.assign(state,{clients,projects,dashboard});
   const activeList=Array.isArray(projects)?projects.filter(p=>p&&p.status!=='archived'):[];
-  state.project=O.currentProject(activeList,remembered());state.journey=state.project&&state.project.journey||null;
   const recent=activeList.slice().sort((a,b)=>String(b.updated_at||'').localeCompare(String(a.updated_at||''))).slice(0,12);
   await Promise.all(recent.map(p=>ws.documents.load(p.id,'agency-workspace').then(d=>{if(d&&d.data)state.plans.set(p.id,d.data)}).catch(()=>{})));
   state.projects=projects?recent.concat(activeList.filter(p=>!recent.includes(p))):null;
-  const plan=state.project&&state.plans.get(state.project.id);state.tasks=state.project?(plan&&Array.isArray(plan.tasks)?plan.tasks:[]):null;
+  choose(O.currentProject(activeList,remembered()));
   render();
   if(projects==null)set('Progetti non disponibili in questo momento.','partial');
   else set(activeList.length?'Dati dal registro del team.':'Nessun progetto ancora: crea il primo con «Nuovo progetto».','live');
