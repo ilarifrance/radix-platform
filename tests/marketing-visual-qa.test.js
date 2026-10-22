@@ -17,11 +17,13 @@ test('Studio Avatar: the project select never widens the page, Marketing pink wi
  assert.match(media(a,'max-width:760px'),/\.av-page \.av-project,\.av-page \.av-project select\{width:100%\}/);
 });
 
-test('phone tap targets: crea filters and studio controls, Orbit links, PED toolbar and tabs are at least 40px',()=>{
+test('phone tap targets: crea filters and studio controls, Marketing home links (44px), PED toolbar and tabs are at least 40px',()=>{
  const c=css('shell/crea.css'),c640=media(c,'max-width:640px');
  assert.match(c640,/\.cr-filter\{height:40px\}/);
  assert.match(c640,/\.cr-panel :is\(button,summary,select,[^)]*\)[^{]*\{min-height:40px!important\}/);
- assert.match(media(css('agency/orbit.css'),'max-width:640px'),/\.mo-links a\{min-height:40px/);
+ const ma=media(css('shell/marketing-a.css'),'max-width:640px');
+ assert.match(ma,/\.ma-area-services a\{[^}]*min-height:44px/);assert.match(ma,/\.ma-link\{min-height:44px\}/);assert.match(ma,/\.ma-area-title\{[^}]*min-height:44px/);
+ assert.match(media(css('agency/orbit.css'),'max-width:640px'),/\.mo-pause\{min-height:44px/);
  assert.match(media(css('shell/agency.css'),'max-width:640px'),/body\.rx-agency button\.rx-logout\{min-height:40px/);
  const p=media(css('shell/ped-premium.css'),'max-width:767px');
  for(const s of ['.view-switch button{min-height:40px','.period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:40px','.rx-steps a{min-height:40px','#statsRefresh'])assert.ok(p.includes(s),s);

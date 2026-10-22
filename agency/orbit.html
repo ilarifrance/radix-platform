@@ -1,18 +1,42 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>RADIX · Marketing Orbit</title><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/agency.css"><link rel="stylesheet" href="/agency/orbit.css"><script src="/shell/radix-shell.js" defer></script></head>
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>RADIX · Marketing Agency</title><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/agency.css"><link rel="stylesheet" href="/shell/marketing-a.css"><link rel="stylesheet" href="/agency/orbit.css"><script src="/shell/radix-shell.js" defer></script></head>
 <body class="rx-agency mo-page" data-shell-state="live" data-shell-area="agency" data-shell-page="agency-orbit">
-<main class="mo-main">
+<main class="mo-main ma">
 <section class="mo-hero" aria-labelledby="moTitle">
-<div class="mo-copy"><p class="mo-eyebrow">MARKETING AGENCY</p><h1 id="moTitle">Marketing <em>Orbit</em></h1>
-<p class="mo-lead">Il tuo brand al centro, ogni servizio in orbita. Scegli un’area e apri gli strumenti guidati: poche domande, tre proposte, scegli tu.</p>
-<div class="mo-actions"><a class="mo-cta" href="/agency/crea.html">Cosa vuoi fare oggi? <span aria-hidden="true">→</span></a><a class="mo-ghost" href="/agency/new-project.html">＋ Nuovo progetto</a></div>
-<p class="mo-note" id="moNote" role="status">Collegamento al registro del team…</p></div>
+<div class="mo-copy">
+<p class="ma-eyebrow">Strategia · Contenuti · Performance</p>
+<h1 class="ma-title" id="moTitle">Marketing <em>Agency</em></h1>
+<p class="mo-lead" id="moLead">I servizi guidati della Marketing Agency, con un team di agenti AI. Ogni lavoro arriva in 3 proposte: scegli tu, e niente parte senza la tua conferma.</p>
+<form class="ma-command" id="moAskForm" action="/agency/crea.html" method="get" role="search" aria-label="Cosa vuoi fare oggi?">
+<div class="ma-command-bar"><span class="ma-command-icon" id="moAskIcon" aria-hidden="true"></span>
+<label class="ma-sr" for="moAsk">Cosa vuoi fare oggi?</label>
+<input class="ma-command-input" id="moAsk" name="q" type="text" autocomplete="off" spellcheck="false" maxlength="200" placeholder="Cosa vuoi fare oggi? Es. «i post per il pane di Natale»" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="moSuggest" aria-describedby="moAskHelp">
+<button class="ma-btn ma-btn--primary" id="moAskGo" type="submit">Inizia<span class="ma-btn-icon" id="moAskGoIcon" aria-hidden="true"></span></button></div>
+<p class="ma-command-head" id="moSuggestHead">Suggeriti per te</p>
+<ul class="ma-suggest" id="moSuggest" role="listbox" aria-labelledby="moSuggestHead"></ul>
+<p class="ma-sr" id="moAskHelp">Frecce su e giù per scegliere un suggerimento, Invio per aprirlo. Nessuna richiesta all’AI parte da qui.</p>
+</form>
+<div class="mo-project" id="moProject" aria-live="polite"></div>
+<p class="mo-note" id="moNote" role="status">Collegamento al registro del team…</p>
+</div>
 <div class="mo-stage" id="moStage"><canvas class="mo-sky" id="moSky" aria-hidden="true"></canvas>
-<div class="mo-core" aria-hidden="true"><span>Il tuo<b>brand</b></span></div>
 <ul class="mo-planets" id="moPlanets" aria-label="Aree di servizio: ognuna apre i suoi servizi"></ul>
 <button type="button" class="mo-pause" id="moPause" aria-pressed="false">Ferma l’animazione</button></div>
 </section>
-<section class="mo-sections" aria-labelledby="moSectionsTitle"><div class="mo-sections-head"><h2 id="moSectionsTitle">Tutte le sezioni</h2><p>Ogni parte della Marketing Agency, con i numeri del registro del team.</p></div><ul class="mo-grid" id="moSections"></ul></section>
-<p class="mo-foot">I numeri vengono dal registro del team e dal Command Center: dove un dato non c’è, la sezione non mostra numeri. Nessuna generazione parte da questa pagina.</p>
+<section class="ma-kpis" id="moKpis" aria-label="Il lavoro del team in numeri"></section>
+<section class="mo-areas" aria-labelledby="moAreasTitle">
+<div class="ma-sec-head"><h2 id="moAreasTitle">Le aree</h2><span class="ma-count" id="moAreasCount"></span><a class="ma-link" href="/agency/crea.html" id="moAllServices">Tutti i servizi</a></div>
+<ul class="mo-area-grid" id="moAreas"></ul>
+</section>
+<section class="ma-glass mo-jobs" aria-labelledby="moJobsTitle">
+<div class="ma-panel-head"><h2 id="moJobsTitle">Lavori in corso</h2><span class="ma-count" id="moJobsCount"></span><a class="ma-btn ma-btn--ghost mo-new" href="/agency/new-project.html">Nuovo progetto</a><a class="ma-link" href="/agency/workspace.html">Vedi tutti</a></div>
+<div class="mo-jobs-body" id="moJobs"></div>
+</section>
+<div class="mo-row">
+<section class="ma-glass mo-flow" aria-labelledby="moFlowTitle"><div class="ma-panel-head"><h2 id="moFlowTitle">Workflow operativo</h2><span class="ma-tag">AI + TU</span></div><p class="mo-flow-for" id="moFlowFor"></p><ol class="ma-steps" id="moFlow"></ol></section>
+<section class="ma-glass mo-agents" aria-labelledby="moAgentsTitle"><div class="ma-panel-head"><h2 id="moAgentsTitle">Agenti AI</h2><span class="ma-count" id="moAgentsCount"></span><a class="ma-link" href="/agency/index.html">Vedi tutti</a></div><ul class="ma-rows" id="moAgents"></ul></section>
+<section class="ma-glass mo-sections" aria-labelledby="moSectionsTitle"><div class="ma-panel-head"><h2 id="moSectionsTitle">Tutte le sezioni</h2></div><ul class="ma-rows" id="moSections"></ul></section>
+</div>
+<p class="mo-foot">I numeri vengono dal registro del team e dal Command Center: dove un dato non c’è, la pagina non mostra numeri. Nessuna richiesta all’AI parte da questa pagina: i servizi chiedono conferma prima di ogni chiamata.</p>
 </main>
-<script src="/lib/radix-workspace-client.js"></script><script src="/agency/crea-core.js"></script><script src="/agency/marketing-look.js"></script><script src="/agency/orbit-core.js"></script><script src="/agency/orbit.js"></script>
+<script src="/lib/radix-workspace-client.js"></script><script src="/lib/agency-divisions.js"></script><script src="/sales/orbit-globe.js"></script><script src="/agency/crea-core.js"></script><script src="/agency/marketing-look.js"></script><script src="/agency/orbit-core.js"></script><script src="/agency/marketing-globe.js"></script><script src="/agency/orbit.js"></script>
 </body></html>
