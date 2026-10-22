@@ -141,6 +141,12 @@
 .cr-panel .site-studio .st-todos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:10px;align-items:end;padding:12px;border:1px solid #b4881f;border-radius:12px;background:rgba(254,243,199,.06)}
 .cr-panel .site-studio .st-todos[hidden]{display:none}.cr-panel .site-studio .st-todos h4,.cr-panel .site-studio .st-todos p{grid-column:1/-1;margin:0}.cr-panel .site-studio .st-todos h4{font-size:15px;color:#fde68a}
 .cr-panel .site-studio .st-todo{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#fde68a;overflow-wrap:anywhere}.cr-panel .site-studio .st-todos button{justify-self:start}
+.cr-panel .site-studio .st-legal-q p{flex-basis:100%;margin:2px 0 0;font-size:13px}
+.cr-panel .site-studio .st-bars{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .site-studio .st-todo input[aria-invalid=true]{border-color:#f87171}
+.cr-panel .site-studio .st-crm{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line-2);border-radius:12px}
+.cr-panel .site-studio .st-crm[hidden]{display:none}.cr-panel .site-studio .st-crm h4{margin:0;font-size:15px}.cr-panel .site-studio .st-crm p{margin:0;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-crm label{display:flex;flex-direction:column;gap:4px;font-size:13px;max-width:420px}
 .cr-panel .site-studio .st-publish{display:flex;flex-direction:column;gap:10px;padding-top:10px;border-top:1px solid var(--line-2)}
 .cr-panel .site-studio .st-publish h4{margin:0;font-size:15px}.cr-panel .site-studio .st-publish p{margin:0;overflow-wrap:anywhere}
 .cr-panel .site-studio .st-domain{display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:12px;border:1px solid var(--line-2);border-radius:12px}

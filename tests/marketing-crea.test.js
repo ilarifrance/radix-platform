@@ -98,7 +98,7 @@ test('the Sito web card opens the Studio Sito inline with the Web Developer memo
  assert.match(site.line,/3 proposte con anteprima/);assert.match(site.cost,/Una chiamata AI al Web Developer, con conferma/);
  const js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
  assert.match(js,/site:\{global:'RadixSiteStudio'[^}]*agent:'web-developer'\}/);
- assert.match(js,/S\.siteStudio\(\{project,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=web-developer&project='\+pid\}\)/);
+ assert.match(js,/S\.siteStudio\(\{project,profile:current\.profile,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=web-developer&project='\+pid\}\)/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
  assert.match(html,/<p class="cr-note">Tutti i servizi ora sono guidati\. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma\.<\/p>/);
  assert.ok(html.indexOf('/lib/site-studio.js')<html.indexOf('/agency/crea.js'),'the studio loads before the page script');

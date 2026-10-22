@@ -76,7 +76,7 @@ function openInline(c){
   :c.inline==='reel'
   ?S.reelStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=video-producer&project='+pid})
   :c.inline==='site'
-  ?S.siteStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
+  ?S.siteStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'
   ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='audit'
