@@ -17,7 +17,7 @@ test('Studio Avatar: the project select never widens the page, the Marketing «A
  assert.match(media(a,'max-width:760px'),/\.av-page \.av-project,\.av-page \.av-project select\{width:100%\}/);
 });
 
-test('phone tap targets: crea filters and studio controls, Marketing home links (44px), PED toolbar and tabs are at least 40px',()=>{
+test('phone tap targets: crea filters and studio controls, Marketing home links (44px), PED toolbar, tabs and dialogs (44px)',()=>{
  const c=css('shell/crea.css'),c640=media(c,'max-width:640px');
  assert.match(media(css('agency/crea.css'),'max-width:640px'),/\.cp-tabs\{flex-wrap:nowrap;overflow-x:auto/,'area tabs scroll sideways on the phone');
  assert.match(css('agency/crea.css'),/\.cp-tab\{[^}]*min-height:44px/);assert.match(css('agency/crea.css'),/\.cp-go\{[^}]*min-height:44px/);
@@ -27,7 +27,8 @@ test('phone tap targets: crea filters and studio controls, Marketing home links 
  assert.match(media(css('agency/orbit.css'),'max-width:640px'),/\.mo-pause\{min-height:44px/);
  assert.match(media(css('shell/agency.css'),'max-width:640px'),/body\.rx-agency button\.rx-logout\{min-height:40px/);
  const p=media(css('shell/ped-premium.css'),'max-width:767px');
- for(const s of ['.view-switch button{min-height:40px','.period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:40px','.rx-steps a{min-height:40px','#statsRefresh'])assert.ok(p.includes(s),s);
+ for(const s of ['.view-switch button{min-height:44px','.period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:44px','.rx-steps a{min-height:44px','#statsRefresh','#reviewRedraw{min-height:44px'])assert.ok(p.includes(s),s);
+ assert.ok(!/min-height:(3\d|4[0-3])px/.test(p),'no PED control under 44px on the phone');
 });
 
 test('PED: analytics and results never wider than their panel on the phone; six KPI tiles never leave one alone',()=>{

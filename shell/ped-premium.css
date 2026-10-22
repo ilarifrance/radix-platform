@@ -1,44 +1,49 @@
-/* PED premium layer: the Piano editoriale in the Marketing Orbit language (agency/orbit.css, shell/crea.css): navy
-   glass cards, pink #ff5fa2 for the one primary action, Space Grotesk titles, one icon per channel, status chips.
-   Loaded after shell/ped.css and overrides it; layout and logic stay in editorial-workspace.js and shell/ped-calendar.js. */
+/* PED premium layer: the Piano editoriale in the Marketing look «A» (shell/marketing-a.css, as the home, «Cosa vuoi fare»
+   and the guided studios): navy glass cards, the violet-to-blue gradient for the one primary action, violet for what is
+   selected, Space Grotesk titles, one icon per channel, status chips. Every colour reads a --ma-* token of
+   shell/marketing-a.css (the <body> carries .ma-root). Loaded after shell/ped.css and overrides it; layout and logic stay
+   in editorial-workspace.js and shell/ped-calendar.js. The post previews keep the client's own colours: they are the
+   client's brand, not RADIX's. */
 html.rx-shell body.rx-ped{
-  --mk:#ff5fa2;--mk-soft:#ff9cc6;--mk-ink:#1a0610;--ink:#f3f4ff;--ink-2:#d6dcf5;--muted:#a3aed2;--subtle:#7f8bb3;
-  --line:rgba(150,165,230,.14);--line-2:rgba(150,165,230,.24);--card:rgba(13,22,50,.62);--card-2:rgba(18,30,66,.72);--field:#081129;--deep:#050a1c;
-  --st-draft:#a3aed2;--st-review:#f5c76b;--st-approved:#3ee08f;--st-queued:#7aa7ff;
+  --mk:var(--ma-vi);--mk-soft:#c4bcff;--mk-ink:#fff;--mk-btn:linear-gradient(135deg,#5b4ce6,#3a6ae8);--mk-sel:rgba(160,150,255,.85);--mk-sel-bg:linear-gradient(135deg,rgba(106,92,255,.3),rgba(63,123,255,.18));
+  --ink:var(--ma-tx);--ink-2:var(--ma-tx2);--muted:var(--ma-tx2);--subtle:var(--ma-mut);
+  --line:var(--ma-line);--line-2:var(--ma-line-2);--card:rgba(13,21,58,.5);--card-2:var(--ma-panel);--field:#0a1230;--deep:var(--ma-bg);
+  --st-draft:var(--ma-tx2);--st-review:var(--ma-warn);--st-approved:var(--ma-ok);--st-queued:var(--ma-cy);
   --ped-draft:var(--st-draft);--ped-review:var(--st-review);--ped-approved:var(--st-approved);--ped-queued:var(--st-queued);
   --orb-bg:rgba(8,14,36,.72);--orb-card:var(--card-2);--orb-line:var(--line);--orb-text:var(--ink);--orb-muted:var(--muted);
-  --rx-surface:#0b1430;--rx-surface-2:#101c3e;--rx-bg-raised:#081129;--rx-border:#22305a;--rx-border-strong:#33437a;--rx-text:var(--ink);--rx-muted:var(--muted);--rx-subtle:var(--subtle);
-  background:radial-gradient(ellipse 60% 40% at 82% -6%,rgba(255,95,162,.12),transparent 60%),radial-gradient(ellipse 50% 40% at 10% 0,rgba(120,90,255,.12),transparent 60%),var(--deep);
+  --rx-surface:#0b1430;--rx-surface-2:#101c3e;--rx-bg-raised:#0a1230;--rx-border:#22305a;--rx-border-strong:#33437a;--rx-text:var(--ink);--rx-muted:var(--muted);--rx-subtle:var(--subtle);
+  --rx-core:#a99cff;--rx-core-soft:var(--ma-link);--rx-success:var(--ma-ok);--rx-warning:var(--ma-warn);--rx-projects:var(--ma-link);
+  background:radial-gradient(ellipse 60% 40% at 82% -6%,rgba(76,125,255,.14),transparent 60%),radial-gradient(ellipse 50% 40% at 10% 0,rgba(127,109,255,.16),transparent 60%),var(--deep);
   color:var(--ink);font:14px/1.55 var(--rx-font)}
 html.rx-shell body.rx-ped main{max-width:1440px;padding:32px 32px 64px}
 html.rx-shell body.rx-ped h1,html.rx-shell body.rx-ped h2,html.rx-shell body.rx-ped h3{font-family:var(--rx-display);letter-spacing:-.015em;color:var(--ink)}
 html.rx-shell body.rx-ped main a:not(.ped-rail-link){color:var(--mk-soft)}
-html.rx-shell body.rx-ped :focus-visible{outline:2px solid var(--rx-core,#00eab5);outline-offset:2px}
+html.rx-shell body.rx-ped :focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
 
 /* ---- Header: project, title, the month on screen and its status chips ---- */
 html.rx-shell body.rx-ped main>header{align-items:flex-end;margin-bottom:6px}
-html.rx-shell body.rx-ped main>header .eyebrow{margin:0;font:600 12px/1.3 var(--rx-font);letter-spacing:.18em;text-transform:uppercase;color:var(--mk-soft)}
+html.rx-shell body.rx-ped main>header .eyebrow{margin:0;font:600 12px/1.3 var(--rx-font);letter-spacing:.18em;text-transform:uppercase;color:#a9b4ff}
 html.rx-shell body.rx-ped main>header h1{margin:10px 0 0;font:700 clamp(30px,3.2vw,40px)/1.08 var(--rx-display);letter-spacing:-.03em}
 .ped-head-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px}
 .ped-head-meta[hidden]{display:none}
 .ped-head-meta>span{display:inline-flex;align-items:center;gap:7px;min-height:30px;padding:0 12px;border-radius:999px;font:500 13px/1 var(--rx-font);color:var(--ink-2);background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);font-variant-numeric:tabular-nums}
-.ped-head-meta .phm-month{font:600 14px/1 var(--rx-display);color:var(--ink);background:rgba(255,95,162,.12);box-shadow:inset 0 0 0 1px rgba(255,95,162,.35)}
+.ped-head-meta .phm-month{font:600 14px/1 var(--rx-display);color:var(--ink);background:rgba(127,109,255,.12);box-shadow:inset 0 0 0 1px rgba(127,109,255,.35)}
 .ped-head-meta .phm-total{color:var(--muted);background:none;box-shadow:none;padding:0 4px}
 .ped-head-meta .phm-chip::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--sc)}
 .ped-head-meta [data-status=draft]{--sc:var(--st-draft)}.ped-head-meta [data-status=review]{--sc:var(--st-review)}
 .ped-head-meta [data-status=approved]{--sc:var(--st-approved)}.ped-head-meta [data-status=queued]{--sc:var(--st-queued)}
 /* the status line: a quiet note with a dot, like Orbit's */
 html.rx-shell body.rx-ped #message{display:flex;align-items:center;gap:8px;margin:12px 0 18px;min-height:1.4em;font-size:13px;color:var(--subtle)}
-html.rx-shell body.rx-ped #message::before{content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--rx-success,#1ef28f);box-shadow:0 0 0 3px rgba(30,242,143,.15)}
+html.rx-shell body.rx-ped #message::before{content:"";width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--ma-ok);box-shadow:0 0 0 3px rgba(52,211,154,.16)}
 
 /* ---- Controls ---- */
 html.rx-shell body.rx-ped :is(main,dialog) button,html.rx-shell body.rx-ped :is(main,dialog) .button,html.rx-shell body.rx-ped :is(main,dialog) .ped-more>summary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);color:var(--ink);font:600 13.5px/1.2 var(--rx-font);text-decoration:none;cursor:pointer;transition:background-color .18s ease-out,border-color .18s ease-out,box-shadow .18s ease-out,color .18s}
-html.rx-shell body.rx-ped :is(main,dialog) button:hover:not(:disabled),html.rx-shell body.rx-ped :is(main,dialog) .button:hover,html.rx-shell body.rx-ped :is(main,dialog) .ped-more>summary:hover{border-color:rgba(255,156,198,.5);background:rgba(255,95,162,.07)}
-html.rx-shell body.rx-ped :is(main,dialog) button.primary,html.rx-shell body.rx-ped .primary{background:var(--mk);border-color:var(--mk);color:var(--mk-ink);box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 26px -12px rgba(255,95,162,.75)}
-html.rx-shell body.rx-ped :is(main,dialog) button.primary:hover:not(:disabled){background:#ff74b0;border-color:#ff74b0}
+html.rx-shell body.rx-ped :is(main,dialog) button:hover:not(:disabled),html.rx-shell body.rx-ped :is(main,dialog) .button:hover,html.rx-shell body.rx-ped :is(main,dialog) .ped-more>summary:hover{border-color:rgba(160,170,255,.5);background:rgba(127,109,255,.07)}
+html.rx-shell body.rx-ped :is(main,dialog) button.primary,html.rx-shell body.rx-ped .primary{background:var(--mk-btn);border-color:transparent;color:var(--mk-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 24px -8px rgba(80,100,255,.7)}
+html.rx-shell body.rx-ped :is(main,dialog) button.primary:hover:not(:disabled){background:var(--mk-btn);border-color:transparent;filter:brightness(1.12)}
 html.rx-shell body.rx-ped :is(main,dialog) button:disabled{opacity:.45;cursor:not-allowed}
 html.rx-shell body.rx-ped :is(main,dialog) input,html.rx-shell body.rx-ped :is(main,dialog) select,html.rx-shell body.rx-ped :is(main,dialog) textarea{background:var(--field);border:1px solid var(--line-2);border-radius:12px;color:var(--ink);min-height:42px;padding:10px 12px;font:14px/1.45 var(--rx-font)}
-html.rx-shell body.rx-ped :is(main,dialog) input:hover,html.rx-shell body.rx-ped :is(main,dialog) select:hover,html.rx-shell body.rx-ped :is(main,dialog) textarea:hover{border-color:rgba(255,156,198,.35)}
+html.rx-shell body.rx-ped :is(main,dialog) input:hover,html.rx-shell body.rx-ped :is(main,dialog) select:hover,html.rx-shell body.rx-ped :is(main,dialog) textarea:hover{border-color:rgba(160,170,255,.35)}
 html.rx-shell body.rx-ped :is(main,dialog) input[type=color]{padding:3px;min-height:0}
 html.rx-shell body.rx-ped :is(main,dialog) label{color:var(--muted);font-size:12.5px;font-weight:500}
 html.rx-shell body.rx-ped .muted{color:var(--muted)}
@@ -56,7 +61,7 @@ html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link::before{display:none}
 html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link>span{overflow:visible}
 html.rx-shell body.rx-ped .ped-rail .ml-ico{width:18px;height:18px;flex:none}
 html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link:hover{color:var(--ink);background:rgba(255,255,255,.04)}
-html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link[aria-current]{color:var(--ink);background:rgba(255,95,162,.12);border-color:rgba(255,95,162,.4)}
+html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link[aria-current]{color:var(--ink);background:rgba(127,109,255,.12);border-color:rgba(127,109,255,.4)}
 html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link[aria-current] .ml-ico{color:var(--mk-soft)}
 html.rx-shell body.rx-ped .ped-rail-channels{flex-direction:row;flex-wrap:wrap;gap:6px;margin-left:auto}
 html.rx-shell body.rx-ped .ped-rail-channels:empty{display:none}
@@ -80,7 +85,7 @@ html.rx-shell body.rx-ped .ped-ch,html.rx-shell.ped-grid body.rx-ped .calendar-c
 html.rx-shell body.rx-ped [data-channel] .ped-ch::before{content:none}
 
 /* ---- Hero: the plan's goal, the four steps as a stepper, few actions ---- */
-html.rx-shell body.rx-ped #pedPage .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:18px 24px;margin:0;padding:22px 24px;background:radial-gradient(ellipse 50% 90% at 100% 0,rgba(255,95,162,.10),transparent 70%),linear-gradient(180deg,var(--card-2),var(--card))}
+html.rx-shell body.rx-ped #pedPage .hero{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:18px 24px;margin:0;padding:22px 24px;background:radial-gradient(ellipse 50% 90% at 100% 0,rgba(127,109,255,.10),transparent 70%),linear-gradient(180deg,var(--card-2),var(--card))}
 html.rx-shell body.rx-ped #pedPage .hero #briefSummary{grid-column:1;grid-row:1;margin:0;max-width:78ch;color:var(--ink-2);font-size:14.5px;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 html.rx-shell body.rx-ped #pedPage .hero>.actions{grid-column:2;grid-row:1;display:flex;flex-wrap:nowrap;gap:8px;justify-content:flex-end}
 html.rx-shell body.rx-ped #pedPage .hero>.ped-steps{grid-column:1/-1;grid-row:2}
@@ -98,7 +103,7 @@ html.rx-shell body.rx-ped .ped-steps{counter-reset:none;display:grid;grid-templa
 html.rx-shell body.rx-ped .ped-steps li{position:relative;display:block;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
 html.rx-shell body.rx-ped .ped-steps li+li{border-left:1px solid var(--line)}
 html.rx-shell body.rx-ped .ped-steps .ped-step{width:100%;height:100%;display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:76px;padding:14px 16px;border:0;border-radius:0;background:none;text-align:left;box-shadow:none}
-html.rx-shell body.rx-ped .ped-steps .ped-step:hover:not(:disabled){background:rgba(255,95,162,.06)}
+html.rx-shell body.rx-ped .ped-steps .ped-step:hover:not(:disabled){background:rgba(127,109,255,.06)}
 html.rx-shell body.rx-ped .ped-steps .ped-step:disabled{opacity:1;cursor:default}
 html.rx-shell body.rx-ped .ps-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;font:700 13px/1 var(--rx-display);color:var(--muted);box-shadow:inset 0 0 0 1.5px var(--line-2)}
 html.rx-shell body.rx-ped .ps-body{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -106,10 +111,10 @@ html.rx-shell body.rx-ped .ps-body b{font:600 14.5px/1.25 var(--rx-font);color:v
 html.rx-shell body.rx-ped .ps-body small{font-size:12.5px;line-height:1.35;color:var(--muted)}
 html.rx-shell body.rx-ped .ps-go{display:none;align-items:center;gap:6px;min-height:30px;padding:0 12px;border-radius:999px;font:600 12.5px/1 var(--rx-font);white-space:nowrap}
 html.rx-shell body.rx-ped .ps-go::after{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg)}
-html.rx-shell body.rx-ped .ped-steps li[data-state=current]{background:linear-gradient(180deg,rgba(255,95,162,.14),rgba(255,95,162,.04))}
-html.rx-shell body.rx-ped .ped-steps li[data-state=current]::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--mk)}
-html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-num{background:var(--mk);color:var(--mk-ink);box-shadow:0 0 0 4px rgba(255,95,162,.18)}
-html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-go{display:inline-flex;background:var(--mk);color:var(--mk-ink)}
+html.rx-shell body.rx-ped .ped-steps li[data-state=current]{background:linear-gradient(180deg,rgba(127,109,255,.14),rgba(127,109,255,.04))}
+html.rx-shell body.rx-ped .ped-steps li[data-state=current]::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--ma-grad)}
+html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-num{background:radial-gradient(circle at 35% 30%,#4a5ff0,#25308a);color:#fff;box-shadow:0 0 0 1px rgba(140,160,255,.6),0 0 0 5px rgba(127,109,255,.16),0 0 18px rgba(76,125,255,.45)}
+html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-go{display:inline-flex;background:var(--mk-btn);color:var(--mk-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 8px 20px -8px rgba(80,100,255,.7)}
 /* the current step's button goes under its text, so a narrow column does not squeeze the words into one per line */
 @media (min-width:768px){html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ped-step{grid-template-columns:32px minmax(0,1fr);row-gap:8px}html.rx-shell body.rx-ped .ped-steps li[data-state=current] .ps-go{grid-column:2;justify-self:start;min-height:32px}}
 html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-num{font-size:0;background:rgba(62,224,143,.14);box-shadow:inset 0 0 0 1.5px rgba(62,224,143,.5)}
@@ -123,7 +128,7 @@ html.rx-shell body.rx-ped #pedPage .hero:has(#newContent:disabled) #briefSummary
 html.rx-shell body.rx-ped .calendar-toolbar{flex-wrap:wrap;gap:10px 14px;margin:0;padding:12px 14px;background:rgba(8,14,36,.82);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0}
 html.rx-shell body.rx-ped .calendar-toolbar .view-switch{padding:3px;gap:2px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
 html.rx-shell body.rx-ped .calendar-toolbar .view-switch button{min-height:32px;padding:0 14px;border:0;border-radius:9px;background:none;color:var(--muted);font-weight:500;box-shadow:none}
-html.rx-shell body.rx-ped .calendar-toolbar .view-switch button[aria-pressed=true]{background:rgba(255,95,162,.16);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(255,95,162,.4)}
+html.rx-shell body.rx-ped .calendar-toolbar .view-switch button[aria-pressed=true]{background:rgba(127,109,255,.16);color:var(--ink);box-shadow:inset 0 0 0 1px rgba(127,109,255,.4)}
 html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:not(#calendarToday){min-height:34px;min-width:34px;padding:0;border-radius:10px;border:1px solid var(--line);background:none;color:var(--ink-2)}
 html.rx-shell body.rx-ped .calendar-toolbar #calendarLabel{order:0;padding:0 8px;font:600 17px/1 var(--rx-display);letter-spacing:-.01em;color:var(--ink);white-space:nowrap}
 html.rx-shell body.rx-ped .calendar-toolbar #calendarToday{order:4;min-height:34px;padding:0 12px;border-radius:10px}
@@ -151,7 +156,7 @@ html.rx-shell body.rx-ped .calendar-event>strong,html.rx-shell.ped-grid body.rx-
 html.rx-shell body.rx-ped .calendar-event>span{order:3;display:none}
 html.rx-shell body.rx-ped .calendar-event .ped-pill,html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event .ped-pill{order:1;display:inline-flex;align-items:center;gap:5px;margin:0 0 0 auto;padding:2px 8px;border:0;border-radius:999px;background:color-mix(in srgb,var(--st) 14%,transparent);color:color-mix(in srgb,var(--st) 80%,#fff);font:600 10.5px/16px var(--rx-font);letter-spacing:.02em;text-transform:none;font-style:normal;white-space:nowrap}
 html.rx-shell body.rx-ped .calendar-event .ped-pill::before{content:"";display:inline-block;width:6px;height:6px;margin:0;border-radius:50%;background:var(--st)}
-html.rx-shell body.rx-ped .calendar-event:hover:not(:disabled),html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event:hover:not(:disabled){border-color:rgba(255,156,198,.6);box-shadow:0 0 0 1px rgba(255,95,162,.3),0 14px 30px -12px rgba(255,95,162,.45);background:linear-gradient(180deg,rgba(40,34,86,.98),rgba(22,26,64,.98))!important}
+html.rx-shell body.rx-ped .calendar-event:hover:not(:disabled),html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event:hover:not(:disabled){border-color:rgba(160,170,255,.6);box-shadow:0 0 0 1px rgba(127,109,255,.3),0 14px 30px -12px rgba(127,109,255,.45);background:linear-gradient(180deg,rgba(40,34,86,.98),rgba(22,26,64,.98))!important}
 html.rx-shell body.rx-ped .calendar-event.ped-dim{opacity:.25;filter:saturate(.3)}
 /* week / day hour grid */
 html.rx-shell.ped-grid body.rx-ped .calendar{--ped-head:50px;grid-template-columns:58px repeat(7,minmax(118px,1fr));max-height:min(760px,calc(100vh - 120px));background:rgba(6,11,30,.86);border:1px solid var(--line);border-radius:0 0 20px 20px}
@@ -160,9 +165,9 @@ html.rx-shell.ped-grid body.rx-ped .calendar-column{border-right:1px solid var(-
 html.rx-shell.ped-grid body.rx-ped .calendar-column:last-child{border-right:0}
 html.rx-shell.ped-grid body.rx-ped .calendar-column::after{background:repeating-linear-gradient(to bottom,transparent 0 calc(var(--ped-row) - 1px),rgba(150,165,230,.08) calc(var(--ped-row) - 1px) var(--ped-row))}
 html.rx-shell.ped-grid body.rx-ped .calendar-column h3{display:flex;align-items:center;padding:0 12px;background:#0a1230;border-bottom:1px solid var(--line);font:600 12.5px/1 var(--rx-font);color:var(--ink-2)}
-html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today{background:rgba(255,95,162,.045)}
-html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today h3{color:var(--mk-soft);background:linear-gradient(180deg,rgba(255,95,162,.12),#0a1230)}
-html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today h3::after{background:var(--mk);box-shadow:0 0 8px var(--mk)}
+html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today{background:rgba(127,109,255,.045)}
+html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today h3{color:var(--mk-soft);background:linear-gradient(180deg,rgba(127,109,255,.12),#0a1230)}
+html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today h3::after{background:var(--ma-cy);box-shadow:0 0 8px var(--ma-cy)}
 html.rx-shell.ped-grid body.rx-ped .ped-hours{background:#0a1230;border-right:1px solid var(--line)}
 html.rx-shell.ped-grid body.rx-ped .ped-hours span{color:var(--subtle);font-size:11px}
 html.rx-shell.ped-grid body.rx-ped .ped-corner{display:none}
@@ -180,13 +185,13 @@ html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event.ped-compact 
 html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event.ped-compact>strong{-webkit-line-clamp:1;display:block;white-space:nowrap;text-overflow:ellipsis;font-size:12px}
 html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event.ped-compact:hover{padding:8px 9px 8px 10px;z-index:3}
 html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event.ped-compact:hover .ped-ch{position:absolute;top:8px;left:8px;width:20px;height:20px}
-html.rx-shell.ped-grid body.rx-ped .ped-now{border-top:2px solid var(--mk)}
-html.rx-shell.ped-grid body.rx-ped .ped-now::before{background:var(--mk);box-shadow:0 0 10px var(--mk)}
-html.rx-shell.ped-grid body.rx-ped .ped-now::after{background:var(--mk);border:0;color:var(--mk-ink);font-weight:700}
+html.rx-shell.ped-grid body.rx-ped .ped-now{border-top:2px solid var(--ma-cy)}
+html.rx-shell.ped-grid body.rx-ped .ped-now::before{background:var(--ma-cy);box-shadow:0 0 10px var(--ma-cy)}
+html.rx-shell.ped-grid body.rx-ped .ped-now::after{background:var(--ma-cy);border:0;color:#04121c;font-weight:700}
 /* month: a real month grid (the first day sits under its weekday), compact one-line cards */
 html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month{grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);overflow:hidden}
 html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-column{min-height:128px;padding:8px;border:0;border-radius:0;background:#081029}
-html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-column.ped-today{background:linear-gradient(180deg,rgba(255,95,162,.12),#081029 60%)}
+html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-column.ped-today{background:linear-gradient(180deg,rgba(127,109,255,.12),#081029 60%)}
 html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-column h3{margin:0 0 6px;padding:0;border:0;font-size:12px}
 html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-empty{display:none}
 html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar:is(.view-month,.view-year) .calendar-event{width:100%;margin:0 0 4px;padding:4px 6px 4px 6px;border-radius:8px;flex-direction:row;align-items:center;gap:6px;border-left-width:3px!important}
@@ -205,7 +210,7 @@ html.rx-shell.ped-agenda body.rx-ped .calendar-column.ped-empty{display:flex;ali
 html.rx-shell.ped-agenda body.rx-ped .calendar-column.ped-empty h3{margin:0}
 html.rx-shell.ped-agenda body.rx-ped .calendar-column.ped-empty .calendar-empty{padding:0;margin:0}
 html.rx-shell.ped-agenda body.rx-ped .calendar-column h3{margin:0 0 10px;padding:0;border:0;font-size:13px;color:var(--ink-2)}
-html.rx-shell.ped-agenda body.rx-ped .calendar-column.ped-today h3::after{content:"Oggi";margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--mk);color:var(--mk-ink);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:none}
+html.rx-shell.ped-agenda body.rx-ped .calendar-column.ped-today h3::after{content:"Oggi";margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--mk-btn);color:var(--mk-ink);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:none}
 html.rx-shell.ped-agenda body.rx-ped .calendar-event{width:100%;margin:0 0 8px;display:grid!important;grid-template-columns:24px minmax(44px,max-content) minmax(0,1fr);grid-template-areas:"ic time title" "ic time pill";align-items:center;column-gap:8px;row-gap:4px;padding:10px 12px}
 html.rx-shell.ped-agenda body.rx-ped .calendar-event .ped-ch{position:static;grid-area:ic;align-self:start;width:24px;height:24px;border-radius:7px;background-size:14px}
 html.rx-shell.ped-agenda body.rx-ped .calendar-event>small{grid-area:time;align-self:start;padding:0;min-height:24px;max-width:64px;font-size:12px;color:var(--ink-2);white-space:normal;line-height:1.2}
@@ -234,12 +239,12 @@ html.rx-shell body.rx-ped .kpi strong{font:700 28px/1.1 var(--rx-display);color:
 html.rx-shell body.rx-ped .kpi span{font-size:13px;font-weight:600;color:var(--ink-2)}
 html.rx-shell body.rx-ped .kpi small{font-size:12px;color:var(--subtle);overflow-wrap:anywhere}
 html.rx-shell body.rx-ped .kpi::before{top:16px;bottom:16px;background:var(--line-2)}
-html.rx-shell body.rx-ped .kpi:first-child::before{background:var(--mk)}
+html.rx-shell body.rx-ped .kpi:first-child::before{background:linear-gradient(180deg,#a08bff,#4fd2ff)}
 html.rx-shell body.rx-ped .kpi[data-tone=ok]::before{background:var(--st-approved)}
 html.rx-shell body.rx-ped .kpi[data-tone=warn]::before{background:var(--st-review)}
 html.rx-shell body.rx-ped .ped-analytics h3,html.rx-shell body.rx-ped .week-figure figcaption{font:600 12px/1.2 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--subtle)}
-html.rx-shell body.rx-ped .wk span{background:linear-gradient(180deg,var(--mk),rgba(166,139,255,.6))}
-html.rx-shell body.rx-ped .rc-bar{fill:var(--mk)}
+html.rx-shell body.rx-ped .wk span{background:linear-gradient(180deg,#8f7bff,#4c7dff 70%,rgba(56,211,255,.7))}
+html.rx-shell body.rx-ped .rc-bar{fill:#7f6dff}
 html.rx-shell body.rx-ped .rc-week.is-empty .rc-bar{fill:var(--line-2)}
 html.rx-shell body.rx-ped .rc-week:hover .rc-bar{fill:var(--mk-soft)}
 html.rx-shell body.rx-ped .channel-table th{color:var(--subtle);border-bottom-color:var(--line-2)}
@@ -264,12 +269,12 @@ html.rx-shell body.rx-ped .group-form{border-color:var(--line-2);border-radius:1
 html.rx-shell body.rx-ped #pedPage>.layout{gap:16px;align-items:start}
 html.rx-shell body.rx-ped #contentViews{border-color:var(--line);border-radius:12px;background:rgba(255,255,255,.02)}
 html.rx-shell body.rx-ped #contentViews button{min-height:32px;border:0;background:none;color:var(--muted);font-weight:500}
-html.rx-shell body.rx-ped #contentViews button[aria-pressed=true]{background:rgba(255,95,162,.16);color:var(--ink)}
+html.rx-shell body.rx-ped #contentViews button[aria-pressed=true]{background:rgba(127,109,255,.16);color:var(--ink)}
 html.rx-shell body.rx-ped .content-card{position:relative;display:grid;gap:6px;padding:14px 14px 14px 46px;border:1px solid var(--line)!important;border-radius:14px;background:rgba(5,10,28,.5);text-align:left;justify-content:stretch;align-items:start;min-height:0;font-weight:400}
 html.rx-shell body.rx-ped .content-card::before{content:"";position:absolute;left:14px;top:14px;width:22px;height:22px;border-radius:7px;background:var(--ch-icon) center/13px no-repeat,var(--ch-tile)}
 html.rx-shell body.rx-ped .content-card strong{font:600 14px/1.35 var(--rx-font);color:var(--ink)}
 html.rx-shell body.rx-ped .content-card small{color:var(--muted);line-height:1.45}
-html.rx-shell body.rx-ped .content-card[aria-pressed=true]{border-color:var(--mk)!important;box-shadow:0 0 0 1px var(--mk)}
+html.rx-shell body.rx-ped .content-card[aria-pressed=true]{border-color:var(--mk-sel)!important;box-shadow:0 0 0 1px var(--mk-sel);background:linear-gradient(180deg,rgba(106,92,255,.14),rgba(63,123,255,.05))}
 html.rx-shell body.rx-ped .empty{border:1px dashed var(--line-2);border-radius:16px;padding:28px;text-align:center;color:var(--muted);background:rgba(5,10,28,.3)}
 html.rx-shell body.rx-ped .ped-board section{border-radius:16px;background:rgba(5,10,28,.45);border-color:color-mix(in srgb,var(--c) 30%,var(--line))}
 
@@ -281,7 +286,7 @@ html.rx-shell body.rx-ped #copy{min-height:200px;line-height:1.55}
 html.rx-shell body.rx-ped #revision{display:inline-flex;margin:0 0 10px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);font-size:12px}
 /* the review actions: only what can be done now; the step that moves the content forward is the primary */
 html.rx-shell body.rx-ped #contentForm>.actions:has(#reviewContent) button:disabled{display:none}
-html.rx-shell body.rx-ped #contentForm #reviewContent:not(:disabled),html.rx-shell body.rx-ped #contentForm #approveContent:not(:disabled){background:var(--mk);border-color:var(--mk);color:var(--mk-ink)}
+html.rx-shell body.rx-ped #contentForm #reviewContent:not(:disabled),html.rx-shell body.rx-ped #contentForm #approveContent:not(:disabled){background:var(--mk-btn);border-color:transparent;color:var(--mk-ink)}
 html.rx-shell body.rx-ped .copy-check{border-radius:12px;border-color:rgba(245,199,107,.4);background:rgba(245,199,107,.06);color:var(--ink-2);font-size:13px}
 html.rx-shell body.rx-ped .copy-check.ok{border-color:rgba(62,224,143,.35);background:rgba(62,224,143,.06)}
 html.rx-shell body.rx-ped .media-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0;padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(5,10,28,.4)}
@@ -297,11 +302,11 @@ html.rx-shell body.rx-ped #variants .two{grid-template-columns:minmax(0,1fr) aut
 html.rx-shell body.rx-ped #variants .two>button{align-self:end;height:42px;min-height:42px;margin-bottom:16px}
 
 /* ---- Dialogs ---- */
-.rx-ped .review-dialog{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 48px);border:1px solid var(--line-2);border-radius:22px;background:linear-gradient(180deg,#0e1838,#070d24);color:var(--ink);box-shadow:0 40px 120px -30px rgba(0,0,0,.9),0 0 0 1px rgba(255,95,162,.12)}
-.rx-ped .review-dialog::backdrop{background:rgba(3,6,18,.72);backdrop-filter:blur(4px)}
-.rx-ped .review-head,.rx-ped .review-foot{padding:18px 24px;background:rgba(12,21,48,.96);backdrop-filter:blur(10px)}
+.rx-ped .review-dialog{width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 48px);border:1px solid var(--line-2);border-radius:20px;background:linear-gradient(180deg,#121c4a,#090f2c);color:var(--ink);box-shadow:0 40px 120px -30px rgba(0,0,0,.9),0 0 0 1px rgba(127,109,255,.18),0 0 90px -30px rgba(106,92,255,.5)}
+.rx-ped .review-dialog::backdrop{background:rgba(3,6,20,.72);backdrop-filter:blur(6px)}
+.rx-ped .review-head,.rx-ped .review-foot{padding:18px 24px;background:rgba(15,24,62,.96);backdrop-filter:blur(10px)}
 .rx-ped .review-head{border-bottom:1px solid var(--line);align-items:flex-start}
-.rx-ped .review-head .eyebrow{margin:0 0 6px;font:600 11.5px/1 var(--rx-font);letter-spacing:.18em;color:var(--mk-soft)}
+.rx-ped .review-head .eyebrow{margin:0 0 6px;font:600 11px/1.2 var(--rx-font);letter-spacing:.2em;color:#a9b4ff}
 .rx-ped .review-head h2{font:700 22px/1.2 var(--rx-display);margin:0 0 4px}
 .rx-ped .review-foot{border-top:1px solid var(--line)}
 .rx-ped .review-tools #reviewClose,.rx-ped .review-tools #identityClose{width:40px;padding:0;font-size:20px;font-weight:400;border-radius:12px}
@@ -355,7 +360,7 @@ html.rx-shell body.rx-ped #variants .two>button{align-self:end;height:42px;min-h
 .rx-ped .identity-fields .id-color{gap:12px;margin:0;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(5,10,28,.45);color:var(--ink-2);font-size:13px}
 .rx-ped .identity-fields input[type=color]{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.2);cursor:pointer}
 .rx-ped .identity-fields>label:not(.id-color){display:grid;gap:6px;margin-top:6px}
-.rx-ped .identity-preview{gap:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:radial-gradient(ellipse at 50% 0,rgba(255,95,162,.08),transparent 70%),rgba(5,10,28,.45)}
+.rx-ped .identity-preview{gap:14px;padding:16px;border:1px solid var(--line);border-radius:18px;background:radial-gradient(ellipse at 50% 0,rgba(127,109,255,.08),transparent 70%),rgba(5,10,28,.45)}
 .rx-ped .identity-preview canvas{border-radius:12px;box-shadow:0 18px 40px -20px rgba(0,0,0,.95)}
 /* toast: glass pill at the bottom with a status dot */
 .rx-ped .ped-toast{display:flex;align-items:center;gap:10px;padding:12px 18px;border:1px solid var(--line-2);border-radius:14px;background:rgba(12,21,48,.94);backdrop-filter:blur(12px);color:var(--ink);font-size:13.5px;box-shadow:0 20px 50px -18px rgba(0,0,0,.9)}
@@ -396,15 +401,15 @@ html.rx-shell body.rx-ped #variants .two>button{align-self:end;height:42px;min-h
   html.rx-shell body.rx-ped #pedPage.ped-has-rail>.calendar-toolbar{order:0}
   html.rx-shell body.rx-ped .calendar-toolbar{display:grid;grid-template-columns:minmax(0,1fr);padding:10px}
   html.rx-shell body.rx-ped .calendar-toolbar .view-switch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
-  html.rx-shell body.rx-ped .calendar-toolbar .view-switch button{min-height:40px;padding:0 4px}
-  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:40px}
-  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext){min-width:40px}
-  html.rx-shell body.rx-ped button.rx-logout,html.rx-shell body.rx-ped .rx-steps a{min-height:40px}
-  html.rx-shell body.rx-ped .rx-project-switch,html.rx-shell body.rx-ped .rx-project-extra a{display:inline-flex;align-items:center;min-height:40px}
+  html.rx-shell body.rx-ped .calendar-toolbar .view-switch button{min-height:44px;padding:0 4px}
+  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext,#calendarToday),html.rx-shell body.rx-ped .ped-rail-ch{min-height:44px}
+  html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:is(#calendarPrev,#calendarNext){min-width:44px}
+  html.rx-shell body.rx-ped button.rx-logout,html.rx-shell body.rx-ped .rx-steps a{min-height:44px}
+  html.rx-shell body.rx-ped .rx-project-switch,html.rx-shell body.rx-ped .rx-project-extra a{display:inline-flex;align-items:center;min-height:44px}
   html.rx-shell body.rx-ped #briefPage details>summary{padding:10px 0}
-  html.rx-shell body.rx-ped :is(#campaignList,#rubricList) .actions button,html.rx-shell body.rx-ped #rubricSuggest .chip,html.rx-shell body.rx-ped #contentViews button,html.rx-shell body.rx-ped #statsRefresh,html.rx-shell body.rx-ped #results .results-actions label.button{min-height:40px}
-  html.rx-shell body.rx-ped .result-posts th button.sort{display:inline-flex;align-items:center;min-height:40px}
-  html.rx-shell body.rx-ped .result-posts td button.linkish{min-height:40px;line-height:40px}
+  html.rx-shell body.rx-ped :is(#campaignList,#rubricList) .actions button,html.rx-shell body.rx-ped #rubricSuggest .chip,html.rx-shell body.rx-ped #contentViews button,html.rx-shell body.rx-ped #statsRefresh,html.rx-shell body.rx-ped #results .results-actions label.button{min-height:44px}
+  html.rx-shell body.rx-ped .result-posts th button.sort{display:inline-flex;align-items:center;min-height:44px}
+  html.rx-shell body.rx-ped .result-posts td button.linkish{min-height:44px;line-height:44px}
   html.rx-shell body.rx-ped .calendar-toolbar .period-nav{justify-content:space-between;margin:0}
   html.rx-shell body.rx-ped .calendar-toolbar #calendarLabel{flex:1;text-align:center;font-size:15px}
   html.rx-shell body.rx-ped .calendar-toolbar label.tz{display:none}
@@ -421,7 +426,7 @@ html.rx-shell body.rx-ped #variants .two>button{align-self:end;height:42px;min-h
   .rx-ped .review-head,.rx-ped .review-foot{padding:14px 16px}
   .rx-ped .review-head h2{font-size:19px}
   .rx-ped .review-head .eyebrow{letter-spacing:.12em}
-  .rx-ped .review-tools #reviewRedraw{min-height:36px;padding:0 10px;font-size:12.5px;max-width:140px;white-space:normal;line-height:1.15}
+  .rx-ped .review-tools #reviewRedraw{min-height:44px;padding:0 10px;font-size:12.5px;max-width:140px;white-space:normal;line-height:1.15}
   .rx-ped .review-list{grid-template-columns:minmax(0,1fr);padding:16px;gap:14px}
   .rx-ped .review-foot>.muted{flex-basis:100%;font-size:12px}
   .rx-ped .identity-start{padding:14px 16px}
@@ -452,3 +457,67 @@ html.rx-shell body.rx-ped .results-actions label.button{min-height:38px}
 html.rx-shell body.rx-ped .result-posts th:nth-child(2),html.rx-shell body.rx-ped .result-posts td:nth-child(2){text-align:left}
 /* Guida «?»: white on the light Marketing violet was 2.6:1; dark ink reads at AA. */
 body.rx-ped button.rx-guide-fab{color:#140a2e}
+/* ==== Marketing look «A» (shell/marketing-a.css): the finishing touches of the PED. Styling only: ids, markup and
+   behaviour are the ones of editorial-workspace.js, lib/ped-views.js, lib/ped-results.js and shell/ped-calendar.js. ==== */
+/* title and panels: the type and the glass of the home */
+html.rx-shell body.rx-ped main>header h1{font:700 clamp(32px,3.2vw,44px)/1.05 var(--rx-display);letter-spacing:-.03em;color:var(--ma-tx)}
+html.rx-shell body.rx-ped .panel,html.rx-shell body.rx-ped details.ped-analytics{border-radius:16px;border-color:var(--ma-line);background:linear-gradient(180deg,rgba(24,36,90,.42),rgba(13,21,58,.36));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+html.rx-shell body.rx-ped #pedPage .hero{border-color:rgba(140,150,255,.24);background:radial-gradient(ellipse 50% 90% at 100% 0,rgba(76,125,255,.14),transparent 70%),radial-gradient(ellipse 40% 80% at 0 0,rgba(127,109,255,.12),transparent 70%),linear-gradient(180deg,rgba(24,36,90,.5),rgba(13,21,58,.42))}
+/* the four steps: the strip of the guided studios, the current one lit by the gradient, the done ones green */
+html.rx-shell body.rx-ped .ped-steps{border-color:var(--ma-line-2);border-radius:14px;background:rgba(8,14,40,.55)}
+html.rx-shell body.rx-ped .ped-steps .ped-step{min-height:80px}
+html.rx-shell body.rx-ped .ped-steps li[data-state=current]{background:linear-gradient(180deg,rgba(106,92,255,.2),rgba(63,123,255,.05))}
+html.rx-shell body.rx-ped .ped-steps .ped-step:hover:not(:disabled){background:rgba(127,109,255,.08)}
+html.rx-shell body.rx-ped .ps-num{color:var(--ma-tx2);background:rgba(20,30,72,.8);box-shadow:inset 0 0 0 1px var(--ma-line-2)}
+html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-num{background:radial-gradient(circle at 35% 30%,#2dbfa0,#145a50);box-shadow:0 0 0 1px rgba(52,211,154,.5)}
+html.rx-shell body.rx-ped .ped-steps li[data-state=done] .ps-num::before{border-color:#fff}
+/* section tabs and the channel chips */
+html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link[aria-current]{background:var(--mk-sel-bg);border-color:var(--mk-sel);box-shadow:0 8px 20px -12px rgba(80,100,255,.8)}
+/* calendar: the toolbar and the frame in the same glass; «Oggi» and the arrows as the secondary buttons */
+html.rx-shell body.rx-ped .calendar-toolbar{border-color:var(--ma-line);border-radius:16px 16px 0 0;background:rgba(13,21,58,.72)}
+html.rx-shell body.rx-ped .calendar,html.rx-shell.ped-grid body.rx-ped .calendar{border-color:var(--ma-line);border-radius:0 0 16px 16px;background:rgba(7,12,34,.86)}
+html.rx-shell body.rx-ped .calendar-toolbar .view-switch button[aria-pressed=true]{background:var(--mk-sel-bg);color:#fff;box-shadow:inset 0 0 0 1px var(--mk-sel)}
+html.rx-shell body.rx-ped .calendar-toolbar #calendarToday,html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:not(#calendarToday){border:1px solid var(--ma-line-2);background:rgba(20,30,72,.5);color:var(--ma-tx)}
+html.rx-shell body.rx-ped .calendar-toolbar #calendarToday:hover,html.rx-shell body.rx-ped .calendar-toolbar .period-nav>button:not(#calendarToday):hover{border-color:rgba(160,170,255,.5);background:rgba(30,42,96,.6);color:var(--ma-tx)}
+html.rx-shell.ped-grid body.rx-ped .calendar-column h3,html.rx-shell.ped-grid body.rx-ped .ped-hours,html.rx-shell.ped-grid body.rx-ped .ped-allday,html.rx-shell.ped-grid body.rx-ped .calendar.ped-has-allday .ped-corner{background:#0b1334}
+html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today{background:rgba(76,125,255,.06)}
+html.rx-shell.ped-grid body.rx-ped .calendar-column.ped-today h3{color:#fff;background:linear-gradient(180deg,rgba(106,92,255,.24),#0b1334)}
+html.rx-shell body.rx-ped .calendar-column.ped-today h3{color:#d6dcff}
+html.rx-shell:not(.ped-grid):not(.ped-agenda) body.rx-ped .calendar.view-month .calendar-column.ped-today{background:linear-gradient(180deg,rgba(106,92,255,.18),#0a1230 60%)}
+html.rx-shell body.rx-ped .calendar-event,html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event,html.rx-shell.ped-grid body.rx-ped .ped-allday .calendar-event{background:linear-gradient(180deg,rgba(26,38,92,.96),rgba(15,24,62,.96))!important}
+html.rx-shell body.rx-ped .calendar-event:hover:not(:disabled),html.rx-shell.ped-grid body.rx-ped .calendar-column>.calendar-event:hover:not(:disabled){background:linear-gradient(180deg,rgba(40,48,120,.98),rgba(22,32,82,.98))!important}
+/* status line under the calendar, KPI and charts */
+html.rx-shell body.rx-ped .metric,html.rx-shell body.rx-ped .kpi{border-color:var(--ma-line);background:rgba(10,17,48,.55)}
+html.rx-shell body.rx-ped .result-posts th button.sort,html.rx-shell body.rx-ped .result-posts td button.linkish{min-height:32px}
+/* dialogs: the cards of the review in glass; the post itself (white mock-up, the client's own image) is left as it is */
+.rx-ped .post-preview:not(.publish-preview){border-color:var(--ma-line);background:linear-gradient(180deg,rgba(24,36,90,.42),rgba(13,21,58,.36))}
+.rx-ped .post-preview[data-state=approved]{border-color:rgba(52,211,154,.5);box-shadow:0 0 0 1px rgba(52,211,154,.25)}
+.rx-ped .identity-fields .id-color,.rx-ped .identity-preview{border-color:var(--ma-line);background:rgba(10,17,48,.55)}
+.rx-ped .review-tools #reviewClose,.rx-ped .review-tools #identityClose{min-height:44px;width:44px}
+.rx-ped .identity-start{align-items:center}
+.rx-ped .identity-start>:is(button,.button){margin:0;min-height:44px}
+.rx-ped .identity-preview{align-self:start}
+/* campaigns violet, rubrics cyan (the old pink and blue of the base layer are gone) */
+html.rx-shell body.rx-ped .ped-groups{--ped-campaign:#b3a6ff;--ped-rubric:var(--ma-cy)}
+html.rx-shell body.rx-ped .group-form button[type=submit]{border-color:var(--mk-sel);color:#fff;background:var(--mk-sel-bg)}
+/* Buffer: a mode that is not available reads as quiet text (AA), not as a faded control */
+.rx-ped .publish-modes label{border-color:var(--ma-line-2);background:rgba(10,17,48,.55)}
+.rx-ped .publish-modes label:has(input:disabled){opacity:1;color:var(--ma-mut);border-style:dashed;background:none}
+/* Instagram avatar of the mock-up: white initial at AA on the darker end of the Instagram gradient */
+.rx-ped [data-channel=instagram]:is(.post-preview) .pp-avatar,.rx-ped .publish-preview[data-channel=instagram] .pp-avatar{background:linear-gradient(45deg,#c13584,#833ab4)}
+/* toast: the glass pill of the studios, a violet edge */
+.rx-ped .ped-toast{border-color:var(--ma-line-2);background:rgba(16,24,64,.95);box-shadow:inset 3px 0 0 #a99cff,0 20px 50px -18px rgba(0,0,0,.9)}
+/* focus: the cyan ring of the Marketing pages everywhere, dialogs included */
+.rx-ped :is(button,a,summary,select,input,textarea,[tabindex]):focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+@media (max-width:767px){
+  /* phone: every control of the PED and of its dialogs is at least 44px tall, as on the home and in the studios */
+  html.rx-shell body.rx-ped :is(main,dialog) :is(button,.button,summary,select,input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file])),html.rx-shell body.rx-ped .ped-rail>a.ped-rail-link{min-height:44px!important}
+  html.rx-shell body.rx-ped .identity-fields input[type=color]{width:44px;height:44px}
+  html.rx-shell body.rx-ped :is(.rx-topbar button,.rx-steps a,.rx-project-switch,.rx-project-extra a){min-height:44px}
+  html.rx-shell body.rx-ped .rx-topbar button.rx-iconbtn,html.rx-shell body.rx-ped .rx-steps a{min-width:44px}
+  html.rx-shell body.rx-ped .ped-steps .ped-step{min-height:64px}
+  html.rx-shell body.rx-ped .ped-steps li[data-state=current]::after{background:linear-gradient(180deg,#a08bff,#4fd2ff)}
+  /* the four steps come first in the plan's card: what to do next before the goal of the plan */
+  html.rx-shell body.rx-ped #pedPage .hero>.ped-steps{grid-row:1}
+  html.rx-shell body.rx-ped #pedPage .hero #briefSummary{grid-row:2;font-size:13px;color:var(--ma-tx2)}
+}
