@@ -17,7 +17,7 @@ function parse(bytes){const s=ascii(bytes);assert.ok(s.startsWith('%PDF-1.4\n'),
  const [,first,count]=/^xref\n(\d+) (\d+)\n/.exec(s.slice(sx)).map(Number);assert.equal(first,0);
  const rows=s.slice(sx).split('\n').slice(2,2+count);assert.equal(rows[0],'0000000000 65535 f ');
  rows.slice(1).forEach((r,i)=>{assert.match(r,/^\d{10} 00000 n $/);const off=+r.slice(0,10);assert.equal(s.slice(off,off+String(i+1).length+6),(i+1)+' 0 obj','object '+(i+1)+' at its offset')});
- assert.match(s,new RegExp('trailer\\n<< /Size '+count+' /Root 1 0 R /Info \\d+ 0 R >>'));
+ assert.match(s,new RegExp('trailer\\n<< /Size '+count+' /Root 1 0 R /Info \\d+ 0 R( /ID \\[<[0-9A-F]{32}> <[0-9A-F]{32}>\\])? >>'));
  const pages=[...s.matchAll(/\/Type \/Page \/Parent [^\n]*?\/MediaBox \[([^\]]+)\] \/BleedBox \[([^\]]+)\] \/TrimBox \[([^\]]+)\]/g)].map(m=>({media:m[1].split(' ').map(Number),bleed:m[2].split(' ').map(Number),trim:m[3].split(' ').map(Number)}));
  const n=+/\/Type \/Pages \/Kids \[[^\]]*\] \/Count (\d+)/.exec(s)[1];assert.equal(pages.length,n,'page objects = /Count');return {s,pages,count:n}}
 
@@ -27,7 +27,7 @@ test('mm → pt: 72 pt per inch of 25.4 mm, and back',()=>{
 });
 
 test('formats and page sizes: print page = trim + 3 mm bleed + 6 mm slug per side, bleed box = trim + 3 mm; web = trim',()=>{
- assert.deepEqual(P.FORMATS.map(f=>[f.id,f.w,f.h,f.pages.length]),[['biglietto',85,55,2],['flyer',148,210,1],['locandina-a4',210,297,1],['locandina-a3',297,420,1],['carta',210,297,1],['brochure',297,210,2]]);
+ assert.deepEqual(P.FORMATS.map(f=>[f.id,f.w,f.h,f.pages.length]),[['biglietto',85,55,2],['flyer',148,210,1],['locandina-a4',210,297,1],['locandina-a3',297,420,1],['locandina-a2',420,594,1],['rollup',850,2000,1],['carta',210,297,1],['brochure',297,210,2]]);
  const b=P.pageSize('biglietto','print');assert.deepEqual([b.w,b.h,b.bleedW,b.bleedH,b.bleed,b.slug],[103,73,91,61,3,6]);assert.equal(Math.round(b.wPt*100)/100,291.97);
  assert.deepEqual([P.pageSize('biglietto','web').w,P.pageSize('biglietto','web').h],[85,55]);
  assert.deepEqual([P.pageSize('locandina-a3','print').bleedW,P.pageSize('locandina-a3','print').bleedH],[303,426]);
@@ -111,7 +111,8 @@ test('brand: the kit from the profile, else neutral colours and the name as word
  assert.equal(brand.fromKit,true);assert.equal(brand.palette.primary,'#2F5D50');assert.equal(brand.logo,LOGO);assert.equal(brand.fonts.heading,'Fraunces');
  const none=P.brandOf({},'Bottega Rossi — PED');assert.equal(none.fromKit,false);assert.equal(none.logo,'');assert.equal(none.name,'Bottega Rossi');
  const d=P.layout('biglietto',{name:'Bottega Rossi'},none);assert.ok(d.pages[0].items.some(i=>i.wordmark&&i.s==='Bottega Rossi'));
- assert.ok(P.notes(d).some(n=>/colori neutri/.test(n)));assert.ok(P.notes(d).some(n=>/RGB: la tipografia li converte in CMYK/.test(n)));
+ assert.ok(P.notes(d).some(n=>/colori neutri/.test(n)));assert.ok(P.notes(d).some(n=>/PDF per la tipografia in CMYK, pronto per la tipografia \(PDF\/X-1a, verifica preflight\)[^]*FOGRA39[^]*preflight/.test(n)));
+ assert.ok(P.notes({...d,format:'catalogo'}).some(n=>/RGB: la tipografia li converte in CMYK/.test(n)),'other studios keep the RGB note');
  const v=P.prefill(PROFILE,{projectName:'Forno Bianchi — PED'});
  assert.deepEqual(v,{name:'Forno Bianchi',payoff:'',phone:'035 123 4567',email:'info@fornobianchi.it',website:'www.fornobianchi.it',address:'Via Roma 12, 24121 Bergamo',vat:''});
  assert.equal(P.prefill({contacts:{telefono:'02 1234567'}}).phone,'02 1234567');
@@ -139,8 +140,8 @@ test('preview SVG: same items, bleed veil, trim line, dashed safe areas per pane
 
 test('saved in the project: one exchange in the Art Director thread, with format, texts, colours, checks and print notes',async()=>{
  const doc=P.layout('biglietto',{...VALUES,margin:2},brand),md=P.toMarkdown(doc,{date:'2026-10-21'});
- assert.match(md,/^# Stampa · Biglietto da visita · Forno Bianchi/);assert.match(md,/PDF per la tipografia: formato \+ 3 mm di abbondanza per lato \(91 × 61 mm\), segni di taglio fuori dall’abbondanza \(pagina 103 × 73 mm\) · margine 2 mm · 2026-10-21/);
- assert.match(md,/- \*\*Nome e cognome\*\*: Anna Bianchi/);assert.match(md,/## Colori \(RGB\)\n\n- Primario: #2F5D50/);assert.match(md,/## Da controllare\n\n- (Fronte|Retro): /);assert.match(md,/Helvetica/);
+ assert.match(md,/^# Stampa · Biglietto da visita · Forno Bianchi/);assert.match(md,/PDF per la tipografia: formato \+ 3 mm di abbondanza per lato \(91 × 61 mm\), segni di taglio fuori dall’abbondanza \(pagina 103 × 73 mm\), pronto per la tipografia \(PDF\/X-1a, verifica preflight\) · margine 2 mm · 2026-10-21/);
+ assert.match(md,/- \*\*Nome e cognome\*\*: Anna Bianchi/);assert.match(md,/## Colori \(HEX e CMYK\)\n\n- Primario: #2F5D50 · CMYK 49 0 14 64 \(calcolato\) · inchiostro 127%/);assert.match(md,/nero ricco C60 M40 Y40 K100/);assert.match(md,/layout Classico/);assert.match(md,/## Da controllare\n\n- (Fronte|Retro): /);assert.match(md,/Helvetica/);
  assert.equal(P.filename(doc,'print'),'stampa-biglietto-forno-bianchi-tipografia.pdf');assert.equal(P.filename(doc,'web'),'stampa-biglietto-forno-bianchi-web.pdf');
  class ConflictError extends Error{}let saved=null,tries=0;
  const ws={ConflictError,bind:(id,name)=>{assert.equal(id,'forno');assert.equal(name,'agents');return {load:async()=>({schemaVersion:1,conversations:{'art-director':[{role:'user',content:'prima'}]}}),save:async x=>{if(!tries++)throw new ConflictError('conflitto');saved=x;return x}}}};

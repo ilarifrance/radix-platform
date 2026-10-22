@@ -5,6 +5,8 @@
 (function(root,factory){const api=factory(root);if(typeof module==='object'&&module.exports)module.exports=api;else{root.RadixNewProjectSteps=api;if(root.document)api.start()}})(typeof globalThis!=='undefined'?globalThis:this,function(root){
 'use strict';
 const STEPS=5;
+// The one RADIX confirmation (lib/radix-confirm.js); the browser confirm only if that script is missing.
+const askConfirm=o=>{const C=root.RadixConfirm||(typeof require==='function'?require('../lib/radix-confirm.js'):null);return C?C.ask(o):Promise.resolve(!!root.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')))};
 // What each step needs before the next one: field id and the message when it is empty.
 const REQUIRED={1:[['name','Scrivi il nome del progetto.']],2:[['goal','Scrivi l’obiettivo, oppure scegli una delle tre proposte.'],['audience','Scrivi il pubblico target.']]};
 function ideasPrompt(b,materials){
@@ -46,7 +48,7 @@ function start(){
  // Three directions from the Marketing Manager AI, after confirmation.
  $('proposeGoals').addEventListener('click',async()=>{const p=P();if(!p)return;const b=p.draftBrief(),box=$('goalIdeas'),btn=$('proposeGoals');
   if(!b.name){go(1);$('message').textContent='Scrivi prima il nome del progetto.';$('name').focus();return}
-  if(!await p.requireAuth())return;if(!root.confirm('Chiedere tre proposte al Marketing Manager AI? La chiamata consuma crediti API.'))return;
+  if(!await p.requireAuth())return;if(!await askConfirm({title:'Chiedere tre proposte al Marketing Manager AI?',cost:'È una chiamata AI: consuma crediti API.',message:'Ricevi tre direzioni da cui scegliere: nulla viene salvato finché non ne usi una.',ok:'Chiedi tre proposte'})||btn.disabled)return;
   btn.disabled=true;box.replaceChildren();$('message').textContent='Il Marketing Manager AI prepara tre direzioni…';
   try{const images=p.imageBlocks(),prompt=ideasPrompt(b,p.referenceText()+(p.imageLabel()?'\nImmagini: '+p.imageLabel():'')),content=images.length?[{type:'text',text:prompt},...images]:prompt;
    const r=await root.fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role:'marketing-orchestrator',project:{id:'agency-preview',name:b.name,kind:b.industry||'Marketing project'},messages:[{role:'user',content}]})});

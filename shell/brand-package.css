@@ -1,0 +1,48 @@
+/* Pacchetto logo e brand book (lib/brand-package.js), under the chosen direction of the Kit identità. Loaded by the module. */
+.bp{display:flex;flex-direction:column;gap:18px;padding:20px;border:1px solid var(--rx-border-strong,#2c3a63);border-radius:16px;background:linear-gradient(180deg,rgba(124,92,255,.08),rgba(124,92,255,0) 220px),var(--rx-surface,rgba(10,14,28,.6));min-width:0}
+.bp [hidden]{display:none!important}
+.bp-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.bp-head>div:first-child{min-width:0;flex:1 1 320px}
+.bp-eyebrow{margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--rx-agency,#a68bff)}
+.bp h4{margin:0;font-size:20px;font-weight:650;letter-spacing:-.01em;color:var(--rx-text,#f3f4ff)}
+.bp-sub{margin:4px 0 0;font-size:13px;color:var(--rx-muted,#aeb9da)}
+.bp-actions{display:flex;flex-wrap:wrap;gap:8px}
+.bp-actions button{min-height:40px}
+.bp-status{margin:0;font-size:13px;color:var(--rx-muted,#aeb9da)}
+.bp-body{display:flex;flex-direction:column;gap:22px;min-width:0}
+.bp-sec{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bp-sec-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.bp h5{margin:0;font-size:14px;font-weight:600;color:var(--rx-text,#f3f4ff)}
+.bp-note{margin:0;font-size:12px;color:var(--rx-muted,#aeb9da)}
+.bp-variants{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.bp-variant{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.bp-art{position:relative;aspect-ratio:4/3;border-radius:12px;border:1px solid rgba(255,255,255,.08)}
+.bp-variant[data-variant=simbolo] .bp-art>svg{inset:20% 30%;width:40%;height:60%}
+.bp-art>svg{position:absolute;inset:20% 14%;width:72%;height:60%;display:block}
+.bp-variant figcaption{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--rx-muted,#aeb9da);min-width:0}
+.bp-variant figcaption b{font-size:13px;font-weight:600;color:var(--rx-text,#f3f4ff)}
+.bp-min{color:var(--rx-text,#dfe5f7)}
+.bp-rules{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:16px;align-items:start}
+.bp-rule{display:flex;align-items:center;justify-content:center;padding:28px;border-radius:12px;min-width:0}
+.bp-rule>svg{display:block;width:100%;height:auto;max-height:200px}
+.bp-facts,.bp-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:13px}
+.bp-facts li{display:flex;flex-wrap:wrap;gap:2px 10px;padding:7px 0;border-bottom:1px solid var(--rx-border,#26324a);color:var(--rx-muted,#aeb9da)}
+.bp-facts b{min-width:120px;color:var(--rx-text,#f3f4ff);font-weight:600}
+.bp-checks{margin-top:12px}
+.bp-checks li{position:relative;padding-left:20px;color:#cfd7ef}
+.bp-checks li::before{content:"";position:absolute;left:2px;top:6px;width:9px;height:9px;border-radius:50%;background:#3dd68c}
+.bp-checks li[data-ok=false]::before{background:#f5b544}
+.bp-icons{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 22px}
+.bp-icon,.bp-avatar{margin:0;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--rx-muted,#aeb9da)}
+.bp-icon img{display:block;image-rendering:auto;border-radius:4px;background:repeating-conic-gradient(rgba(255,255,255,.12) 0 25%,transparent 0 50%) 0 0/8px 8px}
+.bp-icon img[data-size="180"]{border-radius:14px}
+.bp-avatar-art{width:96px;height:96px;border-radius:50%;overflow:hidden;box-shadow:0 0 0 1px rgba(255,255,255,.12)}
+.bp-avatar-art>svg{display:block;width:100%;height:100%}
+.bp-book{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 12px;overscroll-behavior-x:contain}
+.bp-page{margin:0;flex:0 0 min(560px,82%);scroll-snap-align:start;display:flex;flex-direction:column;gap:6px}
+.bp-page-art{border-radius:6px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.06);background:#fff}
+.bp-page-art>svg{display:block;width:100%;height:auto}
+.bp-page figcaption{font-size:12px;color:var(--rx-muted,#aeb9da)}
+.bp-warn{margin:0;padding:10px 12px;border-radius:10px;font-size:12.5px;color:#f5c76b;background:rgba(245,181,68,.1);border:1px solid rgba(245,181,68,.25)}
+@media (max-width:900px){.bp-variants{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.bp{padding:14px}.bp-rules{grid-template-columns:1fr}.bp-actions{width:100%}.bp-actions button{flex:1 1 auto}.bp-page{flex-basis:86%}}

@@ -4,10 +4,12 @@ const s=require('../lib/copy-studio.js');
 const catalog=require('../agency/catalog.json'),rt=require('../lib/radix-agent-runtime.js');
 const ids=s.SERVICES.map(x=>x.id);
 // Values that fill every required field of a service.
-const filled=(id,extra)=>{const v={project:{name:'Forno Rossi',voice:'Caldo e diretto'}};for(const f of s.service(id).fields)v[f.id]='Valore scritto dalla persona per '+f.id;return Object.assign(v,extra||{})};
+// Fields with a format of their own get a valid value (the SMS sender: at most 11 characters).
+const VALID={sender:'FornoRossi'};
+const filled=(id,extra)=>{const v={project:{name:'Forno Rossi',voice:'Caldo e diretto'}};for(const f of s.service(id).fields)v[f.id]=VALID[f.id]||'Valore scritto dalla persona per '+f.id;return Object.assign(v,extra||{})};
 
-test('the eight services: valid configs with a catalog role, questions, fields and sections',()=>{
- assert.deepEqual(ids,['naming','lancio','annunci','testi','newsletter','brochure','scheda','presentazione']);
+test('the fifteen services: valid configs with a catalog role, questions, fields and sections',()=>{
+ assert.deepEqual(ids,['naming','lancio','annunci','testi','newsletter','brochure','scheda','presentazione','comunicato','persona','concorrenza','sequenze','tono','influencer','sms']);
  const roles=Object.keys(catalog.roles);
  for(const x of s.SERVICES){
   assert.ok(roles.includes(x.role),x.id+' role '+x.role);assert.ok(rt.AGENTS.some(a=>a.id===x.role),x.id+' runtime agent');
@@ -25,8 +27,9 @@ test('the eight services: valid configs with a catalog role, questions, fields a
 });
 
 test('prefill from the project profile; the confirmed facts that go in the prompt',()=>{
- assert.deepEqual(s.prefill({name:'Forno Rossi',summary:'  Forno a Torino:   pane e dolci ',audience:'Famiglie'}),{offer:'Forno a Torino: pane e dolci',audience:'Famiglie',name:'Forno Rossi'});
- assert.deepEqual(s.prefill(null),{offer:'',audience:'',name:''});
+ assert.deepEqual(s.prefill({name:'Forno Rossi',summary:'  Forno a Torino:   pane e dolci ',audience:'Famiglie'}),{offer:'Forno a Torino: pane e dolci',audience:'Famiglie',name:'Forno Rossi',sender:'FornoRossi'});
+ assert.deepEqual(s.prefill(null),{offer:'',audience:'',name:'',sender:''});
+ assert.equal(s.prefill({name:'Caffè Città & Più Srl'}).sender,'CaffeCittaP','the SMS sender: no accents nor symbols, 11 characters');
  assert.equal(s.prefill({positioning:'Il forno del quartiere'}).offer,'Il forno del quartiere');
  assert.deepEqual(s.projectFacts({name:'Forno Rossi',voice:'caldo',links:'x'}),['Nome: Forno Rossi','Tono di voce: caldo']);
 });
@@ -34,7 +37,7 @@ test('prefill from the project profile; the confirmed facts that go in the promp
 test('every prompt: 3 proposals, the user data, the confirmed facts, the no-invention rules and the marker format',()=>{
  for(const id of ids){const x=s.service(id),p=s.proposalsPrompt(id,{},filled(id));
   assert.match(p,new RegExp('^Prepara 3 proposte alternative di '+x.what.replace(/[()]/g,'\\$&')),id);assert.match(p,/«Forno Rossi»/);
-  for(const f of x.fields)assert.ok(p.includes(f.label+': «Valore scritto dalla persona per '+f.id+'»'),id+' '+f.id);
+  const v=filled(id);for(const f of x.fields)assert.ok(p.includes(f.label+': «'+v[f.id]+'»'),id+' '+f.id);
   assert.match(p,/Fatti confermati del progetto:\n- Nome: Forno Rossi\n- Tono di voce: Caldo e diretto/);
   assert.match(p,/Usa solo i fatti confermati del progetto e quello che è scritto qui\. Non inventare numeri, prezzi, sconti, clienti, premi, certificazioni, recensioni o risultati\./);
   assert.match(p,/«da verificare»/);assert.match(p,/Italiano semplice/);
@@ -156,12 +159,12 @@ test('the entry saved in the role thread is an agent document; saving keeps the 
 
 test('the widget confirms before the one AI call, uses the service role with its memory and saves the edited text',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','lib/copy-studio.js'),'utf8');
- assert.match(src,/confirm\('Preparare 3 proposte di «'\+svc\.title\+'» con '\+who\+' AI\? È una sola chiamata AI: usa crediti API\.'\)\)return;\s*lock\(true\)/);
+ assert.match(src,/if\(!await askConfirm\(\{title:'Preparare 3 proposte di «'\+svc\.title\+'» con '\+who\+' AI\?',cost:'È una sola chiamata AI: usa crediti API\.',ok:'Prepara le proposte'\}\)\)return;\s*lock\(true\)/);
  assert.match(src,/rt\.reply\(\{role:svc\.role,project:ctx\.project,memoryScope:ctx\.memoryScope,messages:\[\{role:'user',content:prompt\}\]\}\)/);
  assert.equal((src.match(/rt\.reply\(/g)||[]).length,1,'one AI call');
  assert.ok(!/fetch\(/.test(src),'no requests of its own');
  assert.match(src,/saveToProject\(ctx\.workspace,ctx\.projectId,id,p,out\.value/,'what is saved is the edited textarea');
- assert.match(src,/writeText\(out\.value\)/);assert.match(src,/new root\.Blob\(\[out\.value\]/);
+ assert.match(src,/writeText\(out\.value\)/);assert.match(src,/dl\.onclick=\(\)=>file\(out\.value,'text\/markdown'/);assert.match(src,/new root\.Blob\(\[text\]/);
  assert.ok(!/out\.readOnly=true/.test(src),'the chosen text is editable');
  assert.match(src,/'tool photo-studio copy-studio'/);
 });
