@@ -61,6 +61,9 @@
   // At the planned local time while it is still ahead (5 minutes margin); otherwise only Buffer's next free slot is possible.
   function publishSchedule(state,item,now){const tz=timeZoneOf(state),at=item?zonedTime(item.date,item.time,tz):null,t=now==null?Date.now():now;if(!at)return {mode:'queue',timezone:tz,scheduledAt:null,reason:'missing'};if(Date.parse(at)<=t+5*60000)return {mode:'queue',timezone:tz,scheduledAt:at,reason:'past'};return {mode:'scheduled',timezone:tz,scheduledAt:at,reason:''}}
   // What an approval of a content covers; the server checks the same fields before publishing.
+  // Revisions with the same words as the current one, newest first: saving only graphics, format or slides makes a
+  // new revision that stays approved, so the server approval of an earlier revision with the same words still counts.
+  function sameWordRevisions(item){const k=x=>[x.title,x.channel,x.date,x.time||'',x.copy,x.strategyRevision].join('\u0000'),cur=k(item),out=[item.revision];for(const h of (item.history||[]).slice().sort((a,b)=>b.revision-a.revision)){if(k(h)!==cur)break;out.push(h.revision)}return out}
   function approvalPayload(item){return {title:item.title,channel:item.channel,date:item.date,time:item.time||'',copy:item.copy,revision:item.revision}}
   // Publishing calendar as .ics (RFC 5545) for Google Calendar or Outlook: one event per dated content, at its
   // wall-clock time in the PED time zone (30 minutes) or all day when it has no time. Stable UIDs per content,
@@ -75,6 +78,6 @@
   function icsText(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n')}
   // Lines over 75 octets continue after CRLF + space, never splitting a character.
   function icsFold(line){const size=ch=>{const c=ch.codePointAt(0);return c<128?1:c<2048?2:c<65536?3:4};let n=0,limit=75,cur='';const out=[];for(const ch of line){const b=size(ch);if(n+b>limit){out.push(cur);cur='';n=0;limit=74}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')}
-  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats,DEFAULT_TIMEZONE,validTimeZone,timeZoneOf,setTimeZone,zonedTime,publishSchedule,approvalPayload,calendarIcs,icsFold};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
+  const api={fields,missing,key,create,revise,approveBrief,calendarPeriod,planFingerprint,approvePlan,isPlanApproved,updateContent,review,restore,addComment,addVariant,variantsOf,restoreVersion,saveCampaign,saveRubric,removeGroup,tagContent,rubricsFromBrief,campaignStats,DEFAULT_TIMEZONE,validTimeZone,timeZoneOf,setTimeZone,zonedTime,publishSchedule,approvalPayload,sameWordRevisions,calendarIcs,icsFold};if(typeof module!=='undefined')module.exports=api;else root.RadixEditorial=api;
 })(typeof window==='undefined'?globalThis:window);
 

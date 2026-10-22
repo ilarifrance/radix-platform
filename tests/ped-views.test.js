@@ -146,3 +146,14 @@ test('social posts lose markdown the network would show literally',()=>{
  assert.ok(!pv.postProblems('Uno\n\nDue?\n\n#PMI #vendite','LinkedIn').some(p=>p.id==='markdown'));
  assert.match(pv.copyPrompt({},{title:'T',channel:'LinkedIn'}),/niente markdown/);
 });
+test('agent document wrappers and notes are removed from the text to publish',()=>{
+ assert.equal(pv.cleanCopy('---DOCUMENTO: Script video YouTube – Delega---\nCiao, sono Francesco.\n\nCi vediamo.\n\n---FINE DOCUMENTO---\n\nScript completo per video YouTube, durata 8-10 minuti.'),'Ciao, sono Francesco.\n\nCi vediamo.');
+ assert.equal(pv.cleanCopy('Ecco lo script.\n---DOCUMENTO: X---\nSolo questo'),'Solo questo');
+ assert.equal(pv.cleanCopy('Testo semplice\n\n#PMI'),'Testo semplice\n\n#PMI');
+});
+test('avatar scripts get a spoken length from the strategy minutes',()=>{
+ assert.match(pv.videoLength({channels:'YouTube: 2 video/mese da 8-10 minuti con avatar AI'},{channel:'YouTube'}),/8-10 minuti, quindi tra 1\.120 e 1\.400 parole/);
+ assert.match(pv.videoLength({},{channel:'YouTube'}),/8-10 minuti/);
+ assert.match(pv.videoLength({},{channel:'Instagram Reel'}),/meno di un minuto e mezzo, quindi tra 110 e 180 parole/);
+ assert.match(pv.copyPrompt({channels:'YouTube 5-6 min'},{title:'T',channel:'YouTube'}),/5-6 minuti, quindi tra 700 e 840 parole/);
+});
