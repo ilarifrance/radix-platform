@@ -203,7 +203,8 @@ const routing=window.RadixAgencyRouting;
 // Client facts and real cases from the agency workspace (fallback: the project profile), the only source for figures and stories.
 function clientFacts(){const b=(agency&&agency.brief)||(registryProject&&registryProject.profile&&registryProject.profile.brief)||{};
  return (b.facts?'FATTI VERIFICATI DEL CLIENTE: '+String(b.facts).slice(0,4000)+'\n':'')+'CASI REALI DEL CLIENTE (gli unici da raccontare): '+(b.cases?String(b.cases).slice(0,4000):'nessuno fornito: non inventarne, scrivi [caso reale da fornire]')}
-const tools=()=>'\n\n'+clientFacts()+(routing&&routing.RADIX_TOOLS?'\n'+routing.RADIX_TOOLS:'');
+// Published posts speak to the audience: only the client's facts, never the list of RADIX tools (no product names).
+const tools=()=>'\n\n'+clientFacts();
 const sourcesOf=item=>[JSON.stringify(state.brief||{}),clientFacts(),item.title||'',((item.history||[])[0]||{}).copy||'',item.copy||''].join('\n');
 const scope=agentId=>({projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId});
 async function produceCopy(item,progress,note){
@@ -253,6 +254,18 @@ async function changeFormat(item,format){if(writing||!rt||!media)return false;
  try{const slides=await produceSlides({...cur,format});setFormat(cur.id,format);setSlides(cur.id,slides);setPhoto(cur.id,null);persist(format==='carousel'?'Carosello salvato nel post.':'Immagine singola salvata nel post.');
   try{await attachSlides(state.contents.find(x=>x.id===cur.id))}catch(e){notify('Grafica salvata, ma non allegata al post: '+e.message)}return true}
  catch(e){setFormat(cur.id,prev);notify('Grafica non disponibile: '+e.message);return false}finally{writing=false}}
+// One click from a long video: the Copywriter picks its strongest passage as a 30-40 second avatar script and writes
+// the LinkedIn post that goes with it; the clip is saved as the LinkedIn version of the video and sent to review.
+async function makeClip(item){if(writing||!rt)return;
+ if(!await askConfirm({title:'Creare lo spezzone per LinkedIn?',cost:'Scrittura più controllo automatico: consuma crediti API. Il video dello spezzone si genera dopo, con i crediti HeyGen.',message:'Nasce il post LinkedIn con lo script di 30-40 secondi preso dal video, nello stesso giorno del video.',ok:'Crea lo spezzone'})||writing)return;
+ writing=true;notify('Il Copywriter sceglie il passaggio più forte del video…');
+ try{const r=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:pv.clipPrompt(state.brief,item)+tools()}]});
+  let clip=pv.parseClip(r.text);const sources=sourcesOf(item);
+  if(routing){try{const rv=await rt.reply({role:'fact-checker',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:routing.reviewPrompt(clip.post,sources)}]});clip={...clip,post:routing.applyReview(clip.post,rv.text).text}}catch(e){}}
+  const v=core.addVariant(state,item.id,'LinkedIn',crypto.randomUUID()),next=core.updateContent(state,{...v,title:'Spezzone · '+item.title,copy:clip.post,script:clip.script,format:'video'});
+  const numbers=routing?routing.unsupportedNumbers(clip.post+'\n'+clip.script,sources):[];if(!numbers.length)core.review(state,next.id,'request');
+  persist(numbers.length?'Spezzone creato: ci sono numeri da verificare prima di approvarlo.':'Spezzone per LinkedIn creato e inviato in revisione.');openContent(next.id);renderPed()}
+ catch(e){notify('Spezzone non creato: '+e.message)}finally{writing=false}}
 function setPhoto(id,photo){const c=state.contents.find(x=>x.id===id);if(!c)return c;if(photo)c.photo=photo;else delete c.photo;return c}
 // After an approval the post gets its graphics without further clicks: the Art Director draws them if missing and
 // they are attached for Buffer, unless images are already attached (for example with AI backgrounds).
@@ -298,7 +311,10 @@ function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!i
   const b=document.createElement('button');b.type='button';b.textContent='Prepara la campagna nel CRM';b.disabled=!item.copy.trim();
   b.onclick=()=>{try{localStorage.setItem('radix-crm-campaign-draft',JSON.stringify({subject:String(item.title||'').slice(0,200),body:String(item.copy||'').slice(0,4000),source:'PED · '+(project&&project.name||''),at:Date.now()}))}catch(e){notify('Il browser non permette di passare la bozza al CRM: copia il testo a mano.');return}location.href='/radix-sales.html#contacts'};
   box.append(b);return}
- if(kind==='video'){head.textContent='Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';const t=item.copy.trim()&&media.videoTool(item.copy,{onReady:url=>{const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={url,at:new Date().toISOString()};persist('Link del video salvato nel post (scade dopo 7 giorni).')},avatar:registryProject&&registryProject.profile&&registryProject.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(projectId)});if(t)box.append(t);return}
+ if(kind==='video'){const script=String(item.script||item.copy||'');head.textContent=item.script?'Spezzone video con avatar AI: il testo qui sopra accompagna il video, lo script parlato è qui sotto. Genera il video (crediti HeyGen): con Invia a Buffer parte insieme al post.':'Video con avatar AI: il testo qui sopra è lo script. Salva la versione, poi genera la bozza video (crediti HeyGen).';
+  if(item.script){const pre=document.createElement('p');pre.className='pp-script';pre.textContent='Script dello spezzone: '+item.script;box.append(pre)}
+  if(!item.script&&/youtube/i.test(item.channel||'')&&item.copy.trim()){const c=document.createElement('button');c.type='button';c.textContent='✂ Crea lo spezzone per LinkedIn';c.disabled=writing;c.onclick=()=>makeClip(item);box.append(c)}
+  const t=script.trim()&&media.videoTool(script,{onReady:url=>{const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={url,at:new Date().toISOString()};persist('Link del video salvato nel post (scade dopo 7 giorni).')},avatar:registryProject&&registryProject.profile&&registryProject.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(projectId)});if(t)box.append(t);return}
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'Rigenera la grafica':(kind==='carousel'?'Crea le slide del carosello':'Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
  b.onclick=async()=>{if(writing||!rt)return;if(!await askConfirm({title:'Chiedere la grafica all’Art Director AI?',cost:'Consuma crediti API.',message:'La grafica viene salvata nel contenuto.',ok:'Crea la grafica'})||writing)return;writing=true;b.disabled=true;notify('Art Director AI al lavoro…');

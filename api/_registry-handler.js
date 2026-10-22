@@ -7,6 +7,7 @@ const {getSessionUser}=require('./_auth');
 const core=require('./_registry-core');
 const memory=require('./_agency-memory-store');
 const editorial=require('../editorial-core.js');
+const pv=require('../lib/ped-views.js');
 const projectJourney=require('../lib/project-journey.js');
 const send=(res,code,data)=>res.status(code).json(data);
 function bodyOf(req){if(typeof req.body==='string')return JSON.parse(req.body||'{}');return req.body||{}}
@@ -243,6 +244,15 @@ async function publications(req,res,db,uid,deps){
  if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
  let post;
  const base='https://'+String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
+ // Video posts (a YouTube video or a LinkedIn clip) go out with the generated video, copied to Blob first.
+ if(pv.mediaKind(item)==='video'){
+  const url=item.video&&item.video.url;if(!url)return failed(400,'Genera prima il video con l’avatar: il post video parte con il video allegato');
+  if(!process.env.BLOB_READ_WRITE_TOKEN||!deps.copyVideo)return failed(503,'Archivio video non collegato: manca BLOB_READ_WRITE_TOKEN');
+  let video;try{video=await deps.copyVideo(process.env.BLOB_READ_WRITE_TOKEN,{name:String(r.contentId).toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,60)||'video',url})}
+  catch(e){return failed(502,'Video non preparato per Buffer: '+core.clean(e&&e.message,300))}
+  try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,video})}
+  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il video: '+core.clean(e&&e.message,300))}
+ }else{
  let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
  // With a public Blob store, Buffer gets public copies (Preview protection would block the signed RADIX url).
  const blobToken=process.env.BLOB_READ_WRITE_TOKEN;
@@ -253,6 +263,7 @@ async function publications(req,res,db,uid,deps){
  }else images=images.map(mid=>base+mediaUrl(mid));
  try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,images})}
  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
+ }
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
  await log(db,uid,r.projectId,'publication.queued',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,revision:r.revision,mode:r.mode,scheduledAt,postId:String(post.postId)});
  return send(res,201,{ok:true,item:rows[0]});
@@ -359,7 +370,7 @@ module.exports=async(req,res)=>{
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{
-  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,putBlob:require('./_blob').putPublic});
+  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,putBlob:require('./_blob').putPublic,copyVideo:require('./_blob').copyVideo});
  }catch(e){
   if(e instanceof SyntaxError)return send(res,400,{error:'JSON non valido'});
   if(e instanceof core.InputError)return send(res,400,{error:e.message});

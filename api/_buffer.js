@@ -59,11 +59,15 @@ async function bufferGraphQL(apiKey, query, variables) {
 // Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
 // viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
 // il post, 502 se la risposta non è valida.
-async function createPost(apiKey, { channelId, text, dueAt, images }) {
+async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
   const scheduled = !!dueAt;
   const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
   // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
-  const assets = pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
+  // A video post carries one { video: { url } } entry instead of images (developers.buffer.com/examples/create-video-post).
+  const clip = /^https:\/\//.test(String(video || '')) ? String(video) : '';
+  const assets = clip
+    ? ', assets: [{ video: { url: ' + JSON.stringify(clip) + ' } }]'
+    : pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
   const data = await bufferGraphQL(
     apiKey,
     // Inline literals, as in Buffer's own examples: ids use Buffer's own scalar types (ChannelId,
