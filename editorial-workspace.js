@@ -208,7 +208,7 @@ const sourcesOf=item=>[JSON.stringify(state.brief||{}),clientFacts(),item.title|
 const scope=agentId=>({projectId,clientId:String(registryProject&&registryProject.client_id||''),agentId});
 async function produceCopy(item,progress,note){
  const r=await rt.reply({role:'copywriter',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:pv.copyPrompt(state.brief,item,note)+tools()}]},{onProgress:progress});
- let text=pv.cleanCopy(r.text),applied=[];const sources=sourcesOf(item);
+ let text=pv.plainSocial(pv.cleanCopy(r.text),item.channel),applied=[];const sources=sourcesOf(item);
  if(routing){try{const rv=await rt.reply({role:'fact-checker',project:rt.profileFor(registryProject),memoryScope:scope('copywriter'),messages:[{role:'user',content:routing.reviewPrompt(text,sources)}]});const fixed=routing.applyReview(text,rv.text);text=fixed.text;applied=fixed.applied}catch(e){}}
  return {text,applied,numbers:routing?routing.unsupportedNumbers(text,sources):[]};
 }

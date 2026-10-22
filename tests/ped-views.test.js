@@ -138,3 +138,11 @@ test('a post can be switched to a carousel and keeps the choice across saves',()
  core.updateContent(state,{id:'b',title:'T',channel:'LinkedIn',copy:'x',format:'altro'});
  assert.equal(state.contents.find(x=>x.id==='b').format,undefined);
 });
+test('social posts lose markdown the network would show literally',()=>{
+ assert.equal(pv.plainSocial('**Titolo**\nTesto __forte__\n## Sezione\n#PMI','LinkedIn'),'Titolo\nTesto forte\nSezione\n#PMI');
+ assert.equal(pv.plainSocial('**ok**','Newsletter LinkedIn'),'**ok**');
+ assert.equal(pv.plainSocial('**ok**','Blog'),'**ok**');
+ assert.ok(pv.postProblems('**Uno**\n\nDue?','LinkedIn').some(p=>p.id==='markdown'));
+ assert.ok(!pv.postProblems('Uno\n\nDue?\n\n#PMI #vendite','LinkedIn').some(p=>p.id==='markdown'));
+ assert.match(pv.copyPrompt({},{title:'T',channel:'LinkedIn'}),/niente markdown/);
+});
