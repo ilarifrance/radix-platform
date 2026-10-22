@@ -124,3 +124,17 @@ test('planPrompt and slidesPrompt steer formats and the image claim',()=>{
  assert.match(pv.planPrompt({brief:{},contents:[]},'2026-10-21'),/Alterna i formati/);
  assert.match(pv.slidesPrompt({channel:'LinkedIn',title:'T',copy:'c'},{}),/non il titolo ripetuto/);
 });
+test('a post can be switched to a carousel and keeps the choice across saves',()=>{
+ assert.equal(pv.mediaKind({channel:'LinkedIn',title:'T'}),'image');
+ assert.equal(pv.mediaKind({channel:'LinkedIn',title:'T',format:'carousel'}),'carousel');
+ assert.equal(pv.mediaKind({channel:'Instagram',title:'T',format:'image'}),'image');
+ assert.equal(pv.mediaKind({channel:'YouTube',title:'T',format:'carousel'}),'video');
+ assert.equal(pv.mediaKind({channel:'Newsletter email',title:'T',format:'carousel'}),'email');
+ assert.match(pv.slidesPrompt({channel:'LinkedIn',title:'T',copy:'c',format:'carousel'},{}),/carosello da 5 a 8 slide/);
+ const state={briefApproved:true,strategyRevision:1,contents:[]};
+ core.updateContent(state,{id:'a',title:'T',channel:'LinkedIn',copy:'x',format:'carousel'});
+ core.updateContent(state,{id:'a',title:'T',channel:'LinkedIn',copy:'y'});
+ assert.equal(state.contents.find(x=>x.id==='a').format,'carousel');
+ core.updateContent(state,{id:'b',title:'T',channel:'LinkedIn',copy:'x',format:'altro'});
+ assert.equal(state.contents.find(x=>x.id==='b').format,undefined);
+});
