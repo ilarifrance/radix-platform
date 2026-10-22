@@ -119,6 +119,8 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm section[aria-label="Stato del salvataggio"]{background:none;border:0;padding:0;margin:0 0 6px;box-shadow:none}
 .rx-pm #storage-status{margin:0;font-size:12px;color:var(--rx-subtle)}
 .rx-pm #storage-status::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rx-success);margin-right:8px;vertical-align:middle}
+.rx-pm #storage-status.warn{font-size:14px;font-weight:600;color:var(--rx-warning)}.rx-pm #storage-status.warn::before{background:var(--rx-warning)}
+.rx-pm #tasks>p.warn{color:var(--rx-warning);font-weight:600}
 .rx-pm #project-note{font-size:12px;color:var(--rx-subtle);margin:4px 0 0}
 /* Filters on one line on wide screens */
 @media (min-width:1280px){

@@ -207,3 +207,7 @@ html.ag-has-globe .rx-agency .planet-wrap{height:190px;-webkit-mask-image:linear
 .rx-now>b{font-weight:700;color:#8fe3c6}.rx-now[data-actor=you]>b{color:#f2d28c}
 .rx-now span{flex:1 1 260px}
 .rx-now-go{color:#c9fbe9;border:1px solid currentColor;border-radius:9px;padding:6px 11px;text-decoration:none;white-space:nowrap}
+/* Marketing on the phone: every tap target at least 40px tall (WCAG 2.5.8 with room to spare). */
+@media (max-width:640px){html.rx-shell body.rx-agency button.rx-logout{min-height:40px;padding:0 12px}}
+/* Guida «?»: white on the light Marketing violet was 2.6:1; dark ink reads at AA. */
+body.rx-agency button.rx-guide-fab{color:#140a2e}

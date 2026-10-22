@@ -182,12 +182,12 @@ test('the AI reply: actions tied to queries or pages not in the data are dropped
 
 test('the panel: 3-step guide, confirmation text, opened from the Studio SEO e GEO tab and the SEO card',()=>{
  assert.equal(R.GUIDE.length,3);assert.match(R.GUIDE[0],/Prestazioni/);assert.match(R.GUIDE[1],/Esporta[^.]*Scarica CSV/);assert.match(R.GUIDE[2],/\.zip/);
- assert.match(R.CONFIRM,/solo i numeri/);assert.match(R.CONFIRM,/crediti API/);
+ assert.match(R.CONFIRM.message,/solo i numeri/);assert.match(R.CONFIRM.cost,/crediti API/);
  assert.deepEqual(S.RESULTS_SCRIPTS.map(x=>x[0]),['/lib/zip-lite.js','/lib/seo-results-core.js','/lib/seo-results.js']);assert.equal(S.RESULTS_CSS,'/shell/seo-results.css');
  for(const f of ['lib/seo-results.js','lib/seo-results-core.js','shell/seo-results.css'])assert.ok(fs.existsSync(path.join(root,f)),f);
  const studio=fs.readFileSync(path.join(root,'lib/seo-studio.js'),'utf8');assert.match(studio,/button\('Risultati SEO'\)/);assert.match(studio,/R\.seoResults\(\{project:ctx\.project,projectId:ctx\.projectId,workspace:ctx\.workspace/);
  const ui=fs.readFileSync(path.join(root,'lib/seo-results.js'),'utf8');
- assert.match(ui,/if\(!root\.confirm\(CONFIRM\)\)return;/);assert.ok(ui.indexOf('root.confirm(CONFIRM)')<ui.indexOf('rt.reply('),'confirm before the call');
+ assert.match(ui,/if\(!await askConfirm\(CONFIRM\)\)return;/);assert.ok(ui.indexOf('askConfirm(CONFIRM)')<ui.indexOf('rt.reply('),'confirm before the call');assert.ok(!ui.includes('root.confirm(\''),'no native confirm left');
  assert.match(ui,/rt\.reply\(\{role:C\.AGENT,messages:\[\{role:'user',content:prompt\}\]\}\)/,'no project profile or memory in the call');
  assert.equal(C.AGENT,'seo-geo');assert.match(require('../agency/crea-core.js').card('seo').line,/Risultati SEO/);
  assert.match(fs.readFileSync(path.join(root,'shell/seo-results.css'),'utf8'),/\.seo-results \.sr-tiles/);

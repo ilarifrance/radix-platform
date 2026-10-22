@@ -149,7 +149,7 @@ test('PED page: «Risultati» panel wired, AI next steps only after confirm, sta
  for(const id of ['results','statsRefresh','statsFile','resultTiles','resultChart','resultPosts','nextSteps','nextStepList'])assert.match(html,new RegExp('id="'+id+'"'));
  assert.match(html,/<script src="\/lib\/ped-results\.js"><\/script>/);
  const body=src.slice(src.indexOf('async function nextSteps'),src.indexOf('function renderNextSteps'));
- assert.ok(body.indexOf('confirm(')>0&&body.indexOf('confirm(')<body.indexOf('rt.reply('));assert.match(body,/crediti API/);
+ assert.ok(body.indexOf('await askConfirm(')>0&&body.indexOf('await askConfirm(')<body.indexOf('rt.reply('),'the RADIX confirmation before the AI call');assert.match(body,/crediti API/);assert.ok(!/[^.\w]confirm\(/.test(body),'no native confirm');
  assert.doesNotMatch(body,/tools\(\)|clientFacts|project:/);
  const core=require('../editorial-core.js'),state=core.create({id:'p1',name:'P'});state.briefApproved=true;state.strategyRevision=1;
  core.updateContent(state,{id:'c1',title:'T',channel:'LinkedIn',copy:'x'});state.contents[0].stats={source:'csv',metrics:{impressions:5}};state.contents[0].statsAt='2026-10-21T00:00:00Z';

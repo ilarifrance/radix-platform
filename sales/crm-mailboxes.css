@@ -1,0 +1,34 @@
+/* CRM «Caselle email» and «Coda invii» (sales/crm-mailboxes.js). */
+details.crm-mailboxes>summary{color:var(--crm-text,inherit)}
+.crm-mb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin:10px 0}
+.crm-mb-card{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px;border:1px solid var(--crm-line,#2b3550);border-radius:12px;background:var(--crm-soft,transparent)}
+.crm-mb-card p{margin:0;overflow-wrap:anywhere}
+.crm-mb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.crm-mb-head strong{color:var(--crm-text,inherit);overflow-wrap:anywhere}
+.crm-mb-badge{flex:none;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d)}
+.crm-mb-card[data-status=paused] .crm-mb-badge{background:var(--crm-warn-soft,#fdf3e3);color:var(--crm-warn,#a85b06)}
+.crm-mb-card[data-status=error] .crm-mb-badge{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.crm-mb-meta{font-size:13px;color:var(--crm-muted,inherit)}
+.crm-mb-error{font-size:13px;color:var(--crm-err,#b42318)}
+.crm-mb-card .actions{flex-wrap:wrap;margin-top:6px}
+.crm-mb-pass input{flex:1 1 180px;min-width:0}
+.crm-mb-add{display:grid;gap:10px;padding:12px;border:1px dashed var(--crm-line-2,#3a4566);border-radius:12px}
+.crm-mb-add h4{margin:0;color:var(--crm-text,inherit)}
+.crm-mb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.crm-mb-grid[hidden],.crm-mb-help[hidden]{display:none}
+.crm-mb-field{display:grid;gap:4px;font-size:13px;color:var(--crm-text,inherit);min-width:0}
+.crm-mb-field input,.crm-mb-field select{width:100%;box-sizing:border-box}
+.crm-mb-field small{font-size:12px}
+.crm-mb-help{padding:10px 12px;border-radius:10px;background:var(--crm-info-soft,#eaf0fe);color:var(--crm-text,inherit);font-size:13px}
+.crm-mb-help ol{margin:6px 0 0;padding-left:20px}
+.crm-mb-queue{display:grid;gap:4px;padding:10px 12px;margin:8px 0;border:1px solid var(--crm-line,#2b3550);border-radius:12px}
+.crm-mb-queue p{margin:0}
+.crm-mb-queue strong{color:var(--crm-text,inherit);overflow-wrap:anywhere}
+.crm-mb-queue>button{justify-self:start}
+.crm-mb-stats{display:flex;flex-wrap:wrap;gap:6px}
+.crm-mb-stat{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--crm-accent-soft,#f2ecfe);color:var(--crm-accent,#6d28d9)}
+.crm-mb-stat[data-kind=sent]{background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d)}
+.crm-mb-stat[data-kind=failed]{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.crm-mb-stat[data-kind=skipped],.crm-mb-stat[data-kind=cancelled]{background:var(--crm-soft,#f8f7fb);color:var(--crm-muted,#55516a)}
+@media (max-width:600px){.crm-mb-list,.crm-mb-grid{grid-template-columns:1fr}.crm-mb-card .actions button{flex:1 1 auto}}
+.crm-mb-link{align-self:center;font-size:13px;font-weight:500;white-space:nowrap}

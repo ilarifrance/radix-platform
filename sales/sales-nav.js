@@ -37,6 +37,10 @@
       { href: CRM + '#members', text: 'Membri', ic: 'team' },
       { href: CRM + '#processes', text: 'Processi', ic: 'flow' },
       { href: CRM + '#stages', text: 'Fasi', ic: 'steps' }
+    ] },
+    // Password, membri, caselle email, collegamenti, regole CRM: one page for every setting (impostazioni.html).
+    { label: 'Sistema', items: [
+      { href: '/impostazioni.html', text: 'Impostazioni', ic: 'sliders' }
     ] }
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };

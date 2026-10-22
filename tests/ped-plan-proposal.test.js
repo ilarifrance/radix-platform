@@ -40,7 +40,7 @@ test('picked items become drafts of the current strategy, with rubric and the an
 test('PED page offers the proposal and wires it to the Social Media Manager',()=>{
  const html=fs.readFileSync('project-editorial.html','utf8'),js=fs.readFileSync('editorial-workspace.js','utf8');
  for(const id of ['proposePlan','planProposal','proposalList','acceptProposal','discardProposal'])assert.ok(html.includes('id="'+id+'"'),id);
- assert.ok(js.includes("role:'social-media-manager'"));assert.ok(js.includes('pv.parsePlan(r.text,state,today)'));assert.ok(js.includes('confirm('));
+ assert.ok(js.includes("role:'social-media-manager'"));assert.ok(js.includes('pv.parsePlan(r.text,state,today)'));const body=js.slice(js.indexOf('async function proposePlan'),js.indexOf('function renderProposal'));assert.ok(body.indexOf('await askConfirm(')>0&&body.indexOf('await askConfirm(')<body.indexOf('rt.reply('),'the RADIX confirmation before the AI call');
 });
 
 test('the plan prompt carries the real weekdays of the next 8 weeks',()=>{
