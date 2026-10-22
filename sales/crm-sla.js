@@ -97,5 +97,5 @@ function section(section){
  section.insertBefore(bar,board);section.insertBefore(settingsPanel(),board);
  applyFilter(section);
 }
-Object.assign(S,{load,current,mount,section});
+Object.assign(S,{load,current,mount,section,settingsPanel});// settingsPanel: also mounted by impostazioni.html (shell/settings.js)
 })(typeof globalThis!=='undefined'?globalThis:this);
