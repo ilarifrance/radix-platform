@@ -125,7 +125,9 @@ test('Tab stays inside the dialog',async()=>{
 test('the stylesheet: same tokens as the studios, 390px layout, focus ring, reduced motion',()=>{
  const css=read('shell/radix-confirm.css');
  for(const s of ['.rx-confirm{','.rx-confirm::backdrop','.rx-confirm-title','.rx-confirm-cost','.rx-confirm-tag','.rx-confirm-actions','.rx-confirm-yes','.rx-confirm-no','focus-visible','prefers-reduced-motion','@media (max-width:480px)','width:min(480px,calc(100vw - 32px))'])assert.ok(css.includes(s),s);
- assert.match(css,/--rc-mk:#ff5fa2/);assert.match(css,/--rc-amber:#f5c76b/);
+ // the Marketing look «A»: each token reads shell/marketing-a.css with the same value as fallback; white text on the gradient
+ assert.match(css,/--rc-ink:var\(--ma-tx,#e9edff\)/);assert.match(css,/--rc-amber:var\(--ma-warn,#f4b552\)/);assert.match(css,/--rc-btn:var\(--ma-btn,linear-gradient\(135deg,#6a5cff,#3f7bff\)\)/);
+ assert.match(css,/\.rx-confirm-yes\{[^}]*background:var\(--rc-btn\);color:#fff/);assert.ok(!/ff5fa2|255,95,162/.test(css),'no Marketing pink left');
  assert.ok(!/https?:\/\//.test(css+read('lib/radix-confirm.js')),'nothing external');
 });
 

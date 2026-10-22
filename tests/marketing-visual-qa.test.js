@@ -6,14 +6,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const css=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
 const media=(src,q)=>{const out=[];let i=0;const tag='@media ('+q+')';while((i=src.indexOf(tag,i))>=0){let d=0,j=src.indexOf('{',i);const s=j;for(;j<src.length;j++){if(src[j]==='{')d++;else if(src[j]==='}'&&--d===0)break}out.push(src.slice(s,j+1));i=j}return out.join('\n')};
 
-test('Studio Avatar: the project select never widens the page, Marketing pink with dark ink, 40px controls',()=>{
+test('Studio Avatar: the project select never widens the page, the Marketing «A» primary with white text, 44px controls',()=>{
  const a=css('shell/avatar.css');
  assert.match(a,/\.av-page \.av-project\{[^}]*min-width:0;max-width:100%/);
  assert.match(a,/\.av-page \.av-project select\{[^}]*max-width:100%/);
- assert.match(a,/\.av-page \.av-primary\{[^}]*background:var\(--mk\)[^}]*color:var\(--mk-ink\)/);
- assert.match(a,/\.av-page\{--mk:#ff5fa2;--mk-ink:#1a0610\}/);
+ assert.match(a,/\.av-page \.av-primary\{[^}]*background:var\(--ma-btn,[^}]*color:var\(--mk-ink\)/);
+ assert.match(a,/\.av-page\{--mk:var\(--ma-vi,#7f6dff\);--mk-ink:#fff;/);assert.ok(!/ff5fa2|255,95,162/.test(a),'no Marketing pink left');
  assert.match(a,/\.av-page button,\.av-page \.av-button\{[^}]*min-height:44px/);
- assert.match(a,/\.av-page \.av-chip\{[^}]*min-height:40px/);
+ assert.match(a,/\.av-page \.av-chip\{[^}]*min-height:44px/);
  assert.match(media(a,'max-width:760px'),/\.av-page \.av-project,\.av-page \.av-project select\{width:100%\}/);
 });
 

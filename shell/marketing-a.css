@@ -1,14 +1,16 @@
 /* Marketing Agency, design direction «A» (navy glass, violet to cyan): the shared tokens and components of the
-   Marketing pages. Scope: any container with class .ma (agency/orbit.html first; «Cosa vuoi fare», the studios and
-   the PED can adopt them later). Text colours are checked at WCAG AA on the darkest and the lightest panel:
+   Marketing pages. Scope: any container with class .ma (agency/orbit.html first; «Cosa vuoi fare», the guided studios use
+   them through shell/crea.css; the PED can adopt them later). Text colours are checked at WCAG AA on the darkest and the lightest panel:
    --ma-tx 15:1, --ma-tx2 8.6:1, --ma-mut 5.6:1, --ma-link 7.9:1 on #0e1838. */
-.ma{--ma-bg:#050a1c;--ma-panel:rgba(16,26,64,.52);--ma-panel-2:rgba(22,34,82,.55);--ma-solid:#0d1736;
+/* .ma-root: the same tokens without the type and colour, for a <body> whose overlays (dialogs, the RadixConfirm) live
+   outside the .ma container. */
+.ma,.ma-root{--ma-bg:#050a1c;--ma-panel:rgba(16,26,64,.52);--ma-panel-2:rgba(22,34,82,.55);--ma-solid:#0d1736;
   --ma-line:rgba(128,146,255,.14);--ma-line-2:rgba(128,146,255,.26);
   --ma-tx:#e9edff;--ma-tx2:#b4bce0;--ma-mut:#8f99c4;--ma-link:#9bb8ff;
   --ma-vi:#7f6dff;--ma-bl:#4c7dff;--ma-cy:#38d3ff;--ma-ok:#34d39a;--ma-warn:#f4b552;--ma-err:#ff7a85;
   --ma-grad:linear-gradient(90deg,#a08bff,#5e93ff 55%,#4fd2ff);--ma-btn:linear-gradient(135deg,#6a5cff,#3f7bff);
-  --ma-r:14px;--ma-focus:#7fe9ff;
-  color:var(--ma-tx);font-family:var(--rx-font,Inter,system-ui,sans-serif)}
+  --ma-r:14px;--ma-focus:#7fe9ff}
+.ma{color:var(--ma-tx);font-family:var(--rx-font,Inter,system-ui,sans-serif)}
 .ma *,.ma *::before,.ma *::after{box-sizing:border-box}
 .ma a{color:inherit;text-decoration:none}
 .ma :focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px;border-radius:8px}
