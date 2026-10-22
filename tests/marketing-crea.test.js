@@ -4,7 +4,7 @@ const core=require('../agency/crea-core.js');
 const root=path.join(__dirname,'..');
 
 test('the panel has the services of the approved proposal plus the text services',()=>{
- assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Buyer persona','Analisi della concorrenza','Nome e slogan','Kit identità','Coordinato aziendale','Tono di voce per canale','Social e post','Post grafici','Testi per sito, blog e prodotti','Comunicato stampa','Brief per influencer','Evento o fiera','Newsletter','Newsletter HTML','Sequenze email','SMS','Immagini','Foto prodotto','Avatar','Video','Reel e video prodotto','Sito web','SEO e GEO','Analisi del sito','Testi per annunci Google e Meta','Creatività per annunci','Scheda Google e recensioni','Schede prodotto e feed','Traduzione e localizzazione','Stampa e documenti','Catalogo prodotti','Menu e listino','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
+ assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Buyer persona','Analisi della concorrenza','Report mensile al cliente','Nome e slogan','Kit identità','Coordinato aziendale','Tono di voce per canale','Social e post','Post grafici','Testi per sito, blog e prodotti','Comunicato stampa','Brief per influencer','Evento o fiera','Newsletter','Newsletter HTML','Sequenze email','SMS','Immagini','Foto prodotto','Avatar','Video','Reel e video prodotto','Sito web','SEO e GEO','Analisi del sito','Testi per annunci Google e Meta','Creatività per annunci','Scheda Google e recensioni','Schede prodotto e feed','Traduzione e localizzazione','Stampa e documenti','Catalogo prodotti','Menu e listino','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
  for(const c of core.CARDS)assert.ok(c.cost&&c.action&&c.line,c.id);
  assert.equal(new Set(core.CARDS.map(c=>c.id)).size,core.CARDS.length,'unique ids');
 });
@@ -13,7 +13,7 @@ test('every card has one of the 8 groups; the filters list only groups with card
  assert.deepEqual(core.GROUPS,['Brand','Strategia','Web e annunci','Social e contenuti','Email e SMS','Stampa e documenti','Immagini','Video']);
  for(const c of core.CARDS)assert.ok(core.GROUPS.includes(c.group),c.id+' '+c.group);
  const by=g=>core.CARDS.filter(c=>c.group===g).map(c=>c.id);
- assert.deepEqual(by('Strategia'),['strategy','lancio','persona','concorrenza']);assert.deepEqual(by('Brand'),['naming','identita','coordinato','tono']);
+ assert.deepEqual(by('Strategia'),['strategy','lancio','persona','concorrenza','report']);assert.deepEqual(by('Brand'),['naming','identita','coordinato','tono']);
  assert.deepEqual(by('Social e contenuti'),['social','graphics','testi','comunicato','influencer','evento']);
  assert.deepEqual(by('Email e SMS'),['newsletter','emailhtml','sequenze','sms']);
  assert.deepEqual(by('Web e annunci'),['site','seo','analisi','annunci','creativita','google','schede','traduzione']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','menu','brochure','scheda','presentazione','documenti']);
@@ -55,7 +55,7 @@ test('without a project only strategy leads somewhere (new project); no card goe
  assert.equal(core.linkFor(core.card('social'),''),null);
  assert.equal(core.linkFor(core.card('social'),'bad id!'),null);
  assert.deepEqual(core.CARDS.filter(c=>c.state!=='ready').map(c=>c.id),[],'every card is guided');
- assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['identity','coordinato','event','mail','photo','productphoto','video','reel','site','seo','audit','ads','gbp','feed','translate','print','catalog','menu','docs']);
+ assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['report','identity','coordinato','event','mail','photo','productphoto','video','reel','site','seo','audit','ads','gbp','feed','translate','print','catalog','menu','docs']);
  // an agent card would still open the agent with the request prefilled, never sent on its own
  assert.match(core.linkFor({agent:'web-developer',ask:'ciao'},'radix'),/^\/agents\.html\?agent=web-developer&project=radix&q=ciao$/);
  assert.match(fs.readFileSync(path.join(root,'agents-page.js'),'utf8'),/prefilled, never sent on its own/);
