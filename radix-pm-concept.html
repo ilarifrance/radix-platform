@@ -252,7 +252,7 @@ async function boot(){
   current=registry.find(p=>p.id===wanted)||registry[0];
   doc=ws.bind(current.id,'pm');const saved=await doc.load();
   let synced=[],added=[];
-  if(saved){state=pm.validateState(saved);if(current.kind==='agency'){try{const agency=await ws.documents.load(current.id,'agency-workspace');added=views.addFromAgency(pm,state,agency.data,new Date().toISOString().slice(0,10));synced=views.syncFromAgency(pm,state,agency.data&&agency.data.tasks);}catch(e){}}}
+  if(saved){try{state=pm.validateState(saved)}catch(err){throw Error('Il piano salvato di «'+current.name+'» non è leggibile ('+err.message+')')}if(current.kind==='agency'){try{const agency=await ws.documents.load(current.id,'agency-workspace');added=views.addFromAgency(pm,state,agency.data,new Date().toISOString().slice(0,10));synced=views.syncFromAgency(pm,state,agency.data&&agency.data.tasks);}catch(e){}}}
   else{
    state={projects:[{id:'p1',name:current.name,note:String(current.summary||'').slice(0,1000),synthetic:true,subprojects:[{id:'p1s1',name:'Generale'}]}],tasks:[],nextId:1};
    if(current.kind==='agency'){try{const agency=await ws.documents.load(current.id,'agency-workspace');if(agency.data&&Array.isArray(agency.data.tasks)&&agency.data.tasks.length)planFromAgency(state,agency.data);}catch(e){}}
@@ -265,8 +265,15 @@ async function boot(){
   for(const id of ['persist','load-local','forget-local','reset']){const el=$(id);if(el){(el.closest('label')||el).style.display='none';}}
   const links=[];if(current.kind==='agency')links.push(['./agency/project-workspace.html?id=','Workspace Agency']);links.push(['./project-editorial.html?project=','PED del progetto']);links.push(['./agency/memory.html?id=','Memoria del progetto']);links.push(['./agents.html?project=','Agenti AI']);
   const note=$('project-note');if(note&&!document.querySelector('[data-project-link]')){const box=node('p',undefined,'muted');links.forEach(([href,label],i)=>{const a=node('a',label+' ↗');a.href=href+encodeURIComponent(current.id);a.dataset.projectLink='1';if(i)box.append(document.createTextNode(' · '));box.append(a);});note.after(box);}
+  $('storage-status').classList.remove('warn');$('storage-status').setAttribute('role','status');
   projects();owners();render();loadPortfolio().catch(()=>{});if(!saved||synced.length||added.length||pedChanged)persist();else $('storage-status').textContent='Piano caricato dall’archivio del team.';const pedNote=pedChanged?pedSummary(fromPed):'';if(synced.length||added.length)say([added.length?added.length+' nuove attività dal workspace Agency.':'',synced.length?synced.length+' attività completate dal workspace Agency.':'',pedNote].filter(Boolean).join(' '));else if(pedNote)say(pedNote);else say('Piano di «'+current.name+'» condiviso con il team.');
- }catch(e){say(e.message);$('tasks').replaceChildren(node('p',e.message,'muted'));}
+ }catch(e){loadFailed(e);}
 }
-boot();
+// A plan that cannot be loaded says so where «Caricamento del piano…» was, and the project list stays usable to open another plan.
+function loadFailed(e){const msg=String(e&&e.message||e||'Errore sconosciuto.');say(msg);const st=$('storage-status');st.textContent='Piano non caricato: '+msg;st.classList.add('warn');st.setAttribute('role','alert');
+ const nav=$('project-nav');if(registry.length&&!nav.children.length){registry.forEach(p=>option(nav,p.id,p.name+(p.client_name?' · '+p.client_name:'')));if(current)nav.value=current.id;}
+ $('tasks').replaceChildren(node('p',msg,'warn'));$('detail').replaceChildren(node('p','Il piano non è stato caricato: '+msg+' Ricarica la pagina o scegli un altro progetto.','muted'));}
+// A request that never answers must not leave the page on «Caricamento» forever.
+let bootDone=false;const bootWatch=setTimeout(()=>{if(!bootDone)loadFailed(Error('Il server non risponde: ricarica la pagina tra poco.'))},20000);
+boot().finally(()=>{bootDone=true;clearTimeout(bootWatch)});
 </script></body></html>
