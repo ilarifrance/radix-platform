@@ -1,7 +1,7 @@
 /* «Cosa vuoi fare oggi?»: renders the service cards of agency/crea-core.js for the chosen project.
    Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
    (lib/video-studio.js), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
-   (lib/seo-studio.js), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
+   (lib/seo-studio.js), Analisi del sito the site audit (lib/site-audit.js: free crawl, optional AI plan), Creatività per annunci the Studio Creatività (lib/ad-studio.js), Scheda Google e recensioni the Studio Scheda Google (lib/gbp-studio.js), Schede prodotto e feed the Studio Schede prodotto (lib/product-studio.js: AI in batches with confirmation, free feed checks), Newsletter HTML the Studio Newsletter HTML (lib/newsletter-studio.js, no AI, never sends), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The filter chips above the cards show one group at a time (remembered in this browser); ?area= and ?open= (from the
    Marketing Orbit, agency/orbit.html) pick the group and open a studio. Nothing is generated
    on load: every paid step asks for confirmation inside the tool it opens. */
@@ -46,6 +46,11 @@ const STUDIOS={
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  site:{global:'RadixSiteStudio',name:'Lo Studio Sito',need:'il sito parte dai suoi fatti confermati e dai suoi colori',agent:'web-developer'},
  seo:{global:'RadixSeoStudio',name:'Lo Studio SEO e GEO',need:'la strategia parte dai suoi fatti confermati',agent:'seo-geo'},
+ audit:{global:'RadixSiteAudit',name:'L’Analisi del sito',need:'l’analisi si salva nel progetto e il piano parte dai suoi fatti',agent:'seo-geo'},
+ ads:{global:'RadixAdStudio',name:'Lo Studio Creatività',need:'le creatività usano i suoi colori, il suo logo e i suoi fatti confermati',agent:'paid-media'},
+ gbp:{global:'RadixGbpStudio',name:'Lo Studio Scheda Google',need:'la scheda parte dai suoi fatti confermati e le risposte si firmano col suo nome',agent:'seo-geo'},
+ feed:{global:'RadixProductStudio',name:'Lo Studio Schede prodotto',need:'le schede partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
+ mail:{global:'RadixNewsletterStudio',name:'Lo Studio Newsletter HTML',need:'la newsletter usa il kit identità e i testi salvati del progetto',agent:'copywriter'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
  print:{global:'RadixPrintStudio',name:'Lo Studio Stampa',need:'i materiali partono dal nome, dai contatti e dal kit identità del progetto',agent:'art-director'},
  catalog:{global:'RadixCatalogStudio',name:'Lo Studio Catalogo',need:'il catalogo usa il nome, i contatti e il kit identità del progetto',agent:''},
@@ -69,6 +74,16 @@ function openInline(c){
   ?S.siteStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'
   ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  :c.inline==='audit'
+  ?S.siteAudit({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  :c.inline==='ads'
+  ?S.adStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=paid-media&project='+pid})
+  :c.inline==='gbp'
+  ?S.gbpStudio({project,profile:current.profile,memoryScope,replyScope:{...memoryScope,agentId:'copywriter'},projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  :c.inline==='feed'
+  ?S.productStudio({project,projectName:current.name,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-content&project='+pid})
+  :c.inline==='mail'
+  ?S.newsletterStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='identity'
   ?S.identityStudio({project,memoryScope,projectId:current.id,workspace:ws,visual:project.visual,agentsUrl:'/agents.html?agent=brand-strategist&project='+pid,onSaved:p=>{current={...current,...p}}})
   :c.inline==='print'
