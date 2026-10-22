@@ -4,21 +4,22 @@ const core=require('../agency/crea-core.js');
 const root=path.join(__dirname,'..');
 
 test('the panel has the services of the approved proposal plus the text services',()=>{
- assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Nome e slogan','Kit identità','Social e post','Post grafici','Testi per sito, blog e prodotti','Newsletter','Immagini','Avatar','Video','Sito web','SEO e GEO','Testi per annunci Google e Meta','Stampa e documenti','Catalogo prodotti','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
+ assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Piano di lancio prodotto','Buyer persona','Analisi della concorrenza','Nome e slogan','Kit identità','Tono di voce per canale','Social e post','Post grafici','Testi per sito, blog e prodotti','Comunicato stampa','Brief per influencer','Newsletter','Sequenze email','SMS','Immagini','Avatar','Video','Sito web','SEO e GEO','Testi per annunci Google e Meta','Stampa e documenti','Catalogo prodotti','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
  for(const c of core.CARDS)assert.ok(c.cost&&c.action&&c.line,c.id);
  assert.equal(new Set(core.CARDS.map(c=>c.id)).size,core.CARDS.length,'unique ids');
 });
 
-test('every card has one of the 7 groups; the filters list only groups with cards',()=>{
- assert.deepEqual(core.GROUPS,['Brand','Strategia','Web e annunci','Social e contenuti','Stampa e documenti','Immagini','Video']);
+test('every card has one of the 8 groups; the filters list only groups with cards',()=>{
+ assert.deepEqual(core.GROUPS,['Brand','Strategia','Web e annunci','Social e contenuti','Email e SMS','Stampa e documenti','Immagini','Video']);
  for(const c of core.CARDS)assert.ok(core.GROUPS.includes(c.group),c.id+' '+c.group);
  const by=g=>core.CARDS.filter(c=>c.group===g).map(c=>c.id);
- assert.deepEqual(by('Strategia'),['strategy','lancio']);assert.deepEqual(by('Brand'),['naming','identita']);
- assert.deepEqual(by('Social e contenuti'),['social','graphics','testi','newsletter']);
+ assert.deepEqual(by('Strategia'),['strategy','lancio','persona','concorrenza']);assert.deepEqual(by('Brand'),['naming','identita','tono']);
+ assert.deepEqual(by('Social e contenuti'),['social','graphics','testi','comunicato','influencer']);
+ assert.deepEqual(by('Email e SMS'),['newsletter','sequenze','sms']);
  assert.deepEqual(by('Web e annunci'),['site','seo','annunci']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','brochure','scheda','presentazione','documenti']);
  assert.deepEqual(by('Immagini'),['images']);assert.deepEqual(by('Video'),['avatar','video']);
  assert.deepEqual(core.groups(),core.GROUPS);
- assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita']);
+ assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita','tono']);
  assert.equal(core.inGroup('').length,core.CARDS.length,'«Tutti»');assert.equal(core.inGroup('boh').length,core.CARDS.length,'unknown group: all');
 });
 

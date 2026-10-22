@@ -34,6 +34,12 @@ const P={
  map:'<path d="M3.5 6 9 4l6 2 5.5-2v14L15 20l-6-2-5.5 2Z"/><path d="M9 4v14M15 6v14"/>',
  clipboard:'<rect x="5" y="4.5" width="14" height="16.5" rx="2.5"/><path d="M9 4.5V3h6v1.5M9 10h6M9 13.5h6M9 17h3.5"/>',
  slides:'<path d="M3 4h18M5 4v10h14V4M12 14v4M8.5 21l3.5-3 3.5 3"/>',
+ news:'<path d="M4.5 5.5h12v13a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5Z"/><path d="M16.5 9h3v9.5a1.5 1.5 0 0 1-3 0M7.5 9h6M7.5 12.5h6M7.5 16h4"/>',
+ compare:'<path d="M12 4v16M5 20h14"/><path d="M6 7h12M6 7l-2.5 6a3 3 0 0 0 5 0Zm12 0-2.5 6a3 3 0 0 0 5 0Z"/>',
+ flow:'<rect x="3.5" y="4" width="7" height="5" rx="1.5"/><rect x="13.5" y="9.5" width="7" height="5" rx="1.5"/><rect x="3.5" y="15" width="7" height="5" rx="1.5"/><path d="M10.5 6.5h3.5v3M13.5 12H12v5.5h-1.5"/>',
+ voice:'<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3"/>',
+ star:'<path d="m12 3.8 2.5 5.1 5.6.8-4 3.9.9 5.6-5-2.6-5 2.6.9-5.6-4-3.9 5.6-.8Z"/>',
+ phone:'<rect x="6.5" y="3" width="11" height="18" rx="2.5"/><path d="M10.5 18h3M9.5 8h5M9.5 11h3.5"/>',
  arrow:'<path d="M5 12h14M13.5 6.5 19 12l-5.5 5.5"/>',
  close:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
@@ -46,12 +52,13 @@ const P={
 // Command Center (shell/cc-universe.js).
 const AREAS=Object.freeze({
  brand:{color:'#ff5fa2',icon:'spark'},strategia:{color:'#a68bff',icon:'target'},web:{color:'#42dcf7',icon:'globe'},
- social:{color:'#608dff',icon:'chat'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
+ social:{color:'#608dff',icon:'chat'},email:{color:'#9be15d',icon:'mail'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',lancio:'rocket',naming:'type',identita:'palette',social:'calendar',graphics:'layout',testi:'doc',
  newsletter:'mail',images:'image',avatar:'user',video:'video',site:'browser',seo:'search',annunci:'megaphone',stampa:'printer',
- catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages'});
+ catalogo:'bookOpen',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
+ comunicato:'news',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
 // The <svg> markup of an icon: decorative (aria-hidden), stroke in currentColor.
 function svg(name,cls){

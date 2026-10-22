@@ -7,7 +7,7 @@ const exists=href=>fs.existsSync(path.join(root,href.replace(/^\//,'').replace(/
 test('one planet per service area of «Cosa vuoi fare», in the panel order, each opening the panel filtered on it',()=>{
  const ps=orbit.planets();
  assert.deepEqual(ps.map(p=>p.group),crea.groups());
- assert.deepEqual(ps.map(p=>p.slug),['brand','strategia','web','social','stampa','immagini','video']);
+ assert.deepEqual(ps.map(p=>p.slug),['brand','strategia','web','social','email','stampa','immagini','video']);
  for(const p of ps){
   assert.equal(p.href,'/agency/crea.html?area='+p.slug);
   assert.equal(p.count,crea.inGroup(p.group).length);assert.ok(p.count>0);
