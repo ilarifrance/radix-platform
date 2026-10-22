@@ -115,7 +115,7 @@ test('PED source: no native confirm left; every confirmation is awaited and come
  assert.match(src,/const askConfirm=o=>window\.RadixConfirm\?window\.RadixConfirm\.ask\(o\)/);
  for(const m of src.matchAll(/askConfirm\(/g)){const before=src.slice(Math.max(0,m.index-12),m.index);if(/const $/.test(before))continue;
   assert.ok(/await $/.test(before)||/^askConfirm\(\{title:'Lasciare le modifiche non salvate\?'/.test(src.slice(m.index)),'awaited (or .then for openContent): '+src.slice(m.index,m.index+70))}
- const n=(src.match(/askConfirm\(\{/g)||[]).length;assert.equal(n,17,'17 confirmations on the PED page');
+ const n=(src.match(/askConfirm\(\{/g)||[]).length;assert.equal(n,18,'18 confirmations on the PED page');
  for(const t of src.matchAll(/askConfirm\(\{title:/g)){const o=src.slice(t.index,src.indexOf('})',t.index));assert.match(o,/ok:'[^']+'/,'a primary label: '+o.slice(0,80))}
  // the Buffer sends sit after their confirmation
  const single=src.indexOf("title:'Pubblicare davvero su Buffer?'");assert.ok(single>0&&single<src.indexOf('ws.publications.send(body)'));
