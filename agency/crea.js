@@ -1,6 +1,6 @@
 /* «Cosa vuoi fare oggi?» (Marketing look «A», agency/crea.css on shell/marketing-a.css): the command box with its
    suggestions, the kits, the area tabs and the service cards of agency/crea-core.js for the chosen project.
-   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Video the Studio Video
+   Cards open the existing tools; Immagini opens the Studio Foto (lib/image-studio.js), Foto prodotto the Studio Foto prodotto (lib/product-photo-studio.js: cut-out in the browser, white or brand background for free, AI scenes only behind the product, with confirmation), Video the Studio Video
    (lib/video-studio.js), Reel e video prodotto the Studio Reel (lib/reel-studio.js: one AI call for the storyboards, video rendered in the browser), Sito web the Studio Sito (lib/site-studio.js) and SEO e GEO the Studio SEO
    (lib/seo-studio.js), Analisi del sito the site audit (lib/site-audit.js: free crawl, optional AI plan), Creatività per annunci the Studio Creatività (lib/ad-studio.js), Scheda Google e recensioni the Studio Scheda Google (lib/gbp-studio.js), Schede prodotto e feed the Studio Schede prodotto (lib/product-studio.js: AI in batches with confirmation, free feed checks), Traduzione e localizzazione the Studio Traduzione (lib/translation-studio.js: 3 tones, then batches with one confirmation, deterministic checks), Newsletter HTML the Studio Newsletter HTML (lib/newsletter-studio.js, no AI, never sends), Kit identità the Studio Identità (lib/identity-studio.js), Stampa e documenti the Studio Stampa (lib/print-studio.js, no AI), Catalogo prodotti the Studio Catalogo (lib/catalog-studio.js, no AI), Documenti impaginati the Studio Documenti (lib/doc-studio.js, no AI), Evento o fiera the Studio Evento (lib/event-studio.js: one AI call, the kit files built here) and the text services («copy:<service>») the Studio Testi (lib/copy-studio.js) right here.
    The area tabs show one group at a time (remembered in this browser); ?area= and ?open= (from the Marketing home,
@@ -129,6 +129,7 @@ function closePanel(e){const was=openCard;openCard='';$('crPanel').hidden=true;$
 // The inline studios: which module, what it needs a project for, and whose memory the AI call uses.
 const STUDIOS={
  photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
+ productphoto:{global:'RadixProductPhotoStudio',name:'Lo Studio Foto prodotto',need:'gli sfondi usano il suo Kit identità e le foto si salvano nel progetto',agent:'art-director'},
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  reel:{global:'RadixReelStudio',name:'Lo Studio Reel',need:'il reel usa i suoi colori, il suo logo e i suoi fatti confermati',agent:'video-producer'},
  site:{global:'RadixSiteStudio',name:'Lo Studio Sito',need:'il sito parte dai suoi fatti confermati e dai suoi colori',agent:'web-developer'},
@@ -173,6 +174,8 @@ function openInline(c){
   ?S.gbpStudio({project,profile:current.profile,memoryScope,replyScope:{...memoryScope,agentId:'copywriter'},projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='feed'
   ?S.productStudio({project,projectName:current.name,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-content&project='+pid})
+  :c.inline==='productphoto'
+  ?S.productPhotoStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='translate'
   ?S.translationStudio({project,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='mail'
