@@ -2260,3 +2260,57 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .mockup-studio .mk-dirs[hidden],.cr-panel .mockup-studio .mk-result[hidden],.cr-panel .mockup-studio .mk-out[hidden]{display:none}
 @media (max-width:1100px){.cr-panel .mockup-studio .mk-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .ad-dir.mk-dir{display:flex}}
 @media (max-width:760px){.cr-panel .mockup-studio .mk-missing li{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .mk-gallery{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .mk-thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Studio Budget e KPI della strategia (lib/strategy-budget.js): it reuses the report-studio classes (fields, sources,
+   checks, previews) and adds the approved strategy, the three splits as bars, the editable lines with their total,
+   the KPI rows (current value or «da misurare», target) and the slide previews. Light --ma-* tokens only. */
+.cr-panel .strategy-budget .sb-form[hidden]{display:none}
+.cr-panel .strategy-budget :is(fieldset.rp-refine,fieldset.rp-pick){flex-wrap:nowrap}
+.cr-panel .strategy-budget .sb-strategy{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:#fff;border-top:3px solid var(--ma-ok)}
+.cr-panel .strategy-budget .sb-strategy[data-ok=false]{border-top-color:var(--amber);background:rgba(157,114,0,.04)}
+.cr-panel .strategy-budget .sb-strategy[data-ok=false] .rp-badge{background:rgba(157,114,0,.119);color:var(--amber)}
+.cr-panel .strategy-budget .sb-link{align-self:flex-start;font-weight:600;font-size:13.5px;color:var(--ma-accent,var(--ink))}
+.cr-panel .strategy-budget .sb-brief{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:6px 14px;margin:0;font-size:13.5px;line-height:1.45}
+.cr-panel .strategy-budget .sb-brief dt{font-weight:600;color:var(--ink-2)}
+.cr-panel .strategy-budget .sb-brief dd{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.cr-panel .strategy-budget .ad-dir.sb-dir{display:flex;flex-direction:column;gap:12px}
+.cr-panel .strategy-budget .ad-dir.sb-dir>button{align-self:flex-start;margin-top:auto}
+.cr-panel .strategy-budget .sb-alloc{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cr-panel .strategy-budget .sb-alloc-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) auto auto;align-items:center;gap:8px;font-size:13px}
+.cr-panel .strategy-budget .sb-alloc-name{color:var(--ink);overflow-wrap:anywhere}
+.cr-panel .strategy-budget .sb-alloc-bar{display:block;height:10px;border-radius:6px;background:var(--ma-hover);overflow:hidden}
+.cr-panel .strategy-budget .sb-alloc-bar i{display:block;height:100%;border-radius:6px;background:var(--c,var(--ma-ok))}
+.cr-panel .strategy-budget .sb-alloc-row[data-line=riserva] .sb-alloc-bar i{opacity:.45}
+.cr-panel .strategy-budget .sb-alloc-row strong{font-size:13px;color:var(--ink);text-align:right;white-space:nowrap}
+.cr-panel .strategy-budget .sb-alloc-row small{font-size:11.5px;color:var(--subtle);min-width:40px;text-align:right}
+.cr-panel .strategy-budget .sb-excluded{margin:0;padding-left:18px;font-size:12px;line-height:1.45;color:var(--ink-2)}
+.cr-panel .strategy-budget .sb-lines{display:flex;flex-direction:column;gap:8px}
+.cr-panel .strategy-budget .sb-line{display:grid;grid-template-columns:minmax(0,220px) 56px minmax(0,1fr) auto;align-items:end;gap:6px 12px;padding:10px 12px;border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);background:#fff}
+.cr-panel .strategy-budget .sb-line[data-below=true]{box-shadow:inset 0 0 0 1px rgba(157,114,0,.45);background:rgba(157,114,0,.04)}
+.cr-panel .strategy-budget .sb-share{font:600 13px/40px var(--rx-font,Inter,sans-serif);color:var(--ink-2);text-align:right}
+.cr-panel .strategy-budget .sb-buys{align-self:center}
+.cr-panel .strategy-budget .sb-warn{grid-column:1/-1;font-size:12px;color:var(--amber)}
+.cr-panel .strategy-budget .sb-warn:empty{display:none}
+.cr-panel .strategy-budget .sb-remove{min-height:40px}
+.cr-panel .strategy-budget .sb-total{margin:0;padding:10px 14px;border-radius:12px;font-weight:600;font-size:13.5px;background:rgba(0,148,94,.08);color:var(--ma-ok)}
+.cr-panel .strategy-budget .sb-total[data-ok=false]{background:rgba(215,52,59,.08);color:var(--ma-err)}
+.cr-panel .strategy-budget .sb-growth{align-items:flex-end}
+.cr-panel .strategy-budget .sb-growth .rp-field{max-width:220px}
+.cr-panel .strategy-budget .sb-kpis{grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr))}
+.cr-panel .strategy-budget .sb-kpi-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 132px;gap:8px 12px;align-items:start;padding-top:10px;border-top:1px solid var(--line)}
+.cr-panel .strategy-budget .sb-kpi-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cr-panel .strategy-budget .sb-kpi-text strong{font-size:13.5px;color:var(--ink)}
+.cr-panel .strategy-budget .sb-kpi-base{display:flex;flex-direction:column;gap:1px}
+.cr-panel .strategy-budget .sb-kpi-base b{font:700 16px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .strategy-budget .sb-kpi-base b.sb-tbd{font-size:13px;font-weight:600;color:var(--amber)}
+.cr-panel .strategy-budget .sb-kpi-target input{min-height:38px}
+.cr-panel .strategy-budget .sb-kpi-row[data-status=pronto] .sb-kpi-by{color:var(--ma-ok)}
+.cr-panel .strategy-budget .sb-prior{padding:12px 14px;border-radius:12px;background:rgba(157,114,0,.06);box-shadow:inset 0 0 0 1px rgba(157,114,0,.25)}
+.cr-panel .strategy-budget .sb-prior h4{margin:0 0 6px}
+.cr-panel .strategy-budget .sb-prior ol{margin:0;padding-left:20px;font-size:13px;line-height:1.5;color:var(--ink)}
+.cr-panel .strategy-budget .sb-slide{flex:1 1 260px;max-width:340px}
+@media (max-width:760px){.cr-panel .strategy-budget .sb-brief{grid-template-columns:minmax(0,1fr)}.cr-panel .strategy-budget .sb-brief dd{margin-bottom:4px}
+ .cr-panel .strategy-budget .sb-line{grid-template-columns:minmax(0,1fr) auto}.cr-panel .strategy-budget .sb-line{align-items:center}.cr-panel .strategy-budget .sb-line .rp-field{grid-column:1/-1;grid-row:1}.cr-panel .strategy-budget .sb-share{grid-column:1;grid-row:2;line-height:1.3;text-align:left}.cr-panel .strategy-budget .sb-remove{grid-column:2;grid-row:2}.cr-panel .strategy-budget .sb-buys{grid-column:1/-1;grid-row:3}.cr-panel .strategy-budget .sb-warn{grid-row:4}
+ .cr-panel .strategy-budget .sb-kpi-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cr-panel .strategy-budget .sb-kpi-text{grid-column:1/-1}.cr-panel .strategy-budget .sb-slide{flex-basis:100%}
+ .cr-panel .strategy-budget .sb-alloc-row{grid-template-columns:minmax(0,1fr) 70px auto auto}}
+@media (max-width:640px){.cr-panel .strategy-budget .sb-remove,.cr-panel .strategy-budget .sb-kpi-target input{min-height:44px}.cr-panel .strategy-budget .sb-growth .rp-field{max-width:none;flex:1 1 100%}}
