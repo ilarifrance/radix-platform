@@ -19,6 +19,7 @@ const P={
  calendar:'<rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
  layers:'<path d="m12 3.5 8.5 4.5-8.5 4.5L3.5 8Z"/><path d="m3.5 12 8.5 4.5 8.5-4.5"/><path d="m3.5 16 8.5 4.5 8.5-4.5"/>',
  chart:'<path d="M4 20h16"/><path d="M7 16v-4M12 16V7M17 16v-6"/>',
+ audit:'<rect x="5" y="4.5" width="14" height="16.5" rx="2.5"/><path d="M9 4.5V3h6v1.5"/><path d="m8.8 12.6 2.2 2.2 4.2-4.6"/><path d="M9 18h6"/>',
  check:'<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.6-5"/>',
  book:'<path d="M5 4.5h10a4 4 0 0 1 4 4v11H9a4 4 0 0 1-4-4Z"/><path d="M5 15.5a4 4 0 0 1 4-4h10"/>',
  rocket:'<path d="M12 15c4-3 6-7 6-11-4 0-8 2-11 6l5 5Z"/><path d="M9 13 6 16M7 10H4l2-3h4M14 17v3l3-2v-4"/><circle cx="14" cy="8" r="1.2"/>',
@@ -66,7 +67,7 @@ const AREAS=Object.freeze({
  social:{color:'#608dff',icon:'chat'},email:{color:'#9be15d',icon:'mail'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
-const CARDS=Object.freeze({strategy:'target',report:'chart',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',social:'calendar',graphics:'layout',testi:'doc',
+const CARDS=Object.freeze({strategy:'target',report:'chart',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',social:'calendar',graphics:'layout',testi:'doc',
  newsletter:'mail',images:'image',fotoprodotto:'productPhoto',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
