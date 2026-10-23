@@ -23,6 +23,12 @@
         <funnel>.pdf (at most 3 MB, it must be a PDF and grazie.html must link to it). Same answer as publish; the record is
         saved in the agents document under funnels.online[<funnel>] (the funnels key of the studio).
    POST {action:'funnelStatus',projectId,funnel,deploymentId} → the same record, read again from Vercel
+   POST {action:'survey',projectId,survey,html,pages} → the questionnaire of «Sondaggio e NPS» (lib/survey-core.js) on its
+        own Vercel project (radix-sv-<survey>-<6 hex>): index.html is the form with no script (refused if it has one or is
+        not a survey form), pages are privacy.html, cookie.html, grazie.html and logo.svg, with the same checks as the site
+        (privacy, cookie, thank-you page, form token of this project). Answers go to api/_site_form.js (survey mode).
+        The record is saved in the agents document under surveys.online[<survey>] (the surveys key of the studio).
+   POST {action:'surveyStatus',projectId,survey,deploymentId} → the same record, read again from Vercel
    The record is saved in the project's «agents» document (where the studio saves the site): top-level siteOnline plus,
    once online, an exchange in the Web Developer's thread so the team sees it there too. */
 const crypto=require('crypto');
@@ -149,6 +155,24 @@ async function rememberFunnel(store,projectId,funnel,site){
   if(await store.save(projectId,data,cur.revision))return site}
  throw new HttpError(409,'Il progetto è stato modificato nello stesso momento: riprova.')}
 
+// ---- the questionnaire of a survey (lib/survey-core.js) ----
+const SURVEY=/^[a-z0-9][a-z0-9-]{1,39}$/;
+const surveyProject=(survey,projectId)=>'radix-sv-'+siteSlug(survey,projectId+':sv:'+survey);
+function checkSurvey(input,{projectId,secret,now}={}){const survey=String(input&&input.survey||'');
+ if(!SURVEY.test(survey))throw new HttpError(400,'Sondaggio non valido.');
+ const pages=input.pages;if(pages!=null&&(typeof pages!=='object'||Array.isArray(pages)||Object.keys(pages).some(k=>!FUNNEL_PAGES.includes(k))))throw new HttpError(400,'Pagine del sondaggio non valide.');
+ const html=String(input.html||'');
+ if(!siteForm.hasForm(html)||!/<input\b[^>]*\bname="sondaggio"/i.test(html)||!/<input\b[^>]*\bname="sid"[^>]*\bvalue="([^"]*)"/i.test(html))throw new HttpError(422,'La pagina non è un questionario: rigenerala dallo studio «Sondaggio e NPS».');
+ if(/<input\b[^>]*\bname="sid"[^>]*\bvalue="([^"]*)"/i.exec(html)[1]!==survey)throw new HttpError(422,'Il questionario non corrisponde a questo sondaggio.');
+ if(/<script\b|<iframe\b|\son\w+\s*=/i.test(html))throw new HttpError(422,'Il questionario contiene script: rigeneralo dallo studio «Sondaggio e NPS».');
+ const site=checkSite(html,pages,{projectId,secret,now});return {survey,html:site.html,pages:site.pages}}
+function savedSurvey(data,survey){const o=data&&data.surveys&&data.surveys.online;return o&&typeof o==='object'&&o[survey]&&o[survey].deploymentId?o[survey]:null}
+async function rememberSurvey(store,projectId,survey,site){
+ for(let i=0;i<3;i++){const cur=await store.load(projectId),data={schemaVersion:1,conversations:{},...(cur.data||{})},f=data.surveys&&typeof data.surveys==='object'?data.surveys:{schemaVersion:1,items:[]};
+  data.surveys={...f,online:{...(f.online&&typeof f.online==='object'?f.online:{}),[survey]:site}};
+  if(await store.save(projectId,data,cur.revision))return site}
+ throw new HttpError(409,'Il progetto è stato modificato nello stesso momento: riprova.')}
+
 async function handle(req,res,deps){
  res.setHeader('Cache-Control','no-store');
  const user=require('./_auth').getSessionUser(req);
@@ -183,6 +207,21 @@ async function handle(req,res,deps){
    const site=await rememberFunnel(store,projectId,f.funnel,{...view(d,project,at),funnel:f.funnel,file:f.file});
    if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online la landing ('+site.state+'). Riprova tra qualche minuto.'});
    return res.status(200).json(site)}
+  if(action==='survey'){const f=checkSurvey(input,{projectId,secret:env.JWT_SECRET,now:(deps.now?deps.now():new Date()).getTime()});
+   const prev=savedSurvey((await store.load(projectId)).data,f.survey),project=prev&&prev.project||surveyProject(f.survey,projectId),at=(deps.now?deps.now():new Date()).toISOString();
+   const bundle=seo.siteBundle(f.html,f.pages,{base:siteBase(prev,project),date:at.slice(0,10)});
+   let d=await api('POST','/v13/deployments',deploymentPayload(project,bundle.html,bundle.pages));
+   const wait=deps.waitMs==null?WAIT_MS:deps.waitMs,every=deps.pollMs==null?POLL_MS:deps.pollMs,pause=deps.sleep||sleep;
+   for(let t=0;!DONE.includes(stateOf(d.readyState||d.status))&&t<wait;t+=every){await pause(every);d={...d,...await api('GET','/v13/deployments/'+encodeURIComponent(d.id))}}
+   const site=await rememberSurvey(store,projectId,f.survey,{...view(d,project,at),survey:f.survey});
+   if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online il questionario ('+site.state+'). Riprova tra qualche minuto.'});
+   return res.status(200).json(site)}
+  if(action==='surveyStatus'){const survey=String(input.survey||''),id=String(input.deploymentId||'');if(!SURVEY.test(survey))throw new HttpError(400,'Sondaggio non valido.');
+   const prev=savedSurvey((await store.load(projectId)).data,survey);
+   if(!prev||!id||prev.deploymentId!==id)throw new HttpError(404,'Pubblicazione del questionario non trovata in questo progetto.');
+   const d=await api('GET','/v13/deployments/'+encodeURIComponent(id));
+   const site=await rememberSurvey(store,projectId,survey,{...view({...d,id},prev.project,prev.publishedAt),survey});
+   return res.status(200).json(site)}
   if(action==='funnelStatus'){const funnel=String(input.funnel||''),id=String(input.deploymentId||'');if(!FUNNEL.test(funnel))throw new HttpError(400,'Funnel non valido.');
    const prev=savedFunnel((await store.load(projectId)).data,funnel);
    if(!prev||!id||prev.deploymentId!==id)throw new HttpError(404,'Pubblicazione della landing non trovata in questo progetto.');
@@ -210,4 +249,4 @@ async function handle(req,res,deps){
 }
 
 module.exports=(req,res)=>handle(req,res,{db:()=>require('./_db').sql()});
-Object.assign(module.exports,{checkFunnel,funnelProject,savedFunnel,FUNNEL_PAGES,handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});
+Object.assign(module.exports,{checkSurvey,surveyProject,savedSurvey,checkFunnel,funnelProject,savedFunnel,FUNNEL_PAGES,handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});
