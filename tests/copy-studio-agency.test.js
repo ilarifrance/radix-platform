@@ -229,5 +229,5 @@ test('the panel: one card per new service, in Strategia, Brand, Social e contenu
  const want={persona:'Strategia',concorrenza:'Strategia',tono:'Brand',comunicato:'Social e contenuti',influencer:'Social e contenuti',newsletter:'Email e SMS',sequenze:'Email e SMS',sms:'Email e SMS'};
  for(const [id,g] of Object.entries(want)){const c=core.card(id);assert.equal(c.group,g,id);assert.equal(c.inline,'copy:'+id,id);assert.equal(c.title,s.service(id).title,id);assert.ok(look.has(look.CARDS[id]),id+' icon')}
  assert.deepEqual(core.fromQuery('?area=email'),{group:'Email e SMS',open:''});assert.deepEqual(core.fromQuery('?open=sms'),{group:'Email e SMS',open:'sms'});
- assert.equal(look.AREAS.email.icon,'mail');assert.match(core.card('concorrenza').hint,/non legge ancora i siti/);
+ assert.equal(look.AREAS.email.icon,'mail');assert.match(core.card('concorrenza').hint,/ipotesi/);assert.match(core.card('concorrenza').hint,/Confronto con i siti dei concorrenti/,'the facts read from the sites are in the new studio (lib/competitor-studio.js)');
 });
