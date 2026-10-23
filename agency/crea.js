@@ -91,21 +91,24 @@ function renderFilters(){
   b.append(node('span','cp-tab-name',t),node('span','cp-tab-n',String(core.inGroup(g).length)));
   b.addEventListener('click',()=>{group=g;remember(g,GROUP_KEY);render()});return b}));
 }
-// One service card: icon in its area colour, cost badge, what it does, the full cost line, the hint, the action.
+// One service card: icon in its area colour, cost badge, what it does (a short line for the «Tutti» index, the full line
+// for one area), the full cost line, the hint, the action. agency/crea.css shows the short or the full parts by view.
 function cardEl(c){
  const li=node('li','ma-glass cp-card');li.dataset.service=c.id;li.dataset.open=String(openCard===c.id);li.dataset.match=String(picked===c.id);li.style.setProperty('--c',look(c).color);
  const top=node('div','cp-card-top');top.append(ico(L.CARDS[c.id]||look(c).icon,'cp-card-icon'));
  if(picked===c.id&&ask.q&&ask.match===c.id)top.append(node('span','cp-match','Il più adatto'));
  top.append(badge(c));
  const h=node('h4','cp-card-title',c.title);
- const cost=node('p','cp-cost');cost.append(ico(/^Nessuna chiamata AI/.test(c.cost)?'check':'coin','cp-meta-icon'),node('span','',c.cost));
+ const cost=node('p','cp-cost');cost.append(ico(core.costBadge(c).tone==='free'?'check':'coin','cp-meta-icon'),node('span','',c.cost));
  li.append(top,h,node('p','cp-line',c.line),cost);
+ if(c.short)h.after(node('p','cp-short',c.short));
  if(c.hint){const p=node('p','cp-hint');p.append(ico('info','cp-meta-icon'),node('span','',c.hint));li.append(p)}
  li.append(goButton(c,'cp-go'));return li;
 }
-// «Tutti»: the index by area (number, icon, name, line, count); one area: just its cards.
+// «Tutti»: the index by area (number, icon, name, line, count) with compact cards; one area: its cards in full.
 function render(){
  renderFilters();
+ $('crCards').dataset.view=group?'area':'index';
  const groups=group?[group]:core.groups();
  $('crCount').textContent=plural(core.inGroup(group).length,'servizio','servizi')+(group?' in '+group:' in '+core.groups().length+' aree');
  $('crCards').replaceChildren(...groups.map(g=>{
@@ -170,7 +173,7 @@ function openInline(c){
  if(!S||!rt||(service&&!svc)){say(st.name+' non si è caricato: ricarica la pagina.');return}
  const agent=svc?svc.role:st.agent;
  openCard=c.id;render();
- $('crPanelTitle').textContent=c.title+' · '+current.name;
+ $('crPanelTitle').textContent=c.title;$('crPanelEyebrow').textContent='Per '+current.name;
  $('crPanelIcon').replaceChildren(L.icon(L.CARDS[c.id]||look(c).icon));$('crPanel').style.setProperty('--c',look(c).color);
  const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:agent},pid=encodeURIComponent(current.id);
  $('crPanelBody').replaceChildren(c.inline==='video'

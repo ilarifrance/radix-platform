@@ -37,7 +37,7 @@
 .cp-sec-note{font-size:13px;color:var(--ma-mut)}
 .cp-main .ma-sec-head{flex-wrap:wrap}
 /* Kits */
-.cp-kit-row{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.cp-kit-row{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
 .cp-kit{position:relative;display:flex;flex-direction:column;gap:8px;padding:18px;min-width:0;overflow:hidden;transition:border-color .2s}
 .cp-kit:hover{border-color:var(--ma-soft-line);box-shadow:0 10px 28px -14px rgba(29,26,39,.18)}
 .cp-kit-title{margin:6px 0 0;font:600 16px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
@@ -78,15 +78,31 @@
 .cp-line{margin:0;font-size:13.5px;line-height:1.55;color:var(--ma-tx2)}
 .cp-cost,.cp-hint{display:flex;align-items:flex-start;gap:8px;margin:0;font-size:12.5px;line-height:1.45}
 .cp-cost{color:var(--ma-tx2);padding-top:10px;border-top:1px solid var(--ma-line);margin-top:auto}
-.cp-hint{color:#9a4f00}
+.cp-hint{color:var(--ma-tx2)}
 .cp-meta-icon{flex:none;margin-top:1px;color:var(--ma-mut)}.cp-meta-icon .ml-ico{width:15px;height:15px}
-.cp-hint .cp-meta-icon{color:#a85b06}
+.cp-hint .cp-meta-icon{color:var(--ma-mut)}
 .cp-go{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;margin-top:4px;padding:0 14px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:600 13.5px/1.25 var(--rx-font,Inter,sans-serif);text-align:left;cursor:pointer;transition:background-color .18s,border-color .18s,filter .18s}
 .cp-go .cp-go-icon{color:var(--ma-tx2)}.cp-go .ml-ico{width:16px;height:16px}
 .cp-card:hover .cp-go,.cp-go:focus-visible{border-color:transparent;color:#fff;background:var(--ma-btn);box-shadow:0 6px 16px -8px rgba(79,70,229,.55)}
 .cp-card:hover .cp-go .cp-go-icon,.cp-go:focus-visible .cp-go-icon{color:#fff;transform:translateX(3px)}
 .cp-go[aria-disabled=true]{opacity:.55;cursor:not-allowed}
 .cp-card:hover .cp-go[aria-disabled=true]{background:#fff;border-color:var(--ma-line-2);box-shadow:none}
+/* «Tutti» is a compact index (#crCards[data-view=index]), four cards a row: icon, cost badge, title, the short line and
+   the action as a link over the whole card. The full line, the cost sentence and the hint show when one area is chosen
+   (data-view=area); the badge already says the cost before the click. */
+.cp-short{display:none}
+.cp-index[data-view=index] .cp-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.cp-index[data-view=index] .cp-card{gap:6px;padding:16px 16px 4px}
+.cp-index[data-view=index] .cp-card-icon{width:36px;height:36px}
+.cp-index[data-view=index] .cp-card-icon .ml-ico{width:20px;height:20px}
+.cp-index[data-view=index] .cp-card-title{font-size:15px}
+.cp-index[data-view=index] .cp-line,.cp-index[data-view=index] .cp-cost,.cp-index[data-view=index] .cp-hint{display:none}
+.cp-index[data-view=index] .cp-short{display:block;flex:1;margin:0;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
+.cp-index[data-view=index] .cp-go,.cp-index[data-view=index] .cp-card:hover .cp-go,.cp-index[data-view=index] .cp-go:focus-visible{justify-content:flex-start;gap:6px;margin:0;padding:0;border:0;background:none;box-shadow:none;color:var(--ma-link);font-size:13px;outline:none}
+.cp-index[data-view=index] .cp-go .cp-go-icon,.cp-index[data-view=index] .cp-card:hover .cp-go .cp-go-icon{color:var(--ma-link)}
+.cp-index[data-view=index] .cp-go::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.cp-index[data-view=index] .cp-card:has(.cp-go:focus-visible){outline:2px solid var(--ma-focus);outline-offset:2px}
+.cp-index[data-view=index] .cp-card:hover .cp-go[aria-disabled=true]{background:none}
 /* The service picked from the box, and the one whose studio is open */
 .cp-card[data-match=true]{border-color:var(--ma-vi);box-shadow:0 0 0 1px var(--ma-vi),0 16px 40px -24px rgba(79,70,229,.4)}
 .cp-match{display:inline-flex;align-items:center;font-size:11.5px;font-weight:600;color:var(--ma-link);border-radius:999px;padding:3px 9px;background:var(--ma-soft);box-shadow:inset 0 0 0 1px var(--ma-soft-line);white-space:nowrap}
@@ -94,20 +110,24 @@
 /* The studio frame, in the same glass */
 .cp-main .cr-panel{border-radius:16px;border-color:var(--ma-line);background:#fff;box-shadow:0 1px 2px rgba(29,26,39,.04),0 24px 60px -36px rgba(29,26,39,.25)}
 .cp-main .cr-panel-head{border-bottom-color:var(--ma-line)}
-.cp-main .cr-panel-eyebrow{color:var(--ma-vi);letter-spacing:.2em}
+.cp-main .cr-panel-eyebrow{color:var(--ma-vi);letter-spacing:.2em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cp-main .cr-close{min-height:44px;border-radius:10px;border-color:var(--ma-line-2);background:#fff;color:var(--ma-tx)}
 .cp-main .cr-close:focus-visible{outline:2px solid var(--ma-focus)}
 .cp-foot{margin:0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12.5px;line-height:1.5}
 .cp-main [hidden]{display:none!important}
-@media (max-width:1240px){.cp-kit-row{grid-template-columns:repeat(2,minmax(0,1fr))}.cp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1240px){.cp-kit-row{grid-template-columns:repeat(3,minmax(0,1fr))}.cp-grid,.cp-index[data-view=index] .cp-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1001px) and (max-width:1240px){.cp-index[data-view=index] .cp-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:1000px){.cp-hero{grid-template-columns:minmax(0,1fr)}.cp-area-line{display:none}}
 /* Phones: one column, tabs scroll sideways (44px taps), the card action full width. */
 @media (max-width:640px){
   .cp-main{padding:16px 16px 48px;gap:28px}
   .cp-lead{font-size:15px}
   .cp-side{padding:16px}
-  .cp-kit-row,.cp-grid{grid-template-columns:minmax(0,1fr)}
-  .cp-kit-row{gap:10px}
+  .cp-grid,.cp-index[data-view=index] .cp-grid{grid-template-columns:minmax(0,1fr)}
+  /* the kits scroll sideways: five cards in one row instead of a screen and a half */
+  .cp-kit-row{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -12px;padding:2px 12px 6px;scroll-padding:0 12px;scrollbar-width:none}
+  .cp-kit-row::-webkit-scrollbar{display:none}
+  .cp-kit{flex:0 0 min(300px,80%);scroll-snap-align:start}
   .cp-kit{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;row-gap:4px;padding:14px 16px}
   .cp-kit>.cp-card-top{display:contents}
   .cp-kit .cp-card-icon{grid-column:1;grid-row:1/span 2;align-self:start}
@@ -127,6 +147,8 @@
   .cp-card-title{grid-column:2;grid-row:1;font-size:15.5px}
   .cp-card-top .cp-cost-badge{grid-column:2;grid-row:2;justify-self:start;margin:0}
   .cp-match{justify-self:start}
+  .cp-index[data-view=index] .cp-card{padding:14px 16px 2px;row-gap:4px}
+  .cp-index[data-view=index] .cp-card>.cp-short,.cp-index[data-view=index] .cp-card>.cp-go{grid-column:2}
   .cp-how-title,.cp-how{display:none}
   .ma-option-link .cp-cost-badge{display:none}
 }

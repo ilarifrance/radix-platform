@@ -61,7 +61,7 @@ const P={
  play:'<path d="M8 5.5v13l10.5-6.5Z"/>',
  productPhoto:'<path d="M4 7V4h3M20 7V4h-3"/><path d="M10 3.5h4v2.8l1.5 2.2V17.5a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5V8.5L10 6.3Z"/><path d="M8.5 11.5h7v3.5h-7"/><path d="M4 21h16"/>',
  retouch:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 7.5a4.5 4.5 0 0 1 0 9" fill="currentColor" stroke="none"/>',
- mockup:'<path d="M3.5 8.5 12 4l8.5 4.5L12 13Z"/><path d="M3.5 12.5 12 17l8.5-4.5"/><path d="M3.5 16.5 12 21l8.5-4.5"/>',
+ mockup:'<rect x="2.5" y="5" width="12" height="9.5" rx="1.5"/><path d="M6 18.5h5M8.5 14.5v4"/><rect x="15.5" y="9" width="6" height="11" rx="1.4"/><path d="M18 17.5h1"/>',
  logoMotion:'<circle cx="8.5" cy="12" r="4.5"/><path d="M15 9.5h6M15 14.5h4"/><path d="M3 4.5c2.6-1.6 5.6-1.6 8 0M3 19.5c2.6 1.6 5.6 1.6 8 0"/>',
  compareSites:'<rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/><rect x="13" y="5" width="8.5" height="14" rx="1.5"/><path d="M2.5 8.5h8.5M13 8.5h8.5M5 12h4M15.5 12h4M5 15h2.5M15.5 15h3"/>',
  funnel:'<path d="M3.5 4.5h17l-6.5 7.5v6.5l-4 2v-8.5Z"/><path d="M7.5 8.5h9"/>',

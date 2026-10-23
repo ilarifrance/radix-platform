@@ -494,10 +494,10 @@
 .cr-panel .ad-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 24px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(29,26,39,.02)}
 .cr-panel .ad-tool{display:flex;flex-direction:column;gap:8px;min-width:0}
 .cr-panel .ad-tool-label{font:600 12px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--subtle)}
-.cr-panel .ad-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:rgba(243,243,243,.18)}
+.cr-panel .ad-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:rgba(29,26,39,.035)}
 .cr-panel .ad-studio .ad-seg button{min-height:34px;padding:0 14px;white-space:nowrap;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13.5px}
 .cr-panel .ad-studio .ad-seg button:hover:not(:disabled){background:rgba(29,26,39,.045);color:#1d1a27;border:0}
-.cr-panel .ad-studio .ad-seg button[aria-pressed=true]{background:var(--ink);color:#0a1026;font-weight:600}
+.cr-panel .ad-studio .ad-seg button[aria-pressed=true]{background:#fff;color:var(--ma-link);font-weight:600;box-shadow:0 1px 2px rgba(29,26,39,.12),inset 0 0 0 1px var(--ma-soft-line)}
 .cr-panel .ad-imgbtns{display:flex;flex-wrap:wrap;gap:8px}
 .cr-panel .ad-studio .ad-imgbtns button{min-height:38px;font-size:13.5px}
 .cr-panel .ad-studio .ad-imgbtns .ad-ai{border-color:rgba(123,111,212,.4);color:var(--mk-soft)}
@@ -712,10 +712,10 @@
 .cr-panel .gb-reply{padding:16px 18px;gap:12px}
 .cr-panel .gb-reply[data-issues]:not([data-issues="0"]){box-shadow:inset 0 0 0 1px rgba(163,120,5,.3)}
 .cr-panel .gb-quote{margin:0;padding:10px 12px;border-radius:10px;background:#fff;font-size:13px;line-height:1.5;color:var(--muted);font-style:italic;overflow-wrap:anywhere;max-height:120px;overflow:auto}
-.cr-panel .gb-seg{display:flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:rgba(243,243,243,.18)}
+.cr-panel .gb-seg{display:flex;gap:2px;padding:3px;border:1px solid var(--line-2);border-radius:12px;background:rgba(29,26,39,.035)}
 .cr-panel .gbp-studio .gb-seg button{flex:1 1 0;min-height:34px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13.5px}
 .cr-panel .gbp-studio .gb-seg button:hover:not(:disabled){background:rgba(29,26,39,.045);color:#1d1a27;border:0}
-.cr-panel .gbp-studio .gb-seg button[aria-checked=true]{background:var(--ink);color:#0a1026;font-weight:600}
+.cr-panel .gbp-studio .gb-seg button[aria-checked=true]{background:#fff;color:var(--ma-link);font-weight:600;box-shadow:0 1px 2px rgba(29,26,39,.12),inset 0 0 0 1px var(--ma-soft-line)}
 .cr-panel .gbp-studio .gb-reply textarea{box-sizing:border-box;width:100%;min-height:150px;font-size:14px;overflow:hidden}
 .cr-panel .gb-reply-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
 .cr-panel .gb-reply-issues{display:flex}
@@ -1142,7 +1142,7 @@
 .cr-panel .pf-studio .pf-seg{flex-wrap:wrap;align-self:flex-start;max-width:100%}
 .cr-panel .pf-studio .ad-seg button{min-height:34px;padding:0 14px;white-space:nowrap;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13px}
 .cr-panel .pf-studio .ad-seg button:hover:not(:disabled){background:rgba(29,26,39,.045);color:#1d1a27;border:0}
-.cr-panel .pf-studio .ad-seg button[aria-pressed=true]{background:var(--ink);color:#0a1026;font-weight:600}
+.cr-panel .pf-studio .ad-seg button[aria-pressed=true]{background:#fff;color:var(--ma-link);font-weight:600;box-shadow:0 1px 2px rgba(29,26,39,.12),inset 0 0 0 1px var(--ma-soft-line)}
 .cr-panel .pf-list{display:flex;flex-direction:column;gap:8px}
 .cr-panel .pf-prod{min-width:0;border:1px solid var(--line);border-radius:14px;background:rgba(29,26,39,.02);box-shadow:inset 3px 0 0 transparent;transition:border-color .15s}
 .cr-panel .pf-prod[data-status=ok]{box-shadow:inset 3px 0 0 rgba(0,140,72,.262)}
@@ -1281,7 +1281,7 @@
 .cr-panel .rs-result-head>div{display:flex;flex-direction:column;align-items:flex-start;gap:8px}
 .cr-panel .reel-studio .rs-seg button{min-height:34px;padding:0 14px;white-space:nowrap;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:13.5px}
 .cr-panel .reel-studio .rs-seg button:hover:not(:disabled){background:rgba(29,26,39,.045);color:#1d1a27;border:0}
-.cr-panel .reel-studio .rs-seg button[aria-pressed=true]{background:var(--ink);color:#0a1026;font-weight:600}
+.cr-panel .reel-studio .rs-seg button[aria-pressed=true]{background:#fff;color:var(--ma-link);font-weight:600;box-shadow:0 1px 2px rgba(29,26,39,.12),inset 0 0 0 1px var(--ma-soft-line)}
 .cr-panel .rs-body{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
 .cr-panel .rs-body[data-format="1x1"]{grid-template-columns:minmax(0,460px) minmax(0,1fr)}
 .cr-panel .rs-body[data-format="16x9"]{grid-template-columns:minmax(0,1fr)}
@@ -2742,3 +2742,10 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
  .cr-panel .funnel-studio .fn-tabs button.fn-tab,.cr-panel .funnel-studio .fn-pv-tabs button,.cr-panel .funnel-studio button.fn-copy{min-height:44px}
  .cr-panel .funnel-studio .fn-facts{grid-template-columns:minmax(0,1fr);gap:2px}.cr-panel .funnel-studio .fn-facts dd{margin-bottom:8px}
  .cr-panel .funnel-studio iframe.fn-frame{height:560px}.cr-panel .funnel-studio .fn-online-step select{flex:1 1 100%}}
+/* Rifinitura of all the studios together: the company and people fieldsets of Coordinato and Firma fill the row (the
+   shared fieldset centres its children), and on the phone the step labels stay on one line (the current one wraps). */
+.cr-panel .coordinato-studio fieldset.co-company,.cr-panel .coordinato-studio fieldset.co-people{align-items:stretch}
+@media (max-width:640px){
+ .cr-panel .photo-studio .ps-steps li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
+ .cr-panel .photo-studio .ps-steps li[data-state=current]{white-space:normal;flex-grow:1.7}
+}
