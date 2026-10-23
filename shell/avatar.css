@@ -30,6 +30,15 @@
 .av-page .av-path[aria-pressed=true]{border-color:var(--av-sel);box-shadow:0 0 0 1px var(--av-sel);background:linear-gradient(180deg,rgba(105,90,253,.153),rgba(52,111,242,.051))}
 .av-page .av-form{margin-top:16px;display:flex;flex-direction:column;gap:12px}
 .av-page .av-form label{display:flex;flex-direction:column;gap:6px;font-size:13px}
+/* The photo of «Da una tua foto» is the drop zone of the Marketing studios (.pf-drop in shell/crea.css): drag or click. */
+.av-page .av-form label.pf-drop{position:relative;flex-direction:row;align-items:center;gap:14px;min-height:72px;padding:14px 18px;border:1px dashed var(--av-line);border-radius:14px;background:rgba(0,141,167,.026);cursor:pointer}
+.av-page .av-form label.pf-drop::before{content:'';flex:0 0 36px;width:36px;height:36px;border-radius:10px;background:rgba(66,220,247,.14) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h8.5l3.5 3.5v13.5H6Z'/%3E%3Cpath d='M9 12h6M12 9v6'/%3E%3C/svg%3E") center/20px no-repeat}
+.av-page .av-form label.pf-drop:hover{border-color:rgba(0,147,173,.55);background:rgba(0,141,167,.051)}
+.av-page .av-form label.pf-drop:focus-within{outline:2px solid var(--ma-focus,#00798f);outline-offset:2px}
+.av-page .av-form label.pf-drop input{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;opacity:0;cursor:pointer}
+.av-page .pf-drop-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.av-page .pf-drop-text strong{font-size:14px;color:var(--rx-text,#131619)}
+.av-page .pf-drop-text small{font-size:12.5px;line-height:1.4;color:var(--ma-tx2,#363a4b);overflow-wrap:anywhere}
 .av-page .av-questions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .av-page fieldset{border:1px solid var(--ma-line,rgba(29,26,39,.115));border-radius:12px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:6px;margin:0}
 .av-page legend{font-size:13px;padding:0 4px}
