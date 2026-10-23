@@ -116,6 +116,22 @@ test('the phone shows the chosen screen; screens are filled at the screen propor
   assert.equal(t.mat,k);assert.equal(t.screen.kind,k);close(t.screen.w/t.screen.h,(M.PHONE.w-2*M.PHONE.inset)/(M.PHONE.h-2*M.PHONE.inset),1e-9);assert.ok(t.clip.length>8,'rounded screen')}
  const lap=M.plan({scene:'portatile'},inv,{W:1200,H:800}).ops.find(o=>o.op==='texture'&&o.slot==='schermo');close(lap.screen.w/lap.screen.h,16/10,.01);
 });
+test('screen content lies on the screen plane: the island, the rounded clip and the content share one homography',()=>{
+ const inv=full();
+ for(const [scene,pref] of [['telefono',{schermo:'post'}],['telefono',{schermo:'storia'}],['portatile',{}]])for(const angle of ['frontale','leggera','marcata']){
+  const pl=M.plan({scene,angle,pref},inv),screens=pl.ops.filter(o=>o.op==='texture'&&o.screen);assert.ok(screens.length,scene);
+  for(const t of screens){const sw=t.screen.w,sh=t.screen.h,H=M.homography([[0,0],[sw,0],[sw,sh],[0,sh]],t.quad),Hi=M.invert(H);
+   // back in screen millimetres, the clip is the rounded screen rectangle: inside it and touching all 4 sides
+   if(t.clip){const pts=t.clip.map(p=>M.apply(Hi,p[0],p[1])),xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+    close(Math.min(...xs),0,1e-6);close(Math.max(...xs),sw,1e-6);close(Math.min(...ys),0,1e-6);close(Math.max(...ys),sh,1e-6)}
+   // the gloss of the screen covers the same plane
+   const i=pl.ops.indexOf(t),after=pl.ops.slice(i+1);const gl=after.find(o=>o.op==='gloss');assert.ok(gl,'gloss over the screen');
+   for(const p of gl.poly){const q=M.apply(Hi,p[0],p[1]);assert.ok(q[0]>-1e-6&&q[0]<sw+1e-6&&q[1]>-1e-6&&q[1]<sh+1e-6,scene+' '+angle+' gloss off the screen')}
+   // the camera island of a phone: 21 × 6.2 mm, centred, ISLAND_MM from the top of the same plane
+   if(t.clip){const isl=after.find(o=>o.op==='poly'&&o.fill==='#000000'),pts=isl.poly.map(p=>M.apply(Hi,p[0],p[1])),xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+    close((Math.min(...xs)+Math.max(...xs))/2,sw/2,1e-6);close(Math.max(...xs)-Math.min(...xs),21,1e-6);close((Math.min(...ys)+Math.max(...ys))/2,M.ISLAND_MM,1e-6);close(Math.max(...ys)-Math.min(...ys),6.2,1e-6)}}}
+});
+
 test('the resolution check compares the sources with the export size',()=>{
  const inv=full(),pl=M.plan({scene:'portatile'},inv,{W:1200,H:800});
  assert.equal(M.checksOf(pl,inv,{sources:{'sito-desktop':{w:2880,h:1800,vector:false},'sito-mobile':{w:1170,h:2532,vector:false}}}).find(c=>c.id==='risoluzione').state,'ok');
