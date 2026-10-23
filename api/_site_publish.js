@@ -16,6 +16,13 @@
         never sends those three files: they are always generated here.
    POST {action:'status',projectId,deploymentId}       → same shape, read again from Vercel
    POST {action:'domain',projectId}                    → {domain,verified,record:{type,name,value,zone}}  (<slug>.radixinnovationstudio.com)
+   POST {action:'funnel',projectId,funnel,html,pages,pdf} → the landing of a lead magnet funnel (lib/funnel-studio.js) on its
+        own Vercel project (radix-lp-<funnel>-<6 hex>), so the client's site stays as it is: index.html is the landing with
+        the form (a valid form token of this project is required, as for the site), pages are privacy.html, cookie.html,
+        grazie.html (the thank-you page with the download) and logo.svg, pdf is {base64} of the lead magnet, published as
+        <funnel>.pdf (at most 3 MB, it must be a PDF and grazie.html must link to it). Same answer as publish; the record is
+        saved in the agents document under funnels.online[<funnel>] (the funnels key of the studio).
+   POST {action:'funnelStatus',projectId,funnel,deploymentId} → the same record, read again from Vercel
    The record is saved in the project's «agents» document (where the studio saves the site): top-level siteOnline plus,
    once online, an exchange in the Web Developer's thread so the team sees it there too. */
 const crypto=require('crypto');
@@ -119,6 +126,27 @@ function sqlStore(db,uid){return {
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):req.body||{};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+// ---- the landing of a funnel (lib/funnel-studio.js) ----
+const FUNNEL=/^[a-z0-9][a-z0-9-]{1,39}$/,FUNNEL_PAGES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg']),MAX_PDF=3*1024*1024;
+const funnelProject=(funnel,projectId)=>'radix-lp-'+siteSlug(funnel,projectId+':'+funnel);
+// The site checks (privacy, cookie, thank-you page, form linked to this project), the funnel name and the PDF.
+function checkFunnel(input,{projectId,secret,now}={}){const funnel=String(input&&input.funnel||'');
+ if(!FUNNEL.test(funnel))throw new HttpError(400,'Funnel non valido.');
+ const pages=input.pages;if(pages!=null&&(typeof pages!=='object'||Array.isArray(pages)||Object.keys(pages).some(k=>!FUNNEL_PAGES.includes(k))))throw new HttpError(400,'Pagine della landing non valide.');
+ if(!siteForm.hasForm(input.html))throw new HttpError(422,'La landing non ha il modulo: rigenerala dallo studio Funnel.');
+ const site=checkSite(input.html,pages,{projectId,secret,now});
+ const b64=String(input.pdf&&input.pdf.base64||'');if(!b64||b64.length>Math.ceil(MAX_PDF/3)*4||!/^[A-Za-z0-9+/]+={0,2}$/.test(b64))throw new HttpError(b64.length>Math.ceil(MAX_PDF/3)*4?413:400,'Il PDF del lead magnet manca o è troppo grande (massimo 3 MB).');
+ if(!Buffer.from(b64.slice(0,12),'base64').toString('latin1').startsWith('%PDF-'))throw new HttpError(400,'Il file del lead magnet non è un PDF.');
+ const file=funnel+'.pdf';if(!new RegExp('href="'+file.replace(/[.-]/g,'\\$&')+'"').test(site.pages['grazie.html']))throw new HttpError(422,'La pagina di ringraziamento non porta al PDF: rigenerala dallo studio Funnel.');
+ return {funnel,file,base64:b64,html:site.html,pages:site.pages}}
+function savedFunnel(data,funnel){const o=data&&data.funnels&&data.funnels.online;return o&&typeof o==='object'&&o[funnel]&&o[funnel].deploymentId?o[funnel]:null}
+// Merges the record into funnels.online of the agents document (the studio keeps its items next to it).
+async function rememberFunnel(store,projectId,funnel,site){
+ for(let i=0;i<3;i++){const cur=await store.load(projectId),data={schemaVersion:1,conversations:{},...(cur.data||{})},f=data.funnels&&typeof data.funnels==='object'?data.funnels:{schemaVersion:1,items:[]};
+  data.funnels={...f,online:{...(f.online&&typeof f.online==='object'?f.online:{}),[funnel]:site}};
+  if(await store.save(projectId,data,cur.revision))return site}
+ throw new HttpError(409,'Il progetto è stato modificato nello stesso momento: riprova.')}
+
 async function handle(req,res,deps){
  res.setHeader('Cache-Control','no-store');
  const user=require('./_auth').getSessionUser(req);
@@ -143,6 +171,22 @@ async function handle(req,res,deps){
    const site=await remember(store,projectId,view(d,project,at),{by});
    if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online il sito ('+site.state+'). Riprova tra qualche minuto.'});
    return res.status(200).json(site)}
+  if(action==='funnel'){const f=checkFunnel(input,{projectId,secret:env.JWT_SECRET,now:(deps.now?deps.now():new Date()).getTime()});
+   const data=(await store.load(projectId)).data,prev=savedFunnel(data,f.funnel),project=prev&&prev.project||funnelProject(f.funnel,projectId),at=(deps.now?deps.now():new Date()).toISOString();
+   const bundle=seo.siteBundle(f.html,f.pages,{base:siteBase(prev,project),date:at.slice(0,10)}),payload=deploymentPayload(project,bundle.html,bundle.pages);
+   payload.files.push({file:f.file,data:f.base64,encoding:'base64'});
+   let d=await api('POST','/v13/deployments',payload);
+   const wait=deps.waitMs==null?WAIT_MS:deps.waitMs,every=deps.pollMs==null?POLL_MS:deps.pollMs,pause=deps.sleep||sleep;
+   for(let t=0;!DONE.includes(stateOf(d.readyState||d.status))&&t<wait;t+=every){await pause(every);d={...d,...await api('GET','/v13/deployments/'+encodeURIComponent(d.id))}}
+   const site=await rememberFunnel(store,projectId,f.funnel,{...view(d,project,at),funnel:f.funnel,file:f.file});
+   if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online la landing ('+site.state+'). Riprova tra qualche minuto.'});
+   return res.status(200).json(site)}
+  if(action==='funnelStatus'){const funnel=String(input.funnel||''),id=String(input.deploymentId||'');if(!FUNNEL.test(funnel))throw new HttpError(400,'Funnel non valido.');
+   const prev=savedFunnel((await store.load(projectId)).data,funnel);
+   if(!prev||!id||prev.deploymentId!==id)throw new HttpError(404,'Pubblicazione della landing non trovata in questo progetto.');
+   const d=await api('GET','/v13/deployments/'+encodeURIComponent(id));
+   const site=await rememberFunnel(store,projectId,funnel,{...view({...d,id},prev.project,prev.publishedAt),funnel,file:prev.file});
+   return res.status(200).json(site)}
   if(action==='status'){const id=String(input.deploymentId||'');
    if(!saved||!id||saved.deploymentId!==id)throw new HttpError(404,'Pubblicazione non trovata in questo progetto.');
    const d=await api('GET','/v13/deployments/'+encodeURIComponent(id));
@@ -164,4 +208,4 @@ async function handle(req,res,deps){
 }
 
 module.exports=(req,res)=>handle(req,res,{db:()=>require('./_db').sql()});
-Object.assign(module.exports,{handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});
+Object.assign(module.exports,{checkFunnel,funnelProject,savedFunnel,FUNNEL_PAGES,handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});

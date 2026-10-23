@@ -16,6 +16,9 @@
 
    POST /api/sales?site_form=1  (application/x-www-form-urlencoded da un <form> senza script, o JSON)
    campi: t (token), name, email, phone (facoltativo), message, privacy (obbligatorio), marketing (facoltativo), website (trappola)
+   Landing con lead magnet (lib/funnel-studio.js): funnel (nome del funnel) e fonte (canale: instagram, google…; vince
+   utm_source dell'indirizzo da cui arriva l'invio, quando la pagina lo manda nel Referer). Con «funnel» il messaggio non
+   serve; il contatto, la nota e il lead portano il nome del funnel e la fonte (lead con fonte «funnel: <nome>»).
    → 303 verso <origine del sito>/grazie.html, oppure una piccola pagina HTML (errori: 400/401/403/413/429/503).
    Con «Accept: application/json» risponde JSON {ok} / {error}. */
 const crypto=require('node:crypto');
@@ -24,7 +27,7 @@ const command=(...a)=>require('./_sales').command(...a);
 const PREFIX='rsf1',SCOPE='site-form',TTL_SECONDS=60*60*24*730;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SITE=/^[a-z0-9][a-z0-9-]{1,79}$/;
-const LIMITS=Object.freeze({name:120,email:254,phone:40,message:3000,body:20000});
+const LIMITS=Object.freeze({name:120,email:254,phone:40,message:3000,body:20000,funnel:80,fonte:40});
 const RATE=Object.freeze({perIp:5,windowMs:10*60*1000,perWorkspaceHour:40});
 const TITLE='Messaggio dal modulo del sito';
 function failure(status,message){const e=new Error(message);e.status=status;return e}
@@ -58,9 +61,14 @@ const hasForm=html=>/<form\b[^>]*\bdata-radix-form\b/i.test(String(html||''));
 // ---- the submitted fields ----
 const text=(v,max)=>{if(Array.isArray(v))v=v[0];return String(v==null?'':v).replace(/\r\n?/g,'\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,'').trim().slice(0,max)};
 const line=(v,max)=>text(v,max).replace(/\s+/g,' ');
+// A channel name for the CRM: «instagram», «google-ads»… (letters, digits, - and _), '' when none.
+const channel=v=>line(v,200).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,LIMITS.fonte);
+// utm_source of the page the send comes from (the funnel landing sends its full address in the Referer).
+function utmSource(req){try{return channel(new URL(String(req.headers?.referer||'')).searchParams.get('utm_source')||'')}catch{return ''}}
 const yes=v=>['1','on','true','si','sì','yes'].includes(String(Array.isArray(v)?v[0]:v||'').toLowerCase());
 function fieldsOf(body){
- const b=body||{},out={token:line(b.t,700),name:line(b.name,LIMITS.name),email:line(b.email,LIMITS.email).toLowerCase(),phone:line(b.phone,LIMITS.phone),message:text(b.message,LIMITS.message),privacy:yes(b.privacy),marketing:yes(b.marketing),trap:line(b.website,200)};
+ const b=body||{},out={token:line(b.t,700),name:line(b.name,LIMITS.name),email:line(b.email,LIMITS.email).toLowerCase(),phone:line(b.phone,LIMITS.phone),message:text(b.message,LIMITS.message),privacy:yes(b.privacy),marketing:yes(b.marketing),trap:line(b.website,200),
+  funnel:line(b.funnel,LIMITS.funnel),fonte:channel(b.fonte)};
  return out;
 }
 // Returns the error to show, or '' when the send is valid. The honeypot is checked before this.
@@ -68,7 +76,7 @@ function invalid(f){
  if(!f.name||f.name.length<2)return 'Scrivi il tuo nome.';
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email))return 'Scrivi un indirizzo e-mail valido.';
  if(f.phone&&!/^\+?[\d\s().\/-]{6,40}$/.test(f.phone))return 'Il numero di telefono non sembra valido.';
- if(!f.message||f.message.length<2)return 'Scrivi il messaggio.';
+ if(!f.funnel&&(!f.message||f.message.length<2))return 'Scrivi il messaggio.';
  if(!f.privacy)return 'Per inviare il messaggio serve il consenso al trattamento dei dati (informativa privacy).';
  return '';
 }
@@ -98,16 +106,18 @@ function originOf(req){const h=req.headers||{};let o=String(h.origin||'');
 
 // ---- the record in the CRM: an existing contact with the same e-mail gets the note, otherwise a new contact ----
 function noteBody(f,{origin,at}){
- return [f.message,'',
-  '— Arrivato dal modulo contatti del sito'+(origin?' '+origin:'')+'.',
+ return [...(f.funnel?['Ha chiesto il lead magnet del funnel «'+f.funnel+'»'+(f.fonte?' (fonte: '+f.fonte+')':'')+'.',...(f.message?['',f.message]:[])]:[f.message]),'',
+  '— Arrivato dal modulo '+(f.funnel?'della landing':'contatti del sito')+(origin?' '+origin:'')+'.',
   'Nome: '+f.name,'E-mail: '+f.email,...(f.phone?['Telefono: '+f.phone]:[]),
   'Consenso privacy: sì ('+at+').','Consenso a ricevere novità: '+(f.marketing?'sì ('+at+')':'no')+'.'].join('\n').slice(0,4000)}
+// The lead source of a funnel: «funnel: <name>» (at most 80 characters, the CRM limit), the one a CRM rule can match.
+const leadSource=name=>('funnel: '+name).slice(0,80);
 async function record(store,claims,f,{origin,now}){
  const at=now.toISOString().replace(/\.\d{3}Z$/,'Z'),ws=claims.ws;
  const found=await store.sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND lower(email)=lower($2) ORDER BY created_at LIMIT 1',[ws,f.email]);
  let contactId=found[0]&&found[0].id,created=false;
  if(!contactId){
-  const data={name:f.name,email:f.email,notes:'Contatto arrivato dal modulo del sito'+(origin?' '+origin:'')+' il '+at.slice(0,10)+'.',marketing_consent:f.marketing,...(f.marketing?{consent_at:at}:{}),...(f.phone?{phone:f.phone}:{})};
+  const data={name:f.name,email:f.email,notes:(f.funnel?'Contatto arrivato dal funnel «'+f.funnel+'»'+(f.fonte?' (fonte: '+f.fonte+')':'')+' della landing':'Contatto arrivato dal modulo del sito')+(origin?' '+origin:'')+' il '+at.slice(0,10)+'.',marketing_consent:f.marketing,...(f.marketing?{consent_at:at}:{}),...(f.phone?{phone:f.phone}:{})};
   const c=command({workspace:ws,entity:'contacts',action:'create',data});
   await store.command(c,claims.uid);contactId=c.data.id;created=true;
  }
@@ -117,7 +127,7 @@ async function record(store,claims,f,{origin,now}){
  // uses. The contact and the note are already saved, so a failed lead (an archive without 012) never fails the send:
  // the visitor would otherwise send again and duplicate the note.
  let leadId=null;
- if(created){const l=command({workspace:ws,entity:'leads',action:'create',data:{title:('Richiesta dal sito: '+f.name).slice(0,200),contact_id:contactId,status:'nuovo',source:'sito'}});
+ if(created){const l=command({workspace:ws,entity:'leads',action:'create',data:{title:(f.funnel?'Lead magnet «'+f.funnel+'»: '+f.name:'Richiesta dal sito: '+f.name).slice(0,200),contact_id:contactId,status:'nuovo',source:f.funnel?leadSource(f.funnel):'sito'}});
   try{await store.command(l,claims.uid);leadId=l.data.id}catch(e){leadId=null}}
  return {contactId,interactionId:n.data.id,leadId,created};
 }
@@ -148,6 +158,7 @@ async function handle(req,res,{getStore,secret,now=()=>new Date(),limit=defaultL
   // Honeypot: a bot filled the hidden field. It sees the usual thank-you, nothing is written.
   if(f.trap)return answer(req,res,origin?303:200,{ok:true,origin});
   const bad=invalid(f);if(bad)throw failure(400,bad);
+  if(f.funnel)f.fonte=utmSource(req)||f.fonte||'landing';else f.fonte='';
   const store=getStore();
   const m=await store.membership(claims.ws,claims.uid);
   if(!m||!['owner','admin','member'].includes(m.role))throw failure(403,'Questo modulo non è più collegato: avvisa il titolare del sito.');
@@ -160,4 +171,4 @@ async function handle(req,res,{getStore,secret,now=()=>new Date(),limit=defaultL
   return answer(req,res,status,{error:e.status?e.message:'Il messaggio non è stato inviato: riprova tra qualche minuto.',origin});
  }
 }
-module.exports={sign,verify,tokenIn,hasForm,fieldsOf,invalid,parseBody,limiter,originOf,noteBody,record,handle,PREFIX,SCOPE,TTL_SECONDS,TITLE,RATE,LIMITS};
+module.exports={leadSource,utmSource,channel,sign,verify,tokenIn,hasForm,fieldsOf,invalid,parseBody,limiter,originOf,noteBody,record,handle,PREFIX,SCOPE,TTL_SECONDS,TITLE,RATE,LIMITS};

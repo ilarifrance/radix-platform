@@ -126,3 +126,21 @@ test('provider errors never echo the token; routing, status list and studio wiri
  const ws=fs.readFileSync('lib/radix-workspace-client.js','utf8');assert.match(ws,/'\/api\/integrations\/site-publish'/);assert.match(ws,/sites,/);
  const ui=fs.readFileSync('lib/site-studio.js','utf8');assert.match(ui,/publishBox\(\(\)=>\(\{html,pages\}\)\)/);assert.match(ui,/Usa il tuo dominio/);assert.match(ui,/cname\.vercel-dns\.com/);assert.match(ui,/Namecheap/);
 });
+
+test('funnel landing: its own Vercel project, the PDF pushed next to grazie.html, the record under funnels.online; bad input refused',async()=>{
+ const FS=require('../lib/funnel-studio.js'),{PROFILE}=require('./fixtures/mockup-forno-aurora.js'),siteForm=require('../api/_site_form.js');
+ const m=FS.newModel({profile:PROFILE,projectName:'Forno Aurora',today:new Date('2026-10-22T09:00:00Z')});const f=FS.buildFunnel(m.input,'guida',{brandName:'Forno Aurora'});
+ const token=siteForm.sign({uid:7,workspace:'11111111-1111-4111-8111-111111111111',site:'fisio-ab12cd34'},SECRET).token;
+ const legal={legalName:'Forno Aurora srl',vat:'01234567897',address:'Via Nizza 12, 10125 Torino',email:'ciao@fornoaurora.it'};
+ const s=FS.landingSite(f,FS.brandFor(PROFILE,'Forno Aurora'),{profile:PROFILE,endpoint:'https://radix.example/api/sales?site_form=1',token,legal,year:2026});
+ const pdf={base64:Buffer.from(FS.magnetPdf(f,FS.brandFor(PROFILE,'Forno Aurora'))).toString('base64')};
+ const body={action:'funnel',projectId:'fisio-ab12cd34',funnel:f.slug,html:s.html,pages:s.pages,pdf};
+ const r=await call('POST',body);assert.equal(r.code,200,JSON.stringify(r.body));assert.equal(r.body.state,'READY');assert.equal(r.body.funnel,f.slug);assert.equal(r.body.file,f.slug+'.pdf');
+ const dep=r.vercel.calls[0].body;assert.match(dep.project,/^radix-lp-le-10-torte-per-le-feste-[0-9a-f]{6}$/);assert.equal(dep.project,pub.funnelProject(f.slug,'fisio-ab12cd34'));
+ const file=dep.files.find(x=>x.file===f.slug+'.pdf');assert.equal(file.encoding,'base64');assert.equal(file.data,pdf.base64);assert.ok(dep.files.some(x=>x.file==='grazie.html'));
+ const d=r.store.doc.data;assert.equal(d.funnels.online[f.slug].deploymentId,'dpl_1');assert.equal(d.siteOnline,undefined,'the client site is untouched');assert.equal(d.other,1);
+ const st=await call('POST',{action:'funnelStatus',projectId:'fisio-ab12cd34',funnel:f.slug,deploymentId:'dpl_1'},{store:r.store});assert.equal(st.code,200);assert.equal(st.body.funnel,f.slug);
+ for(const [bad,code] of [[{funnel:'../x'},400],[{pdf:{base64:Buffer.from('hello').toString('base64')}},400],[{pdf:{}},400],[{funnel:'altro-nome'},422],[{pages:{...s.pages,'evil.html':'x'}},400],[{html:s.html.replace(/<form[\s\S]*<\/form>/,'')},422]]){
+  const x=await call('POST',{...body,...bad});assert.equal(x.code,code,JSON.stringify(bad).slice(0,60)+' '+JSON.stringify(x.body))}
+ assert.equal((await call('POST',{action:'funnelStatus',projectId:'fisio-ab12cd34',funnel:f.slug,deploymentId:'dpl_9'})).code,404);
+});

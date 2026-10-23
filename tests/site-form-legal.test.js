@@ -212,3 +212,17 @@ test('wiring: legal script before the studio, profile passed, CRM link through t
  assert.match(fs.readFileSync('api/_sales.js','utf8'),/if\(req\.query\?\.site_form!==undefined\)return await siteForm\.handle/);
  const src=fs.readFileSync('api/_site_form.js','utf8');assert.ok(!/sendMail|nodemailer|_send-email/.test(src),'no e-mail is sent');assert.ok(!/CREATE TABLE|ALTER TABLE/i.test(src),'no new table');
 });
+
+test('funnel landing (lib/funnel-studio.js): no message needed, the contact, note and lead carry the funnel name and the UTM channel',async()=>{
+ const body=(extra={})=>new URLSearchParams({t:F.sign({uid:7,workspace:WS,site:SITE},SECRET).token,name:'Giulia',email:'giulia@example.it',privacy:'1',website:'',funnel:'Le 10 torte per le feste',fonte:'landing',...extra}).toString();
+ const fake=fakeStore(),r=await send(fake,{body:body(),headers:{...H,referer:'https://radix-lp-torte-ab12cd.vercel.app/?utm_source=Instagram&utm_medium=social&utm_campaign=torte'}});
+ assert.equal(r.status,303);assert.equal(fake.commands.length,3);const [contact,note,lead]=fake.commands;
+ assert.match(contact.c.data.notes,/^Contatto arrivato dal funnel «Le 10 torte per le feste» \(fonte: instagram\) della landing/);
+ assert.match(note.c.data.body,/^Ha chiesto il lead magnet del funnel «Le 10 torte per le feste» \(fonte: instagram\)\./);
+ assert.equal(lead.c.data.source,'funnel: Le 10 torte per le feste');assert.equal(lead.c.data.title,'Lead magnet «Le 10 torte per le feste»: Giulia');assert.equal(lead.c.data.status,'nuovo');
+ // no UTM in the address: the hidden field; a hostile channel is reduced to [a-z0-9_-]
+ const b=fakeStore();await send(b,{body:body({fonte:'Google Ads<script>'})});assert.match(b.commands[1].c.data.body,/\(fonte: google-ads-script\)/);
+ assert.equal(F.utmSource({headers:{referer:'not a url'}}),'');assert.equal(F.leadSource('x'.repeat(200)).length,80);
+ // without «funnel» the message is still required (the site form is unchanged)
+ const c=fakeStore();await send(c,{body:body({funnel:''})});assert.equal(c.commands.length,0);
+});

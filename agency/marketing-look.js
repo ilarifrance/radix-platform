@@ -64,6 +64,7 @@ const P={
  mockup:'<path d="M3.5 8.5 12 4l8.5 4.5L12 13Z"/><path d="M3.5 12.5 12 17l8.5-4.5"/><path d="M3.5 16.5 12 21l8.5-4.5"/>',
  logoMotion:'<circle cx="8.5" cy="12" r="4.5"/><path d="M15 9.5h6M15 14.5h4"/><path d="M3 4.5c2.6-1.6 5.6-1.6 8 0M3 19.5c2.6 1.6 5.6 1.6 8 0"/>',
  compareSites:'<rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/><rect x="13" y="5" width="8.5" height="14" rx="1.5"/><path d="M2.5 8.5h8.5M13 8.5h8.5M5 12h4M15.5 12h4M5 15h2.5M15.5 15h3"/>',
+ funnel:'<path d="M3.5 4.5h17l-6.5 7.5v6.5l-4 2v-8.5Z"/><path d="M7.5 8.5h9"/>',
  infographic:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7 16.5v-3M10.5 16.5v-6M14 16.5v-4.5M17.5 16.5v-8"/><path d="M7 7.5h5"/>',
  yearPlan:'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9h17M8 2.75v3.5M16 2.75v3.5"/><path d="M7.5 17v-2.5M10.5 17v-4.5M13.5 17v-3M16.5 17v-5"/>',
  reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
@@ -76,7 +77,7 @@ const AREAS=Object.freeze({
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',report:'chart',budget:'coin',pianoannuale:'yearPlan',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',fotoprodotto:'productPhoto',fotoritocco:'retouch',mockup:'mockup',infografica:'infographic',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
+ newsletter:'mail',images:'image',fotoprodotto:'productPhoto',fotoritocco:'retouch',mockup:'mockup',infografica:'infographic',funnel:'funnel',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',concorrenzasiti:'compareSites',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);

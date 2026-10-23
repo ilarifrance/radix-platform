@@ -209,3 +209,9 @@ test('the card in «Cosa vuoi fare»: Strategia, inline studio, free with an opt
  assert.ok(!/\bfetch\(\s*['"`]|new XMLHttpRequest|['"`]\/api\/chat/.test(src),'no direct request but the CRM reads');assert.equal((src.match(/'\/api\/sales\?'/g)||[]).length,1);
  assert.doesNotMatch(src,/method:\s*'(POST|PUT|PATCH|DELETE)'/,'reads only');
 });
+
+test('leads from a funnel landing (source «funnel: …», lib/funnel-studio.js) count as contacts from the site',()=>{
+ const inp=F.input(),one=inp.crm.leads.find(l=>l.source==='sito'),base=R.kpisOf(R.gather(inp),'leads').find(k=>k.id==='siteLeads').value;
+ const more={...inp,crm:{...inp.crm,leads:inp.crm.leads.concat([{...one,id:'funnel-lead-1',source:'funnel: Le 10 torte per le feste'},{...one,id:'other-1',source:'fiera'}])}};
+ assert.equal(R.kpisOf(R.gather(more),'leads').find(k=>k.id==='siteLeads').value,base+1);
+});

@@ -4,7 +4,7 @@ const core=require('../agency/crea-core.js');
 const root=path.join(__dirname,'..');
 
 test('the panel has the services of the approved proposal plus the text services',()=>{
- assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Budget e KPI della strategia','Piano annuale e budget','Piano di lancio prodotto','Buyer persona','Analisi della concorrenza','Confronto con i siti dei concorrenti','Report mensile al cliente','Audit di comunicazione','Nome e slogan','Kit identità','Coordinato aziendale','Tono di voce per canale','Social e post','Post grafici','Grafica profili e template social','Testi per sito, blog e prodotti','Comunicato stampa','Brief per influencer','Evento o fiera','Newsletter','Newsletter HTML','Firma email','Sequenze email','SMS','Immagini','Foto prodotto','Fotoritocco','Mockup','Infografica','Avatar','Video','Reel e video prodotto','Animazione del logo','Sito web','SEO e GEO','Analisi del sito','Testi per annunci Google e Meta','Campagne Google Ads Search','Creatività per annunci','Scheda Google e recensioni','Schede prodotto e feed','Traduzione e localizzazione','Stampa e documenti','Catalogo prodotti','Menu e listino','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
+ assert.deepEqual(core.CARDS.map(c=>c.title),['Strategia','Budget e KPI della strategia','Piano annuale e budget','Piano di lancio prodotto','Buyer persona','Analisi della concorrenza','Confronto con i siti dei concorrenti','Report mensile al cliente','Audit di comunicazione','Nome e slogan','Kit identità','Coordinato aziendale','Tono di voce per canale','Social e post','Post grafici','Grafica profili e template social','Testi per sito, blog e prodotti','Comunicato stampa','Brief per influencer','Evento o fiera','Newsletter','Newsletter HTML','Firma email','Sequenze email','SMS','Immagini','Foto prodotto','Fotoritocco','Mockup','Infografica','Avatar','Video','Reel e video prodotto','Animazione del logo','Sito web','SEO e GEO','Analisi del sito','Testi per annunci Google e Meta','Campagne Google Ads Search','Creatività per annunci','Funnel con lead magnet','Scheda Google e recensioni','Schede prodotto e feed','Traduzione e localizzazione','Stampa e documenti','Catalogo prodotti','Menu e listino','Brochure e company profile','Scheda tecnica','Presentazione','Documenti impaginati']);
  for(const c of core.CARDS)assert.ok(c.cost&&c.action&&c.line,c.id);
  assert.equal(new Set(core.CARDS.map(c=>c.id)).size,core.CARDS.length,'unique ids');
 });
@@ -16,7 +16,7 @@ test('every card has one of the 8 groups; the filters list only groups with card
  assert.deepEqual(by('Strategia'),['strategy','budget','pianoannuale','lancio','persona','concorrenza','concorrenzasiti','report','auditcom']);assert.deepEqual(by('Brand'),['naming','identita','coordinato','tono']);
  assert.deepEqual(by('Social e contenuti'),['social','graphics','socialgrafica','testi','comunicato','influencer','evento']);
  assert.deepEqual(by('Email e SMS'),['newsletter','emailhtml','firma','sequenze','sms']);
- assert.deepEqual(by('Web e annunci'),['site','seo','analisi','annunci','searchads','creativita','google','schede','traduzione']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','menu','brochure','scheda','presentazione','documenti']);
+ assert.deepEqual(by('Web e annunci'),['site','seo','analisi','annunci','searchads','creativita','funnel','google','schede','traduzione']);assert.deepEqual(by('Stampa e documenti'),['stampa','catalogo','menu','brochure','scheda','presentazione','documenti']);
  assert.deepEqual(by('Immagini'),['images','fotoprodotto','fotoritocco','mockup','infografica']);assert.deepEqual(by('Video'),['avatar','video','reel','logoanimato']);
  assert.deepEqual(core.groups(),core.GROUPS);
  assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita','coordinato','tono']);
@@ -55,7 +55,7 @@ test('without a project only strategy leads somewhere (new project); no card goe
  assert.equal(core.linkFor(core.card('social'),''),null);
  assert.equal(core.linkFor(core.card('social'),'bad id!'),null);
  assert.deepEqual(core.CARDS.filter(c=>c.state!=='ready').map(c=>c.id),[],'every card is guided');
- assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['budget','pianoannuale','concorrenzasiti','report','auditcom','identity','coordinato','socialkit','event','mail','firma','photo','productphoto','retouch','mockup','infographic','video','reel','logomotion','site','seo','audit','searchads','ads','gbp','feed','translate','print','catalog','menu','docs']);
+ assert.deepEqual(core.CARDS.filter(c=>c.inline&&!/^copy:/.test(c.inline)).map(c=>c.inline),['budget','pianoannuale','concorrenzasiti','report','auditcom','identity','coordinato','socialkit','event','mail','firma','photo','productphoto','retouch','mockup','infographic','video','reel','logomotion','site','seo','audit','searchads','ads','funnel','gbp','feed','translate','print','catalog','menu','docs']);
  // an agent card would still open the agent with the request prefilled, never sent on its own
  assert.match(core.linkFor({agent:'web-developer',ask:'ciao'},'radix'),/^\/agents\.html\?agent=web-developer&project=radix&q=ciao$/);
  assert.match(fs.readFileSync(path.join(root,'agents-page.js'),'utf8'),/prefilled, never sent on its own/);

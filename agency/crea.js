@@ -132,6 +132,7 @@ const STUDIOS={
  productphoto:{global:'RadixProductPhotoStudio',name:'Lo Studio Foto prodotto',need:'gli sfondi usano il suo Kit identità e le foto si salvano nel progetto',agent:'art-director'},
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  retouch:{global:'RadixRetouchStudio',name:'Lo Studio Fotoritocco',need:'le impostazioni si salvano nel progetto (le foto restano sul tuo computer)',agent:'art-director'},
+ funnel:{global:'RadixFunnelStudio',name:'Lo Studio Funnel',need:'il funnel usa i colori e il logo del Kit identità del progetto e si salva lì',agent:'copywriter'},
  infographic:{global:'RadixInfographicStudio',name:'Lo Studio Infografica',need:'l’infografica usa i colori e il logo del Kit identità del progetto e si salva lì',agent:'art-director'},
  mockup:{global:'RadixMockupStudio',name:'Lo Studio Mockup',need:'i mockup mettono in scena i materiali salvati nel progetto',agent:'art-director'},
  logomotion:{global:'RadixLogoMotion',name:'Lo Studio Logo animato',need:'l’animazione parte dal logo e dai colori del Kit identità del progetto',agent:'art-director'},
@@ -182,6 +183,8 @@ function openInline(c){
   ?S.mockupStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openStudio:id=>{const card=core.card(id);if(card)openInline(card)},studioUrl:id=>'/agency/crea.html?project='+pid+'&open='+encodeURIComponent(id)})
   :c.inline==='infographic'
   ?S.infographicStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
+  :c.inline==='funnel'
+  ?S.funnelStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=copywriter&project='+pid,openStudio:id=>{const card=core.card(id);if(card)openInline(card)},studioUrl:id=>'/agency/crea.html?project='+pid+'&open='+encodeURIComponent(id),pedUrl:'/project-editorial.html?project='+pid,crmUrl:'/radix-sales.html#leads'})
   :c.inline==='logomotion'
   ?S.logoMotionStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
   :c.inline==='site'
