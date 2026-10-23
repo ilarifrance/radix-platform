@@ -2195,3 +2195,33 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .social-studio .fs-client ul{margin:6px 0 4px;padding-left:20px;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
 @media (max-width:1100px){.cr-panel .social-studio .sc-row-copertina{grid-template-columns:minmax(0,1fr)}.cr-panel .social-studio .ad-dir.sc-dir{display:flex}}
 @media (max-width:760px){.cr-panel .social-studio .sc-refine{grid-template-columns:minmax(0,1fr)}.cr-panel .social-studio .sc-row-post{grid-template-columns:repeat(2,minmax(0,1fr))}.cr-panel .social-studio .co-fields{grid-template-columns:minmax(0,1fr)}}
+/* Studio «Animazione del logo» (lib/logo-motion.js): it reuses the social-studio pieces (question chips, refinement,
+   checks, file list) plus the stage of the animation (a canvas on a checkerboard when the background is transparent),
+   the play/scrub controls and the strip of still frames. Light --ma-* tokens only. */
+.cr-panel .logo-motion .lm-choice[data-key=use] .ps-chip,.cr-panel .logo-motion .lm-choice[data-key=verso] .ps-chip{flex:1 1 220px;flex-wrap:wrap;height:auto;padding:8px 14px;border-radius:14px}
+.cr-panel .logo-motion .lm-choice[data-key=use] .ps-chip small,.cr-panel .logo-motion .lm-choice[data-key=verso] .ps-chip small{flex:1 1 100%}
+.cr-panel .logo-motion .fs-swatch i[style*=transparent]{background:repeating-conic-gradient(#e4e1ea 0 25%,#fff 0 50%) 0 0/8px 8px!important}
+.cr-panel .logo-motion .lm-dirs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cr-panel .logo-motion .lm-stage{display:flex;justify-content:center;align-items:center;padding:10px;border-radius:12px;background:var(--ma-panel-2);box-shadow:inset 0 0 0 1px var(--ma-line)}
+.cr-panel .logo-motion .lm-stage[data-bg=trasparente]{background:repeating-conic-gradient(#efedf3 0 25%,#fff 0 50%) 0 0/16px 16px}
+.cr-panel .logo-motion .lm-canvas{display:block;max-width:100%;height:auto;border-radius:6px;box-shadow:0 0 0 1px rgba(29,26,39,.08)}
+.cr-panel .logo-motion .lm-stage[data-format="9:16"] .lm-canvas{max-height:420px;width:auto}
+.cr-panel .logo-motion .lm-big[data-format="9:16"] .lm-canvas{max-height:560px}
+.cr-panel .logo-motion .lm-play{align-self:flex-start;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:600 13px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .logo-motion .lm-play:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .logo-motion .lm-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.cr-panel .logo-motion .lm-frame{margin:0;display:flex;flex-direction:column;gap:3px;min-width:0}
+.cr-panel .logo-motion .lm-frame canvas{display:block;width:100%;height:auto;border-radius:4px;background:repeating-conic-gradient(#efedf3 0 25%,#fff 0 50%) 0 0/8px 8px;box-shadow:0 0 0 1px rgba(29,26,39,.1)}
+.cr-panel .logo-motion .co-files{grid-template-columns:minmax(0,640px)}
+.cr-panel .logo-motion .lm-frame figcaption{font-size:11px;color:var(--ma-mut);text-align:center}
+.cr-panel .logo-motion .lm-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cr-panel .logo-motion .lm-controls input[type=range]{flex:1 1 200px;min-width:0;accent-color:var(--ma-vi)}
+.cr-panel .logo-motion .lm-time{font:500 13px var(--rx-font,Inter,sans-serif);color:var(--ma-tx2);font-variant-numeric:tabular-nums}
+.cr-panel .logo-motion .lm-export{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--ma-line);border-radius:14px;background:var(--ma-panel)}
+.cr-panel .logo-motion .lm-export h4{margin:0;font-size:15px;color:var(--ma-tx)}
+.cr-panel .logo-motion .lm-actions{flex-wrap:wrap}
+.cr-panel .logo-motion .lm-honest{margin:0}
+.cr-panel .logo-motion .lm-result-media{display:block;max-width:min(100%,560px);max-height:420px;border-radius:10px;box-shadow:0 0 0 1px var(--ma-line);background:repeating-conic-gradient(#efedf3 0 25%,#fff 0 50%) 0 0/16px 16px}
+.cr-panel .logo-motion .lm-dirs[hidden],.cr-panel .logo-motion .lm-result[hidden],.cr-panel .logo-motion .lm-out[hidden]{display:none}
+@media (max-width:1100px){.cr-panel .logo-motion .lm-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .logo-motion .ad-dir.lm-dir{display:flex}}
+@media (max-width:760px){.cr-panel .logo-motion .lm-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.cr-panel .logo-motion .lm-strip .lm-frame:nth-child(2),.cr-panel .logo-motion .lm-strip .lm-frame:nth-child(4){display:none}}
