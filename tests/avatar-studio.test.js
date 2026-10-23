@@ -73,3 +73,24 @@ test('the saved avatar is proposed to team memory as a project decision', () => 
   assert.equal(core.validate(e).projectId, 'p-1');
   assert.doesNotMatch(S.avatarMemory(rec, 'p-1', '', '').content, /Aspetto/);
 });
+
+test('a long YouTube script is split into several HeyGen inputs under the text limit', async()=>{
+ const auth=require('../api/_auth.js'),orig=auth.getSessionUser,key=process.env.HEYGEN_API_KEY,realFetch=globalThis.fetch,calls=[];
+ try{
+  auth.getSessionUser=()=>({uid:1});process.env.HEYGEN_API_KEY='test-key';delete require.cache[require.resolve('../api/_heygen.js')];
+  const handler=require('../api/_heygen.js');
+  const para='Questa è una frase del copione, scritta per arrivare a una certa lunghezza. '.repeat(25).trim();
+  const script=Array(4).fill(para).join('\n\n')+'\n\n'+'Frase finale molto lunga senza paragrafi. '.repeat(120).trim();
+  assert.ok(script.length>7000);
+  const parts=handler.splitScript(script);
+  assert.ok(parts.length>2&&parts.every(x=>x.length<=3000));
+  assert.equal(parts.join(' ').replace(/\s+/g,' '),script.replace(/\s+/g,' '));
+  globalThis.fetch=async(u,o)=>{calls.push({u:String(u),o});return new Response(JSON.stringify({data:{video_id:'vid1'}}),{status:200,headers:{'content-type':'application/json'}})};
+  const r=res();
+  await handler({method:'POST',query:{action:'generate'},body:{action:'generate',script,voiceId:'v1',talkingPhotoId:'look1',orientation:'landscape'}},r);
+  assert.equal(r.code,200,JSON.stringify(r.body));
+  const inputs=JSON.parse(calls.at(-1).o.body).video_inputs;
+  assert.equal(inputs.length,parts.length);
+  assert.ok(inputs.every(x=>x.character.talking_photo_id==='look1'&&x.voice.voice_id==='v1'&&x.voice.input_text.length<=3000));
+ }finally{globalThis.fetch=realFetch;auth.getSessionUser=orig;if(key===undefined)delete process.env.HEYGEN_API_KEY;else process.env.HEYGEN_API_KEY=key;delete require.cache[require.resolve('../api/_heygen.js')]}
+});
