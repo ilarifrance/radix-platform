@@ -45,7 +45,7 @@ test('three deterministic layouts: Classico, Moderno, Audace from the print-stud
  for(const d of ['classico','moderno','audace'])assert.equal(sig(d),sig(d),d+' is deterministic');
  assert.notEqual(sig('classico'),sig('moderno'));assert.notEqual(sig('moderno'),sig('audace'));
  const m=model({direction:'audace'}),docs=C.printDocs(m);
- assert.deepEqual(docs.map(x=>x.name),['biglietto-giulia-rossi.pdf','biglietto-marco-bianchi.pdf','carta-intestata-a4.pdf','busta-dl.pdf','cartellina-a4.pdf'],'one business card per person');
+ assert.deepEqual(docs.map(x=>x.name),['biglietto-giulia-rossi.pdf','biglietto-marco-bianchi.pdf','carta-intestata-a4.pdf','busta-dl.pdf','cartellina-a4.pdf','cartellina-fustella.pdf'],'one business card per person');
  for(const x of docs)assert.equal(x.doc.variant,'bold');
  // the person's direct contacts win on the card, the company's fill the rest
  const giulia=docs[0].doc.pages[1].items.filter(i=>i.t==='text').map(i=>i.s),marco=docs[1].doc.pages[1].items.filter(i=>i.t==='text').map(i=>i.s);
@@ -63,7 +63,7 @@ test('print PDFs: sizes in points with 3 mm bleed and crop marks, front and back
  const card=boxes(pdf('biglietto-giulia-rossi.pdf'));assert.equal(card.length,2,'front and back');
  for(const [media,bleed,trim] of card){near(media,[0,0,291.969,206.929],'MediaBox');near(bleed,[17.008,17.008,274.961,189.921],'BleedBox');near(trim,[25.512,25.512,266.457,181.417],'TrimBox')}
  near([trimW(card[0][2]),trimH(card[0][2])],[240.945,155.906],'85 × 55 mm in points');
- const expect={'carta-intestata-a4.pdf':[210,297,1],'busta-dl.pdf':[220,110,1],'cartellina-a4.pdf':[440,310,2]};
+ const expect={'carta-intestata-a4.pdf':[210,297,1],'busta-dl.pdf':[220,110,1],'cartellina-a4.pdf':[440,410,2],'cartellina-fustella.pdf':[440,410,1]};
  for(const [n,[w,h,pages]] of Object.entries(expect)){const b=boxes(pdf(n)),want=C.pdfBoxes(w,h);assert.equal(b.length,pages,n);for(const [media,bleed,trim] of b){near(media,want.media,n);near(bleed,want.bleed,n);near(trim,want.trim,n)}}
  near(C.pdfBoxes(220,110).media,[0,0,674.646,362.835],'DL envelope page');
  for(const f of files.filter(f=>/\.pdf$/.test(f.name))){assert.deepEqual(PS.checkPdf(f.data),[],f.name);const s=latin(f.data);assert.ok(!/\/Font\b/.test(s),'texts as outlines');assert.match(s,/GTS_PDFX/);
@@ -204,10 +204,10 @@ test('PowerPoint template: the kit theme and three slides',()=>{
 test('the zip: stationery, signature with its PNG and instructions, covers, Office templates, LEGGIMI',async()=>{
  const m=model(),files=await C.kitFiles(m,{date:DATE,logoPng:fakeLogo,png:async(svg,w,h)=>new Uint8Array([w>>8,w&255,h>>8,h&255])});
  const names=files.map(f=>f.name);
- assert.deepEqual(names,['coordinato/stampa/biglietto-giulia-rossi.pdf','coordinato/stampa/biglietto-marco-bianchi.pdf','coordinato/stampa/carta-intestata-a4.pdf','coordinato/stampa/busta-dl.pdf','coordinato/stampa/cartellina-a4.pdf',
+ assert.deepEqual(names,['coordinato/stampa/biglietto-giulia-rossi.pdf','coordinato/stampa/biglietto-marco-bianchi.pdf','coordinato/stampa/carta-intestata-a4.pdf','coordinato/stampa/busta-dl.pdf','coordinato/stampa/cartellina-a4.pdf','coordinato/stampa/cartellina-fustella.pdf',
   'coordinato/firma-email/firma-giulia-rossi.html','coordinato/firma-email/firma-giulia-rossi.txt','coordinato/firma-email/firma-marco-bianchi.html','coordinato/firma-email/firma-marco-bianchi.txt','coordinato/firma-email/logo-firma.png',
   'coordinato/social/linkedin-1584x396.svg','coordinato/social/linkedin-1584x396.png','coordinato/social/facebook-1640x624.svg','coordinato/social/facebook-1640x624.png','coordinato/social/youtube-2560x1440.svg','coordinato/social/youtube-2560x1440.png',
-  'coordinato/modelli-office/carta-intestata.docx','coordinato/modelli-office/presentazione.pptx','coordinato/LEGGIMI.txt']);
+  'coordinato/modelli-office/carta-intestata.docx','coordinato/modelli-office/carta-intestata.dotx','coordinato/modelli-office/presentazione.pptx','coordinato/modelli-office/presentazione.potx','coordinato/LEGGIMI.txt']);
  const sig=files.find(f=>f.name.endsWith('firma-giulia-rossi.html')).data;assert.match(sig,/src="data:image\/png;base64,/);assert.deepEqual(C.signatureProblems(sig,m),[]);
  const readme=files.find(f=>f.name.endsWith('LEGGIMI.txt')).data;assert.match(readme,/data URI\)\. Gmail e alcune caselle tolgono queste immagini/);assert.match(readme,/logo-firma\.png/);assert.match(readme,/\.dotx/);assert.match(readme,/\[ok\] Contrasto AA/);
  const zip=C.bundle(files,{date:DATE});assert.deepEqual(ZIP.unzip(zip).map(f=>f.name),names);

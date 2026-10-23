@@ -143,6 +143,7 @@ const STUDIOS={
  mail:{global:'RadixNewsletterStudio',name:'Lo Studio Newsletter HTML',need:'la newsletter usa il kit identità e i testi salvati del progetto',agent:'copywriter'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
  coordinato:{global:'RadixCoordinatoStudio',name:'Lo Studio Coordinato',need:'il coordinato parte dal Kit identità, dal nome e dai contatti del progetto',agent:'art-director'},
+ firma:{global:'RadixFirmaStudio',name:'Lo Studio Firma email',need:'la firma parte dal Kit identità, dal nome e dai contatti del progetto',agent:'art-director'},
  print:{global:'RadixPrintStudio',name:'Lo Studio Stampa',need:'i materiali partono dal nome, dai contatti e dal kit identità del progetto',agent:'art-director'},
  auditcom:{global:'RadixAuditStudio',name:'Lo Studio Audit',need:'l’audit legge analisi del sito, scheda Google, social, Search Console e Kit identità del progetto e si salva lì',agent:'strategist'},
  report:{global:'RadixReportStudio',name:'Lo Studio Report',need:'il report legge contenuti, risultati e attività del progetto e si salva lì',agent:'analytics'},
@@ -191,6 +192,8 @@ function openInline(c){
   ?S.identityStudio({project,memoryScope,projectId:current.id,workspace:ws,visual:project.visual,agentsUrl:'/agents.html?agent=brand-strategist&project='+pid,onSaved:p=>{current={...current,...p}}})
   :c.inline==='coordinato'
   ?S.coordinatoStudio({project,profile:current.profile,projectName:current.name,clientName:current.client_name||'',projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
+  :c.inline==='firma'
+  ?S.firmaStudio({project,profile:current.profile,projectName:current.name,clientName:current.client_name||'',projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
   :c.inline==='print'
   ?S.printStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid})
   :c.inline==='report'

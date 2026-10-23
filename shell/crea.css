@@ -1762,6 +1762,42 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .coordinato-studio .ad-note{margin:0;align-self:stretch;text-align:left;font-size:12.5px;line-height:1.45;color:var(--subtle)}
 .cr-panel .coordinato-studio .co-hint{color:var(--ink-2)}
 .cr-panel .coordinato-studio .co-covers .co-fig{max-width:620px}
+/* Coordinato: envelope formats and window, folder pocket. Studio «Firma email» (lib/firma-studio.js): it reuses the
+   coordinato pieces (fields, people, the three proposals as .ad-dir, checks), plus the refinement chips, the light and
+   simulated dark previews, the copy row per person and the install steps. Light --ma-* tokens only. */
+.cr-panel .coordinato-studio fieldset.co-options{margin:0;padding:0;border:0;display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}
+.cr-panel .coordinato-studio fieldset.co-options>.co-opt-select{width:100%}
+.cr-panel .coordinato-studio .co-opt-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cr-panel .coordinato-studio .co-opt-label{font:600 13px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink-2);margin-right:4px}
+.cr-panel .coordinato-studio .co-opt{min-height:44px;gap:8px}
+.cr-panel .coordinato-studio .co-opt small{font-size:11.5px;color:var(--subtle)}
+.cr-panel .coordinato-studio .co-opt-select{max-width:360px}
+.cr-panel .coordinato-studio .co-field select{min-height:40px;width:100%;box-sizing:border-box;padding:0 10px;border-radius:10px;border:1px solid var(--ma-line-2);background:var(--field);color:var(--ink);font:400 14px var(--rx-font,Inter,sans-serif)}
+.cr-panel .coordinato-studio .co-field select:focus-visible{outline:2px solid var(--ma-focus);outline-offset:1px}
+.cr-panel .firma-studio .fs-dir .fs-frame{height:200px;box-shadow:inset 0 0 0 1px var(--line)}
+.cr-panel .firma-studio .fs-refine{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cr-panel .firma-studio fieldset.fs-choice{margin:0;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(29,26,39,.02);display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.cr-panel .firma-studio .fs-choice legend{padding:0 6px;font:600 13px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .firma-studio .fs-choice .ps-chip{min-height:40px;gap:8px}
+.cr-panel .firma-studio .fs-swatch i{display:inline-block;width:16px;height:16px;border-radius:50%;box-shadow:0 0 0 1px rgba(29,26,39,.18)}
+.cr-panel .firma-studio .fs-who{max-width:320px}
+.cr-panel .firma-studio .fs-views{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cr-panel .firma-studio .fs-view .fs-frame{height:230px;box-shadow:inset 0 0 0 1px var(--line)}
+.cr-panel .firma-studio .fs-frame-dark{background:#1f1f1f}
+.cr-panel .firma-studio .fs-people{display:flex;flex-direction:column;gap:10px}
+.cr-panel .firma-studio .fs-person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(29,26,39,.02)}
+.cr-panel .firma-studio .fs-person-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.cr-panel .firma-studio .fs-copied{grid-column:1/-1;font-size:12.5px;color:var(--ma-ok)}
+.cr-panel .firma-studio .fs-copied:empty{display:none}
+.cr-panel .firma-studio .fs-how{display:flex;flex-direction:column;gap:8px}
+.cr-panel .firma-studio .fs-how h4{margin:0}
+.cr-panel .firma-studio .fs-client{padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(29,26,39,.02)}
+.cr-panel .firma-studio .fs-client summary{cursor:pointer;min-height:32px;display:flex;align-items:center;font:600 14px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .firma-studio .fs-client summary:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px;border-radius:6px}
+.cr-panel .firma-studio .fs-client ol{margin:6px 0 4px;padding-left:20px;font-size:13px;line-height:1.5;color:var(--ink-2)}
+.cr-panel .firma-studio .fs-out[hidden],.cr-panel .firma-studio .fs-result[hidden]{display:none}
+@media (max-width:1100px){.cr-panel .firma-studio .fs-refine{grid-template-columns:minmax(0,1fr)}.cr-panel .firma-studio .fs-dir .fs-frame{grid-column:2}}
+@media (max-width:760px){.cr-panel .firma-studio .fs-views{grid-template-columns:minmax(0,1fr)}.cr-panel .firma-studio .fs-person{grid-template-columns:minmax(0,1fr)}.cr-panel .firma-studio .fs-person-actions{justify-content:flex-start}}
 /* Studio Menu e listino (lib/menu-studio.js): the Creatività pieces (brand box, type tiles, the three styles as .ad-dir
    with the «Scelta» ring of the studio block) plus the sources of the voices (paste, sheet), the table of voices with the
    14 numbered allergens and the tags, the checks, every page of every format, the phone page in a sandboxed frame with
