@@ -60,6 +60,7 @@ const P={
  pause:'<path d="M9 6v12M15 6v12"/>',
  play:'<path d="M8 5.5v13l10.5-6.5Z"/>',
  productPhoto:'<path d="M4 7V4h3M20 7V4h-3"/><path d="M10 3.5h4v2.8l1.5 2.2V17.5a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5V8.5L10 6.3Z"/><path d="M8.5 11.5h7v3.5h-7"/><path d="M4 21h16"/>',
+ mockup:'<path d="M3.5 8.5 12 4l8.5 4.5L12 13Z"/><path d="M3.5 12.5 12 17l8.5-4.5"/><path d="M3.5 16.5 12 21l8.5-4.5"/>',
  logoMotion:'<circle cx="8.5" cy="12" r="4.5"/><path d="M15 9.5h6M15 14.5h4"/><path d="M3 4.5c2.6-1.6 5.6-1.6 8 0M3 19.5c2.6 1.6 5.6 1.6 8 0"/>',
  reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
 };
@@ -71,7 +72,7 @@ const AREAS=Object.freeze({
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',report:'chart',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',fotoprodotto:'productPhoto',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
+ newsletter:'mail',images:'image',fotoprodotto:'productPhoto',mockup:'mockup',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);

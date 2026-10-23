@@ -2225,3 +2225,38 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .logo-motion .lm-dirs[hidden],.cr-panel .logo-motion .lm-result[hidden],.cr-panel .logo-motion .lm-out[hidden]{display:none}
 @media (max-width:1100px){.cr-panel .logo-motion .lm-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .logo-motion .ad-dir.lm-dir{display:flex}}
 @media (max-width:760px){.cr-panel .logo-motion .lm-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.cr-panel .logo-motion .lm-strip .lm-frame:nth-child(2),.cr-panel .logo-motion .lm-strip .lm-frame:nth-child(4){display:none}}
+/* Studio «Mockup» (lib/mockup-studio.js): the materials of the project as thumbnails, the missing ones with the studio
+   that makes them, the three scenes drawn on canvas, the refinement chips and the gallery of the files. It reuses the
+   social-studio pieces (proposal cards, refinement, checks, file list). Light --ma-* tokens only. */
+.cr-panel .mockup-studio .mk-have{display:flex;flex-direction:column;align-items:stretch;gap:8px}
+.cr-panel .mockup-studio .mk-have h4{margin:0;font-size:15px;color:var(--ma-tx)}
+.cr-panel .mockup-studio .mk-thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.cr-panel .mockup-studio .mk-thumb{margin:0;display:flex;flex-direction:column;gap:3px;min-width:0;padding:8px;border:1px solid var(--ma-line);border-radius:12px;background:#fff}
+.cr-panel .mockup-studio .mk-thumb img{display:block;width:100%;height:92px;object-fit:contain;border-radius:6px;background:var(--ma-panel-2)}
+.cr-panel .mockup-studio .mk-thumb figcaption{font:600 12px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
+.cr-panel .mockup-studio .mk-thumb small{font-size:11px;line-height:1.3;color:var(--ma-mut)}
+.cr-panel .mockup-studio .mk-flag{align-self:flex-start;padding:1px 7px;border-radius:999px;background:#FEF3C7;color:#78350F;font-size:11px}
+.cr-panel .mockup-studio .mk-missing-box{padding:10px 14px;border:1px dashed var(--ma-line-2);border-radius:12px;background:var(--ma-panel)}
+.cr-panel .mockup-studio .mk-missing-box summary{cursor:pointer;font:600 14px var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
+.cr-panel .mockup-studio .mk-missing{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.cr-panel .mockup-studio .mk-missing li{display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr) auto;gap:4px 12px;align-items:center;font-size:13px;color:var(--ma-tx2)}
+.cr-panel .mockup-studio .mk-missing strong{color:var(--ma-tx)}
+.cr-panel .mockup-studio .mk-go{justify-self:start;min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:600 12px var(--rx-font,Inter,sans-serif);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.cr-panel .mockup-studio .mk-go:focus-visible,.cr-panel .mockup-studio .mk-swap:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .mockup-studio .mk-dirs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cr-panel .mockup-studio .mk-canvas{display:block;width:100%;height:auto;border-radius:10px;box-shadow:0 0 0 1px var(--ma-line)}
+.cr-panel .mockup-studio .mk-used{margin:0;font-size:12px;line-height:1.4;color:var(--ma-mut)}
+.cr-panel .mockup-studio .mk-big{max-width:960px}
+.cr-panel .mockup-studio .mk-items{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cr-panel .mockup-studio .mk-swap{min-height:32px;padding:0 12px;border-radius:999px;border:1px dashed var(--ma-line-2);background:transparent;color:var(--ma-tx2);font:500 12px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .mockup-studio .mk-export{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--ma-line);border-radius:14px;background:var(--ma-panel)}
+.cr-panel .mockup-studio .mk-export h4{margin:0;font-size:15px;color:var(--ma-tx)}
+.cr-panel .mockup-studio .mk-others{align-self:flex-start;height:auto;min-height:36px;flex-wrap:wrap}
+.cr-panel .mockup-studio .mk-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.cr-panel .mockup-studio .mk-gallery figure{margin:0;display:flex;flex-direction:column;gap:4px}
+.cr-panel .mockup-studio .mk-gallery img{display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 0 0 1px var(--ma-line)}
+.cr-panel .mockup-studio .mk-gallery figcaption{font-size:12px;color:var(--ma-tx2)}
+.cr-panel .mockup-studio .co-files{grid-template-columns:minmax(0,640px)}
+.cr-panel .mockup-studio .mk-dirs[hidden],.cr-panel .mockup-studio .mk-result[hidden],.cr-panel .mockup-studio .mk-out[hidden]{display:none}
+@media (max-width:1100px){.cr-panel .mockup-studio .mk-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .ad-dir.mk-dir{display:flex}}
+@media (max-width:760px){.cr-panel .mockup-studio .mk-missing li{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .mk-gallery{grid-template-columns:minmax(0,1fr)}.cr-panel .mockup-studio .mk-thumbs{grid-template-columns:repeat(2,minmax(0,1fr))}}
