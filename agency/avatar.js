@@ -59,15 +59,19 @@ async function createFromConfirmed(imageKey,imageUrl,name){busy=true;say('Creo l
  catch(err){say('Avatar non creato: '+err.message);$('avUsePhoto').disabled=false;return false}finally{busy=false}}
 async function loadLibrary(){const box=$('avLibrary');box.replaceChildren(node('p','Carico gli avatar del tuo account HeyGen…','av-muted'));
  try{const d=await api('GET','action=avatars');const list=(d.avatars||[]).slice(0,Math.max(30,(d.own||0)+12));if(!list.length){box.replaceChildren(node('p','Nessun avatar sul tuo account HeyGen: prova «Lo disegna l’AI».','av-muted'));return}
-  box.replaceChildren(...list.map(a=>{const card=node('figure',null,'av-example');if(/^https:/.test(a.previewImageUrl||'')){const img=node('img');img.src=a.previewImageUrl;img.alt=a.name;card.append(img)}const b=node('button','Usa '+a.name,'av-primary');b.type='button';b.onclick=()=>{chosen={type:a.type==='talking_photo'?'talking_photo':'avatar',id:a.id,name:a.name,imageUrl:a.previewImageUrl||''};toVoices()};card.append(node('figcaption',a.name),b);return card}))}
+  box.replaceChildren(...list.map(a=>{const card=node('figure',null,'av-example');if(/^https:/.test(a.previewImageUrl||'')){const img=node('img');img.src=a.previewImageUrl;img.alt=a.name;card.append(img)}const b=node('button','Usa '+a.name,'av-primary');b.type='button';b.onclick=()=>{chosen={type:a.type==='talking_photo'?'talking_photo':'avatar',defaultVoiceId:a.defaultVoiceId||'',id:a.id,name:a.name,imageUrl:a.previewImageUrl||''};toVoices()};card.append(node('figcaption',a.name),b);return card}))}
  catch(e){box.replaceChildren(node('p','Non riesco a leggere gli avatar: '+e.message,'av-muted'))}}
 
 // ---- 3 · voice ----
 async function toVoices(){step(3);const box=$('avVoices');box.replaceChildren(node('p','Carico le voci…','av-muted'));
- try{if(!voices)voices=(await api('GET','action=voices')).voices||[];const g=(document.querySelector('input[name="gender"]:checked')||{}).value;const three=studio.pickVoices(voices,{gender:path==='design'?g:''});const first=String(chosen&&chosen.name||'').split('·')[0].trim().toLowerCase(),mine=first?voices.filter(v=>String(v.name||'').trim().toLowerCase()===first):[];if(mine.length)three.unshift(...mine.filter(v=>!three.includes(v)));three.splice(4);
+ try{if(!voices)voices=(await api('GET','action=voices')).voices||[];const g=(document.querySelector('input[name="gender"]:checked')||{}).value;const three=studio.pickVoices(voices,{gender:path==='design'?g:''});const first=String(chosen&&chosen.name||'').split('·')[0].trim().toLowerCase(),mine=first?voices.filter(v=>String(v.name||'').trim().toLowerCase()===first):[];if(mine.length)three.unshift(...mine.filter(v=>!three.includes(v)));// The voice HeyGen keeps with the avatar look (the person's own cloned voice) comes first, even when the voice list misses it.
+  const dv=chosen&&chosen.defaultVoiceId;if(dv){const own=voices.find(v=>v.id===dv)||{id:dv,name:'La voce del tuo avatar (HeyGen)',language:'',gender:''};if(!voices.includes(own))voices.unshift(own);const i=three.indexOf(own);if(i>=0)three.splice(i,1);three.unshift(own)}three.splice(4);
   box.replaceChildren(...(three.length?three:voices.slice(0,3)).map(v=>{const card=node('div',null,'av-voice');card.append(node('b',v.name),node('small',[v.language,v.gender].filter(Boolean).join(' · ')));if(v.previewAudio){const a=node('audio');a.controls=true;a.preload='none';a.src=v.previewAudio;card.append(a)}const b=node('button','Scegli questa voce','av-primary');b.type='button';b.onclick=()=>chooseVoice(v);card.append(b);return card}));
   const all=$('avAllVoices');all.replaceChildren(node('option','Scegli un’altra voce…'),...voices.map(v=>{const o=node('option',v.name+(v.language?' ('+v.language+')':''));o.value=v.id;return o}));all.onchange=()=>{const v=voices.find(x=>x.id===all.value);if(v)chooseVoice(v)}}
  catch(e){box.replaceChildren(node('p','Non riesco a leggere le voci: '+e.message,'av-muted'))}}
+// A cloned voice that the HeyGen voice list does not return: its id, copied from HeyGen, is enough to generate.
+function useVoiceId(){const id=String($('avVoiceId').value||'').trim();if(!/^[A-Za-z0-9_-]{8,80}$/.test(id)){say('Incolla l’ID della voce copiato da HeyGen.');return}
+ chooseVoice((voices||[]).find(v=>v.id===id)||{id,name:'La tua voce (HeyGen)'})}
 function chooseVoice(v){voice=v;step(4);$('avChosen').textContent=chosen.name+' · voce '+v.name;const img=$('avChosenImg');img.hidden=!chosen.imageUrl;if(chosen.imageUrl)img.src=chosen.imageUrl;img.alt=chosen.name}
 
 // ---- 4 · try and save ----
@@ -87,7 +91,7 @@ async function tryVideo(){if(busy||!chosen||!voice)return;const script=$('avScri
 renderQuestions();
 document.querySelectorAll('.av-path').forEach(b=>b.onclick=()=>choosePath(b.dataset.path));
 $('avDesign').onsubmit=design;$('avPhoto').onsubmit=usePhoto;$('avFile').onchange=pickPhoto;$('avAgain').onclick=()=>step(1);
-$('avSave').onclick=save;$('avTry').onclick=tryVideo;$('avProject').onchange=()=>openProject($('avProject').value);
+$('avSave').onclick=save;$('avVoiceIdGo').onclick=useVoiceId;$('avTry').onclick=tryVideo;$('avProject').onchange=()=>openProject($('avProject').value);
 $('avRedo').onclick=()=>{$('avSaved').hidden=true;chosen=voice=null;step(1)};
 load();
 })();
