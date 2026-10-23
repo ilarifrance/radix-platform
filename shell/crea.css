@@ -2841,3 +2841,102 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 /* the grey informative note of the studios (as .copy-studio .cs-note) */
 .cr-panel .media-kit-studio .cs-note{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(29,26,39,.025);color:var(--ma-tx2);line-height:1.45}
 .cr-panel .media-kit-studio .cs-note::before{content:'';flex:0 0 16px;width:16px;height:16px;margin-top:1px;background:var(--ma-mut);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E") center/contain no-repeat}
+/* Studio Etichette e packaging (lib/packaging-studio.js): it reuses the infographic, funnel, report and media kit blocks
+   (the wrapper carries their classes); here the format chips with their die line, the label previews, the variant tabs,
+   the allergens, the EAN state, the nutrition grid and the legal checklist «da verificare». */
+.cr-panel .packaging-studio .pk-form{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cr-panel .packaging-studio .pk-form>.cs-note,.cr-panel .packaging-studio .pk-legal>.cs-note{margin:0;font-size:13px}
+.cr-panel .packaging-studio .pk-types .ps-chip.ig-chip{flex:1 1 calc(33.333% - 8px);min-width:190px;align-items:flex-start}
+.cr-panel .packaging-studio fieldset.pk-formats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:8px}
+.cr-panel .packaging-studio .pk-formats .ps-chip.ig-chip{gap:10px;align-items:center;min-height:62px;padding:8px 12px}
+.cr-panel .packaging-studio .pk-ficon{display:inline-grid;place-items:center;flex:0 0 44px;width:44px;height:44px}
+.cr-panel .packaging-studio .pk-ficon svg{display:block;max-width:100%;max-height:100%}
+.cr-panel .packaging-studio .ig-chip-text small{line-height:1.35}
+.cr-panel .packaging-studio fieldset.pk-size{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px}
+.cr-panel .packaging-studio .pk-presets{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .packaging-studio .ps-chip.pk-preset{min-height:36px;cursor:pointer}
+.cr-panel .packaging-studio .ps-chip.pk-preset[aria-pressed=true]{border-color:var(--mk,#725dee);background:rgba(114,93,238,.08);color:var(--ink);font-weight:600}
+.cr-panel .packaging-studio .pk-dims{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:10px;max-width:560px}
+.cr-panel .packaging-studio .pk-size>.rp-help{margin:0;font-size:12.5px;color:var(--subtle)}
+.cr-panel .packaging-studio label.pk-check{display:flex;flex-direction:row;align-items:flex-start;gap:10px;margin:0;font-size:13px;line-height:1.45;color:var(--ink-2);cursor:pointer;min-width:0}
+.cr-panel .packaging-studio label.pk-check input{flex:0 0 auto;width:18px;height:18px;min-height:0;margin:1px 0 0;padding:0;accent-color:var(--mk,#725dee)}
+.cr-panel .packaging-studio fieldset.pk-names{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:10px}
+.cr-panel .packaging-studio .pk-names>.rp-help{margin:0;font-size:12.5px;color:var(--subtle)}
+.cr-panel .packaging-studio .pk-vlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:10px}
+.cr-panel .packaging-studio .pk-vlist li{display:flex;align-items:flex-end;gap:8px;min-width:0}
+.cr-panel .packaging-studio .pk-vlist li>.rp-field{flex:1 1 auto}
+.cr-panel .packaging-studio .pk-vlist button{min-height:40px;padding:0 12px;font-size:13px}
+.cr-panel .packaging-studio .pk-names>button.ap-add{align-self:flex-start;min-height:38px;padding:0 14px;font-size:13px}
+/* the three proposals */
+.cr-panel .packaging-studio .pk-dirs{grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+.cr-panel .packaging-studio .pk-dir{display:flex;flex-direction:column;gap:12px}
+.cr-panel .packaging-studio .pk-dir>button{align-self:stretch;margin-top:auto}
+.cr-panel .packaging-studio .pk-dir[data-chosen=true]{border-color:var(--mk);box-shadow:0 0 0 2px rgba(114,93,238,.25)}
+.cr-panel .packaging-studio .pk-fig{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px;border-radius:12px;background:#ecebf1}
+.cr-panel .packaging-studio .pk-fig img{display:block;width:auto;max-width:100%;height:auto;max-height:300px;filter:drop-shadow(0 1px 2px rgba(29,26,39,.18))}
+.cr-panel .packaging-studio .pk-fig[data-kind=tuck] img,.cr-panel .packaging-studio .pk-fig[data-kind=pillow] img{max-height:340px}
+.cr-panel .packaging-studio .pk-fig.pk-big img{max-height:min(62vh,560px)}
+.cr-panel .packaging-studio .pk-fig figcaption{font-size:12px;line-height:1.4;color:var(--subtle);text-align:center}
+.cr-panel .packaging-studio .pk-vchips{display:flex;flex-wrap:wrap;gap:6px}
+.cr-panel .packaging-studio .pk-vchip{display:inline-flex;align-items:center;gap:6px;max-width:100%;padding:2px 9px 2px 7px;border:1px solid var(--line);border-radius:999px;background:#fff;font-size:12px;color:var(--ink-2);overflow-wrap:anywhere}
+.cr-panel .packaging-studio .pk-vchip::before,.cr-panel .packaging-studio .pk-vtab::before{content:'';flex:0 0 10px;width:10px;height:10px;border-radius:50%;background:var(--v,#999);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+/* refine */
+.cr-panel .packaging-studio .pk-pv-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.cr-panel .packaging-studio .pk-pv-bar:empty{display:none}
+.cr-panel .packaging-studio .pk-vtabs{display:flex;flex-wrap:wrap;gap:6px}
+.cr-panel .packaging-studio button.pk-vtab{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 12px;border:1px solid var(--ma-line-2);border-radius:999px;background:#fff;color:var(--ink-2);font:500 12.5px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .packaging-studio button.pk-vtab[aria-pressed=true]{border-color:var(--ink);color:var(--ink);font-weight:600}
+.cr-panel .packaging-studio .pk-guides{font-size:12.5px}
+.cr-panel .packaging-studio .pk-pv-body{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cr-panel .packaging-studio .pk-preview .pk-fig{background:#fff}
+.cr-panel .packaging-studio .pk-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;font-size:11.5px;color:var(--subtle)}
+.cr-panel .packaging-studio .pk-legend:empty{display:none}
+.cr-panel .packaging-studio .pk-legend span{display:inline-flex;align-items:center;gap:6px}
+.cr-panel .packaging-studio .pk-legend span::before{content:'';width:14px;height:0;border-top:2px solid}
+.cr-panel .packaging-studio .pk-legend .pk-l-die::before{border-color:#FF00FF}
+.cr-panel .packaging-studio .pk-legend .pk-l-safe::before{border-top-style:dashed;border-color:#2F7FD8}
+.cr-panel .packaging-studio .pk-legend .pk-l-bleed::before{height:8px;border:0;background:rgba(29,26,39,.18);border-radius:2px}
+.cr-panel .packaging-studio .fn-panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cr-panel .packaging-studio fieldset.rp-refine.pk-fs{margin:0;padding:12px 14px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;min-width:0}
+.cr-panel .packaging-studio fieldset.pk-fs>legend{padding:0 6px;font:600 13.5px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .packaging-studio fieldset.rp-refine.pk-fs.pk-variant{border-left:4px solid var(--v,var(--line))}
+.cr-panel .packaging-studio .fn-panel>label.pk-check{padding:0 2px}
+.cr-panel .packaging-studio .pk-variant>button.ig-move{align-self:flex-start;min-height:36px;padding:0 12px;font-size:13px}
+.cr-panel .packaging-studio .rp-field select{min-height:40px;padding:0 10px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ink);font:500 13px var(--rx-font,Inter,sans-serif);max-width:100%}
+.cr-panel .packaging-studio .pk-allergens{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;font-size:12.5px;color:var(--subtle)}
+.cr-panel .packaging-studio .pk-allergens:empty{display:none}
+.cr-panel .packaging-studio .pk-al{padding:1px 8px;border-radius:999px;background:rgba(29,26,39,.06);color:var(--ink);font-size:12px;font-weight:700}
+.cr-panel .packaging-studio .pk-ean[data-state=ok]{color:var(--ma-ok,#2f7d4f)}
+.cr-panel .packaging-studio .pk-ean[data-state=bad]{color:var(--ma-err);font-weight:600}
+.cr-panel .packaging-studio .pk-nutri{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fafafc;min-width:0}
+.cr-panel .packaging-studio .pk-nutri summary{cursor:pointer;font:600 13px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .packaging-studio .pk-nutri[open] summary{margin-bottom:10px}
+.cr-panel .packaging-studio .pk-nutri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:10px}
+.cr-panel .packaging-studio .pk-nutri-grid input{font-variant-numeric:tabular-nums}
+.cr-panel .packaging-studio .pk-nutri>.rp-help{margin:8px 0 0;font-size:12px;color:var(--subtle)}
+.cr-panel .packaging-studio .pk-drop{background:#fff}
+.cr-panel .packaging-studio .pk-ill{display:flex;align-items:center;gap:12px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:13px;color:var(--ink-2);min-width:0}
+.cr-panel .packaging-studio .pk-ill img{width:56px;height:56px;object-fit:cover;border-radius:8px;flex:0 0 auto}
+.cr-panel .packaging-studio .pk-ill span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.cr-panel .packaging-studio .pk-legal{display:flex;flex-direction:column;gap:12px}
+.cr-panel .packaging-studio .pk-legal-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}
+.cr-panel .packaging-studio .pk-legal-list li{display:grid;grid-template-columns:104px minmax(0,1fr);gap:2px 12px;align-items:baseline;padding:10px 14px;border-top:1px solid var(--line)}
+.cr-panel .packaging-studio .pk-legal-list li:first-child{border-top:0}
+.cr-panel .packaging-studio .pk-legal-list strong{font-size:13.5px;color:var(--ink)}
+.cr-panel .packaging-studio .pk-legal-list .rp-check-detail{grid-column:2;margin:0;font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.cr-panel .packaging-studio .pk-legal-badge{grid-row:1/span 2;justify-self:start;padding:2px 8px;border-radius:999px;font:700 11px/1.4 var(--rx-font,Inter,sans-serif);background:rgba(29,26,39,.06);color:var(--ink-2);white-space:nowrap}
+.cr-panel .packaging-studio li[data-state=ok] .pk-legal-badge{background:rgba(47,125,79,.12);color:var(--ma-ok,#2f7d4f)}
+.cr-panel .packaging-studio li[data-state=todo] .pk-legal-badge{background:rgba(157,114,0,.119);color:var(--amber)}
+.cr-panel .packaging-studio .pk-kit-link{font-size:12.5px;font-weight:600;color:var(--ma-link);text-decoration:none}
+.cr-panel .packaging-studio .pk-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f4f4f8}
+.cr-panel .packaging-studio .pk-gallery figure{margin:0;display:flex;flex-direction:column;gap:6px}
+.cr-panel .packaging-studio .pk-gallery img{display:block;width:auto;max-width:100%;max-height:220px;margin:0 auto;border-radius:3px;background:#fff;box-shadow:0 0 0 1px rgba(29,26,39,.1)}
+.cr-panel .packaging-studio .pk-gallery figcaption{font-size:12px;color:var(--subtle);text-align:center;overflow-wrap:anywhere}
+.cr-panel .packaging-studio :is(.pk-dirs,.pk-refine,.pk-export)[hidden]{display:none}
+@media (max-width:1100px){.cr-panel .packaging-studio .pk-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .packaging-studio .ad-dir.pk-dir{display:flex}
+ .cr-panel .packaging-studio .pk-fig img{max-height:360px}}
+@media (max-width:640px){.cr-panel .packaging-studio .pk-types .ps-chip.ig-chip{flex-basis:100%;min-width:0}
+ .cr-panel .packaging-studio fieldset.pk-formats{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .packaging-studio :is(.ps-chip.pk-preset,button.pk-vtab,.pk-vlist button){min-height:44px}
+ .cr-panel .packaging-studio .pk-legal-list li{grid-template-columns:minmax(0,1fr)}.cr-panel .packaging-studio .pk-legal-list .rp-check-detail{grid-column:1}.cr-panel .packaging-studio .pk-legal-badge{grid-row:auto}
+ .cr-panel .packaging-studio .pk-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
