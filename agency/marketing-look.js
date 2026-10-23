@@ -47,6 +47,7 @@ const P={
  close:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
  coin:'<circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.2c-.5-.8-1.4-1.2-2.5-1.2-1.5 0-2.6.8-2.6 2s1.1 1.6 2.6 2 2.6.8 2.6 2-1.1 2-2.6 2c-1.1 0-2-.4-2.5-1.2M12 6.5V8M12 16v1.5"/>',
+ searchAds:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="M6.5 9h6M6.5 12h4.5M6.5 15h3"/><circle cx="15.8" cy="12.8" r="2.6"/><path d="m17.7 14.7 2 2"/>',
  adFormats:'<rect x="3" y="3.5" width="10" height="17" rx="2"/><rect x="15" y="5" width="6" height="6" rx="1.5"/><rect x="15" y="13.5" width="6" height="3.5" rx="1"/><path d="M6 15.5h4M6 17.8h2.5"/>',
  siteAudit:'<rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18"/><circle cx="11" cy="13" r="2.6"/><path d="m13 15 2.4 2.4"/><path d="M8 21h8"/>',
  mailHtml:'<rect x="3" y="4.5" width="18" height="15" rx="2.5"/><path d="m3.5 6.5 8.5 5.5 8.5-5.5"/><path d="M7 14.5h4M7 17h7"/><rect x="14" y="13.5" width="4" height="3.5" rx=".8"/>',
@@ -66,7 +67,7 @@ const AREAS=Object.freeze({
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
 const CARDS=Object.freeze({strategy:'target',report:'chart',lancio:'rocket',naming:'type',identita:'palette',coordinato:'layers',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',fotoprodotto:'productPhoto',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
+ newsletter:'mail',images:'image',fotoprodotto:'productPhoto',avatar:'user',video:'video',reel:'reel',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',evento:'ticket',persona:'users',concorrenza:'compare',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
