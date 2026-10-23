@@ -19,5 +19,7 @@ function decorate(){
 }
 let queued=false;const later=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;decorate()})};
 new MutationObserver(later).observe(content,{childList:true,subtree:true});new MutationObserver(later).observe(nav,{childList:true});
-addEventListener('hashchange',()=>{decorate();scrollTo(0,0)});decorate();
+/* a record opened in Customer360 belongs to the view it was opened from: close it when the menu moves to another view,
+   otherwise it stays open under the new one (it is shown in every view, sales-parity.css) */
+addEventListener('hashchange',()=>{window.RadixSalesApp?.closeCustomer?.();decorate();scrollTo(0,0)});decorate();
 })();
