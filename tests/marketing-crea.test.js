@@ -84,7 +84,7 @@ test('the SEO e GEO card opens the Studio SEO inline with the specialist memory 
  assert.match(seo.line,/3 strategie/);assert.match(seo.cost,/Una chiamata AI[^.]*con conferma/);
  const js=fs.readFileSync(path.join(root,'agency/crea.js'),'utf8');
  assert.match(js,/seo:\{global:'RadixSeoStudio'[^}]*agent:'seo-geo'\}/);
- assert.match(js,/S\.seoStudio\(\{project,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=seo-geo&project='\+pid\}\)/);
+ assert.match(js,/S\.seoStudio\(\{project,profile:current\.profile,memoryScope,projectId:current\.id,workspace:ws,agentsUrl:'\/agents\.html\?agent=seo-geo&project='\+pid\}\)/);
  const html=fs.readFileSync(path.join(root,'agency/crea.html'),'utf8');
  assert.ok(!/Sito web ha ancora|SEO\/GEO hanno/.test(html),'no «still being built» note');
  assert.ok(html.indexOf('/lib/seo-studio.js')<html.indexOf('/agency/crea.js'),'the studio loads before the page script');

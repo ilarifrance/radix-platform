@@ -9,6 +9,11 @@
         pages: the legal pages of lib/site-legal.js ({'privacy.html','cookie.html'} always, 'grazie.html' with the contact
         form). Every page is refused with a «[da completare: …]» marker (company data included); a page with the contact
         form needs a valid form token of this same project (api/_site_form.js), so a form never goes online unlinked.
+        'logo.svg' (the Kit identità logo the JSON-LD points to) is accepted only when it is a plain SVG without scripts.
+        The server then builds the bundle with lib/site-seo.js: the JSON-LD addresses become absolute for the site's
+        address (siteBase: the verified RADIX subdomain, else the address Vercel gave the last time, else the expected
+        production address https://<project>.vercel.app) and robots.txt, sitemap.xml and llms.txt are added. The client
+        never sends those three files: they are always generated here.
    POST {action:'status',projectId,deploymentId}       → same shape, read again from Vercel
    POST {action:'domain',projectId}                    → {domain,verified,record:{type,name,value,zone}}  (<slug>.radixinnovationstudio.com)
    The record is saved in the project's «agents» document (where the studio saves the site): top-level siteOnline plus,
@@ -16,6 +21,7 @@
 const crypto=require('crypto');
 const core=require('./_registry-core');
 const studio=require('../lib/site-studio.js');
+const seo=require('../lib/site-seo.js');
 const siteForm=require('./_site_form');
 
 const MISSING='Pubblicazione non ancora attiva: manca la chiave Vercel dei siti.';
@@ -33,9 +39,11 @@ const projectName=slug=>'radix-site-'+slug;
 const slugOf=project=>String(project||'').replace(/^radix-site-/,'');
 const subdomain=slug=>slug+'.'+ZONE;
 const dnsRecord=slug=>({type:'CNAME',name:slug,value:CNAME,zone:ZONE});
-const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html']);
+const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg']);
+// Generated here (lib/site-seo.js siteBundle), never accepted from the client.
+const GENERATED=Object.freeze(['robots.txt','sitemap.xml','llms.txt']);
 function deploymentPayload(project,html,pages){const files=[{file:'index.html',data:html}];
- for(const name of PAGE_NAMES)if(pages&&typeof pages[name]==='string')files.push({file:name,data:pages[name]});
+ for(const name of PAGE_NAMES.concat(GENERATED))if(pages&&typeof pages[name]==='string')files.push({file:name,data:pages[name]});
  return {name:project,project,target:'production',files,projectSettings:{framework:null}}}
 // The page refuses the yellow «[da completare: …]» markers: they would go online as they are.
 function checkHtml(html,what){
@@ -53,9 +61,15 @@ function checkSite(html,pages,{projectId,secret,now}={}){checkHtml(html);
  if(form){if(typeof p['grazie.html']!=='string')throw new HttpError(422,'Manca la pagina di ringraziamento del modulo contatti.');checkHtml(p['grazie.html'],'Pagina di ringraziamento');
   let claims=null;try{claims=siteForm.verify(siteForm.tokenIn(html),secret,now)}catch(e){claims=null}
   if(!claims||claims.site!==projectId)throw new HttpError(422,'Il modulo contatti non è collegato al CRM di questo progetto: collegalo nello studio prima di metterlo online.')}
+ if(p['logo.svg']!=null&&!seo.safeLogo(p['logo.svg']))throw new HttpError(422,'Il logo del sito non è un SVG semplice: rigenera il sito dallo studio.');
  const total=[html,...Object.values(p)].reduce((n,x)=>n+Buffer.byteLength(String(x),'utf8'),0);
  if(total>2*MAX_HTML)throw new HttpError(413,'Il sito è troppo grande per la pubblicazione (massimo 4 MB in tutto).');
  return {html,pages:Object.fromEntries(PAGE_NAMES.filter(k=>typeof p[k]==='string').map(k=>[k,p[k]]))}}
+// The address the published site answers on, for the absolute JSON-LD, robots.txt, sitemap.xml and llms.txt.
+function siteBase(saved,project){const d=saved&&saved.domain;
+ if(d&&d.verified&&d.name)return seo.baseUrl('https://'+d.name);
+ const u=saved&&/^https:\/\/[^\s"'<>]+$/.test(String(saved.url||''))?seo.baseUrl(saved.url):'';
+ return u||seo.baseUrl('https://'+project+'.vercel.app')}
 const stateOf=s=>{s=String(s||'').toUpperCase();return DONE.includes(s)?s:'BUILDING'};
 function view(d,project,at){const alias=Array.isArray(d&&d.alias)&&d.alias.find(a=>typeof a==='string'&&a);
  const host=alias||(d&&d.url)||'';return {url:host?'https://'+String(host).replace(/^https?:\/\//,''):'',deploymentId:String(d&&d.id||''),project,state:stateOf(d&&(d.readyState||d.status)),publishedAt:at}}
@@ -120,7 +134,8 @@ async function handle(req,res,deps){
   const api=vercel(env,deps.fetch||globalThis.fetch),by=user.name||user.email||'';
   if(action==='publish'){const {html,pages}=checkSite(input.html,input.pages,{projectId,secret:env.JWT_SECRET,now:(deps.now?deps.now():new Date()).getTime()});
    const project=saved&&saved.project||projectName(siteSlug(proj.name,projectId)),at=(deps.now?deps.now():new Date()).toISOString();
-   let d=await api('POST','/v13/deployments',deploymentPayload(project,html,pages));
+   const bundle=seo.siteBundle(html,pages,{base:siteBase(saved,project),date:at.slice(0,10)});
+   let d=await api('POST','/v13/deployments',deploymentPayload(project,bundle.html,bundle.pages));
    const wait=deps.waitMs==null?WAIT_MS:deps.waitMs,every=deps.pollMs==null?POLL_MS:deps.pollMs,pause=deps.sleep||sleep;
    for(let t=0;!DONE.includes(stateOf(d.readyState||d.status))&&t<wait;t+=every){await pause(every);d={...d,...await api('GET','/v13/deployments/'+encodeURIComponent(d.id))}}
    const site=await remember(store,projectId,view(d,project,at),{by});
@@ -147,4 +162,4 @@ async function handle(req,res,deps){
 }
 
 module.exports=(req,res)=>handle(req,res,{db:()=>require('./_db').sql()});
-Object.assign(module.exports,{handle,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});
+Object.assign(module.exports,{handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});

@@ -169,7 +169,7 @@ function openInline(c){
   :c.inline==='site'
   ?S.siteStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-developer&project='+pid})
   :c.inline==='seo'
-  ?S.seoStudio({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
+  ?S.seoStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='audit'
   ?S.siteAudit({project,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='searchads'

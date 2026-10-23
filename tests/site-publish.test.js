@@ -1,7 +1,7 @@
 'use strict';
 // «Metti online il sito»: api/_site_publish.js against a stubbed fetch and an in-memory project store. No real Vercel call.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const pub=require('../api/_site_publish.js'),auth=require('../api/_auth.js'),studio=require('../lib/site-studio.js');
+const pub=require('../api/_site_publish.js'),auth=require('../api/_auth.js'),studio=require('../lib/site-studio.js'),seo=require('../lib/site-seo.js');
 const TOKEN='vcp_SECRET_token_value_123',SECRET='test-jwt-secret-site-publish';
 const res=()=>({code:200,headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this}});
 const PAGE=studio.buildPage({name:'Il risultato',headline:'Torna a fare quello che ami',sections:[{title:'Servizi',text:'Valutazione e piano.'},{title:'Contatti',text:'Scrivici.'}],cta:'Scrivici'},{name:'Studio Fisio',contacts:'035 123456 · info@fisio.it',style:'caldo'});
@@ -41,8 +41,10 @@ test('payload shape and Vercel requests: production, one index.html, no framewor
  assert.equal(r.code,200,JSON.stringify(r.body));
  const [first]=r.vercel.calls,slug=pub.siteSlug('Studio Fisio Bergamo','fisio-ab12cd34');
  assert.equal(first.url,'http://127.0.0.1:9/v13/deployments?teamId=team_9');assert.equal(first.method,'POST');
- assert.deepEqual(first.body,{name:'radix-site-'+slug,project:'radix-site-'+slug,target:'production',files:[{file:'index.html',data:PAGE},{file:'privacy.html',data:PAGES['privacy.html']},{file:'cookie.html',data:PAGES['cookie.html']}],projectSettings:{framework:null}});
- assert.deepEqual(first.body,pub.deploymentPayload('radix-site-'+slug,PAGE,PAGES));
+ const bundle=seo.siteBundle(PAGE,PAGES,{base:'https://radix-site-'+slug+'.vercel.app',date:first.body.files.find(f=>f.file==='sitemap.xml').data.match(/<lastmod>([\d-]+)</)[1]});
+ assert.deepEqual(first.body,{name:'radix-site-'+slug,project:'radix-site-'+slug,target:'production',files:[{file:'index.html',data:PAGE},{file:'privacy.html',data:PAGES['privacy.html']},{file:'cookie.html',data:PAGES['cookie.html']},
+  {file:'robots.txt',data:bundle.pages['robots.txt']},{file:'sitemap.xml',data:bundle.pages['sitemap.xml']},{file:'llms.txt',data:bundle.pages['llms.txt']}],projectSettings:{framework:null}});
+ assert.deepEqual(first.body,pub.deploymentPayload('radix-site-'+slug,bundle.html,bundle.pages));
  assert.equal(first.headers.Authorization,'Bearer '+TOKEN);
  for(const c of r.vercel.calls)assert.ok(!c.url.includes(TOKEN),'token never in a URL');
  const def=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES});assert.equal(def.vercel.calls[0].url,'https://api.vercel.com/v13/deployments');

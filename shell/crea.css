@@ -70,6 +70,25 @@
 .cr-panel .seo-studio .ss-plan textarea{min-height:220px;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.5}
 .cr-panel .seo-studio .tool-status{margin:0;color:var(--ink-2)}
 .cr-panel .seo-studio .tool-status a{color:var(--cyan);font-weight:600}
+/* «Dati strutturati» (lib/site-seo.js report): present and missing fields, the JSON-LD preview, the Rich Results Test link. */
+.cr-panel .seo-studio .ss-tab-structured,.cr-panel .seo-studio .ss-structured{display:flex;flex-direction:column;gap:14px;min-width:0}
+.cr-panel .seo-studio .ss-tab-structured[hidden]{display:none}
+.cr-panel .seo-studio .ss-structured>p{margin:0}
+.cr-panel .seo-studio .sd-head{display:flex;flex-direction:column;gap:4px}.cr-panel .seo-studio .sd-head p{margin:0;overflow-wrap:anywhere}
+.cr-panel .seo-studio .sd-type{font-weight:600;color:var(--ma-tx)}
+.cr-panel .seo-studio .sd-group{display:flex;flex-direction:column;gap:6px}
+.cr-panel .seo-studio .sd-checks{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:8px}
+.cr-panel .seo-studio .sd-checks li{display:flex;flex-direction:column;gap:3px;padding:10px 12px;border:1px solid var(--ma-line);border-radius:12px;background:var(--ma-panel);font-size:13.5px;min-width:0;overflow-wrap:anywhere}
+.cr-panel .seo-studio .sd-checks li strong{color:var(--ma-tx);font-weight:600}
+.cr-panel .seo-studio .sd-badge{align-self:flex-start;padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:600;background:rgba(29,26,39,.05);color:var(--ma-tx2)}
+.cr-panel .seo-studio .sd-checks li[data-ok=true] .sd-badge{background:color-mix(in srgb,var(--ma-ok) 14%,#fff);color:var(--ma-ok)}
+.cr-panel .seo-studio .sd-checks li[data-ok=false]{border-style:dashed}
+.cr-panel .seo-studio .sd-checks li[data-ok=false] .sd-badge{background:color-mix(in srgb,var(--ma-warn) 16%,#fff);color:color-mix(in srgb,var(--ma-warn) 70%,#000)}
+.cr-panel .seo-studio .sd-value{color:var(--ma-tx2)}.cr-panel .seo-studio .sd-hint{color:var(--ma-mut);font-size:13px}
+.cr-panel .seo-studio .sd-json{margin:0;max-height:360px;overflow:auto;padding:12px 14px;border:1px solid var(--ma-line);border-radius:12px;background:var(--ma-panel-2);font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ma-tx);white-space:pre-wrap;overflow-wrap:anywhere}
+.cr-panel .seo-studio .sd-json:focus-visible,.cr-panel .seo-studio .sd-test:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .seo-studio .sd-test{align-self:center;color:var(--ma-link);font-weight:600;font-size:14px}
+.cr-panel .site-studio .st-seo{margin:0;font-size:13px;overflow-wrap:anywhere}.cr-panel .site-studio .st-seo[hidden]{display:none}
 /* Studio Sito (lib/site-studio.js) reuses the Studio Foto layout; these are its own pieces. */
 .cr-panel .site-studio h3{margin:0;font-size:16px;overflow-wrap:anywhere}
 .cr-panel .site-studio .ps-form{display:flex;flex-direction:column;gap:12px}

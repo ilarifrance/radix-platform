@@ -199,8 +199,8 @@ test('publish is refused with missing company data, missing legal pages or an un
  r=await publish(good,{...filledPages,'altro.html':'<html></html>'});assert.equal(r.code,400);
  r=await publish(good,{...filledPages,'cookie.html':pages['cookie.html']});assert.equal(r.code,422,'a placeholder in the cookie page blocks too');
  r=await publish(good,filledPages);assert.equal(r.code,200,JSON.stringify(r.body));
- assert.deepEqual(r.calls[0].body.files.map(f=>f.file),['index.html','privacy.html','cookie.html','grazie.html']);
- assert.equal(r.calls[0].body.files[0].data,good);
+ assert.deepEqual(r.calls[0].body.files.map(f=>f.file),['index.html','privacy.html','cookie.html','grazie.html','robots.txt','sitemap.xml','llms.txt'],'the legal pages plus the files generated on the server');
+ assert.equal(r.calls[0].body.files[0].data,good,'a page without JSON-LD goes online as it is');
 });
 
 test('wiring: legal script before the studio, profile passed, CRM link through the workspace client, sends routed by /api/sales',()=>{
