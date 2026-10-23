@@ -47,7 +47,8 @@ const slugOf=project=>String(project||'').replace(/^radix-site-/,'');
 const subdomain=slug=>slug+'.'+ZONE;
 const dnsRecord=slug=>({type:'CNAME',name:slug,value:CNAME,zone:ZONE});
 // menu.html: the phone page of the project's menu (lib/menu-studio.js htmlPage), optional, one self-contained file.
-const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg','menu.html']);
+// stampa.html: the press area of the project's media kit (lib/media-kit-studio.js sitePage), optional, no script.
+const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg','menu.html','stampa.html']);
 // Generated here (lib/site-seo.js siteBundle), never accepted from the client.
 const GENERATED=Object.freeze(['robots.txt','sitemap.xml','llms.txt']);
 function deploymentPayload(project,html,pages){const files=[{file:'index.html',data:html}];
@@ -71,6 +72,7 @@ function checkSite(html,pages,{projectId,secret,now}={}){checkHtml(html);
   if(!claims||claims.site!==projectId)throw new HttpError(422,'Il modulo contatti non è collegato al CRM di questo progetto: collegalo nello studio prima di metterlo online.')}
  if(p['logo.svg']!=null&&!seo.safeLogo(p['logo.svg']))throw new HttpError(422,'Il logo del sito non è un SVG semplice: rigenera il sito dallo studio.');
  if(p['menu.html']!=null){checkHtml(p['menu.html'],'Pagina del menu');if(/<script[^>]*\bsrc\s*=|<link\b|<iframe\b|@import/i.test(p['menu.html']))throw new HttpError(422,'La pagina del menu carica file esterni: rigenerala dallo studio «Menu e listino».')}
+ if(p['stampa.html']!=null){checkHtml(p['stampa.html'],'Area stampa');if(/<script\b|<link\b|<iframe\b|@import|\son\w+\s*=/i.test(p['stampa.html']))throw new HttpError(422,'L’area stampa contiene script o file esterni: rigenerala dallo studio «Media kit e cartella stampa».')}
  const total=[html,...Object.values(p)].reduce((n,x)=>n+Buffer.byteLength(String(x),'utf8'),0);
  if(total>2*MAX_HTML)throw new HttpError(413,'Il sito è troppo grande per la pubblicazione (massimo 4 MB in tutto).');
  return {html,pages:Object.fromEntries(PAGE_NAMES.filter(k=>typeof p[k]==='string').map(k=>[k,p[k]]))}}
