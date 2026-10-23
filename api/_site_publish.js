@@ -7,7 +7,7 @@
    GET  ?projectId=…                                   → {configured, site}  (site: the saved record or null; 503 without key)
    POST {action:'publish',projectId,html,pages}        → {url,deploymentId,project,state,publishedAt}  (waits up to ~45s, then state BUILDING)
         pages: the legal pages of lib/site-legal.js ({'privacy.html','cookie.html'} always, 'grazie.html' with the contact
-        form). Every page is refused with a «[da completare: …]» marker (company data included); a page with the contact
+        form, 'menu.html' with the project's menu: lib/menu-studio.js). Every page is refused with a «[da completare: …]» marker (company data included); a page with the contact
         form needs a valid form token of this same project (api/_site_form.js), so a form never goes online unlinked.
         'logo.svg' (the Kit identità logo the JSON-LD points to) is accepted only when it is a plain SVG without scripts.
         The server then builds the bundle with lib/site-seo.js: the JSON-LD addresses become absolute for the site's
@@ -39,7 +39,8 @@ const projectName=slug=>'radix-site-'+slug;
 const slugOf=project=>String(project||'').replace(/^radix-site-/,'');
 const subdomain=slug=>slug+'.'+ZONE;
 const dnsRecord=slug=>({type:'CNAME',name:slug,value:CNAME,zone:ZONE});
-const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg']);
+// menu.html: the phone page of the project's menu (lib/menu-studio.js htmlPage), optional, one self-contained file.
+const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg','menu.html']);
 // Generated here (lib/site-seo.js siteBundle), never accepted from the client.
 const GENERATED=Object.freeze(['robots.txt','sitemap.xml','llms.txt']);
 function deploymentPayload(project,html,pages){const files=[{file:'index.html',data:html}];
@@ -62,6 +63,7 @@ function checkSite(html,pages,{projectId,secret,now}={}){checkHtml(html);
   let claims=null;try{claims=siteForm.verify(siteForm.tokenIn(html),secret,now)}catch(e){claims=null}
   if(!claims||claims.site!==projectId)throw new HttpError(422,'Il modulo contatti non è collegato al CRM di questo progetto: collegalo nello studio prima di metterlo online.')}
  if(p['logo.svg']!=null&&!seo.safeLogo(p['logo.svg']))throw new HttpError(422,'Il logo del sito non è un SVG semplice: rigenera il sito dallo studio.');
+ if(p['menu.html']!=null){checkHtml(p['menu.html'],'Pagina del menu');if(/<script[^>]*\bsrc\s*=|<link\b|<iframe\b|@import/i.test(p['menu.html']))throw new HttpError(422,'La pagina del menu carica file esterni: rigenerala dallo studio «Menu e listino».')}
  const total=[html,...Object.values(p)].reduce((n,x)=>n+Buffer.byteLength(String(x),'utf8'),0);
  if(total>2*MAX_HTML)throw new HttpError(413,'Il sito è troppo grande per la pubblicazione (massimo 4 MB in tutto).');
  return {html,pages:Object.fromEntries(PAGE_NAMES.filter(k=>typeof p[k]==='string').map(k=>[k,p[k]]))}}

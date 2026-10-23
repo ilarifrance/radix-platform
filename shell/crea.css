@@ -120,6 +120,8 @@
 .cr-panel .site-studio .st-todo input[aria-invalid=true]{border-color:var(--ma-err);box-shadow:0 0 0 1px var(--ma-err)}
 .cr-panel .site-studio .st-crm{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--ma-line);border-radius:12px;background:var(--ma-panel)}
 .cr-panel .site-studio .st-crm[hidden]{display:none}.cr-panel .site-studio .st-crm h4{margin:0;font-size:15px;color:var(--ma-tx)}.cr-panel .site-studio .st-crm p{margin:0;overflow-wrap:anywhere}
+.cr-panel .site-studio .st-menu{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--ma-line);border-radius:12px;background:var(--ma-panel)}
+.cr-panel .site-studio .st-menu[hidden]{display:none}.cr-panel .site-studio .st-menu h4{margin:0;font-size:15px;color:var(--ma-tx)}.cr-panel .site-studio .st-menu p{margin:0;overflow-wrap:anywhere}.cr-panel .site-studio .st-menu label{align-self:flex-start}
 .cr-panel .site-studio .st-crm label{display:flex;flex-direction:column;gap:4px;font-size:13px;max-width:420px;color:var(--ma-tx2)}
 .cr-panel .site-studio .st-publish{display:flex;flex-direction:column;gap:10px;padding-top:10px;border-top:1px solid var(--line-2)}
 .cr-panel .site-studio .st-publish h4{margin:0;font-size:15px}.cr-panel .site-studio .st-publish p{margin:0;overflow-wrap:anywhere}
@@ -1892,6 +1894,19 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .menu-studio .mn-file-name strong{font-size:13px;color:var(--ink);overflow-wrap:anywhere}
 .cr-panel .menu-studio .mn-file-name small{font-size:11.5px;color:var(--subtle);overflow-wrap:anywhere}
 .cr-panel .menu-studio .mn-dl{flex:none;min-height:36px}
+/* P7 table formats, coperto, «Rifinitura» and the site address for the QR */
+.cr-panel .menu-studio .mn-format-group{display:flex;flex-wrap:wrap;align-items:center;gap:8px;width:100%}
+.cr-panel .menu-studio .mn-format-title{flex:0 0 100%;font-size:12px;font-weight:600;color:var(--ma-tx2)}
+.cr-panel .menu-studio .mn-use-site{align-self:flex-start;min-height:36px;margin-top:4px;overflow-wrap:anywhere}
+.cr-panel .menu-studio .mn-refine{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--ma-line);border-radius:14px;background:var(--ma-panel)}
+.cr-panel .menu-studio .mn-refine[hidden]{display:none}
+.cr-panel .menu-studio .mn-refine h4,.cr-panel .menu-studio .mn-refine p{margin:0}
+.cr-panel .menu-studio .mn-refine-row{margin:0;padding:0;border:0;display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.cr-panel .menu-studio .mn-refine-row legend{width:100%}
+.cr-panel .menu-studio .mn-refine-row label:has(input:disabled){opacity:.55}
+.cr-panel .menu-studio .mn-pages .mn-page-dl{max-width:150px}
+.cr-panel .menu-studio .mn-pages .mn-page-segnatavolo{max-width:240px}
+.cr-panel .menu-studio .mn-pages :is(.mn-page-a3-piegato,.mn-page-tovaglietta){flex-basis:100%;max-width:620px}
 @media (max-width:1100px){.cr-panel .menu-studio .mn-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .menu-studio .mn-dir .mn-dir-fig{max-width:300px}
  .cr-panel .menu-studio .mn-row{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"name price" "desc desc" "sec notes" "al al" "tags tags" "del del"}}
 @media (max-width:760px){.cr-panel .menu-studio .mn-fields,.cr-panel .menu-studio .mn-source-row{grid-template-columns:minmax(0,1fr)}.cr-panel .menu-studio .mn-row{grid-template-columns:minmax(0,1fr);grid-template-areas:"name" "price" "desc" "sec" "notes" "al" "tags" "del"}.cr-panel .menu-studio .mn-del{justify-self:start}
