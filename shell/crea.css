@@ -137,7 +137,7 @@
 .cr-panel .copy-studio .cs-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:10px}
 .cr-panel .copy-studio .cs-fields label{display:flex;flex-direction:column;gap:6px;font-size:13px}
 .cr-panel .copy-studio .cs-wide{grid-column:1/-1}
-.cr-panel .copy-studio .cs-note{margin:0;padding:10px 12px;border:1px solid rgba(175,114,0,.45);border-radius:10px;color:var(--amber);font-size:13px}
+.cr-panel .copy-studio .cs-note{margin:0;font-size:13px}
 .cr-panel .copy-studio .cs-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));align-items:start}
 .cr-panel .copy-studio .cs-card{padding:12px;gap:10px;min-width:0}
 .cr-panel .copy-studio .cs-card>button{margin-top:auto;align-self:flex-start}
@@ -286,8 +286,6 @@
 }
 /* Studio Catalogo (lib/catalog-studio.js): the Studio Stampa pieces plus the sheet, the columns and the options. */
 .cr-panel .catalog-studio h4{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--cyan)}
-.cr-panel .catalog-studio .ct-pick,.cr-panel .catalog-studio .ct-more{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px dashed var(--line-2);border-radius:10px;font-size:13px}
-.cr-panel .catalog-studio .ct-more{flex-direction:row;flex-wrap:wrap;align-items:center;padding:8px 12px}
 .cr-panel .catalog-studio input[type=file]{max-width:100%;color:inherit}
 .cr-panel .catalog-studio .ct-map-grid,.cr-panel .catalog-studio .ct-opt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
 .cr-panel .catalog-studio .ct-map-grid label,.cr-panel .catalog-studio .ct-opt-grid label,.cr-panel .catalog-studio .ct-opts>label{display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:0}
@@ -353,7 +351,7 @@
 .cr-panel .doc-studio .ds-type-text{display:flex;flex-direction:column;gap:4px;min-width:0}
 .cr-panel .doc-studio .ds-type-text b{font-size:14px;color:var(--ink)}
 .cr-panel .doc-studio .ds-type-text small{font-size:12.5px;line-height:1.4;color:var(--muted)}
-.cr-panel .doc-studio .ds-type-text em{font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--amber)}
+.cr-panel .doc-studio .ds-type-text em{font-style:normal;font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--ma-tx2)}
 .cr-panel .doc-studio .ds-source{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:12px 16px}
 .cr-panel .doc-studio .ds-source label{display:flex;flex-direction:column;gap:8px;font-size:13px;min-width:0;align-self:start;justify-content:flex-start;height:auto}
 .cr-panel .doc-studio .ds-source select,.cr-panel .doc-studio .ds-source textarea{width:100%;box-sizing:border-box;min-width:0}
@@ -1066,11 +1064,11 @@
 .cr-panel .pf-card-head{display:flex;flex-direction:column;gap:4px;min-width:0}
 /* step 1 */
 .cr-panel .pf-src-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:stretch}
-.cr-panel .pf-studio .pf-drop{position:relative;display:flex;flex-direction:row;align-items:center;gap:14px;min-height:72px;padding:14px 18px;border:1px dashed var(--line-2);border-radius:14px;background:rgba(0,141,167,.026);cursor:pointer;transition:border-color .15s,background-color .15s}
-.cr-panel .pf-studio .pf-drop::before{content:'';flex:0 0 36px;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--c,#42dcf7) 14%,transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h8.5l3.5 3.5v13.5H6Z'/%3E%3Cpath d='M9 12h6M12 9v6'/%3E%3C/svg%3E") center/20px no-repeat}
-.cr-panel .pf-studio .pf-drop:hover{border-color:color-mix(in srgb,var(--c,#0093ad) 55%,transparent);background:rgba(0,141,167,.051)}
-.cr-panel .pf-studio .pf-drop:focus-within{outline:2px solid var(--ma-focus);outline-offset:2px}
-.cr-panel .pf-studio .pf-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.cr-panel .pf-drop{position:relative;display:flex;flex-direction:row;align-items:center;gap:14px;min-height:72px;padding:14px 18px;border:1px dashed var(--line-2);border-radius:14px;background:rgba(0,141,167,.026);cursor:pointer;transition:border-color .15s,background-color .15s}
+.cr-panel .pf-drop::before{content:'';flex:0 0 36px;width:36px;height:36px;border-radius:10px;background:color-mix(in srgb,var(--c,#42dcf7) 14%,transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23007888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5h8.5l3.5 3.5v13.5H6Z'/%3E%3Cpath d='M9 12h6M12 9v6'/%3E%3C/svg%3E") center/20px no-repeat}
+.cr-panel .pf-drop:hover{border-color:color-mix(in srgb,var(--c,#0093ad) 55%,transparent);background:rgba(0,141,167,.051)}
+.cr-panel .pf-drop:focus-within{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .pf-drop input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .cr-panel .pf-drop-text{display:flex;flex-direction:column;gap:3px;min-width:0}
 .cr-panel .pf-drop-text strong{font-size:14px;color:var(--ink)}
 .cr-panel .pf-drop-text small{font-size:12.5px;line-height:1.4;color:var(--subtle);overflow-wrap:anywhere}
@@ -1241,7 +1239,6 @@
 .cr-panel .reel-studio .rs-tile .ad-glyph{flex:0 0 auto}
 .cr-panel .reel-studio .ps-chip:has(input:checked) .ad-glyph{color:var(--mk-soft)}
 .cr-panel .reel-studio .rs-media{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:12px}
-.cr-panel .reel-studio .rs-upload span{color:var(--muted);line-height:1.45}
 .cr-panel .rs-thumbs{list-style:none;margin:0;padding:0;align-items:start;display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
 .cr-panel .rs-thumbs[hidden]{display:none}
 .cr-panel .rs-thumb{position:relative;display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid var(--line-2);border-radius:12px;background:rgba(29,26,39,.02);min-width:0}
@@ -1512,7 +1509,7 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .photo-studio>.ps-grid>.ps-card img{border-radius:12px}
 .cr-panel .photo-studio>.ps-grid>.ps-card figcaption{font-size:13px;color:var(--ink-2)}
 .cr-panel .copy-studio .cs-text,.cr-panel .copy-studio .cs-sec ul,.cr-panel .seo-studio .ss-sec ul,.cr-panel .seo-studio .ss-sec ol,.cr-panel .identity-studio .is-sec ul:not(.is-swatches):not(.is-checks){font-size:13.5px;line-height:1.55;color:var(--ink-2)}
-.cr-panel .copy-studio .cs-issues,.cr-panel .copy-studio .cs-note,.cr-panel .video-studio .vs-missing{padding:10px 12px;border:1px solid rgba(163,120,5,.35);border-radius:10px;background:rgba(157,114,0,.043);color:var(--amber);line-height:1.45}
+.cr-panel .copy-studio .cs-issues,.cr-panel .video-studio .vs-missing{padding:10px 12px;border:1px solid rgba(163,120,5,.35);border-radius:10px;background:rgba(157,114,0,.043);color:var(--amber);line-height:1.45}
 .cr-panel .copy-studio .cs-issues{padding-left:28px}
 /* the AI is working: the empty grid of the proposals shows three placeholder cards */
 .cr-panel .cs-grid:empty,.cr-panel .ss-grid:empty,.cr-panel .st-grid:empty,.cr-panel .is-grid:empty,.cr-panel .vs-grid:empty{display:block;position:relative;overflow:hidden;min-height:260px;border-radius:18px;background:linear-gradient(90deg,rgba(29,26,39,.032) 0 32%,transparent 32% 34%,rgba(29,26,39,.032) 34% 66%,transparent 66% 68%,rgba(29,26,39,.032) 68%)}
@@ -1548,8 +1545,7 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .print-studio .pr-paste summary::-webkit-details-marker{display:none}
 .cr-panel .print-studio .pr-paste summary::before{content:'';width:7px;height:7px;margin-right:2px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
 .cr-panel .print-studio .pr-paste[open] summary::before{transform:rotate(45deg)}
-.cr-panel .print-studio .pr-paste,.cr-panel .catalog-studio .ct-pick,.cr-panel .catalog-studio .ct-more{border:1px dashed var(--line-2);border-radius:14px;background:rgba(29,26,39,.02);padding:12px 16px}
-.cr-panel .catalog-studio .ct-pick{padding:16px;gap:10px}
+.cr-panel .print-studio .pr-paste{border:1px dashed var(--line-2);border-radius:14px;background:rgba(29,26,39,.02);padding:12px 16px}
 .cr-panel .print-studio .pr-inks,.cr-panel .print-studio .pr-preflight{border-radius:14px}
 .cr-panel .photo-studio .tool-status a,.cr-panel .video-studio .vs-missing a{text-underline-offset:3px}
 @media (max-width:640px){
@@ -1822,8 +1818,6 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .menu-studio .mn-source{display:flex;flex-direction:column;gap:8px;min-width:0;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(29,26,39,.02)}
 .cr-panel .menu-studio .mn-source>strong{font-size:13.5px;color:var(--ink)}
 .cr-panel .menu-studio .mn-source>button{align-self:flex-start}
-.cr-panel .menu-studio .mn-file input[type=file]{max-width:100%;color:var(--ink-2);font-size:13px}
-.cr-panel .menu-studio .mn-file input[type=file]::file-selector-button{min-height:40px;margin-right:10px;padding:0 14px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:inherit;cursor:pointer}
 .cr-panel .menu-studio .mn-table-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .cr-panel .menu-studio .mn-table-head h4{margin:0 auto 0 0;color:var(--mk-soft)}
 .cr-panel .menu-studio .mn-rows{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow:auto;padding-right:2px}
@@ -2749,3 +2743,14 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
  .cr-panel .photo-studio .ps-steps li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px}
  .cr-panel .photo-studio .ps-steps li[data-state=current]{white-space:normal;flex-grow:1.7}
 }
+/* Rifinitura 2. Notes that only inform (what to check before using a text, what RADIX does not do) are grey with the
+   «i», like the cards of the panel; amber stays for real warnings (checks that fail, missing data, over the limit).
+   The file pickers of Catalogo, Menu and Reel are the drop zone of Foto prodotto (.pf-drop); agency/crea.js writes the
+   chosen file name and size under the text (.pf-drop-file) and marks the zone while a file is dragged over it. */
+.cr-panel .copy-studio .cs-note{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(29,26,39,.025);color:var(--ma-tx2);line-height:1.45}
+.cr-panel .copy-studio .cs-note::before{content:'';flex:0 0 16px;width:16px;height:16px;margin-top:1px;background:var(--ma-mut);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 11v5M12 8h.01'/%3E%3C/svg%3E") center/contain no-repeat}
+.cr-panel .pf-drop[data-over=true]{border-style:solid;border-color:var(--ma-link);background:color-mix(in srgb,var(--ma-link) 7%,#fff)}
+.cr-panel .pf-drop-text small.pf-drop-file{font-weight:600;color:var(--ink-2)}
+.cr-panel .pf-drop-file[hidden]{display:none}
+.cr-panel .catalog-studio .ct-drop-more{min-height:56px;padding:10px 16px}
+.cr-panel .menu-studio .mn-file .pf-drop{min-height:64px;padding:12px 14px;background:#fff}

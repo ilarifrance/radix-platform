@@ -147,5 +147,9 @@ const KITS=Object.freeze([
 const kits=()=>KITS.map(k=>({...k,card:card(k.id)})).filter(k=>k.card);
 // The area number on tabs and headings: 01…08 in GROUPS order ('' for «Tutti» or an unknown group).
 const areaNumber=group=>{const i=groups().indexOf(group);return i<0?'':String(i+1).padStart(2,'0')};
-return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,groups,inGroup,areaOf,fromQuery,words,matchServices,best,fromAsk,costBadge,kits,areaNumber});
+// The line under a drop zone (.pf-drop) once files are chosen: «menu.csv · 12 KB», «3 file · 2,4 MB» ('' for none).
+const fileSize=b=>b<1024?Math.max(0,Math.round(b))+' B':b<1048576?Math.round(b/1024)+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
+const fileSummary=files=>{const list=[...(files||[])].filter(f=>f&&typeof f.size==='number');if(!list.length)return '';
+ const total=list.reduce((t,f)=>t+f.size,0);return (list.length===1?String(list[0].name||'file'):list.length+' file')+' · '+fileSize(total)};
+return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,groups,inGroup,areaOf,fromQuery,words,matchServices,best,fromAsk,costBadge,kits,areaNumber,fileSize,fileSummary});
 });

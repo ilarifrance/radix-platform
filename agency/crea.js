@@ -265,5 +265,11 @@ async function load(){
  }catch(e){say(e.message)}
 }
 $('crClose').addEventListener('click',closePanel);
+// Every drop zone of the studios (.pf-drop: a label over a transparent file input, so a click or a drop both work) says
+// which files were chosen, and lights up while a file is dragged over it. Capture phase: before a studio empties the input.
+(()=>{const body=$('crPanelBody'),zone=t=>t&&t.closest&&t.closest('.pf-drop');
+ body.addEventListener('change',e=>{const t=e.target,z=zone(t);if(!z||t.type!=='file')return;const text=z.querySelector('.pf-drop-text')||z;
+  let line=text.querySelector('.pf-drop-file');if(!line){line=node('small','pf-drop-file');text.append(line)}line.textContent=core.fileSummary(t.files);line.hidden=!line.textContent;z.removeAttribute('data-over')},true);
+ for(const [ev,on] of [['dragenter',true],['dragover',true],['dragleave',false],['drop',false]])body.addEventListener(ev,e=>{const z=zone(e.target);if(!z)return;if(on)z.dataset.over='true';else if(ev==='drop'||!z.contains(e.relatedTarget))z.removeAttribute('data-over')})})();
 load();
 })();
