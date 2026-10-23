@@ -94,14 +94,42 @@ module.exports = async (req, res) => {
 
   try {
     if (action === 'avatars') {
+      // The account's own avatars first: photo avatar looks (avatar groups, e.g. «Professional in navy suit»)
+      // and talking photos speak as talking_photo; HeyGen's public studio avatars follow.
+      const own = [];
+      try {
+        const groups = pick(await heygenFetch(apiKey, '/v2/avatar_group.list?include_public=false', { method: 'GET' }), ['data.avatar_group_list', 'avatar_group_list'], []);
+        for (const g of (Array.isArray(groups) ? groups : []).slice(0, 12)) {
+          const gid = g.id || g.group_id;
+          if (!gid) continue;
+          try {
+            const looks = pick(await heygenFetch(apiKey, '/v2/avatar_group/' + encodeURIComponent(gid) + '/avatars', { method: 'GET' }), ['data.avatar_list', 'avatar_list'], []);
+            for (const a of (Array.isArray(looks) ? looks : []).slice(0, 20)) {
+              const id = a.id || a.avatar_id || a.talking_photo_id;
+              if (id) own.push({ id, type: 'talking_photo', name: [g.name, a.name].filter(Boolean).join(' · ') || id, previewImageUrl: a.image_url || a.preview_image_url || g.preview_image || null });
+            }
+          } catch {
+            /* one group unreadable: the others still show */
+          }
+        }
+      } catch {
+        /* accounts without avatar groups */
+      }
       const data = await heygenFetch(apiKey, '/v2/avatars', { method: 'GET' });
+      const seen = new Set(own.map((a) => a.id));
+      for (const t of pick(data, ['data.talking_photos', 'talking_photos'], []) || []) {
+        const id = t.talking_photo_id || t.id;
+        if (id && !seen.has(id)) { seen.add(id); own.push({ id, type: 'talking_photo', name: t.talking_photo_name || t.name || id, previewImageUrl: t.preview_image_url || null }); }
+      }
       const list = pick(data, ['data.avatars', 'avatars'], []);
       res.status(200).json({
-        avatars: (Array.isArray(list) ? list : []).map((a) => ({
+        avatars: own.concat((Array.isArray(list) ? list : []).map((a) => ({
           id: a.avatar_id || a.id,
+          type: 'avatar',
           name: a.avatar_name || a.name || a.avatar_id || a.id,
           previewImageUrl: a.preview_image_url || a.preview_url || null,
-        })),
+        }))),
+        own: own.length,
       });
       return;
     }
@@ -249,7 +277,7 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST' && action === 'generate') {
-      const { script, avatarId, voiceId, talkingPhotoId } = postBody || {};
+      const { script, avatarId, voiceId, talkingPhotoId, orientation } = postBody || {};
       if (!script || !(avatarId || talkingPhotoId) || !voiceId) {
         res.status(400).json({ error: "Mancano 'script', 'avatarId' o 'voiceId'." });
         return;
@@ -261,12 +289,14 @@ module.exports = async (req, res) => {
       const data = await heygenFetch(apiKey, '/v2/video/generate', {
         method: 'POST',
         body: JSON.stringify({
-          dimension: { width: 1080, height: 1920 }, // verticale — Reels/Stories/TikTok/LinkedIn video
+          // YouTube is horizontal; clips for Reels/Stories/TikTok/LinkedIn stay vertical.
+          dimension: orientation === 'landscape' ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 },
           video_inputs: [
             {
               character,
               voice: { type: 'text', voice_id: voiceId, input_text: script },
-              background: { type: 'color', value: '#0F2D24' },
+              // A photo avatar keeps the background of its own photo (the office of the look).
+              ...(talkingPhotoId ? {} : { background: { type: 'color', value: '#0F2D24' } }),
             },
           ],
         }),
