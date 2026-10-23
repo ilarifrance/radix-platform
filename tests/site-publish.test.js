@@ -1,10 +1,11 @@
 'use strict';
 // «Metti online il sito»: api/_site_publish.js against a stubbed fetch and an in-memory project store. No real Vercel call.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
-const pub=require('../api/_site_publish.js'),auth=require('../api/_auth.js'),studio=require('../lib/site-studio.js');
-const TOKEN='vcp_SECRET_token_value_123';
+const pub=require('../api/_site_publish.js'),auth=require('../api/_auth.js'),studio=require('../lib/site-studio.js'),seo=require('../lib/site-seo.js');
+const TOKEN='vcp_SECRET_token_value_123',SECRET='test-jwt-secret-site-publish';
 const res=()=>({code:200,headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.code=n;return this},json(v){this.body=v;return this}});
 const PAGE=studio.buildPage({name:'Il risultato',headline:'Torna a fare quello che ami',sections:[{title:'Servizi',text:'Valutazione e piano.'},{title:'Contatti',text:'Scrivici.'}],cta:'Scrivici'},{name:'Studio Fisio',contacts:'035 123456 · info@fisio.it',style:'caldo'});
+const PAGES=studio.sitePages({name:'Studio Fisio',style:'caldo',legal:{legalName:'Studio Fisio srl',vat:'01234567897',address:'Via Roma 12, 24121 Bergamo',email:'privacy@fisio.it'}});
 function memStore(){const s={doc:{data:{schemaVersion:1,conversations:{copywriter:[{role:'user',content:'ciao'}]},other:1},revision:3},saves:0,conflicts:0,
  project:async id=>id==='fisio-ab12cd34'?{id,name:'Studio Fisio Bergamo'}:null,
  load:async()=>JSON.parse(JSON.stringify(s.doc)),
@@ -19,7 +20,7 @@ function fakeVercel({states=['QUEUED','BUILDING','READY'],domain}={}){const call
   if(/\/v9\/projects\/[^/]+\/domains\//.test(url))return reply(200,{name:'x',verified:true});
   return reply(404,{error:{message:'not found '+TOKEN}})};
  return {fetch,calls,get polls(){return polls}}}
-async function call(method,body,{env={VERCEL_SITES_TOKEN:TOKEN},store=memStore(),vercel=fakeVercel(),user={uid:7,name:'Anna'},waitMs=60000}={}){
+async function call(method,body,{env={VERCEL_SITES_TOKEN:TOKEN,JWT_SECRET:SECRET},store=memStore(),vercel=fakeVercel(),user={uid:7,name:'Anna'},waitMs=60000}={}){
  const orig=auth.getSessionUser;auth.getSessionUser=()=>user;const r=res();
  try{await pub.handle({method,query:method==='GET'?body:{},body:method==='POST'?body:undefined,headers:{}},r,{env,store,fetch:vercel.fetch,sleep:async()=>{},pollMs:2000,waitMs})}finally{auth.getSessionUser=orig}
  assert.ok(!JSON.stringify(r.body).includes(TOKEN),'the token never reaches a response');
@@ -36,19 +37,21 @@ test('slug: [a-z0-9-], at most 40 characters, stable suffix from the project id'
 });
 
 test('payload shape and Vercel requests: production, one index.html, no framework, bearer token, team id when set',async()=>{
- const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{env:{VERCEL_SITES_TOKEN:TOKEN,VERCEL_SITES_TEAM_ID:'team_9',VERCEL_API_BASE:'http://127.0.0.1:9/'}});
+ const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{env:{VERCEL_SITES_TOKEN:TOKEN,VERCEL_SITES_TEAM_ID:'team_9',VERCEL_API_BASE:'http://127.0.0.1:9/'}});
  assert.equal(r.code,200,JSON.stringify(r.body));
  const [first]=r.vercel.calls,slug=pub.siteSlug('Studio Fisio Bergamo','fisio-ab12cd34');
  assert.equal(first.url,'http://127.0.0.1:9/v13/deployments?teamId=team_9');assert.equal(first.method,'POST');
- assert.deepEqual(first.body,{name:'radix-site-'+slug,project:'radix-site-'+slug,target:'production',files:[{file:'index.html',data:PAGE}],projectSettings:{framework:null}});
- assert.deepEqual(first.body,pub.deploymentPayload('radix-site-'+slug,PAGE));
+ const bundle=seo.siteBundle(PAGE,PAGES,{base:'https://radix-site-'+slug+'.vercel.app',date:first.body.files.find(f=>f.file==='sitemap.xml').data.match(/<lastmod>([\d-]+)</)[1]});
+ assert.deepEqual(first.body,{name:'radix-site-'+slug,project:'radix-site-'+slug,target:'production',files:[{file:'index.html',data:PAGE},{file:'privacy.html',data:PAGES['privacy.html']},{file:'cookie.html',data:PAGES['cookie.html']},
+  {file:'robots.txt',data:bundle.pages['robots.txt']},{file:'sitemap.xml',data:bundle.pages['sitemap.xml']},{file:'llms.txt',data:bundle.pages['llms.txt']}],projectSettings:{framework:null}});
+ assert.deepEqual(first.body,pub.deploymentPayload('radix-site-'+slug,bundle.html,bundle.pages));
  assert.equal(first.headers.Authorization,'Bearer '+TOKEN);
  for(const c of r.vercel.calls)assert.ok(!c.url.includes(TOKEN),'token never in a URL');
- const def=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE});assert.equal(def.vercel.calls[0].url,'https://api.vercel.com/v13/deployments');
+ const def=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES});assert.equal(def.vercel.calls[0].url,'https://api.vercel.com/v13/deployments');
 });
 
 test('publish polls until READY, returns the alias and saves the record in the agents document',async()=>{
- const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE});
+ const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES});
  assert.equal(r.code,200);assert.equal(r.body.state,'READY');assert.equal(r.body.url,'https://radix-site-studio-fisio.vercel.app');
  assert.equal(r.body.deploymentId,'dpl_1');assert.match(r.body.project,/^radix-site-studio-fisio-bergamo-[0-9a-f]{6}$/);assert.ok(Date.parse(r.body.publishedAt));
  assert.equal(r.vercel.polls,2);assert.deepEqual(r.vercel.calls.slice(1).map(c=>c.method),['GET','GET']);
@@ -58,26 +61,26 @@ test('publish polls until READY, returns the alias and saves the record in the a
  assert.deepEqual(pub.savedSite({conversations:d.conversations}),d.siteOnline,'found in the thread when siteOnline was dropped');
  // GET shows it next time; re-publish keeps the Vercel project and the thread grows once per new deployment
  const info=await call('GET',{projectId:'fisio-ab12cd34'},{store:r.store});assert.equal(info.code,200);assert.equal(info.body.configured,true);assert.equal(info.body.site.url,r.body.url);
- r.store.conflicts=1;const again=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{store:r.store});
+ r.store.conflicts=1;const again=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{store:r.store});
  assert.equal(again.code,200);assert.equal(again.vercel.calls[0].body.project,r.body.project);assert.equal(r.store.doc.data.conversations['web-developer'].length,2,'same deployment id: no second entry');
 });
 
 test('a slow build answers BUILDING and the status action finishes it',async()=>{
  const store=memStore(),vercel=fakeVercel({states:['QUEUED','BUILDING','BUILDING','BUILDING','READY']});
- const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{store,vercel,waitMs:4000});
+ const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{store,vercel,waitMs:4000});
  assert.equal(r.code,200);assert.equal(r.body.state,'BUILDING');assert.equal(vercel.polls,2,'stops at the wait limit');
  assert.equal(store.doc.data.siteOnline.state,'BUILDING');assert.equal(store.doc.data.conversations['web-developer'],undefined);
  let s=await call('POST',{action:'status',projectId:'fisio-ab12cd34',deploymentId:'dpl_1'},{store,vercel});assert.equal(s.body.state,'BUILDING');
  s=await call('POST',{action:'status',projectId:'fisio-ab12cd34',deploymentId:'dpl_1'},{store,vercel});assert.equal(s.body.state,'READY');
  assert.equal(s.body.url,'https://radix-site-studio-fisio.vercel.app');assert.equal(s.body.publishedAt,r.body.publishedAt);assert.equal(store.doc.data.conversations['web-developer'].length,2);
  const other=await call('POST',{action:'status',projectId:'fisio-ab12cd34',deploymentId:'dpl_other'},{store,vercel});assert.equal(other.code,404,'only this project’s deployment');
- const failed=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{vercel:fakeVercel({states:['BUILDING','ERROR']})});
+ const failed=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{vercel:fakeVercel({states:['BUILDING','ERROR']})});
  assert.equal(failed.code,502);assert.equal(failed.body.state,'ERROR');assert.match(failed.body.error,/non è riuscito/);
 });
 
 test('missing key: 503 with the message, for every action; GET still returns the saved site',async()=>{
  for(const env of [{},{VERCEL_SITES_TOKEN:'  '}]){
-  const vercel=fakeVercel(),r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{env,vercel});
+  const vercel=fakeVercel(),r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{env,vercel});
   assert.equal(r.code,503);assert.deepEqual(r.body,{error:'Pubblicazione non ancora attiva: manca la chiave Vercel dei siti.'});assert.equal(vercel.calls.length,0);
  }
  const store=memStore();store.doc.data.siteOnline={url:'https://a.vercel.app',deploymentId:'d',project:'radix-site-a',state:'READY'};
@@ -90,16 +93,16 @@ test('refuses yellow TODO markers, oversized pages, bad input; needs a session a
  const big=PAGE.replace('</body>','<p>'+'x'.repeat(pub.MAX_HTML)+'</p></body>');
  r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:big});assert.equal(r.code,413);assert.match(r.body.error,/2 MB/);assert.equal(r.vercel.calls.length,0);
  r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:''});assert.equal(r.code,400);
- r=await call('POST',{action:'publish',projectId:'../x',html:PAGE});assert.equal(r.code,400);
- r=await call('POST',{action:'publish',projectId:'altro-progetto',html:PAGE});assert.equal(r.code,404);
+ r=await call('POST',{action:'publish',projectId:'../x',html:PAGE,pages:PAGES});assert.equal(r.code,400);
+ r=await call('POST',{action:'publish',projectId:'altro-progetto',html:PAGE,pages:PAGES});assert.equal(r.code,404);
  r=await call('POST',{action:'boh',projectId:'fisio-ab12cd34'});assert.equal(r.code,400);
- r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{user:null});assert.equal(r.code,401);
+ r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{user:null});assert.equal(r.code,401);
  r=await call('PUT',{},{});assert.equal(r.code,405);
 });
 
 test('subdomain: adds <slug>.radixinnovationstudio.com and returns the CNAME record to set at Namecheap',async()=>{
  const store=memStore();let r=await call('POST',{action:'domain',projectId:'fisio-ab12cd34'},{store});assert.equal(r.code,409,'publish first');
- await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{store});
+ await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{store});
  const project=store.doc.data.siteOnline.project,slug=project.replace('radix-site-','');
  r=await call('POST',{action:'domain',projectId:'fisio-ab12cd34'},{store});
  assert.equal(r.code,200);assert.deepEqual(r.body,{domain:slug+'.radixinnovationstudio.com',verified:false,record:{type:'CNAME',name:slug,value:'cname.vercel-dns.com',zone:'radixinnovationstudio.com'}});
@@ -108,18 +111,36 @@ test('subdomain: adds <slug>.radixinnovationstudio.com and returns the CNAME rec
  r=await call('POST',{action:'domain',projectId:'fisio-ab12cd34'},{store,vercel:fakeVercel({domain:'conflict'})});
  assert.equal(r.code,200);assert.equal(r.body.verified,true,'already added: read back from Vercel');
  // the domain survives a re-publish
- await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{store});assert.equal(store.doc.data.siteOnline.domain.verified,true);
+ await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{store});assert.equal(store.doc.data.siteOnline.domain.verified,true);
 });
 
 test('provider errors never echo the token; routing, status list and studio wiring',async()=>{
  const vercel={calls:[],fetch:async()=>({ok:false,status:403,json:async()=>({error:{message:'bad token '+TOKEN}})})};
- const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{vercel});assert.equal(r.code,502);assert.match(r.body.error,/Vercel ha risposto 403: bad token \[chiave\]/);
+ const r=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{vercel});assert.equal(r.code,502);assert.match(r.body.error,/Vercel ha risposto 403: bad token \[chiave\]/);
  const down={calls:[],fetch:async()=>{throw Error('connect ECONNREFUSED '+TOKEN)}};
- const r2=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE},{vercel:down});assert.equal(r2.code,502);
+ const r2=await call('POST',{action:'publish',projectId:'fisio-ab12cd34',html:PAGE,pages:PAGES},{vercel:down});assert.equal(r2.code,502);
  const src=fs.readFileSync('api/_site_publish.js','utf8');assert.ok(!/console\./.test(src),'nothing logged');assert.match(src,/env\.VERCEL_API_BASE\|\|'https:\/\/api\.vercel\.com'/);
  assert.match(fs.readFileSync('api/integrations/[service].js','utf8'),/'site-publish': \(\) => require\('\.\.\/_site_publish'\)/);
  const status=require('../api/_integrations-status.js');const v=status.status({VERCEL_SITES_TOKEN:TOKEN}).find(s=>s.id==='vercel-sites');
  assert.equal(v.configured,true);assert.ok(!JSON.stringify(status.status({VERCEL_SITES_TOKEN:TOKEN})).includes(TOKEN));
  const ws=fs.readFileSync('lib/radix-workspace-client.js','utf8');assert.match(ws,/'\/api\/integrations\/site-publish'/);assert.match(ws,/sites,/);
- const ui=fs.readFileSync('lib/site-studio.js','utf8');assert.match(ui,/publishBox\(\(\)=>html\)/);assert.match(ui,/Usa il tuo dominio/);assert.match(ui,/cname\.vercel-dns\.com/);assert.match(ui,/Namecheap/);
+ const ui=fs.readFileSync('lib/site-studio.js','utf8');assert.match(ui,/publishBox\(\(\)=>\(\{html,pages\}\)\)/);assert.match(ui,/Usa il tuo dominio/);assert.match(ui,/cname\.vercel-dns\.com/);assert.match(ui,/Namecheap/);
+});
+
+test('funnel landing: its own Vercel project, the PDF pushed next to grazie.html, the record under funnels.online; bad input refused',async()=>{
+ const FS=require('../lib/funnel-studio.js'),{PROFILE}=require('./fixtures/mockup-forno-aurora.js'),siteForm=require('../api/_site_form.js');
+ const m=FS.newModel({profile:PROFILE,projectName:'Forno Aurora',today:new Date('2026-10-22T09:00:00Z')});const f=FS.buildFunnel(m.input,'guida',{brandName:'Forno Aurora'});
+ const token=siteForm.sign({uid:7,workspace:'11111111-1111-4111-8111-111111111111',site:'fisio-ab12cd34'},SECRET).token;
+ const legal={legalName:'Forno Aurora srl',vat:'01234567897',address:'Via Nizza 12, 10125 Torino',email:'ciao@fornoaurora.it'};
+ const s=FS.landingSite(f,FS.brandFor(PROFILE,'Forno Aurora'),{profile:PROFILE,endpoint:'https://radix.example/api/sales?site_form=1',token,legal,year:2026});
+ const pdf={base64:Buffer.from(FS.magnetPdf(f,FS.brandFor(PROFILE,'Forno Aurora'))).toString('base64')};
+ const body={action:'funnel',projectId:'fisio-ab12cd34',funnel:f.slug,html:s.html,pages:s.pages,pdf};
+ const r=await call('POST',body);assert.equal(r.code,200,JSON.stringify(r.body));assert.equal(r.body.state,'READY');assert.equal(r.body.funnel,f.slug);assert.equal(r.body.file,f.slug+'.pdf');
+ const dep=r.vercel.calls[0].body;assert.match(dep.project,/^radix-lp-le-10-torte-per-le-feste-[0-9a-f]{6}$/);assert.equal(dep.project,pub.funnelProject(f.slug,'fisio-ab12cd34'));
+ const file=dep.files.find(x=>x.file===f.slug+'.pdf');assert.equal(file.encoding,'base64');assert.equal(file.data,pdf.base64);assert.ok(dep.files.some(x=>x.file==='grazie.html'));
+ const d=r.store.doc.data;assert.equal(d.funnels.online[f.slug].deploymentId,'dpl_1');assert.equal(d.siteOnline,undefined,'the client site is untouched');assert.equal(d.other,1);
+ const st=await call('POST',{action:'funnelStatus',projectId:'fisio-ab12cd34',funnel:f.slug,deploymentId:'dpl_1'},{store:r.store});assert.equal(st.code,200);assert.equal(st.body.funnel,f.slug);
+ for(const [bad,code] of [[{funnel:'../x'},400],[{pdf:{base64:Buffer.from('hello').toString('base64')}},400],[{pdf:{}},400],[{funnel:'altro-nome'},422],[{pages:{...s.pages,'evil.html':'x'}},400],[{html:s.html.replace(/<form[\s\S]*<\/form>/,'')},422]]){
+  const x=await call('POST',{...body,...bad});assert.equal(x.code,code,JSON.stringify(bad).slice(0,60)+' '+JSON.stringify(x.body))}
+ assert.equal((await call('POST',{action:'funnelStatus',projectId:'fisio-ab12cd34',funnel:f.slug,deploymentId:'dpl_9'})).code,404);
 });

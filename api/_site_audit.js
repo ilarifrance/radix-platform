@@ -14,8 +14,14 @@
      vercel.app or altervista.org the whole subdomain);
    - robots.txt is read first and its Disallow rules for the RADIX user agent (or *) are respected;
    - at most 2 MB per response (also after decompression), 8 s per request, 4 requests at a time, 25 pages, 40 link
-     checks, and a total budget below the function limit. */
+     checks, and a total budget below the function limit.
+   Mode «concorrenza» (POST {action:'crawl',url,mode:'concorrenza'}, lib/competitor-studio.js): the same crawl, guards, limits
+   and robots.txt on a competitor's public site, plus the facts of lib/competitor-extract.js on every HTML page (offer,
+   prices, contacts, booking, shop, social, dates, claims). No link checks there: fewer requests to a site that is not
+   the client's. */
 const dns=require('dns'),net=require('net'),https=require('https'),zlib=require('zlib');
+const market=(()=>{try{return require('../lib/competitor-extract.js').extractMarket}catch(e){return null}})();
+const MODES=new Set(['concorrenza']);
 
 const LIMITS=Object.freeze({maxPages:25,maxBytes:2*1024*1024,smallBytes:256*1024,timeoutMs:8000,concurrency:4,budgetMs:40000,maxRedirects:5,linkChecks:40,sitemapUrls:2000,pagespeedMs:30000});
 const UA='Mozilla/5.0 (compatible; RADIX-SiteAudit/1.0; +https://radixinnovationstudio.com)';
@@ -275,13 +281,14 @@ async function pagespeed(url,{env,fetchFn,timeoutMs}){const key=String(env.PAGES
 
 // ---- the crawl ----
 // deps: {lookup(host)→[{address,family}], request(url,opts)→response, now()→ms, env, fetch (PageSpeed only), limits}
-async function crawl(input,deps={}){const now=deps.now||Date.now,L={...LIMITS,...(deps.limits||{})},t0=now();
+// deps.mode 'concorrenza': the facts of lib/competitor-extract.js on every page, no link checks.
+async function crawl(input,deps={}){const now=deps.now||Date.now,mode=MODES.has(deps.mode)?deps.mode:'',L={...LIMITS,...(deps.limits||{}),...(mode?{linkChecks:0}:{})},t0=now();
  const start=startUrl(input);
  const state={limits:L,site:registrable(start.hostname),robots:null,deadline:t0+L.budgetMs,budgetHit:false,requests:0};
  const get=guardedFetcher(deps,state),env=deps.env||{};
  const psi=pagespeed(start.href,{env,fetchFn:deps.fetch||globalThis.fetch,timeoutMs:Math.min(L.pagespeedMs,L.budgetMs)});
  const out={url:start.href,finalUrl:null,host:start.hostname,site:state.site,startedAt:new Date(t0).toISOString(),limits:{maxPages:L.maxPages,maxBytes:L.maxBytes,timeoutMs:L.timeoutMs,concurrency:L.concurrency,budgetMs:L.budgetMs,linkChecks:L.linkChecks},
-  robots:null,sitemap:null,llms:null,pages:[],brokenLinks:[],skipped:{robots:[],budget:0,limit:0,notHtml:0},notes:[]};
+  robots:null,sitemap:null,llms:null,pages:[],brokenLinks:[],skipped:{robots:[],budget:0,limit:0,notHtml:0},notes:[],...(mode?{mode}:{})};
  // robots.txt of an origin → state.robots (also the AI crawlers it blocks)
  async function readRobots(origin){const r=await get(origin+'/robots.txt',{maxBytes:L.smallBytes,robots:false});
   const found=r.status>=200&&r.status<300,parsed=found?parseRobots(bodyText(r)):{groups:[],sitemaps:[]};
@@ -316,7 +323,7 @@ async function crawl(input,deps={}){const now=deps.now||Date.now,L={...LIMITS,..
  const record=(r,depth)=>{const base={hsts:!!(r.headers&&r.headers['strict-transport-security']),url:r.url,requested:r.requested,status:r.status,redirects:r.chain||[],ms:r.ms||0,bytes:r.body?r.body.length:0,transferBytes:r.transferBytes||0,truncated:!!r.truncated,depth,contentType:String(r.headers&&r.headers['content-type']||'').slice(0,80),error:r.error||null};
   seen.add(normalizeUrl(new URL(r.url)));
   const xrt=String(r.headers&&r.headers['x-robots-tag']||'').toLowerCase();
-  if(r.status>=200&&r.status<300&&r.body&&isHtml(r)){const x=extractPage(bodyText(r),r.url);if(xrt){x.robots=[x.robots,xrt].filter(Boolean).join(', ');x.noindex=x.noindex||/\bnoindex\b|\bnone\b/.test(xrt);x.nosnippet=x.nosnippet||/\bnosnippet\b|max-snippet\s*:\s*0\b/.test(xrt)}x.links.internal.forEach(h=>enqueue(h,depth+1,r.url));const {links,...rest}=x;return {...base,...rest,links:{internalCount:links.internalCount,externalCount:links.externalCount,externalHosts:links.externalHosts,nofollow:links.nofollow,internal:links.internal.slice(0,200)}}}
+  if(r.status>=200&&r.status<300&&r.body&&isHtml(r)){const html=bodyText(r),x=extractPage(html,r.url);if(mode==='concorrenza'&&market){try{x.market=market(html,r.url)}catch(e){x.market=null}}if(xrt){x.robots=[x.robots,xrt].filter(Boolean).join(', ');x.noindex=x.noindex||/\bnoindex\b|\bnone\b/.test(xrt);x.nosnippet=x.nosnippet||/\bnosnippet\b|max-snippet\s*:\s*0\b/.test(xrt)}x.links.internal.forEach(h=>enqueue(h,depth+1,r.url));const {links,...rest}=x;return {...base,...rest,links:{internalCount:links.internalCount,externalCount:links.externalCount,externalHosts:links.externalHosts,nofollow:links.nofollow,internal:links.internal.slice(0,200)}}}
   if(r.status>=200&&r.status<300)out.skipped.notHtml++;
   return base};
  if(home.status){seen.add(normalizeUrl(new URL(home.url)));seen.add(normalizeUrl(start));pages.push(record({...home,requested:start.href},0))}
@@ -366,7 +373,7 @@ async function handle(req,res,deps){
  try{const input=bodyOf(req);if(String(input.action||'crawl')!=='crawl')throw new AuditError(400,'Azione non valida');
   if(running.has(uid))throw new AuditError(429,'C’è già un’analisi in corso: attendi che finisca.');
   running.add(uid);
-  try{const data=await crawl(input.url,{...deps,env});return res.status(200).json(data)}finally{running.delete(uid)}}
+  try{const data=await crawl(input.url,{...deps,env,mode:MODES.has(input.mode)?input.mode:''});return res.status(200).json(data)}finally{running.delete(uid)}}
  catch(e){
   if(e instanceof SyntaxError)return res.status(400).json({error:'JSON non valido'});
   if(e instanceof AuditError)return res.status(e.status).json({error:e.message,code:e.code});

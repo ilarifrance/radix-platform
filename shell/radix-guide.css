@@ -1,7 +1,10 @@
 /* Guida RADIX (lib/radix-guide.js): «?» button and the guide panel, on every page with the shell. */
-button.rx-guide-fab{position:fixed;right:22px;bottom:22px;z-index:900;width:48px;height:48px;min-height:0;padding:0;border-radius:50%!important;border:1px solid var(--rx-border-strong,#2b3550);background:var(--rx-accent,#7c5cff)!important;color:#fff;font:700 22px/1 var(--rx-font,system-ui,sans-serif);cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+button.rx-guide-fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:900;width:40px;height:40px;min-height:0;padding:0;border-radius:50%!important;border:1px solid var(--rx-border-strong,#2b3550);background:var(--rx-accent,#7c5cff)!important;color:#fff;font:700 18px/1 var(--rx-font,system-ui,sans-serif);cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+/* Docked in the sticky top bar (lib/radix-guide.js dockBar): part of the bar, never over the page, at every width. */
+.rx-topbar button.rx-guide-fab--top,.rx-pagetop button.rx-guide-fab--top{position:static;flex:0 0 auto;width:auto;height:36px;min-height:0;aspect-ratio:1/1;margin:0;font-size:17px;box-shadow:none}
+.rx-guide--top{top:calc(var(--rx-topbar,60px) + 8px);bottom:auto;right:max(12px,env(safe-area-inset-right));max-height:min(560px,calc(100vh - var(--rx-topbar,60px) - 24px))}
 .rx-guide-fab:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.rx-guide{position:fixed;right:22px;bottom:82px;z-index:900;width:min(380px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;border:1px solid var(--rx-border-strong,#2b3550);border-radius:16px;background:var(--rx-surface,#0d1220);color:var(--rx-text,#eef3f8);font:14px/1.45 var(--rx-font,system-ui,sans-serif);box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.rx-guide{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:68px;z-index:900;width:min(380px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 100px));display:flex;flex-direction:column;border:1px solid var(--rx-border-strong,#2b3550);border-radius:16px;background:var(--rx-surface,#0d1220);color:var(--rx-text,#eef3f8);font:14px/1.45 var(--rx-font,system-ui,sans-serif);box-shadow:0 20px 50px rgba(0,0,0,.45)}
 .rx-guide[hidden]{display:none}
 .rx-guide>header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--rx-border,#222b42)}
 .rx-guide-x{background:transparent;border:0;color:var(--rx-muted,#8fa3b8);font-size:16px;cursor:pointer;padding:2px 6px}

@@ -138,5 +138,5 @@ test('«Da completare»: markers listed once, filled with escaped values, the re
  assert.deepEqual(s.todoMarkers(part).map(x=>x.key),['[da completare: città]','[da completare: telefono, e-mail e orari]']);assert.equal(s.hasTodo(part),true);
  assert.ok(part.includes('<p>'));assert.equal(s.fillTodos(html,{}),html);
  const src=fs.readFileSync(path.join(__dirname,'..','lib/site-studio.js'),'utf8');
- assert.match(src,/html=next;big\.srcdoc=html;todoForm\(\);pub\.refresh\(\)/);assert.match(src,/sites\.publish\(ctx\.projectId,current\(\)\)/);assert.match(src,/todo=hasTodo\(current\(\)\)/);
+ assert.match(src,/html=next;pages=nextPages;[\s\S]{0,400}?asked\.structured=Seo\.withFilled\(asked\.structured,values\)[\s\S]{0,200}?refresh\(\)/);assert.match(src,/const refresh=\(\)=>\{big\.srcdoc=pageHtml\(showing\);todoForm\(\);pub\.refresh\(\)/);assert.match(src,/sites\.publish\(ctx\.projectId,c\.html,c\.pages\)/);assert.match(src,/todo=blocked\(\)/);
 });

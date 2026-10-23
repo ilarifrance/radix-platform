@@ -12,7 +12,7 @@ test('no unicode symbols as icons in the studio buttons',()=>{
 test('shell/crea.css: shared primitives for cards, results, loading, fields and switches',()=>{
  const css=read('shell/crea.css'),block=css.slice(css.indexOf('Shared studio primitives'));
  assert.ok(block.length>1000,'primitives block');
- assert.match(block,/html\.rx-shell body\.cr-page\{--line:rgba\(150,165,230,\.14\)\}/,'hairline beats shell/agency.css');
+ assert.match(block,/html\.rx-shell body\.cr-page\{--line:var\(--ma-line\)\}/,'hairline beats shell/agency.css');
  assert.match(block,/\.cs-grid:empty/,'loading placeholders');assert.match(block,/::file-selector-button/);assert.match(block,/\.ps-switch input:checked/);
  assert.match(block,/prefers-reduced-motion/);
  // old palette no longer written by hand for the older studios

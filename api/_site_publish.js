@@ -5,14 +5,31 @@
    (tests and the local harness point it to a fake). The token is only sent as a header to Vercel: never logged, never
    returned, and stripped from any provider message passed on.
    GET  ?projectId=…                                   → {configured, site}  (site: the saved record or null; 503 without key)
-   POST {action:'publish',projectId,html}              → {url,deploymentId,project,state,publishedAt}  (waits up to ~45s, then state BUILDING)
+   POST {action:'publish',projectId,html,pages}        → {url,deploymentId,project,state,publishedAt}  (waits up to ~45s, then state BUILDING)
+        pages: the legal pages of lib/site-legal.js ({'privacy.html','cookie.html'} always, 'grazie.html' with the contact
+        form, 'menu.html' with the project's menu: lib/menu-studio.js). Every page is refused with a «[da completare: …]» marker (company data included); a page with the contact
+        form needs a valid form token of this same project (api/_site_form.js), so a form never goes online unlinked.
+        'logo.svg' (the Kit identità logo the JSON-LD points to) is accepted only when it is a plain SVG without scripts.
+        The server then builds the bundle with lib/site-seo.js: the JSON-LD addresses become absolute for the site's
+        address (siteBase: the verified RADIX subdomain, else the address Vercel gave the last time, else the expected
+        production address https://<project>.vercel.app) and robots.txt, sitemap.xml and llms.txt are added. The client
+        never sends those three files: they are always generated here.
    POST {action:'status',projectId,deploymentId}       → same shape, read again from Vercel
    POST {action:'domain',projectId}                    → {domain,verified,record:{type,name,value,zone}}  (<slug>.radixinnovationstudio.com)
+   POST {action:'funnel',projectId,funnel,html,pages,pdf} → the landing of a lead magnet funnel (lib/funnel-studio.js) on its
+        own Vercel project (radix-lp-<funnel>-<6 hex>), so the client's site stays as it is: index.html is the landing with
+        the form (a valid form token of this project is required, as for the site), pages are privacy.html, cookie.html,
+        grazie.html (the thank-you page with the download) and logo.svg, pdf is {base64} of the lead magnet, published as
+        <funnel>.pdf (at most 3 MB, it must be a PDF and grazie.html must link to it). Same answer as publish; the record is
+        saved in the agents document under funnels.online[<funnel>] (the funnels key of the studio).
+   POST {action:'funnelStatus',projectId,funnel,deploymentId} → the same record, read again from Vercel
    The record is saved in the project's «agents» document (where the studio saves the site): top-level siteOnline plus,
    once online, an exchange in the Web Developer's thread so the team sees it there too. */
 const crypto=require('crypto');
 const core=require('./_registry-core');
 const studio=require('../lib/site-studio.js');
+const seo=require('../lib/site-seo.js');
+const siteForm=require('./_site_form');
 
 const MISSING='Pubblicazione non ancora attiva: manca la chiave Vercel dei siti.';
 const MAX_HTML=2*1024*1024,ZONE='radixinnovationstudio.com',CNAME='cname.vercel-dns.com',AGENT='web-developer',MAX_KEPT=60;
@@ -29,13 +46,41 @@ const projectName=slug=>'radix-site-'+slug;
 const slugOf=project=>String(project||'').replace(/^radix-site-/,'');
 const subdomain=slug=>slug+'.'+ZONE;
 const dnsRecord=slug=>({type:'CNAME',name:slug,value:CNAME,zone:ZONE});
-function deploymentPayload(project,html){return {name:project,project,target:'production',files:[{file:'index.html',data:html}],projectSettings:{framework:null}}}
+// menu.html: the phone page of the project's menu (lib/menu-studio.js htmlPage), optional, one self-contained file.
+// stampa.html: the press area of the project's media kit (lib/media-kit-studio.js sitePage), optional, no script.
+const PAGE_NAMES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg','menu.html','stampa.html']);
+// Generated here (lib/site-seo.js siteBundle), never accepted from the client.
+const GENERATED=Object.freeze(['robots.txt','sitemap.xml','llms.txt']);
+function deploymentPayload(project,html,pages){const files=[{file:'index.html',data:html}];
+ for(const name of PAGE_NAMES.concat(GENERATED))if(pages&&typeof pages[name]==='string')files.push({file:name,data:pages[name]});
+ return {name:project,project,target:'production',files,projectSettings:{framework:null}}}
 // The page refuses the yellow «[da completare: …]» markers: they would go online as they are.
-function checkHtml(html){
- if(typeof html!=='string'||!/<html[\s>]/i.test(html))throw new HttpError(400,'Pagina del sito mancante o non valida.');
+function checkHtml(html,what){
+ if(typeof html!=='string'||!/<html[\s>]/i.test(html))throw new HttpError(400,(what||'Pagina del sito')+' mancante o non valida.');
  if(Buffer.byteLength(html,'utf8')>MAX_HTML)throw new HttpError(413,'Il sito è troppo grande per la pubblicazione (massimo 2 MB).');
  if(studio.hasTodo(html)||/\[da completare:/.test(html))throw new HttpError(422,'Il sito ha ancora testi evidenziati in giallo «[da completare: …]»: completali prima di metterlo online.');
  return html}
+/* The whole site: index.html plus the legal pages. Privacy and cookie pages are required; the thank-you page and a valid
+   form token (signed for this project) are required when the page has the contact form. */
+function checkSite(html,pages,{projectId,secret,now}={}){checkHtml(html);
+ if(pages!=null&&(typeof pages!=='object'||Array.isArray(pages)||Object.keys(pages).some(k=>!PAGE_NAMES.includes(k))))throw new HttpError(400,'Pagine del sito non valide.');
+ const p=pages||{},form=siteForm.hasForm(html);
+ if(typeof p['privacy.html']!=='string'||typeof p['cookie.html']!=='string')throw new HttpError(422,'Mancano l’informativa privacy e la cookie policy del sito: rigenera il sito dallo studio.');
+ checkHtml(p['privacy.html'],'Informativa privacy');checkHtml(p['cookie.html'],'Cookie policy');
+ if(form){if(typeof p['grazie.html']!=='string')throw new HttpError(422,'Manca la pagina di ringraziamento del modulo contatti.');checkHtml(p['grazie.html'],'Pagina di ringraziamento');
+  let claims=null;try{claims=siteForm.verify(siteForm.tokenIn(html),secret,now)}catch(e){claims=null}
+  if(!claims||claims.site!==projectId)throw new HttpError(422,'Il modulo contatti non è collegato al CRM di questo progetto: collegalo nello studio prima di metterlo online.')}
+ if(p['logo.svg']!=null&&!seo.safeLogo(p['logo.svg']))throw new HttpError(422,'Il logo del sito non è un SVG semplice: rigenera il sito dallo studio.');
+ if(p['menu.html']!=null){checkHtml(p['menu.html'],'Pagina del menu');if(/<script[^>]*\bsrc\s*=|<link\b|<iframe\b|@import/i.test(p['menu.html']))throw new HttpError(422,'La pagina del menu carica file esterni: rigenerala dallo studio «Menu e listino».')}
+ if(p['stampa.html']!=null){checkHtml(p['stampa.html'],'Area stampa');if(/<script\b|<link\b|<iframe\b|@import|\son\w+\s*=/i.test(p['stampa.html']))throw new HttpError(422,'L’area stampa contiene script o file esterni: rigenerala dallo studio «Media kit e cartella stampa».')}
+ const total=[html,...Object.values(p)].reduce((n,x)=>n+Buffer.byteLength(String(x),'utf8'),0);
+ if(total>2*MAX_HTML)throw new HttpError(413,'Il sito è troppo grande per la pubblicazione (massimo 4 MB in tutto).');
+ return {html,pages:Object.fromEntries(PAGE_NAMES.filter(k=>typeof p[k]==='string').map(k=>[k,p[k]]))}}
+// The address the published site answers on, for the absolute JSON-LD, robots.txt, sitemap.xml and llms.txt.
+function siteBase(saved,project){const d=saved&&saved.domain;
+ if(d&&d.verified&&d.name)return seo.baseUrl('https://'+d.name);
+ const u=saved&&/^https:\/\/[^\s"'<>]+$/.test(String(saved.url||''))?seo.baseUrl(saved.url):'';
+ return u||seo.baseUrl('https://'+project+'.vercel.app')}
 const stateOf=s=>{s=String(s||'').toUpperCase();return DONE.includes(s)?s:'BUILDING'};
 function view(d,project,at){const alias=Array.isArray(d&&d.alias)&&d.alias.find(a=>typeof a==='string'&&a);
  const host=alias||(d&&d.url)||'';return {url:host?'https://'+String(host).replace(/^https?:\/\//,''):'',deploymentId:String(d&&d.id||''),project,state:stateOf(d&&(d.readyState||d.status)),publishedAt:at}}
@@ -83,6 +128,27 @@ function sqlStore(db,uid){return {
 const bodyOf=req=>typeof req.body==='string'?JSON.parse(req.body||'{}'):req.body||{};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
+// ---- the landing of a funnel (lib/funnel-studio.js) ----
+const FUNNEL=/^[a-z0-9][a-z0-9-]{1,39}$/,FUNNEL_PAGES=Object.freeze(['privacy.html','cookie.html','grazie.html','logo.svg']),MAX_PDF=3*1024*1024;
+const funnelProject=(funnel,projectId)=>'radix-lp-'+siteSlug(funnel,projectId+':'+funnel);
+// The site checks (privacy, cookie, thank-you page, form linked to this project), the funnel name and the PDF.
+function checkFunnel(input,{projectId,secret,now}={}){const funnel=String(input&&input.funnel||'');
+ if(!FUNNEL.test(funnel))throw new HttpError(400,'Funnel non valido.');
+ const pages=input.pages;if(pages!=null&&(typeof pages!=='object'||Array.isArray(pages)||Object.keys(pages).some(k=>!FUNNEL_PAGES.includes(k))))throw new HttpError(400,'Pagine della landing non valide.');
+ if(!siteForm.hasForm(input.html))throw new HttpError(422,'La landing non ha il modulo: rigenerala dallo studio Funnel.');
+ const site=checkSite(input.html,pages,{projectId,secret,now});
+ const b64=String(input.pdf&&input.pdf.base64||'');if(!b64||b64.length>Math.ceil(MAX_PDF/3)*4||!/^[A-Za-z0-9+/]+={0,2}$/.test(b64))throw new HttpError(b64.length>Math.ceil(MAX_PDF/3)*4?413:400,'Il PDF del lead magnet manca o è troppo grande (massimo 3 MB).');
+ if(!Buffer.from(b64.slice(0,12),'base64').toString('latin1').startsWith('%PDF-'))throw new HttpError(400,'Il file del lead magnet non è un PDF.');
+ const file=funnel+'.pdf';if(!new RegExp('href="'+file.replace(/[.-]/g,'\\$&')+'"').test(site.pages['grazie.html']))throw new HttpError(422,'La pagina di ringraziamento non porta al PDF: rigenerala dallo studio Funnel.');
+ return {funnel,file,base64:b64,html:site.html,pages:site.pages}}
+function savedFunnel(data,funnel){const o=data&&data.funnels&&data.funnels.online;return o&&typeof o==='object'&&o[funnel]&&o[funnel].deploymentId?o[funnel]:null}
+// Merges the record into funnels.online of the agents document (the studio keeps its items next to it).
+async function rememberFunnel(store,projectId,funnel,site){
+ for(let i=0;i<3;i++){const cur=await store.load(projectId),data={schemaVersion:1,conversations:{},...(cur.data||{})},f=data.funnels&&typeof data.funnels==='object'?data.funnels:{schemaVersion:1,items:[]};
+  data.funnels={...f,online:{...(f.online&&typeof f.online==='object'?f.online:{}),[funnel]:site}};
+  if(await store.save(projectId,data,cur.revision))return site}
+ throw new HttpError(409,'Il progetto è stato modificato nello stesso momento: riprova.')}
+
 async function handle(req,res,deps){
  res.setHeader('Cache-Control','no-store');
  const user=require('./_auth').getSessionUser(req);
@@ -98,13 +164,30 @@ async function handle(req,res,deps){
   if(action==='info')return res.status(configured?200:503).json(configured?{configured,site:saved}:{configured,error:MISSING,site:saved});
   if(!configured)return res.status(503).json({error:MISSING});
   const api=vercel(env,deps.fetch||globalThis.fetch),by=user.name||user.email||'';
-  if(action==='publish'){const html=checkHtml(input.html);
+  if(action==='publish'){const {html,pages}=checkSite(input.html,input.pages,{projectId,secret:env.JWT_SECRET,now:(deps.now?deps.now():new Date()).getTime()});
    const project=saved&&saved.project||projectName(siteSlug(proj.name,projectId)),at=(deps.now?deps.now():new Date()).toISOString();
-   let d=await api('POST','/v13/deployments',deploymentPayload(project,html));
+   const bundle=seo.siteBundle(html,pages,{base:siteBase(saved,project),date:at.slice(0,10)});
+   let d=await api('POST','/v13/deployments',deploymentPayload(project,bundle.html,bundle.pages));
    const wait=deps.waitMs==null?WAIT_MS:deps.waitMs,every=deps.pollMs==null?POLL_MS:deps.pollMs,pause=deps.sleep||sleep;
    for(let t=0;!DONE.includes(stateOf(d.readyState||d.status))&&t<wait;t+=every){await pause(every);d={...d,...await api('GET','/v13/deployments/'+encodeURIComponent(d.id))}}
    const site=await remember(store,projectId,view(d,project,at),{by});
    if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online il sito ('+site.state+'). Riprova tra qualche minuto.'});
+   return res.status(200).json(site)}
+  if(action==='funnel'){const f=checkFunnel(input,{projectId,secret:env.JWT_SECRET,now:(deps.now?deps.now():new Date()).getTime()});
+   const data=(await store.load(projectId)).data,prev=savedFunnel(data,f.funnel),project=prev&&prev.project||funnelProject(f.funnel,projectId),at=(deps.now?deps.now():new Date()).toISOString();
+   const bundle=seo.siteBundle(f.html,f.pages,{base:siteBase(prev,project),date:at.slice(0,10)}),payload=deploymentPayload(project,bundle.html,bundle.pages);
+   payload.files.push({file:f.file,data:f.base64,encoding:'base64'});
+   let d=await api('POST','/v13/deployments',payload);
+   const wait=deps.waitMs==null?WAIT_MS:deps.waitMs,every=deps.pollMs==null?POLL_MS:deps.pollMs,pause=deps.sleep||sleep;
+   for(let t=0;!DONE.includes(stateOf(d.readyState||d.status))&&t<wait;t+=every){await pause(every);d={...d,...await api('GET','/v13/deployments/'+encodeURIComponent(d.id))}}
+   const site=await rememberFunnel(store,projectId,f.funnel,{...view(d,project,at),funnel:f.funnel,file:f.file});
+   if(site.state!=='READY'&&site.state!=='BUILDING')return res.status(502).json({...site,error:'Vercel non è riuscito a mettere online la landing ('+site.state+'). Riprova tra qualche minuto.'});
+   return res.status(200).json(site)}
+  if(action==='funnelStatus'){const funnel=String(input.funnel||''),id=String(input.deploymentId||'');if(!FUNNEL.test(funnel))throw new HttpError(400,'Funnel non valido.');
+   const prev=savedFunnel((await store.load(projectId)).data,funnel);
+   if(!prev||!id||prev.deploymentId!==id)throw new HttpError(404,'Pubblicazione della landing non trovata in questo progetto.');
+   const d=await api('GET','/v13/deployments/'+encodeURIComponent(id));
+   const site=await rememberFunnel(store,projectId,funnel,{...view({...d,id},prev.project,prev.publishedAt),funnel,file:prev.file});
    return res.status(200).json(site)}
   if(action==='status'){const id=String(input.deploymentId||'');
    if(!saved||!id||saved.deploymentId!==id)throw new HttpError(404,'Pubblicazione non trovata in questo progetto.');
@@ -127,4 +210,4 @@ async function handle(req,res,deps){
 }
 
 module.exports=(req,res)=>handle(req,res,{db:()=>require('./_db').sql()});
-Object.assign(module.exports,{handle,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,savedSite,view,MISSING,MAX_HTML,ZONE});
+Object.assign(module.exports,{checkFunnel,funnelProject,savedFunnel,FUNNEL_PAGES,handle,siteBase,GENERATED,siteSlug,projectName,subdomain,dnsRecord,deploymentPayload,checkHtml,checkSite,PAGE_NAMES,savedSite,view,MISSING,MAX_HTML,ZONE});
