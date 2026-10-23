@@ -2361,3 +2361,100 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .competitor-studio li[data-kind=forza] .cc-kind{background:rgba(0,148,94,.119);color:var(--ma-ok)}
 @media (max-width:1100px){.cr-panel .competitor-studio .cc-angles{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:640px){.cr-panel .competitor-studio .cc-matrix{min-width:560px;font-size:12px}.cr-panel .competitor-studio .cc-matrix tbody th{width:110px}.cr-panel .competitor-studio .cc-matrix td{min-width:130px}.cr-panel .competitor-studio .cc-more{min-height:44px;width:100%}}
+/* Studio «Fotoritocco» (lib/retouch-studio.js): the Schede/Foto prodotto pieces (pf-*, fp-*) plus the analysed photo
+   list, the 3 looks as photo strips, the before/after view with its split line, the crop frame, the slider groups and
+   the per-photo checks. Light --ma-* tokens; one column under 760 px. */
+.cr-panel .retouch-studio{display:flex;flex-direction:column;gap:16px}
+.cr-panel .retouch-studio [hidden]{display:none!important}
+.cr-panel .retouch-studio .rt-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:10px}
+.cr-panel .retouch-studio .rt-list:empty{display:none}
+.cr-panel .retouch-studio .rt-photo{position:relative;display:grid;grid-template-columns:96px minmax(0,1fr);gap:12px;align-items:start;padding:10px;border:1px solid var(--ma-line);border-radius:14px;background:#fff}
+.cr-panel .retouch-studio .rt-thumb{display:block;width:96px;height:96px;object-fit:cover;border-radius:8px;background:var(--ma-panel-2)}
+.cr-panel .retouch-studio .rt-photo-info{display:flex;flex-direction:column;gap:4px;min-width:0;padding-right:18px}
+.cr-panel .retouch-studio .rt-photo-name{font:600 13.5px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ma-tx);overflow-wrap:anywhere}
+.cr-panel .retouch-studio .rt-photo-meta{font-size:12px;line-height:1.4;color:var(--ma-mut)}
+.cr-panel .retouch-studio .rt-badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.cr-panel .retouch-studio .rt-badge{padding:1px 8px;border-radius:999px;font-size:11.5px;line-height:1.6;background:color-mix(in srgb,var(--ma-warn) 15%,#fff);color:color-mix(in srgb,var(--ma-warn) 62%,#000)}
+.cr-panel .retouch-studio .rt-badge[data-level=info]{background:color-mix(in srgb,var(--ma-ok) 13%,#fff);color:var(--ma-ok)}
+.cr-panel .retouch-studio .fp-thumb-x.rt-x{top:6px;right:6px;width:26px;height:26px}
+.cr-panel .retouch-studio .rt-props{display:flex;flex-direction:column;gap:12px}
+.cr-panel .retouch-studio .rt-props-head h4{margin:0;font-size:16px;color:var(--ma-tx)}
+.cr-panel .retouch-studio .rt-prop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.cr-panel .retouch-studio .ad-dir.rt-prop{display:flex;flex-direction:column}
+.cr-panel .retouch-studio .rt-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.cr-panel .retouch-studio .rt-strip[data-n="1"]{grid-template-columns:minmax(0,1fr)}
+.cr-panel .retouch-studio .rt-strip-img{display:block;width:100%;aspect-ratio:4/3;height:auto;object-fit:cover;border-radius:8px;box-shadow:0 0 0 1px var(--ma-line)}
+.cr-panel .retouch-studio .rt-strip[data-n="1"] .rt-strip-img{aspect-ratio:auto}
+.cr-panel .retouch-studio .rt-why{margin:0;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
+.cr-panel .retouch-studio .rt-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:20px;align-items:start}
+.cr-panel .retouch-studio .rt-view,.cr-panel .retouch-studio .rt-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+.cr-panel .retouch-studio .rt-picks{display:flex;flex-wrap:wrap;gap:6px}
+.cr-panel .retouch-studio .rt-pick{min-width:36px;height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx2);font:600 12.5px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .retouch-studio .rt-pick[aria-pressed=true]{border-color:var(--a-sel);background:var(--a-sel-bg);color:var(--ma-link)}
+.cr-panel .retouch-studio .rt-ba{position:relative;align-self:flex-start;max-width:100%;line-height:0;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--ma-line);background:var(--ma-panel-2)}
+.cr-panel .retouch-studio .rt-ba canvas{display:block;max-width:100%;max-height:640px;width:auto;height:auto}
+.cr-panel .retouch-studio .rt-before{position:absolute;inset:0;width:100%!important;height:100%!important;max-height:none!important}
+.cr-panel .retouch-studio .rt-line{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(29,26,39,.35);pointer-events:none}
+.cr-panel .retouch-studio .rt-line::after{content:'';position:absolute;top:50%;left:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:#fff;box-shadow:0 1px 6px rgba(29,26,39,.35)}
+.cr-panel .retouch-studio .rt-tag{position:absolute;top:10px;padding:2px 9px;border-radius:999px;background:rgba(20,16,30,.62);color:#fff;font:600 11.5px/1.6 var(--rx-font,Inter,sans-serif);pointer-events:none}
+.cr-panel .retouch-studio .rt-tag-before{left:10px}.cr-panel .retouch-studio .rt-tag-after{right:10px}
+.cr-panel .retouch-studio .rt-split{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize}
+.cr-panel .retouch-studio .rt-ba:has(.rt-split:focus-visible){outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .retouch-studio .rt-what{margin:0;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
+.cr-panel .retouch-studio .rt-choice{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;border:0}
+.cr-panel .retouch-studio .rt-choice legend{padding:0 0 6px;font:600 11.5px/1.3 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--ma-mut)}
+.cr-panel .retouch-studio .rt-choice .ps-chip:has(input:disabled){opacity:.55;cursor:not-allowed}
+.cr-panel .retouch-studio .rt-swatch{display:inline-block;width:14px;height:14px;margin-left:6px;border-radius:50%;box-shadow:0 0 0 1px var(--ma-line-2)}
+.cr-panel .retouch-studio .rt-frame{display:flex;flex-direction:column;gap:8px}
+.cr-panel .retouch-studio .rt-frame h5{margin:0;font:600 11.5px/1.3 var(--rx-font,Inter,sans-serif);letter-spacing:.08em;text-transform:uppercase;color:var(--ma-mut)}
+.cr-panel .retouch-studio .rt-frame-view{display:block;width:100%;max-width:320px;height:auto;border-radius:10px;cursor:crosshair;box-shadow:0 0 0 1px var(--ma-line)}
+.cr-panel .retouch-studio .rt-mini-row{display:flex;flex-wrap:wrap;gap:8px}
+.cr-panel .retouch-studio .rt-mini{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:600 12px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .retouch-studio .rt-mini:focus-visible,.cr-panel .retouch-studio .rt-pick:focus-visible,.cr-panel .retouch-studio .rt-frame-view:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .retouch-studio .rt-sliders{display:flex;flex-direction:column;gap:12px}
+.cr-panel .retouch-studio .rt-group{display:flex;flex-direction:column;gap:8px;margin:0;padding:12px;border:1px solid var(--ma-line);border-radius:12px;background:#fff}
+.cr-panel .retouch-studio .rt-group legend{padding:0 4px;font:600 12.5px var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
+.cr-panel .retouch-studio .rt-own{background:var(--ma-panel)}
+.cr-panel .retouch-studio label.rt-slider{display:flex;flex-direction:column;align-items:stretch;gap:2px;width:100%;max-width:none;font-size:13px}
+.cr-panel .retouch-studio label.rt-slider input[type=range]{width:100%}
+.cr-panel .retouch-studio .rt-checks{display:flex;flex-direction:column;gap:8px}
+.cr-panel .retouch-studio .rt-checks h5,.cr-panel .retouch-studio .rt-out h5{margin:0;font-size:14px;color:var(--ma-tx)}
+.cr-panel .retouch-studio .rt-sum{margin:0;font-size:13px;color:var(--ma-tx2)}
+.cr-panel .retouch-studio .rt-check-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:8px}
+.cr-panel .retouch-studio .rt-check-row{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--ma-line);border-left-width:3px;border-radius:12px;background:#fff;min-width:0}
+.cr-panel .retouch-studio .rt-check-row[data-level=ok]{border-left-color:var(--ma-ok)}
+.cr-panel .retouch-studio .rt-check-row[data-level=warn]{border-left-color:var(--ma-warn)}
+.cr-panel .retouch-studio .rt-check-row[data-level=fail]{border-left-color:var(--ma-err)}
+.cr-panel .retouch-studio .rt-check-row>strong{font-size:13.5px;color:var(--ma-tx);overflow-wrap:anywhere}
+.cr-panel .retouch-studio .rt-check-row>small{font-size:12px;color:var(--ma-mut)}
+.cr-panel .retouch-studio .rt-check-row>.rt-mini{align-self:flex-start}
+.cr-panel .retouch-studio .rt-opts{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end}
+.cr-panel .retouch-studio label.rt-slider.rt-quality{width:min(100%,260px)}
+.cr-panel .retouch-studio .rt-name{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ma-tx2)}
+.cr-panel .retouch-studio .rt-name input{height:40px;padding:0 12px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:500 14px var(--rx-font,Inter,sans-serif);width:min(100%,260px)}
+.cr-panel .retouch-studio .rt-name input:focus-visible{outline:2px solid var(--ma-focus);outline-offset:1px}
+.cr-panel .retouch-studio .rt-webp{align-self:center}
+.cr-panel .retouch-studio .rt-exif{margin:0;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
+.cr-panel .retouch-studio .rt-upscale{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 12px;border:1px dashed var(--ma-line-2);border-radius:12px;background:var(--ma-panel)}
+.cr-panel .retouch-studio .rt-upscale-btn{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-mut);font:600 12.5px var(--rx-font,Inter,sans-serif);cursor:not-allowed}
+.cr-panel .retouch-studio .rt-out{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--ma-line)}
+.cr-panel .retouch-studio .rt-files{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:6px}
+.cr-panel .retouch-studio .rt-files li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--ma-line);border-radius:10px;background:#fff;min-width:0}
+.cr-panel .retouch-studio .rt-files .co-file{display:flex;flex-direction:column;min-width:0}
+.cr-panel .retouch-studio .rt-files strong{font-size:13px;color:var(--ma-tx);overflow-wrap:anywhere}
+.cr-panel .retouch-studio .rt-files small{font-size:11.5px;color:var(--ma-mut)}
+.cr-panel .retouch-studio .rt-files .co-dl{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx);font:600 12px var(--rx-font,Inter,sans-serif);cursor:pointer}
+@media (max-width:1100px){.cr-panel .retouch-studio .rt-prop-grid{grid-template-columns:minmax(0,1fr)}.cr-panel .retouch-studio .rt-strip{grid-template-columns:repeat(4,minmax(0,1fr))}.cr-panel .retouch-studio .rt-body{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.cr-panel .retouch-studio .rt-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.cr-panel .retouch-studio .rt-photo{grid-template-columns:72px minmax(0,1fr)}.cr-panel .retouch-studio .rt-thumb{width:72px;height:72px}.cr-panel .retouch-studio .rt-ba canvas{max-height:none}.cr-panel .retouch-studio .rt-frame-view{max-width:100%}}
+.cr-panel .retouch-studio .fp-thumb-x{position:absolute;top:-8px;right:-8px;display:grid;place-items:center;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid var(--line-2);background:var(--card-2);color:var(--ink);font-size:16px;line-height:1;cursor:pointer}
+.cr-panel .retouch-studio .fp-slider>span{display:flex;justify-content:space-between;gap:8px;color:var(--ink-2)}
+.cr-panel .retouch-studio .fp-slider output{font-variant-numeric:tabular-nums;color:var(--subtle)}
+.cr-panel .retouch-studio .fp-slider input[type=range]{width:100%;min-height:24px;accent-color:var(--mk)}
+.cr-panel .retouch-studio .fp-checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cr-panel .retouch-studio .fp-check{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline;font-size:13px;line-height:1.45;color:var(--ink-2)}
+.cr-panel .retouch-studio .fp-check::before{content:'';grid-row:1/3;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--ma-ok)}
+.cr-panel .retouch-studio .fp-check strong{font-weight:600;color:var(--ink)}
+.cr-panel .retouch-studio .fp-check span{overflow-wrap:anywhere}
+.cr-panel .retouch-studio .fp-check[data-level=warn]::before{background:var(--amber)}
+.cr-panel .retouch-studio .fp-check[data-level=fail]::before{background:var(--ma-err)}
+.cr-panel .retouch-studio .fp-check[data-level=fail] span{color:var(--ma-err)}

@@ -131,6 +131,7 @@ const STUDIOS={
  photo:{global:'RadixImageStudio',name:'Lo Studio Foto',need:'l’immagine usa i suoi colori e i suoi fatti',agent:'art-director'},
  productphoto:{global:'RadixProductPhotoStudio',name:'Lo Studio Foto prodotto',need:'gli sfondi usano il suo Kit identità e le foto si salvano nel progetto',agent:'art-director'},
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
+ retouch:{global:'RadixRetouchStudio',name:'Lo Studio Fotoritocco',need:'le impostazioni si salvano nel progetto (le foto restano sul tuo computer)',agent:'art-director'},
  mockup:{global:'RadixMockupStudio',name:'Lo Studio Mockup',need:'i mockup mettono in scena i materiali salvati nel progetto',agent:'art-director'},
  logomotion:{global:'RadixLogoMotion',name:'Lo Studio Logo animato',need:'l’animazione parte dal logo e dai colori del Kit identità del progetto',agent:'art-director'},
  reel:{global:'RadixReelStudio',name:'Lo Studio Reel',need:'il reel usa i suoi colori, il suo logo e i suoi fatti confermati',agent:'video-producer'},
@@ -173,6 +174,8 @@ function openInline(c){
   ?S.videoStudio({project,memoryScope,avatar:S.savedAvatar(current.profile),avatarUrl:'/agency/avatar.html?project='+pid})
   :c.inline==='reel'
   ?S.reelStudio({project,profile:current.profile,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=video-producer&project='+pid})
+  :c.inline==='retouch'
+  ?S.retouchStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid})
   :c.inline==='mockup'
   ?S.mockupStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openStudio:id=>{const card=core.card(id);if(card)openInline(card)},studioUrl:id=>'/agency/crea.html?project='+pid+'&open='+encodeURIComponent(id)})
   :c.inline==='logomotion'
