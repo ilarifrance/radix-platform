@@ -55,8 +55,11 @@ test('HeyGen route: design and avatar creation need confirmation, upload goes to
   assert.deepEqual(JSON.parse(calls.at(-1).o.body).video_inputs[0].character,{type:'talking_photo',talking_photo_id:'look1'});
   {const sent=JSON.parse(calls.at(-1).o.body);assert.deepEqual(sent.dimension,{width:1080,height:1920});assert.equal('background' in sent.video_inputs[0],false)}
   r=res();await handler({method:'POST',body:{action:'generate',script:'Ciao',voiceId:'v1',talkingPhotoId:'look1',orientation:'landscape'}},r);assert.deepEqual(JSON.parse(calls.at(-1).o.body).dimension,{width:1920,height:1080});
+  r=res();await handler({method:'POST',body:{action:'generate',voiceId:'v1',scenes:[{text:'Uno.',talkingPhotoId:'look1',scale:1},{text:'Due.',talkingPhotoId:'look9',scale:1.35}]}},r);assert.equal(r.body.videoId,'vid1');
+  {const sent=JSON.parse(calls.at(-1).o.body);assert.equal(sent.caption,true);assert.equal(sent.video_inputs.length,2);assert.deepEqual(sent.video_inputs[1].character,{type:'talking_photo',talking_photo_id:'look9',scale:1.35});assert.equal(sent.video_inputs[1].voice.input_text,'Due.')}
+  r=res();await handler({method:'POST',body:{action:'generate',voiceId:'v1',scenes:[{text:'Uno.',talkingPhotoId:'../x'}]}},r);assert.equal(r.code,400);
   r=res();await handler({method:'GET',query:{action:'avatars'}},r);assert.equal(r.body.own,2);
-  assert.equal(r.body.avatars[0].defaultVoiceId,'voiceF1');
+  assert.equal(r.body.avatars[0].defaultVoiceId,'voiceF1');assert.equal(r.body.avatars[0].groupId,'g1');
   assert.deepEqual(r.body.avatars.map(a=>[a.id,a.type,a.name]),[['look9','talking_photo','FRANCESCO ILARI · Professional in navy suit'],['tp7','talking_photo','Foto'],['stock1','avatar','Stock']]);
  }finally{globalThis.fetch=realFetch;auth.getSessionUser=orig;if(key===undefined)delete process.env.HEYGEN_API_KEY;else process.env.HEYGEN_API_KEY=key;delete require.cache[require.resolve('../api/_heygen.js')]}
 });

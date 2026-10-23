@@ -106,7 +106,7 @@ module.exports = async (req, res) => {
             const looks = pick(await heygenFetch(apiKey, '/v2/avatar_group/' + encodeURIComponent(gid) + '/avatars', { method: 'GET' }), ['data.avatar_list', 'avatar_list'], []);
             for (const a of (Array.isArray(looks) ? looks : []).slice(0, 20)) {
               const id = a.id || a.avatar_id || a.talking_photo_id;
-              if (id) own.push({ id, type: 'talking_photo', name: [g.name, a.name].filter(Boolean).join(' · ') || id, previewImageUrl: a.image_url || a.preview_image_url || g.preview_image || null, defaultVoiceId: a.default_voice_id || a.voice_id || g.default_voice_id || null });
+              if (id) own.push({ id, type: 'talking_photo', groupId: String(gid), name: [g.name, a.name].filter(Boolean).join(' · ') || id, previewImageUrl: a.image_url || a.preview_image_url || g.preview_image || null, defaultVoiceId: a.default_voice_id || a.voice_id || g.default_voice_id || null });
             }
           } catch {
             /* one group unreadable: the others still show */
@@ -159,6 +159,7 @@ module.exports = async (req, res) => {
       res.status(200).json({
         status: pick(data, ['data.status', 'status'], 'unknown'),
         videoUrl: pick(data, ['data.video_url', 'video_url'], null),
+        captionUrl: pick(data, ['data.video_url_caption', 'video_url_caption'], null),
         thumbnailUrl: pick(data, ['data.thumbnail_url', 'thumbnail_url'], null),
         error: pick(data, ['data.error', 'error'], null),
       });
@@ -277,7 +278,37 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST' && action === 'generate') {
-      const { script, avatarId, voiceId, talkingPhotoId, orientation } = postBody || {};
+      const { script, avatarId, voiceId, talkingPhotoId, orientation, scenes, captions } = postBody || {};
+      // A clip edited in scenes: each scene its own look of the avatar and framing (scale 1 = full, >1 = closer).
+      if (Array.isArray(scenes) && scenes.length && voiceId) {
+        const list = scenes.slice(0, 8).map((x) => ({
+          text: String((x && x.text) || '').trim().slice(0, 1500),
+          look: String((x && x.talkingPhotoId) || '').trim(),
+          scale: Math.min(2, Math.max(0.5, Number(x && x.scale) || 1)),
+        }));
+        if (list.some((x) => !x.text || !/^[A-Za-z0-9_-]{1,80}$/.test(x.look))) {
+          res.status(400).json({ error: 'Scene non valide: ogni scena vuole testo e look dell’avatar.' });
+          return;
+        }
+        const data = await heygenFetch(apiKey, '/v2/video/generate', {
+          method: 'POST',
+          body: JSON.stringify({
+            caption: captions !== false,
+            dimension: orientation === 'landscape' ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 },
+            video_inputs: list.map((x) => ({
+              character: { type: 'talking_photo', talking_photo_id: x.look, scale: x.scale },
+              voice: { type: 'text', voice_id: voiceId, input_text: x.text },
+            })),
+          }),
+        });
+        const videoId = pick(data, ['data.video_id', 'video_id'], null);
+        if (!videoId) {
+          res.status(502).json({ error: 'HeyGen non ha restituito un video_id. Risposta: ' + JSON.stringify(data) });
+          return;
+        }
+        res.status(200).json({ videoId });
+        return;
+      }
       if (!script || !(avatarId || talkingPhotoId) || !voiceId) {
         res.status(400).json({ error: "Mancano 'script', 'avatarId' o 'voiceId'." });
         return;
