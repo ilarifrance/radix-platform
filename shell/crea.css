@@ -2150,3 +2150,48 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 }
 @media (max-width:1100px){.cr-panel .large-format-studio .ad-dir.lf-dir>.lf-thumb{grid-column:1;grid-row:1/span 6}}
 @media (max-width:760px){.cr-panel .large-format-studio .ad-dir.lf-dir{display:flex;flex-direction:column}}
+/* Studio «Grafica profili e template social» (lib/social-studio.js): it reuses the coordinato pieces (kit row, fields,
+   the three directions as .ad-dir, checks, file list) plus the question chips, the previews of every piece (round crops
+   for the profile image and the highlights), the template text tabs and the refinement chips. Light --ma-* tokens only. */
+.cr-panel .social-studio fieldset.fs-choice{margin:0;padding:12px;border:1px solid var(--ma-line);border-radius:12px;background:#fff;display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.cr-panel .social-studio .fs-choice legend{padding:0 6px;font:600 13px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ma-tx)}
+.cr-panel .social-studio .fs-choice .ps-chip{min-height:40px;gap:8px}
+.cr-panel .social-studio .fs-choice .ps-chip small{font-size:11.5px;color:var(--ma-mut)}
+.cr-panel .social-studio .fs-choice .ad-note{flex:1 1 100%;margin:2px 0 0}
+.cr-panel .social-studio .fs-swatch i{display:inline-block;width:16px;height:16px;border-radius:50%;box-shadow:0 0 0 1px rgba(29,26,39,.18)}
+.cr-panel .social-studio .sc-choice[data-key=pieces] .ps-chip{flex:1 1 220px;flex-wrap:wrap;height:auto;padding:8px 14px;border-radius:14px}
+.cr-panel .social-studio .sc-choice[data-key=pieces] .ps-chip small{flex:1 1 100%}
+.cr-panel .social-studio .sc-dir{gap:12px}
+.cr-panel .social-studio .sc-sample{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-items:start}
+.cr-panel .social-studio .sc-sample .sc-fig[data-kind=copertina],.cr-panel .social-studio .sc-sample .sc-fig[data-kind=post]{grid-column:1/-1}
+.cr-panel .social-studio .sc-fig{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cr-panel .social-studio .sc-fig img{display:block;width:100%;height:auto;border-radius:6px;box-shadow:0 0 0 1px rgba(29,26,39,.1);background:#fff}
+.cr-panel .social-studio .sc-fig figcaption{font-size:11.5px;color:var(--ma-mut);text-align:center;overflow-wrap:anywhere}
+.cr-panel .social-studio .sc-round[data-kind=profilo] img{border-radius:50%}
+.cr-panel .social-studio .sc-round[data-kind=evidenza] img{aspect-ratio:1/1;object-fit:cover;border-radius:50%}
+.cr-panel .social-studio .sc-sample .sc-round figcaption{display:none}
+.cr-panel .social-studio .sc-refine{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.cr-panel .social-studio .sc-photo{align-items:center}
+.cr-panel .social-studio .sc-photo .sc-file{position:absolute;opacity:0;width:1px;height:1px}
+.cr-panel .social-studio .sc-photo .ps-chip{cursor:pointer}
+.cr-panel .social-studio .sc-photo .ps-chip:focus-within{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .social-studio .sc-texts{display:flex;flex-direction:column;gap:10px}
+.cr-panel .social-studio .sc-texts h4{margin:0;font-size:15px;color:var(--ma-tx)}
+.cr-panel .social-studio .sc-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.cr-panel .social-studio .sc-tab{min-height:40px;padding:0 14px;border-radius:999px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-tx2);font:500 13px var(--rx-font,Inter,sans-serif);cursor:pointer}
+.cr-panel .social-studio .sc-tab[aria-selected=true]{background:var(--ma-tx);border-color:var(--ma-tx);color:#fff}
+.cr-panel .social-studio .sc-tab:focus-visible{outline:2px solid var(--ma-focus);outline-offset:2px}
+.cr-panel .social-studio .sc-guides{align-self:flex-start}
+.cr-panel .social-studio .sc-gallery{display:flex;flex-direction:column;gap:16px}
+.cr-panel .social-studio .sc-piece h4{margin:0 0 8px;font-size:15px;color:var(--ma-tx)}
+.cr-panel .social-studio .sc-row{display:grid;gap:12px;align-items:start}
+.cr-panel .social-studio .sc-row-profilo{grid-template-columns:minmax(0,220px)}
+.cr-panel .social-studio .sc-row-copertina{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cr-panel .social-studio .sc-row-evidenza{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.cr-panel .social-studio .sc-row-post{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cr-panel .social-studio .sc-row-post .sc-fig img{max-height:520px;object-fit:contain;background:transparent;box-shadow:none}
+.cr-panel .social-studio .sc-dirs[hidden],.cr-panel .social-studio .sc-result[hidden],.cr-panel .social-studio .sc-out[hidden]{display:none}
+.cr-panel .social-studio .co-check ul{color:var(--ma-tx2)}
+.cr-panel .social-studio .fs-client ul{margin:6px 0 4px;padding-left:20px;font-size:13px;line-height:1.5;color:var(--ma-tx2)}
+@media (max-width:1100px){.cr-panel .social-studio .sc-row-copertina{grid-template-columns:minmax(0,1fr)}.cr-panel .social-studio .ad-dir.sc-dir{display:flex}}
+@media (max-width:760px){.cr-panel .social-studio .sc-refine{grid-template-columns:minmax(0,1fr)}.cr-panel .social-studio .sc-row-post{grid-template-columns:repeat(2,minmax(0,1fr))}.cr-panel .social-studio .co-fields{grid-template-columns:minmax(0,1fr)}}
