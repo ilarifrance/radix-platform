@@ -150,6 +150,7 @@ const STUDIOS={
  firma:{global:'RadixFirmaStudio',name:'Lo Studio Firma email',need:'la firma parte dal Kit identità, dal nome e dai contatti del progetto',agent:'art-director'},
  print:{global:'RadixPrintStudio',name:'Lo Studio Stampa',need:'i materiali partono dal nome, dai contatti e dal kit identità del progetto',agent:'art-director'},
  concorrenzasiti:{global:'RadixCompetitorStudio',name:'Lo Studio Concorrenza',need:'il confronto parte dal sito del progetto e si salva lì',agent:'brand-strategist'},
+ pianoannuale:{global:'RadixAnnualPlan',name:'Lo Studio Piano annuale',need:'il piano parte dal budget, dalla strategia e dal profilo del progetto e si salva lì',agent:'strategist'},
  budget:{global:'RadixStrategyBudget',name:'Lo Studio Budget e KPI',need:'budget e KPI partono dalla strategia approvata e dai dati del progetto e si salvano lì',agent:'strategist'},
  auditcom:{global:'RadixAuditStudio',name:'Lo Studio Audit',need:'l’audit legge analisi del sito, scheda Google, social, Search Console e Kit identità del progetto e si salva lì',agent:'strategist'},
  report:{global:'RadixReportStudio',name:'Lo Studio Report',need:'il report legge contenuti, risultati e attività del progetto e si salva lì',agent:'analytics'},
@@ -216,6 +217,8 @@ function openInline(c){
   ?S.competitorStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,briefUrl:'/project-editorial.html?project='+pid+'#brief',agentsUrl:'/agents.html?agent=brand-strategist&project='+pid})
   :c.inline==='budget'
   ?S.strategyBudgetStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,briefUrl:'/project-editorial.html?project='+pid+'#brief',agentsUrl:'/agents.html?agent=strategist&project='+pid})
+  :c.inline==='pianoannuale'
+  ?S.annualPlanStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,openBudget:()=>openInline(core.card('budget')),budgetUrl:'/agency/crea.html?project='+pid+'&open=budget',agentsUrl:'/agents.html?agent=strategist&project='+pid})
   :c.inline==='auditcom'
   ?S.auditStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=strategist&project='+pid})
   :c.inline==='menu'
