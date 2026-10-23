@@ -2583,3 +2583,81 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
 .cr-panel .retouch-studio .fp-check[data-level=warn]::before{background:var(--amber)}
 .cr-panel .retouch-studio .fp-check[data-level=fail]::before{background:var(--ma-err)}
 .cr-panel .retouch-studio .fp-check[data-level=fail] span{color:var(--ma-err)}
+/* Studio Infografica (lib/infographic-studio.js): it reuses the report's .rp-* blocks (the wrapper carries both classes)
+   and adds the text box, the radio chips with a second line, the three layouts with their previews (post 4:5, story
+   9:16, A4: never taller than the screen), the editor beside a sticky preview on a wide screen (one column on a phone),
+   the blocks with their order and «Nascondi», the formats to create and the files. Light --ma-* tokens only. */
+.cr-panel .infographic-studio :is(.ig-found,.ig-dirs,.ig-refine,.ig-export)[hidden],.cr-panel .infographic-studio [hidden]{display:none}
+.cr-panel .infographic-studio .ig-text-top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.cr-panel .infographic-studio .ig-text textarea{min-height:220px;padding:12px 14px;font:400 14px/1.5 var(--rx-font,Inter,sans-serif);tab-size:4}
+.cr-panel .infographic-studio .ig-count{text-align:right}
+.cr-panel .infographic-studio button.ig-link,.cr-panel .infographic-studio a.ig-link{min-height:0;padding:2px 0;border:0;background:none;box-shadow:none;font-weight:600;font-size:13px;color:var(--ma-link);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.cr-panel .infographic-studio .ig-brand .ig-link{margin-left:auto}
+.cr-panel .infographic-studio fieldset.ig-choice{margin:0;padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.cr-panel .infographic-studio .ig-choice legend{padding:0 6px;font:600 13px/1.3 var(--rx-font,Inter,sans-serif);color:var(--ink)}
+.cr-panel .infographic-studio .ps-chip.ig-chip,.cr-panel .infographic-studio .ps-chip.ig-size{display:inline-flex;align-items:center;min-height:40px;height:auto;padding:7px 14px;border-radius:12px;text-align:left;cursor:pointer}
+.cr-panel .infographic-studio .ig-chip-text{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cr-panel .infographic-studio .ig-chip-text b{font-weight:600;font-size:13px;color:var(--ink)}
+.cr-panel .infographic-studio .ig-chip-text small{font-size:11.5px;color:var(--subtle)}
+.cr-panel .infographic-studio .ig-ai>button{align-self:flex-start}
+.cr-panel .infographic-studio .ig-found{display:flex;flex-direction:column;gap:10px;padding-top:18px;border-top:1px solid var(--line)}
+.cr-panel .infographic-studio .ig-found h3{margin:0 0 4px}
+.cr-panel .infographic-studio .ig-notes{margin:0;padding-left:18px;font-size:12.5px;line-height:1.45;color:var(--amber)}
+/* the three layouts */
+.cr-panel .infographic-studio .ig-dirs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cr-panel .infographic-studio .ig-dir{display:flex;flex-direction:column;gap:12px}
+.cr-panel .infographic-studio .ig-dir>button{align-self:stretch;margin-top:auto}
+.cr-panel .infographic-studio .ig-dir[data-chosen=true]{border-color:var(--mk);box-shadow:0 0 0 2px rgba(114,93,238,.25)}
+.cr-panel .infographic-studio .ig-fig{align-items:center}
+.cr-panel .infographic-studio .ig-fig>img{width:auto;max-width:100%;max-height:min(62vh,520px);object-fit:contain}
+.cr-panel .infographic-studio .ig-strip{display:flex;gap:8px;justify-content:center}
+.cr-panel .infographic-studio .ig-strip img{display:block;width:auto;height:84px;border-radius:3px;box-shadow:0 0 0 1px rgba(29,26,39,.1);background:#fff}
+/* refine: editor and preview */
+.cr-panel .infographic-studio .ig-work{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,420px);gap:20px;align-items:start}
+.cr-panel .infographic-studio .ig-edit{display:flex;flex-direction:column;gap:18px;min-width:0}
+.cr-panel .infographic-studio .ig-edit fieldset.rp-refine{flex-wrap:nowrap}
+.cr-panel .infographic-studio .ig-edit :is(.rp-fields,.ig-blocks,.ig-choice,.ig-opts){width:100%;box-sizing:border-box}
+.cr-panel .infographic-studio .ig-opts{gap:8px}
+.cr-panel .infographic-studio .ig-preview{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;min-width:0;padding:14px;border:1px solid var(--line);border-radius:16px;background:#f4f4f8}
+.cr-panel .infographic-studio .ig-preview-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.cr-panel .infographic-studio .ig-preview-head h4{margin:0}
+.cr-panel .infographic-studio .ig-preview-head select{min-height:36px;max-width:100%;padding:0 10px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ink);font:500 13px var(--rx-font,Inter,sans-serif)}
+.cr-panel .infographic-studio .ig-pages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-height:min(70vh,760px);overflow:auto;padding:2px}
+.cr-panel .infographic-studio .ig-page:first-child:last-child{grid-column:1/-1}
+.cr-panel .infographic-studio .ig-page:first-child:last-child img{max-height:min(60vh,620px);width:auto;max-width:100%;margin:0 auto}
+.cr-panel .infographic-studio .ig-live-checks .rp-check{background:#fff}
+.cr-panel .infographic-studio .ig-blocks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.cr-panel .infographic-studio .ig-block{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff}
+.cr-panel .infographic-studio .ig-block[data-hidden=true]{background:rgba(29,26,39,.025)}
+.cr-panel .infographic-studio .ig-block[data-hidden=true] .ig-block-fields{opacity:.5}
+.cr-panel .infographic-studio .ig-block[data-problem=true]{border-color:rgba(157,114,0,.55);box-shadow:inset 3px 0 0 var(--amber)}
+.cr-panel .infographic-studio .ig-block-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cr-panel .infographic-studio .ig-block-n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ma-soft);color:var(--ma-link);font:700 12px/1 var(--rx-font,Inter,sans-serif)}
+.cr-panel .infographic-studio .ig-ai-tag{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;background:var(--ma-soft);color:var(--ma-link);font:700 11px/1 var(--rx-font,Inter,sans-serif);letter-spacing:.04em}
+.cr-panel .infographic-studio .ig-block-top select{min-height:34px;margin-right:auto;padding:0 10px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ink);font:500 13px var(--rx-font,Inter,sans-serif)}
+.cr-panel .infographic-studio .ig-block-top button{min-height:34px;min-width:36px;padding:0 10px;font-size:13px}
+.cr-panel .infographic-studio .ig-block-top button:disabled{opacity:.4;cursor:not-allowed}
+.cr-panel .infographic-studio .ig-block-fields{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,170px);gap:10px 12px}
+.cr-panel .infographic-studio .ig-block-fields .ig-num input{font-variant-numeric:tabular-nums}
+.cr-panel .infographic-studio .ig-block-fields textarea{min-height:56px}
+.cr-panel .infographic-studio .ig-warn{color:var(--amber)}
+/* export */
+.cr-panel .infographic-studio .ig-size-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:8px}
+.cr-panel .infographic-studio .ps-chip.ig-size{display:flex;border-radius:12px}
+.cr-panel .infographic-studio .ig-out{display:flex;flex-direction:column;gap:12px}
+.cr-panel .infographic-studio .ig-out:empty{display:none}
+.cr-panel .infographic-studio .ig-files-head h3{margin:0 0 4px}
+.cr-panel .infographic-studio .ig-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;align-items:start;padding:14px;border:1px solid var(--line);border-radius:14px;background:#f4f4f8}
+.cr-panel .infographic-studio .ig-file img{max-height:240px;width:auto;max-width:100%;margin:0 auto}
+.cr-panel .infographic-studio .ig-file figcaption{overflow-wrap:anywhere}
+.cr-panel .infographic-studio .ig-file-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.cr-panel .infographic-studio .ig-file-list li{display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0}
+.cr-panel .infographic-studio .ig-file-list code{font-size:12px;color:var(--ink);overflow-wrap:anywhere}
+.cr-panel .infographic-studio .ig-file-list small{color:var(--subtle)}
+@media (max-width:1100px){.cr-panel .infographic-studio .ig-dirs{grid-template-columns:minmax(0,1fr)}.cr-panel .infographic-studio .ig-dir{display:flex}
+ .cr-panel .infographic-studio .ig-fig>img{max-height:440px}
+ .cr-panel .infographic-studio .ig-work{grid-template-columns:minmax(0,1fr)}.cr-panel .infographic-studio .ig-preview{position:static;order:-1}}
+@media (max-width:640px){.cr-panel .infographic-studio .ig-block-fields{grid-template-columns:minmax(0,1fr)}
+ .cr-panel .infographic-studio :is(.ig-block-top select,.ig-block-top button,.ps-chip.ig-chip,.ps-chip.ig-size,.ig-preview-head select){min-height:44px}
+ .cr-panel .infographic-studio .ps-chip.ig-chip{flex:1 1 calc(50% - 8px)}.cr-panel .infographic-studio .ig-goals .ps-chip.ig-chip{flex-basis:100%}
+ .cr-panel .infographic-studio .ig-pages{max-height:none}.cr-panel .infographic-studio .ig-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
