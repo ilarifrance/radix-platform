@@ -9,6 +9,8 @@ const providerCallback=require('./_lead_provider_callback');
 const unsubscribe=require('./_sales_unsubscribe');
 const clicks=require('./_sales_clicks');
 const importToken=require('./_lead_import_token');
+// Contact form of the Studio Sito sites (api/_site_form.js): public, its own per-site token, writes a contact and a note.
+const siteForm=require('./_site_form');
 // Prodotti, Listini, Preventivi, Fatture (migration sales 013): own validator and atomic SQL command.
 const docs=require('./_sales_documents');
 // «Aggiungi campo» (migration sales 015): field definitions per workspace, values in «custom».
@@ -177,6 +179,8 @@ function createHandler({getSessionUser,getStore}){
    if(req.query?.unsubscribe!==undefined)return await unsubscribe.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
    // Public tracked link from a campaign email: counts the click, then redirects where the email pointed.
    if(req.query?.click!==undefined)return await clicks.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
+   // Contact form of a published site: no session, the per-site token in the page is the permission.
+   if(req.query?.site_form!==undefined)return await siteForm.handle(req,res,{getStore,secret:process.env.JWT_SECRET});
    // Chrome extension «Importa in RADIX»: its own scoped token, never the session cookie.
    if(importToken.bearer(req)!==undefined)return await importToken.handle(req,res,{getStore,secret:process.env.JWT_SECRET});
    if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');fail(405,'Metodo non consentito.');}
@@ -197,6 +201,10 @@ function createHandler({getSessionUser,getStore}){
      }else if(body?.entity==='lead_import_token'){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Richiesta collegamento estensione non valida.');
        c={workspace:body.workspace,entity:'lead_import_token',data:{}};
+     }else if(body?.entity==='site_form_token'){
+       // «Collega il modulo al CRM» of the Studio Sito: data.site is the RADIX project of the site.
+       if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).join()!=='site'||typeof body.data.site!=='string'||!/^[a-z0-9][a-z0-9-]{1,79}$/.test(body.data.site))fail(400,'Richiesta collegamento modulo non valida.');
+       c={workspace:body.workspace,entity:'site_form_token',data:{site:body.data.site}};
      }else if(body?.entity==='unsubscribe_links'){
        const ids=body?.data?.contacts,d=body?.data||{};
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).some(k=>!['contacts','campaign','urls'].includes(k))||!Array.isArray(ids)||!ids.length||ids.length>300||!ids.every(uuid))fail(400,'Richiesta link di disiscrizione non valida (massimo 300 contatti).');
@@ -256,6 +264,7 @@ function createHandler({getSessionUser,getStore}){
      if(c.customFields)return res.status(200).json({rows:[await store.customFields.command(c,user.uid)]});
      if(c.documents){if(c.entity!=='documents'&&!['owner','admin'].includes(membership.role))fail(403,'Catalogo, listini e intestazione si modificano solo da owner o admin.');return res.status(200).json({rows:[await store.documents.command(c,user.uid)]});}
      if(c.entity==='lead_import_token')return res.status(200).json(importToken.sign({uid:user.uid,workspace:c.workspace},process.env.JWT_SECRET));
+     if(c.entity==='site_form_token')return res.status(200).json(siteForm.sign({uid:user.uid,workspace:c.workspace,site:c.data.site},process.env.JWT_SECRET));
      if(c.entity==='unsubscribe_links'){const secret=unsubscribe.secretOf(process.env);return res.status(200).json({links:await unsubscribe.links(store.sql,c.workspace,c.data.contacts,secret),...(c.data.urls?{clicks:await clicks.links(store.sql,c.workspace,c.data.contacts,c.data.campaign,c.data.urls,secret),urls:c.data.urls}:{})})}
      return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):c.entity==='members'?store.memberCommand(c,user.uid):store.command(c,user.uid))]});
    }
