@@ -33,3 +33,11 @@ test('createPost sends a video as the only asset',async()=>{
   assert.match(seen[0].query,/assets: \[\{ video: \{ url: "https:\/\/blob.test\/v.mp4" \} \}\]/);assert.doesNotMatch(seen[0].query,/image/)}
  finally{global.fetch=old}
 });
+
+test('a video still rendering keeps its HeyGen id with the content',()=>{
+ const state={briefApproved:true,strategyRevision:1,contents:[]};
+ core.updateContent(state,{id:'y',title:'T',channel:'YouTube',date:'2026-10-30',copy:'Script',video:{id:'abc_123',at:'2026-10-23T20:00:00Z'}});
+ assert.deepEqual(state.contents[0].video,{id:'abc_123',at:'2026-10-23T20:00:00Z'});
+ core.updateContent(state,{id:'y',title:'T',channel:'YouTube',date:'2026-10-30',copy:'Script',video:{id:'bad id!'}});
+ assert.equal(state.contents[0].video,undefined);
+});

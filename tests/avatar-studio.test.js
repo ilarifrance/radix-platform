@@ -35,6 +35,9 @@ test('HeyGen route: design and avatar creation need confirmation, upload goes to
   if(/avatar_group\/create$/.test(u))return J({data:{id:'look1',group_id:'group1',image_url:'https://i/look1'}});
   if(/photo_avatar\/train$/.test(u))return J({data:{code:100}});
   if(/video\/generate$/.test(u))return J({data:{video_id:'vid1'}});
+  if(/avatar_group\.list/.test(u))return J({data:{avatar_group_list:[{id:'g1',name:'FRANCESCO ILARI'}]}});
+  if(/avatar_group\/g1\/avatars$/.test(u))return J({data:{avatar_list:[{id:'look9',name:'Professional in navy suit',image_url:'https://i/9'}]}});
+  if(/v2\/avatars$/.test(u))return J({data:{avatars:[{avatar_id:'stock1',avatar_name:'Stock'}],talking_photos:[{talking_photo_id:'tp7',talking_photo_name:'Foto'}]}});
   return new Response('{}',{status:404})};
  try{
   let r=res();await handler({method:'POST',body:{action:'design',answers:{appearance:'Giacca blu, ufficio luminoso'}}},r);assert.equal(r.code,400);assert.match(r.body.error,/Conferma/);
@@ -50,6 +53,10 @@ test('HeyGen route: design and avatar creation need confirmation, upload goes to
   assert.deepEqual(r.body,{avatarId:'look1',groupId:'group1',imageUrl:'https://i/look1',trainError:null});assert.match(calls.at(-1).u,/photo_avatar\/train$/);
   r=res();await handler({method:'POST',body:{action:'generate',script:'Ciao',voiceId:'v1',talkingPhotoId:'look1'}},r);assert.equal(r.body.videoId,'vid1');
   assert.deepEqual(JSON.parse(calls.at(-1).o.body).video_inputs[0].character,{type:'talking_photo',talking_photo_id:'look1'});
+  {const sent=JSON.parse(calls.at(-1).o.body);assert.deepEqual(sent.dimension,{width:1080,height:1920});assert.equal('background' in sent.video_inputs[0],false)}
+  r=res();await handler({method:'POST',body:{action:'generate',script:'Ciao',voiceId:'v1',talkingPhotoId:'look1',orientation:'landscape'}},r);assert.deepEqual(JSON.parse(calls.at(-1).o.body).dimension,{width:1920,height:1080});
+  r=res();await handler({method:'GET',query:{action:'avatars'}},r);assert.equal(r.body.own,2);
+  assert.deepEqual(r.body.avatars.map(a=>[a.id,a.type,a.name]),[['look9','talking_photo','FRANCESCO ILARI · Professional in navy suit'],['tp7','talking_photo','Foto'],['stock1','avatar','Stock']]);
  }finally{globalThis.fetch=realFetch;auth.getSessionUser=orig;if(key===undefined)delete process.env.HEYGEN_API_KEY;else process.env.HEYGEN_API_KEY=key;delete require.cache[require.resolve('../api/_heygen.js')]}
 });
 
