@@ -59,7 +59,7 @@ async function createFromConfirmed(imageKey,imageUrl,name){busy=true;say('Creo l
  catch(err){say('Avatar non creato: '+err.message);$('avUsePhoto').disabled=false;return false}finally{busy=false}}
 async function loadLibrary(){const box=$('avLibrary');box.replaceChildren(node('p','Carico gli avatar del tuo account HeyGen…','av-muted'));
  try{const d=await api('GET','action=avatars');const list=(d.avatars||[]).slice(0,Math.max(30,(d.own||0)+12));if(!list.length){box.replaceChildren(node('p','Nessun avatar sul tuo account HeyGen: prova «Lo disegna l’AI».','av-muted'));return}
-  box.replaceChildren(...list.map(a=>{const card=node('figure',null,'av-example');if(/^https:/.test(a.previewImageUrl||'')){const img=node('img');img.src=a.previewImageUrl;img.alt=a.name;card.append(img)}const b=node('button','Usa '+a.name,'av-primary');b.type='button';b.onclick=()=>{chosen={type:a.type==='talking_photo'?'talking_photo':'avatar',defaultVoiceId:a.defaultVoiceId||'',id:a.id,name:a.name,imageUrl:a.previewImageUrl||''};toVoices()};card.append(node('figcaption',a.name),b);return card}))}
+  box.replaceChildren(...list.map(a=>{const card=node('figure',null,'av-example');if(/^https:/.test(a.previewImageUrl||'')){const img=node('img');img.src=a.previewImageUrl;img.alt=a.name;card.append(img)}const b=node('button','Usa '+a.name,'av-primary');b.type='button';b.onclick=()=>{chosen={type:a.type==='talking_photo'?'talking_photo':'avatar',defaultVoiceId:a.defaultVoiceId||'',groupId:a.groupId||'',id:a.id,name:a.name,imageUrl:a.previewImageUrl||''};toVoices()};card.append(node('figcaption',a.name),b);return card}))}
  catch(e){box.replaceChildren(node('p','Non riesco a leggere gli avatar: '+e.message,'av-muted'))}}
 
 // ---- 3 · voice ----

@@ -41,3 +41,11 @@ test('a video still rendering keeps its HeyGen id with the content',()=>{
  core.updateContent(state,{id:'y',title:'T',channel:'YouTube',date:'2026-10-30',copy:'Script',video:{id:'bad id!'}});
  assert.equal(state.contents[0].video,undefined);
 });
+
+test('a clip is cut into 3-5 scenes that rotate the avatar looks and the framing',()=>{
+ const script='Ho firmato io tutti i contratti per anni. Poi ho capito una cosa. Se la vendita passa solo da te, l’azienda si ferma. Il primo passo è scrivere come vendi. Il secondo è misurare la pipeline. Il terzo è affiancare chi vende. Da dove partiresti tu? Scrivimelo nei commenti.';
+ const sc=pv.clipScenes(script,['a','b','a']);
+ assert.ok(sc.length>=3&&sc.length<=5);assert.deepEqual(sc.slice(0,3).map(x=>x.talkingPhotoId),['a','b','a']);
+ assert.equal(sc.map(x=>x.text).join(' '),script);assert.equal(sc[0].scale,1);assert.ok(sc[1].scale>1);
+ assert.deepEqual(pv.clipScenes(script,[]),[]);
+});
