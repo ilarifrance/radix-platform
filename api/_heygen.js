@@ -106,7 +106,7 @@ module.exports = async (req, res) => {
             const looks = pick(await heygenFetch(apiKey, '/v2/avatar_group/' + encodeURIComponent(gid) + '/avatars', { method: 'GET' }), ['data.avatar_list', 'avatar_list'], []);
             for (const a of (Array.isArray(looks) ? looks : []).slice(0, 20)) {
               const id = a.id || a.avatar_id || a.talking_photo_id;
-              if (id) own.push({ id, type: 'talking_photo', name: [g.name, a.name].filter(Boolean).join(' · ') || id, previewImageUrl: a.image_url || a.preview_image_url || g.preview_image || null });
+              if (id) own.push({ id, type: 'talking_photo', name: [g.name, a.name].filter(Boolean).join(' · ') || id, previewImageUrl: a.image_url || a.preview_image_url || g.preview_image || null, defaultVoiceId: a.default_voice_id || a.voice_id || g.default_voice_id || null });
             }
           } catch {
             /* one group unreadable: the others still show */
