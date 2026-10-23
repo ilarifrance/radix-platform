@@ -65,6 +65,23 @@ async function heygenFetch(apiKey, path, opts) {
   return data;
 }
 
+// Splits a script into pieces of at most `max` characters, cutting at paragraphs, then sentences, then words.
+function splitScript(script, max = 3000) {
+  const out = [];
+  let cur = '';
+  const push = (piece, sep) => {
+    if (!piece) return;
+    if (cur && cur.length + sep.length + piece.length > max) { out.push(cur); cur = ''; }
+    if (piece.length <= max) { cur = cur ? cur + sep + piece : piece; return; }
+    if (sep === '\n\n') piece.split(/(?<=[.!?…])\s+/).forEach((x) => push(x, ' '));
+    else if (sep === ' ' && /\s/.test(piece)) piece.split(/\s+/).forEach((x) => push(x, ' '));
+    else for (let i = 0; i < piece.length; i += max) push(piece.slice(i, i + max), '');
+  };
+  String(script || '').trim().split(/\n\s*\n/).map((x) => x.trim()).forEach((x) => push(x, '\n\n'));
+  if (cur) out.push(cur);
+  return out.slice(0, 50);
+}
+
 module.exports = async (req, res) => {
   const user = getSessionUser(req);
   if (!user) {
@@ -322,14 +339,14 @@ module.exports = async (req, res) => {
         body: JSON.stringify({
           // YouTube is horizontal; clips for Reels/Stories/TikTok/LinkedIn stay vertical.
           dimension: orientation === 'landscape' ? { width: 1920, height: 1080 } : { width: 1080, height: 1920 },
-          video_inputs: [
-            {
-              character,
-              voice: { type: 'text', voice_id: voiceId, input_text: script },
-              // A photo avatar keeps the background of its own photo (the office of the look).
-              ...(talkingPhotoId ? {} : { background: { type: 'color', value: '#0F2D24' } }),
-            },
-          ],
+          // HeyGen refuses a voice text over ~5000 characters: a long YouTube script becomes several
+          // consecutive inputs with the same avatar and voice.
+          video_inputs: splitScript(script).map((text) => ({
+            character,
+            voice: { type: 'text', voice_id: voiceId, input_text: text },
+            // A photo avatar keeps the background of its own photo (the office of the look).
+            ...(talkingPhotoId ? {} : { background: { type: 'color', value: '#0F2D24' } }),
+          })),
         }),
       });
       const videoId = pick(data, ['data.video_id', 'video_id'], null);
@@ -348,3 +365,4 @@ module.exports = async (req, res) => {
     });
   }
 };
+module.exports.splitScript = splitScript;
