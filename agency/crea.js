@@ -148,6 +148,7 @@ const STUDIOS={
  ads:{global:'RadixAdStudio',name:'Lo Studio Creatività',need:'le creatività usano i suoi colori, il suo logo e i suoi fatti confermati',agent:'paid-media'},
  gbp:{global:'RadixGbpStudio',name:'Lo Studio Scheda Google',need:'la scheda parte dai suoi fatti confermati e le risposte si firmano col suo nome',agent:'seo-geo'},
  translate:{global:'RadixTranslationStudio',name:'Lo Studio Traduzione',need:'le traduzioni partono dai testi e dalle schede salvate nel progetto e si salvano lì',agent:'copywriter'},
+ shop:{global:'RadixShopStudio',name:'Lo Studio Negozio online',need:'i file partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
  feed:{global:'RadixProductStudio',name:'Lo Studio Schede prodotto',need:'le schede partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
  mail:{global:'RadixNewsletterStudio',name:'Lo Studio Newsletter HTML',need:'la newsletter usa il kit identità e i testi salvati del progetto',agent:'copywriter'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
@@ -213,6 +214,8 @@ function openInline(c){
   ?S.gbpStudio({project,profile:current.profile,memoryScope,replyScope:{...memoryScope,agentId:'copywriter'},projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='feed'
   ?S.productStudio({project,projectName:current.name,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-content&project='+pid})
+  :c.inline==='shop'
+  ?S.shopStudio({project,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=web-content&project='+pid})
   :c.inline==='productphoto'
   ?S.productPhotoStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='translate'
