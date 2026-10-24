@@ -353,3 +353,37 @@ test('pages read when the sheet opens: interactions first, progress line, cap sa
  assert.match(ui,/a\.api\(e,\{offset:off/);assert.ok(!/action:'(create|update|delete)'[^\n]*autoLoad/.test(ui));
  assert.match(ui,/function noteDialog\(/);assert.match(ui,/aria-haspopup','dialog'/);
 });
+
+test('every interaction of a contact, as /api/sales returns them, fills its own column and is counted by the name',()=>{
+ // Shape of GET /api/sales?entity=interactions (t.*): ISO dates with milliseconds, created_by null or a user, company set too.
+ const at=d=>new Date(NOW-d*DAY).toISOString();
+ const inter=[1,5,9,13,17].map((d,n)=>({workspace_id:'w',id:'x'+n,title:'Interazione '+(n+1),kind:['call','email','meeting','call','note'][n],occurred_at:at(d),body:'Esito: Risposto\nNota '+(n+1),company_id:'a',contact_id:'k1',opportunity_id:null,version:1,created_by:n%2?null:1}));
+ const rows=S.buildRows({contacts:[{id:'k1',name:'Giulia',company_id:'a'},{id:'k2',name:'Marco',company_id:'a'}],companies:[{id:'a',name:'Alfa'}],interactions:inter},{now:NOW});
+ assert.equal(rows[0].acts.length,5);assert.deepEqual(rows[0].acts.map(a=>a.id),['x0','x1','x2','x3','x4']);assert.equal(rows[1].acts.length,0);
+ const drawn=S.expand(S.defaults().columns,rows).filter(c=>c.base.id==='acts').map(c=>c.label);
+ assert.deepEqual(drawn,['Attività 1','Attività 2','Attività 3','Attività 4','Attività 5']);
+ assert.equal(S.countLabel(5),'5 attività');assert.equal(S.countLabel(1),'1 attività');assert.equal(S.countLabel(0),'');
+});
+
+test('activity columns cut off on the right are named in the hint (a 1920 px screen showed only part of «Attività 1»)',()=>{
+ // Grid geometry measured at 1920 px with the default columns: «Attività 1» starts at 1640, each 220 wide, grid in view up to 1700.
+ const cols=[{id:'todos:1',left:1480,right:1640},...[1,2,3,4,5].map(i=>({id:'acts:'+i,left:1420+220*i,right:1640+220*i}))];
+ let h=S.hiddenRight(cols,{left:300,right:1700});
+ assert.equal(h.count,5);assert.equal(h.first,'acts:1');assert.equal(h.text,'5 attività a destra (Attività 1–5) ›');
+ // After «›»: «Attività 1» starts right of the frozen columns, 1 and 2 wholly in view.
+ h=S.hiddenRight(cols,{left:1640,right:2120});assert.equal(h.count,3);assert.equal(h.first,'acts:3');assert.equal(h.text,'Altre 3 attività a destra (Attività 3–5) ›');
+ h=S.hiddenRight(cols,{left:2300,right:2730});assert.equal(h.text,'Un’altra attività a destra (Attività 5) ›');
+ h=S.hiddenRight(cols,{left:1640,right:2800});assert.equal(h.count,0);assert.equal(h.text,'');assert.equal(h.first,null);
+ assert.equal(S.hiddenRight([],{left:0,right:10}).count,0);
+});
+
+test('the sheet shows the hint, the count and visible scrollbars; on a phone a whole activity column fits',()=>{
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-sheet.js','utf8'),css=fs.readFileSync(__dirname+'/../sales/crm-sheet.css','utf8');
+ assert.match(ui,/C\(\)\.hiddenRight\(cols,/);assert.match(ui,/hint\(host\);\n autoLoad\(host,ctx\);/);assert.match(ui,/addEventListener\('scroll',\(\)=>hint\(host\)/);
+ assert.match(ui,/C\(\)\.countLabel\(r\.acts\.length\)/);
+ assert.match(css,/\.cs-scroll::-webkit-scrollbar\{width:12px;height:12px\}/);assert.ok(!/\.cs-scroll\{[^}]*scrollbar-(width|color)/.test(css),'standard scrollbar-* would turn the WebKit ones off in Chrome');
+ const phone=css.slice(css.indexOf('@media(max-width:700px)'));
+ assert.match(phone,/--cs-fzw:calc\(var\(--cs-name\) \+ var\(--cs-call\)\)/);assert.match(phone,/\.cs-table \.cs-fz-call\{left:var\(--cs-name\);/);
+ // 390 px: grid 352 px wide, frozen name + ☎ = 152 px; an activity column is at most 100vw - 196px, so one fits whole.
+ assert.ok(352-(116+36)>=Math.min(190,390-196));assert.match(phone,/max-width:min\(190px,calc\(100vw - 196px\)\)!important/);
+});

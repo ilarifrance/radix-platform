@@ -354,8 +354,27 @@ function progressText(p){
  return n?'Tutte le attività caricate ('+pages+').':'';
 }
 
+/* ---------- Activity columns out of sight (the hint next to the grid) ---------- */
+/* «N attività» under the contact's name, in the frozen block: how many columns it fills on the right. */
+const countLabel=n=>!Number.isFinite(n)||n<1?'':n===1?'1 attività':n+' attività';
+/* The «Attività N» columns are the last ones: on a 1920 px screen only part of «Attività 1» is in view,
+   at 1440 px and on a phone none, and macOS hides scrollbars, so a contact with five activities looked
+   like it had one. cols: the drawn activity headers [{id, label, left, right}] in grid pixels; view:
+   {left, right} the part of the grid in view right of the frozen columns. A column counts as seen only
+   when it is wholly in view. → {count, first, from, to, text} of the activity columns cut off on the
+   right (count 0: all in view). first: the id to scroll to. */
+function hiddenRight(cols,view){
+ const right=view&&Number.isFinite(view.right)?view.right:Infinity;
+ const out=list(cols).filter(c=>c&&/^acts:\d+$/.test(c.id)&&Number.isFinite(c.right)&&c.right>right+1);
+ if(!out.length)return {count:0,first:null,from:0,to:0,text:''};
+ const n=out.map(c=>Number(c.id.split(':')[1])).sort((a,b)=>a-b),from=n[0],to=n[n.length-1],count=out.length;
+ const all=from===1,range=from===to?'Attività '+from:'Attività '+from+'–'+to;
+ const text=(all?(count===1?'1 attività':count+' attività'):(count===1?'Un’altra attività':'Altre '+count+' attività'))+' a destra ('+range+') ›';
+ return {count,first:'acts:'+from,from,to,text};
+}
+
 const api={OUTCOMES,FOLLOW,KINDS,GROUPS,COLUMNS,MAX_MANY,colOf,headerGroups,columnsFor,expand,outcomeOf,shortNote,activities,todos,lastInteraction,nextActivity,topDeal,buildRows,actText,todoText,passes,matches,sortRows,apply,nextSort,
  storageKey,defaults,normalize,parse,toggleColumn,target,editValue,editPlan,callPlan,localDateTime,tomorrowAt9,merge,move,cellText,csvColumns,dateTime,fold,
- fullNote,paragraphs,isLong,PREVIEW,longDate,detail,LOAD_ORDER,PAGE_CAP,toLoad,progressText};
+ fullNote,paragraphs,isLong,PREVIEW,longDate,detail,LOAD_ORDER,PAGE_CAP,toLoad,progressText,countLabel,hiddenRight};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmSheet=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
