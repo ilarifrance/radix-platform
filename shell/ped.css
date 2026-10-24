@@ -466,3 +466,5 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .ped-results .opt-item span{display:flex;flex-direction:column;gap:3px;min-width:0}
 .ped-results .opt-item small{font-weight:600}
 .ped-results .opt-item em{font-style:normal;opacity:.75;font-size:.92em}
+/* Script with an open placeholder: no avatar video until it is completed. */
+.rx-ped .pp-warn{margin:8px 0;padding:8px 10px;border-radius:8px;background:#fff4e5;color:#7a4300;border:1px solid #f3c27a;font-size:13px}
