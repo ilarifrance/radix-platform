@@ -61,3 +61,8 @@
 .cs-slots-list button[aria-pressed=true]{background:var(--crm-accent,#3fe8bd);border-color:var(--crm-accent,#3fe8bd);color:var(--crm-on-accent,#04241c)}
 .cs-slots-wait{font-size:12.5px;color:var(--crm-muted,#9fbdc0)}
 .cs-slots-note{margin:0;font-size:12px;line-height:1.4;color:var(--crm-muted,#9fbdc0)}
+/* Editor «Modifica / Crea» (sales.js): data in ora italiana a tutta riga, «Slot liberi» sotto il campo. */
+#editor .editor-when{grid-column:1/-1;display:grid;gap:6px}
+#editor .editor-when small{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+#editor .editor-date-clear{min-height:32px;padding:2px 10px;font-size:12.5px}
+#editor .editor-slots{margin:4px 0 0}
