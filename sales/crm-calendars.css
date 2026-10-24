@@ -1,0 +1,20 @@
+/* Calendari (sales/crm-calendars.js): «Calendario da abbonare» in the Calendario page. Light CRM tokens (crm-light.css). */
+.cal-feed{display:grid;gap:10px}
+.cal-feed>h3{margin:0}
+.cal-feed .cal-empty{margin:0;line-height:1.45}
+.cal-feed-row{display:flex;gap:8px;align-items:stretch;min-width:0}
+.cal-feed-row input{flex:1;min-width:0;min-height:40px;padding:0 10px;font:13px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--crm-text,#e6f6f2);background:var(--crm-head,#0b2730);border:1px solid var(--crm-line-2,#2f8a80);border-radius:10px;text-overflow:ellipsis}
+.cal-feed-copy{flex:none;min-height:40px;padding:0 14px;border:0;border-radius:10px;background:var(--crm-accent,#3fe8bd);color:var(--crm-on-accent,#04241c);font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+.cal-feed-copy:focus-visible,.cal-feed-row input:focus-visible{outline:2px solid var(--crm-accent,#3fe8bd);outline-offset:2px}
+.cal-feed-note{margin:0;min-height:1em;font-size:12px;color:var(--crm-accent,#3fe8bd)}
+.cal-feed-note:empty{display:none}
+.cal-feed-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cal-feed-steps section{padding:10px 12px;border:1px solid var(--crm-line,#1f5a5c);border-radius:10px;min-width:0}
+.cal-feed-steps h4{margin:0 0 6px;font-size:13px;font-weight:600}
+.cal-feed-steps ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.5;color:var(--crm-muted,#9fbdc0)}
+.cal-feed-warn{margin:0;font-size:12px;line-height:1.45;color:var(--crm-muted,#9fbdc0)}
+.cal-feed-err{margin:0;font-size:13px;color:var(--crm-err,#ff6b6b)}
+/* The rail is a column above 1500px; below it is a row of cards, where the feed takes the whole row. */
+@media(min-width:1501px){.cal-feed-steps{grid-template-columns:1fr}}
+@media(max-width:1500px){.cal-rail .cal-feed{grid-column:1/-1}}
+@media(max-width:600px){.cal-feed-steps{grid-template-columns:1fr}.cal-feed-row{flex-direction:column}.cal-feed-copy{min-height:44px}}

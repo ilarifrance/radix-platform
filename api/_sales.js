@@ -7,6 +7,8 @@ const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
 const providerCallback=require('./_lead_provider_callback');
 const unsubscribe=require('./_sales_unsubscribe');
+// «Calendario da abbonare»: the person's CRM appointments as a signed iCalendar link (no session, no table).
+const calendarFeed=require('./_sales_calendar_feed');
 const clicks=require('./_sales_clicks');
 const importToken=require('./_lead_import_token');
 // Contact form of the Studio Sito sites (api/_site_form.js): public, its own per-site token, writes a contact and a note.
@@ -181,6 +183,8 @@ function createHandler({getSessionUser,getStore}){
    }
    // Public unsubscribe link from a campaign email: no session, the signed token is the permission.
    if(req.query?.unsubscribe!==undefined)return await unsubscribe.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
+   // Calendar subscription of Outlook / Google: no session, the signed per-user, per-workspace token is the permission.
+   if(req.query?.calendar!==undefined)return await calendarFeed.handle(req,res,{getStore,secret:calendarFeed.secretOf(process.env)});
    // Public tracked link from a campaign email: counts the click, then redirects where the email pointed.
    if(req.query?.click!==undefined)return await clicks.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
    // Contact form of a published site: no session, the per-site token in the page is the permission.
@@ -205,6 +209,9 @@ function createHandler({getSessionUser,getStore}){
      }else if(body?.entity==='lead_import_token'){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Richiesta collegamento estensione non valida.');
        c={workspace:body.workspace,entity:'lead_import_token',data:{}};
+     }else if(body?.entity==='calendar_feed'){
+       if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Richiesta link calendario non valida.');
+       c={workspace:body.workspace,entity:'calendar_feed',data:{}};
      }else if(body?.entity==='site_form_token'){
        // «Collega il modulo al CRM» of the Studio Sito: data.site is the RADIX project of the site.
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).join()!=='site'||typeof body.data.site!=='string'||!/^[a-z0-9][a-z0-9-]{1,79}$/.test(body.data.site))fail(400,'Richiesta collegamento modulo non valida.');
@@ -253,6 +260,8 @@ function createHandler({getSessionUser,getStore}){
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
+   // The link of «Calendario da abbonare»: every member, viewers included (the feed only shows what they can already read).
+   if(c.entity==='calendar_feed'){let token;try{token=calendarFeed.sign(calendarFeed.secretOf(process.env),{uid:user.uid,workspace:c.workspace})}catch{fail(503,'Link del calendario non disponibile: manca la chiave del server (JWT_SECRET).')}return res.status(200).json({token,path:'/api/sales?calendar='+token});}
    if(c.entity==='lead_provider_status'){
      if(req.method==='GET')return res.status(200).json(providerStatus.status());
      if(!['owner','admin'].includes(membership.role))fail(403,'Solo admin e owner possono verificare la connessione API.');
