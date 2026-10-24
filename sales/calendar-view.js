@@ -2,14 +2,15 @@
 /* Calendario CRM: settimana / giorno / mese, as in the CRM "Calendario" mockup.
    Events come from CRM rows only (crm-data.js): tasks by due date,
    interactions by date and kind, opportunity closings as all-day items.
-   The rail offers «Calendario da abbonare» (crm-calendars.js: the CRM appointments as a feed for Outlook / Google)
+   «Occupato» blocks come from the person's own Outlook / Google links (crm-calendars.js, «Calendari esterni»).
+   The rail offers «Calendario da abbonare» (the CRM appointments as a feed for Outlook / Google), «Calendari esterni»
    and a one-off .ics export. */
 (()=>{
 const content=document.getElementById('content'),nav=document.getElementById('navigation');if(!content||!nav)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const DAY=864e5,H0=8,H1=22,ROW=56;
 const DN=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-const TYPES={meeting:['Riunione','teal'],call:['Call','blue'],task:['Attività','purple'],email:['Email','gold'],note:['Nota','orange'],close:['Chiusura prevista','red']};
+const TYPES={meeting:['Riunione','teal'],call:['Call','blue'],task:['Attività','purple'],email:['Email','gold'],note:['Nota','orange'],close:['Chiusura prevista','red'],busy:['Occupato','gray']};
 const mid=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
 const monday=d=>{const x=mid(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
 const same=(a,b)=>mid(a).getTime()===mid(b).getTime();
@@ -25,7 +26,10 @@ function collect(d){const out=[],company=id=>d.companies.find(c=>c.id===id)?.nam
   for(const i of d.interactions){if(!i.occurred_at)continue;const s=new Date(i.occurred_at);if(!Number.isFinite(+s))continue;const k=TYPES[i.kind]?i.kind:'note';out.push({type:k,id:i.id,title:i.title,sub:company(i.company_id),start:s,end:new Date(+s+30*6e4),owner:'',href:'#interactions'})}
   for(const o of d.opportunities){if(!o.expected_close)continue;const s=new Date(o.expected_close+'T00:00:00');if(!Number.isFinite(+s))continue;out.push({type:'close',title:o.title,sub:company(o.company_id),start:s,allDay:true,owner:String(o.owner_id??''),href:'#opportunities'})}
   return out.sort((a,b)=>a.start-b.start)}
-function events(d){return collect(d).filter(e=>!state.off.has(e.type)&&(!state.owner||e.owner===state.owner))}
+// Busy time of the person's own Outlook / Google links (crm-calendars.js), for the 6 weeks of the month grid around the cursor.
+function busyRange(){const first=new Date(state.cursor.getFullYear(),state.cursor.getMonth(),1),s=monday(first);return [+s,+s+42*DAY+3600e3]}
+function external(){const C=window.RadixCrmCalendars;if(!C)return [];const me=String(window.RadixSalesApp?.state?.me??'');if(state.owner&&state.owner!==me)return [];const [a,b]=busyRange();return C.busyEvents(a,b)}
+function events(d){return [...collect(d),...external()].sort((a,b)=>a.start-b.start).filter(e=>!state.off.has(e.type)&&(e.type==='busy'||!state.owner||e.owner===state.owner))}
 window.RadixCrmCalendar={events:collect,TYPES};
 
 function mini(){const box=E('section',undefined,'cal-card cal-mini');const c=state.cursor,first=new Date(c.getFullYear(),c.getMonth(),1);
@@ -63,9 +67,9 @@ function month(list){const c=state.cursor,first=new Date(c.getFullYear(),c.getMo
 function rail(d,all){const r=E('aside',undefined,'cal-rail');const t=E('section',undefined,'cal-card');const now=new Date();t.append(E('h3','Oggi'),E('p',now.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'}),'cal-sub'));
   const today=all.filter(e=>same(e.start,now));if(!today.length)t.append(E('p','Niente in agenda oggi.','cal-empty'));
   for(const e of today.slice(0,5)){const row=E('a',undefined,'cal-agenda');row.href=e.href;row.append(E('time',e.allDay?'Tutto il giorno':hm(e.start)));const x=E('div');x.append(E('b',TYPES[e.type][0],TYPES[e.type][1]),E('span',e.title));row.append(x);t.append(row)}
-  r.append(t);const nx=all.find(e=>!e.allDay&&+e.start>Date.now()&&!e.done);const n=E('section',undefined,'cal-card cal-next');n.append(E('h3','Prossimo impegno'));
+  r.append(t);const nx=all.find(e=>!e.allDay&&e.type!=='busy'&&+e.start>Date.now()&&!e.done);const n=E('section',undefined,'cal-card cal-next');n.append(E('h3','Prossimo impegno'));
   if(nx){const mins=Math.round((nx.start-Date.now())/6e4);n.append(E('p',(mins<60?'Tra '+mins+' min':mins<1440?'Tra '+Math.round(mins/60)+' ore':nx.start.toLocaleDateString('it-IT',{day:'numeric',month:'short'})+' alle '+hm(nx.start))+': '+nx.title+(nx.sub?' con '+nx.sub:'')));const a=E('a','Apri','cal-btn');a.href=nx.href;n.append(a)}else n.append(E('p','Nessun impegno in programma.','cal-empty'));
-  r.append(n);if(window.RadixCrmCalendars)r.append(window.RadixCrmCalendars.feedBox());const s=E('section',undefined,'cal-card cal-sync');s.append(E('h3','Esporta una copia'),E('p','Un file .ics con gli impegni di oggi in poi, da importare una volta sola. Per averli sempre aggiornati usa «Calendario da abbonare».','cal-empty'));
+  r.append(n);if(window.RadixCrmCalendars)r.append(window.RadixCrmCalendars.feedBox(),window.RadixCrmCalendars.sourcesBox());const s=E('section',undefined,'cal-card cal-sync');s.append(E('h3','Esporta una copia'),E('p','Un file .ics con gli impegni di oggi in poi, da importare una volta sola. Per averli sempre aggiornati usa «Calendario da abbonare».','cal-empty'));
   const ics=window.RadixCrmIcs;if(ics){const b=E('button','Esporta per Google / Outlook (.ics)','cal-btn cal-ics');b.type='button';const note=E('p','','cal-empty cal-ics-note');note.setAttribute('aria-live','polite');
    b.onclick=()=>{const f=ics.build(d,{owner:state.owner,base:location.origin+location.pathname});if(!f.count){note.textContent='Nessun impegno da esportare'+(state.owner?' per questo responsabile.':'.');return}
     const a=E('a');a.href=URL.createObjectURL(new Blob([f.text],{type:'text/calendar;charset=utf-8'}));a.download='radix-crm-'+new Date().toISOString().slice(0,10)+'.ics';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
@@ -92,5 +96,5 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});
-addEventListener('hashchange',later);later();
+addEventListener('hashchange',later);document.addEventListener('radix-calendars-changed',later);later();
 })();

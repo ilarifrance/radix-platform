@@ -300,6 +300,19 @@ function freeSlots(opts){
  return out;
 }
 
-const api={parse,busy,merge,freeSlots,expand,rrule,duration,dateValue,unfold,resolveZone,zoned,wall,WINDOWS,DEFAULT_ZONE,DEFAULT_HOURS};
+/* The CRM's own appointments as busy time, with the same lengths as the calendar feed (api/_sales_calendar_feed.js):
+   open tasks with a due date assigned to `me` (60 minutes for «Appuntamento…», else 30), calls (30) and meetings (60)
+   recorded by `me`. Without `me`, every open task and every call/meeting. → [{start,end}] overlapping [from,to). */
+function crmBusy(data,opts){
+ const o=opts||{},me=o.me==null?null:String(o.me),from=Number.isFinite(o.from)?o.from:-Infinity,to=Number.isFinite(o.to)?o.to:Infinity,out=[];
+ const mine=v=>me===null||String(v==null?'':v)===me;
+ for(const t of (data&&data.tasks)||[]){if(t.status==='done'||!t.due_at||!mine(t.assignee_id))continue;const s=Date.parse(t.due_at);if(!Number.isFinite(s))continue;
+  const e=s+(/^appuntamento\b/i.test(String(t.title||'').trim())?60:30)*MIN;if(e>from&&s<to)out.push({start:s,end:e})}
+ for(const i of (data&&data.interactions)||[]){if(!['call','meeting'].includes(i.kind)||!i.occurred_at||(me!==null&&i.created_by!=null&&!mine(i.created_by)))continue;const s=Date.parse(i.occurred_at);if(!Number.isFinite(s))continue;
+  const e=s+(i.kind==='meeting'?60:30)*MIN;if(e>from&&s<to)out.push({start:s,end:e})}
+ return out.sort((a,b)=>a.start-b.start);
+}
+
+const api={parse,busy,merge,freeSlots,crmBusy,expand,rrule,duration,dateValue,unfold,resolveZone,zoned,wall,WINDOWS,DEFAULT_ZONE,DEFAULT_HOURS};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixFreeBusy=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
