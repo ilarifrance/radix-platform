@@ -39,7 +39,7 @@ const num=v=>Number.isInteger(v)&&v>=0?v:null;
 function counts({core,clients,projects,dashboard}={}){
  const c=core||crea(),d=dashboard&&typeof dashboard==='object'?dashboard:null;
  return {
-  servizi:c.CARDS.length,
+  servizi:c.listed?c.listed().length:c.CARDS.length,
   clienti:Array.isArray(clients)?clients.length:null,
   progetti:Array.isArray(projects)?projects.filter(p=>p&&p.status!=='archived').length:null,
   approvazioni:d&&d.approvalsSupported===true&&d.metrics?num(d.metrics.approvals):null
