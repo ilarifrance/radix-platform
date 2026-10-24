@@ -161,12 +161,13 @@
   if(state.busy)return;const d=draft();if(!d.subject||!d.body||!state.recipients.length)return;
   state.busy=true;$('nl-prepare').disabled=true;$('nl-send').hidden=true;say('nl-send-status','Preparo gli invii…');
   try{
-   const emails=N.buildEmails(state.recipients,d,state.hooks),urls=K.urlsIn(d.body),campaign=N.campaignName(d.subject),ids=emails.map(e=>e.contact.id),links={},clicks={};
-   for(let i=0;i<ids.length;i+=300){const r=await post('unsubscribe_links','create',{contacts:ids.slice(i,i+300),...(urls.length?{campaign,urls}:{})});Object.assign(links,r.links||{});Object.assign(clicks,r.clicks||{})}
-   const plan=K.withUnsubscribe(K.withTracking({emails,skipped:{}},clicks,urls,campaign,location.origin),links,location.origin);
+   const emails=N.buildEmails(state.recipients,d,state.hooks),urls=K.urlsIn(d.body),campaign=N.campaignName(d.subject),ids=emails.map(e=>e.contact.id),links={},clicks={};let optedOut=0;
+   // Opted-out contacts («Indirizzi disiscritti» included) get no unsubscribe link from the server, so they are left out.
+   for(let i=0;i<ids.length;i+=300){const r=await post('unsubscribe_links','create',{contacts:ids.slice(i,i+300),...(urls.length?{campaign,urls}:{})});Object.assign(links,r.links||{});Object.assign(clicks,r.clicks||{});optedOut+=r.opted_out||0}
+   const plan=K.withUnsubscribe(K.withTracking({emails,skipped:{}},clicks,urls,campaign,location.origin),links,location.origin);plan.skipped.optout=optedOut;plan.skipped.link=Math.max(0,plan.skipped.link-optedOut);
    const gmail=await gmailReady();state.plan=plan;state.sent.clear();
    const tracked=plan.emails.filter(e=>e.tracked).length;
-   say('nl-send-status',plan.emails.length+(plan.emails.length===1?' email pronta':' email pronte')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(tracked?' · link tracciati in '+tracked+' email («'+campaign+'»)':urls.length?' · link non tracciati':'')+(gmail?'.':' · invio non configurato: manca Gmail nelle integrazioni.'),!gmail);
+   say('nl-send-status',plan.emails.length+(plan.emails.length===1?' email pronta':' email pronte')+(plan.skipped.optout?' · '+plan.skipped.optout+' disiscritti esclusi':'')+(plan.skipped.link?' · '+plan.skipped.link+' senza link di disiscrizione, escluse':'')+(tracked?' · link tracciati in '+tracked+' email («'+campaign+'»)':urls.length?' · link non tracciati':'')+(gmail?'.':' · invio non configurato: manca Gmail nelle integrazioni.'),!gmail);
    $('nl-send').hidden=!gmail||!plan.emails.length;$('nl-send').disabled=false;$('nl-send').textContent='Invia a tutti ('+plan.emails.length+')';
   }catch(e){say('nl-send-status','Preparazione non riuscita: '+e.message,true)}
   finally{state.busy=false;$('nl-prepare').disabled=false}

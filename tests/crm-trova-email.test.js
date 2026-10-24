@@ -95,9 +95,11 @@ function fakeProvider(){
  })});
  return new Promise(r=>srv.listen(0,'127.0.0.1',()=>r({srv,seen,base:'http://127.0.0.1:'+srv.address().port})));
 }
-function fakeCrm(contacts,{order=null}={}){
- const db={contacts,saves:[],audit:[]};
+function fakeCrm(contacts,{order=null,suppressed=[]}={}){
+ const db={contacts,saves:[],audit:[],suppressed:new Set(suppressed)};
  db.sql=async(text,params)=>{const t=text.replace(/\s+/g,' ');
+  // «Indirizzi disiscritti» (017): hashes in, the hashes on the list out.
+  if(/^SELECT email_hash FROM sales_email_suppressions/.test(t))return params[1].filter(h=>db.suppressed.has(h)).map(email_hash=>({email_hash}));
   if(/FROM sales_segments/.test(t))return order?[{filters:{email_finder:{order}}}]:[];
   if(/FROM sales_contacts t LEFT JOIN sales_companies/.test(t))return db.contacts.filter(c=>params[1].includes(c.id)).map(c=>({...c}));
   if(/^INSERT INTO sales_audit/.test(t)){db.audit.push(params);return []}

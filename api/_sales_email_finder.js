@@ -11,6 +11,8 @@
    - POST result {provider:'dropcontact', request_id}: the batch, when ready.
    Every hit is saved through the normal contact update (sales_command: validation, version, audit) with a note
    «Email trovata con <fonte> il DD/MM/YYYY (qualifica: …): <email>»; an address replaces another only when better.
+   A hit already in «Indirizzi disiscritti» (migration sales 017, by hash) is saved and marked: a second note line
+   (SUPPRESSED_NOTE), suppressed:true on its row and in the count. OPTED_OUT then keeps it out of every send.
    Generic or role mailboxes (info@, commerciale@ …) are never a hit: at most the company's email when it has none.
    Keys (HUNTER_API_KEY, APOLLO_API_KEY, DROPCONTACT_API_KEY) are read only here, sent only to their provider, never
    logged or returned. *_API_BASE override the endpoints for tests (https only, or http on localhost). */
@@ -25,6 +27,7 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const uuid=v=>typeof v==='string'&&UUID.test(v);
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 const SYNC_MAX=10,BATCH_MAX=250;
+const SUPPRESSED_NOTE='Attenzione: questo indirizzo è nella lista «Indirizzi disiscritti» del workspace, non riceverà email commerciali.';
 const REQUEST_ID=/^[A-Za-z0-9_-]{1,100}$/;
 const clean=(v,max)=>{const t=String(v||'').replace(/[\u0000-\u001f\u007f]+/g,' ').trim();return t?t.slice(0,max):undefined};
 const keyOk=v=>String(v||'').length>=8;
@@ -199,17 +202,22 @@ function personOf(c){
 async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,now=Date.now(),getPage=sitePage,save,budgetMs=12000}){
  if(!c.action){const order=await orderOf(sql,c.workspace);return {rows:[{chain:F.chain(order,configuredMap(env)),order,can_configure:['owner','admin'].includes(role),sync_max:SYNC_MAX,batch_max:BATCH_MAX}]}}
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
- const out={saved:0,guessed:0,company:0,not_found:0,already:0,failed:0,resolved:[],rows:[]};
+ const out={saved:0,guessed:0,company:0,not_found:0,already:0,failed:0,suppressed:0,resolved:[],rows:[]};
  const companiesDone=new Set();
  // Save a hit on the contact if it is better than what the contact has; record the outcome.
  async function keep(contact,hit,source){
   const cur=P.emailOk(contact.email)?P.qualificationRank(P.findingOf(contact)?P.qualificationOf(contact):'verificata'):0,rank=P.qualificationRank(hit.qualification);
   if(rank<=cur){if(cur>=2)out.resolved.push(contact.id);out.already++;return}
-  const note=P.finderNote(now,hit.qualification,hit.email,source),notes=contact.notes?contact.notes+'\n\n'+note:note;
+  // «Indirizzi disiscritti»: an address on the list is still the person's, so it is saved, but marked.
+  let suppressed=false;
+  try{suppressed=(await optout.suppressedSet(sql,c.workspace,[hit.email])).size>0}
+  catch(e){if(!(e&&e.code==='42P01')){out.failed++;out.rows.push({id:contact.id,name:contact.name,error:'Controllo degli indirizzi disiscritti non riuscito: email non salvata.'});return}}
+  const note=P.finderNote(now,hit.qualification,hit.email,source)+(suppressed?'\n'+SUPPRESSED_NOTE:''),notes=contact.notes?contact.notes+'\n\n'+note:note;
   if(notes.length>4000){out.failed++;out.rows.push({id:contact.id,name:contact.name,error:'Note del contatto piene: email non salvata.'});return}
   try{await save('contacts',{id:contact.id,version:contact.version,email:hit.email,notes});contact.email=hit.email;contact.notes=notes;contact.version++;
    if(rank>=2){out.saved++;out.resolved.push(contact.id)}else out.guessed++;
-   out.rows.push({id:contact.id,name:contact.name,email:hit.email,qualification:hit.qualification,source})}
+   if(suppressed)out.suppressed++;
+   out.rows.push({id:contact.id,name:contact.name,email:hit.email,qualification:hit.qualification,source,...(suppressed?{suppressed:true}:{})})}
   catch(e){out.failed++;out.rows.push({id:contact.id,name:contact.name,error:e&&e.status?e.message:'Salvataggio non riuscito: riprova.'})}
  }
  // A generic mailbox is the company's, never the person's: saved only when the company has no email.
@@ -274,4 +282,4 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
  }
  return {...out,ready:true,provider:p.label};
 }
-module.exports={command,query,handle,dropcontactBest,personOf,sitePage,hasMx,PROVIDERS,SYNC_MAX,BATCH_MAX,FinderError};
+module.exports={command,query,handle,dropcontactBest,personOf,sitePage,hasMx,PROVIDERS,SYNC_MAX,BATCH_MAX,SUPPRESSED_NOTE,FinderError};

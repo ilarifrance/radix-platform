@@ -22,7 +22,7 @@ function wellFormed(svg){const st=[];for(const m of svg.matchAll(/<(\/?)([a-zA-Z
 test('card in Crea (Brand), studio wired, agents doc keeps «logoVector»',()=>{
  const core=require('../agency/crea-core.js'),card=core.CARDS.find(c=>c.id==='logovettoriale');
  assert.equal(card.title,'Logo in vettoriale');assert.equal(card.group,'Brand');assert.equal(card.inline,'logovector');assert.match(card.cost,/Nessuna chiamata AI/);
- assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita','logovettoriale','tono','coordinato']);
+ assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita','logovettoriale','tono','coordinato','icone']);
  assert.equal(core.fromAsk('?q=vettorializzare il logo').match,'logovettoriale');assert.equal(core.fromAsk('?q=logo e colori').match,'identita');
  const html=read('agency/crea.html');assert.ok(html.indexOf('/lib/logo-trace.js')>0&&html.indexOf('/lib/logo-trace.js')<html.indexOf('/lib/logo-vector-studio.js'));assert.ok(html.indexOf('/lib/identity-studio.js')<html.indexOf('/lib/logo-vector-studio.js'));
  assert.match(read('agency/crea.js'),/logovector:\{global:'RadixLogoVectorStudio'/);assert.match(read('agency/crea.js'),/S\.logoVectorStudio\(\{/);

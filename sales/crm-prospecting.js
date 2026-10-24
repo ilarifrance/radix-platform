@@ -32,7 +32,7 @@ async function run(ids){
  if(r.reason==='none'){a.notice('Nessun contatto da cercare: servono nome e azienda e nessuna email'+(r.skipped.email?' ('+r.skipped.email+' hanno già un’email)':'')+'.');return}
  if(r.reason==='cancelled'){a.notice('Ricerca annullata: nessun dato inviato.');return}
  const paid=Object.entries(r.paid).map(([id,x])=>(F().byId(id)||{}).label+': '+x.saved+' trovate');
- a.notice('Trova email: '+n(r.free.saved,'email trovata','email trovate')+' gratis sul sito aziendale'+(r.free.guessed?', '+r.free.guessed+' da verificare (schema del sito)':'')+(r.free.company?', '+n(r.free.company,'email aziendale salvata','email aziendali salvate')+' sull’azienda':'')+(paid.length?' · '+paid.join(' · '):'')+(r.reason==='paid-cancelled'?' · servizi a pagamento non usati':'')+' · senza email buona: '+r.remaining+'.');
+ a.notice('Trova email: '+n(r.free.saved,'email trovata','email trovate')+' gratis sul sito aziendale'+(r.free.guessed?', '+r.free.guessed+' da verificare (schema del sito)':'')+(r.free.company?', '+n(r.free.company,'email aziendale salvata','email aziendali salvate')+' sull’azienda':'')+(paid.length?' · '+paid.join(' · '):'')+(r.reason==='paid-cancelled'?' · servizi a pagamento non usati':'')+(r.suppressed?' · '+n(r.suppressed,'indirizzo è','indirizzi sono')+' nella lista dei disiscritti: salvat'+(r.suppressed===1?'o ma non riceverà email':'i ma non riceveranno email'):'')+' · senza email buona: '+r.remaining+'.');
  try{await a.refresh(false)}catch{}
 }
 function button(ids){
