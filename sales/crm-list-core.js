@@ -140,7 +140,8 @@ function normalize(kind,saved){
  const all=cols(kind),ids=new Set(all.map(c=>c.id)),views=(VIEWS[kind]||[]).map(v=>v.id);
  const out={...def};
  if(views.includes(saved.view))out.view=saved.view;
- if(saved.mode==='cards'||saved.mode==='table')out.mode=saved.mode;
+ // «Foglio chiamate» (crm-sheet.js) is a third mode of Contatti only.
+ if(saved.mode==='cards'||saved.mode==='table'||(kind==='contacts'&&saved.mode==='sheet'))out.mode=saved.mode;
  if(typeof saved.division==='string'&&saved.division.length<=120)out.division=saved.division;
  if(Array.isArray(saved.columns)){const chosen=all.filter(c=>c.fixed||saved.columns.includes(c.id)).map(c=>c.id);if(chosen.length)out.columns=chosen}
  if(saved.sort&&ids.has(saved.sort.key))out.sort={key:saved.sort.key,dir:saved.sort.dir==='desc'?'desc':'asc'};
