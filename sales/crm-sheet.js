@@ -10,6 +10,7 @@
      command as the edit form); a refusal is shown in the cell and the old value comes back.
    - «Registra chiamata»: outcome + optional note → one interactions create (kind call); «Richiamare» and
      «Appuntamento» with a date also create the task that becomes the next activity. No email is sent.
+     «Slot liberi» (crm-calendars.js) proposes free times from Outlook / Google and the CRM; a click fills the date.
    - Every interaction has its «Attività» column: when the sheet opens it reads by itself the pages not
      loaded yet (reads only, a progress line under the toolbar). A cell shows two lines of the note; a
      click, Enter or Space opens the whole text (noteDialog), a bottom sheet on a phone.
@@ -281,12 +282,14 @@ function callDialog(r,host,ctx){
  const canTask=a.writable('tasks');
  const fl=E('label',undefined,'cs-follow');const fcb=E('input');fcb.type='checkbox';fcb.checked=canTask;fcb.disabled=!canTask;const when=E('input');when.type='datetime-local';when.value=C().tomorrowAt9(Date.now());when.disabled=!canTask;
  fl.append(fcb,E('span',' Con «Richiamare» o «Appuntamento» crea la prossima attività per il '),when);
+ // «Slot liberi» (crm-calendars.js): free time from Outlook / Google and the CRM; a click fills the date.
+ const slots=canTask&&window.RadixCrmCalendars?window.RadixCrmCalendars.slotPicker({onPick:v=>{when.value=v;fcb.checked=true}}):null;
  const err=E('p',undefined,'notice');err.hidden=true;err.setAttribute('role','alert');
  const outs=E('div',undefined,'cs-outs');outs.setAttribute('role','group');outs.setAttribute('aria-label','Esito: un clic registra la chiamata');
  const buttons=[];
  for(const [k,l] of Object.entries(C().OUTCOMES)){const b=B(l,()=>go(k),'cs-out-btn cs-out-'+k);buttons.push(b);outs.append(b)}
  const close=B('Annulla',()=>dlg.close(),'lv-ghost');
- dlg.replaceChildren(h,who,phones,E('p','Scegli l’esito: un clic registra la chiamata. Nessuna email viene inviata.','muted cs-hint'),outs,noteL,fl,err,close);
+ dlg.replaceChildren(h,who,phones,E('p','Scegli l’esito: un clic registra la chiamata. Nessuna email viene inviata.','muted cs-hint'),outs,noteL,fl,...(slots?[slots]:[]),err,close);
  async function go(k){
   const plan=C().callPlan(r,{outcome:k,note:note.value,follow:fcb.checked?when.value:''},Date.now(),a.state.me);
   if(plan.error){err.textContent=plan.error;err.hidden=false;return}
