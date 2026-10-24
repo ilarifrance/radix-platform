@@ -32,13 +32,25 @@ function shortNote(body,max){
  const lines=String(body??'').split(/\r?\n/);if(lines.length&&/^\s*Esito:/i.test(lines[0]))lines.shift();
  const s=lines.join(' ').replace(/\s+/g,' ').trim(),m=max||80;return s.length>m?s.slice(0,m-1).trimEnd()+'…':s;
 }
+/* The whole text after the «Esito:» line, as written: line breaks kept (Windows ones made plain),
+   spaces at line ends dropped, at most one empty line between paragraphs, no empty lines around. */
+function fullNote(body){
+ const lines=String(body??'').replace(/\r\n?/g,'\n').split('\n');if(lines.length&&/^\s*Esito:/i.test(lines[0]))lines.shift();
+ return lines.map(l=>l.replace(/[ \t]+$/,'')).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+/* Paragraphs of a note (split on empty lines), each keeping its own line breaks. */
+const paragraphs=t=>text(t)?text(t).split(/\n\s*\n/).map(p=>p.trim()).filter(Boolean):[];
+/* What a cell can show in its two lines: longer texts, or texts on more lines, open in full on click. */
+const PREVIEW=160;
+const isLong=t=>text(t).length>90||/\n/.test(text(t));
 
 /* Every interaction of a contact already done (occurred_at not after now + 1 minute of clock skew),
    most recent first: one entry per sheet column «Attività 1, 2, …». */
 function activities(interactions,contactId,now){
  const out=[];
  for(const i of list(interactions)){if(!i||i.contact_id!==contactId)continue;const at=ts(i.occurred_at);if(at==null||at>now+60e3)continue;
-  out.push({at,id:i.id,kind:text(i.kind),title:text(i.title),outcome:outcomeOf(i.body),note:shortNote(i.body,80),record:i})}
+  const full=fullNote(i.body);
+  out.push({at,id:i.id,kind:text(i.kind),title:text(i.title),outcome:outcomeOf(i.body),note:shortNote(i.body,80),preview:shortNote(i.body,PREVIEW),text:full,long:isLong(full),author:i.created_by??null,record:i})}
  return out.sort((a,b)=>b.at-a.at||String(b.id).localeCompare(String(a.id)));
 }
 const lastInteraction=(interactions,contactId,now)=>activities(interactions,contactId,now)[0]||null;
@@ -48,9 +60,10 @@ const lastInteraction=(interactions,contactId,now)=>activities(interactions,cont
 function todos(tasks,interactions,contactId,now){
  const out=[];
  for(const t of list(tasks)){if(!t||t.contact_id!==contactId||t.status==='done')continue;const at=ts(t.due_at);
-  out.push({at,id:t.id,source:'task',title:text(t.title)||'Attività',overdue:at!=null&&at<now,record:t})}
+  out.push({at,id:t.id,source:'task',title:text(t.title)||'Attività',overdue:at!=null&&at<now,text:'',long:text(t.title).length>60,record:t})}
  for(const i of list(interactions)){if(!i||i.contact_id!==contactId)continue;const at=ts(i.occurred_at);if(at==null||at<=now+60e3)continue;
-  out.push({at,id:i.id,source:'interaction',kind:text(i.kind),title:text(i.title)||KINDS[i.kind]||'Interazione',overdue:false,record:i})}
+  const full=fullNote(i.body);
+  out.push({at,id:i.id,source:'interaction',kind:text(i.kind),title:text(i.title)||KINDS[i.kind]||'Interazione',overdue:false,text:full,long:isLong(full),record:i})}
  return out.sort((a,b)=>(a.at==null)-(b.at==null)||(a.at??0)-(b.at??0)||String(a.id).localeCompare(String(b.id)));
 }
 const nextActivity=(tasks,interactions,contactId,now)=>todos(tasks,interactions,contactId,now)[0]||null;
@@ -114,7 +127,9 @@ function headerGroups(cols){
  }
  return out;
 }
-const MAX_MANY=50;
+/* Every interaction gets its column («A destra ci devono essere tutte le attività»): the cap only guards
+   the page against a broken record set (500 columns per kind, far beyond a real contact's history). */
+const MAX_MANY=500;
 const colOf=id=>COLUMNS.find(c=>c.id===id)||null;
 function columnsFor(opts){return COLUMNS.filter(c=>!(c.added&&opts&&opts.added===false))}
 /* The columns drawn: chosen base columns, with «todos»/«acts» spread into one column per entry
@@ -169,7 +184,7 @@ function passes(row,f,now){
 }
 const SEARCH=['name','title','role','phone','mobile','email','company','industry','country','city','companyPhone','stage'];
 function matches(row,query){const q=fold(query);if(!q)return true;
- const extra=[...list(row.acts).map(a=>a.title+' '+a.note+' '+(a.outcome?OUTCOMES[a.outcome]:'')),...list(row.todos).map(t=>t.title)];
+ const extra=[...list(row.acts).map(a=>a.title+' '+(a.text??a.note)+' '+(a.outcome?OUTCOMES[a.outcome]:'')),...list(row.todos).map(t=>t.title)];
  return q.split(/\s+/).every(w=>SEARCH.some(k=>fold(row[k]).includes(w))||extra.some(x=>fold(x).includes(w)))}
 const collator=typeof Intl!=='undefined'?new Intl.Collator('it',{sensitivity:'base',numeric:true}):null;
 const cmpText=(a,b)=>collator?collator.compare(a,b):a<b?-1:a>b?1:0;
@@ -293,7 +308,54 @@ function cellText(row,col){
 }
 function csvColumns(drawn){return list(drawn).map(c=>({label:c.id==='revenue'?'Fatturato (EUR)':c.label,value:r=>cellText(r,c)}))}
 
+/* ---------- Full text of one activity or to-do (the panel opened from its cell) ---------- */
+const WEEKDAYS=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+const longDate=t=>t==null?'':WEEKDAYS[new Date(t).getDay()]+' '+dateTime(t).replace(' ',', ');
+const TASK_STATUS=Object.freeze({todo:'Da fare',doing:'In corso',done:'Fatta'});
+const PRIORITY=Object.freeze({low:'Bassa',normal:'Normale',high:'Alta',urgent:'Urgente'});
+const memberName=(members,id)=>{if(id==null||id==='')return '';const m=list(members).find(x=>x&&String(x.id)===String(id));return m?text(m.name)||text(m.email):''};
+/* entry: one of row.acts or row.todos. opts.members: the workspace members (for the author).
+   → {kind:'act'|'todo', heading, when, kindLabel, outcome, title, paragraphs, facts, late, position, contact}. */
+function detail(row,entry,opts){
+ if(!row||!entry)return null;const members=opts&&opts.members,r=entry.record||{};
+ const todo=!!entry.source,listOf=todo?list(row.todos):list(row.acts),i=listOf.indexOf(entry);
+ const kindLabel=todo&&entry.source==='task'?'Attività da fare':KINDS[entry.kind]||entry.kind||'Interazione';
+ const facts=[];
+ if(todo&&entry.source==='task'){
+  if(r.status&&TASK_STATUS[r.status])facts.push(['Stato',TASK_STATUS[r.status]]);
+  if(r.priority&&PRIORITY[r.priority])facts.push(['Priorità',PRIORITY[r.priority]]);
+  const who=memberName(members,r.assignee_id);if(who)facts.push(['Assegnata a',who]);
+ }else{const who=memberName(members,r.created_by);if(who)facts.push(['Registrata da',who])}
+ if(todo&&entry.source==='interaction')facts.push(['In calendario','interazione futura']);
+ const title=text(entry.title);
+ return {kind:todo?'todo':'act',
+  heading:kindLabel+(entry.outcome?' · '+OUTCOMES[entry.outcome]:''),
+  when:entry.at==null?'Senza scadenza':(todo?'Scadenza: ':'')+longDate(entry.at),
+  kindLabel,outcome:entry.outcome?{key:entry.outcome,label:OUTCOMES[entry.outcome]}:null,
+  title,paragraphs:paragraphs(entry.text),facts,late:!!entry.overdue,
+  position:i<0?'':(todo?'Da fare ':'Attività ')+(i+1)+' di '+listOf.length,
+  contact:row.name+(row.company?' · '+row.company:'')};
+}
+
+/* ---------- Loading every page when the sheet opens (reads only) ---------- */
+// What the sheet joins, in reading order: interactions first, they fill the «Attività» columns.
+const LOAD_ORDER=Object.freeze(['interactions','tasks','companies','opportunities']);
+const LOAD_NAMES=Object.freeze({interactions:'interazioni',tasks:'attività',companies:'aziende',opportunities:'trattative'});
+const PAGE_CAP=30;
+/* Entities still partial (more[e] true), in LOAD_ORDER. */
+const toLoad=more=>LOAD_ORDER.filter(e=>more&&more[e]);
+/* The progress line: p = {entity, pages (read so far), done, capped: [entities left partial at the cap], failed}. */
+function progressText(p){
+ const s=p||{},n=s.pages||0,pages=n+(n===1?' pagina letta':' pagine lette');
+ if(s.failed)return 'Caricamento delle attività interrotto: '+s.failed+' Premi «Completa i dati» per riprovare.';
+ if(!s.done)return 'Carico tutte le attività: '+(LOAD_NAMES[s.entity]||s.entity||'dati')+', '+pages+'…';
+ const capped=list(s.capped);
+ if(capped.length)return 'Lette '+PAGE_CAP+' pagine di '+capped.map(e=>LOAD_NAMES[e]||e).join(', ')+' (limite per volta): ne restano altre, premi «Completa i dati» per continuare.';
+ return n?'Tutte le attività caricate ('+pages+').':'';
+}
+
 const api={OUTCOMES,FOLLOW,KINDS,GROUPS,COLUMNS,MAX_MANY,colOf,headerGroups,columnsFor,expand,outcomeOf,shortNote,activities,todos,lastInteraction,nextActivity,topDeal,buildRows,actText,todoText,passes,matches,sortRows,apply,nextSort,
- storageKey,defaults,normalize,parse,toggleColumn,target,editValue,editPlan,callPlan,localDateTime,tomorrowAt9,merge,move,cellText,csvColumns,dateTime,fold};
+ storageKey,defaults,normalize,parse,toggleColumn,target,editValue,editPlan,callPlan,localDateTime,tomorrowAt9,merge,move,cellText,csvColumns,dateTime,fold,
+ fullNote,paragraphs,isLong,PREVIEW,longDate,detail,LOAD_ORDER,PAGE_CAP,toLoad,progressText};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmSheet=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
