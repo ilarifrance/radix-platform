@@ -84,7 +84,7 @@ test('composerPlan: call, event and task create the existing entities linked to 
  assert.equal(core.composerPlan('call',{},'opportunities',opp,NOW,rows).data.title,'Chiamata con Giulia Rossi','on an opportunity the default title names the contact');
  assert.equal(core.composerPlan('meeting',{when:'2026-10-21T15:30'},'opportunities',opp,NOW,rows).data.title,'Riunione con Giulia Rossi');
  const when='2026-10-21T15:30';const ev=core.composerPlan('meeting',{title:'Demo',when},'companies',company,NOW);
- assert.equal(ev.entity,'interactions');assert.equal(ev.data.kind,'meeting');assert.equal(ev.data.occurred_at,new Date(when).toISOString().slice(0,19)+'Z');
+ assert.equal(ev.entity,'interactions');assert.equal(ev.data.kind,'meeting');assert.equal(ev.data.occurred_at,'2026-10-21T13:30:00Z','ora italiana (CEST, +2), whatever the browser zone');
  assert.match(core.composerPlan('meeting',{title:'Demo',when:''},'companies',company,NOW).error,/data e ora/);
  assert.match(core.composerPlan('call',{when:'domani'},'companies',company,NOW).error,/non valide/);
  const task=core.composerPlan('task',{title:'Preventivo',due:'',priority:'high',assignee_id:'7'},'contacts',contact,NOW);

@@ -170,7 +170,8 @@ function buildRows(data,opts){
 
 /* Filters (saved): outcome of the last interaction ('' all, 'never' no interaction, 'none' no outcome, or a key),
    to-do ('' all, 'overdue', 'today' due by the end of today, 'week' within 7 days, 'none' nothing open). */
-function endOfDay(now){const d=new Date(now);d.setHours(24,0,0,0);return +d}
+// End of today = the next midnight in Rome (RadixCrmDates), whatever the browser's zone.
+function endOfDay(now){return dates().dayEnd(now)}
 function passes(row,f,now){
  const o=(f&&f.outcome)||'',n=(f&&f.next)||'';
  if(o==='never'&&row.last)return false;
@@ -240,7 +241,7 @@ function editPlan(row,col,raw){
 }
 
 /* «Registra chiamata»: one interactions create (kind call, now) on the contact and its company.
-   input: {outcome, note, follow: 'YYYY-MM-DDTHH:mm' local date-time or ''}. With «Richiamare» or
+   input: {outcome, note, follow: 'YYYY-MM-DDTHH:mm' in ora italiana or ''}. With «Richiamare» or
    «Appuntamento» and a date, also one tasks create with that due date (the next activity). */
 function callPlan(row,input,now,me){
  const i=input||{},n=Number.isFinite(now)?now:Date.now();
@@ -259,14 +260,16 @@ function callPlan(row,input,now,me){
  }
  return {error:null,interaction,task};
 }
-/* 'YYYY-MM-DDTHH:mm' (an <input type=datetime-local>) in local time → ms, or null. */
+// The follow-up date is in ora italiana (Europe/Rome, sales/crm-dates-core.js), like «Slot liberi» that fills it.
+const dates=()=>root.RadixCrmDates||(typeof require==='function'?require('./crm-dates-core.js'):null);
+/* 'YYYY-MM-DDTHH:mm' (an <input type=datetime-local>) in ora italiana → ms, or null. */
 function localDateTime(v){
- const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(text(v));if(!m)return null;
- const d=new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],0,0);
- return d.getFullYear()===+m[1]&&d.getMonth()===+m[2]-1&&d.getDate()===+m[3]&&d.getHours()===+m[4]?+d:null;
+ if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text(v)))return null;
+ // An hour that does not exist (spring forward, 02:00–02:59) is refused, as before.
+ const ms=dates().fromInputMs(text(v));return ms!=null&&dates().inputAt(ms)===text(v)?ms:null;
 }
-/* Default for «Richiamare»: tomorrow at 9:00 local, as the datetime-local value. */
-function tomorrowAt9(now){const d=new Date(now);d.setDate(d.getDate()+1);d.setHours(9,0,0,0);const p=x=>String(x).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T09:00'}
+/* Default for «Richiamare»: tomorrow (in Rome) at 9:00, as the datetime-local value in ora italiana. */
+function tomorrowAt9(now){const day=dates().inputAt(now).slice(0,10);return new Date(Date.parse(day+'T12:00:00Z')+864e5).toISOString().slice(0,10)+'T09:00'}
 
 /* After a write: the row the server returned replaces (or joins) the loaded rows, so the sheet
    updates at once without reloading every page («Carica altri 100» pages stay loaded). */
@@ -291,7 +294,7 @@ function move(pos,key,rows,cols,opts){
 
 /* CSV of the grid as shown: visible columns, visible rows, values as text. */
 const pad=x=>String(x).padStart(2,'0');
-const dateTime=t=>{if(t==null)return '';const d=new Date(t);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())};
+const dateTime=t=>t==null?'':dates().dateTimeLabel(t);// «24/10/2026 14:30» in ora italiana
 function actText(a){if(!a)return '';return [dateTime(a.at),KINDS[a.kind]||a.kind,a.outcome?OUTCOMES[a.outcome]:a.title,a.note].filter(Boolean).join(' · ')}
 function todoText(t){if(!t)return '';return [t.at!=null?dateTime(t.at):'senza scadenza',t.title,t.overdue?'scaduta':''].filter(Boolean).join(' · ')}
 /* Text of one drawn column (from expand, or a base column id) for a row: what the CSV holds. */
@@ -310,7 +313,7 @@ function csvColumns(drawn){return list(drawn).map(c=>({label:c.id==='revenue'?'F
 
 /* ---------- Full text of one activity or to-do (the panel opened from its cell) ---------- */
 const WEEKDAYS=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
-const longDate=t=>t==null?'':WEEKDAYS[new Date(t).getDay()]+' '+dateTime(t).replace(' ',', ');
+const longDate=t=>t==null?'':WEEKDAYS[dates().weekday(dates().dayOf(t))]+' '+dateTime(t).replace(' ',', ');
 const TASK_STATUS=Object.freeze({todo:'Da fare',doing:'In corso',done:'Fatta'});
 const PRIORITY=Object.freeze({low:'Bassa',normal:'Normale',high:'Alta',urgent:'Urgente'});
 const memberName=(members,id)=>{if(id==null||id==='')return '';const m=list(members).find(x=>x&&String(x.id)===String(id));return m?text(m.name)||text(m.email):''};

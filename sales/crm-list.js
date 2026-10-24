@@ -13,9 +13,10 @@ const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventL
 const NAME={contacts:{one:'contatto',many:'contatti',title:'Contatti'},companies:{one:'azienda',many:'aziende',title:'Aziende'}};
 const KIND={email:'Email',call:'Chiamata',meeting:'Riunione',note:'Nota',linkedin:'LinkedIn'};
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
-const hhmm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-const fullDate=t=>t==null?'':new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-const shortDate=t=>t==null?'':new Date(t).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+// Dates and times in ora italiana, whatever the browser's zone.
+const hhmm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+const fullDate=t=>t==null?'':new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+const shortDate=t=>t==null?'':new Date(t).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Rome'});
 
 /* Per-kind state; prefs live in localStorage per workspace (wrapped: storage may be blocked). */
 const st={contacts:{selected:new Set(),query:'',pending:null},companies:{selected:new Set(),query:'',pending:null}};

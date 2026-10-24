@@ -166,7 +166,7 @@ const mailHref=v=>/^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(text(v))?'mailto:'+
 const telHref=v=>{const s=text(v).replace(/[^\d+]/g,'');return s.replace(/\D/g,'').length>=5?'tel:'+s:null};
 
 /* «oggi», «ieri», «12 g fa»; older than a year shows the date. */
-function ago(at,now){if(at==null)return '';const n=Math.floor(((now??Date.now())-at)/DAY);if(n<=0)return 'oggi';if(n===1)return 'ieri';if(n<365)return n+' g fa';const d=new Date(at);return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
+function ago(at,now){if(at==null)return '';const n=Math.floor(((now??Date.now())-at)/DAY);if(n<=0)return 'oggi';if(n===1)return 'ieri';if(n<365)return n+' g fa';return new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Rome'}).format(at)}
 
 const api={KINDS,COLUMNS,setCustom,cols,VIEWS,NONE,divisions,inDivision,RECENT_DAYS,IDLE_DAYS,buildRows,inView,matches,sortRows,apply,storageKey,columnsFor,defaults,normalize,parse,nextSort,toggleColumn,selectionState,toggleAll,prune,contactsOf,websiteHref,mailHref,telHref,profileUrl,ago,fold};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmList=api;

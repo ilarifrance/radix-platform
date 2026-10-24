@@ -112,13 +112,15 @@ function recipientFor(subject,rec,related){
 }
 
 const utc=ms=>new Date(ms).toISOString().slice(0,19)+'Z';
-// Value of an <input type="datetime-local"> (browser local time) as the API's UTC timestamp.
+// Dates of the composer are in ora italiana (Europe/Rome, sales/crm-dates-core.js), like the editor and «Slot liberi».
+const dates=()=>root.RadixCrmDates||(typeof require==='function'?require('./crm-dates-core.js'):null);
+// Value of an <input type="datetime-local"> (ora italiana) as the API's UTC timestamp.
 function localToUtc(value){
  const v=String(value||'').trim();if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(v))return null;
- const ms=new Date(v).getTime();return Number.isFinite(ms)?utc(ms):null;
+ const ms=dates().fromInputMs(v);return ms==null?null:utc(ms);
 }
-// Now as a datetime-local value (for the default of the form).
-function localInput(ms){const d=new Date(ms??Date.now());const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+// Now as a datetime-local value in ora italiana (for the default of the form).
+function localInput(ms){return dates().inputAt(ms??Date.now());}
 
 // Who a call or meeting is with: the person when the record has one (an opportunity's contact,
 // then its company), otherwise the record's own name. Used for the default title.

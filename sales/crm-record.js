@@ -30,7 +30,7 @@ function paint(out,entry){
  if(s.complete){for(const [k,label] of [['situation','Situazione'],['risks','Rischi'],['next','Prossimo passo consigliato']]){const b=E('div',undefined,'crm-rec-part crm-rec-'+k);b.append(E('h4',label),E('p',s[k]));out.append(b)}}
  else out.append(E('p',s.raw,'crm-rec-raw'));
  out.append(E('p','Generato da AI: verifica prima di usarlo.','crm-rec-warn'));
- out.append(E('small','Generato alle '+new Date(entry.at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' dai dati di questa scheda.','crm-rec-meta'));
+ out.append(E('small','Generato alle '+new Date(entry.at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})+' dai dati di questa scheda.','crm-rec-meta'));
 }
 function repaint(key){for(const out of boxes.get(key)||[]){if(out.isConnected)paint(out,summaries.get(key));else boxes.get(key).delete(out)}const btn=document.querySelector('.crm-rec-ai[data-key="'+CSS.escape(key)+'"] .crm-rec-generate');if(btn)label(btn,summaries.get(key))}
 function label(btn,entry){btn.textContent=entry&&entry.status==='done'?'Rigenera riepilogo':'Genera riepilogo';btn.disabled=!!entry&&entry.status==='busy';btn.setAttribute('aria-busy',String(!!entry&&entry.status==='busy'))}
