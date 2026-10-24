@@ -139,7 +139,7 @@ function paidConfirmText(k,ch){
    no paid provider is called before the second. */
 async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,ms)),progress=()=>{},configured={},order=DEFAULT_ORDER,chunk=8,pollMs=20000,maxPolls=45}){
  const pick=candidates(contacts),ch=chain(order,configured);
- const out={ran:false,free:{saved:0,guessed:0,company:0},paid:{},remaining:0,skipped:pick.skipped};
+ const out={ran:false,free:{saved:0,guessed:0,company:0},paid:{},remaining:0,suppressed:0,skipped:pick.skipped};
  if(!pick.contacts.length)return {...out,reason:'none'};
  if(!ask(firstConfirmText(pick.contacts.length,pick.skipped,ch)))return {...out,reason:'cancelled'};
  out.ran=true;
@@ -147,7 +147,7 @@ async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,
  for(let i=0;i<left.length;i+=chunk){
   progress('Fonti gratuite: '+Math.min(i+chunk,left.length)+' di '+left.length+'…');
   const r=await api('free',{contacts:left.slice(i,i+chunk),confirm:true});
-  out.free.saved+=r.saved||0;out.free.guessed+=r.guessed||0;out.free.company+=r.company||0;
+  out.free.saved+=r.saved||0;out.free.guessed+=r.guessed||0;out.free.company+=r.company||0;out.suppressed+=r.suppressed||0;
   for(const id of r.resolved||[])open.delete(id);
  }
  left=[...open];out.remaining=left.length;
@@ -161,7 +161,7 @@ async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,
    for(let i=0;i<left.length;i+=chunk){
     progress(p.label+': '+Math.min(i+chunk,left.length)+' di '+left.length+'…');
     const r=await api('paid',{provider:p.id,contacts:left.slice(i,i+chunk),confirm:true});
-    res.saved+=r.saved||0;res.not_found+=r.not_found||0;for(const id of r.resolved||[])open.delete(id);
+    res.saved+=r.saved||0;res.not_found+=r.not_found||0;out.suppressed+=r.suppressed||0;for(const id of r.resolved||[])open.delete(id);
    }
   }else if(p.mode==='batch'){
    for(let i=0;i<left.length;i+=250){
@@ -170,7 +170,7 @@ async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,
     for(let k=0;k<maxPolls;k++){
      progress(p.label+': ricerca in corso, controllo ogni '+Math.round(pollMs/1000)+' secondi…');await wait(pollMs);
      const r=await api('result',{provider:p.id,request_id:s.request_id});
-     if(!r.ready)continue;res.saved+=r.saved||0;res.not_found+=r.not_found||0;for(const id of r.resolved||[])open.delete(id);break;
+     if(!r.ready)continue;res.saved+=r.saved||0;res.not_found+=r.not_found||0;out.suppressed+=r.suppressed||0;for(const id of r.resolved||[])open.delete(id);break;
     }
    }
   }
