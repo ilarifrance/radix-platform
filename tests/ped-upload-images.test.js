@@ -18,3 +18,7 @@ test('upload: multiple file input inside a .pf-drop zone, saved as an uploaded p
  assert.match(src,/localeCompare\(String\(b\.name\),'it',\{numeric:true\}\)/);
  assert.match(fs.readFileSync(path.join(__dirname,'..','shell','ped.css'),'utf8'),/#mediaTools \.pp-upload input\{position:absolute/);
 });
+
+test('upload: picking files or typing a video link in the media box does not mark the post text as unsaved',()=>{
+ assert.match(src,/\$\('contentForm'\)\.oninput=e=>\{if\(e&&e\.target&&\([^)]*\)\|\|\(e\.target\.closest&&e\.target\.closest\('#mediaTools'\)\)\)\)return;/);
+});
