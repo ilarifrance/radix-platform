@@ -115,3 +115,12 @@ test('Art Director check reads the confirmed team memory of the project', () => 
   assert.match(read('lib/radix-agent-media.js'), /S\.photoStudio\(\{project:ctx\.project,memoryScope:ctx\.memoryScope,/);
   assert.equal((read('agents-page.js').match(/prefs:teamPrefs,memoryScope:scope\('art-director'\)[,}]/g) || []).length, 2);
 });
+
+test('an uploaded photo gets the post format closest to its proportions',()=>{
+ const studio=require('../lib/image-studio.js');
+ assert.equal(studio.ratioFor(1536,2048),'4:5');
+ assert.equal(studio.ratioFor(1080,1080),'1:1');
+ assert.equal(studio.ratioFor(1080,1920),'9:16');
+ assert.equal(studio.ratioFor(1920,1080),'16:9');
+ assert.equal(studio.ratioFor(0,0),'4:5');
+});

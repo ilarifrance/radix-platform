@@ -314,6 +314,14 @@ async function downloadPost(item,btn){const Z=window.RadixZip;if(!Z){notify('Dow
   a.href=u;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);notify('Post scaricato: '+name+' · '+files.length+' file.')}
  catch(e){notify('Download non riuscito: '+e.message)}finally{btn.disabled=false;btn.textContent=label}}
 function downloadButton(item){const b=document.createElement('button');b.type='button';b.className='download-post';b.textContent='Scarica il post';b.title='Un unico .zip con testo, immagini (PNG), foto e link del video';b.onclick=()=>downloadPost(state.contents.find(x=>x.id===item.id)||item,b);return b}
+// Ready-made images uploaded for a post: checked before any upload, then each drawn on a canvas at most 2048 px on its
+// longest side, so the JPEG stays under the size a media slot accepts.
+const MAX_UPLOADS=10,UPLOAD_TYPES=/^image\/(jpeg|png|webp)$/;
+function uploadProblem(files){if(files.length>MAX_UPLOADS)return 'Al massimo '+MAX_UPLOADS+' immagini per post.';
+ const t=files.find(f=>!UPLOAD_TYPES.test(f.type||''));if(t)return '«'+t.name+'» non è un JPG, PNG o WebP.';
+ const b=files.find(f=>f.size>15*1024*1024);if(b)return '«'+b.name+'» supera i 15 MB.';return ''}
+async function uploadCanvas(file){const img=await createImageBitmap(file),k=Math.min(1,2048/Math.max(img.width,img.height)),c=document.createElement('canvas');
+ c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);if(img.close)img.close();return c}
 function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!item||!media)return;const kind=pv.mediaKind(item);
  const head=document.createElement('p');head.className='muted';box.append(downloadButton(item),head);
  if(kind==='email'){head.textContent='Newsletter via email: si invia dal CRM ai contatti con consenso marketing, con link tracciati e disiscrizione.';
@@ -324,6 +332,14 @@ function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!i
   if(item.script){const pre=document.createElement('p');pre.className='pp-script';pre.textContent='Script dello spezzone: '+item.script;box.append(pre)}
   if(!item.script&&/youtube/i.test(item.channel||'')&&item.copy.trim()){const c=document.createElement('button');c.type='button';c.textContent='✂ Crea lo spezzone per LinkedIn';c.disabled=writing;c.onclick=()=>makeClip(item);box.append(c)}
   if(item.video&&item.video.url){const a=document.createElement('a');a.href=item.video.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent='▶ Video pronto: apri o scarica';box.append(a)}
+  // A video already made on HeyGen (web app or another project): linking it by its share link saves its url in the post, like one generated here.
+  if(!item.video||!item.video.url){const lk=document.createElement('div'),inp=document.createElement('input'),go=document.createElement('button');lk.className='pp-link-video';inp.type='text';inp.placeholder='Link HeyGen (app.heygen.com/share/…) o id del video';inp.setAttribute('aria-label','Video HeyGen già pronto');go.type='button';go.textContent='Collega un video già pronto';
+   go.onclick=async()=>{const m=String(inp.value||'').match(/[0-9a-f]{32}/i);if(!m){notify('Incolla il link di condivisione HeyGen o l’id del video (32 caratteri).');return}const id=m[0].toLowerCase();go.disabled=true;
+    try{const r=await fetch('/api/heygen?action=status&videoId='+id,{credentials:'same-origin'}),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||('HeyGen ha risposto '+r.status));
+     if(d.status!=='completed'||!/^https:\/\//.test(d.videoUrl||''))throw Error(d.status==='failed'?'il video su HeyGen è fallito':'il video non è ancora pronto su HeyGen ('+(d.status||'stato sconosciuto')+')');
+     const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={url:d.videoUrl,heygenId:id,at:new Date().toISOString()};persist('Video collegato al post.');openContent(item.id)}
+    catch(e){notify('Video non collegato: '+e.message)}finally{go.disabled=false}};
+   lk.append(inp,go);box.append(lk)}
   const t=script.trim()&&media.videoTool(script,{scenesFor:item.script?()=>clipScenesFor(script):null,orientation:/youtube/i.test(item.channel||'')?'landscape':'portrait',pendingId:item.video&&!item.video.url&&item.video.id||'',onStart:id=>{const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={id,at:new Date().toISOString()};persist('Video avviato su HeyGen: puoi chiudere la pagina, lo ritrovi qui.')},onReady:url=>{const c=state.contents.find(x=>x.id===item.id);if(!c)return;c.video={url,at:new Date().toISOString()};persist('Video pronto e salvato nel post.')},avatar:registryProject&&registryProject.profile&&registryProject.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(projectId)});if(t)box.append(t);return}
  head.textContent=kind==='carousel'?'Carosello: slide pronte da scaricare, con sfondi AI opzionali.':'Immagine del post: una slide con il messaggio principale.';
  const b=document.createElement('button');b.type='button';b.textContent=item.slides?'Rigenera la grafica':(kind==='carousel'?'Crea le slide del carosello':'Crea l’immagine del post');b.disabled=!item.copy.trim()||writing;
@@ -334,12 +350,23 @@ function renderMedia(item){const box=$('mediaTools');box.replaceChildren();if(!i
  const sw=document.createElement('button');sw.type='button';sw.textContent=kind==='carousel'?'Fallo come immagine singola':'▦ Fallo come carosello';sw.disabled=!item.copy.trim()||writing;
  sw.onclick=()=>changeFormat(item,kind==='carousel'?'image':'carousel').then(ok=>{if(ok)openContent(item.id)});
  box.append(sw);
- const S=window.RadixImageStudio;if(S&&kind!=='carousel'&&item.copy.trim()){const ph=document.createElement('button');ph.type='button';ph.textContent=item.photo?'Cambia la foto (Higgsfield)':'Foto con Higgsfield · 3 proposte';ph.title='Rispondi a poche domande, scegli tra 3 foto e RADIX la compone con il titolo e i colori del progetto';
+ // Images already finished elsewhere (a carousel made in Canva or ChatGPT, a photo with its text): up to 10, attached as they
+ // are in file-name order, so they go to Buffer with the post. Nothing is redrawn and no credits are used.
+ {const ud=document.createElement('label'),ui=document.createElement('input'),ut=document.createElement('span'),st=document.createElement('strong'),sm=document.createElement('small');
+  ud.className='pf-drop pp-upload';ui.type='file';ui.accept='image/jpeg,image/png,image/webp';ui.multiple=true;ui.disabled=writing;ut.className='pf-drop-text';
+  st.textContent=kind==='carousel'?'Hai già le slide pronte? Caricale':'Hai già le immagini pronte? Caricale';sm.textContent='Fino a '+MAX_UPLOADS+' JPG, PNG o WebP · partono con il post così come sono, in ordine di nome file';ut.append(st,sm);ud.append(ui,ut);
+  ui.onchange=async()=>{const fs=[...(ui.files||[])].sort((a,b)=>String(a.name).localeCompare(String(b.name),'it',{numeric:true}));ui.value='';if(!fs.length||writing)return;
+   const bad=uploadProblem(fs);if(bad){notify(bad);return}
+   writing=true;ui.disabled=true;notify('Carico '+fs.length+(fs.length===1?' immagine…':' immagini…'));
+   try{const cs=[];for(const f of fs)cs.push(await uploadCanvas(f));const n=await attachCanvases(item,cs);setPhoto(item.id,{source:'upload',headline:'',at:new Date().toISOString()});persist(n===1?'Immagine caricata e allegata al post.':n+' immagini caricate e allegate al post.');openContent(item.id)}
+   catch(e){notify('Immagini non caricate: '+e.message)}finally{writing=false;ui.disabled=false}};
+  box.append(ud)}
+ const S=window.RadixImageStudio;if(S&&kind!=='carousel'&&item.copy.trim()){const ph=document.createElement('button');ph.type='button';ph.textContent=item.photo?'Cambia la foto':'Foto · 3 proposte o carica la tua';ph.title='Rispondi a poche domande, scegli tra 3 foto e RADIX la compone con il titolo e i colori del progetto';
   ph.onclick=()=>{const dlg=document.createElement('dialog'),head=document.createElement('header'),h=document.createElement('h2'),x=document.createElement('button');dlg.className='ps-dialog';dlg.setAttribute('aria-label','Studio Foto');h.textContent='Studio Foto · «'+item.title+'»';x.type='button';x.textContent='Chiudi';head.append(h,x);
    let used=false;const studio=S.photoStudio({project:rt&&rt.profileFor(registryProject),memoryScope:scope('art-director'),concept:S.conceptFrom(item.copy,item.title),headline:S.headlineFrom(item.copy),
-    onUse:async(canvas,info)=>{await attachCanvases(item,[canvas]);setPhoto(item.id,{requestId:info.requestId,headline:info.headline,at:new Date().toISOString()});persist('Foto allegata al post.');used=true}});
+    onUse:async(canvas,info)=>{await attachCanvases(item,[canvas]);setPhoto(item.id,info.source==='upload'?{source:'upload',headline:info.headline,at:new Date().toISOString()}:{requestId:info.requestId,headline:info.headline,at:new Date().toISOString()});persist('Foto allegata al post.');used=true}});
    x.onclick=()=>dlg.close();dlg.onclose=()=>{dlg.remove();if(used&&selected===item.id)openContent(item.id)};dlg.append(head,studio);document.body.append(dlg);dlg.showModal()};box.append(ph)}
- if(item.photo){const p=document.createElement('p');p.className='muted';p.textContent='Il post usa una foto scelta in Studio Foto'+(item.photo.headline?' con il titolo «'+item.photo.headline+'»':'')+'. «Rigenera la grafica» torna alle immagini disegnate.';box.append(p);renderAttached(item,box);return}
+ if(item.photo){const p=document.createElement('p');p.className='muted';p.textContent=(item.photo.source==='upload'?(item.photo.headline?'Il post usa una foto caricata da te':'Il post usa le immagini caricate da te'):'Il post usa una foto scelta in Studio Foto')+(item.photo.headline?' con il titolo «'+item.photo.headline+'»':'')+'. «Rigenera la grafica» torna alle immagini disegnate.';box.append(p);renderAttached(item,box);return}
  if(item.slides){const t=media.carouselTool(item.slides,{project:rt&&rt.profileFor(registryProject),prefix:'ped-'+item.date});if(t){box.append(t);const open=t.querySelector('button');if(open)open.click()}
   const att=document.createElement('button');att.type='button';att.textContent='Allega al post le immagini mostrate';att.title='Usa le slide come le vedi ora, anche con gli sfondi AI';att.onclick=async()=>{const cs=[...box.querySelectorAll('canvas')];if(!cs.length)return;att.disabled=true;try{const n=await attachCanvases(item,cs);notify(n+' immagini allegate al post.');openContent(item.id)}catch(e){notify('Immagini non allegate: '+e.message)}finally{att.disabled=false}};box.append(att);renderAttached(item,box)}}
 // One click for the next 31 days: text, automatic check and graphics for every content still at the idea stage.
