@@ -255,7 +255,10 @@ function busy(input,opts){
   let list;
   if(e.recurrenceId!=null){if(!counts(e))continue;list=e.end>from&&e.start<to?[{start:e.start,end:e.end}]:[]}
   else{if(!counts(e))continue;const skip=moved.get(e.uid);list=expand(e,from,to).filter(x=>!(skip&&skip.has(x.start)))}
-  for(const x of list){if(x.end<=x.start)continue;const b={start:x.start,end:x.end,allDay:e.allDay};if(o.details){b.summary=e.private?'':e.summary}out.push(b)}}
+  // An all-day block ends at the midnight that closes its last day in the zone, not N×24h later (25 October lasts 25 hours).
+  const days=e.allDay&&typeof e.zone==='string'?Math.round(e.length/DAY):0;
+  for(const x of list){if(days){const w=wall(x.start,e.zone);x.end=zoned(w.y,w.m,w.d+days,0,0,0,e.zone)}
+   if(x.end<=x.start)continue;const b={start:x.start,end:x.end,allDay:e.allDay};if(o.details){b.summary=e.private?'':e.summary}out.push(b)}}
  return out.sort((a,b)=>a.start-b.start||a.end-b.end);
 }
 

@@ -10,7 +10,11 @@
    - label(iso)            «24/10/2026, 14:30» in ora di Roma, per le schede in sola lettura.
    - dateLabel('YYYY-MM-DD') «30/11/2026», data di calendario senza fuso.
    - inputAt(ms)           istante (ms) → 'YYYY-MM-DDTHH:mm' in ora di Roma, al minuto (default dei moduli, «domani alle 9»).
-   - fromInputMs(value)    come fromInput, ma → ms oppure null (vuoto o non valido): per i moduli della scheda e del Foglio chiamate. */
+   - fromInputMs(value)    come fromInput, ma → ms oppure null (vuoto o non valido): per i moduli della scheda e del Foglio chiamate.
+   - dayOf(ms)             'YYYY-MM-DD' del giorno di Roma che contiene l'istante; addDays(day, n) giorno di calendario ± n.
+   - dayStart(ms) / dayEnd(ms) mezzanotte di Roma che apre / chiude quel giorno (ms; il 25 ottobre dura 25 ore).
+   - weekday(day)          0 = domenica … 6 = sabato, del giorno 'YYYY-MM-DD'.
+   - dateTimeLabel(ms)     «24/10/2026 14:30», hm(ms) «14:30»: ore in sola lettura (Foglio chiamate, «Oggi»). */
 (root=>{
 const ZONE='Europe/Rome';
 const fmt=new Map();
@@ -67,6 +71,14 @@ function dayLabel(iso,zone=ZONE){const ms=utcMs(iso);if(ms==null)return '';const
 function dateLabel(date){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date??'').trim());return m?m[3]+'/'+m[2]+'/'+m[1]:'';}
 function inputAt(ms,zone=ZONE){if(!Number.isFinite(ms))return '';return toInput(new Date(Math.floor(ms/60e3)*60e3).toISOString(),zone);}
 function fromInputMs(value,zone=ZONE){const r=fromInput(value,zone);return r.value?Date.parse(r.value):null;}
-const api={ZONE,toInput,fromInput,keep,label,dayLabel,dateLabel,utcMs,inputAt,fromInputMs};
+const DAY_RE=/^(\d{4})-(\d{2})-(\d{2})$/;
+function dayOf(ms,zone=ZONE){return Number.isFinite(ms)?inputAt(ms,zone).slice(0,10):''}
+function addDays(day,n){const m=DAY_RE.exec(String(day??''));if(!m)return '';const t=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]+n));return pad(t.getUTCFullYear(),4)+'-'+pad(t.getUTCMonth()+1)+'-'+pad(t.getUTCDate())}
+function dayStart(ms,zone=ZONE){const d=dayOf(ms,zone);return d?fromInputMs(d+'T00:00',zone):null}
+function dayEnd(ms,zone=ZONE){const d=dayOf(ms,zone);return d?fromInputMs(addDays(d,1)+'T00:00',zone):null}
+function weekday(day){const m=DAY_RE.exec(String(day??''));return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3])).getUTCDay():null}
+function dateTimeLabel(ms,zone=ZONE){const v=inputAt(ms,zone);return v?v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(0,4)+' '+v.slice(11,16):''}
+function hm(ms,zone=ZONE){return inputAt(ms,zone).slice(11,16)}
+const api={ZONE,toInput,fromInput,keep,label,dayLabel,dateLabel,utcMs,inputAt,fromInputMs,dayOf,addDays,dayStart,dayEnd,weekday,dateTimeLabel,hm};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmDates=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

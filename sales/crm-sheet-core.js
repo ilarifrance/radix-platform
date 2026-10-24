@@ -170,7 +170,8 @@ function buildRows(data,opts){
 
 /* Filters (saved): outcome of the last interaction ('' all, 'never' no interaction, 'none' no outcome, or a key),
    to-do ('' all, 'overdue', 'today' due by the end of today, 'week' within 7 days, 'none' nothing open). */
-function endOfDay(now){const d=new Date(now);d.setHours(24,0,0,0);return +d}
+// End of today = the next midnight in Rome (RadixCrmDates), whatever the browser's zone.
+function endOfDay(now){return dates().dayEnd(now)}
 function passes(row,f,now){
  const o=(f&&f.outcome)||'',n=(f&&f.next)||'';
  if(o==='never'&&row.last)return false;
@@ -293,7 +294,7 @@ function move(pos,key,rows,cols,opts){
 
 /* CSV of the grid as shown: visible columns, visible rows, values as text. */
 const pad=x=>String(x).padStart(2,'0');
-const dateTime=t=>{if(t==null)return '';const d=new Date(t);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())};
+const dateTime=t=>t==null?'':dates().dateTimeLabel(t);// «24/10/2026 14:30» in ora italiana
 function actText(a){if(!a)return '';return [dateTime(a.at),KINDS[a.kind]||a.kind,a.outcome?OUTCOMES[a.outcome]:a.title,a.note].filter(Boolean).join(' · ')}
 function todoText(t){if(!t)return '';return [t.at!=null?dateTime(t.at):'senza scadenza',t.title,t.overdue?'scaduta':''].filter(Boolean).join(' · ')}
 /* Text of one drawn column (from expand, or a base column id) for a row: what the CSV holds. */
@@ -312,7 +313,7 @@ function csvColumns(drawn){return list(drawn).map(c=>({label:c.id==='revenue'?'F
 
 /* ---------- Full text of one activity or to-do (the panel opened from its cell) ---------- */
 const WEEKDAYS=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
-const longDate=t=>t==null?'':WEEKDAYS[new Date(t).getDay()]+' '+dateTime(t).replace(' ',', ');
+const longDate=t=>t==null?'':WEEKDAYS[dates().weekday(dates().dayOf(t))]+' '+dateTime(t).replace(' ',', ');
 const TASK_STATUS=Object.freeze({todo:'Da fare',doing:'In corso',done:'Fatta'});
 const PRIORITY=Object.freeze({low:'Bassa',normal:'Normale',high:'Alta',urgent:'Urgente'});
 const memberName=(members,id)=>{if(id==null||id==='')return '';const m=list(members).find(x=>x&&String(x.id)===String(id));return m?text(m.name)||text(m.email):''};

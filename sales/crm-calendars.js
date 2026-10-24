@@ -85,7 +85,7 @@ const STEPS={
  outlook:['Apri Outlook sul web (outlook.office.com o outlook.live.com) › Impostazioni (⚙) › Calendario › Calendari condivisi.','In «Pubblica un calendario» scegli il calendario e «Può visualizzare quando sono occupato» (o tutti i dettagli), poi Pubblica.','Copia il link ICS (finisce con .ics, non quello HTML) e incollalo qui.'],
  google:['Apri Google Calendar dal computer › Impostazioni (⚙).','In «Impostazioni per i miei calendari» scegli il calendario › Integra calendario.','Copia l’«Indirizzo segreto in formato iCal» (finisce con basic.ics) e incollalo qui.']};
 const PROVIDERS={outlook:'Outlook lavoro',google:'Google personale'};
-const when=iso=>{if(!iso)return '';const d=new Date(iso);if(!Number.isFinite(+d))return '';return d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})};
+const when=iso=>{if(!iso)return '';const d=new Date(iso);if(!Number.isFinite(+d))return '';return d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})};
 function sourceItem(box,ws,r){
  const li=E('li');const head=E('div',undefined,'cal-src-head');head.append(E('b',r.label),E('span',r.host+' · link salvato','cal-src-host'));li.append(head);
  li.append(r.status==='error'?E('p',r.last_error||'Calendario non leggibile.','cal-src-err'):E('p',r.status==='ok'?'Letto '+when(r.last_fetched_at):'Non ancora letto: premi «Aggiorna».','cal-src-ok'));
@@ -163,12 +163,15 @@ function ensureBusy(from,to){
  return hit?hit.rows:null;
 }
 function busyFor(from,to){const now=ensureBusy(from,to);if(now)return Promise.resolve(now);return src.busyPending.get(from+'|'+to)||Promise.resolve([])}
-// Busy rows → events of calendar-view.js (type «busy»). An all-day busy block spans whole local days.
+// Busy rows → events of calendar-view.js (type «busy»). An all-day busy block spans whole days of Rome
+// (start/end are midnights in Rome): one all-day event per Rome date, dated like calendar-view.js's all-day items
+// (the browser's midnight of that date), so it lands on the same day in every zone.
 function busyEvents(from,to){
  const rows=ensureBusy(from,to)||[];const names=new Map((src.rows||[]).map(r=>[r.id,r.label]));
  const out=[];
  for(const b of rows){const from=names.get(b.source)||'Calendario esterno',title=b.summary||from,sub=b.summary?from:'';
-  if(b.allDay){for(let t=b.start;t<b.end;t+=864e5){const d=new Date(t+36e5*3);d.setHours(0,0,0,0);out.push({type:'busy',title,sub,start:d,allDay:true,owner:'',href:'#calendar'})}}
+  if(b.allDay){const D=window.RadixCrmDates;for(let day=D.dayOf(b.start),n=0;n<400&&D.fromInputMs(day+'T00:00')<b.end;day=D.addDays(day,1),n++){
+   out.push({type:'busy',title,sub,start:new Date(+day.slice(0,4),+day.slice(5,7)-1,+day.slice(8,10)),allDay:true,owner:'',href:'#calendar'})}}
   else out.push({type:'busy',title,sub,start:new Date(b.start),end:new Date(b.end),owner:'',href:'#calendar'})}
  return out;
 }

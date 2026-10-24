@@ -23,9 +23,9 @@ const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100)+' €';
 const int=n=>new Intl.NumberFormat('it-IT').format(n);
-const pad=x=>String(x).padStart(2,'0');
-const dShort=t=>{const d=new Date(t);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(2)};
-const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
+// Dates and times in ora italiana (RadixCrmDates), like the fields that set them.
+const dShort=t=>{const v=window.RadixCrmDates.inputAt(t);return v.slice(8,10)+'/'+v.slice(5,7)+'/'+v.slice(2,4)};
+const hm=t=>window.RadixCrmDates.hm(t);
 const CALL={id:'__call',label:'Chiama',call:true};
 const ENTITIES=['contacts','companies','interactions','tasks','opportunities','stages'];
 const MORE=()=>C().LOAD_ORDER;
