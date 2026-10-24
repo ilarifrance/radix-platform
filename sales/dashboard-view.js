@@ -12,7 +12,7 @@ const eur=c=>{const v=Number(c||0)/100;return v>=1e6?(v/1e6).toLocaleString('it-
 const isOpen=o=>window.RadixCrmForecast.isOpen(o);
 const DAY=864e5,today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
 const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
-const fmtDay=v=>{const d=dd(v);return d?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):'—'};
+const fmtDay=v=>{const d=dd(v);return d?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'}):'—'};
 const initials=t=>String(t||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
 const MONTHS=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 

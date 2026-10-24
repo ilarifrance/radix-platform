@@ -9,10 +9,11 @@ const content=document.getElementById('content');if(!content)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 // Open/won/lost: one rule for every CRM view, RadixCrmForecast.isOpen (analytics-view.js).
 const isOpen=o=>window.RadixCrmForecast.isOpen(o);
-const DAY=864e5,t0=()=>{const d=new Date();d.setHours(0,0,0,0);return+d};
+// Days and hours in ora italiana (RadixCrmDates), like the due dates they come from.
+const DAY=864e5,t0=()=>window.RadixCrmDates.dayStart(Date.now());
 const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
-const hm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-const rel=d=>{const n=Math.floor((+d-t0())/DAY);return n===0?'Oggi':n===-1?'Ieri':n<0?(-n)+' giorni fa':n===1?'Domani':d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'})};
+const hm=d=>window.RadixCrmDates.hm(+d);
+const rel=d=>{const D=window.RadixCrmDates,n=Math.round((Date.parse(D.dayOf(+d)+'T00:00:00Z')-Date.parse(D.dayOf(Date.now())+'T00:00:00Z'))/DAY);return n===0?'Oggi':n===-1?'Ieri':n<0?(-n)+' giorni fa':n===1?'Domani':d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'})};
 const PRI={high:['Alta','alta'],medium:['Media','media'],low:['Bassa','bassa']};
 const STATUS={todo:'Da svolgere',doing:'In corso',done:'Completata'};
 const initials=t=>String(t||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
@@ -21,7 +22,8 @@ const state={tab:'today',kanban:false};
 
 function groups(d){const now=t0(),open=d.tasks.filter(t=>t.status!=='done');
   const inRange=(t,a,b)=>{const x=dd(t.due_at);return x&&+x>=a&&+x<b};
-  return{open,today:open.filter(t=>inRange(t,now,now+DAY)),week:open.filter(t=>inRange(t,now,now+7*DAY)),due:open.filter(t=>{const x=dd(t.due_at);return x&&+x<now+DAY}).sort((a,b)=>String(a.due_at).localeCompare(String(b.due_at))),
+  const end=window.RadixCrmDates.dayEnd(Date.now());
+  return{open,today:open.filter(t=>inRange(t,now,end)),week:open.filter(t=>inRange(t,now,now+7*DAY)),due:open.filter(t=>{const x=dd(t.due_at);return x&&+x<end}).sort((a,b)=>String(a.due_at).localeCompare(String(b.due_at))),
     nodate:open.filter(t=>!t.due_at),done:d.tasks.filter(t=>t.status==='done')}}
 window.RadixCrmTasksView={groups,rel,dd,recall,rail};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'';
@@ -71,7 +73,7 @@ function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-tab
     const pr=E('td');if(PRI[r.priority])pr.append(E('span',PRI[r.priority][0],'tv-pri '+PRI[r.priority][1]));else pr.textContent='—';
     const who=E('td');const av=E('span',initials(member(d,r.assignee_id)),'tv-av sm');av.setAttribute('aria-hidden','true');who.append(av,document.createTextNode(member(d,r.assignee_id)));
     const st=E('td');st.append(E('span',STATUS[r.status]||r.status,'tv-status '+(r.status||'')));
-    tr.append(a,E('td',company(d,r.company_id)||'—'),E('td',x?rel(x)+(x.getHours()||x.getMinutes()?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
+    tr.append(a,E('td',company(d,r.company_id)||'—'),E('td',x?rel(x)+(hm(x)!=='00:00'?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
   t.append(tb);p.append(t);return p}
 
 function rail(d,g){const r=E('aside',undefined,'tv-rail');const h=E('div',undefined,'tv-rail-head');h.append(E('span','✦','tv-spark'),E('h3','Briefing del giorno'));r.append(h);

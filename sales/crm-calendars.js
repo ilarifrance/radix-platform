@@ -85,7 +85,7 @@ const STEPS={
  outlook:['Apri Outlook sul web (outlook.office.com o outlook.live.com) › Impostazioni (⚙) › Calendario › Calendari condivisi.','In «Pubblica un calendario» scegli il calendario e «Può visualizzare quando sono occupato» (o tutti i dettagli), poi Pubblica.','Copia il link ICS (finisce con .ics, non quello HTML) e incollalo qui.'],
  google:['Apri Google Calendar dal computer › Impostazioni (⚙).','In «Impostazioni per i miei calendari» scegli il calendario › Integra calendario.','Copia l’«Indirizzo segreto in formato iCal» (finisce con basic.ics) e incollalo qui.']};
 const PROVIDERS={outlook:'Outlook lavoro',google:'Google personale'};
-const when=iso=>{if(!iso)return '';const d=new Date(iso);if(!Number.isFinite(+d))return '';return d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})};
+const when=iso=>{if(!iso)return '';const d=new Date(iso);if(!Number.isFinite(+d))return '';return d.toLocaleString('it-IT',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})};
 function sourceItem(box,ws,r){
  const li=E('li');const head=E('div',undefined,'cal-src-head');head.append(E('b',r.label),E('span',r.host+' · link salvato','cal-src-host'));li.append(head);
  li.append(r.status==='error'?E('p',r.last_error||'Calendario non leggibile.','cal-src-err'):E('p',r.status==='ok'?'Letto '+when(r.last_fetched_at):'Non ancora letto: premi «Aggiorna».','cal-src-ok'));
@@ -163,12 +163,15 @@ function ensureBusy(from,to){
  return hit?hit.rows:null;
 }
 function busyFor(from,to){const now=ensureBusy(from,to);if(now)return Promise.resolve(now);return src.busyPending.get(from+'|'+to)||Promise.resolve([])}
-// Busy rows → events of calendar-view.js (type «busy»). An all-day busy block spans whole local days.
+// Busy rows → events of calendar-view.js (type «busy»). An all-day busy block spans whole days of Rome
+// (start/end are midnights in Rome): one all-day event per Rome date, dated like calendar-view.js's all-day items
+// (the browser's midnight of that date), so it lands on the same day in every zone.
 function busyEvents(from,to){
  const rows=ensureBusy(from,to)||[];const names=new Map((src.rows||[]).map(r=>[r.id,r.label]));
  const out=[];
  for(const b of rows){const from=names.get(b.source)||'Calendario esterno',title=b.summary||from,sub=b.summary?from:'';
-  if(b.allDay){for(let t=b.start;t<b.end;t+=864e5){const d=new Date(t+36e5*3);d.setHours(0,0,0,0);out.push({type:'busy',title,sub,start:d,allDay:true,owner:'',href:'#calendar'})}}
+  if(b.allDay){const D=window.RadixCrmDates;for(let day=D.dayOf(b.start),n=0;n<400&&D.fromInputMs(day+'T00:00')<b.end;day=D.addDays(day,1),n++){
+   out.push({type:'busy',title,sub,start:new Date(+day.slice(0,4),+day.slice(5,7)-1,+day.slice(8,10)),allDay:true,owner:'',href:'#calendar'})}}
   else out.push({type:'busy',title,sub,start:new Date(b.start),end:new Date(b.end),owner:'',href:'#calendar'})}
  return out;
 }
@@ -184,11 +187,13 @@ function workHours(){
   weekdays:Array.isArray(v.weekdays)&&v.weekdays.length&&v.weekdays.every(d=>Number.isInteger(d)&&d>=0&&d<=6)?v.weekdays:[1,2,3,4,5]};
 }
 function setWorkHours(v){try{localStorage.setItem(HOURS_KEY,JSON.stringify(v))}catch{}}
-const localValue=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
+// Slots are in ora italiana (Europe/Rome, RadixFreeBusy.DEFAULT_ZONE = RadixCrmDates.ZONE) whatever the browser's zone:
+// working hours, labels and the value handed to onPick, like the date fields they fill.
+const slotValue=(fb,ms)=>{const w=fb.wall(ms,fb.DEFAULT_ZONE);return String(w.y).padStart(4,'0')+'-'+pad(w.m)+'-'+pad(w.d)+'T'+pad(w.h)+':'+pad(w.mi)};
 const DAYS=['dom','lun','mar','mer','gio','ven','sab'];
-const slotLabel=ms=>{const d=new Date(ms);return DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' · '+pad(d.getHours())+':'+pad(d.getMinutes())};
+const slotLabel=(fb,ms)=>{const w=fb.wall(ms,fb.DEFAULT_ZONE);return DAYS[w.wd]+' '+w.d+'/'+w.m+' · '+pad(w.h)+':'+pad(w.mi)};
 /* «Slot liberi» for the call dialog and the record forms: the next free slots in working hours, from the external calendars and the CRM.
-   onPick(value) gets the 'YYYY-MM-DDTHH:mm' of an <input type=datetime-local>. */
+   onPick(value) gets the 'YYYY-MM-DDTHH:mm' of an <input type=datetime-local> in ora italiana (read back with RadixCrmDates.fromInput). */
 function slotPicker({onPick}){
  const box=E('div',undefined,'cs-slots');const head=E('div',undefined,'cs-slots-head');head.append(E('b','Slot liberi'));
  const h=workHours();let len=h.slot;const modes=E('div',undefined,'cs-slots-len');modes.setAttribute('role','group');modes.setAttribute('aria-label','Durata dello slot');
@@ -198,9 +203,9 @@ function slotPicker({onPick}){
  let busy=null,crm=[];
  function draw(){const fb=FB();list.replaceChildren();if(!fb){note.textContent='Slot non disponibili.';return}
   if(!busy){list.append(E('span','Cerco gli slot liberi…','cs-slots-wait'));return}
-  const slots=fb.freeSlots({busy:fb.merge(busy,crm),now:Date.now()+15*6e4,days:14,slot:len,buffer:h.buffer,hours:{start:h.start,end:h.end},weekdays:h.weekdays,limit:8,perDay:3,step:30});
+  const slots=fb.freeSlots({busy:fb.merge(busy,crm),zone:fb.DEFAULT_ZONE,now:Date.now()+15*6e4,days:14,slot:len,buffer:h.buffer,hours:{start:h.start,end:h.end},weekdays:h.weekdays,limit:8,perDay:3,step:30});
   if(!slots.length)list.append(E('span','Nessuno slot libero nei prossimi 14 giorni nell’orario di lavoro.','cs-slots-wait'));
-  for(const s of slots){const b=E('button',slotLabel(s.start));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{list.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onPick(localValue(s.start))};list.append(b)}}
+  for(const s of slots){const b=E('button',slotLabel(fb,s.start));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{list.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onPick(slotValue(fb,s.start))};list.append(b)}}
  (async()=>{
   // The window starts on a 5-minute grid, so the pickers drawn again by the record page (every tab switch and
   // every render of Customer360) reuse the busy time already read instead of asking the server each time.

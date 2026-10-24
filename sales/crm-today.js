@@ -15,7 +15,7 @@ const content=document.getElementById('content'),nav=document.getElementById('na
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const app=()=>window.RadixSalesApp;
-const hm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+const hm=d=>window.RadixCrmDates.hm(+d);// ora italiana, like the due labels
 // Tasks of the two due filters, read once per workspace; dropped after a write, on Aggiorna and on a workspace change.
 let tasks=null,loading=null,flash='';
 
@@ -158,7 +158,7 @@ async function render(){
  const a=app(),me=a.state.me||null,now=Date.now(),g=core.agenda(t.rows,now,me);
  busy=true;sec.querySelector(':scope>.td')?.remove();
  const root=E('div',undefined,'td');
- const day=new Date(now).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});
+ const day=new Date(now).toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',timeZone:'Europe/Rome'});
  const top=E('div',undefined,'td-top');top.append(E('p',day.charAt(0).toUpperCase()+day.slice(1),'td-date'));
  top.append(E('p',[g.overdue.length+(g.overdue.length===1?' scaduta':' scadute'),g.today.length+' in scadenza oggi',me?g.mine+' assegnate a te':''].filter(Boolean).join(' · '),'td-sum'));
  root.append(top);

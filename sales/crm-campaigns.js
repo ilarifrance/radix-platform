@@ -189,7 +189,7 @@ function modeSwitch(prep){
 }
 async function showClicks(out){
  let d;if(!await run('Carico i clic…',async()=>{d=await app().api('email_clicks',{})}))return;
- const when=t=>new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+ const when=t=>new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
  out.replaceChildren(E('h4','Clic sulle campagne'));
  if(!(d.campaigns||[]).length){out.append(E('p','Ancora nessun clic. I link delle prossime campagne vengono tracciati in automatico.','muted'));app().notice('');return}
  for(const c of d.campaigns)out.append(E('p','«'+c.campaign+'» · '+c.people+(c.people===1?' persona':' persone')+' · '+c.clicks+(c.clicks===1?' clic':' clic')+' · ultimo '+when(c.last_at)));
