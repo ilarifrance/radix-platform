@@ -153,6 +153,7 @@ const STUDIOS={
  feed:{global:'RadixProductStudio',name:'Lo Studio Schede prodotto',need:'le schede partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
  mail:{global:'RadixNewsletterStudio',name:'Lo Studio Newsletter HTML',need:'la newsletter usa il kit identità e i testi salvati del progetto',agent:'copywriter'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
+ icons:{global:'RadixIconStudio',name:'Lo Studio Set di icone',need:'le icone usano i colori del Kit identità e i servizi del progetto e si salvano lì',agent:'art-director'},
  coordinato:{global:'RadixCoordinatoStudio',name:'Lo Studio Coordinato',need:'il coordinato parte dal Kit identità, dal nome e dai contatti del progetto',agent:'art-director'},
  socialkit:{global:'RadixSocialStudio',name:'Lo Studio Grafica social',need:'la grafica social parte dal Kit identità e dal nome del progetto',agent:'art-director'},
  firma:{global:'RadixFirmaStudio',name:'Lo Studio Firma email',need:'la firma parte dal Kit identità, dal nome e dai contatti del progetto',agent:'art-director'},
@@ -227,6 +228,8 @@ function openInline(c){
   ?S.newsletterStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='identity'
   ?S.identityStudio({project,memoryScope,projectId:current.id,workspace:ws,visual:project.visual,agentsUrl:'/agents.html?agent=brand-strategist&project='+pid,onSaved:p=>{current={...current,...p}}})
+  :c.inline==='icons'
+  ?S.iconStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
   :c.inline==='coordinato'
   ?S.coordinatoStudio({project,profile:current.profile,projectName:current.name,clientName:current.client_name||'',projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
   :c.inline==='socialkit'
