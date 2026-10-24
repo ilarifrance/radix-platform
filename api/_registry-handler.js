@@ -219,6 +219,7 @@ async function publications(req,res,db,uid,deps){
  if(!item)return send(res,404,{error:'Contenuto non trovato nel PED del team: ricarica la pagina'});
  if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
  if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
+ {const holes=pv.placeholders(String(item.copy)+'\n'+String(item.script||''));if(holes.length)return send(res,400,{error:'Il testo ha un segnaposto da completare: «'+holes[0]+'». Completalo, approvalo di nuovo e poi invialo.'})}
  const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
  if(!editorial.sameWordRevisions(item).some(revision=>core.approvalStatus(approved[0],editorial.approvalPayload({...item,revision}))==='approved'))return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
  // The page asks with a 5-minute margin; the server accepts down to 2 minutes so a slow click still goes through.
@@ -261,7 +262,9 @@ async function publications(req,res,db,uid,deps){
   if(!process.env.BLOB_READ_WRITE_TOKEN||!deps.copyVideo)return failed(503,'Archivio video non collegato: manca BLOB_READ_WRITE_TOKEN');
   let video;try{video=await deps.copyVideo(process.env.BLOB_READ_WRITE_TOKEN,{name:String(r.contentId).toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,60)||'video',url})}
   catch(e){return failed(502,'Video non preparato per Buffer: '+core.clean(e&&e.message,300))}
-  try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,video})}
+  // YouTube wants a title and a category, and a short description instead of the whole spoken script.
+  const yt=/youtube/i.test(String(item.channel||'')+' '+String(r.channelName||''))?pv.youtubeMeta(item):null;
+  try{post=await deps.createPost(key,{channelId:r.channelId,text:yt?yt.description:String(item.copy),dueAt:scheduledAt,video,youtube:yt})}
   catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il video: '+core.clean(e&&e.message,300))}
  }else{
  let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
