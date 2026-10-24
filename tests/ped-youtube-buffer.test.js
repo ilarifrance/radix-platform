@@ -53,3 +53,12 @@ test('publish preview: a video post shows its video (or that it is missing), You
  assert.match(fn,/const v=document\.createElement\('video'\);v\.src=item\.video\.url;/);
  assert.match(fn,/Manca il video: generalo o collegalo qui sopra/);
 });
+
+test('a post published outside Buffer (YouTube Studio) can be recorded as out, with confirmation and its link',()=>{
+ const src=read('editorial-workspace.js');
+ assert.match(src,/el\('summary',\{textContent:'Pubblicato fuori da Buffer\?'\}\)/);
+ assert.match(src,/askConfirm\(\{title:'Segnare il post come pubblicato fuori da Buffer\?'/);
+ assert.match(src,/cur\.publication=\{service:'manual',[^}]*link:url,mode:'scheduled',[^}]*revision:cur\.revision\}/);
+ assert.match(src,/p\.service==='manual'\?'Programmato fuori da Buffer'/);
+ const pv=require('../lib/ped-views.js');assert.equal(pv.isQueued({status:'approved',revision:6,publication:{service:'manual',revision:6}}),true);
+});
