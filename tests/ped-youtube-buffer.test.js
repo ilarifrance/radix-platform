@@ -15,6 +15,8 @@ test('youtubeMeta: title within 100 characters, Education category, short descri
  assert.equal(m.title,'Delegare la vendita: da dove parte un imprenditore');assert.equal(m.categoryId,'27');
  assert.ok(m.description.length<=1100,'short');assert.doesNotMatch(m.description,/\[|da fornire/);assert.match(m.description,/^Quando un imprenditore/);assert.match(m.description,/#venditaB2B #PMI$/);
  assert.ok(pv.youtubeMeta({title:'x'.repeat(140),copy:'a'}).title.length<=100);
+ const desc='Vuoi delegare la vendita?\n\n1. Primo\n2. Secondo\n\n'+'Contesto. '.repeat(60).trim()+'\n\nCheck-up gratuito: scrivimi su LinkedIn.\n\n#venditaB2B #PMI';
+ assert.equal(pv.youtubeMeta({title:'T',copy:desc}).description,desc,'a short text written as a description goes out whole');
  assert.deepEqual(pv.youtubeMeta({title:'T',copy:'a',youtube:{title:'Titolo mio',description:'Descrizione mia',categoryId:'22'}}),{title:'Titolo mio',description:'Descrizione mia',categoryId:'22'});
 });
 
