@@ -20,7 +20,19 @@
    utm_source dell'indirizzo da cui arriva l'invio, quando la pagina lo manda nel Referer). Con «funnel» il messaggio non
    serve; il contatto, la nota e il lead portano il nome del funnel e la fonte (lead con fonte «funnel: <nome>»).
    → 303 verso <origine del sito>/grazie.html, oppure una piccola pagina HTML (errori: 400/401/403/413/429/503).
-   Con «Accept: application/json» risponde JSON {ok} / {error}. */
+   Con «Accept: application/json» risponde JSON {ok} / {error}.
+
+   Sondaggio (lib/survey-core.js, studio «Sondaggio e NPS»): con il campo «sondaggio» l'invio è un questionario. Campi
+   ammessi, e solo questi (un campo diverso → 400): t, sondaggio (titolo), sid (indirizzo del sondaggio), qt («q1:nps,
+   q2:testo,…», tipi nps · scala · singola · multipla · testo), l<N> (testo della domanda), q<N> (risposta), q<N>_<k>
+   (scelta multipla), email, consenso, website (trappola). Limiti: 30 domande, 12 scelte, 600 caratteri per risposta
+   aperta, 120 per scelta, 200 per domanda (oltre → 413), valori fuori scala o domande non dichiarate → 400.
+   Le risposte diventano UNA interazione del CRM (tipo nota, titolo «Risposta sondaggio «…»», corpo = risposte in testo,
+   una riga per domanda). Nessuna tabella nuova. Il contatto si usa solo se la persona scrive l'e-mail E spunta il
+   consenso: allora la nota va sul contatto con quella e-mail (o su uno nuovo). Altrimenti la risposta è anonima e
+   l'e-mail, se scritta senza consenso, non viene salvata. Il CRM non accetta note senza collegamento (vincolo di
+   sales_interactions: azienda, contatto o trattativa): le risposte anonime vanno quindi sull'azienda «raccoglitore»
+   SURVEY_HOLDER del workspace, creata al primo invio anonimo, senza contatto. Limite per workspace: 200 risposte l'ora. */
 const crypto=require('node:crypto');
 // Lazy: api/_sales.js requires this file too.
 const command=(...a)=>require('./_sales').command(...a);
@@ -30,6 +42,64 @@ const SITE=/^[a-z0-9][a-z0-9-]{1,79}$/;
 const LIMITS=Object.freeze({name:120,email:254,phone:40,message:3000,body:20000,funnel:80,fonte:40});
 const RATE=Object.freeze({perIp:5,windowMs:10*60*1000,perWorkspaceHour:40});
 const TITLE='Messaggio dal modulo del sito';
+// ---- survey mode (lib/survey-core.js keeps the same limits: tests/sondaggio.test.js) ----
+const SURVEY=Object.freeze({questions:30,options:12,option:120,answer:600,question:200,title:80,perWorkspaceHour:200,body:64000});
+const SURVEY_TYPES=Object.freeze(['nps','scala','singola','multipla','testo']);
+const SURVEY_PREFIX='Risposta sondaggio',SURVEY_HOLDER='Sondaggi · risposte anonime';
+const SURVEY_KEY=/^(?:t|sondaggio|sid|qt|email|consenso|website|l(?:[1-9]|[12]\d|30)|q(?:[1-9]|[12]\d|30)(?:_(?:[1-9]|1[0-2]))?)$/;
+const isSurvey=b=>!!b&&typeof b==='object'&&Object.prototype.hasOwnProperty.call(b,'sondaggio');
+function one(b,k){const v=b[k];if(Array.isArray(v))throw failure(400,'Campo ripetuto: «'+k+'».');if(v!=null&&typeof v==='object')throw failure(400,'Campo non valido: «'+k+'».');return v==null?'':String(v)}
+// Oversized → 413, anything outside the questionnaire → 400; nothing is cut silently.
+function sized(v,max,what){const t=text(v,100000);if(t.length>max)throw failure(413,what+' (massimo '+max+' caratteri).');return t}
+function surveyFields(body){const b=body||{},keys=Object.keys(b);
+ if(keys.length>SURVEY.questions*(SURVEY.options+2)+8)throw failure(413,'Troppi campi nel sondaggio.');
+ const bad=keys.find(k=>!SURVEY_KEY.test(k));if(bad)throw failure(400,'Campo non previsto nel sondaggio: «'+String(bad).slice(0,40)+'».');
+ const f={token:line(one(b,'t'),700),trap:line(one(b,'website'),200),title:sized(one(b,'sondaggio'),SURVEY.title,'Titolo del sondaggio troppo lungo').replace(/\s+/g,' '),sid:line(one(b,'sid'),60),
+  email:line(one(b,'email'),254).toLowerCase(),consent:yes(one(b,'consenso')),questions:[],answers:{}};
+ if(!f.title)throw failure(400,'Sondaggio senza titolo.');
+ if(!/^[a-z0-9][a-z0-9-]{1,39}$/.test(f.sid))throw failure(400,'Sondaggio non valido.');
+ const qt=one(b,'qt');if(qt.length>SURVEY.questions*14)throw failure(413,'Elenco delle domande troppo lungo.');
+ for(const part of qt.split(',').filter(Boolean)){const m=/^q([1-9]|[12]\d|30):(nps|scala|singola|multipla|testo)$/.exec(part.trim());
+  if(!m||f.questions.some(q=>q.id==='q'+m[1]))throw failure(400,'Elenco delle domande non valido.');f.questions.push({id:'q'+m[1],type:m[2],label:''})}
+ if(!f.questions.length||f.questions.length>SURVEY.questions)throw failure(400,'Elenco delle domande non valido.');
+ const byId=Object.fromEntries(f.questions.map(q=>[q.id,q]));
+ for(const k of keys){let m;
+  if((m=/^l(\d+)$/.exec(k))){const q=byId['q'+m[1]];if(!q)throw failure(400,'Domanda non dichiarata: «'+k+'».');q.label=sized(one(b,k),SURVEY.question,'Testo della domanda troppo lungo').replace(/\s+/g,' ').replace(/→/g,'-');continue}
+  if((m=/^(q\d+)_(\d+)$/.exec(k))){const q=byId[m[1]];if(!q||q.type!=='multipla')throw failure(400,'Risposta non prevista: «'+k+'».');
+   const v=sized(one(b,k),SURVEY.option,'Risposta troppo lunga').replace(/\s+/g,' ').replace(/ \| /g,' / ');if(v)(f.answers[q.id]=f.answers[q.id]||[]).push(v);continue}
+  if((m=/^(q\d+)$/.exec(k))){const q=byId[m[1]];if(!q||q.type==='multipla')throw failure(400,'Risposta non prevista: «'+k+'».');const raw=one(b,k);
+   if(q.type==='nps'||q.type==='scala'){const v=raw.trim();if(!v)continue;const lo=q.type==='nps'?0:1,hi=q.type==='nps'?10:5;
+    if(!/^\d{1,2}$/.test(v)||+v<lo||+v>hi)throw failure(400,'Valore fuori scala.');f.answers[q.id]=String(+v);continue}
+   const v=sized(raw,q.type==='testo'?SURVEY.answer:SURVEY.option,'Risposta troppo lunga');if(v)f.answers[q.id]=q.type==='testo'?v.replace(/\s*\n\s*/g,' / '):v.replace(/\s+/g,' ')}}
+ return f}
+function surveyInvalid(f){
+ if(!Object.keys(f.answers).length)return 'Rispondi ad almeno una domanda.';
+ if(f.consent&&!f.email)return 'Scrivi la tua e-mail per essere ricontattato, oppure togli la spunta.';
+ if(f.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(f.email))return 'L’indirizzo e-mail non sembra valido.';
+ return ''}
+// The note body: «Risposte al sondaggio «…» [sid: …].», one line per answered question («q3 [multipla] Testo → A | B»),
+// then who answered. At most 4000 characters (the CRM limit): long question texts go first, then long open answers.
+function surveyBody(f,{origin,at,contact}){const answered=f.questions.filter(q=>f.answers[q.id]!=null);
+ const val=q=>Array.isArray(f.answers[q.id])?f.answers[q.id].join(' | '):f.answers[q.id];
+ const tail=['','— Arrivata dal modulo del sondaggio'+(origin?' '+origin:'')+'.',...(contact?['E-mail: '+f.email,'Consenso al ricontatto: sì ('+at+').']:['Risposta anonima.'])];
+ const build=(labelMax,answerMax)=>['Risposte al sondaggio «'+f.title+'» [sid: '+f.sid+'].',...answered.map(q=>{const l=labelMax?q.label.slice(0,labelMax):'',v=String(val(q));
+  return q.id+' ['+q.type+']'+(l?' '+l:'')+' → '+(v.length>answerMax?v.slice(0,answerMax-1)+'…':v)}),...tail].join('\n');
+ for(const [l,a] of [[SURVEY.question,SURVEY.answer],[80,SURVEY.answer],[0,SURVEY.answer],[0,300],[0,120]]){const t=build(l,a);if(t.length<=4000)return t}
+ return build(0,60).slice(0,4000)}
+const surveyTitle=f=>(SURVEY_PREFIX+' «'+f.title+'»').slice(0,200);
+async function recordSurvey(store,claims,f,{origin,now}){
+ const at=now.toISOString().replace(/\.\d{3}Z$/,'Z'),ws=claims.ws,contact=!!(f.email&&f.consent);let contactId=null,companyId=null,created=false;
+ if(contact){const found=await store.sql('SELECT id,company_id FROM sales_contacts WHERE workspace_id=$1 AND lower(email)=lower($2) ORDER BY created_at LIMIT 1',[ws,f.email]);
+  if(found[0]){contactId=found[0].id;companyId=found[0].company_id||null}
+  else{const c=command({workspace:ws,entity:'contacts',action:'create',data:{name:f.email,email:f.email,notes:('Contatto arrivato dal sondaggio «'+f.title+'»'+(origin?' '+origin:'')+' il '+at.slice(0,10)+': ha chiesto di essere ricontattato sulle sue risposte.').slice(0,4000)}});
+   await store.command(c,claims.uid);contactId=c.data.id;created=true}}
+ else{// anonymous: the holder company of the workspace (a note must be linked to something), never a contact
+  const h=await store.sql('SELECT id FROM sales_companies WHERE workspace_id=$1 AND name=$2 ORDER BY id LIMIT 1',[ws,SURVEY_HOLDER]);
+  if(h[0])companyId=h[0].id;
+  else{const c=command({workspace:ws,entity:'companies',action:'create',data:{name:SURVEY_HOLDER,notes:'Raccoglitore creato da RADIX per le risposte anonime dei sondaggi: non è un cliente. Ogni nota è una risposta.'}});await store.command(c,claims.uid);companyId=c.data.id}}
+ const n=command({workspace:ws,entity:'interactions',action:'create',data:{title:surveyTitle(f),kind:'note',occurred_at:at,body:surveyBody(f,{origin,at,contact}),...(contactId?{contact_id:contactId}:{}),...(companyId?{company_id:companyId}:{})}});
+ await store.command(n,claims.uid);
+ return {contactId,companyId,interactionId:n.data.id,created,anonymous:!contact}}
 function failure(status,message){const e=new Error(message);e.status=status;return e}
 function key(secret){
  if(typeof secret!=='string'||!secret)throw failure(503,'Modulo contatti non configurato su questo ambiente.');
@@ -80,13 +150,13 @@ function invalid(f){
  if(!f.privacy)return 'Per inviare il messaggio serve il consenso al trattamento dei dati (informativa privacy).';
  return '';
 }
-function parseBody(req){let b=req.body;
+function parseBody(req,max=LIMITS.body){let b=req.body;
  if(Buffer.isBuffer(b))b=b.toString('utf8');
- if(typeof b==='string'){if(Buffer.byteLength(b)>LIMITS.body)throw failure(413,'Messaggio troppo lungo.');
+ if(typeof b==='string'){if(Buffer.byteLength(b)>max)throw failure(413,'Messaggio troppo lungo.');
   if(/^application\/json/i.test(req.headers?.['content-type']||'')){try{return JSON.parse(b||'{}')}catch{throw failure(400,'Richiesta non valida.')}}
   return Object.fromEntries(new URLSearchParams(b))}
  if(!b||typeof b!=='object')return {};
- if(Buffer.byteLength(JSON.stringify(b))>LIMITS.body)throw failure(413,'Messaggio troppo lungo.');
+ if(Buffer.byteLength(JSON.stringify(b))>max)throw failure(413,'Messaggio troppo lungo.');
  return b;
 }
 
@@ -137,21 +207,41 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 function page(title,message,back){return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>'+esc(title)+'</title>'+
  '<style>body{margin:0;font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1f2328;background:#fff}main{max-width:620px;margin:0 auto;padding:56px 20px}h1{font-size:28px;line-height:1.2}a{color:#2563EB}</style></head>'+
  '<body><main><h1>'+esc(title)+'</h1><p>'+esc(message)+'</p>'+(back?'<p><a href="'+esc(back)+'">Torna al sito</a></p>':'')+'</main></body></html>'}
-function answer(req,res,status,{ok,error,origin}){
+function answer(req,res,status,{ok,error,origin,survey}){
  const json=/application\/json/i.test(req.headers?.accept||'')||/^application\/json/i.test(req.headers?.['content-type']||'');
  if(json)return res.status(ok?200:status).json(ok?{ok:true}:{error});
  if(ok&&origin){res.setHeader('Location',origin+'/grazie.html');return res.status(303).end?res.status(303).end():res.status(303).send('')}
  res.setHeader('Content-Type','text/html; charset=utf-8');
- const html=ok?page('Grazie, abbiamo ricevuto il tuo messaggio','Ti rispondiamo il prima possibile.',origin||''):page('Messaggio non inviato',error,origin||'');
+ const html=survey?(ok?page('Grazie, abbiamo ricevuto le tue risposte','Il tuo parere ci aiuta a migliorare.',origin||''):page('Risposte non inviate',error,origin||''))
+  :ok?page('Grazie, abbiamo ricevuto il tuo messaggio','Ti rispondiamo il prima possibile.',origin||''):page('Messaggio non inviato',error,origin||'');
  return res.status(status).send?res.status(status).send(html):res.status(status).end(html);
 }
 
+// Survey mode: same token, same limit per IP and site, its own limit per workspace, then one CRM note.
+async function handleSurvey(req,res,body,{getStore,secret,now,limit,origin}){
+ const f=surveyFields(body);
+ const claims=verify(f.token,secret,now().getTime());
+ if(!claims)throw failure(401,'Questo questionario non è più collegato: avvisa il titolare del sito.');
+ if(!limit(ipOf(req)+'|'+claims.site+'|'+claims.ws,now().getTime()))throw failure(429,'Troppi invii in poco tempo: riprova tra qualche minuto.');
+ if(f.trap)return answer(req,res,origin?303:200,{ok:true,origin,survey:true});
+ const bad=surveyInvalid(f);if(bad)throw failure(400,bad);
+ const store=getStore();
+ const m=await store.membership(claims.ws,claims.uid);
+ if(!m||!['owner','admin','member'].includes(m.role))throw failure(403,'Questo questionario non è più collegato: avvisa il titolare del sito.');
+ const recent=await store.sql("SELECT count(*)::int AS n FROM sales_interactions WHERE workspace_id=$1 AND starts_with(title,$2) AND created_at>now()-interval '1 hour'",[claims.ws,SURVEY_PREFIX]);
+ if(Number(recent[0]&&recent[0].n)>=SURVEY.perWorkspaceHour)throw failure(429,'Troppe risposte in poco tempo: riprova più tardi.');
+ await recordSurvey(store,claims,f,{origin,now:now()});
+ return answer(req,res,origin?303:200,{ok:true,origin,survey:true})}
 async function handle(req,res,{getStore,secret,now=()=>new Date(),limit=defaultLimiter}){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Robots-Tag','noindex');
- const origin=originOf(req);
+ const origin=originOf(req);let survey=false;
  try{
   if(req.method!=='POST'){res.setHeader('Allow','POST');throw failure(405,'Il modulo si invia solo dal sito.')}
-  const f=fieldsOf(parseBody(req));
+  const body=parseBody(req,SURVEY.body);
+  if(isSurvey(body)){survey=true;return await handleSurvey(req,res,body,{getStore,secret,now,limit,origin})}
+  // the contact form keeps its own, smaller limit (the survey one only fits a long questionnaire)
+  if(Buffer.byteLength(JSON.stringify(body))>LIMITS.body)throw failure(413,'Messaggio troppo lungo.');
+  const f=fieldsOf(body);
   const claims=verify(f.token,secret,now().getTime());
   if(!claims)throw failure(401,'Questo modulo non è più collegato: avvisa il titolare del sito.');
   if(!limit(ipOf(req)+'|'+claims.site+'|'+claims.ws,now().getTime()))throw failure(429,'Troppi invii in poco tempo: riprova tra qualche minuto.');
@@ -168,7 +258,7 @@ async function handle(req,res,{getStore,secret,now=()=>new Date(),limit=defaultL
   return answer(req,res,origin?303:200,{ok:true,origin});
  }catch(e){
   const status=e.status||(e.code==='42P01'?503:503);
-  return answer(req,res,status,{error:e.status?e.message:'Il messaggio non è stato inviato: riprova tra qualche minuto.',origin});
+  return answer(req,res,status,{error:e.status?e.message:survey?'Le risposte non sono state inviate: riprova tra qualche minuto.':'Il messaggio non è stato inviato: riprova tra qualche minuto.',origin,survey});
  }
 }
-module.exports={leadSource,utmSource,channel,sign,verify,tokenIn,hasForm,fieldsOf,invalid,parseBody,limiter,originOf,noteBody,record,handle,PREFIX,SCOPE,TTL_SECONDS,TITLE,RATE,LIMITS};
+module.exports={SURVEY,SURVEY_TYPES,SURVEY_PREFIX,SURVEY_HOLDER,isSurvey,surveyFields,surveyInvalid,surveyBody,surveyTitle,recordSurvey,handleSurvey,leadSource,utmSource,channel,sign,verify,tokenIn,hasForm,fieldsOf,invalid,parseBody,limiter,originOf,noteBody,record,handle,PREFIX,SCOPE,TTL_SECONDS,TITLE,RATE,LIMITS};

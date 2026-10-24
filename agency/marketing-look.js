@@ -70,6 +70,7 @@ const P={
  funnel:'<path d="M3.5 4.5h17l-6.5 7.5v6.5l-4 2v-8.5Z"/><path d="M7.5 8.5h9"/>',
  infographic:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7 16.5v-3M10.5 16.5v-6M14 16.5v-4.5M17.5 16.5v-8"/><path d="M7 7.5h5"/>',
  yearPlan:'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9h17M8 2.75v3.5M16 2.75v3.5"/><path d="M7.5 17v-2.5M10.5 17v-4.5M13.5 17v-3M16.5 17v-5"/>',
+ survey:'<path d="M4 16.5a8 8 0 0 1 16 0"/><path d="m12 16.5 4.2-5"/><circle cx="12" cy="16.5" r="1.1"/><path d="M4 20.5h16M6.4 11.2l1.3.9M12 8.5V10M17.6 11.2l-1.3.9"/>',
  reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
 };
 // One colour and one icon per service area (the groups of agency/crea-core.js); pink is Marketing's colour in the
@@ -79,7 +80,7 @@ const AREAS=Object.freeze({
  social:{color:'#608dff',icon:'chat'},email:{color:'#9be15d',icon:'mail'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
-const CARDS=Object.freeze({strategy:'target',report:'chart',budget:'coin',pianoannuale:'yearPlan',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',logovettoriale:'logoVector',coordinato:'layers',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
+const CARDS=Object.freeze({strategy:'target',report:'chart',sondaggio:'survey',budget:'coin',pianoannuale:'yearPlan',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',logovettoriale:'logoVector',coordinato:'layers',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
  newsletter:'mail',images:'image',fotoprodotto:'productPhoto',fotoritocco:'retouch',mockup:'mockup',infografica:'infographic',funnel:'funnel',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',packaging:'packaging',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',mediakit:'mediaKit',evento:'ticket',persona:'users',concorrenza:'compare',concorrenzasiti:'compareSites',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
