@@ -1,7 +1,8 @@
 'use strict';
 /* Unsubscribe links for CRM campaign emails. Every marketing email carries a personal link
    /api/sales?unsubscribe=<token>: opening it shows a confirmation page, confirming (or a mail client's
-   one-click POST, RFC 8058) withdraws that contact's marketing consent. No login: the token is the
+   one-click POST, RFC 8058) withdraws that contact's marketing consent and records the opt-out (also for
+   contacts that never gave consent, such as «Prospezione B2B» recipients: see api/_sales_optout.js). No login: the token is the
    permission, and it can only ever turn consent off.
    Token = workspace id + contact id (32 bytes) + the first 16 bytes of an HMAC-SHA256 over them, base64url.
    The key comes from UNSUBSCRIBE_SECRET when set, else from JWT_SECRET: setting UNSUBSCRIBE_SECRET keeps the links
@@ -43,7 +44,18 @@ async function handle(req,res,{getSql,secret}){
  if(req.method==='GET')return send(res,200,page('Non ricevere più queste email','Confermando, non riceverai più email commerciali da questo mittente. Le comunicazioni su ordini o richieste già in corso possono continuare.',true));
  if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return send(res,405,page('Richiesta non valida','Apri il link dall’email.'))}
  const sql=getSql();
- const rows=await sql(`UPDATE sales_contacts SET marketing_consent=false,consent_at=NULL,version=version+1,notes=CASE WHEN length(coalesce(notes,''))<=3900 THEN concat_ws(E'\\n\\n',nullif(notes,''),'Disiscrizione dalle email commerciali tramite link: '||to_char(now() AT TIME ZONE 'Europe/Rome','DD/MM/YYYY HH24:MI')) ELSE notes END WHERE workspace_id=$1 AND id=$2 AND marketing_consent RETURNING id`,[who.workspace,who.contact]);
+ // Every contact, with or without marketing consent (a «Prospezione B2B» recipient has none): consent off, a stamped note,
+ // a timeline note «Disiscrizione dalle email commerciali» (the durable marker, it survives edits to the notes) and
+ // its queued emails cancelled. Repeated clicks change nothing: the WHERE skips a contact already marked.
+ let rows;
+ try{
+  rows=await sql(`UPDATE sales_contacts t SET marketing_consent=false,consent_at=NULL,version=version+1,notes=CASE WHEN length(coalesce(notes,''))<=3900 THEN concat_ws(E'\\n\\n',nullif(notes,''),'Disiscrizione dalle email commerciali tramite link: '||to_char(now() AT TIME ZONE 'Europe/Rome','DD/MM/YYYY HH24:MI')) ELSE notes END WHERE workspace_id=$1 AND id=$2 AND (marketing_consent OR NOT (coalesce(notes,'') ILIKE '%disiscrizione%' OR EXISTS(SELECT 1 FROM sales_interactions i WHERE i.workspace_id=t.workspace_id AND i.contact_id=t.id AND i.title ILIKE 'Disiscrizione%'))) RETURNING id`,[who.workspace,who.contact]);
+  await sql(`INSERT INTO sales_interactions(workspace_id,id,title,kind,occurred_at,body,contact_id,company_id) SELECT t.workspace_id,$3,'Disiscrizione dalle email commerciali','note',now(),'Ha chiesto di non ricevere più email commerciali (link di disiscrizione). Non ricontattare via email.',t.id,t.company_id FROM sales_contacts t WHERE t.workspace_id=$1 AND t.id=$2 AND NOT EXISTS(SELECT 1 FROM sales_interactions i WHERE i.workspace_id=t.workspace_id AND i.contact_id=t.id AND i.title ILIKE 'Disiscrizione%')`,[who.workspace,who.contact,crypto.randomUUID()]);
+  await sql("UPDATE sales_send_queue SET status='cancelled',error='Disiscritto: invio annullato.',updated_at=now() WHERE workspace_id=$1 AND contact_id=$2 AND status='queued'",[who.workspace,who.contact]);
+ }catch(e){
+  console.error('unsubscribe failed',e&&e.code);
+  return send(res,503,page('Servizio non disponibile','La disiscrizione non è riuscita in questo momento. Riprova tra qualche minuto oppure rispondi all’email ricevuta chiedendo di non essere più contattato.'));
+ }
  const left=rows.length?rows:await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=$2',[who.workspace,who.contact]);
  if(!left.length)return send(res,200,page('Disiscrizione registrata','Non risultano più tuoi dati per queste email: non riceverai altri messaggi commerciali.'));
  return send(res,200,page('Disiscrizione registrata','Fatto: non riceverai più email commerciali da questo mittente.'));

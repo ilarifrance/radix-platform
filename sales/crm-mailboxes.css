@@ -1,5 +1,6 @@
 /* CRM «Caselle email» and «Coda invii» (sales/crm-mailboxes.js). */
 details.crm-mailboxes>summary{color:var(--crm-text,inherit)}
+.crm-campaign-mode input[type=radio],.crm-b2b-check input[type=checkbox]{width:auto!important;min-width:0;height:auto;min-height:0!important;margin:2px 0 0;padding:0;flex:none}
 .crm-mb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin:10px 0}
 .crm-mb-card{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px;border:1px solid var(--crm-line,#2b3550);border-radius:12px;background:var(--crm-soft,transparent)}
 .crm-mb-card p{margin:0;overflow-wrap:anywhere}
@@ -32,3 +33,19 @@ details.crm-mailboxes>summary{color:var(--crm-text,inherit)}
 .crm-mb-stat[data-kind=skipped],.crm-mb-stat[data-kind=cancelled]{background:var(--crm-soft,#f8f7fb);color:var(--crm-muted,#55516a)}
 @media (max-width:600px){.crm-mb-list,.crm-mb-grid{grid-template-columns:1fr}.crm-mb-card .actions button{flex:1 1 auto}}
 .crm-mb-link{align-self:center;font-size:13px;font-weight:500;white-space:nowrap}
+/* «Prospezione B2B» in the campaign panel and «Trova email» (sales/crm-campaigns.js, sales/crm-prospecting.js). */
+.crm-campaign-mode{margin:12px 0;padding:10px 12px;border:1px solid var(--crm-line,#d9dee5);border-radius:10px;display:grid;gap:8px;min-width:0}
+.crm-campaign-mode legend{padding:0 4px;font-weight:600}
+.crm-mode-option{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;cursor:pointer}
+.crm-mode-option small{grid-column:2}
+.crm-b2b{display:grid;gap:8px;padding-top:6px;border-top:1px dashed var(--crm-line,#d9dee5)}
+.crm-b2b[hidden]{display:none}
+.crm-b2b label{display:grid;gap:4px}
+.crm-b2b .crm-b2b-check{display:flex;gap:6px;align-items:flex-start}
+.crm-b2b-rules{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}
+.crm-b2b-footer{margin:0;padding:10px;border-radius:8px;background:var(--crm-soft,#f4f6f8);font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+.crm-finder-chain{margin:8px 0;padding-left:20px;display:grid;gap:8px}
+.crm-finder-item{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:start}
+.crm-finder-item>div:first-child{display:grid;gap:2px;min-width:0}
+.crm-finder-item .actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.crm-finder-item[data-state="da collegare"] .crm-mb-badge,.crm-finder-item[data-state="non disponibile"] .crm-mb-badge,.crm-finder-item[data-state=spento] .crm-mb-badge{background:var(--crm-warn-soft,#fdf3e3);color:var(--crm-warn,#a85b06)}

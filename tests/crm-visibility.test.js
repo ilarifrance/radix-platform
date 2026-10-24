@@ -65,7 +65,7 @@ test('reserved row «__visibilita__»: validated, kept apart from segments, hidd
  assert.throws(()=>cmd('create',{name:'__sla__',filters:{visibility:{ownOnly:true}}}),/riservato/);
  const db=fakeDb(),store=createStore(db.sql);
  await store.read({workspace:W,entity:'segments',offset:0},2);
- assert.deepEqual(db.seen.at(-1)[1][3],['__regole__','__sla__','__visibilita__'],'the plain segment list excludes it');
+ assert.deepEqual(db.seen.at(-1)[1][3],['__regole__','__sla__','__visibilita__','__trova_email__'],'the plain segment list excludes it');
  // Handler: every member reads it; only owners/admins write it.
  const calls=[];let role='member';
  const fake={membership:async()=>({role}),sql:async q=>{calls.push(q);return /SELECT name FROM sales_segments/.test(q)?[{name:'__visibilita__'}]:[]},hidden:async()=>[],read:async c=>[{c}],command:async c=>({ok:c.entity})};

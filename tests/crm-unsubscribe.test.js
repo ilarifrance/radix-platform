@@ -21,8 +21,11 @@ test('link page: GET asks to confirm, POST withdraws consent once, bad token cha
  assert.match(r.headers['Content-Security-Policy'],/default-src 'none'/);
  r=res();await u.handle({method:'POST',query:{unsubscribe:u.sign(K,W,C)}},r,{getSql:()=>sql,secret:K});
  assert.equal(r.code,200);assert.match(r.body,/Disiscrizione registrata/);
- assert.equal(calls.length,1);assert.match(calls[0][0],/SET marketing_consent=false,consent_at=NULL/);assert.match(calls[0][0],/AND marketing_consent RETURNING/);assert.deepEqual(calls[0][1],[W,C]);
- r=res();await u.handle({method:'POST',query:{unsubscribe:'x'.repeat(64)}},r,{getSql:()=>{throw new Error('no db for junk')},secret:K});assert.equal(r.code,400);assert.equal(calls.length,1);
+ // Consent off + stamped note (also without consent: «Prospezione B2B»), the timeline marker, queued emails cancelled.
+ assert.equal(calls.length,3);assert.match(calls[0][0],/SET marketing_consent=false,consent_at=NULL/);assert.match(calls[0][0],/AND \(marketing_consent OR NOT \(/);assert.deepEqual(calls[0][1],[W,C]);
+ assert.match(calls[1][0],/^INSERT INTO sales_interactions/);assert.match(calls[1][0],/'Disiscrizione dalle email commerciali','note'/);assert.match(calls[1][0],/NOT EXISTS/);
+ assert.match(calls[2][0],/^UPDATE sales_send_queue SET status='cancelled'/);assert.match(calls[2][0],/status='queued'/);
+ r=res();await u.handle({method:'POST',query:{unsubscribe:'x'.repeat(64)}},r,{getSql:()=>{throw new Error('no db for junk')},secret:K});assert.equal(r.code,400);assert.equal(calls.length,3);
  r=res();await u.handle({method:'GET',query:{unsubscribe:u.sign(K,W,C)}},r,{getSql:()=>sql,secret:undefined});assert.equal(r.code,503);assert.match(r.body,/<h1>Servizio non disponibile/);
  assert.equal(u.secretOf({JWT_SECRET:'a',UNSUBSCRIBE_SECRET:'b'}),'b');assert.equal(u.secretOf({JWT_SECRET:'a'}),'a');
 });
