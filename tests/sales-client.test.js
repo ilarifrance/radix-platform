@@ -147,9 +147,10 @@ test('editor dates: «Slot liberi» under task, ticket and future interaction da
  c.win.RadixCrmCalendars={slotPicker:({onPick})=>{const n=new (c.ids.content.constructor)('div');n.className='cs-slots';n.classList={add:x=>{n.className+=' '+x;}};n.pick=onPick;return n;}};
  const find=()=>c.ids['editor-fields'].querySelectorAll('div').find(n=>/cs-slots/.test(n.className||''));
  c.app.openEditor('tasks',row());assert.ok(find(),'task');assert.match(find().className,/editor-slots/);
- // The picker gives a browser-local value: it is written back as the same instant in Rome time.
+ // The picker gives a value in ora italiana, like the field: written as is, saved as the same instant.
  const input=c.fields().due_at,events=[];input.dispatchEvent=e=>events.push(e.type);c.ctx.Event=class{constructor(t){this.type=t;}};
- find().pick('2026-10-26T09:30');assert.equal(input.value,D.toInput(new Date('2026-10-26T09:30').toISOString().slice(0,19)+'Z'));assert.deepEqual(events,['input','change']);
+ find().pick('2026-10-26T09:30');assert.equal(input.value,'2026-10-26T09:30');assert.equal(D.fromInput(input.value).value,'2026-10-26T08:30:00Z');assert.deepEqual(events,['input','change']);
+ find().pick('not a date');assert.equal(input.value,'2026-10-26T09:30','an invalid pick changes nothing');
  c.app.openEditor('tickets');assert.ok(find(),'ticket');
  c.app.openEditor('interactions');assert.ok(find(),'new interaction');
  c.app.openEditor('interactions',{id:ID,version:1,title:'Call',kind:'call',occurred_at:'2026-01-10T10:00:00Z'});assert.equal(find(),undefined,'past interaction: no slots');

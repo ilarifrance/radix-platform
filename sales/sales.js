@@ -332,7 +332,7 @@ function openEditor(entity,row=null){
   const hint=el('small',required?'Ora italiana.':'Ora italiana. Lascia vuoto se non serve.');box.append(hint);
   if(!required){const clear=button('Togli la data',()=>{input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));},'editor-date-clear');hint.append(clear);}
   const C=window.RadixCrmCalendars;
-  if(slots&&writable(entity)&&C?.slotPicker){const picker=C.slotPicker({onPick:p=>{const ms=new Date(p).getTime();if(!Number.isFinite(ms))return;input.value=D.toInput(new Date(ms).toISOString().slice(0,19)+'Z');input.step='60';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}});picker.classList.add('editor-slots');box.append(picker);}
+  if(slots&&writable(entity)&&C?.slotPicker){const picker=C.slotPicker({onPick:p=>{const r=D.fromInput(p);if(!r.value)return;input.value=D.toInput(r.value);input.step='60';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}});picker.classList.add('editor-slots');box.append(picker);}
   return input;};
  const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);$('editor').classList?.toggle('rf-wide',record);
  if(record&&entity==='contacts'){const n=addInput('name','Nome visualizzato','text',row?.name||'',false);n.placeholder='Vuoto = Nome e Cognome';}

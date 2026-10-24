@@ -8,7 +8,9 @@
    - keep(original, value) value dell'input → UTC ISO, ma se l'utente non l'ha toccato restituisce il valore salvato
                            così com'è: nessuna deriva (secondi, millisecondi, la seconda 02:30 di ottobre).
    - label(iso)            «24/10/2026, 14:30» in ora di Roma, per le schede in sola lettura.
-   - dateLabel('YYYY-MM-DD') «30/11/2026», data di calendario senza fuso. */
+   - dateLabel('YYYY-MM-DD') «30/11/2026», data di calendario senza fuso.
+   - inputAt(ms)           istante (ms) → 'YYYY-MM-DDTHH:mm' in ora di Roma, al minuto (default dei moduli, «domani alle 9»).
+   - fromInputMs(value)    come fromInput, ma → ms oppure null (vuoto o non valido): per i moduli della scheda e del Foglio chiamate. */
 (root=>{
 const ZONE='Europe/Rome';
 const fmt=new Map();
@@ -63,6 +65,8 @@ function label(iso,zone=ZONE){
 // Calendar date of an instant in Rome («Risolto il …»).
 function dayLabel(iso,zone=ZONE){const ms=utcMs(iso);if(ms==null)return '';const w=parts(ms,zone);return pad(w.day)+'/'+pad(w.month)+'/'+pad(w.year,4);}
 function dateLabel(date){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(date??'').trim());return m?m[3]+'/'+m[2]+'/'+m[1]:'';}
-const api={ZONE,toInput,fromInput,keep,label,dayLabel,dateLabel,utcMs};
+function inputAt(ms,zone=ZONE){if(!Number.isFinite(ms))return '';return toInput(new Date(Math.floor(ms/60e3)*60e3).toISOString(),zone);}
+function fromInputMs(value,zone=ZONE){const r=fromInput(value,zone);return r.value?Date.parse(r.value):null;}
+const api={ZONE,toInput,fromInput,keep,label,dayLabel,dateLabel,utcMs,inputAt,fromInputMs};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmDates=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

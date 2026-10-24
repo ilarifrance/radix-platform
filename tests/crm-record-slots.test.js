@@ -57,7 +57,7 @@ function env({writable=true,sources=[]}={}){
   RadixSalesApp:app,RadixCrmData:{workspace:()=>W,load:()=>Promise.resolve(data)}};
  g.window=g;const ctx=vm.createContext(g);
  vm.runInContext('Date.now=()=>'+NOW,ctx);
- for(const f of ['sales/crm-freebusy-core.js','sales/crm-record-core.js','sales/crm-calendars.js','sales/crm-record.js'])vm.runInContext(read(f),ctx,{filename:f});
+ for(const f of ['sales/crm-dates-core.js','sales/crm-freebusy-core.js','sales/crm-record-core.js','sales/crm-calendars.js','sales/crm-record.js'])vm.runInContext(read(f),ctx,{filename:f});
  return {g,calls,mount(){const panel=new Node_('div');g.RadixCrmRecord.mount(panel,{subject:'contacts',id:C1,title:'Giulia Rossi',rows:[{entity:'contacts',record:{id:C1,name:'Giulia Rossi',company_id:K1}}]});return panel}};
 }
 const tick=async()=>{for(let i=0;i<10;i++)await new Promise(r=>setImmediate(r))};

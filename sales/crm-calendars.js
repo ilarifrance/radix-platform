@@ -184,11 +184,13 @@ function workHours(){
   weekdays:Array.isArray(v.weekdays)&&v.weekdays.length&&v.weekdays.every(d=>Number.isInteger(d)&&d>=0&&d<=6)?v.weekdays:[1,2,3,4,5]};
 }
 function setWorkHours(v){try{localStorage.setItem(HOURS_KEY,JSON.stringify(v))}catch{}}
-const localValue=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
+// Slots are in ora italiana (Europe/Rome, RadixFreeBusy.DEFAULT_ZONE = RadixCrmDates.ZONE) whatever the browser's zone:
+// working hours, labels and the value handed to onPick, like the date fields they fill.
+const slotValue=(fb,ms)=>{const w=fb.wall(ms,fb.DEFAULT_ZONE);return String(w.y).padStart(4,'0')+'-'+pad(w.m)+'-'+pad(w.d)+'T'+pad(w.h)+':'+pad(w.mi)};
 const DAYS=['dom','lun','mar','mer','gio','ven','sab'];
-const slotLabel=ms=>{const d=new Date(ms);return DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' · '+pad(d.getHours())+':'+pad(d.getMinutes())};
+const slotLabel=(fb,ms)=>{const w=fb.wall(ms,fb.DEFAULT_ZONE);return DAYS[w.wd]+' '+w.d+'/'+w.m+' · '+pad(w.h)+':'+pad(w.mi)};
 /* «Slot liberi» for the call dialog and the record forms: the next free slots in working hours, from the external calendars and the CRM.
-   onPick(value) gets the 'YYYY-MM-DDTHH:mm' of an <input type=datetime-local>. */
+   onPick(value) gets the 'YYYY-MM-DDTHH:mm' of an <input type=datetime-local> in ora italiana (read back with RadixCrmDates.fromInput). */
 function slotPicker({onPick}){
  const box=E('div',undefined,'cs-slots');const head=E('div',undefined,'cs-slots-head');head.append(E('b','Slot liberi'));
  const h=workHours();let len=h.slot;const modes=E('div',undefined,'cs-slots-len');modes.setAttribute('role','group');modes.setAttribute('aria-label','Durata dello slot');
@@ -198,9 +200,9 @@ function slotPicker({onPick}){
  let busy=null,crm=[];
  function draw(){const fb=FB();list.replaceChildren();if(!fb){note.textContent='Slot non disponibili.';return}
   if(!busy){list.append(E('span','Cerco gli slot liberi…','cs-slots-wait'));return}
-  const slots=fb.freeSlots({busy:fb.merge(busy,crm),now:Date.now()+15*6e4,days:14,slot:len,buffer:h.buffer,hours:{start:h.start,end:h.end},weekdays:h.weekdays,limit:8,perDay:3,step:30});
+  const slots=fb.freeSlots({busy:fb.merge(busy,crm),zone:fb.DEFAULT_ZONE,now:Date.now()+15*6e4,days:14,slot:len,buffer:h.buffer,hours:{start:h.start,end:h.end},weekdays:h.weekdays,limit:8,perDay:3,step:30});
   if(!slots.length)list.append(E('span','Nessuno slot libero nei prossimi 14 giorni nell’orario di lavoro.','cs-slots-wait'));
-  for(const s of slots){const b=E('button',slotLabel(s.start));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{list.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onPick(localValue(s.start))};list.append(b)}}
+  for(const s of slots){const b=E('button',slotLabel(fb,s.start));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{list.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onPick(slotValue(fb,s.start))};list.append(b)}}
  (async()=>{
   // The window starts on a 5-minute grid, so the pickers drawn again by the record page (every tab switch and
   // every render of Customer360) reuse the busy time already read instead of asking the server each time.

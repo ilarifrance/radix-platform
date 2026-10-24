@@ -68,3 +68,11 @@ test('etichette in italiano per le schede: ora di Roma, giorno di Roma, data di 
  assert.equal(D.dayLabel('2026-10-24T22:30:00Z'),'25/10/2026','dopo mezzanotte a Roma è già il giorno dopo');
  assert.equal(D.dateLabel('2026-11-30'),'30/11/2026');
 });
+
+test('inputAt / fromInputMs: istante ↔ valore al minuto in ora italiana, per gli slot e i moduli della scheda',()=>{
+ assert.equal(D.inputAt(Date.parse('2026-10-23T07:30:45.500Z')),'2026-10-23T09:30','secondi tolti');
+ assert.equal(D.inputAt(Date.parse('2026-10-26T08:00:00Z')),'2026-10-26T09:00','dopo il cambio d’ora: +1');
+ assert.equal(D.inputAt(NaN),'');assert.equal(D.inputAt(undefined),'');
+ assert.equal(D.fromInputMs('2026-10-23T09:30'),Date.parse('2026-10-23T07:30:00Z'));
+ assert.equal(D.fromInputMs(''),null);assert.equal(D.fromInputMs('domani'),null);
+});
