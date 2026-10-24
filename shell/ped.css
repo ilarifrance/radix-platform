@@ -470,3 +470,7 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .rx-ped .pp-warn{margin:8px 0;padding:8px 10px;border-radius:8px;background:#fff4e5;color:#7a4300;border:1px solid #f3c27a;font-size:13px}
 .rx-ped .post-preview .pp-media video{width:100%;max-height:420px;border-radius:8px;background:#000;display:block}
 .rx-ped .post-preview .pp-yt-title{margin:6px 0 0;font-weight:600;font-size:13px}
+.rx-ped .manual-publish{margin-top:12px;font-size:14px}
+.rx-ped .manual-publish summary{cursor:pointer;color:var(--rx-text-muted,#555)}
+.rx-ped .manual-publish label{display:block;margin:6px 0}
+.rx-ped .manual-publish input{width:100%;max-width:420px}
