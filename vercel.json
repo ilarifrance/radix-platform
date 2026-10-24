@@ -43,6 +43,10 @@
     {
       "path": "/api/integrations/send-queue",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/integrations/ped-stats",
+      "schedule": "0 5 * * *"
     }
   ]
 }

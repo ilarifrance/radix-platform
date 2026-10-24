@@ -455,3 +455,14 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 #mediaTools .pp-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 #mediaTools .pp-upload .pf-drop-text{display:flex;flex-direction:column;gap:2px;font-size:14px}
 #mediaTools .pp-upload small{font-size:12px;opacity:.7}
+/* «Risultati» over time and the AI optimisation of the posts still to go out */
+.ped-results .result-posts td.trend{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:.9em;opacity:.85}
+.ped-results .lever-table tr.few td{opacity:.6}
+.ped-results .lever-table th[scope],.ped-results .lever-table tr>th:first-child{text-align:left;white-space:nowrap}
+.ped-results .opt-box{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.ped-results .opt-analysis{margin:0;padding:10px 12px;border-left:3px solid currentColor;opacity:.9;line-height:1.5}
+.ped-results .opt-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(29,26,39,.12);border-radius:12px;cursor:pointer}
+.ped-results .opt-item input{margin-top:3px;flex:0 0 auto}
+.ped-results .opt-item span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ped-results .opt-item small{font-weight:600}
+.ped-results .opt-item em{font-style:normal;opacity:.75;font-size:.92em}
