@@ -141,7 +141,11 @@ test('columns: few defaults, frozen first, one column per activity and per to-do
  assert.equal(S.expand(d.columns,[]).filter(c=>c.base.many).length,2,'at least one each');
  assert.ok(!S.expand(['name'],rows()).some(c=>c.base.many),'hidden when not chosen');
  assert.ok(!S.expand(d.columns,rows(),{added:false}).some(c=>['mobile','country'].includes(c.id)),'011 fields only with migration');
- const many={acts:Array.from({length:80},()=>({}))};assert.equal(S.expand(['acts'],[many]).filter(c=>c.base.many&&c.base.id==='acts').length,S.MAX_MANY);
+ // Every interaction its own column: 120 stay 120; only an absurd count is cut, at MAX_MANY (500).
+ assert.equal(S.MAX_MANY,500);
+ const acts=n=>({acts:Array.from({length:n},()=>({}))});
+ assert.equal(S.expand(['acts'],[acts(120)]).filter(c=>c.base.id==='acts').length,120);
+ assert.equal(S.expand(['acts'],[acts(800)]).filter(c=>c.base.many&&c.base.id==='acts').length,S.MAX_MANY);
  assert.deepEqual(S.toggleColumn(d.columns,'name'),d.columns,'fixed stays');
  assert.ok(S.toggleColumn(d.columns,'city').includes('city'));
 });
@@ -291,4 +295,61 @@ test('style: text contrast at least 4.5:1 on every background it is drawn on',()
   'crm-ok':['crm-ok-soft'],'crm-warn':['crm-warn-soft'],'crm-err':['crm-err-soft','crm-card','crm-hover'],
   'crm-on-accent':['crm-accent']};
  for(const [fg,bgs] of Object.entries(pairs))for(const bg of bgs)assert.ok(ratio(fg,bg)>=4.5,fg+' on '+bg+': '+ratio(fg,bg).toFixed(2));
+});
+
+/* ---------- Full notes and every activity (Francesco: «tutte le attività», «vedere tutto») ---------- */
+const LONG='Esito: Risposto\r\nPrimo paragrafo: vuole il listino 2027.   \r\nSeconda riga dello stesso paragrafo.\r\n\r\n\r\n\r\nSecondo paragrafo con '+'molti dettagli '.repeat(12)+'fine.\n\nTerzo: richiamare la segretaria.\n';
+test('full note: everything after «Esito:», line breaks kept, paragraphs split on empty lines',()=>{
+ const t=S.fullNote(LONG);
+ assert.ok(!t.includes('Esito:')&&!t.includes('\r'));
+ assert.ok(t.startsWith('Primo paragrafo: vuole il listino 2027.\nSeconda riga'),'trailing spaces dropped, single break kept');
+ assert.ok(!/\n{3,}/.test(t),'at most one empty line');assert.ok(t.endsWith('richiamare la segretaria.'));
+ const p=S.paragraphs(t);assert.equal(p.length,3);assert.match(p[0],/\nSeconda riga/);assert.match(p[1],/fine\.$/);
+ assert.deepEqual(S.paragraphs(''),[]);assert.equal(S.fullNote(null),'');assert.equal(S.fullNote('Esito: Risposto'),'');
+ assert.equal(S.fullNote('Solo testo'),'Solo testo','no outcome line: nothing dropped');
+ assert.ok(S.isLong(t)&&S.isLong('a\nb')&&!S.isLong('breve'));
+});
+test('activities carry the whole text, a preview, the long flag and the author; search reads the whole text',()=>{
+ const d={...data,interactions:[...data.interactions,{id:'i9',contact_id:'k2',kind:'call',title:'Chiamata lunga',occurred_at:iso(NOW-3*DAY),body:LONG,created_by:7}]};
+ const r=S.buildRows(d,{now:NOW}).find(x=>x.id==='k2');const a=r.acts[0];
+ assert.equal(a.id,'i9');assert.equal(a.text,S.fullNote(LONG));assert.equal(a.long,true);assert.equal(a.author,7);
+ assert.ok(a.preview.length<=S.PREVIEW&&a.preview.endsWith('…')&&!a.preview.includes('\n'));
+ assert.ok(a.note.length<=80,'CSV and tooltip keep the short note');
+ assert.ok(S.matches(r,'segretaria'),'a word past the preview is found');
+ assert.equal(byId('k1').acts[0].long,false,'«Segreteria» fits in the cell');
+ assert.equal(byId('k1').todos.find(t=>t.id==='i3').text,'','planned interaction without body');
+});
+test('detail panel: date, type, outcome, paragraphs, author, position; to-do with state and assignee',()=>{
+ const d={...data,interactions:[...data.interactions,{id:'i9',contact_id:'k1',company_id:'a',kind:'call',title:'Chiamata con Giulia · Risposto',occurred_at:iso(NOW-1*DAY),body:LONG,created_by:7}]};
+ const r=S.buildRows(d,{now:NOW}).find(x=>x.id==='k1'),members=[{id:7,name:'Francesco Demo',email:'f@esempio.it'}];
+ const x=S.detail(r,r.acts[0],{members});
+ assert.equal(x.kind,'act');assert.equal(x.heading,'Chiamata · Risposto');assert.deepEqual(x.outcome,{key:'answered',label:'Risposto'});
+ assert.equal(x.when,S.longDate(Date.parse(iso(NOW-1*DAY))));assert.match(x.when,/^(domenica|lunedì|martedì|mercoledì|giovedì|venerdì|sabato) \d\d\/\d\d\/\d{4}, \d\d:\d\d$/);
+ assert.equal(x.paragraphs.length,3);assert.deepEqual(x.facts,[['Registrata da','Francesco Demo']]);
+ assert.equal(x.position,'Attività 1 di '+r.acts.length);assert.equal(x.contact,'Giulia Rossi · Alfa Srl');assert.equal(x.late,false);
+ assert.deepEqual(S.detail(r,r.acts[1],{members:[]}).facts,[],'author unknown: not shown');
+ assert.deepEqual(S.detail(r,r.acts[1],{}).paragraphs,['Segreteria']);
+ const late=r.todos.find(t=>t.id==='t2'),y=S.detail(r,late,{members:[{id:3,name:'Luca'}]});
+ assert.equal(y.kind,'todo');assert.equal(y.late,true);assert.equal(y.heading,'Attività da fare');assert.match(y.when,/^Scadenza: /);
+ const lateWith=S.detail(r,{...late,record:{...late.record,assignee_id:3,priority:'high'}},{members:[{id:3,name:'Luca'}]});
+ assert.deepEqual(lateWith.facts,[['Stato','In corso'],['Priorità','Alta'],['Assegnata a','Luca']]);
+ const undated=S.detail(r,r.todos.find(t=>t.id==='t4'),{});assert.equal(undated.when,'Senza scadenza');assert.equal(undated.position,'Da fare 4 di 4');
+ const planned=S.detail(r,r.todos.find(t=>t.id==='i3'),{});assert.equal(planned.heading,'Riunione');assert.deepEqual(planned.facts,[['In calendario','interazione futura']]);
+ assert.equal(S.detail(r,null),null);
+});
+test('pages read when the sheet opens: interactions first, progress line, cap said',()=>{
+ assert.deepEqual(S.toLoad({companies:true,interactions:true,contacts:true,opportunities:false}),['interactions','companies']);
+ assert.deepEqual(S.toLoad({}),[]);assert.deepEqual(S.toLoad(undefined),[]);
+ assert.equal(S.PAGE_CAP,30);
+ assert.equal(S.progressText({entity:'interactions',pages:0}),'Carico tutte le attività: interazioni, 0 pagine lette…');
+ assert.equal(S.progressText({entity:'tasks',pages:1}),'Carico tutte le attività: attività, 1 pagina letta…');
+ assert.equal(S.progressText({done:true,pages:4,capped:[]}),'Tutte le attività caricate (4 pagine lette).');
+ assert.equal(S.progressText({done:true,pages:0,capped:[]}),'');
+ assert.match(S.progressText({done:true,pages:30,capped:['interactions']}),/^Lette 30 pagine di interazioni \(limite per volta\): ne restano altre, premi «Completa i dati»/);
+ assert.match(S.progressText({failed:'Rete assente.'}),/interrotto: Rete assente\. Premi «Completa i dati»/);
+ // The view reads through the same requests as «Carica altri 100» and starts by itself.
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-sheet.js','utf8');
+ assert.match(ui,/function autoLoad\(/);assert.match(ui,/autoLoad\(host,ctx\);/);assert.match(ui,/guard<C\(\)\.PAGE_CAP/);
+ assert.match(ui,/a\.api\(e,\{offset:off/);assert.ok(!/action:'(create|update|delete)'[^\n]*autoLoad/.test(ui));
+ assert.match(ui,/function noteDialog\(/);assert.match(ui,/aria-haspopup','dialog'/);
 });

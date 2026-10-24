@@ -11,6 +11,9 @@
    - «Registra chiamata»: outcome + optional note → one interactions create (kind call); «Richiamare» and
      «Appuntamento» with a date also create the task that becomes the next activity. No email is sent.
      «Slot liberi» (crm-calendars.js) proposes free times from Outlook / Google and the CRM; a click fills the date.
+   - Every interaction has its «Attività» column: when the sheet opens it reads by itself the pages not
+     loaded yet (reads only, a progress line under the toolbar). A cell shows two lines of the note; a
+     click, Enter or Space opens the whole text (noteDialog), a bottom sheet on a phone.
    - The server's answer replaces the loaded row, so the sheet changes at once and the pages loaded
      with «Carica altri 100» stay loaded. «Completa i dati» reads the remaining pages of companies,
      interactions, tasks and deals (reads only). CSV of the grid as shown (crm-csv-core.js). */
@@ -25,10 +28,12 @@ const dShort=t=>{const d=new Date(t);return pad(d.getDate())+'/'+pad(d.getMonth(
 const hm=t=>{const d=new Date(t);return pad(d.getHours())+':'+pad(d.getMinutes())};
 const CALL={id:'__call',label:'Chiama',call:true};
 const ENTITIES=['contacts','companies','interactions','tasks','opportunities','stages'];
-const MORE=['companies','interactions','tasks','opportunities'];
+const MORE=()=>C().LOAD_ORDER;
 
-/* State kept across redraws (sales.js re-renders #content, so the host element changes). */
-const S={ws:undefined,prefs:null,query:'',pos:{r:0,c:0},editing:null,pendingDraw:false,errors:new Map(),saving:new Set(),flash:new Map(),dirty:false,loading:false,status:''};
+/* State kept across redraws (sales.js re-renders #content, so the host element changes).
+   auto: the generation+workspace whose pages were already read automatically (once each);
+   progress: the line under the toolbar while (and just after) pages are read. */
+const S={ws:undefined,prefs:null,query:'',pos:{r:0,c:0},editing:null,pendingDraw:false,errors:new Map(),saving:new Set(),flash:new Map(),dirty:false,loading:false,status:'',progress:'',auto:''};
 function prefs(){const ws=app()?.state.workspace;if(S.ws!==ws){S.ws=ws;let raw=null;try{raw=localStorage.getItem(C().storageKey(ws))}catch{}S.prefs=C().parse(raw);S.query='';S.errors.clear();S.flash.clear();S.pos={r:0,c:0};S.editing=null}return S.prefs}
 function save(){try{localStorage.setItem(C().storageKey(S.ws),JSON.stringify(S.prefs))}catch{}}
 const rows=e=>app()?app().rows(e):[];
@@ -60,13 +65,16 @@ function build(host,ctx){
  ui.cols=E('details',undefined,'lv-cols');ui.cols.append(E('summary','Colonne'));ui.colList=E('div',undefined,'lv-cols-list');ui.cols.append(ui.colList);
  ui.csv=B('Esporta CSV',()=>exportCsv(host));ui.csv.title='Scarica il foglio come lo vedi: colonne e righe visibili.';
  ui.more=B('Completa i dati',()=>completeData(host,ctx));ui.more.title='Legge le pagine non ancora caricate di aziende, interazioni, attività e trattative (solo lettura).';
- bar.append(ui.outcome,ui.next,sw,ui.cols,ui.csv,ui.more);
+ // «Vai alle attività»: scrolls the grid to «Attività 1» (the most recent), right of the frozen columns.
+ ui.jump=B('Vai alle attività ›',()=>jumpTo(host,'acts:1'),'cs-jump');ui.jump.title='Scorri il foglio fino alle attività svolte (la più recente per prima).';
+ bar.append(ui.outcome,ui.next,sw,ui.cols,ui.jump,ui.csv,ui.more);
  ui.meta=E('p',undefined,'lv-meta cs-meta');ui.meta.setAttribute('aria-live','polite');
+ ui.progress=E('p',undefined,'cs-progress');ui.progress.setAttribute('role','status');
  ui.live=E('p',undefined,'lv-sr');ui.live.setAttribute('aria-live','assertive');
  ui.scroll=E('div',undefined,'cs-scroll');ui.scroll.setAttribute('role','region');ui.scroll.setAttribute('aria-label','Foglio chiamate: scorri in orizzontale per tutte le attività');
  ui.note=E('p',undefined,'lv-note muted');
  ui.help=E('p','Frecce per spostarti, Invio o F2 per modificare (oppure inizia a scrivere), Invio salva e scende, Tab salva e va a destra, Esc annulla. Il numero di telefono si chiama con un clic.','cs-help muted');
- host.append(bar,ui.meta,ui.live,ui.scroll,ui.help,ui.note);
+ host.append(bar,ui.meta,ui.progress,ui.live,ui.scroll,ui.help,ui.note);
  ui.scroll.addEventListener('keydown',e=>onKey(e,host,ctx));
  host._cs=ui;return ui;
 }
@@ -94,7 +102,9 @@ function draw(host,ctx){
  S.pos={r:Math.max(0,Math.min(shown.length-1,S.pos.r)),c:Math.max(0,Math.min(nav.length-1,S.pos.c))};
  const sortCol=C().colOf(p.sort.key);
  ui.meta.textContent=shown.length+(shown.length===1?' contatto':' contatti')+(shown.length!==all.length?' su '+all.length+' caricati':'')+' · Ordinati per '+(sortCol?sortCol.label:'Nome')+(S.status?' · '+S.status:'');
- const partial=MORE.filter(e=>a.state.more?.[e]);ui.more.hidden=!partial.length;ui.more.disabled=S.loading||!!a.state.busy;
+ const partial=MORE().filter(e=>a.state.more?.[e]);ui.more.hidden=!partial.length;ui.more.disabled=S.loading||!!a.state.busy;
+ ui.progress.textContent=S.progress;ui.progress.hidden=!S.progress;
+ ui.jump.hidden=!drawn.some(c=>c.id==='acts:1');
  ui.note.textContent=(a.state.more?.contacts?'Elenco parziale: sono caricati i primi '+all.length+' contatti, «Carica altri 100 · Contatti» qui sotto aggiunge i successivi. ':'')
   +(partial.length?'Attività, aziende e trattative vengono dalle pagine caricate ('+partial.map(e=>({companies:'aziende',interactions:'interazioni',tasks:'attività',opportunities:'trattative'})[e]).join(', ')+' parziali): «Completa i dati» legge le altre. ':'Attività, aziende e trattative dalle pagine caricate. ')
   +'«Da fare»: attività aperte e interazioni in calendario, la prima è la prossima. «Attività»: interazioni registrate, dalla più recente.';
@@ -128,8 +138,11 @@ function draw(host,ctx){
  if(!shown.length)ui.scroll.append(E('p',all.length?'Nessun contatto con questi filtri'+(S.query?' per «'+S.query+'»':'')+'.':'Nessun contatto caricato. Nessun dato dimostrativo.','lv-none'));
  if(a.state.busy)host.querySelectorAll('button,input,select').forEach(x=>{if(x.dataset.preDisabled===undefined){x.dataset.preDisabled=String(x.disabled);x.disabled=true}});
  if(focusIn)focusCell(host,false);
+ autoLoad(host,ctx);
 }
 const fz=c=>c.call?'cs-fz-call':'cs-fz-'+c.id;
+// «⤢ tutto»: the note is longer than the two lines of the cell (the cell opens it).
+const more=()=>{const s=E('span','⤢ tutto','cs-more');s.setAttribute('aria-hidden','true');return s};
 
 function cell(r,c,now,host,ctx,canCall){
  const td=E('td');td.dataset.col=c.id;if(c.call||(c.base&&c.base.freeze))td.className='cs-fz '+fz(c);
@@ -142,15 +155,19 @@ function cell(r,c,now,host,ctx,canCall){
  if(base.many){
   const i=c.index;
   if(base.id==='acts'){const x=r.acts[i];if(!x){td.append(empty(''));td.classList.add('cs-blank');return td}
-   // Two compact lines: «24/10/26 15:30 · Chiamata [Esito]», then the outcome-less title or the note.
-   td.classList.add('cs-act');const top=E('span',undefined,'cs-act-top');top.append(E('b',dShort(x.at)+' '+hm(x.at)),E('span',' · '+(C().KINDS[x.kind]||x.kind||'Interazione')+' '));
+   // «24/10/26 15:30 · Chiamata [Esito]», then up to two lines of the note (or the title); a click,
+   // Enter or Space opens the whole text (noteDialog), «Leggi tutto» says when there is more.
+   td.classList.add('cs-act','cs-detail');const top=E('span',undefined,'cs-act-top');top.append(E('b',dShort(x.at)+' '+hm(x.at)),E('span',' · '+(C().KINDS[x.kind]||x.kind||'Interazione')+' '));
    if(x.outcome)top.append(E('span',C().OUTCOMES[x.outcome],'cs-out cs-out-'+x.outcome));
-   td.append(top,E('span',x.note||(x.outcome?'':x.title)||'—','cs-act-note'));td.title=C().actText(x);return td}
+   if(x.long)top.prepend(more());
+   td.append(top,E('span',x.preview||(x.outcome?'':x.title)||'—','cs-act-note'));
+   td.setAttribute('aria-haspopup','dialog');td.title=C().actText(x)+' · Invio o clic: testo completo';return td}
   const x=r.todos[i];if(!x){td.append(empty(''));td.classList.add('cs-blank');return td}
-  td.classList.add('cs-todo');if(x.overdue)td.classList.add('cs-late');
+  td.classList.add('cs-todo','cs-detail');if(x.overdue)td.classList.add('cs-late');
   const due=E('b',undefined,'cs-todo-due');if(x.overdue)due.append(E('span','Scaduta','cs-late-badge'),' ');due.append(x.at==null?'Senza scadenza':dShort(x.at)+' '+hm(x.at));
+  if(x.long)due.prepend(more());
   td.append(due,E('span',x.title,'cs-todo-title'));
-  td.title=C().todoText(x)+(x.source==='interaction'?' (interazione in calendario)':'');return td}
+  td.setAttribute('aria-haspopup','dialog');td.title=C().todoText(x)+(x.source==='interaction'?' (interazione in calendario)':'')+' · Invio o clic: dettagli';return td}
  switch(c.id){
   case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri Customer360 · '+r.name;o.setAttribute('aria-label','Apri Customer360 di '+r.name);td.append(o);td.title=r.name;break}
   case 'company':if(r.companyRecord){const b=B(r.company||'(senza nome)',()=>ctx.open('companies',r.companyRecord),'lv-link');b.tabIndex=-1;b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(empty(r.companyMissing?'non caricata':'—'));break;
@@ -179,13 +196,24 @@ function onKey(e,host,ctx){
  const c=current.nav[S.pos.c],r=current.shown[S.pos.r];if(!c||!r)return;
  if(e.key==='Enter'||e.key==='F2'||e.key===' '){
   if(c.call){e.preventDefault();td.querySelector('button')?.click();return}
+  if(td.classList.contains('cs-detail')&&e.key!=='F2'){e.preventDefault();noteDialog(r,c,td,host);return}
   if(td.classList.contains('cs-edit')){e.preventDefault();edit(host,ctx,td,r,c,null);return}
   if(e.key==='Enter'){const x=td.querySelector('button,a');if(x){e.preventDefault();x.click()}}
   return}
  if(e.key.length===1&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&td.classList.contains('cs-edit')){e.preventDefault();edit(host,ctx,td,r,c,e.key)}
 }
-// Click selects a cell; double click edits it.
-document.addEventListener('click',e=>{const td=e.target.closest?.('.cs td[data-r]');if(!td||S.editing)return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};if(!e.target.closest('a,button'))focusCell(host,false)});
+// Click selects a cell (an activity or to-do cell also opens its full text); double click edits it.
+document.addEventListener('click',e=>{const td=e.target.closest?.('.cs td[data-r]');if(!td||S.editing)return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};if(e.target.closest('a,button'))return;focusCell(host,false);
+ if(td.classList.contains('cs-detail'))noteDialog(current.shown[S.pos.r],current.nav[S.pos.c],td,host)});
+/* Scroll the grid so a column starts right of the frozen ones, and select its cell in the current row. */
+function jumpTo(host,colId){
+ const ui=host._cs,i=current.nav.findIndex(c=>c.id===colId);if(!ui||i<0)return;
+ const th=ui.scroll.querySelector('thead tr.cs-head th[data-col="'+colId+'"]');if(!th)return;
+ // Width of the columns frozen on the left on this screen (on a phone the company scrolls: its left is auto).
+ const frozen=[...ui.scroll.querySelectorAll('thead tr.cs-head th.cs-fz')].filter(x=>{const s=getComputedStyle(x);return s.display!=='none'&&s.left!=='auto'}).reduce((w,x)=>w+x.offsetWidth,0);
+ const at=ui.scroll.scrollLeft+th.getBoundingClientRect().left-ui.scroll.getBoundingClientRect().left-ui.scroll.clientLeft;
+ ui.scroll.scrollLeft=Math.max(0,at-frozen);S.pos={r:S.pos.r,c:i};focusCell(host,false);
+}
 document.addEventListener('dblclick',e=>{const td=e.target.closest?.('.cs td.cs-edit[data-r]');if(!td||S.editing||e.target.closest('a,button'))return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};edit(host,host._ctx,td,current.shown[S.pos.r],current.nav[S.pos.c],null)});
 
 /* ---------- Inline edit ---------- */
@@ -259,6 +287,54 @@ function callDialog(r,host,ctx){
  dlg.showModal();buttons[0].focus();
 }
 
+/* ---------- Full text of an activity or to-do ---------- */
+/* A modal panel (a bottom sheet on a phone): date, type, outcome, the whole note with its line breaks,
+   who registered it, and «Apri il contatto». Esc, «Chiudi» or a click outside close it; the focus goes
+   back to the cell. ‹ › (or the arrow keys) move to the previous or next one of the same contact. */
+let noteDlg=null;
+function noteDialog(r,c,td,host){
+ if(!r||!c||!c.base||!c.base.many)return;
+ const items=c.base.id==='acts'?r.acts:r.todos;let i=c.index;if(!items[i])return;
+ if(!noteDlg){noteDlg=E('dialog',undefined,'cs-note');noteDlg.setAttribute('aria-labelledby','cs-note-title');document.body.append(noteDlg);
+  // A click on the backdrop lands on the dialog element itself.
+  noteDlg.addEventListener('click',e=>{if(e.target===noteDlg)noteDlg.close()});
+  noteDlg.addEventListener('close',()=>{const back=noteDlg._back;noteDlg._back=null;const x=document.querySelector('.cs');if(x&&back)focusCell(x,false)})}
+ const ctx=host?._ctx;
+ const show=k=>{
+  i=k;const d=C().detail(r,items[i],{members:rows('members')});if(!d)return;
+  const head=E('div',undefined,'cs-note-head');
+  const h=E('h2',d.heading);h.id='cs-note-title';
+  const close=B('Chiudi',()=>noteDlg.close(),'lv-ghost cs-note-close');close.setAttribute('aria-label','Chiudi il testo completo');
+  head.append(h,close);
+  const meta=E('p',undefined,'cs-note-meta');
+  if(d.late)meta.append(E('span','Scaduta','cs-late-badge'),' ');
+  meta.append(E('b',d.when));if(d.outcome)meta.append(' ',E('span',d.outcome.label,'cs-out cs-out-'+d.outcome.key));
+  const who=E('p',d.contact,'cs-note-who');
+  const parts=[head,meta,who];
+  if(d.title)parts.push(E('p',d.title,'cs-note-title'));
+  const body=E('div',undefined,'cs-note-body');body.tabIndex=0;body.setAttribute('aria-label','Testo completo');
+  if(d.paragraphs.length)for(const p of d.paragraphs)body.append(E('p',p));else body.append(E('p',d.kind==='act'?'Nessuna nota scritta.':'Nessuna nota: c’è solo il titolo.','muted'));
+  parts.push(body);
+  if(d.facts.length){const dl=E('dl',undefined,'cs-note-facts');for(const [k,v] of d.facts)dl.append(E('dt',k),E('dd',v));parts.push(dl)}
+  const foot=E('div',undefined,'cs-note-foot');
+  const prev=B('‹ Precedente',()=>show(i-1),'lv-ghost');prev.disabled=i<=0;
+  const pos=E('span',d.position,'cs-note-pos');
+  const next=B('Successiva ›',()=>show(i+1),'lv-ghost');next.disabled=i>=items.length-1;
+  const open=B('Apri il contatto',()=>{noteDlg._back=null;noteDlg.close();ctx?.open('contacts',r.record)},'primary');
+  if(items.length>1)foot.append(prev,pos,next);foot.append(open);parts.push(foot);
+  // Content in an inner box: the dialog element itself is only the backdrop area (click = close).
+  const inner=E('div',undefined,'cs-note-in');inner.append(...parts);noteDlg.replaceChildren(inner);
+  // Keep the cell under the panel in step: the selection follows ‹ ›.
+  const ci=current.nav.findIndex(x=>x.base&&x.base.id===c.base.id&&x.index===i);if(ci>=0)S.pos={r:S.pos.r,c:ci};
+  body.scrollTop=0;
+ };
+ noteDlg.onkeydown=e=>{if(e.target.closest('button')&&(e.key==='Enter'||e.key===' '))return;
+  if(e.key==='ArrowLeft'&&i>0){e.preventDefault();show(i-1)}else if(e.key==='ArrowRight'&&i<items.length-1){e.preventDefault();show(i+1)}};
+ show(i);noteDlg._back=td;
+ if(!noteDlg.open)noteDlg.showModal();
+ noteDlg.querySelector('.cs-note-close')?.focus();
+}
+
 /* ---------- CSV and «Completa i dati» ---------- */
 function exportCsv(host){
  const CSV=window.RadixCrmCsv;if(!CSV){app().error('Esportazione CSV non disponibile.');return}
@@ -266,19 +342,34 @@ function exportCsv(host){
  const l=E('a');l.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));l.download='foglio-chiamate-'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(l);l.click();setTimeout(()=>{URL.revokeObjectURL(l.href);l.remove()},500);
  app().notice(current.shown.length+' righe esportate dal foglio chiamate.');
 }
-async function completeData(host,ctx){
- const a=app();if(!a||a.state.busy||S.loading)return;S.loading=true;const gen=a.state.generation;let pages=0;
+/* Reads the pages not loaded yet of interactions, tasks, companies and deals (reads only, the same
+   requests as «Carica altri 100»), at most PAGE_CAP pages per kind each time; the progress line says
+   what is being read and whether the cap left something out. auto: started by the sheet itself. */
+async function completeData(host,ctx,auto){
+ const a=app();if(!a||a.state.busy||S.loading)return;S.loading=true;const gen=a.state.generation,ws=a.state.workspace;let pages=0;const capped=[];
+ const redraw=()=>{const x=document.querySelector('.cs')||host;draw(x,x._ctx||ctx)};
  try{
-  for(const e of MORE){let guard=0;
-   while(a.state.more?.[e]&&guard++<30){
-    S.status='leggo '+e+'…';draw(document.querySelector('.cs')||host,ctx);
+  for(const e of C().toLoad(a.state.more)){let guard=0;
+   while(a.state.more?.[e]&&guard<C().PAGE_CAP){guard++;
+    S.progress=C().progressText({entity:e,pages});S.status='';redraw();
     const off=a.state.offset[e]||0;const r=await a.api(e,{offset:off,...(e==='tasks'?{due:a.state.taskDue}:{}),...(a.state.search?.[e]!==undefined?{search:a.state.search[e]}:{})});
-    if(gen!==a.state.generation)return;
+    if(gen!==a.state.generation||ws!==a.state.workspace){S.progress='';return}
     const have=new Set((a.state.rows[e]||[]).map(x=>x.id));a.state.rows[e]=[...(a.state.rows[e]||[]),...r.rows.filter(x=>!have.has(x.id))];
-    a.state.offset[e]=off+r.rows.length;a.state.more[e]=r.rows.length===100;pages++;S.dirty=true}}
-  S.status=pages?'dati completati ('+pages+(pages===1?' pagina letta)':' pagine lette)'):'dati già completi';
- }catch(e){S.status='';a.error('Completamento dati non riuscito: '+(e.message||e))}
- finally{S.loading=false;window.RadixCrmData?.reset?.();const x=document.querySelector('.cs');if(x)draw(x,x._ctx||ctx)}
+    a.state.offset[e]=off+r.rows.length;a.state.more[e]=r.rows.length===100;pages++;S.dirty=true}
+   if(a.state.more?.[e])capped.push(e)}
+  S.progress=C().progressText({pages,done:true,capped});
+  if(!auto&&!pages)S.progress='Dati già completi: tutte le attività sono nel foglio.';
+ }catch(e){S.progress=C().progressText({failed:String(e&&e.message||e)});if(!auto)a.error('Completamento dati non riuscito: '+(e.message||e))}
+ finally{S.loading=false;window.RadixCrmData?.reset?.();redraw();
+  // A finished line goes away after a while; a cap or an error stays until the next read.
+  if(!capped.length&&!/interrotto/.test(S.progress)){const shown=S.progress;setTimeout(()=>{if(S.progress===shown){S.progress='';const x=document.querySelector('.cs');if(x&&!S.editing)draw(x,x._ctx||ctx)}},8000)}}
+}
+/* When the sheet opens (once per workspace load) it reads the missing pages by itself, so every
+   interaction is in the «Attività» columns without pressing a button. Waits while the app is busy. */
+function autoLoad(host,ctx){
+ const a=app();if(!a||S.loading||a.state.busy||!Array.isArray(a.state.rows?.contacts))return;
+ const key=a.state.generation+'|'+a.state.workspace;if(S.auto===key||!C().toLoad(a.state.more).length)return;
+ S.auto=key;setTimeout(()=>completeData(host,ctx,true),0);
 }
 
 window.RadixCrmSheetView=Object.freeze({
