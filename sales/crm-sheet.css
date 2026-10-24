@@ -59,7 +59,14 @@ html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{scroll-margin
 .cs-act-top,.cs-act-note,.cs-act-title,.cs-todo-due,.cs-todo-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cs-act-top{font-size:11px;color:var(--crm-muted)}
 .cs-act-top b{color:var(--crm-text);font-weight:600}
+/* Two lines of the note at most (the whole text opens in .cs-note). */
+.cs-table .cs-act-note,.cs-table .cs-todo-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;white-space:normal;overflow:hidden;overflow-wrap:anywhere;max-height:2.6em}
 .cs-act-note{font-size:12px;color:var(--crm-muted)}
+.cs-table td.cs-detail{cursor:pointer}
+.cs-table td.cs-detail:hover .cs-act-note,.cs-table td.cs-detail:hover .cs-todo-title{color:var(--crm-text)}
+.cs-more{float:right;margin-left:6px;padding:0 5px;border-radius:999px;background:var(--crm-accent-soft);color:var(--crm-accent);font-size:10px;font-weight:600;line-height:16px}
+.cs-progress{margin:0 18px 8px;padding:4px 10px;border-left:3px solid var(--crm-accent);background:var(--crm-accent-soft);color:var(--crm-text);font-size:12px;border-radius:0 6px 6px 0}
+.cs-bar .cs-jump{color:var(--crm-accent)}
 .cs-todo-due{font-size:11px;font-weight:600;color:var(--crm-info)}
 .cs-late .cs-todo-due{color:var(--crm-err)}
 .cs-table td.cs-late{box-shadow:inset 3px 0 0 var(--crm-err)}
@@ -95,6 +102,34 @@ html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{scroll-margin
 .cs-follow input[type="datetime-local"]{display:block;margin-top:4px;max-width:100%}
 .cs-follow input[type="checkbox"]{width:16px;height:16px;min-height:0;min-width:0;padding:0;margin:0 4px 0 0;vertical-align:middle;accent-color:var(--crm-accent)}
 .cs-dialog textarea{min-height:0;height:auto}
+/* Full text of an activity or to-do: a panel in the middle, a bottom sheet on a phone. */
+.cs-note{width:min(600px,calc(100vw - 32px));max-height:min(80vh,720px);padding:0;border:1px solid var(--crm-line);border-radius:12px;background:var(--crm-card);color:var(--crm-text);font-family:var(--crm-font);box-shadow:0 12px 40px var(--crm-shadow-c);overflow:hidden}
+.cs-note[open]{display:flex;flex-direction:column}
+.cs-note-in{display:flex;flex-direction:column;min-height:0;max-height:inherit;padding:16px 18px 14px;box-sizing:border-box}
+.cs-note-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cs-note h2{margin:0;font-size:18px;line-height:1.3}
+.cs-note-close{flex:none;min-height:32px;padding:4px 12px}
+.cs-note-meta{margin:6px 0 2px;font-size:14px}
+.cs-note-who{margin:0 0 8px;font-size:13px;color:var(--crm-muted)}
+.cs-note-title{margin:0 0 8px;font-weight:600;font-size:14px;overflow-wrap:anywhere}
+.cs-note-body{flex:1 1 auto;min-height:60px;overflow:auto;padding:10px 12px;border:1px solid var(--crm-line);border-radius:8px;background:var(--crm-soft);font-size:14px;line-height:1.55}
+.cs-note-body p{margin:0 0 10px;white-space:pre-wrap;overflow-wrap:anywhere}
+.cs-note-body p:last-child{margin-bottom:0}
+.cs-note-body:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+.cs-note-facts{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:10px 0 0;font-size:13px}
+.cs-note-facts dt{color:var(--crm-muted)}
+.cs-note-facts dd{margin:0}
+.cs-note-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+.cs-note-foot button{min-height:36px}
+.cs-note-pos{font-size:12px;color:var(--crm-muted)}
+.cs-note-foot .primary{margin-left:auto}
+@media(max-width:600px){
+ .cs-note{width:100vw;max-width:100vw;max-height:85vh;margin:auto 0 0;border-radius:16px 16px 0 0;border-bottom:0}
+ .cs-note-in{padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+ .cs-note-foot .primary{margin-left:0;flex:1 1 100%}
+ .cs-note-foot .lv-ghost{flex:1 1 0}
+ .cs-note-pos{flex:1 1 100%;order:-1;text-align:center}
+}
 @media(max-width:900px){
  html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{scroll-margin-top:84px}
 }
