@@ -66,7 +66,7 @@ function header(){
  const kind=p.profile&&p.profile.kind||p.profile&&p.profile.brief&&p.profile.brief.industry||KIND[p.kind]||'';
  const chips=[p.client_name&&p.client_name!==p.name?p.client_name:'',kind].filter(Boolean);
  chips.forEach(t=>box.append(node('span','mo-chip',String(t).slice(0,60))));
- if(state.journey&&Number.isInteger(state.journey.done)&&state.journey.total)box.append(node('span','mo-chip mo-chip--ok',state.journey.done+' di '+state.journey.total+' fasi fatte'));
+ const pp=O.phaseProgress(state.journey);if(pp)box.append(node('span','mo-chip mo-chip--ok',pp.done+' di '+pp.total+' fasi fatte'));
  const open=node('a','mo-chip mo-chip--link','Apri il progetto');open.href='/agency/project-workspace.html?id='+encodeURIComponent(p.id);box.append(open);
 }
 $('moSwitch').addEventListener('change',e=>{const p=(state.projects||[]).find(x=>x&&x.id===e.target.value);if(!p)return;
@@ -141,10 +141,11 @@ const STATE_WORD={done:'fatto',active:'in corso',waiting:'tocca a te',todo:'da f
 // the next action of the project is one click from the home, above the services.
 const WHERE={workspace:id=>'/agency/project-workspace.html?id='+encodeURIComponent(id),ped:id=>'/project-editorial.html?project='+encodeURIComponent(id)+'#ped'};
 function flow(){
- const ph=state.journey&&Array.isArray(state.journey.phases)&&state.journey.phases.length?state.journey.phases:null;
+ // Same source and count as the header chip (O.phaseProgress): «N di 9 fasi fatte» agrees with the steps below.
+ const pp=O.phaseProgress(state.journey),ph=pp?pp.phases:null;
  const now=ph?(ph.find(p=>p.state==='waiting')||ph.find(p=>p.state!=='done')||null):null;
  $('moFlowTitle').textContent=ph?'Il percorso del progetto':'Workflow operativo';
- $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
+ $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato: '+pp.done+' di '+pp.total+' fatte.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
  $('moFlow').replaceChildren(...(ph||O.FLOW.map(label=>({label}))).map((p,i)=>{
   const li=node('li','ma-step'+(p.state?' is-'+p.state:'')+(p===now?' is-now':''));const n=node('span','ma-step-n');
   if(p.state==='done')n.append(ico('check'));else n.textContent=String(i+1);n.setAttribute('aria-hidden','true');

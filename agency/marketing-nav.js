@@ -108,3 +108,25 @@
   mark();
   window.addEventListener('hashchange', mark);
 })();
+
+/* «Altro ▾» menus (details.more, in Progetti and in the Scheda progetto): Enter/Space open them (native <details>);
+   Escape closes the open one and puts the focus back on its «Altro»; a click outside closes it. Runs on every page
+   that loads this file, menu or not, and only touches details.more. */
+(function () {
+  'use strict';
+  if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+  function open() { return [].slice.call(document.querySelectorAll('details.more[open]')); }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' && e.key !== 'Esc') return;
+    // A confirmation open on top (RadixConfirm, a <dialog>) takes its own Escape first.
+    if (document.querySelector('dialog[open]')) return;
+    var list = open(); if (!list.length) return;
+    var act = document.activeElement, own = null;
+    list.forEach(function (d) { if (d.contains(act)) own = d; d.open = false; });
+    var back = (own || list[list.length - 1]).querySelector('summary');
+    if (back) back.focus();
+  });
+  document.addEventListener('click', function (e) {
+    open().forEach(function (d) { if (!d.contains(e.target)) d.open = false; });
+  });
+})();

@@ -143,6 +143,13 @@ function jobs(projects,plans,{roles={},status={},limit=8}={}){
 }
 // The nine phases of the agency flow (lib/project-journey.js PHASES), shown when no project has its own.
 const FLOW=Object.freeze(['Brief','Ricerca','Strategia','Approvazione strategia','PED','Produzione','Revisione','Pubblicazione','Risultati']);
+// The phases of a project as the page shows them (journey.phases, the nine of the percorso) and how many are done:
+// the header chip and «Il percorso del progetto» read this one count. No phases, no count (null).
+function phaseProgress(journey){
+ const ph=journey&&Array.isArray(journey.phases)?journey.phases.filter(p=>p&&typeof p==='object'):[];
+ if(!ph.length)return null;
+ return {phases:ph,done:ph.filter(p=>p.state==='done').length,total:ph.length};
+}
 // The project shown in the hero: the one chosen in «Cosa vuoi fare» if still active, else the most recently updated.
 function currentProject(projects,remembered){
  const live=(Array.isArray(projects)?projects:[]).filter(p=>p&&p.status!=='archived');
@@ -262,5 +269,5 @@ function kpis({projects=null,plans=null,dashboard=null,approvals=null,now=Date.n
 // Label size estimate for the tests and before the fonts load: dot, name at 13px/600, count under it.
 const labelSize=(name,compact)=>compact?{w:Math.ceil(18+String(name).length*6.4),h:30}:{w:Math.ceil(28+String(name).length*7.3),h:42};
 return Object.freeze({LOOK,STUDIOS,SECTIONS,SIZE,planets,counts,countText,ring,hit,reach,
- AREA_LINE,SYNONYMS,STEP_HREF,FLOW,ORBITS,GLOBE,serviceHref,withParams,words,matchServices,suggest,resolve,jobs,currentProject,orbitPoint,toBox,globeLayout,labelSize,waiting,daily,sparkPath,kpis});
+ AREA_LINE,SYNONYMS,STEP_HREF,FLOW,phaseProgress,ORBITS,GLOBE,serviceHref,withParams,words,matchServices,suggest,resolve,jobs,currentProject,orbitPoint,toBox,globeLayout,labelSize,waiting,daily,sparkPath,kpis});
 });
