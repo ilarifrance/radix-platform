@@ -466,6 +466,11 @@ function channelPreview(item,service){const prof=rt&&registryProject&&rt.profile
  const text=document.createElement('div');text.className='pp-text pp-clamp';text.textContent=item.copy;text.dataset.name=full;const more=document.createElement('button');more.type='button';more.className='pp-more-text';more.textContent='…altro';
  more.onclick=()=>{const open=text.classList.toggle('pp-clamp');more.textContent=open?'…altro':'mostra meno'};
  const pic=document.createElement('div');pic.className='pp-media';pic.textContent='Carico le immagini allegate…';
+ // A video post goes out with its video (YouTube with title and a short description), not with images.
+ if(pv.mediaKind(item)==='video'){const yt=/youtube/i.test(String(service()||item.channel))?pv.youtubeMeta(item):null;if(yt){text.textContent=yt.description;const t=el('p',{className:'pp-yt-title',textContent:'Titolo su YouTube: '+yt.title+' · categoria Istruzione'});head.after(t)}
+  if(item.video&&item.video.url){const v=document.createElement('video');v.src=item.video.url;v.controls=true;v.preload='metadata';v.playsInline=true;pic.dataset.count=1;pic.replaceChildren(v,el('small',{textContent:'Il video parte con il post su Buffer.'}))}
+  else pic.textContent='Manca il video: generalo o collegalo qui sopra, senza video il post non parte.';
+  art.append(head,text);if(String(text.textContent).length>210||String(text.textContent).split('\n').length>3)art.append(more);art.append(pic,socialBar(art.dataset.channel));return art}
  api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id)).then(d=>{if(!d.items.length){pic.textContent='Nessuna immagine allegata: il post esce solo con il testo.';return}
   pic.dataset.count=d.items.length;pic.replaceChildren(...d.items.map(x=>Object.assign(document.createElement('img'),{src:x.url,alt:'Immagine allegata al post',loading:'lazy'})))}).catch(()=>{pic.textContent='Immagini non disponibili ora.'});
  art.append(head,text);if(String(item.copy||'').length>210||String(item.copy||'').split('\n').length>3)art.append(more);art.append(pic,socialBar(art.dataset.channel));return art}

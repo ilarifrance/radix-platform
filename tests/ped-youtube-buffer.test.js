@@ -42,3 +42,12 @@ test('PED page: approval and avatar video blocked on open placeholders; Buffer c
  assert.match(src,/const holes=pv\.placeholders\(script\);if\(holes\.length\)\{[^}]*pp-warn/);
  assert.match(src,/const own=pv\.bufferChannelFor\(item\.channel,bufferChannels,saved\);if\(own\)sel\.value=own\.id;/);
 });
+
+test('publish preview: a video post shows its video (or that it is missing), YouTube shows title and short description',()=>{
+ const src=read('editorial-workspace.js'),fn=src.slice(src.indexOf('function channelPreview('),src.indexOf('function postPreview('));
+ const video=fn.indexOf("if(pv.mediaKind(item)==='video')"),images=fn.indexOf("api('GET'");
+ assert.ok(video>0&&video<images,'video posts never fall through to «Nessuna immagine allegata»');
+ assert.match(fn,/pv\.youtubeMeta\(item\):null;if\(yt\)\{text\.textContent=yt\.description;/);
+ assert.match(fn,/const v=document\.createElement\('video'\);v\.src=item\.video\.url;/);
+ assert.match(fn,/Manca il video: generalo o collegalo qui sopra/);
+});
