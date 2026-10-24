@@ -70,14 +70,17 @@ function topDeal(opportunities,stages,contact){
 
 /* Columns, in sheet order. The frozen ones (freeze) stay on screen when the grid scrolls sideways,
    as Excel's frozen panes: name, phone (then the «Registra chiamata» button) and company.
-   group: contact | company | activity; edit = [entity, field key] for inline edit; num right-aligned;
-   hidden: off by default (the column chooser adds it); added: a field of migration 011.
+   group: who (the frozen block) | contact | company | todo | activity, each one contiguous so its label
+   is drawn once over its columns (see headerGroups); edit = [entity, field key] for inline edit;
+   num right-aligned; hidden: off by default (the column chooser adds it); added: a field of migration 011.
+   Each field is in one column only: «Telefono» is the contact's phone, «Cellulare» its mobile,
+   «Tel. azienda» the company's switchboard; the company name only in the frozen «Azienda».
    After these come the activity columns, as many as the contact with most has:
    «Da fare 1…n» (open tasks and planned interactions, soonest first) and «Attività 1…n» (done, newest first). */
 const COLUMNS=Object.freeze([
- {id:'name',group:'contact',label:'Nome',fixed:true,freeze:true,edit:['contacts','name']},
- {id:'phone',group:'contact',label:'Telefono',fixed:true,freeze:true,edit:['contacts','phone'],tel:true},
- {id:'company',group:'company',label:'Azienda',fixed:true,freeze:true},
+ {id:'name',group:'who',label:'Nome',fixed:true,freeze:true,edit:['contacts','name']},
+ {id:'phone',group:'who',label:'Telefono',fixed:true,freeze:true,edit:['contacts','phone'],tel:true},
+ {id:'company',group:'who',label:'Azienda',fixed:true,freeze:true},
  {id:'role',group:'contact',label:'Ruolo',edit:['contacts','role']},
  {id:'mobile',group:'contact',label:'Cellulare',edit:['contacts','mobile'],tel:true,added:true},
  {id:'email',group:'contact',label:'Email',edit:['contacts','email']},
@@ -90,11 +93,27 @@ const COLUMNS=Object.freeze([
  {id:'employees',group:'company',label:'Dipendenti',edit:['companies','employees'],num:true,added:true,hidden:true},
  {id:'revenue',group:'company',label:'Fatturato',edit:['companies','annual_revenue_cents'],num:true,added:true,hidden:true},
  {id:'companyPhone',group:'company',label:'Tel. azienda',edit:['companies','phone'],tel:true,hidden:true},
- {id:'stage',group:'activity',label:'Fase trattativa'},
- {id:'todos',group:'activity',label:'Da fare',many:true},
+ {id:'stage',group:'company',label:'Fase trattativa'},
+ {id:'todos',group:'todo',label:'Da fare',many:true},
  {id:'acts',group:'activity',label:'Attività svolte',many:true}
 ].map(Object.freeze));
-const GROUPS=Object.freeze({contact:'Contatto',company:'Azienda',activity:'Attività'});
+const GROUPS=Object.freeze({who:'Chi',contact:'Contatto',company:'Azienda',todo:'Da fare',activity:'Attività'});
+/* The group header row over the drawn columns (from expand; {call:true} is the «Registra chiamata»
+   column, part of the frozen block). Frozen columns get one cell each, so each sticks to the left with
+   its column (on a phone the company scrolls away); the label «Chi» sits on the first of them only.
+   The other columns of one group share one cell (span). Each label appears once.
+   Each entry: {group, label, span, frozen, col (frozen: the column id, 'call' for the button)}. */
+function headerGroups(cols){
+ const out=[],seen=new Set();
+ for(const c of list(cols)){
+  if(!c)continue;
+  const frozen=!!(c.call||(c.base&&c.base.freeze)),g=frozen?'who':c.base?c.base.group:'';
+  const prev=out[out.length-1];
+  if(!frozen&&prev&&!prev.frozen&&prev.group===g){prev.span++;continue}
+  out.push({group:g,label:seen.has(g)?'':GROUPS[g]||'',span:1,frozen,col:frozen?(c.call?'call':c.id):null});seen.add(g);
+ }
+ return out;
+}
 const MAX_MANY=50;
 const colOf=id=>COLUMNS.find(c=>c.id===id)||null;
 function columnsFor(opts){return COLUMNS.filter(c=>!(c.added&&opts&&opts.added===false))}
@@ -274,7 +293,7 @@ function cellText(row,col){
 }
 function csvColumns(drawn){return list(drawn).map(c=>({label:c.id==='revenue'?'Fatturato (EUR)':c.label,value:r=>cellText(r,c)}))}
 
-const api={OUTCOMES,FOLLOW,KINDS,GROUPS,COLUMNS,MAX_MANY,colOf,columnsFor,expand,outcomeOf,shortNote,activities,todos,lastInteraction,nextActivity,topDeal,buildRows,actText,todoText,passes,matches,sortRows,apply,nextSort,
+const api={OUTCOMES,FOLLOW,KINDS,GROUPS,COLUMNS,MAX_MANY,colOf,headerGroups,columnsFor,expand,outcomeOf,shortNote,activities,todos,lastInteraction,nextActivity,topDeal,buildRows,actText,todoText,passes,matches,sortRows,apply,nextSort,
  storageKey,defaults,normalize,parse,toggleColumn,target,editValue,editPlan,callPlan,localDateTime,tomorrowAt9,merge,move,cellText,csvColumns,dateTime,fold};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmSheet=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

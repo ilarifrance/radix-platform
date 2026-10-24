@@ -146,6 +146,48 @@ test('columns: few defaults, frozen first, one column per activity and per to-do
  assert.ok(S.toggleColumn(d.columns,'city').includes('city'));
 });
 
+test('group header: Chi over the frozen block, then Contatto, Azienda, Da fare, Attività, each once',()=>{
+ const CALL={id:'__call',call:true};
+ const nav=cols=>{const out=[];for(const c of cols){out.push(c);if(c.id==='phone')out.push(CALL)}return out};
+ const labels=g=>g.map(x=>x.label).filter(Boolean);
+ // Groups are contiguous in COLUMNS, so a label can never come back after another group.
+ const order=S.COLUMNS.map(c=>c.group).filter((g,i,a)=>g!==a[i-1]);
+ assert.deepEqual(order,['who','contact','company','todo','activity']);
+ assert.deepEqual(Object.keys(S.GROUPS),order);
+ assert.ok(S.COLUMNS.filter(c=>c.freeze).every(c=>c.group==='who')&&S.COLUMNS.filter(c=>c.group==='who').every(c=>c.freeze));
+ const def=S.headerGroups(nav(S.expand(S.defaults().columns,rows())));
+ assert.deepEqual(labels(def),['Chi','Contatto','Azienda','Da fare','Attività']);
+ // Frozen: one cell per column (name, phone, call, company), label on the first only.
+ assert.deepEqual(def.filter(g=>g.frozen).map(g=>[g.col,g.label]),[['name','Chi'],['phone',''],['call',''],['company','']]);
+ assert.deepEqual(def.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',3],['company',3],['todo',4],['activity',3]]);
+ // Every drawn column under exactly one group cell.
+ const drawn=nav(S.expand(S.defaults().columns,rows()));assert.equal(def.reduce((n,g)=>n+g.span,0),drawn.length);
+ // Every column the chooser can add: still each label once, «Fase trattativa» stays with Azienda.
+ const all=S.headerGroups(nav(S.expand(S.COLUMNS.map(c=>c.id),rows())));
+ assert.deepEqual(labels(all),['Chi','Contatto','Azienda','Da fare','Attività']);
+ assert.deepEqual(all.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',4],['company',7],['todo',4],['activity',3]]);
+ // Without migration 011 fields and with only some columns chosen.
+ assert.deepEqual(labels(S.headerGroups(nav(S.expand(['name','phone','company','email','acts'],rows(),{added:false})))),['Chi','Contatto','Attività']);
+ assert.deepEqual(S.headerGroups([]),[]);
+});
+
+test('no field twice: column ids, labels and row keys are unique in the default set and with every column',()=>{
+ for(const ids of [S.defaults().columns,S.COLUMNS.map(c=>c.id)]){
+  const x=S.expand(ids,rows());
+  assert.equal(new Set(x.map(c=>c.id)).size,x.length);
+  assert.equal(new Set(x.map(c=>c.label.toLocaleLowerCase('it'))).size,x.length,'no two headers with the same name');
+  // Each plain column reads its own row value: no two columns show the same field.
+  const keys=x.filter(c=>!c.base.many).map(c=>c.id);assert.equal(new Set(keys).size,keys.length);
+ }
+ // Edits target different fields: no two columns write the same record field.
+ const edits=S.COLUMNS.filter(c=>c.edit).map(c=>c.edit.join('.'));assert.equal(new Set(edits).size,edits.length);
+ // The three phone columns are three different numbers (contact, mobile, company).
+ assert.deepEqual(S.COLUMNS.filter(c=>c.tel).map(c=>c.edit.join('.')),['contacts.phone','contacts.mobile','companies.phone']);
+ const r=byId('k1');assert.deepEqual([r.phone,r.mobile,r.companyPhone],['347 1112223','340 1','030 1234567']);
+ // The company name only in the frozen «Azienda».
+ assert.deepEqual(S.COLUMNS.filter(c=>/azienda/i.test(c.label)).map(c=>c.id),['company','companyPhone']);
+});
+
 test('filters, search and sort',()=>{
  const all=rows(),ids=a=>a.map(r=>r.id);
  assert.deepEqual(ids(S.apply(all,{filters:{outcome:'never'}},NOW)),['k4','k2','k3']);
@@ -208,6 +250,41 @@ test('page wiring: assets after the list core, writes only through RadixSalesApp
  const list=fs.readFileSync(__dirname+'/../sales/crm-list.js','utf8');assert.match(list,/B\('Foglio chiamate'/);
  assert.match(fs.readFileSync(__dirname+'/../sales/sales.js','utf8'),/render:\(\)=>\{if\(!state\.busy\)render\(\);\}/);
  const css=fs.readFileSync(__dirname+'/../sales/crm-sheet.css','utf8');
- assert.ok(!/#[0-9a-f]{3,8}\b/i.test(css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/#contacts\b/g,'')),'only --crm-* tokens');
  assert.match(css,/thead th\{position:sticky/);assert.match(css,/\.cs-fz\{position:sticky/);assert.match(css,/@media\(max-width:700px\)/);
+});
+
+/* The dark green and gold look: colours only as tokens, defined only on the sheet scope and the call
+   dialog (the rest of the CRM keeps crm-light.css), text readable on its background. */
+const sheetCss=()=>fs.readFileSync(__dirname+'/../sales/crm-sheet.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
+function sheetTokens(){
+ const css=sheetCss(),blocks=[...css.matchAll(/([^{}]+)\{([^{}]*--crm-card:[^{}]*)\}/g)];
+ assert.equal(blocks.length,1,'one token block');
+ assert.equal(blocks[0][1].trim(),'html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"],.cs-dialog');
+ return Object.fromEntries([...blocks[0][2].matchAll(/--([a-z0-9-]+):(#[0-9a-f]{6})\b/gi)].map(m=>[m[1],m[2]]));
+}
+test('style: colours only in the scoped token block, never on :root or the whole page',()=>{
+ const css=sheetCss();
+ const outside=css.replace(/--[a-z0-9-]+:[^;}]+/gi,'').replace(/#contacts\b/g,'');
+ assert.ok(!/#[0-9a-f]{3,8}\b/i.test(outside),'hex colours only as custom properties');
+ assert.ok(!/:root|(^|\})\s*(html|body)\s*\{/.test(css),'nothing global');
+ // Every rule is scoped to the sheet, its list box in sheet mode, or the dialog.
+ for(const m of css.matchAll(/(^|\})([^{}@]+)\{/g)){const sel=m[2].trim();if(!sel)continue;
+  for(const s of sel.split(','))assert.match(s.trim(),/^(\.cs|html\[data-lv-contacts="sheet"\])/,s)}
+ assert.match(css,/scroll-margin-top:16px/,'gap from the page header when scrolled into view');
+ assert.match(css,/\.cs-glabel\{position:sticky;left:calc\(var\(--cs-fzw\)/,'group label sticks right of the frozen block');
+ const t=sheetTokens();for(const k of ['crm-card','crm-text','crm-accent','crm-link','cs-frozen'])assert.ok(t[k],k);
+});
+test('style: text contrast at least 4.5:1 on every background it is drawn on',()=>{
+ const t=sheetTokens();
+ const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+ const ratio=(a,b)=>{const x=lum(t[a]),y=lum(t[b]);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+ const pairs={
+  'crm-text':['crm-card','crm-head','crm-hover','cs-frozen','cs-sel','crm-err-soft','crm-ok-soft','cs-panel','cs-panel-2'],
+  'crm-muted':['crm-card','crm-head','crm-hover','cs-frozen','cs-sel','cs-panel','cs-panel-2'],
+  'crm-subtle':['crm-card','crm-head','crm-hover','cs-frozen'],
+  'crm-accent':['crm-card','crm-head','crm-hover','cs-frozen','crm-accent-soft','cs-panel','cs-panel-2'],
+  'crm-link':['crm-card','crm-hover','cs-frozen','cs-sel','cs-panel'],
+  'crm-ok':['crm-ok-soft','crm-head','cs-panel-2'],'crm-warn':['crm-warn-soft'],'crm-err':['crm-err-soft','crm-card','crm-hover'],
+  'crm-on-accent':['crm-accent']};
+ for(const [fg,bgs] of Object.entries(pairs))for(const bg of bgs)assert.ok(ratio(fg,bg)>=4.5,fg+' on '+bg+': '+ratio(fg,bg).toFixed(2));
 });

@@ -1,24 +1,63 @@
-/* «Foglio chiamate» (sales/crm-sheet.js), inside the Contatti list box of crm-list.css, CRM light tokens.
+/* «Foglio chiamate» (sales/crm-sheet.js), inside the Contatti list box of crm-list.css.
    Frozen panes as in Excel: the two header rows stick to the top of the grid box, the row number,
    name, phone, «Chiama» and company stick to the left (on a phone: name, phone and «Chiama» only).
-   The grid box scrolls both ways; the page never scrolls sideways. */
+   The grid box scrolls both ways; the page never scrolls sideways.
+   Look: dark green with gold accents (premium direction asked by the owner), only while the Contatti
+   list is in «Foglio chiamate» mode (html[data-lv-contacts="sheet"]) and in the «Registra chiamata»
+   dialog. The palette is the --crm-* tokens redefined on those two scopes, so every rule below and the
+   shared list controls (search, Colonne, sort buttons) follow it; the rest of the CRM keeps the light
+   tokens of crm-light.css. Text on its background stays at 4.5:1 or more (checked in crm-sheet.test.js). */
 html[data-lv-contacts="sheet"] #contacts>article.card,html[data-lv-contacts="sheet"] #contacts>.cx{display:none!important}
-.cs{--cs-n:40px;--cs-name:180px;--cs-phone:140px;--cs-call:44px;--cs-company:170px;--cs-g:27px;border-top:1px solid var(--crm-line)}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"],.cs-dialog{
+ color-scheme:dark;
+ --crm-card:#0f2a21;--crm-head:#0a1d17;--crm-soft:#143327;--crm-hover:#173b2e;
+ --crm-line:#21463a;--crm-line-2:#2f5a4a;
+ --crm-text:#eef3ea;--crm-muted:#bccbbf;--crm-subtle:#9db3a5;
+ --crm-accent:#e3c06b;--crm-accent-2:#f1d590;--crm-accent-soft:#2b3522;--crm-accent-line:#8a7238;--crm-on-accent:#1b1606;
+ --crm-link:#9fe3c0;
+ --crm-ok:#86e3ad;--crm-ok-soft:#173f2c;--crm-warn:#f3c86f;--crm-warn-soft:#3a3119;--crm-err:#ffb1a6;--crm-err-soft:#3f201c;--crm-info:#a8d2ff;--crm-info-soft:#1a2e3d;
+ --crm-shadow-c:#00000080;--crm-shadow:0 1px 0 #ffffff0d inset,0 18px 44px #04100c59;
+ --cs-panel:#12332a;--cs-panel-2:#0a1c16;--cs-glass:#ffffff08;--cs-gold-line:#e3c06b47;--cs-gold-glow:#e3c06b26;
+ --cs-frozen:#112f25;--cs-sel:#2d3a24;--cs-backdrop:#030c08b3
+}
+/* The list box itself: a dark glass card with a thin gold edge. It keeps a gap from the page header
+   above it when the sheet is scrolled into view (scroll-margin). */
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{background:linear-gradient(165deg,var(--cs-panel),var(--cs-panel-2) 70%);border-color:var(--cs-gold-line);box-shadow:var(--crm-shadow);scroll-margin-top:16px;margin-top:18px}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-head{border-bottom:1px solid var(--cs-gold-line)}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-mode{border-color:var(--crm-accent-line)}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-mode button{background:transparent}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-mode button[aria-pressed="true"]{background:var(--crm-accent);color:var(--crm-on-accent)}
+html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-title,html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"] .lv-title *{color:var(--crm-accent)}
+.cs{--cs-n:40px;--cs-name:180px;--cs-phone:140px;--cs-call:44px;--cs-company:170px;--cs-g:27px;--cs-fzw:calc(var(--cs-n) + var(--cs-name) + var(--cs-phone) + var(--cs-call) + var(--cs-company));color:var(--crm-text)}
 .cs [hidden]{display:none!important}
-.cs-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 18px 6px}
-.cs-bar select,.cs-bar button{min-height:36px;font-size:14px;width:auto;max-width:100%}
+/* Toolbar: a glass strip. */
+.cs-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 14px 6px;padding:10px 12px;border:1px solid var(--cs-gold-line);border-radius:12px;background:var(--cs-glass)}
+.cs-bar select,.cs-bar button,.cs-bar input,.cs-bar summary{min-height:36px;font-size:14px;width:auto;max-width:100%;background:var(--crm-head);color:var(--crm-text);border-color:var(--crm-line-2)}
+.cs-bar button{color:var(--crm-accent);border-color:var(--crm-accent-line)}
+.cs-bar button:hover,.cs-bar summary:hover{background:var(--crm-accent-soft);border-color:var(--crm-accent)}
 .cs-bar .lv-search input{width:220px}
-.cs-meta{padding:2px 18px 10px}
-.cs-cols-group{display:block;padding:6px 6px 2px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--crm-subtle)}
-.cs-scroll{scroll-padding:calc(var(--cs-g) + 34px) 0 0 calc(var(--cs-n) + var(--cs-name) + var(--cs-phone) + var(--cs-call) + var(--cs-company));overflow:auto;max-width:100%;max-height:calc(100vh - 230px);min-height:260px;border-top:1px solid var(--crm-line);-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.cs-bar .lv-cols-list{background:var(--crm-head);border-color:var(--cs-gold-line)}
+.cs-meta{padding:2px 18px 10px;color:var(--crm-muted)}
+.cs-cols-group{display:block;padding:6px 6px 2px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--crm-accent)}
+/* Grid box. */
+.cs-scroll{scroll-padding:calc(var(--cs-g) + 34px) 0 0 var(--cs-fzw);overflow:auto;max-width:calc(100% - 28px);margin:0 14px;max-height:calc(100vh - 250px);min-height:260px;border:1px solid var(--cs-gold-line);border-radius:12px;background:var(--crm-card);-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-color:var(--crm-accent-line) var(--crm-head)}
 .cs-table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:13px;background:var(--crm-card);color:var(--crm-text)}
 .cs-table th,.cs-table td{border-right:1px solid var(--crm-line);border-bottom:1px solid var(--crm-line);padding:4px 8px;white-space:nowrap;vertical-align:top;background:var(--crm-card);text-align:left;line-height:1.3}
 .cs-table thead th{position:sticky;z-index:2;background:var(--crm-head);color:var(--crm-muted);font-weight:600;font-size:12px}
-.cs-table thead tr.cs-groups th{top:0;height:var(--cs-g);box-sizing:border-box;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--crm-subtle);border-bottom-color:var(--crm-line-2)}
-.cs-table thead tr.cs-head th{top:var(--cs-g);padding:0;border-bottom:1px solid var(--crm-line-2)}
-.cs-table thead th.cs-g-activity{color:var(--crm-accent)}
+.cs-table thead tr.cs-groups th{top:0;height:var(--cs-g);box-sizing:border-box;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--crm-accent);background:var(--cs-panel-2);border-bottom-color:var(--cs-gold-line);border-right-color:var(--cs-gold-line)}
+/* One block over the frozen columns: no lines inside it. */
+.cs-table thead tr.cs-groups th.cs-g-who{border-right-color:transparent}
+.cs-table thead tr.cs-groups th.cs-fz-company{border-right-color:var(--cs-gold-line)}
+/* The label of a scrolling group sticks just right of the frozen columns while its group is on screen. */
+.cs-glabel{position:sticky;left:calc(var(--cs-fzw) + 8px);display:inline-block}
+.cs-table thead tr.cs-groups th.cs-fz .cs-glabel{position:static}
+.cs-table thead tr.cs-groups th.cs-g-todo,.cs-table thead tr.cs-groups th.cs-g-activity{color:var(--crm-ok)}
+.cs-table thead tr.cs-head th{top:var(--cs-g);padding:0;border-bottom:1px solid var(--cs-gold-line)}
 .cs-th{display:block;padding:7px 8px}
-.cs-table .lv-sort{min-height:32px;padding:6px 8px}
+.cs-table .lv-sort{min-height:32px;padding:6px 8px;color:var(--crm-muted)}
+.cs-table .lv-sort:hover{background:var(--crm-hover);color:var(--crm-text)}
+.cs-table th[aria-sort] .lv-sort{color:var(--crm-accent)}
+.cs-table .lv-arrow{color:inherit}
 /* Frozen columns. */
 .cs-table .cs-fz{position:sticky;z-index:1}
 .cs-table thead .cs-fz{z-index:3}
@@ -27,24 +66,28 @@ html[data-lv-contacts="sheet"] #contacts>article.card,html[data-lv-contacts="she
 .cs-table .cs-fz-name{left:var(--cs-n);width:var(--cs-name);min-width:var(--cs-name);max-width:var(--cs-name)}
 .cs-table .cs-fz-phone{left:calc(var(--cs-n) + var(--cs-name));width:var(--cs-phone);min-width:var(--cs-phone);max-width:var(--cs-phone)}
 .cs-table .cs-fz-call{left:calc(var(--cs-n) + var(--cs-name) + var(--cs-phone));width:var(--cs-call);min-width:var(--cs-call);max-width:var(--cs-call);text-align:center!important;padding-left:2px!important;padding-right:2px!important;text-overflow:clip!important}
-.cs-table .cs-fz-company{left:calc(var(--cs-n) + var(--cs-name) + var(--cs-phone) + var(--cs-call));width:var(--cs-company);min-width:var(--cs-company);max-width:var(--cs-company);box-shadow:4px 0 6px -4px var(--crm-shadow-c)}
+.cs-table .cs-fz-company{left:calc(var(--cs-n) + var(--cs-name) + var(--cs-phone) + var(--cs-call));width:var(--cs-company);min-width:var(--cs-company);max-width:var(--cs-company);border-right:1px solid var(--crm-accent-line);box-shadow:6px 0 10px -6px var(--crm-shadow-c)}
 .cs-fz-name,.cs-fz-phone,.cs-fz-call,.cs-fz-company{box-sizing:border-box;overflow:hidden;text-overflow:ellipsis}
-.cs-table tbody td.cs-fz-name{font-weight:600}
+.cs-table tbody td.cs-fz{background:var(--cs-frozen)}
+.cs-table tbody td.cs-fz-name{font-weight:600;color:var(--crm-text)}
 /* Cells. */
 .cs-table td{min-width:90px;max-width:240px;overflow:hidden;text-overflow:ellipsis}
 .cs-table td.num{text-align:right}
-.cs-table td:focus{outline:2px solid var(--crm-accent);outline-offset:-2px;background:var(--crm-accent-soft)}
-.cs-table td.cs-edit{cursor:cell}
 .cs-table tbody tr:hover td,.cs-table tbody tr:hover th{background:var(--crm-hover)}
-.cs-table tbody tr:hover td:focus{background:var(--crm-accent-soft)}
+.cs-table tbody tr:hover td:first-of-type{box-shadow:inset 2px 0 0 var(--crm-accent)}
+.cs-table td:focus,.cs-table tbody tr:hover td:focus{outline:2px solid var(--crm-accent);outline-offset:-2px;background:var(--cs-sel)}
+.cs-table td.cs-edit{cursor:cell}
 .cs-table a{color:var(--crm-link);text-decoration:none}
 .cs-table a:hover{text-decoration:underline}
 .cs-name{display:inline-block;max-width:calc(100% - 22px);overflow:hidden;text-overflow:ellipsis;vertical-align:top}
-.cs-open{min-height:0;min-width:0;width:18px;height:18px;padding:0;margin-left:2px;border:0;background:none;color:var(--crm-link);font-size:13px;line-height:1;cursor:pointer;box-shadow:none;vertical-align:top}
-.cs-call{min-height:0;min-width:0;width:30px;height:24px;padding:0;border:1px solid var(--crm-accent-line);border-radius:6px;background:var(--crm-accent-soft);color:var(--crm-accent);font-size:14px;line-height:1;cursor:pointer;box-shadow:none}
-.cs-call:hover{background:var(--crm-accent);color:var(--crm-on-accent)}
-.cs-ico{font-size:14px}
+.cs-open{min-height:0;min-width:0;width:18px;height:18px;padding:0;margin-left:2px;border:0;background:none;color:var(--crm-accent);font-size:13px;line-height:1;cursor:pointer;box-shadow:none;vertical-align:top}
+.cs-open:hover{background:none;color:var(--crm-accent-2)}
+.cs-call{min-height:0;min-width:0;width:30px;height:24px;padding:0;border:1px solid var(--crm-accent-line);border-radius:7px;background:linear-gradient(180deg,var(--crm-accent-soft),var(--crm-head));color:var(--crm-accent);font-size:14px;line-height:1;cursor:pointer;box-shadow:0 0 0 0 var(--cs-gold-glow)}
+.cs-call:hover,.cs-call:focus-visible{background:var(--crm-accent);border-color:var(--crm-accent-2);color:var(--crm-on-accent);box-shadow:0 0 12px var(--cs-gold-glow)}
+.cs-call:disabled{opacity:.45;cursor:not-allowed}
+.cs-ico{font-size:14px;color:var(--crm-accent)}
 .cs-table .lv-link{border:0;background:none;padding:0;min-height:0;font:inherit;color:var(--crm-link);cursor:pointer;box-shadow:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;text-align:left}
+.cs-table .lv-link:hover{background:none;text-decoration:underline}
 .cs-table .lv-sub{display:block;font-size:11px;color:var(--crm-muted);font-weight:400}
 .cs-table .lv-empty{color:var(--crm-subtle)}
 .cs-act,.cs-todo{min-width:170px!important;max-width:220px!important;white-space:normal!important}
@@ -52,57 +95,82 @@ html[data-lv-contacts="sheet"] #contacts>article.card,html[data-lv-contacts="she
 .cs-act-top{font-size:11px;color:var(--crm-muted)}
 .cs-act-top b{color:var(--crm-text);font-weight:600}
 .cs-act-note{font-size:12px;color:var(--crm-muted)}
-.cs-todo-due{font-size:11px;font-weight:600;color:var(--crm-info)}
+.cs-todo-due{font-size:11px;font-weight:600;color:var(--crm-accent)}
 .cs-late .cs-todo-due{color:var(--crm-err)}
-.cs-table td.cs-late{background:var(--crm-err-soft)}
+.cs-table td.cs-late{box-shadow:inset 3px 0 0 var(--crm-err)}
+.cs-late-badge{display:inline-block;padding:0 6px;border:1px solid var(--crm-err);border-radius:999px;background:var(--crm-err-soft);color:var(--crm-err);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;line-height:15px;vertical-align:1px}
 .cs-blank{min-width:60px!important}
 .cs-out{display:inline-block;margin:1px 0;padding:0 7px;border-radius:999px;font-size:11px;font-weight:600;background:var(--crm-soft);color:var(--crm-muted)}
 .cs-out-answered{background:var(--crm-ok-soft);color:var(--crm-ok)}
 .cs-out-appointment{background:var(--crm-accent-soft);color:var(--crm-accent)}
 .cs-out-callback{background:var(--crm-warn-soft);color:var(--crm-warn)}
 .cs-out-not_interested{background:var(--crm-err-soft);color:var(--crm-err)}
-.cs-stage{font-weight:600}
+.cs-stage{font-weight:600;color:var(--crm-accent)}
 .cs-state{display:block;font-size:11px;color:var(--crm-muted);white-space:normal}
 .cs-state.err{color:var(--crm-err)}
 .cs-table td.cs-err{box-shadow:inset 0 0 0 2px var(--crm-err);background:var(--crm-err-soft)}
 .cs-table td.cs-saving{color:var(--crm-muted)}
-.cs-input{width:100%;min-width:120px;min-height:26px;padding:2px 6px;margin:-3px 0;border:1px solid var(--crm-accent);border-radius:4px;font:inherit;background:var(--crm-card);color:var(--crm-text);box-sizing:border-box}
+.cs-input{width:100%;min-width:120px;min-height:26px;padding:2px 6px;margin:-3px 0;border:1px solid var(--crm-accent);border-radius:4px;font:inherit;background:var(--crm-head);color:var(--crm-text);box-sizing:border-box}
 .cs-flash td,.cs-flash th{background:var(--crm-ok-soft)!important}
 .cs-flash-row td{padding:2px 8px 4px;background:var(--crm-ok-soft);border-bottom:1px solid var(--crm-line)}
 .cs-flash-msg{position:sticky;left:48px;font-size:12px;color:var(--crm-ok);font-weight:600}
 .cs-flash-msg.err{color:var(--crm-err)}
-.cs-help{margin:0;padding:8px 18px 0;font-size:12px}
+.cs .lv-none{color:var(--crm-muted);padding:16px}
+.cs-help{margin:0;padding:10px 18px 0;font-size:12px;color:var(--crm-muted)}
+.cs .lv-note{color:var(--crm-muted)}
 /* «Registra chiamata». */
-.cs-dialog{width:min(460px,calc(100vw - 24px));border:1px solid var(--crm-line);border-radius:12px;padding:18px;background:var(--crm-card);color:var(--crm-text);font-family:var(--crm-font);box-shadow:0 12px 40px var(--crm-shadow-c)}
-.cs-dialog h2{margin:0 0 4px;font-size:18px}
+.cs-dialog{width:min(460px,calc(100vw - 24px));border:1px solid var(--crm-accent-line);border-radius:14px;padding:18px;background:linear-gradient(165deg,var(--cs-panel),var(--cs-panel-2));color:var(--crm-text);font-family:var(--crm-font);box-shadow:0 0 0 1px var(--cs-gold-glow),0 24px 60px var(--crm-shadow-c)}
+.cs-dialog::backdrop{background:var(--cs-backdrop,rgba(3,12,8,.7))}
+.cs-dialog h2{margin:0 0 6px;padding-bottom:8px;font-size:18px;color:var(--crm-accent);border-bottom:1px solid var(--cs-gold-line)}
 .cs-dialog .cs-who{margin:0 0 6px}
+.cs-dialog .muted{color:var(--crm-muted)}
 .cs-phones{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0 0 8px;font-size:14px}
 .cs-phones a{color:var(--crm-link)}
 .cs-hint{margin:0 0 8px;font-size:13px}
 .cs-outs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;margin-bottom:12px}
-.cs-out-btn{min-height:40px;font-weight:600}
-.cs-dialog label{display:block;margin:0 0 10px;font-size:13px}
+.cs-out-btn{min-height:40px;font-weight:600;border-radius:10px;background:var(--cs-glass);border:1px solid var(--crm-line-2);color:var(--crm-text)}
+.cs-out-btn:hover{background:var(--crm-hover);border-color:var(--crm-accent)}
+.cs-dialog .cs-out-answered{color:var(--crm-ok);border-color:var(--crm-ok);background:var(--crm-ok-soft)}
+.cs-dialog .cs-out-no_answer{color:var(--crm-text)}
+.cs-dialog .cs-out-callback{color:var(--crm-warn);border-color:var(--crm-warn);background:var(--crm-warn-soft)}
+.cs-dialog .cs-out-not_interested{color:var(--crm-err);border-color:var(--crm-err);background:var(--crm-err-soft)}
+.cs-dialog .cs-out-appointment{color:var(--crm-accent);border-color:var(--crm-accent);background:var(--crm-accent-soft)}
+.cs-dialog .cs-out-btn:hover:not(:disabled){filter:brightness(1.15)}
+.cs-dialog label{display:block;margin:0 0 10px;font-size:13px;color:var(--crm-muted)}
+.cs-dialog textarea,.cs-dialog input[type="datetime-local"]{background:var(--crm-head);color:var(--crm-text);border:1px solid var(--crm-line-2);border-radius:8px}
 .cs-dialog textarea{display:block;width:100%;box-sizing:border-box;margin-top:4px}
+.cs-dialog textarea:focus,.cs-dialog input:focus{border-color:var(--crm-accent)}
 .cs-follow input[type="datetime-local"]{display:block;margin-top:4px;max-width:100%}
 .cs-follow input[type="checkbox"]{width:16px;height:16px;min-height:0;min-width:0;padding:0;margin:0 4px 0 0;vertical-align:middle;accent-color:var(--crm-accent)}
 .cs-dialog textarea{min-height:0;height:auto}
+.cs-dialog .lv-ghost{background:transparent;color:var(--crm-accent);border:1px solid var(--crm-accent-line);border-radius:8px}
+.cs-dialog .lv-ghost:hover{background:var(--crm-accent-soft)}
+.cs-dialog .notice{background:var(--crm-err-soft);color:var(--crm-err);border-color:var(--crm-err)}
+.cs-dialog button:focus-visible,.cs-dialog a:focus-visible,.cs-dialog textarea:focus-visible,.cs-dialog input:focus-visible,.cs button:focus-visible,.cs select:focus-visible,.cs input:focus-visible,.cs summary:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+/* Up to 900px the CRM menu (sales-nav.css) sticks to the top of the page: keep the box below it. */
+@media(max-width:900px){
+ html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{scroll-margin-top:84px}
+}
 @media(max-width:700px){
- .cs{--cs-name:116px;--cs-phone:110px;--cs-call:36px}
+ .cs{--cs-name:116px;--cs-phone:110px;--cs-call:36px;--cs-fzw:calc(var(--cs-name) + var(--cs-phone) + var(--cs-call))}
  .cs-table td.cs-fz-name{white-space:normal;line-height:1.2}
  .cs-table td.cs-fz-name .cs-name{white-space:normal;max-width:none;display:inline}
  .cs-table td.cs-fz-phone{font-size:12px}
  .cs-table th.cs-n,.cs-table td.cs-n{display:none}
  .cs-table .cs-fz-name{left:0}
  .cs-table .cs-fz-phone{left:var(--cs-name)}
- .cs-table .cs-fz-call{left:calc(var(--cs-name) + var(--cs-phone));box-shadow:4px 0 6px -4px var(--crm-shadow-c)}
- .cs-table .cs-fz-company{position:static;left:auto;box-shadow:none;width:auto;min-width:130px;max-width:170px}
+ .cs-table .cs-fz-call{left:calc(var(--cs-name) + var(--cs-phone));border-right:1px solid var(--crm-accent-line);box-shadow:6px 0 10px -6px var(--crm-shadow-c)}
+ .cs-table .cs-fz-company{position:static;left:auto;box-shadow:none;border-right:1px solid var(--crm-line);width:auto;min-width:130px;max-width:170px}
+ .cs-table tbody td.cs-fz-company{background:var(--crm-card)}
+ .cs-table tbody tr:hover td.cs-fz-company{background:var(--crm-hover)}
  .cs-table thead .cs-fz-company{position:sticky}
- .cs-bar{padding:10px 12px 6px}
+ .cs-table thead tr.cs-groups th.cs-fz-call{border-right-color:var(--cs-gold-line)}
+ .cs-bar{margin:10px 10px 6px;padding:8px}
  .cs-bar .lv-search{flex:1 1 100%}
  .cs-bar .lv-search input{width:100%}
  .cs-bar select{flex:1 1 45%;min-width:0}
  .cs-meta{padding:2px 12px 8px}
  .cs-help{padding:8px 12px 0}
- .cs-scroll{max-height:70vh;scroll-padding-left:calc(var(--cs-name) + var(--cs-phone) + var(--cs-call))}
+ .cs-scroll{margin:0 10px;max-width:calc(100% - 20px);max-height:70vh;scroll-padding-left:var(--cs-fzw)}
  .cs-flash-msg{left:8px}
 }

@@ -2,7 +2,8 @@
 /* «Foglio chiamate»: the third mode of the Contatti list (sales/crm-list.js), next to Schede and Tabella.
    A spreadsheet for whoever calls many contacts: one row per contact, a few contact and company fields,
    then one column per thing still to do and one per interaction done (logic in crm-sheet-core.js).
-   - Frozen panes: header rows stay on top, name, phone, «Chiama» and company stay on the left.
+   - Frozen panes: header rows stay on top, name, phone, «Chiama» and company stay on the left; each
+     group label (Contatto, Azienda, Da fare, Attività) appears once and sticks to the left of its group.
    - Keyboard: arrows, Home/End, PageUp/PageDown between cells; Enter or F2 (or just typing) edits a
      contact or company field, Enter saves and goes down, Tab saves and goes right, Esc cancels.
    - Each edit is one update with the record version through RadixSalesApp.api (the same /api/sales
@@ -100,13 +101,12 @@ function draw(host,ctx){
  const table=E('table',undefined,'cs-table');table.setAttribute('role','grid');table.setAttribute('aria-rowcount',String(shown.length+2));table.setAttribute('aria-colcount',String(nav.length+1));
  const cap=E('caption','Foglio chiamate · '+shown.length+' contatti','lv-sr');table.append(cap);
  const thead=E('thead');
- // Group row: Contatto | Azienda | Attività over their columns.
- const gr=E('tr',undefined,'cs-groups');gr.setAttribute('role','row');const g0=E('th','', 'cs-n cs-fz');g0.setAttribute('aria-hidden','true');gr.append(g0);
- let last=null,span=null;
- for(const c of nav){const g=c.call?'contact':c.base.group;const frozen=c.call||(c.base&&c.base.freeze);
-  if(frozen){const th=E('th',c.call?'':(c.id==='name'?C().GROUPS.contact:c.id==='company'?C().GROUPS.company:''),'cs-fz '+fz(c));th.setAttribute('aria-hidden','true');gr.append(th);last=null;continue}
-  if(g===last&&span){span.colSpan++;continue}
-  span=E('th',C().GROUPS[g],'cs-g-'+g);span.colSpan=1;span.setAttribute('aria-hidden','true');gr.append(span);last=g}
+ // Group row: Chi (frozen) | Contatto | Azienda | Da fare | Attività, each label once (crm-sheet-core headerGroups).
+ // A label of the scrolling part sticks to the left edge of its group, just right of the frozen columns.
+ const gr=E('tr',undefined,'cs-groups');gr.setAttribute('role','row');const g0=E('th','', 'cs-n cs-fz cs-g-who');g0.setAttribute('aria-hidden','true');gr.append(g0);
+ for(const g of C().headerGroups(nav)){
+  const th=E('th',undefined,'cs-g-'+g.group+(g.frozen?' cs-fz '+(g.col==='call'?'cs-fz-call':'cs-fz-'+g.col):''));th.setAttribute('aria-hidden','true');
+  if(g.span>1)th.colSpan=g.span;if(g.label)th.append(E('span',g.label,'cs-glabel'));gr.append(th)}
  const hr=E('tr',undefined,'cs-head');hr.setAttribute('role','row');const n0=E('th','#','cs-n cs-fz');n0.setAttribute('scope','col');hr.append(n0);
  for(const c of nav){const th=E('th');th.setAttribute('scope','col');th.setAttribute('role','columnheader');th.dataset.col=c.id;if(c.call||(c.base&&c.base.freeze))th.className='cs-fz '+fz(c);if(c.base&&c.base.num)th.classList.add('num');
   if(c.call){th.append(E('span','☎','cs-ico'),E('span','Registra chiamata','lv-sr'));hr.append(th);continue}
@@ -147,7 +147,8 @@ function cell(r,c,now,host,ctx,canCall){
    td.append(top,E('span',x.note||(x.outcome?'':x.title)||'—','cs-act-note'));td.title=C().actText(x);return td}
   const x=r.todos[i];if(!x){td.append(empty(''));td.classList.add('cs-blank');return td}
   td.classList.add('cs-todo');if(x.overdue)td.classList.add('cs-late');
-  td.append(E('b',x.at==null?'Senza scadenza':(x.overdue?'Scaduta · ':'')+dShort(x.at)+' '+hm(x.at),'cs-todo-due'),E('span',x.title,'cs-todo-title'));
+  const due=E('b',undefined,'cs-todo-due');if(x.overdue)due.append(E('span','Scaduta','cs-late-badge'),' ');due.append(x.at==null?'Senza scadenza':dShort(x.at)+' '+hm(x.at));
+  td.append(due,E('span',x.title,'cs-todo-title'));
   td.title=C().todoText(x)+(x.source==='interaction'?' (interazione in calendario)':'');return td}
  switch(c.id){
   case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri Customer360 · '+r.name;o.setAttribute('aria-label','Apri Customer360 di '+r.name);td.append(o);td.title=r.name;break}
