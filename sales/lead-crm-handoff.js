@@ -76,7 +76,7 @@
    if(!authorized.length)throw Error('Nessun workspace CRM con permessi di scrittura');
    const select=$('sync-workspace');select.replaceChildren();
    for(const w of authorized){const o=el('option',w.name||w.id);o.value=w.id;select.append(o)}
-   select.disabled=false;state.workspace=select.value;
+   window.RadixLeadFlow?.preferWorkspace(select);select.disabled=false;state.workspace=select.value;
    $('sync-check').disabled=!state.prospects.length;
    reset('Workspace autorizzato collegato. Verifica il prospect prima della registrazione.');
   }catch(e){reset('CRM non collegato: '+e.message)}
@@ -175,7 +175,7 @@
    if(!window.confirm('Creare UN nuovo lead CRM per "'+p.name+'"? '+(link.contactId?'Il referente collegato sarà associato.':'Senza referente CRM collegato.')+' Nessuna email inviata.'))return;
    const mark=key(i)+'|lead';if(state.attempted.has(mark))throw Error('Tentativo precedente: verifica i lead CRM prima di ripetere');
    state.attempted.add(mark);
-   const data={title,company_id:link.companyId};if(link.contactId)data.contact_id=link.contactId;
+   const data={title,company_id:link.companyId,source:'Lead Intelligence'};if(link.contactId)data.contact_id=link.contactId;
    const id=await create('leads',data);
    if(epoch!==state.epoch||i!==selectedIndex()||ws!==state.workspace){$('sync-linked-status').textContent='Lead creato con contesto cambiato. Verifica il CRM.';return}
    link.leadId=id;$('sync-linked-status').textContent='Lead registrato correttamente nel CRM. Le attività successive rimangono manuali.';

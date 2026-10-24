@@ -86,6 +86,11 @@ const PRESET_PROJECTS = {
     visual: "",
     links: "",
     notes: "Il confine tra educazione finanziaria e consulenza/sollecitazione all'investimento è il rischio legale principale: ogni contenuto va letto con quella lente.",
+    decisions:
+      "Francesco Ilari è socio investitore tramite Ilari Group (8%), non il fondatore: non scrivere mai \"fondata da Francesco Ilari\". " +
+      "Soci lavoratori Leonardo Stella, Daniel Gajic e Nicolò Fior: contratti di collaborazione coordinata e continuativa, compensi come segnaposto. " +
+      "I founder sono Stella, Fior e Gajic; Tryon S.r.l. (48%) è il socio finanziatore. Il socio Signor Alessandro (5%) ha solo NDA e patto di non concorrenza, nessun compito operativo. " +
+      "Patti parasociali rev4: governance invariata per decisione dei soci (quorum 70%, Tryon con potere di blocco come Stella + Gajic insieme, art. 3.1 così com'è).",
   },
   aura: {
     id: "aura",
@@ -125,6 +130,9 @@ function projectContextBlock(project, brand) {
   push("Identità visiva", p.visual, 600);
   push("Riferimenti (siti, profili, materiali)", p.links, 400);
   push("Note operative e vincoli", p.notes, 1200);
+  // Decisioni già prese dal cliente: dal profilo, o dal preset con lo stesso id quando il profilo salvato non le ha.
+  const preset = p.id && PRESET_PROJECTS[p.id];
+  push("Decisioni già prese e fatti confermati (prevalgono sulla descrizione; applicale senza riproporre modifiche)", p.decisions || (preset && preset.decisions), 1500);
   lines.push(
     "Regole sul profilo: tutto ciò che produci è per questo progetto, con il suo pubblico, la sua voce e i suoi vincoli — " +
     "non per RADIX, salvo che il progetto sia RADIX stessa; il profilo prevale su qualunque abitudine generica del tuo ruolo; " +
@@ -259,17 +267,21 @@ const LEGAL_DRAFTING_RULES =
   "\n\nREGOLE DI REDAZIONE DELL'AREA LEGALE (valgono per ogni bozza; l'Analista di Rischio le usa come checklist):\n" +
   "1) Fatti solo dal profilo progetto o dal task. Non inventare né dedurre fondatori, compagine sociale, date di costituzione, sedi, prezzi: se un dato manca usa il segnaposto e la lista \"Dati mancanti\". Se la società è in corso di costituzione, intesta il documento a \"[DENOMINAZIONE] S.r.l. (in corso di costituzione)\" e aggiungi la nota: da usare dopo l'iscrizione al Registro Imprese; per impegni anteriori firma il socio promotore in proprio con impegno di ratifica (art. 2331 c.c.).\n" +
   "2) Niente prezzi, listini, numeri di vendita, strategie o nomi di clienti dentro NDA, contratti con collaboratori, liberatorie e allegati: sono il CONTENUTO riservato, non il testo delle clausole. Descrivi l'ambito in modo generico (\"politiche di prezzo, funnel di vendita, dati della waiting list\").\n" +
-  "3) Un documento per categoria di controparte, mai un contratto unico \"collaboratori e soci\": collaboratore autonomo/P.IVA (libertà contrattuale, art. 2596 c.c. in via analogica, rischio art. 2 D.Lgs. 81/2015); lavoratore subordinato (art. 2125 c.c.); agente (art. 1751-bis c.c.); socio (patti parasociali ex art. 2341-bis c.c. e statuto — ruoli, conferimenti, lock-up, uscita, non concorrenza del socio: documento a parte, non il contratto di collaborazione). Dichiara sempre quale categoria stai regolando.\n" +
+  "3) Un documento per categoria di controparte, mai un contratto unico \"collaboratori e soci\": collaboratore autonomo/P.IVA (libertà contrattuale, art. 2596 c.c. in via analogica, rischio art. 2 D.Lgs. 81/2015); lavoratore subordinato (art. 2125 c.c.); agente (art. 1751-bis c.c.); socio (patti parasociali e statuto: l'art. 2341-bis c.c. vale per le S.p.A.; in una S.r.l. i patti sono un contratto atipico ex art. 1322 c.c., da non presentare come regolati dalla 2341-bis — ruoli, conferimenti, lock-up, uscita, non concorrenza del socio: documento a parte, non il contratto di collaborazione). Dichiara sempre quale categoria stai regolando.\n" +
   "4) Penali (artt. 1382-1384 c.c.): importo proporzionato al compenso e al ruolo (per un collaboratore con compensi di qualche migliaio di euro al mese, decine di migliaia, non centinaia), definizione espressa di \"violazione autonoma\" (un fatto o una serie di fatti connessi dallo stesso scopo contano una volta), mai \"per il solo fatto oggettivo\" senza qualificazione, sempre \"salvo il maggior danno\"; ricorda nella nota che il giudice può ridurla ex art. 1384 c.c.\n" +
   "5) Patto di non concorrenza: perimetro oggettivo (attività specifiche concorrenti, non un intero settore), territoriale e temporale espliciti e proporzionati (per un autonomo di norma 6-12 mesi; 24 mesi su tutta l'Italia è a rischio nullità a prescindere dal corrispettivo); corrispettivo con formula calcolabile — es. \"X% del compenso mensile medio percepito negli ultimi 12 mesi, moltiplicato per i mesi di durata del vincolo, corrisposto [in unica soluzione alla cessazione / mensilmente]\"; sempre in un allegato distinto per ruolo; non sollecitazione di clienti e collaboratori come clausola separata.\n" +
-  "6) Proprietà intellettuale: \"cessione dei diritti patrimoniali d'autore e di utilizzazione economica\" (artt. 12 e ss. e, per il software, 64-bis e ss. L. 633/1941; invenzioni: art. 64 CPI) con il corrispettivo espressamente incluso nel compenso — mai \"in via originaria\" (l'autore è sempre la persona fisica), mai \"a titolo gratuito\" come unica causa. I diritti morali (art. 20 L. 633/1941) sono inalienabili: nessuna \"rinuncia\" — al suo posto l'autorizzazione preventiva a modifiche, adattamenti, traduzioni, uso senza indicazione del nome, nei limiti dell'art. 20.\n" +
+  "6) Proprietà intellettuale: \"cessione dei diritti patrimoniali d'autore e di utilizzazione economica\" (artt. 12 e ss. e, per il software, 64-bis e ss. L. 633/1941; invenzioni: l'art. 64 CPI riguarda solo i dipendenti, per autonomi e co.co.co. la cessione va pattuita espressamente nel contratto) con il corrispettivo espressamente incluso nel compenso — mai \"in via originaria\" (l'autore è sempre la persona fisica), mai \"a titolo gratuito\" come unica causa. I diritti morali (art. 20 L. 633/1941) sono inalienabili: nessuna \"rinuncia\" — al suo posto l'autorizzazione preventiva a modifiche, adattamenti, traduzioni, uso senza indicazione del nome, nei limiti dell'art. 20.\n" +
   "7) Software e AI: allegato con il background IP del collaboratore escluso dalla cessione (elenco), licenze open source usate e loro compatibilità, dataset e prompt come deliverable, repository e credenziali su account della società, divieto di inserire codice/dati/contenuti della società in strumenti AI esterni non autorizzati, obbligo di dichiarare i contenuti generati con AI.\n" +
   "8) Account e credenziali: nessuna \"consegna delle password\" — account intestati alla società, MFA, password manager condiviso, revoca degli accessi alla cessazione, divieto di account personali per attività della società.\n" +
   "9) Immagine, voce e nome: articolo o allegato distinto \"Autorizzazione all'utilizzo dell'immagine, della voce e del nome\" (art. 10 c.c.; artt. 96-97 L. 633/1941) con ambito, canali, durata, territorio, corrispettivo o gratuità, revoca e sorte dei contenuti già pubblicati, consenso espresso per avatar/voce clonata/AI e trasparenza (AI Act, Reg. UE 2024/1689, art. 50). Indispensabile per chi compare nei video.\n" +
   "10) Riservatezza: divulgazioni imposte da legge o autorità ammesse con preavviso dove lecito; notifica di violazioni entro [48] ore; restituzione o distruzione con attestazione scritta; clausola \"nessuna licenza\" (l'NDA non trasferisce diritti sulle informazioni né sulle elaborazioni del ricevente — niente proprietà automatica delle \"opere derivate\"); NDA efficace anche se la collaborazione non parte; durata post-contrattuale 3-5 anni, segreti commerciali (art. 98 CPI) finché restano segreti.\n" +
   "11) Dati personali: se la controparte tratta dati per conto della società, nomina a responsabile ex art. 28 GDPR in allegato (oggetto, durata, natura e finalità, istruzioni, misure di sicurezza, sub-responsabili, assistenza, cancellazione o restituzione, audit) — non una clausola generica \"rispetta il GDPR\".\n" +
   "12) Settore finanziario (Doc Capital e simili): clausola di condotta — divieto di consulenza personalizzata e di segnali operativi su strumenti specifici, divieto di promesse di rendimento, rispetto delle linee editoriali e delle avvertenze (TUF art. 18 e 1 c. 5-septies; MAR art. 20), responsabilità per contenuti non autorizzati.\n" +
-  "13) Legal Pack modulare: quando il task chiede \"tutti i documenti\" per collaboratori/soci, la struttura è: 01 NDA bilaterale; 02 Accordo quadro di collaborazione (Master Agreement); Allegato A Attività, deliverable e compenso (per ruolo); Allegato B Non concorrenza e non sollecitazione (per ruolo); Allegato C Proprietà intellettuale, software e background IP; Allegato D Autorizzazione immagine, voce e nome; Allegato E Nomina responsabile del trattamento ex art. 28 GDPR; a parte, per i soci, Patti parasociali. Un documento completo per risposta, nell'ordine.";
+  "13) Legal Pack modulare: quando il task chiede \"tutti i documenti\" per collaboratori/soci, la struttura è: 01 NDA bilaterale; 02 Accordo quadro di collaborazione (Master Agreement); Allegato A Attività, deliverable e compenso (per ruolo); Allegato B Non concorrenza e non sollecitazione (per ruolo); Allegato C Proprietà intellettuale, software e background IP; Allegato D Autorizzazione immagine, voce e nome; Allegato E Nomina responsabile del trattamento ex art. 28 GDPR; a parte, per i soci, Patti parasociali. Un documento completo per risposta, nell'ordine.\n" +
+  "14) Collaborazione coordinata e continuativa (art. 409 n. 3 c.p.c.): competenza inderogabile del giudice del lavoro del luogo indicato dall'art. 413 c.p.c. (domicilio del collaboratore), mai un foro convenzionale né un segnaposto; segnala il rischio di etero-organizzazione (art. 2 D.Lgs. 81/2015). Un collaboratore con partita IVA è un lavoratore autonomo, non un co.co.co., salvo scelta espressa del task. Compensi co.co.co.: redditi assimilati al lavoro dipendente (art. 50 c. 1 lett. c-bis TUIR) e Gestione Separata INPS; per la società sono deducibili per competenza (la deduzione per cassa dell'art. 95 c. 5 TUIR riguarda i compensi degli amministratori). L'equo compenso (L. 49/2023) vale solo per professionisti verso banche, assicurazioni e imprese sopra le soglie di legge: non applicarlo per default.\n" +
+  "15) Non concorrenza di collaboratori e soci: nessuna facoltà del committente di rinunciare unilateralmente al patto o di recederne dopo la firma (rende incerto il corrispettivo e il patto rischia la nullità); il socio che non ha compiti operativi riceve solo NDA e patto di non concorrenza, non un contratto di collaborazione.\n" +
+  "16) Licenze e AI: SSPL e BSL (Business Source License) non sono licenze open source (non approvate OSI), trattale come licenze proprietarie con restrizioni; AI Act art. 50: distingui gli obblighi del fornitore (par. 1-2) da quelli del deployer (par. 3-4) prima di attribuirli. Nella nomina ex art. 28 GDPR niente sospensione dei pagamenti come rimedio: si usano istruzioni, audit, diffida e risoluzione.\n" +
+  "17) Decisioni già prese: le decisioni che il profilo progetto o il task indicano come definitive (es. governance, quorum, quote, tipo di rapporto) si applicano così come sono. Non riscriverle e non proporre alternative; se vedi un rischio concreto, segnalalo una volta sola in nota, senza cambiare il testo. Non attribuire a soci o persone ruoli, percentuali o qualifiche che il profilo non riporta.";
 
 const LEGAL_CONTEXT =
   "Fai parte dell'Area Legale di RADIX e lavori per il progetto/brand attivo (profilo in testa a questo prompt): " +
@@ -329,8 +341,34 @@ function todayLineIt() {
 function systemPromptFor(agent, brand, project) {
   // v3.3: il profilo progetto sostituisce il vecchio blocco "personal" (che resta solo come fallback quando il
   // client manda brand=personal senza profilo: il preset "personal" contiene già le stesse istruzioni).
-  return todayLineIt() + projectContextBlock(project, brand) + agent.system;
+  // An agent about RADIX itself (the guide) needs no project block.
+  if (agent.standalone) return todayLineIt() + agent.system + PRECISION_RULES;
+  return todayLineIt() + projectContextBlock(project, brand) + agent.system + (agent.radixTools ? "\n\n" + radixTools() : "") + PRECISION_RULES;
 }
+
+// What RADIX really does, for the agents that write about it or for its clients (marketing, sales, CRM):
+// the same list the Agency review uses, so no agent promises a feature RADIX does not have.
+function radixTools() {
+  try {
+    return require("../agency/orchestration-core.js").RADIX_TOOLS;
+  } catch {
+    return "";
+  }
+}
+
+// Same rules for every agent: facts only from what was given or really read, gaps marked instead of guessed,
+// sources for outside data, and the user's own errors pointed out instead of repeated.
+const PRECISION_RULES =
+  "\n\nREGOLE DI PRECISIONE (valgono sopra ogni indicazione di stile):\n" +
+  "- Usa solo fatti presenti nel profilo del progetto, nella memoria confermata, nei messaggi o in pagine che hai davvero letto. " +
+  "Non inventare numeri, percentuali, clienti, casi, citazioni, premi, date, nomi o funzioni.\n" +
+  "- Se un dato serve e non ce l'hai, scrivi [da verificare: cosa manca] invece di stimarlo. Una stima è ammessa solo se dichiarata " +
+  "come tale, con il ragionamento che la produce.\n" +
+  "- Ogni dato esterno (mercato, prezzi, norme, concorrenti, tendenze) porta la fonte: nome e link della pagina letta. Se non hai " +
+  "cercato, non presentarlo come fatto.\n" +
+  "- Se la richiesta o il materiale contiene un errore (dato sbagliato, norma superata, contraddizione, nome scritto male), " +
+  "segnalalo in una riga con la correzione invece di ripeterlo.\n" +
+  "- Prima di consegnare rileggi: ogni numero e ogni nome deve avere un'origine tra quelle sopra.";
 
 // v3.2 — Roster accorpato (approvato il 2/10): gli identificativi vecchi restano validi come alias, cosi' le
 // conversazioni e i flussi gia' salvati (e un routing emesso da una sintesi precedente) continuano a funzionare.
@@ -1260,7 +1298,7 @@ const AGENTS = {
   },
   "legal-contracts": {
     name: "Esperto Contrattualistica, IP e Creator",
-    maxTokens: 8192,
+    maxTokens: 16000,
     temperature: 0.3,
     enforceStyle: false,
     tools: false,
@@ -1445,6 +1483,56 @@ const AGENTS = {
       "ripeti il formato Oggetto/Corpo per ciascuna, una sotto l'altra, con una riga di titolo prima." +
       "\n\nQUALITÀ: niente frasi fatte (\"spero che questa email ti trovi bene\"), niente superlativi, niente più di 120 parole nel corpo; una sola richiesta; personalizzazione vera (un fatto specifico sull'azienda) nella prima riga; il follow-up riprende il filo in 3 righe senza ripetere l'email precedente.",
   },
+  // Guida RADIX: helps a person find the right page and the next step, from the same map as the widget (lib/radix-guide.js).
+  "radix-guide": {
+    name: "Guida RADIX",
+    maxTokens: 900,
+    temperature: 0.2,
+    enforceStyle: false,
+    standalone: true,
+    system: require("../lib/radix-guide.js").systemText(),
+  },
+  // CRM copilot: answers on the live CRM snapshot (crmScope) of a workspace the user belongs to.
+  "pm-planner": {
+    name: "Pianificatore di progetto",
+    maxTokens: 6000,
+    temperature: 0.4,
+    enforceStyle: false,
+    system:
+      "Sei il pianificatore di progetto di RADIX. Trasformi un obiettivo in piani operativi: fasi, attività concrete " +
+      "con un verbo iniziale, durate realistiche in giorni lavorativi, dipendenze e milestone sulle consegne. " +
+      "Usi ruoli come responsabili, mai nomi di persone inventati. Non inventi budget, clienti, numeri o risultati. " +
+      "Quando ti viene chiesto un formato JSON rispondi solo con quel JSON, senza testo prima o dopo.",
+  },
+  // Fact check of a finished text against facts, brief and approved material (prompt from the page that calls it).
+  "fact-checker": {
+    name: "Revisore dei fatti",
+    maxTokens: 4000,
+    temperature: 0.1,
+    enforceStyle: false,
+    tools: false,
+    effort: "high",
+    system:
+      "Sei il revisore dei fatti di RADIX. Controlli testi già scritti da altri agenti confrontandoli con le fonti che " +
+      "ti vengono date (profilo del progetto, scheda fatti, casi reali, brief, materiali approvati, memoria confermata). " +
+      "Cerchi ogni affermazione che le fonti non sostengono: numeri, percentuali, clienti, casi, citazioni, promesse di " +
+      "risultato, funzioni del prodotto, date e giorni. Non cambi lo stile, non accorci, non aggiungi contenuti: correggi " +
+      "solo quello che non ha un'origine. Rispondi esattamente nel formato chiesto nel messaggio, senza testo in più.",
+  },
+  "crm-copilot": {
+    name: "Copilota commerciale",
+    maxTokens: 1800,
+    temperature: 0.2,
+    enforceStyle: false,
+    system:
+      "Sei il Copilota commerciale di RADIX. Lavori sui dati CRM del workspace che trovi in fondo a questo prompt " +
+      "(trattative, attività, contatti, interazioni), aggiornati al momento della domanda.\n\n" +
+      "Come rispondi: in italiano, diretto, breve. Prima la risposta, poi al massimo 5 punti concreti. " +
+      "Quando indichi priorità o rischi spiega il perché con il dato (importo, data, giorni senza contatto). " +
+      "Quando proponi un'azione, scrivi a chi, cosa e entro quando; se serve una bozza di email o di messaggio " +
+      "scrivila pronta da copiare. Non inventare dati che non sono nel CRM: se manca qualcosa dillo e suggerisci " +
+      "quale campo compilare. Non puoi modificare il CRM né inviare messaggi: le azioni le fa la persona.",
+  },
   "comm-crm-manager": {
     name: "Responsabile CRM / Sales Ops",
     maxTokens: 2000,
@@ -1530,7 +1618,18 @@ const WEB_FETCH_TOOL = {
   max_content_tokens: 15000,
 };
 
-async function callAnthropic(apiKey, agent, messages, system) {
+// Model, reasoning and tools for each agent: see _engine.js. The previous engine answers again when the
+// newer model declines the request or rejects it as malformed, so a reply never fails for that reason.
+async function callAnthropic(apiKey, agent, messages, system, key, forcedTier) {
+  const engine = require("./_engine");
+  const { tier, body } = engine.requestBody({
+    key, agent, messages, system, env: process.env, tier: forcedTier,
+    tools: { search: WEB_SEARCH_TOOL, fetch: WEB_FETCH_TOOL },
+  });
+  // v2.6: la ricerca/fetch web sono tool "server-side" — il loro uso (soprattutto web_fetch, che
+  // da solo può assorbire fino a 15.000 token di contenuto scaricato) viene conteggiato nello
+  // STESSO budget di max_tokens della risposta. I tool restano disponibili di default e si
+  // disattivano con `agent.tools === false`; `tools: "search"` = solo web_search; `searchUses` per agente.
   const upstream = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -1538,28 +1637,13 @@ async function callAnthropic(apiKey, agent, messages, system) {
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-5-20250929",
-      max_tokens: agent.maxTokens || 1024,
-      temperature: typeof agent.temperature === "number" ? agent.temperature : 0.6,
-      system: system || agent.system,
-      messages: messages.map((m) => ({ role: m.role, content: m.content })),
-      // v2.6: la ricerca/fetch web sono tool "server-side" — il loro uso (soprattutto web_fetch, che
-      // da solo può assorbire fino a 15.000 token di contenuto scaricato) viene conteggiato nello
-      // STESSO budget di max_tokens della risposta. Un agente che redige un documento legale/fiscale
-      // non ha bisogno di cercare sul web per farlo, e un tentativo di ricerca riflessa può esaurire
-      // da solo tutto il budget disponibile prima ancora che il testo vero del documento inizi —
-      // causa concreta, osservata dal vivo, di risposte troncate a poche righe nonostante maxTokens
-      // alto. I tool restano disponibili di default (agenti di ricerca/outreach ne hanno davvero
-      // bisogno) e si disattivano esplicitamente con `agent.tools === false`.
-      // v3.3: `tools: "search"` = solo web_search (max 3 ricerche, risultati brevi), senza web_fetch: per gli
-      // agenti che devono verificare un dato o una tendenza ma scrivono deliverable lunghi, dove un fetch da
-      // 15.000 token mangerebbe il budget del documento.
-      // v3.6: `searchUses` per agente (il Ricercatore di Contatti ne ha bisogno di più di 3 per una lista vera).
-      ...(agent.tools === false ? {} : agent.tools === "search" ? { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }] } : { tools: [{ ...WEB_SEARCH_TOOL, max_uses: agent.searchUses || WEB_SEARCH_TOOL.max_uses }, WEB_FETCH_TOOL] }),
-    }),
+    body: JSON.stringify(body),
   });
   const data = await upstream.json();
+  if (tier !== "legacy" && ((!upstream.ok && (upstream.status === 400 || upstream.status === 404)) || (upstream.ok && data.stop_reason === "refusal"))) {
+    console.warn("[chat] fallback to previous engine", upstream.status, data?.stop_reason || data?.error?.type || "");
+    return callAnthropic(apiKey, agent, messages, system, key, "legacy");
+  }
   if (!upstream.ok) {
     const err = new Error(data?.error?.message || "Errore dall'API Anthropic");
     err.status = upstream.status;
@@ -1605,7 +1689,7 @@ async function callAnthropic(apiKey, agent, messages, system) {
   const usage = data.usage || null;
   const stu = usage && usage.server_tool_use;
   const searched = !!(stu && (stu.web_search_requests > 0 || stu.web_fetch_requests > 0));
-  return { text, usage, sources, searched, stopReason: data.stop_reason || null };
+  return { text, usage, sources, searched, stopReason: data.stop_reason || null, engine: tier };
 }
 
 async function teamMemoryBlock(scope) {
@@ -1616,7 +1700,8 @@ async function teamMemoryBlock(scope) {
     clientId: memoryCore.clean(scope.clientId, 80),
     agentId: memoryCore.clean(scope.agentId, 80),
   };
-  if (!ctx.projectId && !ctx.clientId) return "";
+  // A new project (no id or client yet) can still ask for the agency-wide entries only.
+  if (!ctx.projectId && !ctx.clientId && scope.level !== "agency") return "";
   if ([ctx.projectId, ctx.clientId, ctx.agentId].some((id) => id && !memoryCore.validId(id))) return "";
   try {
     const { sql } = require("./_db");
@@ -1630,6 +1715,11 @@ async function teamMemoryBlock(scope) {
     return "";
   }
 }
+
+Object.keys(AGENTS).forEach((k) => {
+  const a = AGENTS[k];
+  if (a.radixTools === undefined) a.radixTools = a.system.indexOf(MARKETING_CONTEXT) !== -1 || /^(comm|crm)-/.test(k) || k === "fact-checker";
+});
 
 module.exports = async (req, res) => {
   if (!isAuthorized(req)) {
@@ -1668,13 +1758,28 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { role, messages, brand, project, memoryScope } = body || {};
-  const agent = AGENTS[role] || AGENTS[AGENT_ALIASES[role]] || AGENTS.strategist;
+  const { role, messages, brand, project, memoryScope, crmScope } = body || {};
+  // "legacy" asks for the previous engine (comparisons, or a reply that worked better there).
+  const forcedTier = body && body.engine === "legacy" ? "legacy" : undefined;
+  const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+  const agentKey = own(AGENTS, role) ? role : own(AGENT_ALIASES, role) && own(AGENTS, AGENT_ALIASES[role]) ? AGENT_ALIASES[role] : "strategist";
+  const agent = AGENTS[agentKey];
   let system = systemPromptFor(agent, brand, project);
   // Team memory: confirmed decisions, preferences and outcomes for this project and client,
   // read on the server so every agent works from the same memory.
   const memoryBlock = await teamMemoryBlock(memoryScope);
   if (memoryBlock) system += memoryBlock;
+  // CRM copilot: a snapshot of the workspace, read on the server only for its members.
+  if (crmScope) {
+    const { crmContextBlock } = require("./_crm-context");
+    const { sql } = require("./_db");
+    const crmBlock = await crmContextBlock(sql(), req.user && req.user.uid, crmScope);
+    if (!crmBlock && agent === AGENTS["crm-copilot"]) {
+      res.status(403).json({ error: "Non hai accesso a questo workspace CRM, oppure il CRM non è disponibile." });
+      return;
+    }
+    system += crmBlock;
+  }
 
   // Un modello che in una conversazione lunga ha già detto (erroneamente, con un verbo qualsiasi:
   // "creare"/"generare"/"produrre" file scaricabili, "non ho questa/la capacità tecnica", ecc.) tende a
@@ -1724,7 +1829,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let { text, usage, sources, stopReason } = await callAnthropic(apiKey, agent, messages, system);
+    let { text, usage, sources, stopReason, engine } = await callAnthropic(apiKey, agent, messages, system, agentKey, forcedTier);
     let revised = false;
 
     if (agent.enforceStyle) {
@@ -1742,7 +1847,7 @@ module.exports = async (req, res) => {
           },
         ]);
         try {
-          const retry = await callAnthropic(apiKey, agent, retryMessages, system);
+          const retry = await callAnthropic(apiKey, agent, retryMessages, system, agentKey, forcedTier);
           text = retry.text;
           stopReason = retry.stopReason;
           revised = true;
@@ -1774,9 +1879,19 @@ module.exports = async (req, res) => {
     // vengono ricucite in un unico documento completo — vedi fetchAgentReply() in index.html.
     const truncated = stopReason === "max_tokens";
 
-    res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [] });
+    res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [], engine });
   } catch (err) {
     const status = err && err.status ? err.status : 502;
-    res.status(status).json({ error: "Chiamata all'API fallita: " + (err && err.message ? err.message : String(err)) });
+    res.status(status).json({ error: friendlyApiError(err) });
   }
 };
+
+// Errori dell'API tradotti in una frase che dice all'utente cosa fare; il resto resta tecnico.
+function friendlyApiError(err) {
+  const msg = err && err.message ? err.message : String(err);
+  if (/credit balance is too low/i.test(msg)) return "Credito API esaurito: ricarica il credito dell'account Anthropic (console.anthropic.com, Plans & Billing), poi premi «Rigenera ultima risposta».";
+  if ((err && err.status === 401) || /invalid x-api-key|authentication_error/i.test(msg)) return "La chiave API degli agenti sul server non è valida o è scaduta: aggiornala su Vercel.";
+  if ((err && (err.status === 429 || err.status === 529)) || /rate_limit|overloaded/i.test(msg)) return "Il servizio degli agenti è sovraccarico in questo momento: riprova tra qualche minuto con «Rigenera ultima risposta».";
+  return "Chiamata all'API fallita: " + msg;
+}
+module.exports.friendlyApiError = friendlyApiError;

@@ -1,0 +1,93 @@
+/* CRM «Caselle email» and «Coda invii» (sales/crm-mailboxes.js). */
+details.crm-mailboxes>summary{color:var(--crm-text,inherit)}
+.crm-campaign-mode input[type=radio],.crm-b2b-check input[type=checkbox]{width:auto!important;min-width:0;height:auto;min-height:0!important;margin:2px 0 0;padding:0;flex:none}
+.crm-mb-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;margin:10px 0}
+.crm-mb-card{display:flex;flex-direction:column;gap:4px;min-width:0;padding:12px;border:1px solid var(--crm-line,#2b3550);border-radius:12px;background:var(--crm-soft,transparent)}
+.crm-mb-card p{margin:0;overflow-wrap:anywhere}
+.crm-mb-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.crm-mb-head strong{color:var(--crm-text,inherit);overflow-wrap:anywhere}
+.crm-mb-badge{flex:none;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d)}
+.crm-mb-card[data-status=paused] .crm-mb-badge{background:var(--crm-warn-soft,#fdf3e3);color:var(--crm-warn,#a85b06)}
+.crm-mb-card[data-status=error] .crm-mb-badge{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.crm-mb-meta{font-size:13px;color:var(--crm-muted,inherit)}
+.crm-mb-error{font-size:13px;color:var(--crm-err,#b42318)}
+.crm-mb-card .actions{flex-wrap:wrap;margin-top:6px}
+.crm-mb-pass input{flex:1 1 180px;min-width:0}
+.crm-mb-add{display:grid;gap:10px;padding:12px;border:1px dashed var(--crm-line-2,#3a4566);border-radius:12px}
+.crm-mb-add h4{margin:0;color:var(--crm-text,inherit)}
+.crm-mb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.crm-mb-grid[hidden],.crm-mb-help[hidden]{display:none}
+.crm-mb-field{display:grid;gap:4px;font-size:13px;color:var(--crm-text,inherit);min-width:0}
+.crm-mb-field input,.crm-mb-field select{width:100%;box-sizing:border-box}
+.crm-mb-field small{font-size:12px}
+.crm-mb-help{padding:10px 12px;border-radius:10px;background:var(--crm-info-soft,#eaf0fe);color:var(--crm-text,inherit);font-size:13px}
+.crm-mb-help ol{margin:6px 0 0;padding-left:20px}
+.crm-mb-queue{display:grid;gap:4px;padding:10px 12px;margin:8px 0;border:1px solid var(--crm-line,#2b3550);border-radius:12px}
+.crm-mb-queue p{margin:0}
+.crm-mb-queue strong{color:var(--crm-text,inherit);overflow-wrap:anywhere}
+.crm-mb-queue>button{justify-self:start}
+.crm-mb-stats{display:flex;flex-wrap:wrap;gap:6px}
+.crm-mb-stat{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;background:var(--crm-accent-soft,#f2ecfe);color:var(--crm-accent,#6d28d9)}
+.crm-mb-stat[data-kind=sent]{background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d)}
+.crm-mb-stat[data-kind=failed]{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.crm-mb-stat[data-kind=skipped],.crm-mb-stat[data-kind=cancelled]{background:var(--crm-soft,#f8f7fb);color:var(--crm-muted,#55516a)}
+@media (max-width:600px){.crm-mb-list,.crm-mb-grid{grid-template-columns:1fr}.crm-mb-card .actions button{flex:1 1 auto}}
+.crm-mb-link{align-self:center;font-size:13px;font-weight:500;white-space:nowrap}
+/* «Prospezione B2B» in the campaign panel and «Trova email» (sales/crm-campaigns.js, sales/crm-prospecting.js). */
+.crm-campaign-mode{margin:12px 0;padding:10px 12px;border:1px solid var(--crm-line,#d9dee5);border-radius:10px;display:grid;gap:8px;min-width:0}
+.crm-campaign-mode legend{padding:0 4px;font-weight:600}
+.crm-mode-option{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center;cursor:pointer}
+.crm-mode-option small{grid-column:2}
+.crm-b2b{display:grid;gap:8px;padding-top:6px;border-top:1px dashed var(--crm-line,#d9dee5)}
+.crm-b2b[hidden]{display:none}
+.crm-b2b label{display:grid;gap:4px}
+.crm-b2b .crm-b2b-check{display:flex;gap:6px;align-items:flex-start}
+.crm-b2b-rules{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}
+.crm-b2b-footer{margin:0;padding:10px;border-radius:8px;background:var(--crm-soft,#f4f6f8);font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}
+.crm-finder-chain{margin:8px 0;padding-left:20px;display:grid;gap:8px}
+.crm-finder-item{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:start}
+.crm-finder-item>div:first-child{display:grid;gap:2px;min-width:0}
+.crm-finder-item .actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.crm-finder-item[data-state="da collegare"] .crm-mb-badge,.crm-finder-item[data-state="non disponibile"] .crm-mb-badge,.crm-finder-item[data-state=spento] .crm-mb-badge{background:var(--crm-warn-soft,#fdf3e3);color:var(--crm-warn,#a85b06)}
+/* «Indirizzi disiscritti» (sales/crm-suppressions.js). */
+details.crm-supp>summary{color:var(--crm-text,inherit)}
+.crm-supp-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:10px 0}
+.crm-supp-count{display:flex;align-items:baseline;gap:8px;min-width:0}
+.crm-supp-count strong{font-size:28px;line-height:1;color:var(--crm-text,inherit);font-variant-numeric:tabular-nums}
+.crm-supp-count span{color:var(--crm-muted,inherit);font-size:14px}
+.crm-supp-side{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-width:0}
+.crm-supp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.crm-supp-chip{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--crm-soft,#f4f6f8);color:var(--crm-muted,#55516a)}
+.crm-supp-chip[data-reason=unsubscribe]{background:var(--crm-accent-soft,#f2ecfe);color:var(--crm-accent,#6d28d9)}
+.crm-supp-chip[data-reason=bounce]{background:var(--crm-warn-soft,#fdf3e3);color:var(--crm-warn,#a85b06)}
+.crm-supp-chip[data-reason=complaint]{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.crm-supp-chip[data-empty]{opacity:.6}
+.crm-supp-form{display:grid;gap:10px;padding:12px;border:1px dashed var(--crm-line-2,#3a4566);border-radius:12px}
+.crm-supp-grid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px}
+.crm-supp-grid input,.crm-supp-grid select{width:100%;box-sizing:border-box}
+.crm-supp-form .actions{display:flex;flex-wrap:wrap;gap:8px}
+.crm-supp-result:empty{display:none}
+.crm-supp-check{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-text,inherit);font-size:14px}
+.crm-supp-check[data-on="1"]{background:var(--crm-warn-soft,#fdf3e3)}
+.crm-supp-check strong{overflow-wrap:anywhere}
+.crm-supp-check button{margin-left:auto}
+.crm-supp-list{margin-top:14px}
+.crm-supp-list h4{margin:0 0 6px;color:var(--crm-text,inherit)}
+.crm-supp-scroll{max-width:100%;overflow-x:auto}
+.crm-supp-table{width:100%;border-collapse:collapse;font-size:13px}
+.crm-supp-table th{text-align:left;font-weight:600;color:var(--crm-muted,inherit);padding:6px 8px;border-bottom:1px solid var(--crm-line,#d9dee5)}
+.crm-supp-table td{padding:6px 8px;border-bottom:1px solid var(--crm-line,#d9dee5);vertical-align:middle}
+.crm-supp-table td:last-child{text-align:right}
+.crm-supp-hash{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--crm-text,inherit)}
+.crm-supp-remove{min-height:32px;padding:4px 10px}
+@media (max-width:600px){
+ .crm-supp-grid{grid-template-columns:1fr}
+ .crm-supp-form .actions button{flex:1 1 auto}
+ .crm-supp-table thead{display:none}
+ .crm-supp-table,.crm-supp-table tbody,.crm-supp-table tr,.crm-supp-table td{display:block;width:auto}
+ .crm-supp-table tr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:8px 0;border-bottom:1px solid var(--crm-line,#d9dee5)}
+ .crm-supp-table td{padding:0;border:0}
+ .crm-supp-table td:nth-child(2){grid-column:2;grid-row:1}
+ .crm-supp-table td:nth-child(3),.crm-supp-table td:nth-child(4){color:var(--crm-muted,inherit);font-size:12px}
+ .crm-supp-table td:last-child{grid-column:2;grid-row:2 / span 2;text-align:right;align-self:center}
+}

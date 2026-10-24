@@ -97,3 +97,33 @@ CREATE TABLE IF NOT EXISTS rx_publications (
  UNIQUE (project_id, content_id, revision, service)
 );
 CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC);
+
+-- Images of a PED content (slides, post image), fetched by publishing services from a signed link.
+CREATE TABLE IF NOT EXISTS rx_media (
+ id text PRIMARY KEY CHECK (id ~ '^[0-9a-f-]{36}$'),
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ slot integer NOT NULL CHECK (slot BETWEEN 0 AND 19),
+ mime text NOT NULL CHECK (mime IN ('image/png','image/jpeg')),
+ data_b64 text NOT NULL CHECK (length(data_b64) <= 4000000),
+ created_by integer REFERENCES users(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, slot)
+);
+
+-- One reading a day of the numbers of a published post (from Buffer): the time series behind «Risultati».
+CREATE TABLE IF NOT EXISTS rx_post_stats (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ service text NOT NULL CHECK (service IN ('buffer')),
+ post_id text NOT NULL CHECK (length(post_id) BETWEEN 1 AND 64),
+ day date NOT NULL,
+ published_at timestamptz,
+ link text CHECK (link IS NULL OR length(link) <= 500),
+ metrics jsonb NOT NULL CHECK (jsonb_typeof(metrics) = 'object'),
+ engagement_rate numeric,
+ fetched_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, post_id, day)
+);
+CREATE INDEX IF NOT EXISTS rx_post_stats_project_idx ON rx_post_stats(project_id, content_id, fetched_at);

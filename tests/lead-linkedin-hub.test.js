@@ -17,3 +17,8 @@ test('Lead Intelligence receives pending source locally without a LinkedIn reque
  assert.match(js,/sessionStorage\.removeItem/);
  assert.doesNotMatch(js,/fetch\(/);
 });
+test('LinkedIn hub points to the Chrome extension, not the old local agent',()=>{
+ const html=fs.readFileSync('sales-linkedin.html','utf8'),js=fs.readFileSync('sales/linkedin-hub.js','utf8');
+ assert.match(html,/id="linkedin-extension-open"[^>]*href="\/lead-intelligence\.html#radix-extension-link"/);
+ assert.doesNotMatch(html+js,/127\.0\.0\.1:4317|linkedin-local-open/);
+});

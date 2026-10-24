@@ -1,0 +1,94 @@
+/* Impostazioni (impostazioni.html, shell/settings.js). Light CRM theme: tokens from sales/crm-light.css (--crm-*), layout as sales-vendite.html.
+   The mounted CRM panels (crm-mailboxes, crm-visibility, crm-sla) keep their own CSS; the base rules below give them the
+   buttons, notes and fields they expect from sales/sales.css, scoped to this page. */
+body.st-page{margin:0;background:var(--crm-bg);color:var(--crm-text);font:14px/1.5 var(--crm-font)}
+.st-page *{box-sizing:border-box}
+.st-page .skip{position:absolute;left:-9999px}.st-page .skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:10px;z-index:80}
+.st-main{min-width:0;max-width:1180px;padding:24px clamp(14px,2.4vw,40px) 56px}
+.st-main a{color:var(--crm-link)}
+.st-main :focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+.st-main button,.st-main input,.st-main select,.st-main textarea{font:inherit;color:inherit}
+.st-main input,.st-main select,.st-main textarea{background:var(--crm-card);border:1px solid var(--crm-line-2);border-radius:8px;padding:7px 10px;min-width:0;max-width:100%}
+.st-main input:disabled,.st-main select:disabled{background:var(--crm-soft);color:var(--crm-subtle)}
+.st-main button{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--crm-line-2);background:var(--crm-card);color:var(--crm-text);font-weight:500;font-size:13px;cursor:pointer}
+.st-main button:hover:not(:disabled){background:var(--crm-hover)}
+.st-main button:disabled{opacity:.55;cursor:default}
+.st-main button.primary,.st-btn.st-primary{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent)}
+.st-main button.primary:hover:not(:disabled){background:var(--crm-accent-2)}
+.st-main button.danger{color:var(--crm-err);border-color:#f0c4bf}
+.st-main .muted{color:var(--crm-muted)}
+.st-main .notice{margin:0;padding:8px 12px;border-radius:8px;background:var(--crm-warn-soft);color:var(--crm-text);font-size:13px}
+.st-main .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.st-main h4{margin:0}
+
+.st-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.st-eyebrow{margin:0;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--crm-accent)}
+.st-top h1{margin:4px 0;font-size:28px;letter-spacing:-.02em}
+.st-lead{margin:0;color:var(--crm-muted);max-width:68ch}
+.st-ws{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--crm-muted)}
+.st-ws[hidden]{display:none}
+.st-ws select{min-width:220px}
+
+.st-layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
+.st-nav{display:flex;flex-direction:column;gap:2px;position:sticky;top:calc(var(--rx-topbar,60px) + 12px)}
+.st-nav-link{display:flex;flex-direction:column;padding:9px 12px;border-radius:8px;border:1px solid transparent;text-decoration:none;color:var(--crm-text)!important}
+.st-nav-link small{color:var(--crm-subtle);font-size:12px}
+.st-nav-link:hover{background:var(--crm-card);border-color:var(--crm-line)}
+.st-nav-link[aria-current]{background:var(--crm-accent-soft);border-color:var(--crm-accent-line);box-shadow:inset 3px 0 0 var(--crm-accent)}
+.st-nav-link[aria-current] strong{color:var(--crm-accent)}
+
+.st-status{min-height:1.4em;margin:0 0 8px;color:var(--crm-muted);font-size:13px}
+.st-error{margin:0 0 10px;padding:8px 12px;border-radius:8px;background:var(--crm-err-soft);color:var(--crm-err);font-weight:500;font-size:13px}
+.st-error[hidden]{display:none}
+.st-section-head h2{margin:0;font-size:20px}
+.st-section-head{margin-bottom:12px}
+.st-cards{display:flex;flex-direction:column;gap:14px}
+.st-card{background:var(--crm-card);border:1px solid var(--crm-line);border-radius:10px;box-shadow:var(--crm-shadow);padding:18px clamp(14px,2vw,22px);display:flex;flex-direction:column;gap:10px;min-width:0}
+.st-card>h2{margin:0;font-size:16px}
+.st-sub{margin:0;color:var(--crm-muted);font-size:13px}
+.st-note{margin:0;padding:8px 12px;border-radius:8px;background:var(--crm-info-soft);font-size:13px}
+.st-err{color:var(--crm-err);font-size:13px}
+.st-badge{flex:none;display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--crm-head);color:var(--crm-muted);white-space:nowrap}
+.st-actions{display:flex;gap:8px;flex-wrap:wrap}
+.st-btn{display:inline-flex;align-items:center;padding:8px 13px;border-radius:8px;border:1px solid var(--crm-line-2);background:var(--crm-card);color:var(--crm-text)!important;font-weight:500;font-size:13px;text-decoration:none}
+.st-btn:hover{background:var(--crm-hover)}
+.st-btn.st-primary{color:var(--crm-on-accent)!important}
+.st-btn.st-primary:hover{background:var(--crm-accent-2)}
+
+.st-who{display:flex;gap:12px;align-items:center}
+.st-who>div{display:flex;flex-direction:column;min-width:0}
+.st-who strong{font-size:15px;overflow-wrap:anywhere}
+.st-avatar{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--crm-accent-soft);color:var(--crm-accent);font-weight:700}
+.st-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;align-items:end}
+.st-form>button{justify-self:start}
+.st-field{display:flex;flex-direction:column;gap:4px;font-size:13px;min-width:0}
+.st-field select{max-width:260px}
+.st-msg{grid-column:1/-1;margin:0;min-height:1.4em;font-size:13px;color:var(--crm-muted)}
+.st-msg.is-ok{color:var(--crm-ok)}.st-msg.is-err{color:var(--crm-err);font-weight:500}
+
+.st-members,.st-conn{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.st-members li,.st-conn li{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--crm-line);min-width:0}
+.st-members li:first-child,.st-conn li:first-child{border-top:0}
+.st-members li>strong{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+.st-conn li>div{display:flex;flex-direction:column;min-width:0}
+.st-conn li[data-state=true] .st-badge{background:var(--crm-ok-soft);color:var(--crm-ok)}
+.st-conn li[data-state=false] .st-badge{background:var(--crm-warn-soft);color:var(--crm-warn)}
+
+.st-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.st-field-group{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--crm-line);border-radius:8px;background:var(--crm-soft)}
+.st-field-group ul{margin:0;padding-left:18px}
+.st-soon{border-style:dashed}
+.st-soon .st-badge{align-self:flex-start;background:var(--crm-accent-soft);color:var(--crm-accent)}
+
+/* Mounted CRM panels: the card carries the title, so the panel's own summary is hidden and the panel stays open. */
+.st-mount>details{margin:0;padding:0;border:0;background:none;box-shadow:none}
+.st-mount>details>summary{display:none}
+.st-mount .crm-vis-body,.st-mount .crm-sla-body{margin-top:0}
+
+@media (max-width:860px){
+ .st-layout{grid-template-columns:minmax(0,1fr)}
+ .st-nav{position:static;flex-direction:row;overflow-x:auto;scrollbar-width:thin;gap:4px;padding-bottom:4px}
+ .st-nav-link{flex:none}
+ .st-nav-link small{display:none}
+ .st-ws select{min-width:0;width:100%}
+}

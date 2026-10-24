@@ -19,8 +19,10 @@
 // Azioni (query 'action' su GET, body.action su POST):
 //   GET  ?action=channels                          -> { channels: [{id, name, service}] }
 //   POST { action:'create', channelId, text }       -> { postId, dueAt }
+//   POST { action:'stats', postIds:[…] }             -> { items:[{postId, channel, publishedAt, link, metrics, engagementRate}], errors:[{postId, error}] }
 
 const { getSessionUser } = require('./_auth');
+const pedResults = require('../lib/ped-results.js');
 
 const BUFFER_BASE = 'https://api.buffer.com';
 
@@ -37,7 +39,12 @@ async function bufferGraphQL(apiKey, query, variables) {
     /* risposta non JSON: data resta null, gestito sotto */
   }
   if (!res.ok) {
-    const err = new Error('Buffer ha risposto ' + res.status + (data ? ': ' + JSON.stringify(data) : ''));
+    // 401/403: the key itself is the problem, so say that first instead of only the raw status.
+    const why =
+      res.status === 401 || res.status === 403
+        ? 'la chiave Buffer sul server non è valida o è scaduta (rigenerala su publish.buffer.com, Settings -> API, e aggiornala su Vercel). '
+        : '';
+    const err = new Error(why + 'Buffer ha risposto ' + res.status + (data ? ': ' + JSON.stringify(data) : ''));
     err.status = res.status;
     throw err;
   }
@@ -52,18 +59,32 @@ async function bufferGraphQL(apiKey, query, variables) {
 // Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
 // viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
 // il post, 502 se la risposta non è valida.
-async function createPost(apiKey, { channelId, text, dueAt }) {
+async function createPost(apiKey, { channelId, text, dueAt, images, video, youtube }) {
   const scheduled = !!dueAt;
+  const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
+  // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
+  // A video post carries one { video: { url } } entry instead of images (developers.buffer.com/examples/create-video-post).
+  const clip = /^https:\/\//.test(String(video || '')) ? String(video) : '';
+  const assets = clip
+    ? ', assets: [{ video: { url: ' + JSON.stringify(clip) + ' } }]'
+    : pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
+  // Network metadata (developers.buffer.com/types/PostInputMetaData): a YouTube video needs title and categoryId.
+  const yt = youtube && youtube.title
+    ? ', metadata: { youtube: { title: ' + JSON.stringify(String(youtube.title).slice(0, 100)) + ', categoryId: ' +
+      JSON.stringify(String(youtube.categoryId || '27')) + ', madeForKids: false } }'
+    : '';
   const data = await bufferGraphQL(
     apiKey,
-    'mutation($channelId: String!, $text: String!' + (scheduled ? ', $dueAt: DateTime!' : '') + ') {\n' +
-      '  createPost(input: { text: $text, channelId: $channelId, schedulingType: automatic, mode: ' +
-      (scheduled ? 'customScheduled, dueAt: $dueAt' : 'addToQueue') + ' }) {\n' +
+    // Inline literals, as in Buffer's own examples: ids use Buffer's own scalar types (ChannelId,
+    // OrganizationId), so a variable declared String! is rejected. JSON strings are valid GraphQL strings.
+    'mutation {\n' +
+      '  createPost(input: { text: ' + JSON.stringify(String(text)) + ', channelId: ' + JSON.stringify(String(channelId)) +
+      ', schedulingType: automatic, mode: ' +
+      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + yt + ' }) {\n' +
       '    ... on PostActionSuccess { post { id text dueAt } }\n' +
       '    ... on MutationError { message }\n' +
       '  }\n' +
-      '}',
-    scheduled ? { channelId, text, dueAt } : { channelId, text }
+      '}'
   );
   const result = data && data.createPost;
   const fail = (status, message) => Object.assign(new Error(message), { status });
@@ -73,6 +94,57 @@ async function createPost(apiKey, { channelId, text, dueAt }) {
   if (result.message) throw fail(422, result.message);
   if (!result.post || !result.post.id) throw fail(502, 'Buffer non ha confermato la creazione del post.');
   return { postId: result.post.id, dueAt: result.post.dueAt || null };
+}
+
+// Removes a post still waiting in Buffer (developers.buffer.com reference: deletePost, "Delete a post by id"). Used
+// when a new version of a content replaces one already scheduled, so the old one does not go out as well.
+async function deletePost(apiKey, postId) {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(postId || ''))) throw Object.assign(new Error('Id del post Buffer non valido'), { status: 400 });
+  const data = await bufferGraphQL(
+    apiKey,
+    'mutation {\n  deletePost(input: { id: ' + JSON.stringify(String(postId)) + ' }) {\n    __typename\n    ... on MutationError { message }\n  }\n}'
+  );
+  const result = data && data.deletePost;
+  if (!result) throw Object.assign(new Error('Buffer non ha confermato l’eliminazione.'), { status: 502 });
+  if (result.message) throw Object.assign(new Error(result.message), { status: 422 });
+  return { deleted: true };
+}
+
+// Numbers of sent posts (developers.buffer.com/guides/post-metrics.html): personal API key with insightsRead,
+// refreshed by Buffer once a day. Up to 20 posts per request as aliased fields, ids as inline literals like the
+// other calls; when Buffer rejects the batch (one id unknown), each post is read on its own so the rest still arrive.
+const STATS_FIELDS = '{ id channelId channelService sentAt dueAt externalLink metrics { type value unit } metricsUpdatedAt }';
+const validPostId = (id) => /^[A-Za-z0-9_-]{1,64}$/.test(String(id || ''));
+async function postStats(apiKey, postIds) {
+  const ids = [...new Set((Array.isArray(postIds) ? postIds : []).map(String).filter(validPostId))].slice(0, 100);
+  const items = [];
+  const errors = [];
+  const one = (id, alias) => (alias || '') + 'post(input: { id: ' + JSON.stringify(id) + ' }) ' + STATS_FIELDS;
+  const keep = (p, id) => {
+    const n = pedResults.normalizeBufferPost(p);
+    if (n) items.push(n);
+    else errors.push({ postId: id, error: 'Post non trovato su Buffer' });
+  };
+  const denied = (e) => e && (e.status === 401 || e.status === 403);
+  for (let i = 0; i < ids.length; i += 20) {
+    const chunk = ids.slice(i, i + 20);
+    try {
+      const data = await bufferGraphQL(apiKey, 'query {\n' + chunk.map((id, j) => '  ' + one(id, 'p' + j + ': ')).join('\n') + '\n}');
+      chunk.forEach((id, j) => keep(data && data['p' + j], id));
+    } catch (err) {
+      if (denied(err)) throw err;
+      for (const id of chunk) {
+        try {
+          const d = await bufferGraphQL(apiKey, 'query { ' + one(id) + ' }');
+          keep(d && d.post, id);
+        } catch (e) {
+          if (denied(e)) throw e;
+          errors.push({ postId: id, error: String((e && e.message) || e).slice(0, 300) });
+        }
+      }
+    }
+  }
+  return { items, errors };
 }
 
 module.exports = async (req, res) => {
@@ -117,8 +189,7 @@ module.exports = async (req, res) => {
         orgs.map((org) =>
           bufferGraphQL(
             apiKey,
-            'query($orgId: String!) { channels(input: { organizationId: $orgId }) { id name service } }',
-            { orgId: org.id }
+            'query { channels(input: { organizationId: ' + JSON.stringify(String(org.id)) + ' }) { id name service } }'
           ).then((d) => (d && d.channels) || [])
         )
       );
@@ -138,7 +209,17 @@ module.exports = async (req, res) => {
       return;
     }
 
-    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: channels, create." });
+    if (req.method === 'POST' && action === 'stats') {
+      const ids = (postBody || {}).postIds;
+      if (!Array.isArray(ids) || !ids.some(validPostId)) {
+        res.status(400).json({ error: "Manca 'postIds': nessun post inviato a Buffer da leggere." });
+        return;
+      }
+      res.status(200).json(await postStats(apiKey, ids));
+      return;
+    }
+
+    res.status(400).json({ error: "Parametro 'action' mancante o non valido. Usa: channels, create, stats." });
   } catch (err) {
     res.status(err.status && err.status >= 400 && err.status < 600 ? err.status : 502).json({
       error: 'Chiamata a Buffer fallita: ' + (err && err.message ? err.message : String(err)),
@@ -146,3 +227,6 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.createPost = createPost;
+module.exports.deletePost = deletePost;
+module.exports.bufferGraphQL = bufferGraphQL;
+module.exports.postStats = postStats;

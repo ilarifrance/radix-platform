@@ -1,0 +1,397 @@
+/* Project Management visual layer — approved ref: Gantt/Kanban/heatmap mockup (flat everyday version). Layout only; data and logic stay in the page script / lib/pm-*.js. */
+html.rx-shell body.rx-pm{
+  --bg:var(--rx-bg);--panel:var(--rx-surface);--line:var(--rx-border);--muted:var(--rx-muted);--ink:var(--rx-text);--green:var(--rx-projects);--amber:var(--rx-warning);
+  background:radial-gradient(ellipse at 85% -10%,color-mix(in srgb,var(--rx-projects) 14%,transparent),transparent 50%),var(--rx-bg);
+  color:var(--rx-text);font:14px/1.55 var(--rx-font)}
+.rx-pm>header:not(.rx-topbar){display:none} /* brand + demo tag now live in the shell (wordmark + Demo badge) */
+.rx-pm main{max-width:1680px;padding:24px 28px 40px}
+.rx-pm h1,.rx-pm h2,.rx-pm h3{font-family:var(--rx-display);letter-spacing:-.01em}
+.rx-pm h1{font-size:30px;letter-spacing:-.01em;margin:8px 0 6px}
+.rx-pm h2{font-size:18px}
+.rx-pm .eyebrow{color:var(--rx-projects);font-size:12px;letter-spacing:.14em}
+.rx-pm .muted,.rx-pm small{color:var(--rx-muted)}
+.rx-pm .hero{padding:4px 0 8px}
+.rx-pm .notice{border:1px solid var(--rx-border);border-left:3px solid var(--rx-warning);border-radius:12px;background:var(--rx-surface);color:var(--rx-muted);font-size:13px;padding:12px 16px;margin:16px 0}
+.rx-pm .notice strong{color:var(--rx-text)}
+.rx-pm .panel{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:20px 22px;box-shadow:none}
+.rx-pm .future{background:transparent;border-style:dashed}
+/* KPI row */
+.rx-pm .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.rx-pm .stat{background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface));border:1px solid var(--rx-border);border-radius:14px;padding:16px 18px}
+.rx-pm .stat strong{display:block;font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-pm .stat span{color:var(--rx-muted);font-size:12px}
+/* Controls */
+.rx-pm button{min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
+.rx-pm button:hover:not(:disabled){border-color:var(--rx-projects);background:var(--rx-surface-2)}
+.rx-pm button.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-pm button.primary:hover:not(:disabled){background:var(--rx-core-soft)}
+.rx-pm input,.rx-pm select,.rx-pm textarea{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
+.rx-pm input[type=checkbox]{min-height:0;accent-color:var(--rx-projects)}
+.rx-pm label{color:var(--rx-muted);font-size:13px}
+.rx-pm :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+/* Task cards: Kanban-style card language */
+.rx-pm .task{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px}
+.rx-pm .task:hover{border-color:var(--rx-border-strong)}
+.rx-pm .task[aria-pressed=true]{border-color:var(--rx-projects);background:color-mix(in srgb,var(--rx-projects) 10%,var(--rx-surface-2));box-shadow:0 0 0 1px var(--rx-projects) inset}
+.rx-pm .task strong{color:var(--rx-text)}
+.rx-pm .pill,.rx-pm .task .pill{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:999px;border:1px solid var(--rx-border-strong);color:var(--rx-muted);background:transparent;font-size:12px}
+.rx-pm .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,var(--rx-border))}
+/* Detail panel */
+.rx-pm .detail-title{font:600 20px/1.25 var(--rx-display)}
+.rx-pm .meta dt{color:var(--rx-subtle);font-size:12px}
+.rx-pm .meta dd{color:var(--rx-text)}
+.rx-pm .approval{border:1px solid color-mix(in srgb,var(--rx-warning) 40%,var(--rx-border));background:color-mix(in srgb,var(--rx-warning) 6%,var(--rx-surface));border-radius:12px}
+.rx-pm dialog{background:var(--rx-bg-raised);color:var(--rx-text);border:1px solid var(--rx-border-strong);border-radius:16px}
+.rx-pm footer{color:var(--rx-subtle);font-size:12px}
+@media (max-width:767px){.rx-pm main{padding:16px 12px 32px}.rx-pm h1{font-size:26px}.rx-pm .stats{grid-template-columns:1fr 1fr}}
+/* ---- Plan views (Kanban, Gantt, workload): look of the PM mockup, flat for everyday use.
+   Hooks from the page script: .pm-tabs [data-view], #pm-view.pm-kanban|.pm-gantt|.pm-heatmap. ---- */
+html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--rx-projects);--pm-done:var(--rx-success);--pm-heat:#B06BFF}
+.rx-pm .pm-tabs{display:inline-flex;gap:4px;padding:4px;margin:8px 0 16px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-pm .pm-tabs button{min-height:36px;padding:6px 14px;border:0;border-radius:9px;background:transparent;color:var(--rx-muted);font-weight:500}
+.rx-pm .pm-tabs button:hover:not(:disabled){background:var(--rx-surface-2);color:var(--rx-text)}
+.rx-pm .pm-tabs button[aria-selected=true]{background:color-mix(in srgb,var(--rx-projects) 18%,var(--rx-surface-2));color:var(--rx-text);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rx-projects) 55%,transparent);font-weight:600}
+/* Board views need width: the detail panel narrows instead of the board */
+@media (min-width:1280px){.rx-pm .layout:has(#pm-view:not([hidden])){grid-template-columns:minmax(0,1fr) 340px}}
+/* Kanban */
+.rx-pm .pm-kanban{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin-top:16px;overflow-x:auto;padding-bottom:4px}
+.rx-pm .pm-col{--c:var(--pm-todo);background:color-mix(in srgb,var(--c) 4%,var(--rx-bg-raised));border:1px solid color-mix(in srgb,var(--c) 30%,var(--rx-border));border-radius:14px;padding:10px;min-height:180px}
+.rx-pm .pm-col[aria-label="In corso"]{--c:var(--pm-doing)}
+.rx-pm .pm-col[aria-label="In revisione"]{--c:var(--pm-review)}
+.rx-pm .pm-col[aria-label="Completato"]{--c:var(--pm-done)}
+.rx-pm .pm-col.drop{border-style:dashed;border-color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--rx-bg-raised))}
+.rx-pm .pm-col h3{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;padding:8px 10px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:10px;font:600 13px/1.2 var(--rx-display);letter-spacing:.06em;text-transform:uppercase;color:var(--rx-text)}
+.rx-pm .pm-col h3 .pill{min-height:22px;border:0;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--rx-text);font-variant-numeric:tabular-nums}
+.rx-pm button.pm-card{position:relative;display:block;width:100%;min-height:0;margin:0 0 8px;padding:16px 12px 12px;text-align:left;background:var(--rx-surface-2);border:1px solid color-mix(in srgb,var(--c) 28%,var(--rx-border));border-radius:12px;cursor:grab}
+.rx-pm button.pm-card::before{content:"";position:absolute;left:12px;top:8px;width:32px;height:3px;border-radius:3px;background:var(--c)}
+.rx-pm button.pm-card:hover:not(:disabled){border-color:color-mix(in srgb,var(--c) 70%,transparent);background:var(--rx-surface-2)}
+.rx-pm button.pm-card[aria-pressed=true]{border-color:var(--c);box-shadow:0 0 0 1px var(--c) inset,0 0 18px color-mix(in srgb,var(--c) 22%,transparent)}
+.rx-pm .pm-card strong{display:block;font-size:14px;line-height:1.35;color:var(--rx-text)}
+.rx-pm .pm-card small{display:block;margin:4px 0 6px;color:var(--rx-muted);font-size:12px}
+.rx-pm .pm-card .pill{margin:2px 4px 0 0}
+.rx-pm .pm-kanban>p{grid-column:1/-1;position:sticky;left:0;max-width:min(100%,calc(100vw - 64px));margin:4px 0 0;font-size:12px}
+/* Gantt */
+.rx-pm .pm-gantt{margin-top:16px;overflow-x:auto;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised);padding:4px 0 8px}
+.rx-pm .pm-gantt .g-row{display:grid;grid-template-columns:220px minmax(560px,1fr);align-items:center;min-height:40px;border-bottom:1px solid color-mix(in srgb,var(--rx-border) 60%,transparent)}
+.rx-pm .pm-gantt .g-row:not(.g-head):hover{background:var(--rx-surface)}
+.rx-pm .pm-gantt .g-head{min-height:34px;border-bottom-color:var(--rx-border)}
+.rx-pm .pm-gantt .g-label{padding:0 12px 0 16px;font-size:13px;color:var(--rx-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm .pm-gantt .g-head .g-label{color:var(--rx-subtle);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+.rx-pm .pm-gantt .g-track{position:relative;height:40px;margin-right:16px}
+.rx-pm .pm-gantt .g-head .g-track{height:34px;overflow:hidden}
+.rx-pm .pm-gantt .g-week{position:absolute;top:9px;padding-left:6px;border-left:1px solid var(--rx-border);color:var(--rx-subtle);font-size:12px;white-space:nowrap}
+.rx-pm .pm-gantt button.g-bar{position:absolute;top:13px;height:14px;min-height:0;min-width:10px;padding:0;border:0;border-radius:999px;background:linear-gradient(90deg,var(--pm-todo),var(--pm-doing));box-shadow:0 0 12px color-mix(in srgb,var(--pm-doing) 35%,transparent);cursor:pointer}
+.rx-pm .pm-gantt button.g-bar:hover:not(:disabled){filter:brightness(1.15);background:linear-gradient(90deg,var(--pm-todo),var(--pm-doing))}
+.rx-pm .pm-gantt button.g-bar.done,.rx-pm .pm-gantt button.g-bar.done:hover{background:color-mix(in srgb,var(--pm-done) 55%,var(--rx-surface-2));box-shadow:none}
+.rx-pm .pm-gantt button.g-bar.late,.rx-pm .pm-gantt button.g-bar.late:hover{background:linear-gradient(90deg,color-mix(in srgb,var(--rx-error) 70%,var(--pm-doing)),var(--rx-error));box-shadow:0 0 12px color-mix(in srgb,var(--rx-error) 40%,transparent)}
+.rx-pm .pm-gantt button.g-bar.critical{outline:2px solid #ff9f43;outline-offset:1px}
+.rx-pm .pm-gantt button.g-bar.ms{top:13px;width:14px!important;height:14px;min-width:0;margin-left:-7px;border-radius:3px;transform:rotate(45deg);background:var(--pm-doing);box-shadow:0 0 14px color-mix(in srgb,var(--pm-doing) 60%,transparent)}
+.rx-pm .pm-gantt button.g-bar.ms.done{background:var(--pm-done);box-shadow:none}
+.rx-pm .pm-gantt button.g-bar:focus-visible{outline:2px solid var(--rx-core);outline-offset:3px}
+.rx-pm .pm-gantt .g-today{position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--rx-core);opacity:.8}
+.rx-pm .pm-gantt>p{margin:10px 16px 2px;font-size:12px}
+/* Workload heatmap */
+.rx-pm .pm-heatmap{margin-top:16px;overflow-x:auto;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised)}
+.rx-pm .pm-heatmap table{width:100%;min-width:560px;border-collapse:separate;border-spacing:4px}
+.rx-pm .pm-heatmap th{padding:8px 6px;border:0;color:var(--rx-subtle);font-weight:500;font-size:12px;text-align:center;white-space:nowrap}
+.rx-pm .pm-heatmap td{height:38px;padding:6px;border:0;border-radius:8px;background:var(--rx-surface);color:var(--rx-text);text-align:center;font-size:13px;font-variant-numeric:tabular-nums}
+.rx-pm .pm-heatmap th:first-child,.rx-pm .pm-heatmap td:first-child{text-align:left;background:transparent;padding-left:10px;white-space:nowrap}
+.rx-pm .pm-heatmap td:last-child{background:transparent;font-weight:600}
+/* cell intensity: --load (0–1) set by the page script */
+.rx-pm .pm-heatmap td[style*="--load"]{background:color-mix(in srgb,var(--pm-heat) calc(15% + var(--load) * 70%),var(--rx-surface))!important}
+.rx-pm .pm-heatmap>p{margin:6px 14px 12px;font-size:12px}
+@media (max-width:767px){.rx-pm .pm-tabs{display:flex;overflow-x:auto}.rx-pm .pm-kanban{grid-template-columns:repeat(4,minmax(240px,82vw));scroll-snap-type:x mandatory}.rx-pm .pm-col{scroll-snap-align:start}.rx-pm .pm-gantt .g-row{grid-template-columns:140px minmax(480px,1fr)}}
+/* Budget (F4): project budget field, over-budget tile (.stat.over set by the page script) */
+.rx-pm .pm-budget{display:inline-grid;gap:6px;margin:4px 0 12px;color:var(--rx-muted);font-size:13px}
+.rx-pm .pm-budget input{max-width:200px;font-variant-numeric:tabular-nums}
+.rx-pm .stat.over{border-color:color-mix(in srgb,var(--rx-error) 55%,var(--rx-border));background:linear-gradient(160deg,color-mix(in srgb,var(--rx-error) 10%,var(--rx-surface-2)),var(--rx-surface))}
+.rx-pm .stat.over strong{color:var(--rx-error)}
+/* Subtasks in the detail panel (ul.pm-subtasks, form.pm-subtask-form) */
+.rx-pm .pm-subtasks{padding-left:0;list-style:none}
+.rx-pm .pm-subtasks li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:10px;background:var(--rx-surface-2);color:var(--rx-text)}
+.rx-pm .pm-subtasks button.link{min-height:28px;padding:2px 8px;border:0;background:transparent;color:var(--rx-muted);font-size:12px;text-decoration:underline}
+.rx-pm .pm-subtasks button.link:hover:not(:disabled){color:var(--rx-error);background:transparent}
+.rx-pm .pm-subtask-form{display:flex;gap:8px;margin:8px 0 4px}
+.rx-pm .pm-subtask-form input{flex:1 1 auto;min-width:0}
+
+/* Pruning: the project bar and the views already explain the page */
+.rx-pm .notice,.rx-pm .future,.rx-pm main>footer,.rx-pm header:not(.rx-topbar){display:none!important}
+.rx-pm section[aria-label="Stato del salvataggio"]{background:none;border:0;padding:0;margin:0 0 6px;box-shadow:none}
+.rx-pm #storage-status{margin:0;font-size:12px;color:var(--rx-subtle)}
+.rx-pm #storage-status::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rx-success);margin-right:8px;vertical-align:middle}
+.rx-pm #storage-status.warn{font-size:14px;font-weight:600;color:var(--rx-warning)}.rx-pm #storage-status.warn::before{background:var(--rx-warning)}
+.rx-pm #tasks>p.warn{color:var(--rx-warning);font-weight:600}
+.rx-pm #project-note{font-size:12px;color:var(--rx-subtle);margin:4px 0 0}
+/* Filters on one line on wide screens */
+@media (min-width:1280px){
+  .rx-pm .filters{grid-template-columns:minmax(0,1.6fr) repeat(3,minmax(0,1fr));align-items:end}
+  .rx-pm .filters .check,.rx-pm .filters #clear{grid-column:auto}
+  .rx-pm .filters .check{grid-column:1/3}
+  .rx-pm .filters #clear{grid-column:3/5;justify-self:end;width:auto}
+}
+.rx-pm #message:empty{display:none}
+.rx-pm #message{font-size:13px;color:var(--rx-subtle)}
+
+/* PM board (portfolio, Kanban cards, Gantt phases, workload) */
+.rx-pm .pm-portfolio .pm-kpis .stat{background:var(--rx-bg-raised)}
+.rx-pm .pm-projects a{background:var(--rx-bg-raised);border-color:var(--rx-border);border-radius:12px;padding:12px 14px;transition:border-color .15s}
+.rx-pm .pm-projects a:hover{border-color:var(--rx-border-strong)}
+.rx-pm .pm-projects a[aria-current]{border-color:var(--rx-accent);box-shadow:inset 3px 0 0 var(--rx-accent)}
+.rx-pm .pm-projects li.warn a{border-color:color-mix(in srgb,var(--rx-warning) 55%,transparent)}
+.rx-pm .pm-projects li.warn a[aria-current]{box-shadow:inset 3px 0 0 var(--rx-warning)}
+.rx-pm .pm-projects small{color:var(--rx-subtle);font-size:12px}
+.rx-pm .pm-progress{height:5px;border-radius:99px;background:var(--rx-surface-2);overflow:hidden}
+/* Board views need the full width: the task detail moves below them */
+.rx-pm .layout:has(#pm-view:not([hidden])){grid-template-columns:minmax(0,1fr)}
+.rx-pm .pm-card .pm-tags{gap:4px;margin-top:8px}
+.rx-pm .pm-card .pm-tags .pill,.rx-pm .pm-card .pm-tags>span{border-radius:6px;padding:2px 7px;font-size:11px;line-height:1.35;background:var(--rx-surface-2);border:1px solid var(--rx-border);color:var(--rx-muted)}
+.rx-pm .pm-card .pm-tags .warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,transparent)}
+.rx-pm .pm-avatar{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:color-mix(in srgb,var(--rx-accent) 22%,var(--rx-surface-2));color:var(--rx-text);font:600 10.5px/1 var(--rx-font);border:1px solid var(--rx-border-strong)}
+.rx-pm .pm-gantt .g-phase{background:color-mix(in srgb,var(--rx-accent) 6%,transparent)}
+.rx-pm .pm-gantt .g-phase .g-label{font-weight:600;color:var(--rx-text)}
+.rx-pm .pm-gantt .g-phase .g-span{height:4px;border-radius:99px;background:color-mix(in srgb,var(--rx-accent) 55%,transparent)}
+.rx-pm .g-progress .g-prog-row .pm-progress{height:6px}
+.rx-pm .g-progress .g-prog-row .pm-progress>*{background:var(--rx-accent)}
+.rx-pm .pm-capacity{gap:12px;font-size:13px;color:var(--rx-muted)}
+.rx-pm .pm-capacity input{width:72px}
+.rx-pm .pm-load{font-variant-numeric:tabular-nums}
+.rx-pm td.over{outline:0;background:color-mix(in srgb,var(--rx-error) 16%,transparent)!important;color:var(--rx-error);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--rx-error) 60%,transparent)}
+.rx-pm .g-progress{padding:4px 16px 0}
+
+/* ===== Panoramica (board mode, pm-mockup): Gantt | Kanban | carico del team side by side, the 4 portfolio KPIs right under them,
+   project select / budget / saving in one compact bar. Layout only: ids and JS unchanged. ===== */
+html:has(#pm-board:not([hidden])) main#workspace{display:flex;flex-direction:column;max-width:none}
+html:has(#pm-board:not([hidden])) main#workspace>*{order:20}
+html:has(#pm-board:not([hidden])) main#workspace>.hero{order:1}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{order:3;margin-bottom:14px}
+html:has(#pm-board:not([hidden])) main#workspace>.layout{display:contents}
+html:has(#pm-board:not([hidden])) main#workspace>.layout>section.panel{order:4}
+html:has(#pm-board:not([hidden])) main#workspace>.layout>#detail{order:7;margin-top:18px}
+html:has(#pm-board:not([hidden])) main#workspace{padding-left:24px;padding-right:24px}
+html:has(#pm-board:not([hidden])) main#workspace>#portfolio{order:5}
+html:has(#pm-board:not([hidden])) main#workspace>#stats{order:6}
+/* compact project bar: select, budget, new project and status on one line */
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){order:2;display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:0 0 4px}
+html:has(#pm-board:not([hidden])) main#workspace>#project-note,html:has(#pm-board:not([hidden])) main#workspace>#message{order:2;margin:2px 0 0;font-size:12px}
+html:has(#pm-board:not([hidden])) .pm-hero-note{display:none}
+html:has(#pm-board:not([hidden])) .layout{grid-template-columns:minmax(0,1fr)!important}
+html:has(#pm-board:not([hidden])) .layout>section.panel{padding:0;background:none;border:0;box-shadow:none}
+html:has(#pm-board:not([hidden])) .layout>section.panel>.row,html:has(#pm-board:not([hidden])) .layout>section.panel>.filters{display:none}
+html:has(#pm-board:not([hidden])) .layout>#detail{max-width:none}
+
+#pm-board.pm-board{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) minmax(0,.95fr);gap:18px;align-items:stretch;perspective:1600px}
+#pm-board>section{position:relative;min-width:0;margin:0!important;padding:46px 14px 14px!important;border-radius:16px;border:1px solid rgba(190,120,255,.55)!important;
+  background:linear-gradient(160deg,rgba(40,18,78,.82),rgba(14,8,34,.9))!important;box-shadow:0 0 0 1px rgba(255,255,255,.03) inset,0 0 26px rgba(170,90,255,.25),0 24px 50px rgba(0,0,0,.45);overflow:hidden}
+#pm-board>section::before{position:absolute;left:16px;top:14px;font:700 15px/1.2 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#f3eaff}
+#pm-board>section::after{content:"";position:absolute;left:22%;right:22%;top:0;height:3px;border-radius:0 0 3px 3px;background:linear-gradient(90deg,transparent,#d58bff,transparent);box-shadow:0 0 14px #c56bff}
+#pm-board-gantt::before{content:"Gantt"}
+#pm-board-kanban::before{content:"Kanban"}
+#pm-board-workload::before{content:"Carico del team"}
+@media (min-width:1280px){
+  #pm-board-gantt{transform:rotateY(9deg);transform-origin:right center}
+  #pm-board-workload{transform:rotateY(-9deg);transform-origin:left center}
+}
+/* Gantt, compact */
+#pm-board-gantt .g-row{grid-template-columns:118px minmax(0,1fr)!important;min-height:32px!important}
+#pm-board-gantt .g-label{padding:0 8px 0 4px!important;font-size:11.5px!important}
+#pm-board-gantt .g-track{min-width:0!important;margin-right:4px!important;height:32px!important}
+#pm-board-gantt .g-head .g-track{font-size:10px}
+#pm-board-gantt .g-prog-row{grid-template-columns:110px 1fr 38px!important;font-size:11.5px}
+#pm-board-gantt .g-progress{padding:10px 4px 0!important;margin-top:8px}
+#pm-board-gantt .g-progress h3{font-size:12px!important;letter-spacing:.08em;text-transform:uppercase;color:#cdb5ff}
+#pm-board-gantt>p.muted,#pm-board-gantt .g-progress small{display:none}
+/* Kanban, four neon columns */
+#pm-board-kanban{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px!important;align-content:start}
+#pm-board-kanban>p.muted{grid-column:1/-1;font-size:11px;margin:4px 0 0}
+#pm-board-kanban .pm-col{min-width:0!important;width:auto!important;padding:6px!important;background:rgba(10,4,26,.5)!important;border-radius:12px!important;border:0!important}
+#pm-board-kanban .pm-col>h3{font-size:11px!important;padding:7px 8px!important;border-radius:9px!important;letter-spacing:.06em}
+#pm-board-kanban .pm-col:nth-of-type(1)>h3{border:1px solid #a77bff!important;box-shadow:0 0 10px rgba(167,123,255,.4)}
+#pm-board-kanban .pm-col:nth-of-type(2)>h3{border:1px solid #ff5fd2!important;box-shadow:0 0 10px rgba(255,95,210,.4)}
+#pm-board-kanban .pm-col:nth-of-type(3)>h3{border:1px solid #4ea8ff!important;box-shadow:0 0 10px rgba(78,168,255,.4)}
+#pm-board-kanban .pm-col:nth-of-type(4)>h3{border:1px solid #3ee08f!important;box-shadow:0 0 10px rgba(62,224,143,.4)}
+#pm-board-kanban .pm-card{padding:9px!important;font-size:11.5px!important;border-radius:10px!important;background:linear-gradient(160deg,rgba(60,26,110,.6),rgba(24,12,52,.85))!important}
+#pm-board-kanban .pm-card strong,#pm-board-kanban .pm-card b{font-size:12px!important;line-height:1.3}
+#pm-board-kanban .pm-card .pm-tags>*:not(:first-child){display:none}
+/* Workload heatmap */
+#pm-board-workload{overflow:auto!important}
+#pm-board-workload table{width:100%!important;min-width:0!important;font-size:11.5px;table-layout:auto}
+#pm-board-workload th,#pm-board-workload td{padding:6px 5px!important;white-space:nowrap}
+#pm-board-workload td:first-child,#pm-board-workload th:first-child{max-width:130px;overflow:hidden;text-overflow:ellipsis}
+#pm-board-workload>p.muted{font-size:11px}
+#pm-board-workload .pm-capacity{font-size:12px}
+/* the 4 KPIs right under the board, as in the mockup */
+html:has(#pm-board:not([hidden])) #portfolio{margin-top:18px}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat{border-radius:14px;border:1px solid rgba(190,120,255,.5);background:linear-gradient(160deg,rgba(40,18,78,.7),rgba(14,8,34,.85));box-shadow:0 0 18px rgba(170,90,255,.2)}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(2){border-color:rgba(255,95,210,.55)}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(3){border-color:rgba(78,168,255,.6)}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(4){border-color:rgba(62,224,143,.55)}
+@media (max-width:1180px){
+  #pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  #pm-board-kanban{grid-column:1/-1;order:-1}
+  #pm-board-gantt .g-row{grid-template-columns:180px minmax(0,1fr)!important}
+  #pm-board-gantt{transform:perspective(1800px) rotateY(5deg)!important}
+  #pm-board-workload{transform:perspective(1800px) rotateY(-5deg)!important}
+}
+@media (max-width:720px){
+  #pm-board.pm-board{grid-template-columns:minmax(0,1fr)}
+  #pm-board-kanban{grid-template-columns:repeat(4,minmax(150px,1fr));overflow-x:auto}
+  html:has(#pm-board:not([hidden])) main#workspace>.pm-budget{margin:0;width:auto}
+}
+#pm-board-gantt .g-head .g-week{font-size:9.5px}
+#pm-board-gantt .g-head .g-week:nth-child(even){display:none}
+#pm-board-kanban .pm-col>h3{gap:4px;font-size:10px!important;line-height:1.15}
+#pm-board-kanban .pm-col>h3>*:last-child{flex:none}
+#pm-board-kanban .pm-card .pm-tags{display:none}
+#pm-board-kanban .pm-card{min-height:0}
+#pm-board-workload td,#pm-board-workload th{font-size:11px!important;padding:5px 4px!important}
+#pm-board-workload th:not(:first-child){font-size:9.5px!important;white-space:normal!important;min-width:44px}
+#pm-board-workload td:not(:first-child){min-width:40px}
+#pm-board-workload .pm-load{min-width:0!important}
+#pm-board-workload .pm-load .pm-progress{width:52px!important}
+html:has(#pm-board:not([hidden])) main#workspace>#project-note{display:none}
+#pm-board-workload td:not(:first-child){background:rgba(196,86,255,calc(var(--load,0) * .8))!important;border-color:rgba(120,70,190,.35)!important;border-radius:4px}
+#pm-board-workload td.over{background:rgba(255,95,190,.75)!important}
+
+/* ---- Panoramica, mockup pm-mockup.png: compact project bar, space backdrop, wider neon Kanban, KPI row under the board ---- */
+html:has(#pm-board:not([hidden])) main#workspace{flex-direction:row;flex-wrap:wrap;align-items:center;column-gap:12px;
+  background:radial-gradient(1px 1px at 12% 18%,#fff9,transparent 60%),radial-gradient(1px 1px at 68% 9%,#e9d8ff,transparent 60%),radial-gradient(1.5px 1.5px at 38% 62%,#fff8,transparent 60%),radial-gradient(1px 1px at 86% 44%,#d9c4ff,transparent 60%),radial-gradient(1px 1px at 22% 84%,#fff7,transparent 60%);background-size:230px 190px,310px 260px,270px 230px,190px 210px,350px 300px}
+html:has(#pm-board:not([hidden])) .rx-main,html:has(#pm-board:not([hidden])) body.rx-pm{background:radial-gradient(ellipse 55% 40% at 30% 0%,rgba(150,70,230,.22),transparent 70%),radial-gradient(circle at 104% -18%,transparent 33%,rgba(150,120,255,.35) 34%,rgba(60,30,120,.12) 37%,transparent 46%),radial-gradient(ellipse 80% 30% at 50% 100%,rgba(120,50,220,.18),transparent 70%),#07040f}
+html:has(#pm-board:not([hidden])) main#workspace>*{flex:0 0 100%;min-width:0}
+html:has(#pm-board:not([hidden])) main#workspace>.hero{margin:0 0 6px}
+html:has(#pm-board:not([hidden])) main#workspace>.hero h1{font-size:26px;margin:2px 0}
+html:has(#pm-board:not([hidden])) main#workspace>.hero p.muted{display:none}
+/* one bar: project, budget, views */
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex:0 0 auto;order:2;margin:0;align-items:center;gap:8px;flex-wrap:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--rx-subtle);white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) select{min-width:170px;max-width:220px;height:38px;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #new-project{height:38px;min-height:0;padding:0 12px;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-budget{flex:0 0 auto;order:2;display:flex;align-items:center;gap:8px;margin:0;width:auto;font-size:12px;white-space:nowrap}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-budget input{width:120px;height:38px;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{flex:1 1 300px;order:2;margin:0;padding:3px}
+html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs button{padding:6px 12px;min-height:0}
+html:has(#pm-board:not([hidden])) main#workspace>#message:empty{display:none}
+html:has(#pm-board:not([hidden])) main#workspace>.layout>section.panel{margin-top:18px}
+/* board: kanban is the centre piece; side panels lean back without leaving the page */
+#pm-board.pm-board{gap:22px;padding:0 6px;position:relative}
+#pm-board.pm-board::after{content:"";position:absolute;left:8%;right:8%;bottom:-46px;height:60px;pointer-events:none;background:radial-gradient(ellipse at 50% 0,rgba(190,90,255,.35),transparent 70%);filter:blur(6px)}
+#pm-board>section::after{left:28%;right:28%;height:4px;background:linear-gradient(90deg,transparent,#e59bff 20%,#e59bff 80%,transparent);box-shadow:0 0 18px #c56bff,0 0 4px #fff}
+#pm-board>section{border-color:rgba(205,140,255,.7)!important;box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 34px rgba(170,90,255,.35),0 0 2px rgba(230,180,255,.9),0 30px 60px rgba(0,0,0,.55)}
+@media (min-width:1280px){
+  #pm-board-gantt{transform:perspective(1400px) rotateY(10deg) scale(.96);transform-origin:right center}
+  #pm-board-workload{transform:perspective(1400px) rotateY(-10deg) scale(.96);transform-origin:left center}
+}
+/* kanban columns: one-line neon header with the count, cards bordered in the column colour */
+#pm-board-kanban{--c1:#a77bff;--c2:#ff5fd2;--c3:#4ea8ff;--c4:#3ee08f;gap:10px!important}
+#pm-board-kanban .pm-col{padding:0!important;background:transparent!important;display:flex;flex-direction:column;gap:8px}
+#pm-board-kanban .pm-col>h3{display:flex;justify-content:space-between;align-items:center;margin:0!important;font:700 12px/1 'Space Grotesk',Inter,system-ui,sans-serif!important;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;background:rgba(14,6,34,.75)}
+#pm-board-kanban .pm-col>h3 .pill{min-width:0;padding:2px 7px;border:0;background:rgba(255,255,255,.12);font-size:11px}
+#pm-board-kanban .pm-card{margin:0!important;padding:10px 38px 10px 10px!important;border:1px solid var(--cc,var(--c1))!important;box-shadow:0 0 12px color-mix(in srgb,var(--cc,var(--c1)) 30%,transparent),inset 0 0 18px rgba(255,255,255,.03)}
+#pm-board-kanban .pm-col:nth-of-type(1){--cc:var(--c1)}#pm-board-kanban .pm-col:nth-of-type(2){--cc:var(--c2)}#pm-board-kanban .pm-col:nth-of-type(3){--cc:var(--c3)}#pm-board-kanban .pm-col:nth-of-type(4){--cc:var(--c4)}
+#pm-board-kanban .pm-card .pm-progress{display:block;width:44px!important;height:4px;margin:0 0 7px;border-radius:9px;background:var(--cc)!important;opacity:.9}
+#pm-board-kanban .pm-card strong{display:block;font-weight:600}
+#pm-board-kanban .pm-card small{display:block;margin-top:3px;font-size:10.5px;color:#b9a6dc}
+#pm-board-kanban .pm-card>.pill{display:inline-block;margin:6px 4px 0 0;padding:1px 7px;font-size:10px;line-height:1.5;border-radius:99px;border:0;background:color-mix(in srgb,var(--cc) 45%,#2a1450);color:#fff}
+#pm-board-kanban .pm-card>.pill.warn{background:rgba(255,95,95,.55)}
+#pm-board-kanban .pm-card .pm-avatar{right:8px;bottom:8px;width:24px;height:24px;font-size:9.5px;background:linear-gradient(135deg,#6a3fd0,#c04fb0);border:1px solid rgba(255,255,255,.35);color:#fff}
+/* KPI row right under the board */
+html:has(#pm-board:not([hidden])) #portfolio{order:5;margin-top:34px;padding:0;background:none;border:0;box-shadow:none}
+html:has(#pm-board:not([hidden])) #portfolio>.row h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#cdb5ff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis{gap:16px!important;max-width:1040px;margin:0 auto 18px}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat{display:grid;grid-template-columns:1fr auto;align-items:end;gap:4px 10px;padding:16px 18px;border-width:1.5px;box-shadow:0 0 22px color-mix(in srgb,var(--k) 35%,transparent),inset 0 0 22px color-mix(in srgb,var(--k) 10%,transparent);border-color:var(--k)!important;--k:#a77bff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(2){--k:#ff5fd2}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(3){--k:#4ea8ff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat:nth-child(4){--k:#3ee08f}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>span{grid-column:1/-1;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#e6dcff}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>strong{font:600 40px/1 'Space Grotesk',Inter,system-ui,sans-serif}
+html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>small{justify-self:end;text-align:right;max-width:150px;font-size:11px;color:var(--k)}
+@media (max-width:1180px){html:has(#pm-board:not([hidden])) main#workspace>.pm-tabs{flex-basis:100%}}
+@media (max-width:720px){
+  html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex-wrap:wrap}
+  html:has(#pm-board:not([hidden])) #portfolio-kpis .stat>strong{font-size:30px}
+}
+html:has(#pm-board:not([hidden])) main#workspace>#project-note{display:none!important}
+@media (min-width:1181px){#pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,2.1fr) minmax(0,1fr)}}
+html:has(#pm-board:not([hidden])) main#workspace>#message{order:3;margin:8px 0 0;color:var(--rx-subtle)}
+#pm-board-kanban .pm-card>.pill{white-space:nowrap}
+/* outer edges stay put and inner edges recede, so the tilted panels never leave the page */
+@media (min-width:1280px){
+  #pm-board-gantt{transform:perspective(1400px) rotateY(10deg);transform-origin:left center}
+  #pm-board-workload{transform:perspective(1400px) rotateY(-10deg);transform-origin:right center}
+}
+#pm-board-kanban .pm-card>.pill{max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+@media (max-width:720px){html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){flex:1 1 100%}html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) select{min-width:0;flex:1}}
+/* Quadro thread: budget sits inside .pm-projectbar (markup); duplicate stats hidden; task detail is a drawer opened by a card */
+.rx-pm .pm-projectbar{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.rx-pm .pm-projectbar>label{display:grid;gap:6px;margin:0}
+.rx-pm .pm-projectbar .pm-budget{margin:0}
+.rx-pm .pm-projectbar .pm-budget input{width:150px}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) .pm-budget input{width:120px;height:38px;padding-block:0}
+html:has(#pm-board:not([hidden])) main#workspace>#stats{display:none}
+html:has(#pm-board:not([hidden])) main#workspace{overflow-x:clip}
+.pm-detail-close{display:none}
+html:has(#pm-board:not([hidden])):not(.pm-detail-open) .layout>#detail{display:none!important}
+html.pm-detail-open:has(#pm-board:not([hidden])) .layout>#detail{position:fixed;top:0;right:0;bottom:0;width:min(540px,100vw);z-index:60;overflow:auto;margin:0!important;padding:24px 24px 40px!important;border-radius:0;border:0;border-left:1px solid rgba(190,120,255,.5);background:linear-gradient(180deg,#1a0f36,#0d0820)!important;box-shadow:-24px 0 60px rgba(0,0,0,.6)}
+html.pm-detail-open:has(#pm-board:not([hidden])) .pm-detail-close{display:grid;place-items:center;position:fixed;top:14px;right:16px;z-index:61;width:34px;height:34px;padding:0;border-radius:50%;font-size:20px;line-height:1;background:#2a1650;border:1px solid rgba(190,120,255,.6);color:#f3eaff}
+/* Under 1600px the three-panel row leaves the Kanban columns ~120px wide (titles break word by word, pills cut):
+   the Kanban takes the whole first row, Gantt and carico del team sit side by side under it. */
+@media (min-width:1001px) and (max-width:1599px){
+  #pm-board.pm-board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+  #pm-board-kanban{grid-column:1/-1;order:-1}
+  #pm-board-gantt .g-row{grid-template-columns:180px minmax(0,1fr)!important}
+  #pm-board-gantt{transform:perspective(1800px) rotateY(5deg)!important}
+  #pm-board-workload{transform:perspective(1800px) rotateY(-5deg)!important}
+}
+#pm-board-kanban .pm-card>.pill{white-space:normal;overflow:visible;text-overflow:clip}
+#pm-board-kanban .pm-card strong{overflow-wrap:normal;word-break:normal;hyphens:auto}
+/* A project with no plan: one invitation to build it, instead of empty boards and zero KPIs (radix-pm-concept.html emptyPlan()) */
+body.pm-no-plan main#workspace>#stats{display:none}
+#pm-view.pm-empty-plan{display:block;padding:0;border:0;background:none;box-shadow:none}
+#pm-board.pm-board-empty>:not(.pm-empty-card){display:none!important}
+#pm-board.pm-board-empty{display:block!important}
+#pm-board[hidden]{display:none!important}
+.pm-empty-card{position:relative;max-width:980px;margin:6px auto 0;padding:34px 38px;border-radius:22px;border:1px solid #6d4bb7;background:radial-gradient(ellipse at 85% 0,#3a1f6d66,transparent 60%),linear-gradient(160deg,#1a1036f2,#0d0a22f2);box-shadow:0 0 0 1px #b07bff22,0 0 40px #7d4dff33;color:#efe8ff;overflow:hidden}
+.pm-empty-card::before{content:"";position:absolute;left:12%;right:12%;top:0;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#c58bff,#ff7ac8,transparent)}
+.pm-empty-kicker{display:block;font:600 11px/1 Inter,system-ui,sans-serif;letter-spacing:.2em;color:#c9a8ff}
+.pm-empty-card h2{margin:10px 0 8px;font:700 clamp(22px,2.4vw,30px)/1.15 'Space Grotesk',Inter,system-ui,sans-serif;letter-spacing:-.02em;color:#fff}
+.pm-empty-card>p{margin:0;max-width:640px;font-size:14px;color:#c8bde6}
+.pm-empty-steps{list-style:none;counter-reset:s;margin:24px 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.pm-empty-steps li{counter-increment:s;position:relative;padding:16px 16px 16px 58px;border-radius:14px;border:1px solid #4a3784;background:#140d2ccc;display:flex;flex-direction:column;gap:4px}
+.pm-empty-steps li::before{content:counter(s);position:absolute;left:16px;top:16px;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 'Space Grotesk',Inter,system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#9b5cff,#ff6fb5);box-shadow:0 0 14px #b07bff88}
+.pm-empty-steps strong{font-size:14px;color:#fff}.pm-empty-steps span{font-size:12.5px;color:#b9add9;line-height:1.4}
+.pm-empty-actions{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.rx-pm .pm-empty-go,.pm-empty-go{padding:12px 20px;border:0;border-radius:12px;background:linear-gradient(135deg,#25e3b0,#1fc6d8);color:#04131a;font:700 14px/1 Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 0 22px #25e3b066}
+.pm-empty-go:hover,.pm-empty-go:focus-visible{box-shadow:0 0 30px #25e3b0aa;outline:2px solid #bffff0;outline-offset:2px}
+.pm-empty-alt{color:#c9a8ff;font-size:13.5px;text-decoration:underline;text-underline-offset:3px}
+@media (max-width:760px){.pm-empty-card{padding:24px 18px}.pm-empty-steps{grid-template-columns:1fr}}
+/* "Ripianifica i ritardi": amber outline action next to + Nuovo progetto, only shown when tasks are late */
+.rx-pm #replan{display:inline-flex;margin-left:auto;align-items:center;gap:6px;color:var(--rx-warning);background:color-mix(in srgb,var(--rx-warning) 10%,transparent);border:1px solid color-mix(in srgb,var(--rx-warning) 55%,transparent);white-space:nowrap}
+.rx-pm #replan::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--rx-warning);box-shadow:0 0 8px var(--rx-warning)}
+.rx-pm #replan:hover{background:color-mix(in srgb,var(--rx-warning) 18%,transparent);border-color:var(--rx-warning)}
+.rx-pm #replan[hidden]{display:none}
+.rx-pm .pm-projectbar:has(#replan:not([hidden])) #new-project{margin-left:0}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav) #replan{height:38px;min-height:0;padding:0 12px}
+/* Nuovo progetto: three plans proposed by the AI (lib/pm-plan-ideas.js). */
+.pm-ideas-open{margin:4px 0 12px}
+.pm-ideas{display:grid;gap:10px;margin:0 0 16px;padding:14px;border:1px dashed #3b4a7a;border-radius:12px}
+.pm-ideas label{display:grid;gap:4px}
+.pm-ideas-dates{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pm-ideas fieldset{display:flex;flex-wrap:wrap;gap:8px;border:1px solid #2c3a63;border-radius:10px;padding:8px 10px}
+.pm-ideas .pm-ideas-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #33437a;border-radius:999px;padding:5px 11px;cursor:pointer}
+.pm-ideas .pm-ideas-chip input{width:auto;margin:0}
+.pm-ideas-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.pm-ideas-card{display:grid;gap:6px;align-content:start;padding:12px;border:1px solid #33437a;border-radius:12px}
+.pm-ideas-card p{margin:0}
+.pm-ideas-meta{color:#8fe3c6;font-size:13px}.pm-ideas-late{color:#f2d28c;font-size:13px}
+.pm-ideas-phases{margin:0;padding-left:18px;font-size:13px;display:grid;gap:4px}
+.pm-ideas-phases span{color:#9aa6d6}
+/* Andamento: burn-up a colonne e tabella per responsabile */
+.rx-pm .pm-trend{margin-top:16px;display:grid;gap:14px}.rx-pm .pm-burn{margin:0;padding:16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-bg-raised)}
+.rx-pm .pm-burn figcaption{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline}.rx-pm .pm-burn-legend{display:flex;gap:14px;margin:10px 0;font-size:12px;color:var(--rx-muted)}
+.rx-pm .pm-burn-legend .k::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.rx-pm .pm-burn-legend .planned::before{background:color-mix(in srgb,var(--pm-todo) 30%,transparent);border:1px dashed var(--pm-todo)}.rx-pm .pm-burn-legend .done::before{background:var(--pm-done)}
+.rx-pm .pm-burn-plot{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(44px,1fr);gap:6px;height:200px;align-items:end;overflow-x:auto;border-bottom:1px solid var(--rx-border)}
+.rx-pm .pm-burn-col{display:flex;flex-direction:column;align-items:center;height:100%;gap:4px;font-size:11px;color:var(--rx-muted)}.rx-pm .pm-burn-col.now small{color:var(--rx-text);font-weight:600}
+.rx-pm .pm-burn-val{font-size:11px;font-weight:600;color:var(--rx-text)}.rx-pm .pm-burn-bars{position:relative;flex:1;width:22px}
+.rx-pm .pm-burn-bar{position:absolute;bottom:0;left:0;right:0;border-radius:4px 4px 0 0}.rx-pm .pm-burn-bar.planned{background:color-mix(in srgb,var(--pm-todo) 22%,transparent);border:1px dashed var(--pm-todo);border-bottom:0}
+.rx-pm .pm-burn-bar.done{left:4px;right:4px;background:var(--pm-done)}.rx-pm .pm-burn-col.ahead{opacity:.7}.rx-pm .pm-burn-note{margin:0;color:var(--rx-text)}
+.rx-pm .pm-people{width:100%;border-collapse:collapse;font-size:13px}.rx-pm .pm-people caption{text-align:left;color:var(--rx-muted);padding-bottom:6px;font-size:12px}.rx-pm .pm-people th,.rx-pm .pm-people td{padding:8px 10px;border-bottom:1px solid var(--rx-border);text-align:left}.rx-pm .pm-people td.warn{color:var(--rx-warning);font-weight:600}

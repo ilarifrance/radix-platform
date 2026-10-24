@@ -1,0 +1,101 @@
+/* CRM light theme for the other Sales pages (tokens in crm-light.css): Pipeline (pipeline-premium.css),
+   Campagne / Progetti commerciali (growth-workspace.css) and LinkedIn (linkedin-hub.css).
+   Visual only: loaded after the page styles; drag & drop and every other behaviour stay as they are. */
+:root{--bg:var(--crm-bg);--card:var(--crm-card);--border:var(--crm-line);--ink:var(--crm-text);--teal:var(--crm-accent);
+ --panel:var(--crm-card);--panel2:var(--crm-soft);--line:var(--crm-line);--mint:var(--crm-accent);--blue:var(--crm-link);--text:var(--crm-text);--muted:var(--crm-muted)}
+body{background:var(--crm-bg);color:var(--crm-text);font-family:var(--crm-font)}
+:focus-visible{outline-color:var(--crm-accent)}
+
+/* ---------- Pipeline (sales-pipeline-premium.html) ---------- */
+.shell>main>header button,.shell>main>header select,.filterbar input,.filterbar select,.selection select,.selection button{background:var(--crm-card);color:var(--crm-text);border:1px solid var(--crm-line-2)}
+.shell>main>header button,.selection button{color:var(--crm-accent)}
+.filterbar input::placeholder{color:var(--crm-subtle)}
+.path,.heading .eyebrow{color:var(--crm-accent)}
+.heading p,.filterbar span,.filterbar label,.shell>main>header label{color:var(--crm-muted)}
+.cta{background:var(--crm-accent);border:1px solid var(--crm-accent);color:var(--crm-on-accent);font-weight:600}
+.cta:hover{background:#5b21b6}
+.metrics>div{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.metrics small,.metrics span{color:var(--crm-muted)}
+.stage{background:var(--crm-head);border:1px solid var(--crm-line)}
+.stage h2{background:var(--crm-card);border-top:3px solid var(--crm-accent);border-bottom:1px solid var(--crm-line);border-radius:12px 12px 0 0;color:var(--crm-text)}
+.stage:nth-child(4n+2) h2{border-top-color:var(--crm-chart-2)}.stage:nth-child(4n+3) h2{border-top-color:var(--crm-chart-5)}.stage:nth-child(4n+4) h2{border-top-color:var(--crm-chart-3)}
+.stage h2 small{color:var(--crm-muted)}
+.deal{background:var(--crm-card);border:1px solid var(--crm-line);color:var(--crm-text);box-shadow:var(--crm-shadow)}
+.deal:hover,.deal:focus-visible{outline:1px solid var(--crm-accent-line);box-shadow:0 4px 14px #6d28d91f}
+.deal.selected{border-color:var(--crm-accent);box-shadow:0 0 0 2px var(--crm-accent-soft)}
+.deal strong{color:var(--crm-link)}
+.deal small{color:var(--crm-muted)}
+.deal .value{color:var(--crm-text);font-weight:600}
+.deal .date.past{color:var(--crm-warn)}
+.stage.drop-target{outline:2px dashed var(--crm-accent);background:var(--crm-accent-soft)}
+.advisor{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.advisor h2{color:var(--crm-accent)}
+.advisor h2 small{color:var(--crm-muted)}
+.advice,.selection{background:var(--crm-soft);border:1px solid var(--crm-line);color:var(--crm-text)}
+.advice p{color:var(--crm-muted)}
+.warning{border-color:#f3d7a8;background:var(--crm-warn-soft)}
+.selection a{color:var(--crm-link)}
+.empty{color:var(--crm-muted);border-color:var(--crm-line-2);background:var(--crm-card)}
+#error{color:var(--crm-err)}
+footer{color:var(--crm-subtle)}
+
+/* ---------- Campagne, Progetti commerciali, LinkedIn (growth-workspace.css, linkedin-hub.css) ---------- */
+.topbar{background:var(--crm-card);border-bottom:1px solid var(--crm-line);color:var(--crm-muted)}
+.topbar i{color:var(--crm-line-2)}
+.topbar strong{color:var(--crm-accent)}
+.preview-tag,.pill{border:1px solid var(--crm-accent-line);color:var(--crm-accent);background:var(--crm-accent-soft)}
+.hero{background:var(--crm-card);border-bottom:1px solid var(--crm-line)}
+.hero h1{color:var(--crm-text)}
+.hero h1 em{background:linear-gradient(95deg,var(--crm-accent),var(--crm-link));-webkit-background-clip:text;background-clip:text}
+.hero p{color:var(--crm-muted)}
+.hero-orbit .ring{border:1px solid var(--crm-accent-line);box-shadow:none}
+.hero-orbit .r2{border-color:#c7d6fb}
+.hero-orbit .core{background:var(--crm-accent-soft);color:var(--crm-accent);box-shadow:0 0 0 8px #6d28d90d}
+.panel{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+label{color:var(--crm-muted)}
+input,textarea,select{background:var(--crm-card);border:1px solid var(--crm-line-2);color:var(--crm-text)}
+input::placeholder,textarea::placeholder{color:var(--crm-subtle)}
+.primary,.ghost,.danger{background:var(--crm-card);border:1px solid var(--crm-line-2);color:var(--crm-accent)}
+.primary{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent);box-shadow:none}
+.danger{color:var(--crm-err);border-color:#f1c4bf;background:var(--crm-card)}
+.primary:hover:not(:disabled),.ghost:hover:not(:disabled){border-color:var(--crm-accent);box-shadow:0 6px 16px #6d28d924}
+.helper,.stage-intro p,.review-card dt{color:var(--crm-muted)}
+.step-nav{border-bottom:1px solid var(--crm-line)}
+.step-nav button{color:var(--crm-muted)}
+.step-nav button span{border:1px solid var(--crm-line-2);background:var(--crm-card)}
+.step-nav button.active{color:var(--crm-accent);border-bottom-color:var(--crm-accent)}
+.step-nav button.active span{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent)}
+.step-nav button.done span{border-color:var(--crm-accent-line);color:var(--crm-accent);background:var(--crm-accent-soft)}
+.wizard-footer{border-top:1px solid var(--crm-line)}
+.notice{border:1px solid #c7d6fb;background:var(--crm-info-soft);color:#1e3a8a}
+.notice code{color:var(--crm-accent)}
+.review-card{background:var(--crm-soft);border:1px solid var(--crm-line)}
+.review-card h4{color:var(--crm-accent)}
+.action-grid a{border:1px solid var(--crm-line);background:var(--crm-card);box-shadow:var(--crm-shadow)}
+.action-grid a b{color:var(--crm-accent)}
+.overview{background:var(--crm-card)}
+.glow-count{text-shadow:none}
+.progress-track{background:var(--crm-head)}
+.progress-track span{background:linear-gradient(90deg,var(--crm-accent),var(--crm-link))}
+.mini-stat{border-bottom:1px solid var(--crm-line);color:var(--crm-muted)}
+.mini-stat b{color:var(--crm-text)}
+.divider{background:var(--crm-line)}
+.file-label{background:var(--crm-soft);border:1px dashed var(--crm-line-2)}
+.campaign-card{border:1px solid var(--crm-line);background:var(--crm-card);box-shadow:var(--crm-shadow)}
+.campaign-card small{color:var(--crm-muted)}
+.campaign-card .campaign-status{background:var(--crm-ok-soft);border:1px solid #b7e3c6;color:var(--crm-ok)}
+.campaign-card .campaign-status.draft{background:var(--crm-head);color:var(--crm-muted);border-color:var(--crm-line-2)}
+.campaign-card .campaign-status.paused{background:var(--crm-warn-soft);border-color:#f3d7a8;color:var(--crm-warn)}
+.campaign-card:hover{border-color:var(--crm-accent-line)}
+.hub-step{border:1px solid var(--crm-line);background:var(--crm-card);color:var(--crm-muted)}
+.hub-step b{background:var(--crm-head);border:1px solid var(--crm-line-2)}
+.hub-step.selected{border-color:var(--crm-accent-line);background:var(--crm-accent-soft);color:var(--crm-accent)}
+.hub-step.selected b{color:var(--crm-accent);border-color:var(--crm-accent)}
+.hub-metrics>div{border:1px solid var(--crm-line);background:var(--crm-soft)}
+.hub-metrics small{color:var(--crm-muted)}
+.hub-metrics strong{color:var(--crm-text)}
+.hub-flow>div{border:1px solid var(--crm-line);background:var(--crm-card)}
+.hub-flow small{color:var(--crm-muted)}
+.hub-number{border:1px solid var(--crm-accent-line);background:var(--crm-accent-soft);color:var(--crm-accent)}
+.hub-start{border:1px solid var(--crm-accent-line);color:var(--crm-accent);background:var(--crm-card)}
+.hub-start:hover{border-color:var(--crm-accent)}
