@@ -253,38 +253,42 @@ test('page wiring: assets after the list core, writes only through RadixSalesApp
  assert.match(css,/thead th\{position:sticky/);assert.match(css,/\.cs-fz\{position:sticky/);assert.match(css,/@media\(max-width:700px\)/);
 });
 
-/* The dark green and gold look: colours only as tokens, defined only on the sheet scope and the call
-   dialog (the rest of the CRM keeps crm-light.css), text readable on its background. */
+/* The sheet uses the CRM light tokens of crm-light.css as the rest of the CRM: no colours of its own,
+   every rule scoped to the sheet, its list box in sheet mode or the call dialog, text readable. */
 const sheetCss=()=>fs.readFileSync(__dirname+'/../sales/crm-sheet.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
-function sheetTokens(){
- const css=sheetCss(),blocks=[...css.matchAll(/([^{}]+)\{([^{}]*--crm-card:[^{}]*)\}/g)];
- assert.equal(blocks.length,1,'one token block');
- assert.equal(blocks[0][1].trim(),'html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"],.cs-dialog');
- return Object.fromEntries([...blocks[0][2].matchAll(/--([a-z0-9-]+):(#[0-9a-f]{6})\b/gi)].map(m=>[m[1],m[2]]));
+function lightTokens(){
+ const css=fs.readFileSync(__dirname+'/../sales/crm-light.css','utf8'),root=/:root\{([^}]*)\}/.exec(css);assert.ok(root,'crm-light.css :root');
+ return Object.fromEntries([...root[1].matchAll(/--([a-z0-9-]+):(#[0-9a-f]{3,8})\b/gi)].map(m=>{let h=m[2];if(h.length===4)h='#'+[...h.slice(1)].map(x=>x+x).join('');return [m[1],h]}));
 }
-test('style: colours only in the scoped token block, never on :root or the whole page',()=>{
+test('style: CRM light tokens only, no colours or tokens of its own, every rule scoped',()=>{
  const css=sheetCss();
- const outside=css.replace(/--[a-z0-9-]+:[^;}]+/gi,'').replace(/#contacts\b/g,'');
- assert.ok(!/#[0-9a-f]{3,8}\b/i.test(outside),'hex colours only as custom properties');
+ assert.ok(!/#[0-9a-f]{3,8}\b/i.test(css.replace(/#contacts\b/g,'')),'only --crm-* tokens, no hex colours');
+ assert.ok(!/rgba?\(|hsla?\(/.test(css),'no literal colours');
+ assert.ok(!/--crm-[a-z0-9-]+\s*:/.test(css),'the CRM tokens are not redefined here');
+ assert.ok(!/color-scheme/.test(css),'no dark scheme');
  assert.ok(!/:root|(^|\})\s*(html|body)\s*\{/.test(css),'nothing global');
- // Every rule is scoped to the sheet, its list box in sheet mode, or the dialog.
- for(const m of css.matchAll(/(^|\})([^{}@]+)\{/g)){const sel=m[2].trim();if(!sel)continue;
+ for(const m of css.matchAll(/(^|[{}])([^{}@]+)\{/g)){const sel=m[2].trim();if(!sel)continue;
   for(const s of sel.split(','))assert.match(s.trim(),/^(\.cs|html\[data-lv-contacts="sheet"\])/,s)}
+ const used=new Set([...css.matchAll(/var\(--(crm-[a-z0-9-]+)/g)].map(m=>m[1])),t=lightTokens();
+ for(const k of used)if(k!=='crm-font'&&k!=='crm-shadow')assert.ok(t[k],k+' defined in crm-light.css');
  assert.match(css,/scroll-margin-top:16px/,'gap from the page header when scrolled into view');
+ assert.match(css,/scroll-margin-top:84px/,'below the sticky CRM menu up to 900px');
  assert.match(css,/\.cs-glabel\{position:sticky;left:calc\(var\(--cs-fzw\)/,'group label sticks right of the frozen block');
- const t=sheetTokens();for(const k of ['crm-card','crm-text','crm-accent','crm-link','cs-frozen'])assert.ok(t[k],k);
+ assert.match(css,/\.cs-fz-company\{[^}]*border-right:2px solid var\(--crm-accent-line\)/,'clear edge of the frozen columns');
+ assert.match(css,/\.cs-late-badge\{[^}]*color:var\(--crm-err\)/,'«Scaduta» in the CRM red');
 });
 test('style: text contrast at least 4.5:1 on every background it is drawn on',()=>{
- const t=sheetTokens();
+ const t=lightTokens();
  const lum=h=>{const c=[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
  const ratio=(a,b)=>{const x=lum(t[a]),y=lum(t[b]);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
  const pairs={
-  'crm-text':['crm-card','crm-head','crm-hover','cs-frozen','cs-sel','crm-err-soft','crm-ok-soft','cs-panel','cs-panel-2'],
-  'crm-muted':['crm-card','crm-head','crm-hover','cs-frozen','cs-sel','cs-panel','cs-panel-2'],
-  'crm-subtle':['crm-card','crm-head','crm-hover','cs-frozen'],
-  'crm-accent':['crm-card','crm-head','crm-hover','cs-frozen','crm-accent-soft','cs-panel','cs-panel-2'],
-  'crm-link':['crm-card','crm-hover','cs-frozen','cs-sel','cs-panel'],
-  'crm-ok':['crm-ok-soft','crm-head','cs-panel-2'],'crm-warn':['crm-warn-soft'],'crm-err':['crm-err-soft','crm-card','crm-hover'],
+  'crm-text':['crm-card','crm-head','crm-hover','crm-accent-soft','crm-err-soft','crm-ok-soft'],
+  'crm-muted':['crm-card','crm-head','crm-hover','crm-soft'],
+  'crm-subtle':['crm-card','crm-head','crm-hover'],
+  'crm-accent':['crm-card','crm-head','crm-hover','crm-accent-soft'],
+  'crm-link':['crm-card','crm-hover','crm-accent-soft'],
+  'crm-info':['crm-card','crm-hover'],
+  'crm-ok':['crm-ok-soft'],'crm-warn':['crm-warn-soft'],'crm-err':['crm-err-soft','crm-card','crm-hover'],
   'crm-on-accent':['crm-accent']};
  for(const [fg,bgs] of Object.entries(pairs))for(const bg of bgs)assert.ok(ratio(fg,bg)>=4.5,fg+' on '+bg+': '+ratio(fg,bg).toFixed(2));
 });
