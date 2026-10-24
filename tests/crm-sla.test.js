@@ -84,7 +84,7 @@ test('server: «__sla__» is validated, kept apart from segments and hidden from
  // Store: the plain list excludes reserved rows; subject=sla reads only that one.
  const seen=[];const store=createStore(async(q,p)=>{seen.push([q,p]);return []});
  await store.read({workspace:W,entity:'segments',offset:0},7);
- assert.match(seen[0][0],/lower\(btrim\(t\.name\)\)<>ALL\(\$4::text\[\]\)/);assert.deepEqual(seen[0][1][3],['__regole__','__sla__','__visibilita__']);
+ assert.match(seen[0][0],/lower\(btrim\(t\.name\)\)<>ALL\(\$4::text\[\]\)/);assert.deepEqual(seen[0][1][3],['__regole__','__sla__','__visibilita__','__trova_email__']);
  await store.read({workspace:W,entity:'segments',offset:0,reserved:'__sla__'},7);
  assert.match(seen[1][0],/lower\(btrim\(t\.name\)\)=\$4/);assert.equal(seen[1][1][3],'__sla__');
  // Handler: GET subject=sla for every member; writes on the row for owners/admins only.

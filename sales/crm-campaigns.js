@@ -31,10 +31,12 @@ function planSequence(seq,contacts,openTasks,opts){
  return {tasks,skipped};
 }
 const fill=(t,c)=>String(t).replace(/\{nome\}/g,String(c.name||'').split(/\s+/)[0]||'').replace(/\{nome_completo\}/g,c.name||'').replace(/\{azienda\}/g,c.company||'').replace(/\{ruolo\}/g,c.role||'');
-// Pure: one email per contact with consent and an address.
+// Pure: one email per contact with consent and an address. A contact whose notes record an opt-out («Disiscrizione…»)
+// counts as without consent even if the flag was ticked again by hand (sales/crm-prospecting-core.js, same rule).
+const OPTED_OUT=/disiscrizione/i;
 function planCampaign(subject,body,contacts){
  const ok=[],skipped={consent:0,email:0};
- for(const c of contacts){if(!c.marketing_consent){skipped.consent++;continue}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(c.email||''))){skipped.email++;continue}
+ for(const c of contacts){if(!c.marketing_consent||c.opted_out===true||OPTED_OUT.test(String(c.notes||''))){skipped.consent++;continue}if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(c.email||''))){skipped.email++;continue}
   ok.push({contact:c,to:c.email,subject:fill(subject,c).slice(0,200),body:fill(body,c).slice(0,4000)})}
  return {emails:ok,skipped};
 }
@@ -114,6 +116,8 @@ function campaignPanel(filterOf){
   if(d&&Date.now()-Number(d.at)<864e5){subject.value=String(d.subject||'').slice(0,200);body.value=String(d.body||'').slice(0,4000);box.dataset.fromPed=String(d.source||'Piano Editoriale')}}catch{}
  const prep=B('Prepara gli invii',()=>prepare());
  const row=E('div',undefined,'actions');row.append(ai,prep);
+ // «Prospezione B2B» (sales/crm-prospecting-core.js): only through «Metti in coda», with its own rules and fixed footer.
+ const b2b=root.RadixCrmMailboxes&&root.RadixCrmProspectingCore?modeSwitch(prep):null;
  const results=E('div',undefined,'crm-campaign-results');
  row.append(B('Risultati e report campagne',()=>window.RadixCrmCampaignReport?RadixCrmCampaignReport.render(results):showClicks(results)));
  // «Metti in coda»: the server sends it from the «Caselle email» in working hours, with daily limits.
@@ -123,11 +127,11 @@ function campaignPanel(filterOf){
    let ids=[];if(!await run('Leggo il segmento…',async()=>{ids=(await segmentContacts(filterOf)).map(c=>c.id)}))return;
    if(!ids.length){app().notice('Nessun contatto nel segmento.');return}
    if(ids.length>5000){app().error('Segmento troppo grande per una coda: massimo 5000 contatti.');return}
-   const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:ids});if(r)RadixCrmMailboxes.showStatus(results,r.message)});
+   const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:ids,...(b2b?b2b.values():{})});if(r)RadixCrmMailboxes.showStatus(results,r.message)});
   queue.classList.add('crm-queue-button');
   row.insertBefore(queue,prep.nextSibling);row.append(B('Stato della coda',()=>RadixCrmMailboxes.showStatus(results)));
  }
- box.append(ls,lb,row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma, oppure tutte insieme con «Invia a tutti» (una conferma, al massimo 200 per volta), oppure con «Metti in coda»: partono da sole dalle «Caselle email», in orario di lavoro e entro il limite giornaliero di ogni casella. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
+ box.append(ls,lb,...(b2b?[b2b.el]:[]),row,out,results,E('p','Si invia una email alla volta, ognuna con la sua conferma, oppure tutte insieme con «Invia a tutti» (una conferma, al massimo 200 per volta), oppure con «Metti in coda»: partono da sole dalle «Caselle email», in orario di lavoro e entro il limite giornaliero di ogni casella. Solo contatti con consenso marketing ed email valida; ogni email chiude con il link personale di disiscrizione. Ogni invio viene registrato come interazione.','muted'));
  async function prepare(){
   if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo.');return}
   let plan,configured=false;
@@ -161,6 +165,26 @@ function campaignPanel(filterOf){
   }
  }
  return box;
+}
+// Mode of the campaign: «Solo con consenso» (default) or «Prospezione B2B». values() → extra fields for the queue.
+function modeSwitch(prep){
+ const PC=root.RadixCrmProspectingCore,el=E('fieldset',undefined,'crm-campaign-mode');el.append(E('legend','A chi scrivi'));
+ const radio=(v,label,hint)=>{const l=E('label',undefined,'crm-mode-option'),i=E('input');i.type='radio';i.name='crm-campaign-mode-'+Math.random().toString(36).slice(2,8);i.value=v;l.append(i,E('span',label));if(hint)l.append(E('small',hint,'muted'));return [l,i]};
+ const [l1,consent]=radio('consent','Solo con consenso marketing','Newsletter e promozioni: solo chi ha dato il consenso.');
+ const [l2,pro]=radio('b2b','Prospezione B2B','Email 1:1 di lavoro a contatti senza consenso, con regole strette.');pro.name=consent.name;consent.checked=true;
+ const opts=E('div',undefined,'crm-b2b');opts.hidden=true;
+ const step=E('select');for(const [v,t] of [['0','Primo contatto'],['1','Follow-up 1'],['2','Follow-up 2 (ultimo)']]){const o=E('option',t);o.value=v;step.append(o)}
+ const ls=E('label','Passo');ls.append(step);
+ const base=Object.assign(E('input'),{maxLength:80,placeholder:'Nome della campagna del primo contatto'});const lb=E('label','Campagna di partenza');lb.append(base);lb.hidden=true;
+ const unv=E('input');unv.type='checkbox';const lu=E('label',undefined,'crm-b2b-check');lu.append(unv,E('span',' Includi anche email «da verificare» o catch-all (sconsigliato: più rimbalzi)'));
+ const rules=E('ul',undefined,'crm-b2b-rules');
+ for(const t of ['Solo l’email aziendale della persona: niente webmail, PEC o indirizzi generici (info@, commerciale@ …).','Mai chi si è disiscritto (anche da altre campagne) e mai due primi contatti alla stessa persona in 90 giorni.','Al massimo 2 follow-up, almeno 3 giorni dopo il passo precedente; si fermano se registri una risposta sul contatto.','Testo semplice 1:1, senza link tracciati né pixel; stessi limiti giornalieri delle caselle.'])rules.append(E('li',t));
+ const foot=E('pre',PC.footer({issuer:{name:'{ragione sociale}',street:'{indirizzo}',city:'{città}'},sender:{from_name:'{mittente della casella}'},contact:{company:'{azienda}',linkedin_url:'x'},url:'{link personale di disiscrizione}'}).replace(/^\n+/,''),'crm-b2b-footer');
+ opts.append(ls,lb,lu,rules,E('p','Piè di pagina fisso, aggiunto dal server in fondo a ogni email (dati da Impostazioni › Documenti):','muted'),foot);
+ el.append(l1,l2,opts);
+ const sync=()=>{const on=pro.checked;opts.hidden=!on;lb.hidden=step.value==='0';prep.disabled=on;prep.title=on?'La prospezione B2B parte solo con «Metti in coda».':''};
+ for(const x of [consent,pro,step])x.addEventListener('change',sync);
+ return {el,values:()=>pro.checked?{mode:'b2b',step:Number(step.value),base:base.value.trim(),include_unverified:unv.checked}:{}};
 }
 async function showClicks(out){
  let d;if(!await run('Carico i clic…',async()=>{d=await app().api('email_clicks',{})}))return;

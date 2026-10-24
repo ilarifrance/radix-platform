@@ -152,6 +152,8 @@ function mount(section,kind){
    campaign.hidden=false;campaign.open=true;campaign.scrollIntoView({block:'nearest',behavior:'smooth'})}),{title:'Solo i contatti spuntati. Nulla parte da solo: ogni invio chiede conferma e le email vanno solo a chi ha il consenso marketing.'}));
   if(kind==='companies')bulk.append(B('Seleziona i loro contatti',()=>{const c=L().contactsOf([...ids()],app().rows('contacts'));if(!c.length){app().notice('Nessun contatto caricato per le aziende selezionate.');return}
    st.contacts.pending=c;app().notice(c.length+(c.length===1?' contatto selezionato':' contatti selezionati')+' in Contatti.');if(location.hash!=='#contacts')location.hash='#contacts';else rescan()}));
+  // «Trova email»: the person's business email, free sources first, paid ones after a second confirmation (sales/crm-prospecting.js).
+  if(kind==='contacts'&&window.RadixCrmEmailFinder&&app().writable('contacts'))bulk.append(window.RadixCrmEmailFinder.button(()=>[...st[kind].selected]));
   // «Modifica in blocco»: one field, one value, on the selected records (sales/crm-mass-edit.js).
   if(window.RadixCrmMassEdit&&app().writable(kind))bulk.append(Object.assign(B('Modifica in blocco',()=>{
    if(!mass){mass=window.RadixCrmMassEdit.panel(kind,()=>[...st[kind].selected],{added:hasAdded(),done:()=>draw()});bulk.after(mass)}
