@@ -132,6 +132,11 @@ function counterpart(subject,rec,related){
 }
 
 const TABS=[['email','Email'],['call','Chiamata'],['meeting','Evento'],['task','Attività']];
+// «Slot liberi» (crm-calendars.js) in the composer: the name of the date/time field a free slot fills,
+// only on the forms that plan a call, a meeting or a task, and only for someone who can save them.
+// Email records a message already sent: no slots there.
+const SLOT_FIELDS={call:'when',meeting:'when',task:'due'};
+function slotField(tab,canWrite){return canWrite===true&&Object.prototype.hasOwnProperty.call(SLOT_FIELDS,tab)?SLOT_FIELDS[tab]:null;}
 // One composer form → {error} or {error:null, entity, data, send, label}. send is set only for a real send.
 // related: the Customer360 rows (optional), to name the opportunity's contact in the default title.
 function composerPlan(tab,input,subject,rec,now,related){
@@ -167,6 +172,6 @@ function composerPlan(tab,input,subject,rec,now,related){
  return {error:'Tipo non valido.'};
 }
 
-const core={SUBJECT_LABEL,TABS,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
+const core={SUBJECT_LABEL,TABS,slotField,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
 if(typeof module==='object'&&module.exports)module.exports=core;else root.RadixCrmRecordCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

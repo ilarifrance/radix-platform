@@ -7,9 +7,10 @@
      The link is sent once when saved and never comes back: the list shows the host and «link salvato». Busy time from those
      links (ensureBusy / busyEvents) appears in the Calendario as «Occupato» blocks (titles only with «Mostra i titoli»).
    - «Orario di lavoro» (workHours, kept in this browser) and slotPicker: the free slots for «Registra chiamata»
-     (crm-sheet.js), from the external busy time plus the CRM's own appointments (sales/crm-freebusy-core.js).
+     (crm-sheet.js) and for the Chiamata / Evento / Attività forms of the record page (crm-record.js), from the
+     external busy time plus the CRM's own appointments (sales/crm-freebusy-core.js).
    - Deep link of the feed events: radix-sales.html?ws=<workspace>&contatto=<id>#contacts opens that contact's Customer360.
-   Used by calendar-view.js (the Calendario page) and crm-sheet.js. */
+   Used by calendar-view.js (the Calendario page), crm-sheet.js and crm-record.js. */
 (()=>{
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -129,7 +130,7 @@ function hoursForm(){
  for(const x of [a,b,len,buf,sc])x.onchange=save;row.append(al,bl,ll,fl);box.append(row,sat,note);return box;
 }
 function fillSources(box){
- const ws=src.ws;box.replaceChildren(E('h3','Calendari esterni'),E('p','Collega Outlook e Google: qui vedi quando sei occupato e in «Registra chiamata» trovi gli slot liberi. Il link resta cifrato sul server e lo vedi solo tu.','cal-empty'));
+ const ws=src.ws;box.replaceChildren(E('h3','Calendari esterni'),E('p','Collega Outlook e Google: qui vedi quando sei occupato e trovi gli slot liberi in «Registra chiamata» e nella scheda (Chiamata, Evento, Attività). Il link resta cifrato sul server e lo vedi solo tu.','cal-empty'));
  if(src.note){const n=E('p',src.note,'cal-feed-note');n.setAttribute('aria-live','polite');box.append(n);src.note=''}
  if(!src.rows){box.append(E('p','Carico i tuoi calendari…','cal-empty'));return}
  if(src.error)box.append(E('p',src.error,'cal-src-err'));
@@ -186,7 +187,7 @@ function setWorkHours(v){try{localStorage.setItem(HOURS_KEY,JSON.stringify(v))}c
 const localValue=ms=>{const d=new Date(ms);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())};
 const DAYS=['dom','lun','mar','mer','gio','ven','sab'];
 const slotLabel=ms=>{const d=new Date(ms);return DAYS[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' · '+pad(d.getHours())+':'+pad(d.getMinutes())};
-/* «Slot liberi» for the call dialog: the next free slots in working hours, from the external calendars and the CRM.
+/* «Slot liberi» for the call dialog and the record forms: the next free slots in working hours, from the external calendars and the CRM.
    onPick(value) gets the 'YYYY-MM-DDTHH:mm' of an <input type=datetime-local>. */
 function slotPicker({onPick}){
  const box=E('div',undefined,'cs-slots');const head=E('div',undefined,'cs-slots-head');head.append(E('b','Slot liberi'));
@@ -201,7 +202,9 @@ function slotPicker({onPick}){
   if(!slots.length)list.append(E('span','Nessuno slot libero nei prossimi 14 giorni nell’orario di lavoro.','cs-slots-wait'));
   for(const s of slots){const b=E('button',slotLabel(s.start));b.type='button';b.setAttribute('aria-pressed','false');b.onclick=()=>{list.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true');onPick(localValue(s.start))};list.append(b)}}
  (async()=>{
-  const from=Date.now(),to=from+14*864e5,ws=window.RadixCrmData?.workspace();
+  // The window starts on a 5-minute grid, so the pickers drawn again by the record page (every tab switch and
+  // every render of Customer360) reuse the busy time already read instead of asking the server each time.
+  const from=Math.floor(Date.now()/BUSY_TTL)*BUSY_TTL,to=from+14*864e5,ws=window.RadixCrmData?.workspace();
   const [ext,data]=await Promise.all([ws?busyFor(from,to):Promise.resolve([]),Promise.resolve(window.RadixCrmData?.load()).catch(()=>null)]);
   if(ws&&!src.rows)await loadSources(ws).catch(()=>{});
   const me=window.RadixSalesApp?.state?.me;busy=ext||[];crm=data&&FB()?FB().crmBusy(data,{me:Number.isInteger(me)&&me>0?me:null,from,to}):[];

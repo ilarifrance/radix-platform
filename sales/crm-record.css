@@ -56,6 +56,9 @@
 .crm-rec-form p.muted{font-size:12px;margin:2px 0 0}
 .crm-rec-to{margin:0;font-size:12px;color:var(--crx-heading)}
 @media(max-width:1000px){.crm-rec{grid-template-columns:1fr}}
+/* «Slot liberi» under the date of Chiamata / Evento / Attività (crm-calendars.js): two even columns on a phone. */
+.crm-rec-form .crm-rec-slots{margin:2px 0 4px}
+@media (max-width:560px){.crm-rec-form .crm-rec-slots .cs-slots-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.crm-rec-form .crm-rec-slots .cs-slots-list button{padding:0 6px;font-size:12px}.crm-rec-form .crm-rec-slots .cs-slots-wait{grid-column:1/-1}}
 
 /* ---------- Primi passi (dashboard-view.js) ---------- */
 .pv-onboard .pv-head{align-items:center;margin-bottom:10px}
