@@ -136,6 +136,7 @@ const STUDIOS={
  video:{global:'RadixVideoStudio',name:'Lo Studio Video',need:'il video usa il suo avatar e i suoi fatti',agent:'video-producer'},
  retouch:{global:'RadixRetouchStudio',name:'Lo Studio Fotoritocco',need:'le impostazioni si salvano nel progetto (le foto restano sul tuo computer)',agent:'art-director'},
  mediakit:{global:'RadixMediaKitStudio',name:'Lo Studio Media kit',need:'il media kit usa i colori e il logo del Kit identità, il profilo e l’ultimo comunicato del progetto e si salva lì',agent:'copywriter'},
+ survey:{global:'RadixSurveyStudio',name:'Lo Studio Sondaggio',need:'il questionario usa i colori e il logo del Kit identità del progetto e si salva lì; le risposte arrivano nel CRM',agent:'analytics'},
  funnel:{global:'RadixFunnelStudio',name:'Lo Studio Funnel',need:'il funnel usa i colori e il logo del Kit identità del progetto e si salva lì',agent:'copywriter'},
  infographic:{global:'RadixInfographicStudio',name:'Lo Studio Infografica',need:'l’infografica usa i colori e il logo del Kit identità del progetto e si salva lì',agent:'art-director'},
  mockup:{global:'RadixMockupStudio',name:'Lo Studio Mockup',need:'i mockup mettono in scena i materiali salvati nel progetto',agent:'art-director'},
@@ -148,6 +149,7 @@ const STUDIOS={
  ads:{global:'RadixAdStudio',name:'Lo Studio Creatività',need:'le creatività usano i suoi colori, il suo logo e i suoi fatti confermati',agent:'paid-media'},
  gbp:{global:'RadixGbpStudio',name:'Lo Studio Scheda Google',need:'la scheda parte dai suoi fatti confermati e le risposte si firmano col suo nome',agent:'seo-geo'},
  translate:{global:'RadixTranslationStudio',name:'Lo Studio Traduzione',need:'le traduzioni partono dai testi e dalle schede salvate nel progetto e si salvano lì',agent:'copywriter'},
+ shop:{global:'RadixShopStudio',name:'Lo Studio Negozio online',need:'i file partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
  feed:{global:'RadixProductStudio',name:'Lo Studio Schede prodotto',need:'le schede partono dal foglio dei prodotti e si salvano nel progetto',agent:'web-content'},
  mail:{global:'RadixNewsletterStudio',name:'Lo Studio Newsletter HTML',need:'la newsletter usa il kit identità e i testi salvati del progetto',agent:'copywriter'},
  identity:{global:'RadixIdentityStudio',name:'Lo Studio Identità',need:'il kit parte dal nome e dai fatti del progetto e si salva nel suo profilo',agent:'brand-strategist'},
@@ -197,6 +199,8 @@ function openInline(c){
   ?S.mediaKitStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=copywriter&project='+pid,openStudio:id=>{const card=core.card(id);if(card)openInline(card)},studioUrl:id=>'/agency/crea.html?project='+pid+'&open='+encodeURIComponent(id)})
   :c.inline==='funnel'
   ?S.funnelStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=copywriter&project='+pid,openStudio:id=>{const card=core.card(id);if(card)openInline(card)},studioUrl:id=>'/agency/crea.html?project='+pid+'&open='+encodeURIComponent(id),pedUrl:'/project-editorial.html?project='+pid,crmUrl:'/radix-sales.html#leads'})
+  :c.inline==='survey'
+  ?S.surveyStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=analytics&project='+pid,crmUrl:'/radix-sales.html#contacts'})
   :c.inline==='logomotion'
   ?S.logoMotionStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=art-director&project='+pid,openIdentity:()=>openInline(core.card('identita')),identityUrl:'/agency/crea.html?project='+pid+'&open=identita'})
   :c.inline==='site'
@@ -213,6 +217,8 @@ function openInline(c){
   ?S.gbpStudio({project,profile:current.profile,memoryScope,replyScope:{...memoryScope,agentId:'copywriter'},projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=seo-geo&project='+pid})
   :c.inline==='feed'
   ?S.productStudio({project,projectName:current.name,memoryScope,projectId:current.id,workspace:ws,agentsUrl:'/agents.html?agent=web-content&project='+pid})
+  :c.inline==='shop'
+  ?S.shopStudio({project,projectName:current.name,projectId:current.id,workspace:ws,rt,agentsUrl:'/agents.html?agent=web-content&project='+pid})
   :c.inline==='productphoto'
   ?S.productPhotoStudio({project,profile:current.profile,projectName:current.name,projectId:current.id,workspace:ws})
   :c.inline==='translate'

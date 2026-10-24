@@ -17,6 +17,8 @@ const docs=require('./_sales_documents');
 const customFields=require('./_sales_custom_fields');
 // «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
 const mailq=require('./_sales_mailboxes');
+// «Trova email» (Dropcontact, paid): own validator; found emails are saved through the normal contact update.
+const finder=require('./_sales_email_finder');
 // Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
 // description shared with the browser (sales/crm-fields-core.js), validated again here.
 const recordFields=require('../sales/crm-fields-core.js');
@@ -211,13 +213,15 @@ function createHandler({getSessionUser,getStore}){
        // Optional tracked links: up to 10 distinct urls of the email, signed per contact.
        if(d.urls!==undefined&&(!Array.isArray(d.urls)||d.urls.length>10||!d.urls.every(clicks.validUrl)||!clicks.validCampaign(d.campaign)))fail(400,'Link tracciati non validi: massimo 10 indirizzi http(s) e un nome campagna fino a 80 caratteri.');
        c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)],...(d.urls?.length?{campaign:d.campaign.trim(),urls:[...new Set(d.urls)]}:{})}};
-     }else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
+     }else if(body?.entity==='email_finder')c={...finder.command(body),finder:true};
+     else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
      else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
      else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};
-     if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
+     if(q.entity==='email_finder')c={...finder.query(q),finder:true};
+     else if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
      else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
      else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
@@ -256,6 +260,8 @@ function createHandler({getSessionUser,getStore}){
    }
    // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.
    if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req}));
+   // «Trova email»: owner/admin/member, visibility in its own query; a found email is saved with the contact update command.
+   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.entity==='segments')await reservedGuard(store,c,membership.role);

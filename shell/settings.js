@@ -118,6 +118,9 @@ const R={
   const M=root.RadixCrmMailboxes;const c=card('Caselle email','Le caselle da cui partono le campagne messe in coda dal CRM (Contatti › Campagna email › Metti in coda). Solo owner e admin le aggiungono o le cambiano.');
   if(!M){c.append(E('p','Modulo delle caselle non caricato: ricarica la pagina.','st-err'));out.append(c);return}
   c.classList.add('st-mount');const p=M.panel();c.append(p);out.append(c);p.open=true;
+  // «Trova email»: which paid services run after the free sources, in which order (sales/crm-prospecting.js).
+  const T=root.RadixCrmEmailFinder;
+  if(T&&T.settingsPanel){const f=card('Trova email','Come il CRM cerca l’email aziendale dei contatti che ne sono senza (Contatti › seleziona › Trova email): prima gratis sul sito dell’azienda, poi i servizi a pagamento collegati, in quest’ordine.','st-mount');const fp=T.settingsPanel();f.append(fp);out.append(f);fp.open=true}
  },
  async collegamenti(out){
   const c=card('Servizi collegati','Quali servizi esterni RADIX può usare su questo sito. Le chiavi si impostano dall’amministratore (variabili d’ambiente di Vercel): non si inseriscono nell’app e non vengono mai mostrate qui.');

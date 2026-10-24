@@ -47,6 +47,10 @@
 .cp-kit-go:focus-visible{outline:none}
 .cp-kit:has(.cp-kit-go:focus-visible){outline:2px solid var(--ma-focus);outline-offset:2px}
 .cp-kit-go .cp-go-icon,.cp-go .cp-go-icon{transition:transform .18s ease-out}.cp-kit:hover .cp-go-icon{transform:translateX(3px)}
+/* An action that wraps to two lines («Impagina un documento» in a narrow kit) keeps its arrow after the last word, not
+   at the far edge: the label is inline text, the arrow an inline box that follows it. */
+.cp-kit-go{display:block;box-sizing:border-box;padding:13px 0;text-wrap:balance}
+.cp-kit-go .cp-go-icon{display:inline-block;margin-left:6px;vertical-align:-.2em}
 /* Area tabs */
 .cp-tabs{display:flex;flex-wrap:wrap;gap:6px;min-width:0;margin:0 0 24px}
 .cp-tab{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--ma-line);background:#fff;color:var(--ma-tx2);font:500 13.5px/1 var(--rx-font,Inter,sans-serif);white-space:nowrap;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}

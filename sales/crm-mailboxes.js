@@ -93,14 +93,20 @@ function panel(){
 }
 
 // ---- «Metti in coda» (from the campaign panel) ----
-// input: {campaign, subject, body, contacts:[ids]}
+// input: {campaign, subject, body, contacts:[ids]} and, for «Prospezione B2B», mode:'b2b', step, base, include_unverified.
 async function enqueue(input){
  const a=app(),data={campaign:input.campaign,subject:input.subject,body:input.body,contacts:input.contacts,origin:location.origin};
+ if(input.mode==='b2b'){data.mode='b2b';data.step=input.step||0;if(data.step)data.base=input.base;data.include_unverified=!!input.include_unverified}
  let p;if(!await run('Preparo la coda…',async()=>{p=(await post('send_queue','plan',data)).rows[0]}))return null;
  a.notice('');
  if(!p.active_mailboxes){a.error('Nessuna casella attiva: collegane una in Impostazioni › Caselle email prima di mettere in coda.');return null}
+ if(p.mode==='b2b'&&!p.issuer_ready){a.error('Prospezione B2B: compila prima l’intestazione in Impostazioni › Documenti (ragione sociale e indirizzo), che compare in fondo a ogni email.');return null}
  if(!p.recipients){a.notice('Nessuna email da mettere in coda'+skippedText(p)+'.');return null}
- const lines=['Mettere in coda «'+p.campaign+'»?','',n(p.recipients,'destinatario','destinatari')+' con consenso marketing ed email valida.'];
+ const lines=['Mettere in coda «'+p.campaign+'»?',''];
+ if(p.mode==='b2b'){
+  lines.push(n(p.recipients,'destinatario','destinatari')+' in prospezione B2B ('+(p.step?'follow-up '+p.step+' di 2':'primo contatto')+'): email aziendali della persona, senza consenso marketing, non disiscritti'+(p.step?', senza risposta registrata':', non contattati negli ultimi 90 giorni')+'.');
+  lines.push('Ogni email chiude con questo piè di pagina, che non si può togliere:','',p.footer_preview,'');
+ }else lines.push(n(p.recipients,'destinatario','destinatari')+' con consenso marketing ed email valida.');
  if(p.skipped.consent)lines.push(n(p.skipped.consent,'contatto escluso','contatti esclusi')+' perché senza consenso.');
  const other=skippedText(p,true);if(other)lines.push(other);
  lines.push('Caselle: '+p.mailboxes.map(m=>m.label+' ('+m.emails+')').join(', ')+'.');
@@ -115,7 +121,15 @@ async function enqueue(input){
 function skippedText(p,only){
  const s=p.skipped||{},parts=[];
  if(!only&&s.consent)parts.push(s.consent+' senza consenso');
+ if(s.optout)parts.push(s.optout+' disiscritti');
  if(s.email)parts.push(s.email+' senza email valida');
+ if(s.business)parts.push(s.business+' con email non aziendale (webmail o PEC)');
+ if(s.generic)parts.push(s.generic+' con un indirizzo generico (info@, commerciale@ …)');
+ if(s.unverified)parts.push(s.unverified+' con email da verificare o non verificata');
+ if(s.recent)parts.push(s.recent+' già contattati negli ultimi 90 giorni');
+ if(s.previous)parts.push(s.previous+' senza il passo precedente inviato');
+ if(s.early)parts.push(s.early+' con il passo precedente inviato da meno di 3 giorni');
+ if(s.replied)parts.push(s.replied+' che hanno risposto');
  if(s.duplicate)parts.push(s.duplicate+' con un indirizzo già presente');
  if(s.already)parts.push(s.already+' già in coda per questa campagna');
  if(s.link)parts.push(s.link+' senza link di disiscrizione');
