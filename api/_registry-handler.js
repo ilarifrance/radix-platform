@@ -212,12 +212,14 @@ async function publications(req,res,db,uid,deps){
   return send(res,200,{items:rows});
  }
  if(req.method!=='POST')return send(res,405,{error:'Metodo non consentito'});
+ if(bodyOf(req).action==='withdraw')return withdrawPublication(req,res,db,uid,deps);
  const r=core.publicationRequest(bodyOf(req));
  const docs=await db`SELECT data FROM rx_documents WHERE project_id=${r.projectId} AND module='editorial'`;
  const plan=docs.length?docs[0].data:null,item=plan&&Array.isArray(plan.contents)?plan.contents.find(x=>x&&x.id===r.contentId):null;
  if(!item)return send(res,404,{error:'Contenuto non trovato nel PED del team: ricarica la pagina'});
  if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
  if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
+ {const holes=pv.placeholders(String(item.copy)+'\n'+String(item.script||''));if(holes.length)return send(res,400,{error:'Il testo ha un segnaposto da completare: «'+holes[0]+'». Completalo, approvalo di nuovo e poi invialo.'})}
  const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
  if(!editorial.sameWordRevisions(item).some(revision=>core.approvalStatus(approved[0],editorial.approvalPayload({...item,revision}))==='approved'))return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
  // The page asks with a 5-minute margin; the server accepts down to 2 minutes so a slow click still goes through.
@@ -242,6 +244,16 @@ async function publications(req,res,db,uid,deps){
  const id=claim[0].id,key=process.env.BUFFER_ACCESS_TOKEN;
  const failed=async(code,message)=>{const rows=await db`UPDATE rx_publications SET status='failed',error=${core.clean(message,500)},updated_at=now() WHERE id=${id} RETURNING *`;return send(res,code,{error:message,item:rows[0]})};
  if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
+ // An older version of this content still waiting on Buffer (moved time, new opening…) is removed there first, so
+ // only the new version goes out. If Buffer does not confirm, nothing new is sent.
+ const waiting=await db`SELECT id,revision,post_id FROM rx_publications WHERE project_id=${r.projectId} AND content_id=${r.contentId} AND service='buffer'
+  AND revision<>${r.revision} AND status='queued' AND post_id IS NOT NULL AND due_at > now()`;
+ for(const old of waiting){
+  try{await deps.deletePost(key,String(old.post_id))}
+  catch(e){return failed(502,'La versione '+old.revision+' è ancora programmata su Buffer e non riesco a toglierla ('+core.clean(e&&e.message,200)+'): eliminala da Buffer e riprova')}
+  await db`DELETE FROM rx_publications WHERE id=${old.id}`;
+  await log(db,uid,r.projectId,'publication.replaced',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,from:old.revision,to:r.revision,postId:String(old.post_id)});
+ }
  let post;
  const base='https://'+String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
  // Video posts (a YouTube video or a LinkedIn clip) go out with the generated video, copied to Blob first.
@@ -250,7 +262,9 @@ async function publications(req,res,db,uid,deps){
   if(!process.env.BLOB_READ_WRITE_TOKEN||!deps.copyVideo)return failed(503,'Archivio video non collegato: manca BLOB_READ_WRITE_TOKEN');
   let video;try{video=await deps.copyVideo(process.env.BLOB_READ_WRITE_TOKEN,{name:String(r.contentId).toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,60)||'video',url})}
   catch(e){return failed(502,'Video non preparato per Buffer: '+core.clean(e&&e.message,300))}
-  try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,video})}
+  // YouTube wants a title and a category, and a short description instead of the whole spoken script.
+  const yt=/youtube/i.test(String(item.channel||'')+' '+String(r.channelName||''))?pv.youtubeMeta(item):null;
+  try{post=await deps.createPost(key,{channelId:r.channelId,text:yt?yt.description:String(item.copy),dueAt:scheduledAt,video,youtube:yt})}
   catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il video: '+core.clean(e&&e.message,300))}
  }else{
  let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
@@ -267,6 +281,24 @@ async function publications(req,res,db,uid,deps){
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
  await log(db,uid,r.projectId,'publication.queued',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,revision:r.revision,mode:r.mode,scheduledAt,postId:String(post.postId)});
  return send(res,201,{ok:true,item:rows[0]});
+}
+
+// A content changed after it was scheduled (new time, new opening…) is taken off Buffer until its new version is
+// approved and scheduled again, so the old version never goes out. Only posts still waiting (due time ahead).
+async function withdrawPublication(req,res,db,uid,deps){
+ const b=bodyOf(req),projectId=core.clean(b.projectId,80),contentId=core.clean(b.contentId,120);
+ if(!core.validProjectId(projectId)||!contentId)throw new core.InputError('Contenuto non valido');
+ const rows=await db`SELECT id,revision,post_id,channel_name FROM rx_publications WHERE project_id=${projectId} AND content_id=${contentId} AND service='buffer' AND status='queued' AND post_id IS NOT NULL AND due_at > now()`;
+ if(!rows.length)return send(res,200,{ok:true,withdrawn:0});
+ const key=process.env.BUFFER_ACCESS_TOKEN;if(!key)return send(res,503,{error:'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN'});
+ let n=0;
+ for(const row of rows){
+  try{await deps.deletePost(key,String(row.post_id))}
+  catch(e){return send(res,502,{error:'Non riesco a togliere il post da Buffer ('+core.clean(e&&e.message,200)+'): eliminalo da Buffer a mano',withdrawn:n})}
+  await db`DELETE FROM rx_publications WHERE id=${row.id}`;n++;
+  await log(db,uid,projectId,'publication.withdrawn',String(row.channel_name||'Buffer').slice(0,160),{contentId,revision:row.revision,postId:String(row.post_id)});
+ }
+ return send(res,200,{ok:true,withdrawn:n});
 }
 
 async function activity(req,res,db){
@@ -360,7 +392,21 @@ async function publicFile(req,res,db){
  return res.status(200).send(Buffer.from(rows[0].data_b64,'base64'));
 }
 
-const ROUTES={clients,projects,documents,approvals,activity,publications,media,import:importData};
+// Numbers of the published posts over time (rx_post_stats). GET lists the readings; POST reads Buffer now for this
+// project (the page does it when its newest reading is older than a day) and then lists them.
+async function poststats(req,res,db,uid,deps){
+ const projectId=core.clean(req.method==='GET'?(req.query||{}).projectId:bodyOf(req).projectId,80);
+ if(!core.validProjectId(projectId))throw new core.InputError('Progetto non valido');
+ const stats=require('./_ped_stats');let read=null;
+ if(req.method==='POST'){
+  const key=process.env.BUFFER_ACCESS_TOKEN;if(!key)return send(res,503,{error:'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN'});
+  try{read=await stats.collect(db,{apiKey:key,postStats:deps.postStats,projectId})}
+  catch(e){return send(res,502,{error:'Numeri da Buffer non disponibili: '+core.clean(e&&e.message,300)})}
+ }else if(req.method!=='GET')return send(res,405,{error:'Metodo non consentito'});
+ return send(res,200,{items:await stats.readings(db,projectId),...(read?{read}:{})});
+}
+
+const ROUTES={clients,projects,documents,approvals,activity,publications,media,poststats,import:importData};
 
 module.exports=async(req,res)=>{
  if(String((req.query||{}).resource||'')==='file'&&req.method==='GET'){try{return await publicFile(req,res,sql())}catch(e){return send(res,503,{error:'File non disponibile'})}}
@@ -370,7 +416,7 @@ module.exports=async(req,res)=>{
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{
-  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,putBlob:require('./_blob').putPublic,copyVideo:require('./_blob').copyVideo});
+  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,deletePost:require('./_buffer').deletePost,postStats:require('./_buffer').postStats,putBlob:require('./_blob').putPublic,copyVideo:require('./_blob').copyVideo});
  }catch(e){
   if(e instanceof SyntaxError)return send(res,400,{error:'JSON non valido'});
   if(e instanceof core.InputError)return send(res,400,{error:e.message});

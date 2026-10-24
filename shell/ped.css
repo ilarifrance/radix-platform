@@ -448,3 +448,25 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .rx-ped .ped-results #nextStepList{margin:10px 22px 22px}
 @media (max-width:900px){.rx-ped .results-actions,.rx-ped .stats-preview,.rx-ped .result-posts-wrap,.rx-ped .ped-results #nextStepList{margin-left:14px;margin-right:14px}}
 #mediaTools .pp-script{white-space:pre-wrap;font-size:.92em;line-height:1.5;padding:10px 12px;border-left:3px solid currentColor;opacity:.85}
+#mediaTools .pp-link-video{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#mediaTools .pp-link-video input{flex:1 1 260px;min-width:0}
+#mediaTools .pp-upload{position:relative;display:flex;align-items:center;gap:14px;min-height:64px;padding:12px 16px;border:1px dashed rgba(29,26,39,.22);border-radius:14px;background:rgba(0,141,167,.026);cursor:pointer}
+#mediaTools .pp-upload:hover{border-color:rgba(0,147,173,.55);background:rgba(0,141,167,.051)}
+#mediaTools .pp-upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+#mediaTools .pp-upload .pf-drop-text{display:flex;flex-direction:column;gap:2px;font-size:14px}
+#mediaTools .pp-upload small{font-size:12px;opacity:.7}
+/* «Risultati» over time and the AI optimisation of the posts still to go out */
+.ped-results .result-posts td.trend{white-space:nowrap;font-variant-numeric:tabular-nums;font-size:.9em;opacity:.85}
+.ped-results .lever-table tr.few td{opacity:.6}
+.ped-results .lever-table th[scope],.ped-results .lever-table tr>th:first-child{text-align:left;white-space:nowrap}
+.ped-results .opt-box{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.ped-results .opt-analysis{margin:0;padding:10px 12px;border-left:3px solid currentColor;opacity:.9;line-height:1.5}
+.ped-results .opt-item{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(29,26,39,.12);border-radius:12px;cursor:pointer}
+.ped-results .opt-item input{margin-top:3px;flex:0 0 auto}
+.ped-results .opt-item span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ped-results .opt-item small{font-weight:600}
+.ped-results .opt-item em{font-style:normal;opacity:.75;font-size:.92em}
+/* Script with an open placeholder: no avatar video until it is completed. */
+.rx-ped .pp-warn{margin:8px 0;padding:8px 10px;border-radius:8px;background:#fff4e5;color:#7a4300;border:1px solid #f3c27a;font-size:13px}
+.rx-ped .post-preview .pp-media video{width:100%;max-height:420px;border-radius:8px;background:#000;display:block}
+.rx-ped .post-preview .pp-yt-title{margin:6px 0 0;font-weight:600;font-size:13px}

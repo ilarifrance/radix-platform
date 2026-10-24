@@ -7,6 +7,10 @@ const publicLookup=require('./_lead_public_lookup');
 const providerStatus=require('./_lead_provider_client');
 const providerCallback=require('./_lead_provider_callback');
 const unsubscribe=require('./_sales_unsubscribe');
+// «Calendario da abbonare»: the person's CRM appointments as a signed iCalendar link (no session, no table).
+const calendarFeed=require('./_sales_calendar_feed');
+// «Calendari esterni» (018): each person's own Outlook / Google iCal links, private to them; busy time and free slots.
+const calendars=require('./_sales_calendars');
 const clicks=require('./_sales_clicks');
 const importToken=require('./_lead_import_token');
 // Contact form of the Studio Sito sites (api/_site_form.js): public, its own per-site token, writes a contact and a note.
@@ -17,6 +21,10 @@ const docs=require('./_sales_documents');
 const customFields=require('./_sales_custom_fields');
 // «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
 const mailq=require('./_sales_mailboxes');
+// «Trova email» (Dropcontact, paid): own validator; found emails are saved through the normal contact update.
+const finder=require('./_sales_email_finder');
+// «Indirizzi disiscritti» (migration sales 017): own validator, owner/admin only; addresses are hashed, never stored.
+const suppressions=require('./_sales_suppressions');
 // Salesforce-style account/contact fields and Italian fiscal data (migration sales 011, draft): one
 // description shared with the browser (sales/crm-fields-core.js), validated again here.
 const recordFields=require('../sales/crm-fields-core.js');
@@ -177,6 +185,8 @@ function createHandler({getSessionUser,getStore}){
    }
    // Public unsubscribe link from a campaign email: no session, the signed token is the permission.
    if(req.query?.unsubscribe!==undefined)return await unsubscribe.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
+   // Calendar subscription of Outlook / Google: no session, the signed per-user, per-workspace token is the permission.
+   if(req.query?.calendar!==undefined)return await calendarFeed.handle(req,res,{getStore,secret:calendarFeed.secretOf(process.env)});
    // Public tracked link from a campaign email: counts the click, then redirects where the email pointed.
    if(req.query?.click!==undefined)return await clicks.handle(req,res,{getSql:()=>getStore().sql,secret:unsubscribe.secretOf(process.env)});
    // Contact form of a published site: no session, the per-site token in the page is the permission.
@@ -201,6 +211,9 @@ function createHandler({getSessionUser,getStore}){
      }else if(body?.entity==='lead_import_token'){
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Richiesta collegamento estensione non valida.');
        c={workspace:body.workspace,entity:'lead_import_token',data:{}};
+     }else if(body?.entity==='calendar_feed'){
+       if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).length)fail(400,'Richiesta link calendario non valida.');
+       c={workspace:body.workspace,entity:'calendar_feed',data:{}};
      }else if(body?.entity==='site_form_token'){
        // «Collega il modulo al CRM» of the Studio Sito: data.site is the RADIX project of the site.
        if(!object(body)||Object.keys(body).some(k=>!['workspace','entity','action','data'].includes(k))||body.action!=='create'||!uuid(body.workspace)||!object(body.data)||Object.keys(body.data).join()!=='site'||typeof body.data.site!=='string'||!/^[a-z0-9][a-z0-9-]{1,79}$/.test(body.data.site))fail(400,'Richiesta collegamento modulo non valida.');
@@ -211,13 +224,19 @@ function createHandler({getSessionUser,getStore}){
        // Optional tracked links: up to 10 distinct urls of the email, signed per contact.
        if(d.urls!==undefined&&(!Array.isArray(d.urls)||d.urls.length>10||!d.urls.every(clicks.validUrl)||!clicks.validCampaign(d.campaign)))fail(400,'Link tracciati non validi: massimo 10 indirizzi http(s) e un nome campagna fino a 80 caratteri.');
        c={workspace:body.workspace,entity:'unsubscribe_links',data:{contacts:[...new Set(ids)],...(d.urls?.length?{campaign:d.campaign.trim(),urls:[...new Set(d.urls)]}:{})}};
-     }else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
+     }else if(body?.entity==='email_finder')c={...finder.command(body),finder:true};
+     else if(body?.entity==='email_suppressions')c={...suppressions.command(body),suppressions:true};
+     else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
+     else if(calendars.ENTITIES.includes(body?.entity))c={...calendars.command(body),calendars:true};
      else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
      else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
      const q=req.query||{};
-     if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
+     if(q.entity==='email_finder')c={...finder.query(q),finder:true};
+     else if(q.entity==='email_suppressions')c={...suppressions.query(q),suppressions:true};
+     else if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
+     else if(calendars.ENTITIES.includes(q.entity))c={...calendars.query(q),calendars:true};
      else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
      else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
@@ -245,6 +264,8 @@ function createHandler({getSessionUser,getStore}){
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
+   // The link of «Calendario da abbonare»: every member, viewers included (the feed only shows what they can already read).
+   if(c.entity==='calendar_feed'){let token;try{token=calendarFeed.sign(calendarFeed.secretOf(process.env),{uid:user.uid,workspace:c.workspace})}catch{fail(503,'Link del calendario non disponibile: manca la chiave del server (JWT_SECRET).')}return res.status(200).json({token,path:'/api/sales?calendar='+token});}
    if(c.entity==='lead_provider_status'){
      if(req.method==='GET')return res.status(200).json(providerStatus.status());
      if(!['owner','admin'].includes(membership.role))fail(403,'Solo admin e owner possono verificare la connessione API.');
@@ -254,8 +275,14 @@ function createHandler({getSessionUser,getStore}){
      const result=await publicLookup.lookup(c.data);
      return res.status(200).json(result);
    }
+   // Calendari esterni: every member manages only their own links (the handler filters every statement on the caller).
+   if(c.calendars)return res.status(200).json(await calendars.handle(c,{sql:store.sql,user:user.uid}));
    // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.
    if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req}));
+   // «Indirizzi disiscritti»: owner/admin only, checked in suppressions.handle (reads included).
+   if(c.suppressions)return res.status(200).json(await suppressions.handle(c,{sql:store.sql,user:user.uid,role:membership.role,method:req.method}));
+   // «Trova email»: owner/admin/member, visibility in its own query; a found email is saved with the contact update command.
+   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.entity==='segments')await reservedGuard(store,c,membership.role);
@@ -265,7 +292,7 @@ function createHandler({getSessionUser,getStore}){
      if(c.documents){if(c.entity!=='documents'&&!['owner','admin'].includes(membership.role))fail(403,'Catalogo, listini e intestazione si modificano solo da owner o admin.');return res.status(200).json({rows:[await store.documents.command(c,user.uid)]});}
      if(c.entity==='lead_import_token')return res.status(200).json(importToken.sign({uid:user.uid,workspace:c.workspace},process.env.JWT_SECRET));
      if(c.entity==='site_form_token')return res.status(200).json(siteForm.sign({uid:user.uid,workspace:c.workspace,site:c.data.site},process.env.JWT_SECRET));
-     if(c.entity==='unsubscribe_links'){const secret=unsubscribe.secretOf(process.env);return res.status(200).json({links:await unsubscribe.links(store.sql,c.workspace,c.data.contacts,secret),...(c.data.urls?{clicks:await clicks.links(store.sql,c.workspace,c.data.contacts,c.data.campaign,c.data.urls,secret),urls:c.data.urls}:{})})}
+     if(c.entity==='unsubscribe_links'){const secret=unsubscribe.secretOf(process.env),l=await unsubscribe.linksOf(store.sql,c.workspace,c.data.contacts,secret);return res.status(200).json({links:l.links,opted_out:l.opted_out,...(c.data.urls?{clicks:await clicks.links(store.sql,c.workspace,c.data.contacts,c.data.campaign,c.data.urls,secret),urls:c.data.urls}:{})})}
      return res.status(200).json({rows:[await (c.entity==='lead_lists'?store.leadLists.command(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.command(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.command(c,user.uid):c.entity==='members'?store.memberCommand(c,user.uid):store.command(c,user.uid))]});
    }
    if(c.customFields)return res.status(200).json({rows:await store.customFields.read(c,user.uid)});
@@ -274,7 +301,7 @@ function createHandler({getSessionUser,getStore}){
  }catch(e){
    if(e.code==='22023'&&e.message==='invalid field')return res.status(400).json({error:'Campi non ancora disponibili in questo archivio: serve l’ultima migrazione sales (da approvare). Gli altri campi si salvano lasciando vuoti quelli nuovi.'});
    if(e.code==='23514'&&e.message==='already converted')return res.status(409).json({error:'Questo lead è già stato convertito: ricarica i dati.'});
-   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales 005-010 a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
+   const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales mancanti (fino alla 017) a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
    const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
  }
  };

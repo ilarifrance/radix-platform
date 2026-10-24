@@ -21,8 +21,14 @@ test('link page: GET asks to confirm, POST withdraws consent once, bad token cha
  assert.match(r.headers['Content-Security-Policy'],/default-src 'none'/);
  r=res();await u.handle({method:'POST',query:{unsubscribe:u.sign(K,W,C)}},r,{getSql:()=>sql,secret:K});
  assert.equal(r.code,200);assert.match(r.body,/Disiscrizione registrata/);
- assert.equal(calls.length,1);assert.match(calls[0][0],/SET marketing_consent=false,consent_at=NULL/);assert.match(calls[0][0],/AND marketing_consent RETURNING/);assert.deepEqual(calls[0][1],[W,C]);
- r=res();await u.handle({method:'POST',query:{unsubscribe:'x'.repeat(64)}},r,{getSql:()=>{throw new Error('no db for junk')},secret:K});assert.equal(r.code,400);assert.equal(calls.length,1);
+ // Consent off + stamped note (also without consent: «Prospezione B2B»), the timeline marker, queued emails cancelled.
+ assert.equal(calls.length,4);assert.match(calls[0][0],/SET marketing_consent=false,consent_at=NULL/);assert.match(calls[0][0],/AND \(marketing_consent OR NOT \(/);assert.deepEqual(calls[0][1],[W,C]);
+ assert.match(calls[1][0],/^INSERT INTO sales_interactions/);assert.match(calls[1][0],/'Disiscrizione dalle email commerciali','note'/);assert.match(calls[1][0],/NOT EXISTS/);
+ assert.match(calls[2][0],/^UPDATE sales_send_queue SET status='cancelled'/);assert.match(calls[2][0],/status='queued'/);
+ // «Indirizzi disiscritti» (017): the address goes on the permanent list, hashed by Postgres.
+ assert.match(calls[3][0],/^INSERT INTO sales_email_suppressions/);assert.match(calls[3][0],/encode\(sha256\(convert_to\(lower\(btrim\(t\.email\)\),'UTF8'\)\),'hex'\)/);assert.match(calls[3][0],/ON CONFLICT \(workspace_id,email_hash\) DO NOTHING/);
+ assert.deepEqual(calls[3][1],[W,C,'unsubscribe','link di disiscrizione',null]);
+ r=res();await u.handle({method:'POST',query:{unsubscribe:'x'.repeat(64)}},r,{getSql:()=>{throw new Error('no db for junk')},secret:K});assert.equal(r.code,400);assert.equal(calls.length,4);
  r=res();await u.handle({method:'GET',query:{unsubscribe:u.sign(K,W,C)}},r,{getSql:()=>sql,secret:undefined});assert.equal(r.code,503);assert.match(r.body,/<h1>Servizio non disponibile/);
  assert.equal(u.secretOf({JWT_SECRET:'a',UNSUBSCRIBE_SECRET:'b'}),'b');assert.equal(u.secretOf({JWT_SECRET:'a'}),'a');
 });
@@ -36,7 +42,7 @@ test('sales API: public unsubscribe skips the session, link requests are validat
  const post=data=>{const r=res();return h({method:'POST',headers:{'x-radix-sales':'1','content-type':'application/json'},query:{},body:{workspace:W,entity:'unsubscribe_links',action:'create',data}},r).then(()=>r)};
  const other='11111111-2222-4333-8444-555555555555';
  r=await post({contacts:[C,other,C]});assert.equal(r.code,200);assert.deepEqual(Object.keys(r.body.links),[C],'only contacts of this workspace');
- assert.deepEqual(u.verify(K,r.body.links[C]),{workspace:W,contact:C});assert.deepEqual(seen.at(-1),[W,[C,other]]);
+ assert.deepEqual(u.verify(K,r.body.links[C]),{workspace:W,contact:C});assert.deepEqual(seen.at(-2),[W,[C,other]]);assert.deepEqual(seen.at(-1),[W,[C]],'then the opt-out check of the contacts found');
  assert.equal((await post({contacts:[]})).code,400);assert.equal((await post({contacts:['x']})).code,400);
  assert.equal((await post({contacts:Array.from({length:301},()=>C)})).code,400);
  store.membership=async()=>({role:'viewer'});assert.equal((await post({contacts:[C]})).code,403);

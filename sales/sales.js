@@ -13,10 +13,12 @@ const el = (tag, text, cls) => { const n=document.createElement(tag); if(text!==
 const button = (text, fn, cls) => {const b=el('button',text,cls);b.type='button';b.addEventListener('click',fn);return b;};
 const title = row => row.name || row.title || row.id;
 const rows = entity => state.rows[entity] || [];
+// Date e ore in ora italiana (sales/crm-dates-core.js); senza il modulo resta il valore UTC dell'API.
+const when = iso => window.RadixCrmDates?.label(iso) || iso || '';
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
-window.RadixSalesApp={state,mutate:(...a)=>mutate(...a),rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}}};
+window.RadixSalesApp={state,mutate:(...a)=>mutate(...a),rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}},render:()=>{if(!state.busy)render();}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
 function lock(value){state.busy=value;document.querySelectorAll('button, input, select, textarea').forEach(n=>{if(value){n.dataset.preDisabled=String(n.disabled);n.disabled=true;}else if(n.dataset.preDisabled!==undefined){n.disabled=n.dataset.preDisabled==='true';delete n.dataset.preDisabled;}});$('main').setAttribute('aria-busy',String(value));}
@@ -79,7 +81,7 @@ function card(entity,row,readonly=false){
  if(entity==='opportunities'&&(row.probability!=null||stageProbability(row)!=null))c.append(el('p','Probabilità: '+(row.probability??stageProbability(row))+'%'+(row.probability==null?' (dalla fase)':''),'muted'));
  if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
  if(entity==='opportunities'){const q=el('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(row.id)+'#quotes/new';c.append(q);}
- if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close || 'non impostata')));
+ if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close ? (window.RadixCrmDates?.dateLabel(row.expected_close)||row.expected_close) : 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
  if(!readonly && ((entity==='opportunities'&&(!row.outcome||row.outcome==='open')) || (entity==='tasks' && row.process_id))){
@@ -99,12 +101,12 @@ function card(entity,row,readonly=false){
  if(entity==='members')c.append(...memberControls(row,readonly));
  if(entity==='tasks' && readonly)c.append(el('p','Stato: '+row.status+' · Fase: '+relation('stages',row.stage_id)));
  if(entity==='opportunities' && readonly)c.append(el('p','Fase: '+relation('stages',row.stage_id)));
- if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza UTC: '+(row.due_at || 'nessuna')));
+ if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza: '+(row.due_at ? when(row.due_at) : 'nessuna')));
  if(entity==='stages' && row.task_title)c.append(el('p','Regole esplicite: '+relation('members',row.task_assignee_id)+' · '+(row.task_priority || 'non impostata')+' · Giorni: '+(row.task_due_days ?? 'non impostati')));
- if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data UTC: '+row.occurred_at+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
+ if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data: '+when(row.occurred_at)+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
  if(entity==='tickets'){
   c.append(el('p',(ticketStatus[row.status]||row.status)+' · Priorità: '+({low:'bassa',normal:'normale',high:'alta',urgent:'urgente'}[row.priority]||row.priority)+' · Canale: '+(ticketChannel[row.channel]||row.channel),'ticket-state ticket-'+row.status));
-  c.append(el('p','Assegnato a: '+relation('members',row.assignee_id)+' · Scadenza UTC: '+(row.due_at||'nessuna')+(row.resolved_at?' · Risolto il '+row.resolved_at.slice(0,10):''),'muted'));
+  c.append(el('p','Assegnato a: '+relation('members',row.assignee_id)+' · Scadenza: '+(row.due_at?when(row.due_at):'nessuna')+(row.resolved_at?' · Risolto il '+(window.RadixCrmDates?.dayLabel(row.resolved_at)||row.resolved_at.slice(0,10)):''),'muted'));
   if(row.body)c.append(el('p',row.body,'interaction-body'));if(row.resolution)c.append(el('p','Soluzione: '+row.resolution,'muted'));
   if(!readonly){const control=selectControl('Stato di '+title(row),Object.entries(ticketStatus),row.status);control.select.disabled=!writable(entity);
    const save=button('Conferma stato',()=>{if(control.select.value!==row.status)mutate(entity,'update',{id:row.id,version:row.version,status:control.select.value},'Portare «'+title(row)+'» in «'+ticketStatus[control.select.value]+'»?');});save.disabled=!writable(entity);c.append(control.wrap,save);}
@@ -182,7 +184,7 @@ function reminderPanel(){
  if(!late.length&&!due.length)return null;
  const box=el('aside',undefined,'panel reminder');box.setAttribute('role','status');
  box.append(el('strong','Promemoria'),el('p',[late.length?late.length+(late.length===1?' attività scaduta':' attività scadute'):'',due.length?due.length+' in scadenza entro 24 ore':''].filter(Boolean).join(' · ')));
- const list=el('ul');[...late,...due].slice(0,5).forEach(t=>{const li=el('li',title(t)+' · '+t.due_at.slice(0,16).replace('T',' ')+' UTC');list.append(li);});box.append(list);
+ const list=el('ul');[...late,...due].slice(0,5).forEach(t=>{const li=el('li',title(t)+' · '+when(t.due_at));list.append(li);});box.append(list);
  const a=el('a','Apri le attività');a.href='#tasks';box.append(a);return box;
 }
 function render(){
@@ -322,7 +324,16 @@ function openEditor(entity,row=null){
  const addSelect=(key,label,options,value='',required=false)=>{const control=selectControl(label,options,value);control.select.name=key;control.select.required=required;fields.append(control.wrap);return control.select;};
  const references=(entity,value)=>{const choices=[['','Non assegnato'],...rows(entity).map(r=>[r.id,title(r)])];if(value && !rows(entity).some(r=>r.id===value))choices.push([value,'Riferimento corrente non caricato']);return choices;};
  const priorities=[['low','Bassa'],['normal','Normale'],['high','Alta'],['urgent','Urgente']];
- const utcInput=(key,label,value,required=false)=>{const input=addInput(key,label,'text',value || '',required);input.placeholder='2026-10-10T14:30:00Z';fields.append(el('small','ISO UTC esplicito: YYYY-MM-DDTHH:mm:ssZ. Nessuna conversione locale.'));return input;};
+ // Date e ore in ora italiana: l'input mostra Europe/Rome, il salvataggio converte in UTC ISO (crm-dates-core.js).
+ // slots: «Slot liberi» sotto il campo (solo per chi può scrivere: l'editor si apre solo allora).
+ const localInput=(key,label,value,required=false,slots=false)=>{const D=window.RadixCrmDates;
+  if(!D){const input=addInput(key,label+' · UTC','text',value || '',required);input.placeholder='2026-10-10T14:30:00Z';fields.append(el('small','ISO UTC esplicito: YYYY-MM-DDTHH:mm:ssZ.'));return input;}
+  const v=D.toInput(value);const input=addInput(key,label,'datetime-local',v,required);const box=fields.children[fields.children.length-1];box.className='editor-when';input.min='1900-01-01T00:00';input.max='9999-12-31T23:59';if(/T\d{2}:\d{2}:\d{2}$/.test(v))input.step='1';
+  const hint=el('small',required?'Ora italiana.':'Ora italiana. Lascia vuoto se non serve.');box.append(hint);
+  if(!required){const clear=button('Togli la data',()=>{input.value='';input.dispatchEvent(new Event('input',{bubbles:true}));},'editor-date-clear');hint.append(clear);}
+  const C=window.RadixCrmCalendars;
+  if(slots&&writable(entity)&&C?.slotPicker){const picker=C.slotPicker({onPick:p=>{const r=D.fromInput(p);if(!r.value)return;input.value=D.toInput(r.value);input.step='60';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));}});picker.classList.add('editor-slots');box.append(picker);}
+  return input;};
  const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);$('editor').classList?.toggle('rf-wide',record);
  if(record&&entity==='contacts'){const n=addInput('name','Nome visualizzato','text',row?.name||'',false);n.placeholder='Vuoto = Nome e Cognome';}
  else addInput(['companies','contacts'].includes(entity)?'name':'title',record?'Nome azienda *':'Nome / titolo *','text',row?title(row):'',true);
@@ -354,7 +365,7 @@ function openEditor(entity,row=null){
   addSelect('priority','Priorità *',priorities,row?.priority||'normal',true);
   addSelect('channel','Canale *',Object.entries(ticketChannel),row?.channel||'email',true);
   addSelect('assignee_id','Assegnato a',references('members',row?.assignee_id),row?.assignee_id);
-  utcInput('due_at','Scadenza UTC (opzionale)',row?.due_at);
+  localInput('due_at','Scadenza (opzionale)',row?.due_at,false,true);
   addArea('resolution','Soluzione (quando lo risolvi)',4000);
  }
  if(entity==='processes' && !row)addSelect('kind','Tipo *',[['opportunity','Opportunità'],['task','Attività']],'opportunity',true);
@@ -370,7 +381,8 @@ function openEditor(entity,row=null){
  }
  if(entity==='interactions'){
   addSelect('kind','Tipo *',[['note','Nota'],['call','Telefonata'],['meeting','Incontro'],['email','Email registrata']],row?.kind || 'note',true);
-  utcInput('occurred_at','Data interazione UTC *',row?.occurred_at,true);
+  // «Slot liberi» per un’interazione da fissare: nuova, o già in programma (data futura); non per quelle passate.
+  localInput('occurred_at','Data interazione *',row?.occurred_at,true,!row||(Date.parse(row.occurred_at)>Date.now()));
   addSelect('opportunity_id','Opportunità collegata',references('opportunities',row?.opportunity_id),row?.opportunity_id);
   const label=el('label','Testo (opzionale, massimo 4000 caratteri)');const body=el('textarea');body.name='body';body.maxLength=4000;body.rows=6;body.value=row?.body || '';label.append(body);fields.append(label);
  }
@@ -385,7 +397,7 @@ function openEditor(entity,row=null){
  if(entity==='tasks'){
   addSelect('assignee_id','Assegnatario',references('members',row?.assignee_id),row?.assignee_id);
   addSelect('priority','Priorità *',priorities,row?.priority || 'normal',true);
-  utcInput('due_at','Scadenza UTC (opzionale)',row?.due_at);
+  localInput('due_at','Scadenza (opzionale)',row?.due_at,false,true);
   addSelect('opportunity_id','Opportunità collegata',references('opportunities',row?.opportunity_id),row?.opportunity_id);
   addSelect('status','Stato *',[['todo','Da svolgere'],['doing','In corso'],['done','Completata']],row?.status || 'todo',true);
  }
@@ -418,8 +430,13 @@ $('editor-form').addEventListener('submit',event=>{
    else if(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!validUTC(v+'T00:00:00Z')){error('Usa una data di chiusura reale YYYY-MM-DD.');return;}else data[key]=v;
   }
   else if(['due_at','occurred_at'].includes(key)){
-   const v=value.trim();if(!v && key==='due_at')data[key]=null;
-   else if(!validUTC(v)){error('Usa una data reale ISO UTC esplicita, ad esempio 2026-10-10T14:30:00Z.');return;}else data[key]=v;
+   const D=window.RadixCrmDates,v=value.trim();
+   if(!D){if(!v && key==='due_at')data[key]=null;else if(!validUTC(v)){error('Usa una data reale ISO UTC esplicita, ad esempio 2026-10-10T14:30:00Z.');return;}else data[key]=v;continue;}
+   // Valore non toccato = quello salvato, identico (nessuna deriva); altrimenti ora italiana → UTC ISO.
+   const r=D.keep(row?.[key],v);
+   if(r.error||(r.value&&!validUTC(r.value))){error((key==='due_at'?'Scadenza':'Data interazione')+': '+(r.error||'data non valida.')+' Usa il selettore di data e ora.');return;}
+   if(r.value==null&&key==='occurred_at'){error('Indica la data dell’interazione.');return;}
+   data[key]=r.value;
   }
   else if(['website','industry','email','phone','city','notes','role','linkedin_url','lost_reason','resolution','source','status_reason'].includes(key))data[key]=value.trim()||null;
   else if(key==='marketing_consent')continue;

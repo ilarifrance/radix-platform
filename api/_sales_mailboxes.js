@@ -8,13 +8,18 @@
      Recipients are resolved like the campaign panel: the browser sends the segment's contact ids, the server
      reloads them and applies the same rules (sales/crm-campaigns.js planCampaign: consent and a valid address;
      withTracking: signed click links; withUnsubscribe: the personal unsubscribe link, as List-Unsubscribe too).
-     Times and mailboxes come from api/_sales_queue_core.js. Rows exist only after the user's confirmed click. */
+     Times and mailboxes come from api/_sales_queue_core.js. Rows exist only after the user's confirmed click.
+     mode «b2b» («Prospezione B2B», sales/crm-prospecting-core.js): contacts without consent too, with stricter rules,
+     a fixed footer and no click tracking; the campaign is named «B2B · …» by the server so the worker knows. */
 const {randomUUID}=require('node:crypto');
 const mcrypto=require('./_mailbox_crypto');
 const core=require('./_sales_queue_core');
 const campaigns=require('../sales/crm-campaigns.js');
 const unsubscribe=require('./_sales_unsubscribe');
 const clicks=require('./_sales_clicks');
+// «Prospezione B2B» (sales/crm-prospecting-core.js) and the opt-out / reply signals (api/_sales_optout.js).
+const prospecting=require('../sales/crm-prospecting-core.js');
+const optout=require('./_sales_optout');
 // «I member vedono solo i propri record» (PR #172): recipients, the per-campaign status and «Annulla» cover only contacts
 // visible to the caller (TRUE for owners/admins and workspaces without the switch). The dedup read of the queue stays
 // workspace-wide on purpose: one email per contact/address per campaign, whoever queued it; it returns only counts.
@@ -74,13 +79,30 @@ function command(body){
  if(entity==='send_queue'){
   if(action==='cancel'){keys('campaign');if(!clicks.validCampaign(d.campaign))fail(400,'Campagna non valida.');return {workspace,entity,action,data:{campaign:d.campaign.trim()}}}
   if(!['plan','enqueue'].includes(action))fail(400,'Azione non valida.');
-  keys('campaign','subject','body','contacts','origin',...(action==='enqueue'?['confirm']:[]));
+  keys('campaign','subject','body','contacts','origin','mode','step','base','include_unverified',...(action==='enqueue'?['confirm']:[]));
   if(action==='enqueue'&&d.confirm!==true)fail(400,'Coda non confermata: conferma nella finestra del CRM.');
-  if(!clicks.validCampaign(d.campaign))fail(400,'Nome campagna non valido: fino a 80 caratteri.');
+  const mode=d.mode===undefined?'consent':d.mode;
+  if(!['consent','b2b'].includes(mode))fail(400,'Modalità non valida.');
+  let campaign=d.campaign,b2b=null;
+  if(mode==='b2b'){
+   // «Prospezione B2B»: the server names the campaign, so the worker knows these rows go without consent.
+   const step=d.step===undefined?0:d.step;
+   if(!Number.isInteger(step)||step<0||step>prospecting.MAX_FOLLOW_UPS)fail(400,'Passo non valido: primo invio o follow-up 1 e 2 al massimo.');
+   if(d.include_unverified!==undefined&&typeof d.include_unverified!=='boolean')fail(400,'Opzione email non verificate non valida.');
+   if(step>0&&!clicks.validCampaign(d.base))fail(400,'Scegli la campagna B2B di partenza del follow-up.');
+   if(step===0&&!clicks.validCampaign(d.campaign))fail(400,'Nome campagna non valido: fino a 80 caratteri.');
+   campaign=prospecting.b2bCampaign(step>0?d.base:d.campaign,step);
+   if(!campaign)fail(400,'Nome campagna non valido.');
+   b2b={step,include_unverified:d.include_unverified===true,base:prospecting.b2bCampaign(step>0?d.base:d.campaign,0)};
+  }else{
+   if(d.step!==undefined||d.base!==undefined||d.include_unverified!==undefined)fail(400,'Campo non consentito.');
+   if(typeof d.campaign==='string'&&prospecting.parseCampaign(d.campaign.trim()).b2b)fail(400,'Il prefisso «'+prospecting.B2B_PREFIX.trim()+'» è riservato alla prospezione B2B.');
+  }
+  if(!clicks.validCampaign(campaign))fail(400,'Nome campagna non valido: fino a 80 caratteri.');
   const subject=text(d.subject,200,'Oggetto'),bodyText=text(d.body,4000,'Testo',{multiline:true});
   if(!Array.isArray(d.contacts)||!d.contacts.length||d.contacts.length>MAX_CONTACTS||!d.contacts.every(uuid))fail(400,'Destinatari non validi (da 1 a '+MAX_CONTACTS+' contatti).');
   if(typeof d.origin!=='string'||d.origin.length>200)fail(400,'Origine non valida.');
-  return {workspace,entity,action,data:{campaign:d.campaign.trim(),subject,body:bodyText,contacts:[...new Set(d.contacts)],origin:d.origin}};
+  return {workspace,entity,action,data:{campaign:campaign.trim(),subject,body:bodyText,contacts:[...new Set(d.contacts)],origin:d.origin,...(b2b?{mode:'b2b',...b2b}:{})}};
  }
  fail(400,'Comando non valido.');
 }
@@ -119,10 +141,14 @@ function publicMailbox(r,load={},today){
 }
 
 /* Plan for a campaign: recipients (same rules as the campaign panel), skipped, mailboxes, times. */
-async function planQueue(sql,c,user,{req,env,now,random}){
+async function planQueue(sql,c,user,ctx){
+ if(c.data.mode==='b2b')return planB2BQueue(sql,c,user,ctx);
+ const {req,env,now,random}=ctx;
  const d=c.data,origin=originOf(req,d.origin);
- const contacts=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,co.name AS company FROM sales_contacts t
+ const all=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,t.notes,${optout.OPTED_OUT('t')} AS opted_out,co.name AS company FROM sales_contacts t
   LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`,[c.workspace,d.contacts,user]);
+ // Opted-out contacts never get a campaign email, whatever their consent flag says.
+ const contacts=all.filter(x=>!prospecting.optedOut(x)),optedOut=all.length-contacts.length;
  // Already in this campaign: these contacts, and these addresses (one email per address).
  const inCampaign=await sql('SELECT q.contact_id,lower(btrim(c.email)) AS email FROM sales_send_queue q JOIN sales_contacts c ON c.workspace_id=q.workspace_id AND c.id=q.contact_id WHERE q.workspace_id=$1 AND q.campaign=$2',[c.workspace,d.campaign]);
  const queued=new Set(inCampaign.map(r=>r.contact_id).filter(id=>d.contacts.includes(id)));
@@ -137,12 +163,61 @@ async function planQueue(sql,c,user,{req,env,now,random}){
  const {load,last}=await loadOf(sql,c.workspace);
  const sched=core.schedule({count:plan.emails.length,mailboxes,load,last,now,random});
  const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
- const summary={campaign:d.campaign,recipients:plan.emails.length,skipped:{consent:plan.skipped.consent,email:plan.skipped.email,link:plan.skipped.link||0,duplicate,already:queued.size,missing:d.contacts.length-contacts.length},
+ const summary={campaign:d.campaign,recipients:plan.emails.length,skipped:{consent:plan.skipped.consent,optout:optedOut,email:plan.skipped.email,link:plan.skipped.link||0,duplicate,already:queued.size,missing:d.contacts.length-all.length},
   mailboxes:used,active_mailboxes:mailboxes.filter(m=>m.status==='active').length,days:sched.days.length,first_at:sched.slots[0]?new Date(sched.slots[0].at).toISOString():null,last_at:sched.slots.length?new Date(sched.slots[sched.slots.length-1].at).toISOString():null,unplanned:sched.unplanned};
  return {summary,emails:plan.emails,slots:sched.slots};
 }
+// Issuer data of the workspace (Impostazioni › Documenti, migration 013): who writes, in every B2B footer.
+async function issuerOf(sql,workspace){
+ try{return (await sql('SELECT name,legal_name,vat_number,street,zip,city,province,country FROM sales_document_settings WHERE workspace_id=$1',[workspace]))[0]||null}
+ catch(e){if(e&&e.code==='42P01')return null;throw e}
+}
+/* «Prospezione B2B»: contacts without marketing consent too, only with the rules of sales/crm-prospecting-core.js
+   (business address, not opted out, Dropcontact «nominative@pro» unless unverified ones are allowed, one first email per
+   90 days, follow-ups only 3+ days after the previous step and never after a reply). No click tracking; the fixed
+   footer (sender, why, data source, opt-out link) closes every email. Same queue, mailboxes and limits. */
+async function planB2BQueue(sql,c,user,{req,env,now,random}){
+ const d=c.data,origin=originOf(req,d.origin),w=c.workspace;
+ const all=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,t.notes,t.linkedin_url,${optout.OPTED_OUT('t')} AS opted_out,${optout.LAST_REPLY('t')} AS last_reply_at,co.name AS company FROM sales_contacts t
+  LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`,[w,d.contacts,user]);
+ const issuer=await issuerOf(sql,w);
+ const inCampaign=await sql('SELECT q.contact_id,lower(btrim(c.email)) AS email FROM sales_send_queue q JOIN sales_contacts c ON c.workspace_id=q.workspace_id AND c.id=q.contact_id WHERE q.workspace_id=$1 AND q.campaign=$2',[w,d.campaign]);
+ const queued=new Set(inCampaign.map(r=>r.contact_id).filter(id=>d.contacts.includes(id)));
+ const rules={step:d.step,includeUnverified:d.include_unverified,now};
+ if(d.step===0){
+  // Prospected in the last 90 days (any B2B campaign, queued or sent), by contact and by address.
+  const r=await sql(`SELECT DISTINCT q.contact_id,lower(btrim(c.email)) AS email FROM sales_send_queue q JOIN sales_contacts c ON c.workspace_id=q.workspace_id AND c.id=q.contact_id
+   WHERE q.workspace_id=$1 AND left(q.campaign,${prospecting.B2B_PREFIX.length})=$2 AND q.campaign<>$3 AND q.status IN ('queued','sending','sent') AND COALESCE(q.sent_at,q.scheduled_at)>=now()-make_interval(days=>$4::int)`,[w,prospecting.B2B_PREFIX,d.campaign,prospecting.WINDOW_DAYS]);
+  rules.recent=new Set(r.flatMap(x=>[x.contact_id,x.email].filter(Boolean)));
+ }else{
+  const prev=d.step===1?d.base:prospecting.b2bCampaign(d.base,d.step-1);
+  const r=await sql(`SELECT contact_id,campaign,${iso('sent_at')} AS sent_at FROM sales_send_queue WHERE workspace_id=$1 AND campaign=ANY($2::text[]) AND status='sent'`,[w,[d.base,prev]]);
+  rules.firstSent=new Map(r.filter(x=>x.campaign===d.base).map(x=>[x.contact_id,Date.parse(x.sent_at)]));
+  rules.prevSent=new Map(r.filter(x=>x.campaign===prev).map(x=>[x.contact_id,Date.parse(x.sent_at)]));
+ }
+ let plan=prospecting.planB2B(d.subject,d.body,all.filter(x=>!queued.has(x.id)),rules);
+ const seen=new Set(inCampaign.map(r=>r.email).filter(Boolean));let duplicate=0;
+ plan={...plan,emails:plan.emails.filter(e=>{const k=e.to.trim().toLowerCase();if(seen.has(k)){duplicate++;return false}seen.add(k);return true})};
+ const ids=plan.emails.map(e=>e.contact.id),links=ids.length?await unsubscribe.links(sql,w,ids,unsubscribe.secretOf(env)):{};
+ let missingLink=0;plan.emails=plan.emails.filter(e=>{if(links[e.contact.id])return true;missingLink++;return false});
+ const mailboxes=await sql('SELECT id,label,from_name,from_email,daily_limit,warmup_start::text AS warmup_start,status FROM sales_mailboxes WHERE workspace_id=$1 ORDER BY created_at,id',[w]);
+ const {load,last}=await loadOf(sql,w);
+ const sched=core.schedule({count:plan.emails.length,mailboxes,load,last,now,random});
+ const byId=new Map(mailboxes.map(m=>[m.id,m])),fallback=mailboxes.find(m=>m.status==='active')||mailboxes[0]||{};
+ // The footer goes on last, with the sender of the mailbox that will send it; the text above is cut to make room.
+ const emails=plan.emails.map((e,i)=>{const url=origin+'/api/sales?unsubscribe='+links[e.contact.id],sender=(sched.slots[i]&&byId.get(sched.slots[i].mailbox))||fallback;
+  const foot=prospecting.footer({issuer,sender,contact:e.contact,url});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
+ const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
+ const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…'});
+ const summary={campaign:d.campaign,mode:'b2b',step:d.step,base:d.base,recipients:emails.length,
+  skipped:{consent:0,...plan.skipped,link:missingLink,duplicate,already:queued.size,missing:d.contacts.length-all.length},
+  issuer_ready:prospecting.issuerReady(issuer),footer_preview:sampleFoot.replace(/^\n+/,''),
+  mailboxes:used,active_mailboxes:mailboxes.filter(m=>m.status==='active').length,days:sched.days.length,first_at:sched.slots[0]?new Date(sched.slots[0].at).toISOString():null,last_at:sched.slots.length?new Date(sched.slots[sched.slots.length-1].at).toISOString():null,unplanned:sched.unplanned};
+ return {summary,emails,slots:sched.slots};
+}
 async function enqueue(sql,c,user,ctx){
  const p=await planQueue(sql,c,user,ctx);
+ if(c.data.mode==='b2b'&&!p.summary.issuer_ready)fail(400,'Prima della prospezione B2B compila l’intestazione in Impostazioni › Documenti (ragione sociale e indirizzo): compaiono in fondo a ogni email.');
  if(!p.summary.active_mailboxes)fail(400,'Nessuna casella attiva: collegane una in «Caselle email» prima di mettere in coda.');
  if(!p.summary.recipients)return {...p.summary,queued:0};
  if(p.summary.unplanned)fail(400,'Troppi destinatari per le caselle collegate: '+p.summary.unplanned+' email resterebbero fuori dai prossimi mesi. Riduci il segmento o collega altre caselle.');
@@ -223,7 +298,7 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
 // Called by api/_sales.js after membership is known. Returns the JSON body.
 async function handle(c,opts){
  try{return await run(c,opts)}
- catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: serve la migrazione sales 016 (da approvare).');throw e}
+ catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: servono le migrazioni sales 016 e 017 (da approvare).');throw e}
 }
 async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport}){
  if(req.method==='GET'){

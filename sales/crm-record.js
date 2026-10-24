@@ -6,7 +6,9 @@
    - «Registra un’attività»: Email · Chiamata · Evento · Attività. Each form creates one existing
      entity through POST /api/sales (interactions or tasks), linked to the record.
      Email only registers, unless direct sending is configured: then «Invia e registra» uses
-     /api/send-email (one message, after an explicit confirmation), like the ticket replies. */
+     /api/send-email (one message, after an explicit confirmation), like the ticket replies.
+     Chiamata, Evento and Attività show «Slot liberi» under their date (RadixCrmCalendars.slotPicker, the same list
+     as «Registra chiamata» in the Foglio chiamate): a click fills the date; only for who can save the form. */
 (()=>{
 const core=window.RadixCrmRecordCore;if(!core)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
@@ -28,7 +30,7 @@ function paint(out,entry){
  if(s.complete){for(const [k,label] of [['situation','Situazione'],['risks','Rischi'],['next','Prossimo passo consigliato']]){const b=E('div',undefined,'crm-rec-part crm-rec-'+k);b.append(E('h4',label),E('p',s[k]));out.append(b)}}
  else out.append(E('p',s.raw,'crm-rec-raw'));
  out.append(E('p','Generato da AI: verifica prima di usarlo.','crm-rec-warn'));
- out.append(E('small','Generato alle '+new Date(entry.at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+' dai dati di questa scheda.','crm-rec-meta'));
+ out.append(E('small','Generato alle '+new Date(entry.at).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'})+' dai dati di questa scheda.','crm-rec-meta'));
 }
 function repaint(key){for(const out of boxes.get(key)||[]){if(out.isConnected)paint(out,summaries.get(key));else boxes.get(key).delete(out)}const btn=document.querySelector('.crm-rec-ai[data-key="'+CSS.escape(key)+'"] .crm-rec-generate');if(btn)label(btn,summaries.get(key))}
 function label(btn,entry){btn.textContent=entry&&entry.status==='done'?'Rigenera riepilogo':'Genera riepilogo';btn.disabled=!!entry&&entry.status==='busy';btn.setAttribute('aria-busy',String(!!entry&&entry.status==='busy'))}
@@ -60,6 +62,12 @@ function summaryPanel(ctx){
 function field(form,label,control,hint){const l=E('label',label);l.append(control);form.append(l);if(hint)form.append(E('small',hint));return control}
 function input(name,type,value,max){const i=E('input');i.name=name;i.type=type;if(value!=null)i.value=value;if(max)i.maxLength=max;return i}
 function area(name,rows,placeholder){const t=E('textarea');t.name=name;t.rows=rows;t.maxLength=4000;if(placeholder)t.placeholder=placeholder;return t}
+// «Slot liberi»: free times from Outlook / Google (if linked) and the CRM, in the working hours set in Calendario.
+function slots(form,tab,control,canWrite){
+ const C=window.RadixCrmCalendars;if(!C||!control||core.slotField(tab,canWrite)!==control.name)return null;
+ const box=C.slotPicker({onPick:v=>{control.value=v;control.dispatchEvent(new Event('input',{bubbles:true}));control.dispatchEvent(new Event('change',{bubbles:true}))}});
+ box.classList.add('crm-rec-slots');form.append(box);return box;
+}
 function values(form){const o={};for(const [k,v] of new FormData(form))o[k]=v;return o}
 async function save(ctx,rec,plan){
  const a=app();if(a.state.busy)return;
@@ -98,14 +106,15 @@ function form(ctx,rec,tab,writableTasks){
   f.append(actions,note);
  }else if(tab==='call'||tab==='meeting'){
   field(f,'Titolo',input('title','text','',200)).placeholder=(tab==='call'?'Chiamata con ':'Riunione con ')+(core.counterpart(ctx.subject,rec,ctx.rows)||ctx.title);
-  field(f,tab==='call'?'Quando (vuoto = adesso)':'Data e ora *',input('when','datetime-local',tab==='call'?core.localInput():''));
+  const when=field(f,tab==='call'?'Quando (vuoto = adesso)':'Data e ora *',input('when','datetime-local',tab==='call'?core.localInput():''));
+  slots(f,tab,when,app().writable('interactions'));
   field(f,tab==='call'?'Esito e note':'Note',area('body',4,tab==='call'?'Cosa vi siete detti, cosa avete deciso.':'Ordine del giorno, luogo, partecipanti.'));
   const ok=E('button',tab==='call'?'Registra chiamata':'Registra evento','primary');ok.type='submit';actions.append(ok);
   f.append(actions,E('p',tab==='call'?'Diventa un’interazione «telefonata» della scheda.':'Diventa un’interazione «incontro» e compare nel calendario CRM come riunione. Nessun invito viene inviato.','muted'));
  }else{
   if(!writableTasks){f.append(E('p','Il tuo ruolo non può creare attività.','muted'));return f}
   field(f,'Cosa fare *',input('title','text','',200)).placeholder='Es. Inviare il preventivo';
-  field(f,'Scadenza (opzionale)',input('due','datetime-local',''));
+  slots(f,tab,field(f,'Scadenza (opzionale)',input('due','datetime-local','')),writableTasks===true);
   const pr=E('select');pr.name='priority';for(const [v,t] of [['normal','Normale'],['low','Bassa'],['high','Alta'],['urgent','Urgente']])pr.append(new Option(t,v));field(f,'Priorità',pr);
   const as=E('select');as.name='assignee_id';as.append(new Option('Non assegnata',''));for(const m of app().rows('members'))as.append(new Option(m.name+(m.id===app().state.me?' (tu)':''),String(m.id)));as.value=app().state.me?String(app().state.me):'';field(f,'Assegnata a',as);
   const ok=E('button','Crea attività','primary');ok.type='submit';actions.append(ok);

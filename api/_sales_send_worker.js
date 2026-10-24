@@ -5,7 +5,8 @@
    Each run:
    1. a claim left in «sending» for over 15 minutes becomes «failed» (outcome unknown): never sent twice;
    2. claims a few due rows (at most 2 per mailbox) with FOR UPDATE SKIP LOCKED, so parallel runs never take the same row;
-   3. re-reads contact and mailbox: consent withdrawn or address gone → «skipped»; paused mailbox → waits;
+   3. re-reads contact and mailbox: opted out (every mode), consent withdrawn (consent campaigns), not a business address
+      or a reply logged (B2B follow-ups), or address gone → «skipped»; paused mailbox → waits;
       daily limit reached or outside working hours → moved to the next working morning;
    4. sends through that mailbox (nodemailer, SMTP with its app password), with List-Unsubscribe and the
       tracked links already in the text, records an «email» interaction, marks the row «sent»;
@@ -15,6 +16,7 @@
 const crypto=require('node:crypto');
 const core=require('./_sales_queue_core');
 const mcrypto=require('./_mailbox_crypto');
+const optout=require('./_sales_optout');
 const PER_RUN=12,PER_MAILBOX=2,BUDGET_MS=40e3;
 
 /* The run itself, on a small database interface (tests use an in-memory one):
@@ -68,9 +70,9 @@ function sqlDb(sql){
       WHERE s.status='queued' AND s.scheduled_at<=now() AND m.status='active') x WHERE x.rn<=$2)
     AND status='queued' ORDER BY scheduled_at,id LIMIT $1 FOR UPDATE SKIP LOCKED) due
    WHERE q.workspace_id=due.workspace_id AND q.id=due.id AND q.status='queued'
-   RETURNING q.workspace_id,q.id,q.campaign,q.contact_id,q.mailbox_id,q.subject,q.body,q.unsubscribe_url,q.attempts,q.created_by`,[limit,perMailbox]),
+   RETURNING q.workspace_id,q.id,q.campaign,q.contact_id,q.mailbox_id,q.subject,q.body,q.unsubscribe_url,q.attempts,q.created_by,q.created_at`,[limit,perMailbox]),
   contacts:async rows=>{
-   const r=await sql('SELECT t.workspace_id,t.id,t.email,t.marketing_consent,t.company_id FROM sales_contacts t JOIN jsonb_to_recordset($1::jsonb) AS x(w uuid,c uuid) ON t.workspace_id=x.w AND t.id=x.c',[JSON.stringify(rows.map(x=>({w:x.workspace_id,c:x.contact_id})))]);
+   const r=await sql('SELECT t.workspace_id,t.id,t.email,t.marketing_consent,t.company_id,'+optout.OPTED_OUT('t')+' AS opted_out,'+optout.LAST_REPLY('t')+' AS last_reply_at FROM sales_contacts t JOIN jsonb_to_recordset($1::jsonb) AS x(w uuid,c uuid) ON t.workspace_id=x.w AND t.id=x.c',[JSON.stringify(rows.map(x=>({w:x.workspace_id,c:x.contact_id})))]);
    return new Map(r.map(x=>[key(x.workspace_id,x.id),x]));
   },
   mailboxes:async rows=>{

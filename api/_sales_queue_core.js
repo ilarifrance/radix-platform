@@ -4,7 +4,7 @@
    - Working hours: Monday-Friday, 08:30-18:30 Europe/Rome; each mailbox sends one email every 4-9 minutes.
    - Distribution: each email goes to the active mailbox with the most room left that day, so the load
      follows the remaining daily capacity; a day that is full moves on to the next working day.
-   - Worker decisions: re-check consent and address at send time, keep within the daily limit, classify errors. */
+   - Worker decisions: re-check opt-out, consent (or the «Prospezione B2B» rules) and address at send time, keep within the daily limit, classify errors. */
 const TZ='Europe/Rome';
 const START_MIN=8*60+30,END_MIN=18*60+30;
 const MAX_MAILBOXES=5,MAX_DAILY=50;
@@ -12,6 +12,8 @@ const GAP_MIN_MS=4*60e3,GAP_SPREAD_MS=5*60e3;
 const MAX_ATTEMPTS=3,AUTH_PAUSE_AFTER=3,STALE_MS=15*60e3;
 const EMAIL=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DAY=864e5;
+// «Prospezione B2B» (sales/crm-prospecting-core.js): which rows may go without marketing consent, and to whom.
+const prospecting=require('../sales/crm-prospecting-core.js');
 
 const fmt=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23',weekday:'short'});
 // Rome wall clock of an instant: {date:'YYYY-MM-DD', minutes since midnight, weekday 0-6 (0 = Sunday)}.
@@ -77,9 +79,19 @@ function schedule({count,mailboxes,load={},last:lastIn={},now,random=Math.random
 // sentToday: emails this mailbox already sent today (Rome). → {action:'send'|'skip'|'wait'|'postpone', ...}
 function decide(row,contact,mailbox,{now,sentToday=0,random=Math.random}){
  if(!contact)return {action:'skip',error:'Contatto non più presente nel CRM.'};
- if(contact.marketing_consent!==true)return {action:'skip',error:'Consenso marketing ritirato: email non inviata.'};
+ // Opted out (notes, timeline note, or the same address opted out on another contact): never, in every mode.
+ if(prospecting.optedOut(contact))return {action:'skip',error:'Contatto disiscritto: email non inviata.'};
+ const camp=prospecting.parseCampaign(row&&row.campaign);
+ if(!camp.b2b&&contact.marketing_consent!==true)return {action:'skip',error:'Consenso marketing ritirato: email non inviata.'};
  const to=String(contact.email||'').trim();
  if(!EMAIL.test(to))return {action:'skip',error:'Email del contatto mancante o non valida.'};
+ if(camp.b2b){
+  // Prospezione B2B: business address only, and a follow-up stops once a reply was logged after it was queued.
+  if(!prospecting.businessEmail(to))return {action:'skip',error:'Prospezione B2B: l’indirizzo non è aziendale, email non inviata.'};
+  if(prospecting.genericEmail(to))return {action:'skip',error:'Prospezione B2B: indirizzo generico (info@, commerciale@ …), email non inviata.'};
+  const reply=contact.last_reply_at?Date.parse(contact.last_reply_at):NaN,queued=row.created_at?new Date(row.created_at).getTime():NaN;
+  if(camp.step>0&&Number.isFinite(reply)&&(!Number.isFinite(queued)||reply>queued))return {action:'skip',error:'Ha risposto o è stato ricontattato: follow-up fermato.'};
+ }
  if(!mailbox)return {action:'skip',error:'Casella eliminata: email non inviata.'};
  if(mailbox.status!=='active')return {action:'wait'};
  const today=romeDate(now),limit=rampLimit(mailbox.daily_limit,mailbox.warmup_start,today),p=romeParts(now);

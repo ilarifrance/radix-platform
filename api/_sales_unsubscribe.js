@@ -1,12 +1,14 @@
 'use strict';
 /* Unsubscribe links for CRM campaign emails. Every marketing email carries a personal link
    /api/sales?unsubscribe=<token>: opening it shows a confirmation page, confirming (or a mail client's
-   one-click POST, RFC 8058) withdraws that contact's marketing consent. No login: the token is the
+   one-click POST, RFC 8058) withdraws that contact's marketing consent and records the opt-out (also for
+   contacts that never gave consent, such as «Prospezione B2B» recipients: see api/_sales_optout.js). No login: the token is the
    permission, and it can only ever turn consent off.
    Token = workspace id + contact id (32 bytes) + the first 16 bytes of an HMAC-SHA256 over them, base64url.
    The key comes from UNSUBSCRIBE_SECRET when set, else from JWT_SECRET: setting UNSUBSCRIBE_SECRET keeps the links
    already sent working even if the session secret is rotated later. */
 const crypto=require('node:crypto');
+const optout=require('./_sales_optout');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const key=secret=>{if(typeof secret!=='string'||secret.length<16)throw new Error('JWT_SECRET is not set in the environment.');return crypto.createHmac('sha256',secret).update('radix-crm-unsubscribe-v1').digest()};
 const toBytes=u=>Buffer.from(u.replace(/-/g,''),'hex');
@@ -43,14 +45,39 @@ async function handle(req,res,{getSql,secret}){
  if(req.method==='GET')return send(res,200,page('Non ricevere più queste email','Confermando, non riceverai più email commerciali da questo mittente. Le comunicazioni su ordini o richieste già in corso possono continuare.',true));
  if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return send(res,405,page('Richiesta non valida','Apri il link dall’email.'))}
  const sql=getSql();
- const rows=await sql(`UPDATE sales_contacts SET marketing_consent=false,consent_at=NULL,version=version+1,notes=CASE WHEN length(coalesce(notes,''))<=3900 THEN concat_ws(E'\\n\\n',nullif(notes,''),'Disiscrizione dalle email commerciali tramite link: '||to_char(now() AT TIME ZONE 'Europe/Rome','DD/MM/YYYY HH24:MI')) ELSE notes END WHERE workspace_id=$1 AND id=$2 AND marketing_consent RETURNING id`,[who.workspace,who.contact]);
+ // Every contact, with or without marketing consent (a «Prospezione B2B» recipient has none): consent off, a stamped note,
+ // a timeline note «Disiscrizione dalle email commerciali» (the durable marker, it survives edits to the notes) and
+ // its queued emails cancelled. Repeated clicks change nothing: the WHERE skips a contact already marked.
+ let rows;
+ try{
+  rows=await sql(`UPDATE sales_contacts t SET marketing_consent=false,consent_at=NULL,version=version+1,notes=CASE WHEN length(coalesce(notes,''))<=3900 THEN concat_ws(E'\\n\\n',nullif(notes,''),'Disiscrizione dalle email commerciali tramite link: '||to_char(now() AT TIME ZONE 'Europe/Rome','DD/MM/YYYY HH24:MI')) ELSE notes END WHERE workspace_id=$1 AND id=$2 AND (marketing_consent OR NOT (coalesce(notes,'') ILIKE '%disiscrizione%' OR EXISTS(SELECT 1 FROM sales_interactions i WHERE i.workspace_id=t.workspace_id AND i.contact_id=t.id AND i.title ILIKE 'Disiscrizione%'))) RETURNING id`,[who.workspace,who.contact]);
+  await sql(`INSERT INTO sales_interactions(workspace_id,id,title,kind,occurred_at,body,contact_id,company_id) SELECT t.workspace_id,$3,'Disiscrizione dalle email commerciali','note',now(),'Ha chiesto di non ricevere più email commerciali (link di disiscrizione). Non ricontattare via email.',t.id,t.company_id FROM sales_contacts t WHERE t.workspace_id=$1 AND t.id=$2 AND NOT EXISTS(SELECT 1 FROM sales_interactions i WHERE i.workspace_id=t.workspace_id AND i.contact_id=t.id AND i.title ILIKE 'Disiscrizione%')`,[who.workspace,who.contact,crypto.randomUUID()]);
+  await sql("UPDATE sales_send_queue SET status='cancelled',error='Disiscritto: invio annullato.',updated_at=now() WHERE workspace_id=$1 AND contact_id=$2 AND status='queued'",[who.workspace,who.contact]);
+ }catch(e){
+  console.error('unsubscribe failed',e&&e.code);
+  return send(res,503,page('Servizio non disponibile','La disiscrizione non è riuscita in questo momento. Riprova tra qualche minuto oppure rispondi all’email ricevuta chiedendo di non essere più contattato.'));
+ }
+ // «Indirizzi disiscritti» (migration sales 017): the address, by hash, stays on the list even if the contact is deleted or
+ // imported again. The opt-out above is already recorded: an archive without 017 (or a failure here) does not undo it.
+ try{await optout.suppressContact(sql,who.workspace,who.contact,{reason:'unsubscribe',source:'link di disiscrizione'})}
+ catch(e){if(!(e&&e.code==='42P01'))console.error('unsubscribe suppression failed',e&&e.code)}
  const left=rows.length?rows:await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=$2',[who.workspace,who.contact]);
  if(!left.length)return send(res,200,page('Disiscrizione registrata','Non risultano più tuoi dati per queste email: non riceverai altri messaggi commerciali.'));
  return send(res,200,page('Disiscrizione registrata','Fatto: non riceverai più email commerciali da questo mittente.'));
 }
-// Links for the contacts of one workspace (ids not in the workspace are left out).
+// Links for the contacts of one workspace (ids not in the workspace are left out). The queue plan calls it with
+// recipients already checked for opt-out.
 async function links(sql,workspace,ids,secret){
  const rows=await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=ANY($2::uuid[])',[workspace,ids]);
  return Object.fromEntries(rows.map(r=>[r.id,sign(secret,workspace,r.id)]));
 }
-module.exports={sign,verify,handle,links,secretOf};
+// The browser's link request (campaign panel, newsletter): an opted-out contact (api/_sales_optout.js, «Indirizzi
+// disiscritti» included) gets no link, so withUnsubscribe leaves it out of every direct send. → {links:{id:token}, opted_out:n}
+async function linksOf(sql,workspace,ids,secret){
+ const all=await links(sql,workspace,ids,secret),ok=Object.keys(all);
+ if(!ok.length)return {links:all,opted_out:0};
+ const out=await sql('SELECT t.id FROM sales_contacts t WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND '+optout.OPTED_OUT('t'),[workspace,ok]);
+ for(const r of out)delete all[r.id];
+ return {links:all,opted_out:out.length};
+}
+module.exports={sign,verify,handle,links,linksOf,secretOf};

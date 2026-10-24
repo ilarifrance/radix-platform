@@ -10,8 +10,10 @@ const DAY=864e5;
 const OUTCOMES=Object.freeze({answered:'Risposto',no_answer:'Non risponde',callback:'Richiamare'});
 const utc=ms=>new Date(ms).toISOString().slice(0,19)+'Z';
 const time=v=>{if(v==null||v==='')return NaN;const t=Date.parse(v);return Number.isFinite(t)?t:NaN};
-// Local midnight of the day that contains now, and of the next day (DST-safe: setDate, not +24h).
-function dayBounds(now){const a=new Date(now);a.setHours(0,0,0,0);const b=new Date(a);b.setDate(b.getDate()+1);return {start:+a,end:+b}}
+// Days and hours are in ora italiana (RadixCrmDates, Europe/Rome) whatever the browser's zone.
+const dates=()=>root.RadixCrmDates||(typeof require==='function'?require('./crm-dates-core.js'):null);
+// Midnight in Rome of the day that contains now, and of the next day (25 October lasts 25 hours).
+function dayBounds(now){return {start:dates().dayStart(now),end:dates().dayEnd(now)}}
 
 // Open tasks with a due time before the end of today, split at "now": late ones and the rest of today.
 // Assigned to me first (when I am known), then the others; each group by due time, oldest first.
@@ -59,8 +61,8 @@ function callPlan(input,tg,now){
  return {error:null,data:{title:title.length>200?title.slice(0,199)+'…':title,kind:'call',occurred_at:utc(Number.isFinite(now)?now:Date.now()),body,...tg.links}};
 }
 
-// Tomorrow at 9:00 local time, as the API's UTC timestamp.
-function tomorrowAt9(now){const d=new Date(now);d.setDate(d.getDate()+1);d.setHours(9,0,0,0);return utc(+d)}
+// Tomorrow at 9:00 in Rome, as the API's UTC timestamp.
+function tomorrowAt9(now){const D=dates();return utc(D.fromInputMs(D.addDays(D.dayOf(now),1)+'T09:00'))}
 // «Richiamare»: the follow-up task proposed after the call, created only if the user confirms it.
 function followUpPlan(tg,now,me){
  if(!tg||!tg.linked)return {error:'Attività non collegata: crea il richiamo dalla sezione Attività.'};
@@ -73,13 +75,16 @@ function followUpPlan(tg,now,me){
 function doneData(task){return task&&task.id&&Number.isInteger(task.version)?{id:task.id,version:task.version,status:'done'}:null}
 
 // Calendar items of today that are not tasks (meetings, calls, closings): from calendar-view.js's events.
-function todayEvents(events,now){const {start,end}=dayBounds(now);return (events||[]).filter(e=>e&&e.type!=='task'&&+e.start>=start&&+e.start<end)}
+// All-day items start at the browser's midnight of their date (calendar-view.js): they count on today's Rome date.
+const localDay=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+function todayEvents(events,now){const {start,end}=dayBounds(now),today=dates().dayOf(now);
+ return (events||[]).filter(e=>e&&e.type!=='task'&&(e.allDay?localDay(e.start)===today:+e.start>=start&&+e.start<end))}
 
 // "Scaduta ieri · 09:00", "Oggi · 17:30": the due label of a task.
 function dueLabel(due_at,now){
  const t=time(due_at);if(!Number.isFinite(t))return '';
- const d=new Date(t),hm=d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
- const {start}=dayBounds(now),days=Math.floor((start-+dayBounds(t).start)/DAY+.5);
+ const D=dates(),hm=D.hm(t);
+ const days=Math.round((Date.parse(D.dayOf(now)+'T00:00:00Z')-Date.parse(D.dayOf(t)+'T00:00:00Z'))/DAY);
  if(t>=now)return 'Oggi · '+hm;
  return 'Scaduta '+(days<=0?'oggi':days===1?'ieri':'da '+days+' giorni')+' · '+hm;
 }

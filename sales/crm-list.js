@@ -13,9 +13,10 @@ const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventL
 const NAME={contacts:{one:'contatto',many:'contatti',title:'Contatti'},companies:{one:'azienda',many:'aziende',title:'Aziende'}};
 const KIND={email:'Email',call:'Chiamata',meeting:'Riunione',note:'Nota',linkedin:'LinkedIn'};
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
-const hhmm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-const fullDate=t=>t==null?'':new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-const shortDate=t=>t==null?'':new Date(t).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric'});
+// Dates and times in ora italiana, whatever the browser's zone.
+const hhmm=d=>d.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+const fullDate=t=>t==null?'':new Date(t).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Rome'});
+const shortDate=t=>t==null?'':new Date(t).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'Europe/Rome'});
 
 /* Per-kind state; prefs live in localStorage per workspace (wrapped: storage may be blocked). */
 const st={contacts:{selected:new Set(),query:'',pending:null},companies:{selected:new Set(),query:'',pending:null}};
@@ -48,6 +49,10 @@ function mount(section,kind){
  const cols=E('details',undefined,'lv-cols');const sum=E('summary','Colonne');cols.append(sum);const colList=E('div',undefined,'lv-cols-list');cols.append(colList);
  const modes=E('div',undefined,'lv-mode');modes.setAttribute('role','group');modes.setAttribute('aria-label','Visualizzazione');
  const bTable=B('Tabella',()=>switchMode('table')),bCards=B('Schede',()=>switchMode('cards'));modes.append(bCards,bTable);
+ // «Foglio chiamate» (sales/crm-sheet.js): Contatti as a spreadsheet with company and activities.
+ const sheetView=kind==='contacts'&&window.RadixCrmSheetView&&window.RadixCrmSheet?window.RadixCrmSheetView:null;
+ const bSheet=sheetView?B('Foglio chiamate',()=>switchMode('sheet')):null;if(bSheet){bSheet.title='Una riga per contatto con azienda, attività da fare e svolte: modifica nelle celle e registra le chiamate.';modes.append(bSheet)}
+ if(!sheetView&&p.mode==='sheet')p.mode='table';
  // «Dipartimento»: the company or department followed; options from the loaded rows, refreshed on each draw.
  const divSel=E('select','', 'lv-division');divSel.setAttribute('aria-label','Filtra per dipartimento · '+NAME[kind].title);
  divSel.addEventListener('change',()=>{p.division=divSel.value;save(kind);draw()});
@@ -59,12 +64,14 @@ function mount(section,kind){
  const bulk=E('div',undefined,'lv-bulk');bulk.hidden=true;bulk.setAttribute('role','region');bulk.setAttribute('aria-label','Azioni sui record selezionati');
  const scroll=E('div',undefined,'lv-scroll');scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','Tabella '+NAME[kind].title);
  const note=E('p',undefined,'lv-note muted');
- box.append(head,bulk,scroll,note);
+ const sheet=E('div',undefined,'lv-sheet');sheet.hidden=true;
+ box.append(head,bulk,scroll,sheet,note);
  let campaign=null,mass=null;
 
- function switchMode(m){p.mode=m;save(kind);applyMode()}
- function applyMode(){setMode(kind,p.mode);bTable.setAttribute('aria-pressed',String(p.mode==='table'));bCards.setAttribute('aria-pressed',String(p.mode==='cards'));scroll.hidden=p.mode!=='table';if(p.mode!=='table'){bulk.hidden=true;if(campaign)campaign.hidden=true}
-  for(const n of [sWrap,cols,viewSel,meta,note])n.hidden=p.mode!=='table';if(p.mode==='table')draw()}
+ function switchMode(m){const was=p.mode;p.mode=m;save(kind);if(was==='sheet'&&m!=='sheet')sheetView?.leave();applyMode()}
+ function applyMode(){setMode(kind,p.mode);bTable.setAttribute('aria-pressed',String(p.mode==='table'));bCards.setAttribute('aria-pressed',String(p.mode==='cards'));bSheet?.setAttribute('aria-pressed',String(p.mode==='sheet'));scroll.hidden=p.mode!=='table';sheet.hidden=p.mode!=='sheet';if(p.mode!=='table'){bulk.hidden=true;if(campaign)campaign.hidden=true;if(mass)mass.hidden=true}
+  for(const n of [sWrap,cols,viewSel,meta,note])n.hidden=p.mode!=='table';if(p.mode!=='table'){divSel.hidden=true;divSel.dataset.key=''}if(p.mode==='table')draw();if(p.mode==='sheet')drawSheet()}
+ function drawSheet(){sheetView.draw(sheet,{open,say:t=>{const s=document.getElementById('status');if(s)s.textContent=t}})}
  viewSel.addEventListener('change',()=>{p.view=viewSel.value;const v=L().VIEWS[kind].find(x=>x.id===p.view);p.sort=v&&v.sort?{...v.sort}:{key:'name',dir:'asc'};save(kind);draw()});
  let t=null;search.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{st[kind].query=search.value;draw()},120)});
  const hasScore=()=>!!window.RadixCrmScore;
@@ -110,6 +117,7 @@ function mount(section,kind){
   return td}
 
  function draw(){
+  if(p.mode==='sheet'&&sheetView){drawSheet();return}
   if(p.mode!=='table')return;
   const {all,shown,now}=rowsNow(),a=app(),sel=st[kind].selected;
   const offer=L().columnsFor(kind,colOpts()).map(c=>c.id).join();if(offer!==offered)drawCols();const columns=L().columnsFor(kind,colOpts()).filter(c=>p.columns.includes(c.id));
@@ -152,6 +160,8 @@ function mount(section,kind){
    campaign.hidden=false;campaign.open=true;campaign.scrollIntoView({block:'nearest',behavior:'smooth'})}),{title:'Solo i contatti spuntati. Nulla parte da solo: ogni invio chiede conferma e le email vanno solo a chi ha il consenso marketing.'}));
   if(kind==='companies')bulk.append(B('Seleziona i loro contatti',()=>{const c=L().contactsOf([...ids()],app().rows('contacts'));if(!c.length){app().notice('Nessun contatto caricato per le aziende selezionate.');return}
    st.contacts.pending=c;app().notice(c.length+(c.length===1?' contatto selezionato':' contatti selezionati')+' in Contatti.');if(location.hash!=='#contacts')location.hash='#contacts';else rescan()}));
+  // «Trova email»: the person's business email, free sources first, paid ones after a second confirmation (sales/crm-prospecting.js).
+  if(kind==='contacts'&&window.RadixCrmEmailFinder&&app().writable('contacts'))bulk.append(window.RadixCrmEmailFinder.button(()=>[...st[kind].selected]));
   // «Modifica in blocco»: one field, one value, on the selected records (sales/crm-mass-edit.js).
   if(window.RadixCrmMassEdit&&app().writable(kind))bulk.append(Object.assign(B('Modifica in blocco',()=>{
    if(!mass){mass=window.RadixCrmMassEdit.panel(kind,()=>[...st[kind].selected],{added:hasAdded(),done:()=>draw()});bulk.after(mass)}

@@ -1,7 +1,7 @@
 'use strict';
 /* Impostazioni (impostazioni.html): one page for profilo, workspace e membri, caselle email, collegamenti, CRM, crediti.
    Sections and rules: shell/settings-core.js. The CRM panels are the CRM's own modules, mounted here as they are:
-   «Caselle email» (sales/crm-mailboxes.js), «Visibilità dei record» (sales/crm-visibility.js), «Scadenze SLA» (sales/crm-sla.js),
+   «Caselle email» (sales/crm-mailboxes.js) with «Indirizzi disiscritti» (sales/crm-suppressions.js), «Visibilità dei record» (sales/crm-visibility.js), «Scadenze SLA» (sales/crm-sla.js),
    «Campi aggiunti» (sales/crm-custom-fields.js). They talk to the CRM through window.RadixSalesApp; on this page that is the
    small host below (same /api/sales calls as sales/sales.js, no CRM records loaded). Members and automation rules need the
    whole CRM (records, pipeline), so they stay in radix-sales.html and this page links to them. */
@@ -118,6 +118,13 @@ const R={
   const M=root.RadixCrmMailboxes;const c=card('Caselle email','Le caselle da cui partono le campagne messe in coda dal CRM (Contatti › Campagna email › Metti in coda). Solo owner e admin le aggiungono o le cambiano.');
   if(!M){c.append(E('p','Modulo delle caselle non caricato: ricarica la pagina.','st-err'));out.append(c);return}
   c.classList.add('st-mount');const p=M.panel();c.append(p);out.append(c);p.open=true;
+  // «Indirizzi disiscritti» (sales/crm-suppressions.js, migration sales 017): owner and admin only.
+  const D=root.RadixCrmSuppressions;
+  if(D&&D.panel&&C.canManage(role())){const d=card('Indirizzi disiscritti',undefined,'st-mount');const dp=D.panel();d.append(dp);out.append(d);dp.open=true}
+  else if(D)out.append(card('Indirizzi disiscritti','Chi si disiscrive resta escluso da tutte le campagne, anche se il contatto viene eliminato o reimportato. La lista la vedono e la cambiano owner e admin.'));
+  // «Trova email»: which paid services run after the free sources, in which order (sales/crm-prospecting.js).
+  const T=root.RadixCrmEmailFinder;
+  if(T&&T.settingsPanel){const f=card('Trova email','Come il CRM cerca l’email aziendale dei contatti che ne sono senza (Contatti › seleziona › Trova email): prima gratis sul sito dell’azienda, poi i servizi a pagamento collegati, in quest’ordine.','st-mount');const fp=T.settingsPanel();f.append(fp);out.append(f);fp.open=true}
  },
  async collegamenti(out){
   const c=card('Servizi collegati','Quali servizi esterni RADIX può usare su questo sito. Le chiavi si impostano dall’amministratore (variabili d’ambiente di Vercel): non si inseriscono nell’app e non vengono mai mostrate qui.');

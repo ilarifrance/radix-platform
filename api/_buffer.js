@@ -59,7 +59,7 @@ async function bufferGraphQL(apiKey, query, variables) {
 // Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
 // viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
 // il post, 502 se la risposta non è valida.
-async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
+async function createPost(apiKey, { channelId, text, dueAt, images, video, youtube }) {
   const scheduled = !!dueAt;
   const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
   // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
@@ -68,6 +68,11 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
   const assets = clip
     ? ', assets: [{ video: { url: ' + JSON.stringify(clip) + ' } }]'
     : pics.length ? ', assets: [' + pics.map((url) => '{ image: { url: ' + JSON.stringify(url) + ' } }').join(', ') + ']' : '';
+  // Network metadata (developers.buffer.com/types/PostInputMetaData): a YouTube video needs title and categoryId.
+  const yt = youtube && youtube.title
+    ? ', metadata: { youtube: { title: ' + JSON.stringify(String(youtube.title).slice(0, 100)) + ', categoryId: ' +
+      JSON.stringify(String(youtube.categoryId || '27')) + ', madeForKids: false } }'
+    : '';
   const data = await bufferGraphQL(
     apiKey,
     // Inline literals, as in Buffer's own examples: ids use Buffer's own scalar types (ChannelId,
@@ -75,7 +80,7 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
     'mutation {\n' +
       '  createPost(input: { text: ' + JSON.stringify(String(text)) + ', channelId: ' + JSON.stringify(String(channelId)) +
       ', schedulingType: automatic, mode: ' +
-      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + ' }) {\n' +
+      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + yt + ' }) {\n' +
       '    ... on PostActionSuccess { post { id text dueAt } }\n' +
       '    ... on MutationError { message }\n' +
       '  }\n' +
@@ -89,6 +94,20 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
   if (result.message) throw fail(422, result.message);
   if (!result.post || !result.post.id) throw fail(502, 'Buffer non ha confermato la creazione del post.');
   return { postId: result.post.id, dueAt: result.post.dueAt || null };
+}
+
+// Removes a post still waiting in Buffer (developers.buffer.com reference: deletePost, "Delete a post by id"). Used
+// when a new version of a content replaces one already scheduled, so the old one does not go out as well.
+async function deletePost(apiKey, postId) {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(postId || ''))) throw Object.assign(new Error('Id del post Buffer non valido'), { status: 400 });
+  const data = await bufferGraphQL(
+    apiKey,
+    'mutation {\n  deletePost(input: { id: ' + JSON.stringify(String(postId)) + ' }) {\n    __typename\n    ... on MutationError { message }\n  }\n}'
+  );
+  const result = data && data.deletePost;
+  if (!result) throw Object.assign(new Error('Buffer non ha confermato l’eliminazione.'), { status: 502 });
+  if (result.message) throw Object.assign(new Error(result.message), { status: 422 });
+  return { deleted: true };
 }
 
 // Numbers of sent posts (developers.buffer.com/guides/post-metrics.html): personal API key with insightsRead,
@@ -208,5 +227,6 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.createPost = createPost;
+module.exports.deletePost = deletePost;
 module.exports.bufferGraphQL = bufferGraphQL;
 module.exports.postStats = postStats;

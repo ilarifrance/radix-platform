@@ -13,7 +13,8 @@ function view(file){
   const document={getElementById:id=>id==='content'?node('div'):null,createElement:node,createTextNode:t=>({textContent:String(t)}),
     querySelectorAll:()=>[],documentElement:{classList:{add(){},remove(){},toggle(){}}}};
   const win={document,MutationObserver:class{observe(){}},addEventListener(){},setTimeout(){},requestAnimationFrame(){},RadixCrmForecast:forecast};
-  win.window=win;vm.createContext(win);vm.runInContext(src(file),win);return win}
+  // radix-sales.html loads sales/crm-dates-core.js (ora italiana) before the views.
+  win.window=win;vm.createContext(win);vm.runInContext(src('sales/crm-dates-core.js'),win);vm.runInContext(src(file),win);return win}
 
 const DAY=864e5,iso=d=>new Date(Date.now()+d*DAY).toISOString(),date=d=>iso(d).slice(0,10);
 const data=()=>({

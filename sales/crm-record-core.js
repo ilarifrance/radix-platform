@@ -112,13 +112,15 @@ function recipientFor(subject,rec,related){
 }
 
 const utc=ms=>new Date(ms).toISOString().slice(0,19)+'Z';
-// Value of an <input type="datetime-local"> (browser local time) as the API's UTC timestamp.
+// Dates of the composer are in ora italiana (Europe/Rome, sales/crm-dates-core.js), like the editor and «Slot liberi».
+const dates=()=>root.RadixCrmDates||(typeof require==='function'?require('./crm-dates-core.js'):null);
+// Value of an <input type="datetime-local"> (ora italiana) as the API's UTC timestamp.
 function localToUtc(value){
  const v=String(value||'').trim();if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?$/.test(v))return null;
- const ms=new Date(v).getTime();return Number.isFinite(ms)?utc(ms):null;
+ const ms=dates().fromInputMs(v);return ms==null?null:utc(ms);
 }
-// Now as a datetime-local value (for the default of the form).
-function localInput(ms){const d=new Date(ms??Date.now());const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes());}
+// Now as a datetime-local value in ora italiana (for the default of the form).
+function localInput(ms){return dates().inputAt(ms??Date.now());}
 
 // Who a call or meeting is with: the person when the record has one (an opportunity's contact,
 // then its company), otherwise the record's own name. Used for the default title.
@@ -132,6 +134,11 @@ function counterpart(subject,rec,related){
 }
 
 const TABS=[['email','Email'],['call','Chiamata'],['meeting','Evento'],['task','Attività']];
+// «Slot liberi» (crm-calendars.js) in the composer: the name of the date/time field a free slot fills,
+// only on the forms that plan a call, a meeting or a task, and only for someone who can save them.
+// Email records a message already sent: no slots there.
+const SLOT_FIELDS={call:'when',meeting:'when',task:'due'};
+function slotField(tab,canWrite){return canWrite===true&&Object.prototype.hasOwnProperty.call(SLOT_FIELDS,tab)?SLOT_FIELDS[tab]:null;}
 // One composer form → {error} or {error:null, entity, data, send, label}. send is set only for a real send.
 // related: the Customer360 rows (optional), to name the opportunity's contact in the default title.
 function composerPlan(tab,input,subject,rec,now,related){
@@ -167,6 +174,6 @@ function composerPlan(tab,input,subject,rec,now,related){
  return {error:'Tipo non valido.'};
 }
 
-const core={SUBJECT_LABEL,TABS,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
+const core={SUBJECT_LABEL,TABS,slotField,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
 if(typeof module==='object'&&module.exports)module.exports=core;else root.RadixCrmRecordCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

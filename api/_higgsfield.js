@@ -18,7 +18,9 @@ const auth = require('./_auth');
 
 const BASE = 'https://api.higgsfield.ai';
 const DEFAULT_MODEL = 'higgsfield-ai/soul/standard';
-const ASPECT_RATIOS = Object.freeze(['1:1', '4:3', '3:4', '3:2', '2:3', '5:4', '4:5', '16:9', '9:16', '21:9']);
+// Ratios Soul Standard accepts; the others the studios offer map to the closest one.
+const ASPECT_RATIOS = Object.freeze(['1:1', '4:3', '3:4', '3:2', '2:3', '16:9', '9:16']);
+const CLOSEST = Object.freeze({ '4:5': '3:4', '5:4': '4:3', '21:9': '16:9' });
 const DONE = Object.freeze(['completed', 'failed', 'nsfw', 'canceled']);
 const MAX_PROMPT = 2000;
 const IMAGE_MAX = 4000000;
@@ -40,8 +42,9 @@ function generateBody(input) {
   const prompt = String((input && input.prompt) || '').trim();
   if (!prompt) throw Object.assign(new Error("Manca 'prompt'."), { status: 400 });
   if (prompt.length > MAX_PROMPT) throw Object.assign(new Error('Prompt troppo lungo (massimo ' + MAX_PROMPT + ' caratteri).'), { status: 400 });
-  const aspect = ASPECT_RATIOS.includes(input.aspectRatio) ? input.aspectRatio : '4:5';
-  return { prompt, aspect_ratio: aspect, num_images: 1 };
+  const asked = CLOSEST[input.aspectRatio] || input.aspectRatio;
+  const aspect = ASPECT_RATIOS.includes(asked) ? asked : '3:4';
+  return { prompt, aspect_ratio: aspect, resolution: '1080p', batch_size: 1 };
 }
 
 function summarize(data) {
@@ -65,7 +68,9 @@ async function hfFetch(key, path, opts) {
   });
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    const detail = data && (data.detail || data.message || data.error);
+    let detail = data && (data.detail || data.message || data.error);
+    // A 422 lists the refused fields: [{ loc: ['body', 'aspect_ratio'], msg }].
+    if (Array.isArray(detail)) detail = detail.map((d) => [d && Array.isArray(d.loc) ? d.loc.slice(-1)[0] : '', d && d.msg].filter(Boolean).join(': ')).join('; ') || null;
     const msg = res.status === 401 || res.status === 403
       ? 'chiave rifiutata da Higgsfield (controlla HIGGSFIELD_API_KEY su Vercel).'
       : res.status === 402

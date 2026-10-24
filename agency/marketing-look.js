@@ -62,6 +62,7 @@ const P={
  productPhoto:'<path d="M4 7V4h3M20 7V4h-3"/><path d="M10 3.5h4v2.8l1.5 2.2V17.5a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5V8.5L10 6.3Z"/><path d="M8.5 11.5h7v3.5h-7"/><path d="M4 21h16"/>',
  retouch:'<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17"/><path d="M12 7.5a4.5 4.5 0 0 1 0 9" fill="currentColor" stroke="none"/>',
  mockup:'<rect x="2.5" y="5" width="12" height="9.5" rx="1.5"/><path d="M6 18.5h5M8.5 14.5v4"/><rect x="15.5" y="9" width="6" height="11" rx="1.4"/><path d="M18 17.5h1"/>',
+ iconSet:'<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><circle cx="17" cy="7" r="3.5"/><path d="M7 13.5 10.5 20h-7Z"/><rect x="13.5" y="13.5" width="7" height="7" rx="3.5"/>',
  logoVector:'<path d="M4.5 19.5 9 6l3.5 9 2-4.5 5 9"/><circle cx="9" cy="6" r="1.6"/><circle cx="4.5" cy="19.5" r="1.6"/><circle cx="19.5" cy="19.5" r="1.6"/><path d="M3.5 3.5h5M15.5 3.5h5"/>',
  logoMotion:'<circle cx="8.5" cy="12" r="4.5"/><path d="M15 9.5h6M15 14.5h4"/><path d="M3 4.5c2.6-1.6 5.6-1.6 8 0M3 19.5c2.6 1.6 5.6 1.6 8 0"/>',
  compareSites:'<rect x="2.5" y="5" width="8.5" height="14" rx="1.5"/><rect x="13" y="5" width="8.5" height="14" rx="1.5"/><path d="M2.5 8.5h8.5M13 8.5h8.5M5 12h4M15.5 12h4M5 15h2.5M15.5 15h3"/>',
@@ -70,6 +71,8 @@ const P={
  funnel:'<path d="M3.5 4.5h17l-6.5 7.5v6.5l-4 2v-8.5Z"/><path d="M7.5 8.5h9"/>',
  infographic:'<rect x="3.5" y="3.5" width="17" height="17" rx="2.5"/><path d="M7 16.5v-3M10.5 16.5v-6M14 16.5v-4.5M17.5 16.5v-8"/><path d="M7 7.5h5"/>',
  yearPlan:'<rect x="3.5" y="4.5" width="17" height="16" rx="2.5"/><path d="M3.5 9h17M8 2.75v3.5M16 2.75v3.5"/><path d="M7.5 17v-2.5M10.5 17v-4.5M13.5 17v-3M16.5 17v-5"/>',
+ survey:'<path d="M4 16.5a8 8 0 0 1 16 0"/><path d="m12 16.5 4.2-5"/><circle cx="12" cy="16.5" r="1.1"/><path d="M4 20.5h16M6.4 11.2l1.3.9M12 8.5V10M17.6 11.2l-1.3.9"/>',
+ shopBag:'<path d="M5 8h14l-1.2 12.5H6.2Z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/><path d="M9.5 12.5a2.5 2.5 0 0 0 5 0"/>',
  reel:'<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M6 6.5h12M6 17.5h12"/><path d="m10.5 9.8 3.7 2.2-3.7 2.2Z"/>'
 };
 // One colour and one icon per service area (the groups of agency/crea-core.js); pink is Marketing's colour in the
@@ -79,8 +82,8 @@ const AREAS=Object.freeze({
  social:{color:'#608dff',icon:'chat'},email:{color:'#9be15d',icon:'mail'},stampa:{color:'#f4bd5f',icon:'printer'},immagini:{color:'#36edbd',icon:'image'},video:{color:'#ff8a65',icon:'video'}
 });
 // The service cards of «Cosa vuoi fare oggi?», by id.
-const CARDS=Object.freeze({strategy:'target',report:'chart',budget:'coin',pianoannuale:'yearPlan',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',logovettoriale:'logoVector',coordinato:'layers',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
- newsletter:'mail',images:'image',fotoprodotto:'productPhoto',fotoritocco:'retouch',mockup:'mockup',infografica:'infographic',funnel:'funnel',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
+const CARDS=Object.freeze({strategy:'target',report:'chart',sondaggio:'survey',budget:'coin',pianoannuale:'yearPlan',auditcom:'audit',lancio:'rocket',naming:'type',identita:'palette',logovettoriale:'logoVector',coordinato:'layers',icone:'iconSet',firma:'signature',socialgrafica:'socialKit',social:'calendar',graphics:'layout',testi:'doc',
+ newsletter:'mail',images:'image',fotoprodotto:'productPhoto',fotoritocco:'retouch',mockup:'mockup',infografica:'infographic',funnel:'funnel',avatar:'user',video:'video',reel:'reel',logoanimato:'logoMotion',site:'browser',seo:'search',analisi:'siteAudit',annunci:'megaphone',searchads:'searchAds',creativita:'adFormats',google:'mapPin',schede:'tag',negozio:'shopBag',traduzione:'translate',emailhtml:'mailHtml',stampa:'printer',
  catalogo:'bookOpen',menu:'menu',packaging:'packaging',brochure:'map',scheda:'clipboard',presentazione:'slides',documenti:'pages',
  comunicato:'news',mediakit:'mediaKit',evento:'ticket',persona:'users',concorrenza:'compare',concorrenzasiti:'compareSites',sequenze:'flow',tono:'voice',influencer:'star',sms:'phone'});
 const has=name=>Object.prototype.hasOwnProperty.call(P,name);
