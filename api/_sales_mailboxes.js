@@ -298,7 +298,7 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
 // Called by api/_sales.js after membership is known. Returns the JSON body.
 async function handle(c,opts){
  try{return await run(c,opts)}
- catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: serve la migrazione sales 016 (da approvare).');throw e}
+ catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: servono le migrazioni sales 016 e 017 (da approvare).');throw e}
 }
 async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport}){
  if(req.method==='GET'){
