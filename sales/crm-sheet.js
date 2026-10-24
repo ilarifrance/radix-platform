@@ -10,6 +10,7 @@
      command as the edit form); a refusal is shown in the cell and the old value comes back.
    - «Registra chiamata»: outcome + optional note → one interactions create (kind call); «Richiamare» and
      «Appuntamento» with a date also create the task that becomes the next activity. No email is sent.
+     «Slot liberi» (crm-calendars.js) proposes free times from Outlook / Google and the CRM; a click fills the date.
    - Every interaction has its «Attività» column: when the sheet opens it reads by itself the pages not
      loaded yet (reads only, a progress line under the toolbar). A cell shows two lines of the note; a
      click, Enter or Space opens the whole text (noteDialog), a bottom sheet on a phone.
@@ -68,13 +69,17 @@ function build(host,ctx){
  ui.jump=B('Vai alle attività ›',()=>jumpTo(host,'acts:1'),'cs-jump');ui.jump.title='Scorri il foglio fino alle attività svolte (la più recente per prima).';
  bar.append(ui.outcome,ui.next,sw,ui.cols,ui.jump,ui.csv,ui.more);
  ui.meta=E('p',undefined,'lv-meta cs-meta');ui.meta.setAttribute('aria-live','polite');
+ // «5 attività a destra (Attività 1–5) ›»: the activity columns cut off on the right (hiddenRight), so
+ // they are never mistaken for missing; a click scrolls to the first of them. Updated on scroll and resize.
+ ui.hint=B('',()=>{if(ui.hint.dataset.first)jumpTo(host,ui.hint.dataset.first)},'cs-hint');ui.hint.hidden=true;
  ui.progress=E('p',undefined,'cs-progress');ui.progress.setAttribute('role','status');
  ui.live=E('p',undefined,'lv-sr');ui.live.setAttribute('aria-live','assertive');
  ui.scroll=E('div',undefined,'cs-scroll');ui.scroll.setAttribute('role','region');ui.scroll.setAttribute('aria-label','Foglio chiamate: scorri in orizzontale per tutte le attività');
  ui.note=E('p',undefined,'lv-note muted');
  ui.help=E('p','Frecce per spostarti, Invio o F2 per modificare (oppure inizia a scrivere), Invio salva e scende, Tab salva e va a destra, Esc annulla. Il numero di telefono si chiama con un clic.','cs-help muted');
- host.append(bar,ui.meta,ui.progress,ui.live,ui.scroll,ui.help,ui.note);
+ host.append(bar,ui.meta,ui.hint,ui.progress,ui.live,ui.scroll,ui.help,ui.note);
  ui.scroll.addEventListener('keydown',e=>onKey(e,host,ctx));
+ ui.scroll.addEventListener('scroll',()=>hint(host),{passive:true});
  host._cs=ui;return ui;
 }
 function drawCols(ui,host,ctx){
@@ -137,6 +142,7 @@ function draw(host,ctx){
  if(!shown.length)ui.scroll.append(E('p',all.length?'Nessun contatto con questi filtri'+(S.query?' per «'+S.query+'»':'')+'.':'Nessun contatto caricato. Nessun dato dimostrativo.','lv-none'));
  if(a.state.busy)host.querySelectorAll('button,input,select').forEach(x=>{if(x.dataset.preDisabled===undefined){x.dataset.preDisabled=String(x.disabled);x.disabled=true}});
  if(focusIn)focusCell(host,false);
+ hint(host);
  autoLoad(host,ctx);
 }
 const fz=c=>c.call?'cs-fz-call':'cs-fz-'+c.id;
@@ -168,7 +174,9 @@ function cell(r,c,now,host,ctx,canCall){
   td.append(due,E('span',x.title,'cs-todo-title'));
   td.setAttribute('aria-haspopup','dialog');td.title=C().todoText(x)+(x.source==='interaction'?' (interazione in calendario)':'')+' · Invio o clic: dettagli';return td}
  switch(c.id){
-  case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri Customer360 · '+r.name;o.setAttribute('aria-label','Apri Customer360 di '+r.name);td.append(o);td.title=r.name;break}
+  case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri Customer360 · '+r.name;o.setAttribute('aria-label','Apri Customer360 di '+r.name);td.append(o);td.title=r.name;
+   // How many «Attività» columns this contact fills on the right, readable without scrolling.
+   const n=C().countLabel(r.acts.length);if(n){td.append(E('small',n,'lv-sub cs-count'));td.title=r.name+' · '+n}break}
   case 'company':if(r.companyRecord){const b=B(r.company||'(senza nome)',()=>ctx.open('companies',r.companyRecord),'lv-link');b.tabIndex=-1;b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(empty(r.companyMissing?'non caricata':'—'));break;
   case 'phone':case 'mobile':case 'companyPhone':td.append(tel(r[c.id]));if(c.id==='companyPhone'&&!r.companyRecord)td.classList.remove('cs-edit');break;
   case 'email':{const h=window.RadixCrmList?.mailHref(r.email);if(h){const l=E('a',r.email);l.href=h;l.tabIndex=-1;td.append(l)}else td.append(r.email?E('span',r.email):empty());break}
@@ -204,15 +212,27 @@ function onKey(e,host,ctx){
 // Click selects a cell (an activity or to-do cell also opens its full text); double click edits it.
 document.addEventListener('click',e=>{const td=e.target.closest?.('.cs td[data-r]');if(!td||S.editing)return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};if(e.target.closest('a,button'))return;focusCell(host,false);
  if(td.classList.contains('cs-detail'))noteDialog(current.shown[S.pos.r],current.nav[S.pos.c],td,host)});
+// Width of the columns frozen on the left on this screen (on a phone the company scrolls: its left is auto).
+const frozenWidth=ui=>[...ui.scroll.querySelectorAll('thead tr.cs-head th.cs-fz')].filter(x=>{const s=getComputedStyle(x);return s.display!=='none'&&s.left!=='auto'}).reduce((w,x)=>w+x.offsetWidth,0);
+// Left edge of a header cell in grid pixels (scroll offset included).
+const gridLeft=(ui,th)=>ui.scroll.scrollLeft+th.getBoundingClientRect().left-ui.scroll.getBoundingClientRect().left-ui.scroll.clientLeft;
 /* Scroll the grid so a column starts right of the frozen ones, and select its cell in the current row. */
 function jumpTo(host,colId){
  const ui=host._cs,i=current.nav.findIndex(c=>c.id===colId);if(!ui||i<0)return;
  const th=ui.scroll.querySelector('thead tr.cs-head th[data-col="'+colId+'"]');if(!th)return;
- // Width of the columns frozen on the left on this screen (on a phone the company scrolls: its left is auto).
- const frozen=[...ui.scroll.querySelectorAll('thead tr.cs-head th.cs-fz')].filter(x=>{const s=getComputedStyle(x);return s.display!=='none'&&s.left!=='auto'}).reduce((w,x)=>w+x.offsetWidth,0);
- const at=ui.scroll.scrollLeft+th.getBoundingClientRect().left-ui.scroll.getBoundingClientRect().left-ui.scroll.clientLeft;
- ui.scroll.scrollLeft=Math.max(0,at-frozen);S.pos={r:S.pos.r,c:i};focusCell(host,false);
+ ui.scroll.scrollLeft=Math.max(0,gridLeft(ui,th)-frozenWidth(ui));S.pos={r:S.pos.r,c:i};focusCell(host,false);hint(host);
 }
+/* The line «N attività a destra (Attività a–b) ›» under the count: which activity columns are cut off
+   on the right right now (crm-sheet-core hiddenRight). Once per frame while scrolling. */
+function hint(host){
+ const ui=host&&host._cs;if(!ui||ui.hintFrame)return;
+ ui.hintFrame=requestAnimationFrame(()=>{ui.hintFrame=0;
+  const sc=ui.scroll,cols=[...sc.querySelectorAll('thead tr.cs-head th[data-col^="acts:"]')].map(th=>{const left=gridLeft(ui,th);return {id:th.dataset.col,left,right:left+th.offsetWidth}});
+  const h=C().hiddenRight(cols,{left:sc.scrollLeft+frozenWidth(ui),right:sc.scrollLeft+sc.clientWidth});
+  ui.hint.hidden=!h.count||!sc.isConnected;ui.hint.textContent=h.text;ui.hint.dataset.first=h.first||'';
+  ui.hint.title=h.count?'Scorri il foglio fino a '+(h.from===h.to?'Attività '+h.from:'Attività '+h.from+'–'+h.to)+'.':''});
+}
+addEventListener('resize',()=>{const x=document.querySelector('.cs');if(x)hint(x)},{passive:true});
 document.addEventListener('dblclick',e=>{const td=e.target.closest?.('.cs td.cs-edit[data-r]');if(!td||S.editing||e.target.closest('a,button'))return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};edit(host,host._ctx,td,current.shown[S.pos.r],current.nav[S.pos.c],null)});
 
 /* ---------- Inline edit ---------- */
@@ -262,12 +282,14 @@ function callDialog(r,host,ctx){
  const canTask=a.writable('tasks');
  const fl=E('label',undefined,'cs-follow');const fcb=E('input');fcb.type='checkbox';fcb.checked=canTask;fcb.disabled=!canTask;const when=E('input');when.type='datetime-local';when.value=C().tomorrowAt9(Date.now());when.disabled=!canTask;
  fl.append(fcb,E('span',' Con «Richiamare» o «Appuntamento» crea la prossima attività per il '),when);
+ // «Slot liberi» (crm-calendars.js): free time from Outlook / Google and the CRM; a click fills the date.
+ const slots=canTask&&window.RadixCrmCalendars?window.RadixCrmCalendars.slotPicker({onPick:v=>{when.value=v;fcb.checked=true}}):null;
  const err=E('p',undefined,'notice');err.hidden=true;err.setAttribute('role','alert');
  const outs=E('div',undefined,'cs-outs');outs.setAttribute('role','group');outs.setAttribute('aria-label','Esito: un clic registra la chiamata');
  const buttons=[];
  for(const [k,l] of Object.entries(C().OUTCOMES)){const b=B(l,()=>go(k),'cs-out-btn cs-out-'+k);buttons.push(b);outs.append(b)}
  const close=B('Annulla',()=>dlg.close(),'lv-ghost');
- dlg.replaceChildren(h,who,phones,E('p','Scegli l’esito: un clic registra la chiamata. Nessuna email viene inviata.','muted cs-hint'),outs,noteL,fl,err,close);
+ dlg.replaceChildren(h,who,phones,E('p','Scegli l’esito: un clic registra la chiamata. Nessuna email viene inviata.','muted cs-hint'),outs,noteL,fl,...(slots?[slots]:[]),err,close);
  async function go(k){
   const plan=C().callPlan(r,{outcome:k,note:note.value,follow:fcb.checked?when.value:''},Date.now(),a.state.me);
   if(plan.error){err.textContent=plan.error;err.hidden=false;return}
