@@ -9,8 +9,8 @@ const js=read('agency/marketing-nav.js'),navCss=read('agency/marketing-nav.css')
 const PAGES=['project-editorial.html','agency/avatar.html','agency/clients.html','agency/crea.html','agency/index.html','agency/memory.html',
  'agency/new-project.html','agency/operations.html','agency/orbit.html','agency/project-workspace.html','agency/projects.html','agency/workspace.html'];
 const MARKETING=[['agency-orbit','Panoramica'],['agency-crea','Cosa vuoi fare'],['agency-clients','Clienti'],['agency-projects','Progetti'],
- ['agency-ped','Piano editoriale'],['agency-avatar','Studio Avatar'],['agency','Agenzia e divisioni'],['agency-workflow','Workflow'],
- ['agency-operations','Operations'],['agency-memory','Memoria']];
+ ['agency-ped','Piano editoriale'],['agency-avatar','Studio Avatar'],
+ ['agency-operations','Produzione'],['agency-memory','Memoria']];
 const shellIds=new Set([...shell.matchAll(/\{\s*id:\s*'([\w-]+)'/g)].map(m=>m[1]));
 
 // ---- a small DOM, enough for the script: elements, classes, attributes and the selectors it uses ----
@@ -69,6 +69,7 @@ test('the menu: Panoramica first, the Marketing and Agenzia groups with the Mark
  const [mk,ag]=nav.children.filter(c=>c.tagName==='DIV');
  assert.deepEqual(labels(mk),MARKETING.slice(0,6).map(x=>x[0]));assert.deepEqual(labels(ag),MARKETING.slice(6).map(x=>x[0]));
  assert.equal(mk.children[0].textContent,'Marketing');assert.equal(ag.children[0].textContent,'Agenzia');
+ assert.ok(!side.querySelector('a[data-rx-id="agency-workflow"]'),'the «Workflow» anchor of the old overview is not in the menu (it stays in ⌘K)');
  for(const [id,text] of MARKETING){const a=side.querySelector('a[data-rx-id="'+id+'"]');assert.equal(a.querySelector('span').textContent,text,id);assert.ok(a.classList.contains('mk-link'))}
  assert.equal(side.querySelector('.rx-brand').href,'/agency/orbit.html');
 });
@@ -77,18 +78,20 @@ test('the global entries are compact: two folded groups, closed when the page is
  const {side}=run();const folds=side.querySelectorAll('details.mk-fold');
  assert.deepEqual(folds.map(d=>d.children[0].textContent),['Piattaforma','Altre aree']);
  assert.ok(folds.every(d=>!d.open),'closed on a Marketing page');
- assert.deepEqual(labels(folds[0]),['cc-projects','cc-approvals','agents','cc-knowledge','cc-analytics','cc-integrations','archive']);
+ assert.deepEqual(labels(folds[0]),['cc-projects','cc-approvals','agents','cc-knowledge','cc-analytics','cc-integrations','archive','agency']);
+ assert.equal(side.querySelector('a[data-rx-id="agency"]').querySelector('span').textContent,'Divisioni dell’agenzia','the older divisions overview: folded, still one click away');
  assert.ok(labels(folds[1]).includes('sales-orbit'));
  assert.deepEqual(labels(side.querySelector('nav.mk-foot')),['impostazioni','admin']);
  assert.match(navCss,/html\.rx-shell \.mk-side \.mk-fold a\.rx-item\.mk-link\{min-height:32px;padding:6px 12px;font-size:13px\}/,'smaller rows in the folds');
 });
 
-test('the active state: the shell page stays current, a fold with the current page opens, #workflow wins on the overview',()=>{
+test('the active state: the shell page stays current, a fold with the current page opens, the divisions overview (also #workflow) opens Piattaforma',()=>{
  let r=run({page:'agency-ped',pathname:'/project-editorial.html'});
  assert.equal(r.side.querySelectorAll('[aria-current]').map(a=>a.getAttribute('data-rx-id')).join(),'agency-ped');
  r=run({page:'agents',pathname:'/agents.html'});assert.ok(r.side.querySelectorAll('details.mk-fold')[0].open,'Piattaforma opens on its page');
  r=run({page:'agency',pathname:'/agency/index.html',hash:'#workflow'});
- assert.equal(r.side.querySelectorAll('[aria-current]').map(a=>a.getAttribute('data-rx-id')).join(),'agency-workflow');
+ assert.equal(r.side.querySelectorAll('[aria-current]').map(a=>a.getAttribute('data-rx-id')).join(),'agency');
+ assert.ok(r.side.querySelectorAll('details.mk-fold')[0].open,'the fold with the divisions overview opens on it');
  r.location.hash='';r.listeners.hashchange();
  assert.equal(r.side.querySelectorAll('[aria-current]').map(a=>a.getAttribute('data-rx-id')).join(),'agency');
  assert.match(navCss,/a\.rx-item\.mk-link\[aria-current="page"\]\{background:var\(--mk-accent-soft\);[^}]*color:var\(--mk-accent-ink\);[^}]*box-shadow:inset 3px 0 0 var\(--mk-accent\)\}/);

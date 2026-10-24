@@ -73,6 +73,11 @@
 .mo-col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .mo-col>section{padding:18px 20px;min-width:0}
 .mo-flow-for{margin:-4px 0 12px;font-size:12.5px;color:var(--ma-mut)}
+/* the phase to work on now: a soft band and its action, one click to the page that does it */
+.mo-flow .ma-step.is-now{margin:2px -10px;padding:8px 10px;border-radius:12px;background:var(--ma-soft)}
+.mo-flow .ma-step.is-now::after{display:none}
+.mo-flow .ma-step-text a.mo-now{color:#fff}
+.mo-now{display:inline-flex;margin-top:8px;min-height:40px;padding:8px 14px;font-size:13px;line-height:1.3;white-space:normal;text-align:left}
 .mo-job-list{list-style:none;margin:0 -8px;padding:0}
 .mo-job+.mo-job{border-top:1px solid var(--ma-line)}
 .mo-job-link{display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:10px}
@@ -109,11 +114,11 @@
 .mo-foot{margin:8px 0 0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
 @media (max-width:1180px){.mo-board{grid-template-columns:minmax(0,1fr) 340px}.mo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:980px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-wait{border-left:0;border-top:1px solid var(--ma-line)}
-  /* one column: the work right after the services, as in the phone mockup */
+  /* one column: the project's path (its next action) first, then the services and the work */
   .mo-board{display:flex;flex-direction:column;align-items:stretch;gap:16px}.mo-col{display:contents}
-  .mo-areas{order:1}.mo-jobs{order:2}.mo-agents{order:3}.mo-flow{order:4}.mo-orbit{order:5}.mo-sections{order:6}}
+  .mo-flow{order:0}.mo-areas{order:1}.mo-jobs{order:2}.mo-agents{order:3}.mo-orbit{order:5}.mo-sections{order:6}}
 /* Phones: one column; chips and rows at 44px; the globe stays a picture (the area cards are the links). */
-@media (max-width:640px){
+@media (max-width:640px){.mo-now{min-height:44px}
   .mo-main{padding:16px 16px 48px;gap:16px}
   .mo-title{font-size:26px}
   .mo-head-actions{width:100%}

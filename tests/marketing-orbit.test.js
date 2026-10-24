@@ -45,9 +45,9 @@ test('sections: every link is a page of the repo; studios open where they live',
 });
 
 test('counts are real or missing: never invented',()=>{
- assert.deepEqual(orbit.counts({}),{servizi:crea.CARDS.length,clienti:null,progetti:null,approvazioni:null});
+ assert.deepEqual(orbit.counts({}),{servizi:crea.listed().length,clienti:null,progetti:null,approvazioni:null});
  const c=orbit.counts({clients:[{id:'a'},{id:'b'}],projects:[{status:'active'},{status:'archived'},{}],dashboard:{approvalsSupported:true,metrics:{approvals:3}}});
- assert.deepEqual(c,{servizi:crea.CARDS.length,clienti:2,progetti:2,approvazioni:3});
+ assert.deepEqual(c,{servizi:crea.listed().length,clienti:2,progetti:2,approvazioni:3});
  assert.equal(orbit.counts({dashboard:{approvalsSupported:false,metrics:{approvals:0}}}).approvazioni,null,'approvals not active: no number');
  assert.equal(orbit.counts({dashboard:{approvalsSupported:true,metrics:{approvals:'7'}}}).approvazioni,null);
  assert.equal(orbit.counts({dashboard:{approvalsSupported:true,metrics:{approvals:0}}}).approvazioni,0);

@@ -22,9 +22,9 @@ const plural=(n,one,many)=>n+' '+(n===1?one:many);
 const L=window.RadixMarketingLook,look=c=>L.AREAS[core.areaOf(c.group)]||{color:'#a68bff',icon:'spark'};
 const ico=(name,cls)=>L.icon(name,cls||'ma-ico');
 $('crAskIcon').innerHTML=L.svg('spark');$('crAskGoIcon').innerHTML=L.svg('arrow');
-const FREE=core.CARDS.filter(c=>core.costBadge(c).tone==='free').length;
-$('crLead').textContent=plural(core.CARDS.length,'servizio guidato','servizi guidati')+' in '+core.groups().length+' aree: poche domande, tre proposte, scegli tu. Il costo è sulla scheda e prima di ogni chiamata AI ti chiedo conferma.';
-$('crFacts').replaceChildren(...[['Servizi',core.CARDS.length],['Aree',core.groups().length],['Senza AI',FREE]].map(([k,v])=>{const d=node('div','cp-fact');d.append(node('dt','',k),node('dd','',String(v)));return d}));
+const FREE=core.listed().filter(c=>core.costBadge(c).tone==='free').length;
+$('crLead').textContent=plural(core.listed().length,'servizio guidato','servizi guidati')+' in '+core.groups().length+' aree: poche domande, tre proposte, scegli tu. Il costo è sulla scheda e prima di ogni chiamata AI ti chiedo conferma.';
+$('crFacts').replaceChildren(...[['Servizi',core.listed().length],['Aree',core.groups().length],['Senza AI',FREE]].map(([k,v])=>{const d=node('div','cp-fact');d.append(node('dt','',k),node('dd','',String(v)));return d}));
 
 // ---- What a card does when chosen: a studio here, or the page of its tool. ----
 function act(c){
@@ -93,6 +93,7 @@ function renderFilters(){
 }
 // One service card: icon in its area colour, cost badge, what it does (a short line for the «Tutti» index, the full line
 // for one area), the full cost line, the hint, the action. agency/crea.css shows the short or the full parts by view.
+const KIT_OF=Object.fromEntries(core.kits().map(k=>[k.id,k]));
 function cardEl(c){
  const li=node('li','ma-glass cp-card');li.dataset.service=c.id;li.dataset.open=String(openCard===c.id);li.dataset.match=String(picked===c.id);li.style.setProperty('--c',look(c).color);
  const top=node('div','cp-card-top');top.append(ico(L.CARDS[c.id]||look(c).icon,'cp-card-icon'));
@@ -102,6 +103,8 @@ function cardEl(c){
  const cost=node('p','cp-cost');cost.append(ico(core.costBadge(c).tone==='free'?'check':'coin','cp-meta-icon'),node('span','',c.cost));
  li.append(top,h,node('p','cp-line',c.line),cost);
  if(c.short)h.after(node('p','cp-short',c.short));
+ // A kit (several coordinated files in one flow) says so on its own card: no separate «Kit completi» row repeating it.
+ const kit=KIT_OF[c.id];if(kit){const f=node('p','cp-kit-line');f.title=kit.files;f.append(ico('layers','cp-meta-icon'),node('span','','Kit completo: tutti i file in un solo flusso'));(li.querySelector('.cp-short')||h).after(f)}
  if(c.hint){const p=node('p','cp-hint');p.append(ico('info','cp-meta-icon'),node('span','',c.hint));li.append(p)}
  li.append(goButton(c,'cp-go'));return li;
 }
@@ -118,13 +121,6 @@ function render(){
   head.append(ico(a.icon,'ma-area-icon cp-area-icon'),h,node('span','cp-area-line',O&&O.AREA_LINE?O.AREA_LINE[slug]||'':''),node('span','ma-pill ma-pill--count',plural(cards.length,'servizio','servizi')));
   sec.setAttribute('aria-labelledby',id);
   const ul=node('ul','cp-grid');ul.append(...cards.map(cardEl));sec.append(head,ul);return sec}));
- renderKits();
-}
-function renderKits(){
- const k=core.kits();$('crKitsCount').textContent=plural(k.length,'kit','kit');
- $('crKits').replaceChildren(...k.map(x=>{const c=x.card,li=node('li','ma-glass cp-kit');li.style.setProperty('--c',look(c).color);li.dataset.service=c.id;
-  const top=node('div','cp-card-top');top.append(ico(L.CARDS[c.id]||look(c).icon,'cp-card-icon'),badge(c));
-  li.append(top,node('h3','cp-kit-title',x.label),node('p','cp-kit-files',x.files),goButton(c,'cp-kit-go'));return li}));
 }
 // From the Chiudi button (an event) the focus goes back to the card that opened the studio.
 function closePanel(e){const was=openCard;openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render();
