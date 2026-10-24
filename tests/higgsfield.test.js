@@ -21,8 +21,10 @@ test('model path is overridable but never an arbitrary URL',()=>{
 test('generate body validates prompt and aspect ratio',()=>{
  assert.throws(()=>hf.generateBody({prompt:'  '}),/prompt/);
  assert.throws(()=>hf.generateBody({prompt:'x'.repeat(2001)}),/troppo lungo/);
- assert.deepEqual(hf.generateBody({prompt:' lago ',aspectRatio:'9:16'}),{prompt:'lago',aspect_ratio:'9:16',num_images:1});
- assert.equal(hf.generateBody({prompt:'x',aspectRatio:'7:3'}).aspect_ratio,'4:5');
+ assert.deepEqual(hf.generateBody({prompt:' lago ',aspectRatio:'9:16'}),{prompt:'lago',aspect_ratio:'9:16',resolution:'1080p',batch_size:1});
+ assert.equal(hf.generateBody({prompt:'x',aspectRatio:'7:3'}).aspect_ratio,'3:4');
+ assert.equal(hf.generateBody({prompt:'x',aspectRatio:'4:5'}).aspect_ratio,'3:4','4:5 is not accepted by Soul: closest ratio');
+ assert.equal(hf.generateBody({prompt:'x',aspectRatio:'21:9'}).aspect_ratio,'16:9');
 });
 
 test('status summary keeps only https image URLs and explains nsfw',()=>{
@@ -43,7 +45,7 @@ test('route needs a session and a key, then calls Higgsfield with the Key header
   assert.equal(r.code,200);assert.equal(r.body.requestId,ID);assert.equal(r.body.done,false);
   assert.equal(calls[0].url,'https://api.higgsfield.ai/higgsfield-ai/soul/standard');
   assert.equal(calls[0].opts.headers.authorization,'Key kid:ksecret');assert.equal(calls[0].opts.headers['idempotency-key'],ID);
-  assert.deepEqual(JSON.parse(calls[0].opts.body),{prompt:'lago',aspect_ratio:'1:1',num_images:1});
+  assert.deepEqual(JSON.parse(calls[0].opts.body),{prompt:'lago',aspect_ratio:'1:1',resolution:'1080p',batch_size:1});
   r=res();await hf({method:'GET',query:{action:'status',id:ID}},r);
   assert.equal(calls[1].url,'https://api.higgsfield.ai/requests/'+ID+'/status');assert.deepEqual(r.body.images,['https://cdn.example/i.png']);
   r=res();await hf({method:'GET',query:{action:'status',id:'../x'}},r);assert.equal(r.code,400);assert.equal(calls.length,2);
