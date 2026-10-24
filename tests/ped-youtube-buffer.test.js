@@ -15,6 +15,8 @@ test('youtubeMeta: title within 100 characters, Education category, short descri
  assert.equal(m.title,'Delegare la vendita: da dove parte un imprenditore');assert.equal(m.categoryId,'27');
  assert.ok(m.description.length<=1100,'short');assert.doesNotMatch(m.description,/\[|da fornire/);assert.match(m.description,/^Quando un imprenditore/);assert.match(m.description,/#venditaB2B #PMI$/);
  assert.ok(pv.youtubeMeta({title:'x'.repeat(140),copy:'a'}).title.length<=100);
+ const desc='Vuoi delegare la vendita?\n\n1. Primo\n2. Secondo\n\n'+'Contesto. '.repeat(60).trim()+'\n\nCheck-up gratuito: scrivimi su LinkedIn.\n\n#venditaB2B #PMI';
+ assert.equal(pv.youtubeMeta({title:'T',copy:desc}).description,desc,'a short text written as a description goes out whole');
  assert.deepEqual(pv.youtubeMeta({title:'T',copy:'a',youtube:{title:'Titolo mio',description:'Descrizione mia',categoryId:'22'}}),{title:'Titolo mio',description:'Descrizione mia',categoryId:'22'});
 });
 
@@ -41,4 +43,13 @@ test('PED page: approval and avatar video blocked on open placeholders; Buffer c
  assert.match(src,/if\(decision==='approve'\)\{\{const holes=openGaps\(/);assert.match(src,/try\{\{const holes=openGaps\(x\);if\(holes\.length\)throw/);
  assert.match(src,/const holes=pv\.placeholders\(script\);if\(holes\.length\)\{[^}]*pp-warn/);
  assert.match(src,/const own=pv\.bufferChannelFor\(item\.channel,bufferChannels,saved\);if\(own\)sel\.value=own\.id;/);
+});
+
+test('publish preview: a video post shows its video (or that it is missing), YouTube shows title and short description',()=>{
+ const src=read('editorial-workspace.js'),fn=src.slice(src.indexOf('function channelPreview('),src.indexOf('function postPreview('));
+ const video=fn.indexOf("if(pv.mediaKind(item)==='video')"),images=fn.indexOf("api('GET'");
+ assert.ok(video>0&&video<images,'video posts never fall through to «Nessuna immagine allegata»');
+ assert.match(fn,/pv\.youtubeMeta\(item\):null;if\(yt\)\{text\.textContent=yt\.description;/);
+ assert.match(fn,/const v=document\.createElement\('video'\);v\.src=item\.video\.url;/);
+ assert.match(fn,/Manca il video: generalo o collegalo qui sopra/);
 });
