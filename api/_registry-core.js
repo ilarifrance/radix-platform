@@ -117,7 +117,23 @@ const SCHEMA=Object.freeze([
  created_by integer REFERENCES users(id),
  created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (project_id, content_id, slot)
-)`
+)`,
+// One reading a day of the numbers of a published post (from Buffer): the time series behind «Risultati».
+`CREATE TABLE IF NOT EXISTS rx_post_stats (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ service text NOT NULL CHECK (service IN ('buffer')),
+ post_id text NOT NULL CHECK (length(post_id) BETWEEN 1 AND 64),
+ day date NOT NULL,
+ published_at timestamptz,
+ link text CHECK (link IS NULL OR length(link) <= 500),
+ metrics jsonb NOT NULL CHECK (jsonb_typeof(metrics) = 'object'),
+ engagement_rate numeric,
+ fetched_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, post_id, day)
+)`,
+`CREATE INDEX IF NOT EXISTS rx_post_stats_project_idx ON rx_post_stats(project_id, content_id, fetched_at)`
 ]);
 
 class InputError extends Error{}
