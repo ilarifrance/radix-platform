@@ -91,6 +91,20 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video }) {
   return { postId: result.post.id, dueAt: result.post.dueAt || null };
 }
 
+// Removes a post still waiting in Buffer (developers.buffer.com reference: deletePost, "Delete a post by id"). Used
+// when a new version of a content replaces one already scheduled, so the old one does not go out as well.
+async function deletePost(apiKey, postId) {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(String(postId || ''))) throw Object.assign(new Error('Id del post Buffer non valido'), { status: 400 });
+  const data = await bufferGraphQL(
+    apiKey,
+    'mutation {\n  deletePost(input: { id: ' + JSON.stringify(String(postId)) + ' }) {\n    __typename\n    ... on MutationError { message }\n  }\n}'
+  );
+  const result = data && data.deletePost;
+  if (!result) throw Object.assign(new Error('Buffer non ha confermato l’eliminazione.'), { status: 502 });
+  if (result.message) throw Object.assign(new Error(result.message), { status: 422 });
+  return { deleted: true };
+}
+
 // Numbers of sent posts (developers.buffer.com/guides/post-metrics.html): personal API key with insightsRead,
 // refreshed by Buffer once a day. Up to 20 posts per request as aliased fields, ids as inline literals like the
 // other calls; when Buffer rejects the batch (one id unknown), each post is read on its own so the rest still arrive.
@@ -208,5 +222,6 @@ module.exports = async (req, res) => {
   }
 };
 module.exports.createPost = createPost;
+module.exports.deletePost = deletePost;
 module.exports.bufferGraphQL = bufferGraphQL;
 module.exports.postStats = postStats;

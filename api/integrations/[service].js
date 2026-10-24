@@ -9,6 +9,8 @@ const handlers = Object.freeze({
   'heygen': () => require('../_heygen'),
   'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),
+  // Vercel Cron: daily reading of the numbers of published PED posts (CRON_SECRET bearer).
+  'ped-stats': () => require('../_ped_stats'),
   'send-email': () => require('../_send-email'),
   // Vercel Cron worker of the CRM «Coda invii» (CRON_SECRET bearer, not the session cookie).
   'send-queue': () => require('../_sales_send_worker'),

@@ -289,7 +289,7 @@ test('migration 016: two tables, checks, unique and worker indexes, contact FK l
  const w=read('api/_sales_send_worker.js');assert.match(w,/FOR UPDATE SKIP LOCKED/);assert.match(w,/AND q\.status='queued'/);assert.match(w,/AND status='sending'/);
 });
 test('wiring: cron every 10 minutes on the dispatcher, router entities, Impostazioni mounts the panel',()=>{
- const v=JSON.parse(read('vercel.json'));assert.deepEqual(v.crons,[{path:'/api/integrations/send-queue',schedule:'*/10 * * * *'}]);
+ const v=JSON.parse(read('vercel.json'));assert.deepEqual(v.crons.find(c=>c.path==='/api/integrations/send-queue'),{path:'/api/integrations/send-queue',schedule:'*/10 * * * *'});
  assert.match(read('api/integrations/[service].js'),/'send-queue': \(\) => require\('\.\.\/_sales_send_worker'\)/);
  assert.ok(!fs.existsSync(__dirname+'/../api/send-queue.js'),'no extra serverless function');
  assert.deepEqual(mailq.ENTITIES,['mailboxes','send_queue']);
