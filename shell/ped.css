@@ -448,3 +448,5 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .rx-ped .ped-results #nextStepList{margin:10px 22px 22px}
 @media (max-width:900px){.rx-ped .results-actions,.rx-ped .stats-preview,.rx-ped .result-posts-wrap,.rx-ped .ped-results #nextStepList{margin-left:14px;margin-right:14px}}
 #mediaTools .pp-script{white-space:pre-wrap;font-size:.92em;line-height:1.5;padding:10px 12px;border-left:3px solid currentColor;opacity:.85}
+#mediaTools .pp-link-video{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#mediaTools .pp-link-video input{flex:1 1 260px;min-width:0}
