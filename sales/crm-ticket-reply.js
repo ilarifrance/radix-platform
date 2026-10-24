@@ -1,7 +1,8 @@
 'use strict';
 /* Assistenza clienti: reply to a support ticket from its card. The AI (Copilota, on the live CRM data)
    writes a draft into an editable box; the person checks it and then sends it (one email, one
-   confirmation, through /api/send-email), opens it in their mail client, or marks it as sent.
+   confirmation, through /api/send-email as kind «service»: a support reply is not a commercial email, so the
+   «Indirizzi disiscritti» list does not block it), opens it in their mail client, or marks it as sent.
    Every reply is recorded as an «email» interaction of the contact, and an open ticket moves to
    «in attesa» (waiting for the customer). Nothing is sent without a click. */
 (function(root){
@@ -77,7 +78,7 @@ function mount(c,ticket){
    if(!await emailConfigured())throw new Error('Invio diretto non configurato (manca Gmail): usa «Apri nel programma email».')}))return;
   if(/\[DA COMPLETARE/i.test(p.body)&&!window.confirm('La risposta contiene ancora parti [DA COMPLETARE]. Inviarla comunque?'))return;
   if(!window.confirm('Inviare ora la risposta a '+p.to+'?\nOggetto: '+p.subject))return;
-  if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,confirm:true})});
+  if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,kind:'service',confirm:true})});
    const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record(p)})){await a.refresh(false);a.notice('Risposta inviata a '+p.to+' e registrata.')}}));
  acts.append(B('Apri nel programma email',async()=>{
   let p;if(!await run('Preparo l’email…',async()=>{p=plan(ticket,await load(),area.value);if(p.error)throw new Error(p.error)}))return;

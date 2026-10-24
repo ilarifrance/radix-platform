@@ -8,6 +8,7 @@
    The key comes from UNSUBSCRIBE_SECRET when set, else from JWT_SECRET: setting UNSUBSCRIBE_SECRET keeps the links
    already sent working even if the session secret is rotated later. */
 const crypto=require('node:crypto');
+const optout=require('./_sales_optout');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const key=secret=>{if(typeof secret!=='string'||secret.length<16)throw new Error('JWT_SECRET is not set in the environment.');return crypto.createHmac('sha256',secret).update('radix-crm-unsubscribe-v1').digest()};
 const toBytes=u=>Buffer.from(u.replace(/-/g,''),'hex');
@@ -56,13 +57,27 @@ async function handle(req,res,{getSql,secret}){
   console.error('unsubscribe failed',e&&e.code);
   return send(res,503,page('Servizio non disponibile','La disiscrizione non è riuscita in questo momento. Riprova tra qualche minuto oppure rispondi all’email ricevuta chiedendo di non essere più contattato.'));
  }
+ // «Indirizzi disiscritti» (migration sales 017): the address, by hash, stays on the list even if the contact is deleted or
+ // imported again. The opt-out above is already recorded: an archive without 017 (or a failure here) does not undo it.
+ try{await optout.suppressContact(sql,who.workspace,who.contact,{reason:'unsubscribe',source:'link di disiscrizione'})}
+ catch(e){if(!(e&&e.code==='42P01'))console.error('unsubscribe suppression failed',e&&e.code)}
  const left=rows.length?rows:await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=$2',[who.workspace,who.contact]);
  if(!left.length)return send(res,200,page('Disiscrizione registrata','Non risultano più tuoi dati per queste email: non riceverai altri messaggi commerciali.'));
  return send(res,200,page('Disiscrizione registrata','Fatto: non riceverai più email commerciali da questo mittente.'));
 }
-// Links for the contacts of one workspace (ids not in the workspace are left out).
+// Links for the contacts of one workspace (ids not in the workspace are left out). The queue plan calls it with
+// recipients already checked for opt-out.
 async function links(sql,workspace,ids,secret){
  const rows=await sql('SELECT id FROM sales_contacts WHERE workspace_id=$1 AND id=ANY($2::uuid[])',[workspace,ids]);
  return Object.fromEntries(rows.map(r=>[r.id,sign(secret,workspace,r.id)]));
 }
-module.exports={sign,verify,handle,links,secretOf};
+// The browser's link request (campaign panel, newsletter): an opted-out contact (api/_sales_optout.js, «Indirizzi
+// disiscritti» included) gets no link, so withUnsubscribe leaves it out of every direct send. → {links:{id:token}, opted_out:n}
+async function linksOf(sql,workspace,ids,secret){
+ const all=await links(sql,workspace,ids,secret),ok=Object.keys(all);
+ if(!ok.length)return {links:all,opted_out:0};
+ const out=await sql('SELECT t.id FROM sales_contacts t WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND '+optout.OPTED_OUT('t'),[workspace,ok]);
+ for(const r of out)delete all[r.id];
+ return {links:all,opted_out:out.length};
+}
+module.exports={sign,verify,handle,links,linksOf,secretOf};
