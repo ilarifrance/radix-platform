@@ -91,3 +91,11 @@ test('an approval survives a new revision that changes only the graphics', () =>
  const old = { state: 'approved', fingerprint: core.fingerprint(editorial.approvalPayload({ ...item, copy: 'Bozza', revision: 2 })) };
  assert.equal(editorial.sameWordRevisions(item).some(revision => core.approvalStatus(old, editorial.approvalPayload({ ...item, revision })) === 'approved'), false);
 });
+
+test('an uploaded photo is kept on the content without a Higgsfield request',()=>{
+ const editorial=require('../editorial-core.js');
+ const state={briefApproved:true,strategyRevision:1,contents:[]};
+ const c=editorial.updateContent(state,{id:'p1',title:'Post',channel:'LinkedIn',copy:'Testo',photo:{source:'upload',headline:'Titolo',at:'2026-10-24T10:00:00Z',url:'javascript:x'}});
+ assert.deepEqual(c.photo,{source:'upload',headline:'Titolo',at:'2026-10-24T10:00:00Z'});
+ assert.equal(editorial.updateContent(state,{id:'p2',title:'Post',channel:'LinkedIn',copy:'x',photo:{source:'other'}}).photo,undefined);
+});
