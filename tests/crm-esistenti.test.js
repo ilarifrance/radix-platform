@@ -14,9 +14,13 @@ function view(file){
     querySelectorAll:()=>[],documentElement:{classList:{add(){},remove(){},toggle(){}}}};
   const win={document,MutationObserver:class{observe(){}},addEventListener(){},setTimeout(){},requestAnimationFrame(){},RadixCrmForecast:forecast};
   // radix-sales.html loads sales/crm-dates-core.js (ora italiana) before the views.
-  win.window=win;vm.createContext(win);vm.runInContext(src('sales/crm-dates-core.js'),win);vm.runInContext(src(file),win);return win}
+  win.window=win;vm.createContext(win);freeze(win);vm.runInContext(src('sales/crm-dates-core.js'),win);vm.runInContext(src(file),win);return win}
 
-const DAY=864e5,iso=d=>new Date(Date.now()+d*DAY).toISOString(),date=d=>iso(d).slice(0,10);
+// A fixed «now» for the views and the fixtures alike (process.env.CRM_TEST_NOW overrides it): with the real clock,
+// «2 giorni fa» became «Ieri» late in the evening, when now−48 h and today fall on Rome days that are not two apart.
+const NOW=Date.parse(process.env.CRM_TEST_NOW||'2026-10-14T10:00:00Z');
+function freeze(win){vm.runInContext('(()=>{const R=Date,N='+NOW+';globalThis.Date=class extends R{constructor(...a){if(a.length)super(...a);else super(N)}static now(){return N}}})()',win)}
+const DAY=864e5,iso=d=>new Date(NOW+d*DAY).toISOString(),date=d=>iso(d).slice(0,10);
 const data=()=>({
   members:[{id:1,name:'Giulia Bianchi'}],companies:[{id:'c1',name:'Aurora'}],stages:[{id:'s1',process_id:'p1',position:1,title:'Proposta'}],interactions:[],
   contacts:[{id:'k1',name:'Anna Neri'},{id:'k2',name:'Luca Galli'},{id:'k3',name:'Paolo Conti'}],
