@@ -9,7 +9,7 @@ html.rx-shell body.rx-pm{
 .rx-pm h1{font-size:30px;letter-spacing:-.01em;margin:8px 0 6px}
 .rx-pm h2{font-size:18px}
 .rx-pm .eyebrow{color:var(--rx-projects);font-size:12px;letter-spacing:.14em}
-.rx-pm .muted,.rx-pm small{color:var(--rx-muted)}
+.rx-pm .muted,.rx-pm small:not(:where(.rx-regia *)){color:var(--rx-muted)}
 .rx-pm .hero{padding:4px 0 8px}
 .rx-pm .notice{border:1px solid var(--rx-border);border-left:3px solid var(--rx-warning);border-radius:12px;background:var(--rx-surface);color:var(--rx-muted);font-size:13px;padding:12px 16px;margin:16px 0}
 .rx-pm .notice strong{color:var(--rx-text)}
@@ -21,11 +21,11 @@ html.rx-shell body.rx-pm{
 .rx-pm .stat strong{display:block;font:600 28px/1.1 var(--rx-display);color:var(--rx-text);font-variant-numeric:tabular-nums}
 .rx-pm .stat span{color:var(--rx-muted);font-size:12px}
 /* Controls */
-.rx-pm button{min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
-.rx-pm button:hover:not(:disabled){border-color:var(--rx-projects);background:var(--rx-surface-2)}
+.rx-pm button:not(:where(.rx-regia *)){min-height:40px;padding:9px 14px;border-radius:10px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);font:500 14px var(--rx-font)}
+.rx-pm button:hover:not(:disabled):not(:where(.rx-regia *)){border-color:var(--rx-projects);background:var(--rx-surface-2)}
 .rx-pm button.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
 .rx-pm button.primary:hover:not(:disabled){background:var(--rx-core-soft)}
-.rx-pm input,.rx-pm select,.rx-pm textarea{background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
+.rx-pm input:not(:where(.rx-regia *)),.rx-pm select,.rx-pm textarea:not(:where(.rx-regia *)){background:var(--rx-surface-2);border:1px solid var(--rx-border);border-radius:10px;color:var(--rx-text);min-height:40px}
 .rx-pm input[type=checkbox]{min-height:0;accent-color:var(--rx-projects)}
 .rx-pm label{color:var(--rx-muted);font-size:13px}
 .rx-pm :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
@@ -115,7 +115,7 @@ html.rx-shell body.rx-pm{--pm-todo:#9B7BFF;--pm-doing:#E062D8;--pm-review:var(--
 .rx-pm .pm-subtask-form input{flex:1 1 auto;min-width:0}
 
 /* Pruning: the project bar and the views already explain the page */
-.rx-pm .notice,.rx-pm .future,.rx-pm main>footer,.rx-pm header:not(.rx-topbar){display:none!important}
+.rx-pm .notice,.rx-pm .future,.rx-pm main>footer,.rx-pm header:not(.rx-topbar):not(.rx-regia-head){display:none!important}
 .rx-pm section[aria-label="Stato del salvataggio"]{background:none;border:0;padding:0;margin:0 0 6px;box-shadow:none}
 .rx-pm #storage-status{margin:0;font-size:12px;color:var(--rx-subtle)}
 .rx-pm #storage-status::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--rx-success);margin-right:8px;vertical-align:middle}
