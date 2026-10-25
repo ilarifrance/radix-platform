@@ -113,7 +113,9 @@ function hookData(rows){
 }
 function hooksPrompt(a,rows){
  const g=pick(GOALS,a?.goal),t=pick(TONES,a?.tone);
- return 'Per ogni destinatario scrivi UNA frase d’apertura personale per una newsletter (massimo 30 parole, in italiano, tono '+t[1]+'). Scopo della newsletter: '+g[1]+'.\n'+
+ // English UI (RadixI18n): the opening lines are asked in British English.
+ const en=!!(typeof globalThis!=='undefined'&&globalThis.RadixI18n&&globalThis.RadixI18n.en);
+ return 'Per ogni destinatario scrivi UNA frase d’apertura personale per una newsletter (massimo 30 parole, '+(en?'in inglese britannico (British English)':'in italiano')+', tono '+t[1]+'). Scopo della newsletter: '+g[1]+'.\n'+
   DATA_RULE+NO_INVENT+'Interpreta solo i dati del destinatario (ruolo, qualifica, reparto, settore, azienda, città) e collegali ai fatti del progetto. Non attribuire al destinatario problemi, progetti o notizie che i dati non dicono. Se i dati sono troppo pochi, scrivi una frase sobria legata al suo ruolo o settore, senza dettagli inventati. Niente saluto (c’è già), niente link, niente segnaposto.\n'+
   block('fatti',a?.facts,3000)+'\n'+block('indicazioni',a?.indications,1500)+'\n'+
   block('destinatari',JSON.stringify(hookData(rows)),6000)+'\n'+

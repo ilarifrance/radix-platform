@@ -1876,6 +1876,8 @@ module.exports = async (req, res) => {
     }
     system += crmBlock;
   }
+  // Interface language (CRM in English): a strict rule at the end of the prompt, for every role.
+  system += languageRule(body && (body.lang || body.language));
 
   // Un modello che in una conversazione lunga ha già detto (erroneamente, con un verbo qualsiasi:
   // "creare"/"generare"/"produrre" file scaricabili, "non ho questa/la capacità tecnica", ecc.) tende a
@@ -1990,6 +1992,19 @@ function friendlyApiError(err) {
   if ((err && (err.status === 429 || err.status === 529)) || /rate_limit|overloaded/i.test(msg)) return "Il servizio degli agenti è sovraccarico in questo momento: riprova tra qualche minuto con «Rigenera ultima risposta».";
   return "Chiamata all'API fallita: " + msg;
 }
+// Lingua della risposta: solo "it" (predefinita, nessuna aggiunta) o "en"; ogni altro valore è ignorato.
+const LANGUAGES = ["it", "en"];
+const ENGLISH_RULE =
+  "LANGUAGE: Write the whole answer in British English, including any drafts, regardless of the language of the " +
+  "instructions or data; keep names and quoted record data as they are. Keep JSON keys, codes and values taken " +
+  "from a fixed list exactly as given, and placeholders in curly braces such as {nome} or {azienda} unchanged.";
+function languageRule(lang) {
+  const l = typeof lang === "string" ? lang.trim().toLowerCase() : "";
+  if (!LANGUAGES.includes(l) || l === "it") return "";
+  return "\n\n" + ENGLISH_RULE;
+}
 module.exports.friendlyApiError = friendlyApiError;
+module.exports.languageRule = languageRule;
+module.exports.LANGUAGES = LANGUAGES;
 module.exports.directorInput = directorInput;
 module.exports.DIRECTOR_LIMITS = DIRECTOR_LIMITS;
