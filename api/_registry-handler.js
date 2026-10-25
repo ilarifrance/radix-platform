@@ -264,7 +264,7 @@ async function publications(req,res,db,uid,deps){
   catch(e){return failed(502,'Video non preparato per Buffer: '+core.clean(e&&e.message,300))}
   // YouTube wants a title and a category, and a short description instead of the whole spoken script.
   const yt=/youtube/i.test(String(item.channel||'')+' '+String(r.channelName||''))?pv.youtubeMeta(item):null;
-  try{post=await deps.createPost(key,{channelId:r.channelId,text:yt?yt.description:String(item.copy),dueAt:scheduledAt,video,youtube:yt})}
+  try{post=await deps.createPost(key,{channelId:r.channelId,text:pv.plainSocial(yt?yt.description:String(item.copy),item.channel),dueAt:scheduledAt,video,youtube:yt})}
   catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il video: '+core.clean(e&&e.message,300))}
  }else{
  let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
@@ -275,7 +275,7 @@ async function publications(req,res,db,uid,deps){
    images=await Promise.all(images.map(mid=>{const m=byId.get(mid);return deps.putBlob(blobToken,{name:mid,mime:m.mime,data:Buffer.from(m.data_b64,'base64')})}))}
   catch(e){return failed(502,'Immagini non caricate su Vercel Blob: '+core.clean(e&&e.message,300))}
  }else images=images.map(mid=>base+mediaUrl(mid));
- try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt,images})}
+ try{post=await deps.createPost(key,{channelId:r.channelId,text:pv.plainSocial(String(item.copy),item.channel),dueAt:scheduledAt,images})}
  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
  }
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
