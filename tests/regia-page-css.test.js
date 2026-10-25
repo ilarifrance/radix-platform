@@ -15,7 +15,7 @@ const GENERIC=new Set(['section','header','div','strong','small','button','texta
 function files(dir,ext,out){for(const e of fs.readdirSync(path.join(ROOT,dir),{withFileTypes:true})){const rel=path.posix.join(dir,e.name);
  if(e.isDirectory()){if(!SKIP_DIRS.has(e.name))files(rel,ext,out);continue}if(ext.test(e.name))out.push(rel.replace(/^\.\//,''))}return out}
 // The pages that load the Regia: through the shell (shell/radix-shell.js, for signed-in people) or directly. accounting/ apart.
-function regiaPages(){return files('.',/\.html$/,[]).filter(f=>{const h=read(f);return /shell\/radix-shell\.js|lib\/radix-regia\.js/.test(h)&&!/data-shell-guide="off"/.test(h)}).sort()}
+function regiaPages(){return files('.',/\.html$/,[]).filter(f=>{const h=read(f);return /shell\/radix-shell\.js|lib\/radix-regia\.js|sales\/regia-loader\.js/.test(h)&&!/data-shell-guide="off"/.test(h)}).sort()}
 // A page's own CSS: its <link rel="stylesheet"> files (on this site) and its <style> blocks.
 function sheetsOf(page){const html=read(page),dir=path.posix.dirname(page),sheets=[];
  for(const m of html.matchAll(/<link\b[^>]*>/gi)){const tag=m[0];if(!/rel=["']?stylesheet/i.test(tag))continue;const h=(tag.match(/href=["']([^"']+)["']/i)||[])[1];
@@ -23,10 +23,12 @@ function sheetsOf(page){const html=read(page),dir=path.posix.dirname(page),sheet
   if(/^shell\/radix-(regia|guide|confirm)\.css$/.test(f))continue;if(fs.existsSync(path.join(ROOT,f)))sheets.push({name:f,css:read(f)})}
  let i=0;for(const m of html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi))sheets.push({name:page+' <style> '+(++i),css:m[1]});
  return sheets}
-// Every rule as {selector, body}; @media, @supports, @layer and @container are opened, @keyframes and @font-face skipped.
+// Every rule as {selector, body}; @media, @supports, @layer and @container are opened, @media print, @keyframes and @font-face skipped.
 function rules(css){const out=[],s=css.replace(/\/\*[\s\S]*?\*\//g,'');let i=0;
  (function block(end){while(i<s.length){const open=s.indexOf('{',i),close=s.indexOf('}',i);if(close!==-1&&(open===-1||close<open)){i=close+1;if(end)return;continue}if(open===-1)return;
   const pre=s.slice(i,open).trim();i=open+1;
+  // @media print: the panel is display:none on paper (radix-regia.css), so a print-only page rule cannot reach it.
+  if(/^@media\s+print\s*$/i.test(pre)){let d=1;while(i<s.length&&d){if(s[i]==='{')d++;else if(s[i]==='}')d--;i++}continue}
   if(/^@(media|supports|layer|container|document)\b/.test(pre)){block(true);continue}
   if(/^@/.test(pre)){let d=1;while(i<s.length&&d){if(s[i]==='{')d++;else if(s[i]==='}')d--;i++}continue}
   const c=s.indexOf('}',i);out.push({selector:pre.replace(/\s+/g,' '),body:s.slice(i,c)});i=c+1}})(false);
@@ -83,11 +85,12 @@ test('the clash finder: flags generic !important and id rules, skips the ones th
  assert.deepEqual(f('body>section{padding:0!important}'),['body>section']);
  assert.deepEqual(f('*{animation:none!important;transition:none!important}'),[]);
  assert.deepEqual(f('@keyframes k{from{opacity:0}}@font-face{font-family:x}h1{color:red}'),[]);
+ assert.deepEqual(f('@media print{body>*:not(.vd-print){display:none!important}}@media screen{button{color:red!important}}'),['button'],'print only: the panel does not print');
 });
 
 test('every page that loads the Regia: no page rule with !important or an id can restyle the panel',()=>{
  const pages=regiaPages();
- for(const p of ['control-center-v2.html','radix-sales.html','impostazioni.html','radix-pm-concept.html','project-editorial.html','agency/orbit.html','agency/crea.html','agency/projects.html','agency/index.html','agency/project-workspace.html','agency/memory.html'])
+ for(const p of ['control-center-v2.html','radix-sales.html','impostazioni.html','radix-pm-concept.html','project-editorial.html','agency/orbit.html','agency/crea.html','agency/projects.html','agency/index.html','agency/project-workspace.html','agency/memory.html','sales-pipeline-premium.html','sales-orbit-higgsfield.html','sales-orbit.html','sales-vendite.html','sales-linkedin.html','sales-growth-campaigns.html','sales-growth-projects.html','lead-intelligence.html'])
   assert.ok(pages.includes(p),p+' loads the Regia');
  assert.ok(!pages.some(p=>/^accounting\//.test(p)));
  const found=new Set();

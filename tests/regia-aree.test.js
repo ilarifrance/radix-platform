@@ -263,9 +263,12 @@ test('Impostazioni: without a session the status is «non disponibile» and the 
 // ---------------- wiring ----------------
 test('wiring: each page loads its adapter before the panel starts',()=>{
  const sales=read('radix-sales.html'),i=s=>sales.indexOf(s);
- assert.match(sales,/<html lang="it" data-rx-regia="on">/);assert.match(sales,/<body data-shell-page="sales-crm">/);
- for(const f of ['sales/crm-dates-core.js','sales/crm-today-core.js','sales/crm-automations-core.js','sales/crm-record-core.js','sales/sales.js'])assert.ok(i(f)>0&&i(f)<i('lib/regia-crm.js'),f);
- assert.ok(i('lib/radix-regia-core.js')<i('lib/regia-crm.js')&&i('lib/regia-crm.js')<i('lib/radix-guide.js')&&i('lib/radix-guide.js')<i('lib/radix-regia.js'));
+ // The CRM starts the Regia through sales/regia-loader.js (signed-in people only), which loads its adapter after the
+ // page's deferred scripts (the CRM cores) and in the shell's order (tests/regia-sales-pagine.test.js).
+ assert.match(sales,/<body data-shell-page="sales-crm" data-shell-regia="\/lib\/regia-crm\.js">/);
+ for(const f of ['sales/crm-dates-core.js','sales/crm-today-core.js','sales/crm-automations-core.js','sales/crm-record-core.js','sales/sales.js'])assert.ok(i(f)>0&&i(f)<i('sales/regia-loader.js'),f);
+ assert.ok(/<script src="sales\/regia-loader\.js" defer><\/script><\/body>/.test(sales));
+ assert.deepEqual(require('../sales/regia-loader.js').scripts('/lib/regia-crm.js'),['/lib/radix-confirm.js','/lib/radix-regia-core.js','/lib/regia-crm.js','/lib/radix-guide.js','/lib/radix-regia.js']);
  assert.match(read('impostazioni.html'),/data-shell-page="impostazioni" data-shell-regia="\/lib\/regia-impostazioni\.js"/);
  const pmHtml=read('radix-pm-concept.html');assert.match(pmHtml,/data-shell-page="pm"[^>]*data-shell-regia="\/lib\/regia-pm\.js"/);
  assert.match(pmHtml,/window\.RadixPmPage=\{state:\(\)=>state,/);assert.match(pmHtml,/function persist\(\)\{[^\n]*return saving;\}/);
