@@ -274,3 +274,12 @@ test('wiring: each page loads its adapter before the panel starts',()=>{
  assert.equal(guide.forPage('sales-crm','/radix-sales.html','').title,'CRM');
  for(const f of ['lib/regia-crm.js','lib/regia-pm.js','lib/regia-impostazioni.js'])assert.doesNotMatch(read(f),/process\.env|api\/chat/,f);
 });
+
+// pm.css styles every button, field, <small> and <header> of the PM page (dark theme): the Regia panel keeps its own
+// light look, so those page-wide rules leave .rx-regia alone and its head («Regia», ✕) is not hidden.
+test('pm.css: the page-wide rules skip the Regia panel',()=>{
+ const css=read('shell/pm.css');
+ for(const sel of ['button','input','textarea','small'])for(const m of css.matchAll(new RegExp('(?:^|[,}])\\.rx-pm '+sel+'(?=[{,:])([^{,]*)','gm')))
+  assert.match(m[1],/:not\(:where\(\.rx-regia \*\)\)/,'.rx-pm '+sel+m[1]);
+ assert.match(css,/\.rx-pm header:not\(\.rx-topbar\):not\(\.rx-regia-head\)\{display:none!important/);
+});
