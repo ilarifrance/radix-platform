@@ -17,8 +17,15 @@ const KEY='radix-crea-project';
 const remembered=()=>{try{return localStorage.getItem(KEY)||''}catch(e){return ''}};
 const planets=O.planets();
 const state={project:null,journey:null,tasks:null,projects:null,plans:new Map(),roles:{},signed:null};
-$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moSwitchIcon').innerHTML=L.svg('folder');
-$('moLead').textContent='Scrivi cosa ti serve o scegli un servizio qui sotto: '+plural(C.CARDS.length,'servizio','servizi')+' in '+planets.length+' aree. Ogni lavoro arriva in 3 proposte e niente parte senza la tua conferma.';
+// ---- Phone: long lists show three items (the phase to do now with its neighbours) and «Mostra … (N)»; the rest is one
+// press away. The rules live in the phone block of orbit.css: on a computer everything shows and the buttons do not. ----
+const opened=new Set();
+function setFold(id,box,n,what){const b=$(id),open=opened.has(id),many=n>3;b.dataset.n=String(n);b.dataset.what=what;b.hidden=!many;
+ box.dataset.collapsed=String(many&&!open);b.setAttribute('aria-expanded',String(many&&open));b.textContent=open?'Mostra meno':'Mostra '+what+' ('+n+')'}
+[['moWaitMore','moWait'],['moFlowMore','moFlow'],['moJobsMore','moJobs']].forEach(([id,box])=>$(id).addEventListener('click',()=>{
+ opened.has(id)?opened.delete(id):opened.add(id);const b=$(id);setFold(id,$(box),+b.dataset.n,b.dataset.what)}));
+$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moNewIcon').innerHTML=L.svg('folder');$('moSwitchIcon').innerHTML=L.svg('folder');
+$('moLead').textContent='Scrivi cosa ti serve o scegli un servizio qui sotto: '+plural((C.listed?C.listed():C.CARDS).length,'servizio','servizi')+' in '+planets.length+' aree. Ogni lavoro arriva in 3 proposte e niente parte senza la tua conferma.';
 try{const d=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});$('moCrumb').textContent='Marketing Agency · '+d.charAt(0).toUpperCase()+d.slice(1)}catch(e){}
 
 // ---- Command bar: a combobox whose listbox of suggestions stays open under it. ----
@@ -66,7 +73,7 @@ function header(){
  const kind=p.profile&&p.profile.kind||p.profile&&p.profile.brief&&p.profile.brief.industry||KIND[p.kind]||'';
  const chips=[p.client_name&&p.client_name!==p.name?p.client_name:'',kind].filter(Boolean);
  chips.forEach(t=>box.append(node('span','mo-chip',String(t).slice(0,60))));
- if(state.journey&&Number.isInteger(state.journey.done)&&state.journey.total)box.append(node('span','mo-chip mo-chip--ok',state.journey.done+' di '+state.journey.total+' fasi fatte'));
+ const pp=O.phaseProgress(state.journey);if(pp)box.append(node('span','mo-chip mo-chip--ok',pp.done+' di '+pp.total+' fasi fatte'));
  const open=node('a','mo-chip mo-chip--link','Apri il progetto');open.href='/agency/project-workspace.html?id='+encodeURIComponent(p.id);box.append(open);
 }
 $('moSwitch').addEventListener('change',e=>{const p=(state.projects||[]).find(x=>x&&x.id===e.target.value);if(!p)return;
@@ -77,7 +84,7 @@ function choose(p){state.project=p||null;state.journey=p&&p.journey||null;const 
 
 // ---- «Aspettano te»: what waits for a person, from the project state, the agents' plans and the Command Center. ----
 function waitingPanel(){
- const box=$('moWait'),count=$('moWaitCount');
+ const box=$('moWait'),count=$('moWaitCount');setFold('moWaitMore',box,0,'tutti');
  if(state.signed===false){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Accedi dal Command Center per vedere cosa aspetta te.'));return}
  if(!state.projects){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Caricamento…'));return}
  const w=O.waiting({project:state.project,journey:state.journey,projects:state.projects,plans:state.plans,approvals:state.dashboard&&state.dashboard.approvals,roles:state.roles});
@@ -86,6 +93,7 @@ function waitingPanel(){
  box.replaceChildren(...w.items.map(it=>{const li=node('li'),a=node('a','mo-wait-item');a.href=it.href;a.dataset.kind=it.kind;
   const t=node('span','mo-wait-text');t.append(node('b','',it.label));if(it.hint)t.append(node('small','',it.hint));
   a.append(ico(it.icon,'mo-wait-icon'),t,node('span','mo-wait-go','Apri'));li.append(a);return li}));
+ setFold('moWaitMore',box,w.items.length,'tutti');
 }
 
 // ---- KPI tiles: only numbers the registry and the Command Center gave; «—» with the reason otherwise. ----
@@ -105,7 +113,7 @@ function kpis(c){
 // ---- Area cards: number, icon, how many services, the first four as links, the rest behind «+N». ----
 function areas(){
  const pid=state.project&&state.project.id;
- $('moAreasCount').textContent=plural(C.CARDS.length,'servizio','servizi')+' in '+plural(planets.length,'area','aree');$('moOrbitCount').textContent=plural(planets.length,'area','aree');
+ $('moAreasCount').textContent=plural((C.listed?C.listed():C.CARDS).length,'servizio','servizi')+' in '+plural(planets.length,'area','aree');$('moOrbitCount').textContent=plural(planets.length,'area','aree');
  $('moAreas').replaceChildren(...planets.map((p,i)=>{
   const li=node('li','ma-glass ma-area');li.style.setProperty('--c',p.color);li.dataset.area=p.slug;
   const head=node('div','ma-area-head');head.append(ico(p.icon,'ma-area-icon'),node('span','ma-area-num',String(i+1).padStart(2,'0')),node('span','ma-pill ma-pill--count',plural(p.count,'servizio','servizi')));
@@ -118,12 +126,12 @@ function areas(){
 
 // ---- Work in progress: the open Agency tasks of the team projects, drafts to review first, as a list. ----
 function jobsTable(){
- const box=$('moJobs'),count=$('moJobsCount');
+ const box=$('moJobs'),count=$('moJobsCount');setFold('moJobsMore',box,0,'tutti');box.closest('section').dataset.empty='false';
  if(state.signed===false){count.textContent='';box.replaceChildren(empty('Accedi dal Command Center per vedere i lavori del team.','Vai al Command Center','/control-center-v2.html'));return null}
  if(!state.projects){count.textContent='';box.replaceChildren(node('p','ma-empty-line','Caricamento dei lavori…'));return null}
  const j=O.jobs(state.projects,state.plans,{roles:state.roles,status:DV?DV.STATUS:{}});
  count.textContent=j.total?plural(j.total,'aperto','aperti'):'';
- if(!j.rows.length){box.replaceChildren(empty('Nessun lavoro in corso','Inizia un lavoro','/agency/crea.html',state.projects.length?'Scegli un servizio qui sopra: gli incarichi degli agenti compaiono qui.':'Crea un progetto, poi scegli un servizio: gli incarichi compaiono qui.'));return j}
+ if(!j.rows.length){box.replaceChildren(empty('Nessun lavoro in corso','Inizia un lavoro','/agency/crea.html',state.projects.length?'Scegli un servizio qui sopra: gli incarichi degli agenti compaiono qui.':'Crea un progetto, poi scegli un servizio: gli incarichi compaiono qui.'),emptyLine());box.closest('section').dataset.empty='true';return j}
  const ul=node('ul','mo-job-list');
  j.rows.forEach(r=>{const li=node('li','mo-job'),a=node('a','mo-job-link');a.href=r.href;
   const top=node('span','mo-job-top');top.append(node('b','mo-job-title',r.title),node('span','ma-pill ma-pill--'+r.tone,r.label));
@@ -131,20 +139,34 @@ function jobsTable(){
   const bar=node('span','ma-bar'),fill=node('span');fill.style.width=(r.progress.total?Math.round(r.progress.done/r.progress.total*100):0)+'%';bar.append(fill);
   bar.setAttribute('role','img');bar.setAttribute('aria-label',r.progress.done+' di '+r.progress.total+' incarichi approvati nel progetto');
   a.append(top,meta,bar);li.append(a);ul.append(li)});
- box.replaceChildren(ul);return j;
+ box.replaceChildren(ul);setFold('moJobsMore',box,j.rows.length,'tutti');return j;
 }
+// On a phone the empty «Lavori in corso» is one line (the panel above stays on a computer): what is true and where to start.
+function emptyLine(){const p=node('p','mo-jobs-line'),a=node('a','ma-link','Inizia un lavoro');
+ a.href=state.project?'/agency/crea.html?project='+encodeURIComponent(state.project.id):'/agency/crea.html';// .ma-link draws the arrow
+ p.append(node('span','','Nessun lavoro in corso'),node('span','mo-jobs-dot','·'),a);return p}
 function empty(title,cta,href,line){const d=node('div','ma-empty');d.append(ico('layers','ma-empty-icon'),node('b','',title));if(line)d.append(node('p','',line));if(cta){const a=node('a','ma-btn ma-btn--ghost',cta);a.href=href;d.append(a)}return d}
 
 // ---- Workflow: the nine phases of the project with their real state; without a project, the flow itself. ----
 const STATE_WORD={done:'fatto',active:'in corso',waiting:'tocca a te',todo:'da fare'};
+// The phase to work on now (the first waiting for a person, else the first not done) gets what to do and where:
+// the next action of the project is one click from the home, above the services.
+const WHERE={workspace:id=>'/agency/project-workspace.html?id='+encodeURIComponent(id),ped:id=>'/project-editorial.html?project='+encodeURIComponent(id)+'#ped'};
 function flow(){
- const ph=state.journey&&Array.isArray(state.journey.phases)&&state.journey.phases.length?state.journey.phases:null;
- $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
- $('moFlow').replaceChildren(...(ph||O.FLOW.map(label=>({label}))).map((p,i)=>{
-  const li=node('li','ma-step'+(p.state?' is-'+p.state:''));const n=node('span','ma-step-n');
+ // Same source and count as the header chip (O.phaseProgress): «N di 9 fasi fatte» agrees with the steps below.
+ const pp=O.phaseProgress(state.journey),ph=pp?pp.phases:null;
+ const now=ph?(ph.find(p=>p.state==='waiting')||ph.find(p=>p.state!=='done')||null):null;
+ $('moFlowTitle').textContent=ph?'Il percorso del progetto':'Flusso di lavoro';
+ $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato: '+pp.done+' di '+pp.total+' fatte.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
+ // On a phone three phases show: the one before, the one to do now and the next (or the first three).
+ const steps=ph||O.FLOW.map(label=>({label})),k=now?steps.indexOf(now):-1,from=k<0?0:Math.max(0,Math.min(k-1,steps.length-3));
+ $('moFlow').replaceChildren(...steps.map((p,i)=>{
+  const li=node('li','ma-step'+(p.state?' is-'+p.state:'')+(p===now?' is-now':'')+(i>=from&&i<from+3?' is-near':'')+(i===from+2?' is-near-end':''));const n=node('span','ma-step-n');
   if(p.state==='done')n.append(ico('check'));else n.textContent=String(i+1);n.setAttribute('aria-hidden','true');
   const t=node('div','ma-step-text');t.append(node('b','',p.label));if(p.state){const w=STATE_WORD[p.state],d=String(p.detail||'');t.append(node('small','',d&&d.toLowerCase()!==w?w+' · '+d:w))}
+  if(p===now&&p.action&&WHERE[p.where]&&state.project){const a=node('a','ma-btn ma-btn--primary mo-now',p.actor==='you'?p.action:'Apri · '+p.action);a.href=WHERE[p.where](state.project.id);t.append(a)}
   li.append(n,t);return li}));
+ setFold('moFlowMore',$('moFlow'),steps.length,'tutte le fasi');
 }
 
 // ---- Agents: the catalogue roles, the ones with open work first. ----
@@ -158,6 +180,8 @@ function agents(){
  box.replaceChildren(...order.map(r=>{const li=node('li'),a=node('a','ma-row');a.href='/agents.html?agent='+encodeURIComponent(r.id)+(state.project?'&project='+encodeURIComponent(state.project.id):'');
   const t=node('span','ma-row-text');t.append(node('b','',r.name),node('small','',r.n?plural(r.n,'incarico aperto','incarichi aperti'):'Nessun incarico aperto'));
   a.append(ico(ROLE_ICON[r.id]||'user','ma-row-icon'),t,ico('chev','ma-row-go'));li.append(a);return li}));
+ // A roster where nobody has work only repeats the agents page: the card shows when an agent has an open task.
+ $('moAgents').closest('section').hidden=!order.some(r=>r.n);
 }
 
 // ---- Every section of the Agency, with the counts of the registry. ----
@@ -183,8 +207,9 @@ function place(){
  stage.classList.toggle('is-compact',compact);
  // In the narrow side column and on phones the labels are a picture: the area cards are the links (44px taps).
  els.forEach(({a},i)=>{if(compact){a.removeAttribute('href');a.setAttribute('aria-hidden','true')}else{a.href=planets[i].href;a.removeAttribute('aria-hidden')}});
- input.placeholder=phone.matches?'Es. «i post per il pane di Natale»':'Es. «i post per il pane di Natale, dal 1° dicembre»';
- const sizes=els.map(({li})=>{li.style.transform='';return {w:Math.ceil(li.offsetWidth)+1,h:Math.ceil(li.offsetHeight)}});
+ input.placeholder=phone.matches?'Cosa vuoi fare oggi?':'Es. «i post per il pane di Natale, dal 1° dicembre»';
+ // measured shown: a label hidden by an earlier layout (the folded globe on a phone measured 0) counts its real size
+ const sizes=els.map(({li})=>{li.hidden=false;li.style.transform='';return {w:Math.ceil(li.offsetWidth)+1,h:Math.ceil(li.offsetHeight)}});
  const pr=pauseBtn.hidden?null:pauseBtn.getBoundingClientRect(),blocked=pr&&pr.width?[{x:pr.left-r.left,y:pr.top-r.top,w:pr.width,h:pr.height}]:[];
  layout=O.globeLayout(W,H,sizes,{blocked});
  stage.classList.toggle('is-bare',!layout);
@@ -209,6 +234,10 @@ if(window.ResizeObserver)new ResizeObserver(later).observe(stage);else window.ad
 [still,phone].forEach(m=>m.addEventListener&&m.addEventListener('change',()=>{pauseBtn.hidden=still.matches;refresh()}));
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refresh);
 refresh();
+// On a phone the globe is a picture (the area rows are the links): folded under its title, one press shows it.
+const orbitBox=stage.closest('section'),orbitFold=$('moOrbitFold');
+function showGlobe(open){orbitBox.dataset.open=String(open);orbitFold.setAttribute('aria-expanded',String(open));orbitFold.textContent=open?'Nascondi':'Mostra il globo'}
+showGlobe(!phone.matches);orbitFold.addEventListener('click',()=>showGlobe(orbitBox.dataset.open!=='true'));
 
 // ---- First paint without data, then the registry. ----
 function render(){const c=O.counts({clients:state.clients,projects:state.projects,dashboard:state.dashboard});showCounts(c);header();waitingPanel();areas();jobsTable();kpis(c);flow();agents();suggestions()}

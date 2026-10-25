@@ -8,7 +8,7 @@
    service (crea-core fromAsk, the same matching as the home), ?project= picks the project. Nothing is generated on
    load: every paid step asks for confirmation (RadixConfirm) inside the tool it opens. */
 (function(){'use strict';
-const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,O=window.RadixOrbit,KEY='radix-crea-project',GROUP_KEY='radix-crea-group';
+const $=id=>document.getElementById(id),ws=window.RadixWorkspace,core=window.RadixCrea,O=window.RadixOrbit,KEY='radix-crea-project',GROUP_KEY='radix-crea-group',RECENT_KEY='radix-crea-recent';
 const asked=core.fromQuery(location.search),ask=core.fromAsk(location.search);
 let projects=[],current=null,openCard='',group=asked.group||remembered(GROUP_KEY),picked=ask.match;if(asked.group)remember(asked.group,GROUP_KEY);
 // A preselected service shows its area, unless the link asked for one.
@@ -22,13 +22,16 @@ const plural=(n,one,many)=>n+' '+(n===1?one:many);
 const L=window.RadixMarketingLook,look=c=>L.AREAS[core.areaOf(c.group)]||{color:'#a68bff',icon:'spark'};
 const ico=(name,cls)=>L.icon(name,cls||'ma-ico');
 $('crAskIcon').innerHTML=L.svg('spark');$('crAskGoIcon').innerHTML=L.svg('arrow');
-const FREE=core.CARDS.filter(c=>core.costBadge(c).tone==='free').length;
-$('crLead').textContent=plural(core.CARDS.length,'servizio guidato','servizi guidati')+' in '+core.groups().length+' aree: poche domande, tre proposte, scegli tu. Il costo è sulla scheda e prima di ogni chiamata AI ti chiedo conferma.';
-$('crFacts').replaceChildren(...[['Servizi',core.CARDS.length],['Aree',core.groups().length],['Senza AI',FREE]].map(([k,v])=>{const d=node('div','cp-fact');d.append(node('dt','',k),node('dd','',String(v)));return d}));
+const FREE=core.listed().filter(c=>core.costBadge(c).tone==='free').length;
+$('crLead').textContent=plural(core.listed().length,'servizio guidato','servizi guidati')+' in '+core.groups().length+' aree: poche domande, tre proposte, scegli tu. Il costo è sulla scheda e prima di ogni chiamata AI ti chiedo conferma.';
+$('crFacts').replaceChildren(...[['Servizi',core.listed().length],['Aree',core.groups().length],['Senza AI',FREE]].map(([k,v])=>{const d=node('div','cp-fact');d.append(node('dt','',k),node('dd','',String(v)));return d}));
 
 // ---- What a card does when chosen: a studio here, or the page of its tool. ----
+// The services opened from this browser, newest first (a convenience of this viewer only: «Usati di recente»).
+function recent(){try{const v=JSON.parse(localStorage.getItem(RECENT_KEY)||'[]');return Array.isArray(v)?v.filter(id=>{const c=core.card(id);return c&&!c.merged}).slice(0,4):[]}catch(e){return []}}
+function used(c){if(!c)return;const id=c.merged||c.id;try{localStorage.setItem(RECENT_KEY,JSON.stringify([id,...recent().filter(x=>x!==id)].slice(0,4)))}catch(e){}}
 function act(c){
- if(!c)return;
+ if(!c)return;used(c);
  if(c.inline){openInline(c);return}
  const href=core.linkFor(c,current?current.id:'');
  if(href)location.assign(href);else say('Scegli prima un progetto: '+c.title+' lavora sui suoi dati.');
@@ -36,29 +39,33 @@ function act(c){
 function goButton(c,cls,label){
  const href=core.linkFor(c,current?current.id:'');let go;
  if(c.inline){go=node('button',cls);go.type='button';go.addEventListener('click',()=>{picked=c.id;openInline(c)})}
- else{go=node('a',cls);if(href)go.href=href;else{go.setAttribute('aria-disabled','true');go.title='Scegli prima un progetto';go.addEventListener('click',e=>{e.preventDefault();say('Scegli prima un progetto: '+c.title+' lavora sui suoi dati.')})}}
+ else{go=node('a',cls);if(href){go.href=href;go.addEventListener('click',()=>used(c))}else{go.setAttribute('aria-disabled','true');go.title='Scegli prima un progetto';go.addEventListener('click',e=>{e.preventDefault();say('Scegli prima un progetto: '+c.title+' lavora sui suoi dati.')})}}
  go.append(node('span','',label||c.action),ico('arrow','cp-go-icon'));return go;
 }
-function badge(c){const b=core.costBadge(c),s=node('span','cp-cost-badge',b.label);s.dataset.tone=b.tone;return s}
+// The badge: the full label, and a few letters for the one-line rows of a phone (agency/crea.css shows one of the two).
+function badge(c){const b=core.costBadge(c),s=node('span','cp-cost-badge');s.dataset.tone=b.tone;s.title=c.cost;
+ s.append(node('span','cp-badge-full',b.label),node('span','cp-badge-short',core.costShort(c)));return s}
 
 // ---- Command box: a combobox whose list of suggestions stays open under it (the home's pattern). ----
 const input=$('crAsk'),list=$('crSuggest');
 let items=[],cursor=-1;
-// A placeholder that fits the phone's bar without being cut.
-const phone=window.matchMedia?matchMedia('(max-width: 640px)'):{matches:false},hint=()=>{input.placeholder=phone.matches?'Es. «un volantino per l’open day»':'Descrivi cosa ti serve. Es. «un volantino per l’open day»'};
-hint();if(phone.addEventListener)phone.addEventListener('change',hint);
+// A placeholder that fits the phone's bar without being cut. On a phone (agency/crea.css) the command bar is not shown:
+// the filter box is the one search box and the suggestions are a row of chips, plain links in the tab order.
+const phone=window.matchMedia?matchMedia('(max-width: 640px)'):{matches:false},hint=()=>{input.placeholder=phone.matches?'Es. «un volantino per l’open day»':'Descrivi cosa ti serve. Es. «un volantino per l’open day»';
+ const f=document.getElementById('crFind');if(f)f.placeholder=phone.matches?'Cerca: logo, volantino, reel…':'Filtra: logo, volantino, reel…'};
+hint();if(phone.addEventListener)phone.addEventListener('change',()=>{hint();suggestions(true)});
 function suggestions(keep){
  const q=input.value.trim();
- items=O?O.suggest({query:q,project:current}):core.matchServices(q).slice(0,5).map(({card})=>({id:'svc-'+card.id,kind:'service',label:card.title,hint:card.group,icon:L.CARDS[card.id]||'spark',href:''}));
- cursor=-1;
+ items=O?O.suggest({query:q,project:current,limit:phone.matches&&!q?3:5}):core.matchServices(q).slice(0,5).map(({card})=>({id:'svc-'+card.id,kind:'service',label:card.title,hint:card.group,icon:L.CARDS[card.id]||'spark',href:''}));
+ cursor=-1;const chips=phone.matches;list.setAttribute('role',chips?'list':'listbox');
  $('crSuggestHead').textContent=q?(items.length?'Servizi per «'+q.slice(0,40)+'»':'Nessun servizio con queste parole: prova con «post», «sito», «volantino» o scegli qui sotto'):current?'Suggeriti per '+current.name:'Suggeriti per iniziare';
- list.replaceChildren(...items.map((s,i)=>{const li=node('li','ma-option'),a=node('a','ma-option-link');li.setAttribute('role','none');
+ list.replaceChildren(...items.map((s,i)=>{const li=node('li','ma-option'),a=node('a','ma-option-link');li.setAttribute('role',chips?'listitem':'none');
   const c=s.kind==='service'&&core.card(s.id.slice(4));
-  a.id='crOpt'+i;a.href=s.href||'#';a.setAttribute('role','option');a.setAttribute('aria-selected','false');a.tabIndex=-1;
+  a.id='crOpt'+i;a.href=s.href||'#';if(!chips){a.setAttribute('role','option');a.setAttribute('aria-selected','false');a.tabIndex=-1}
   const t=node('span','ma-option-text');t.append(node('b','',s.label),node('small','',c&&s.hint===s.label?c.action:s.hint));// «Stampa e documenti» is also its area: say what it does instead
   a.append(ico(s.icon,'ma-option-icon'),t);if(c)a.append(badge(c));a.append(ico('chev','ma-option-go'));
   a.addEventListener('click',e=>{if(c){e.preventDefault();choosePick(c)}});li.append(a);return li}));
- input.setAttribute('aria-expanded',String(items.length>0));input.removeAttribute('aria-activedescendant');
+ input.setAttribute('aria-expanded',String(!chips&&items.length>0));input.removeAttribute('aria-activedescendant');
  if(keep&&picked){const i=items.findIndex(s=>s.id==='svc-'+picked);if(i>=0)move(i)}
 }
 function move(to){
@@ -84,15 +91,21 @@ $('crAskForm').addEventListener('submit',e=>{e.preventDefault();
 });
 
 // ---- Area tabs: «Tutti» and the groups with cards, numbered as on the home; an unknown group falls back to «Tutti». ----
-function renderFilters(){
+function renderFilters(hits){
  if(!core.groups().includes(group))group='';
+ const had=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#crFilters .cp-tab'),focusGroup=had?had.dataset.group:null;
+ const count=g=>core.inGroup(g).filter(c=>!hits||hits.includes(c)).length;
  $('crFilters').replaceChildren(...[['','Tutti']].concat(core.groups().map(g=>[g,g])).map(([g,t])=>{const b=node('button','cp-tab');b.type='button';b.dataset.group=g;b.setAttribute('aria-pressed',String(group===g));
   if(g){b.style.setProperty('--c',(L.AREAS[core.areaOf(g)]||{}).color||'');b.append(node('span','cp-tab-num',core.areaNumber(g)))}
-  b.append(node('span','cp-tab-name',t),node('span','cp-tab-n',String(core.inGroup(g).length)));
+  b.append(node('span','cp-tab-name',t),node('span','cp-tab-n',String(count(g))));if(hits&&g&&!count(g))b.dataset.empty='true';
   b.addEventListener('click',()=>{group=g;remember(g,GROUP_KEY);render()});return b}));
+ // A chip re-drawn under the keyboard keeps the focus; the chosen one scrolls into the row on a phone.
+ if(focusGroup!=null){const b=$('crFilters').querySelector('.cp-tab[data-group="'+focusGroup+'"]');if(b)b.focus({preventScroll:true})}
+ const on=$('crFilters').querySelector('.cp-tab[aria-pressed=true]');if(on&&on.scrollIntoView&&$('crFilters').scrollWidth>$('crFilters').clientWidth)on.scrollIntoView({block:'nearest',inline:'nearest'});
 }
 // One service card: icon in its area colour, cost badge, what it does (a short line for the «Tutti» index, the full line
 // for one area), the full cost line, the hint, the action. agency/crea.css shows the short or the full parts by view.
+const KIT_OF=Object.fromEntries(core.kits().map(k=>[k.id,k]));
 function cardEl(c){
  const li=node('li','ma-glass cp-card');li.dataset.service=c.id;li.dataset.open=String(openCard===c.id);li.dataset.match=String(picked===c.id);li.style.setProperty('--c',look(c).color);
  const top=node('div','cp-card-top');top.append(ico(L.CARDS[c.id]||look(c).icon,'cp-card-icon'));
@@ -102,30 +115,65 @@ function cardEl(c){
  const cost=node('p','cp-cost');cost.append(ico(core.costBadge(c).tone==='free'?'check':'coin','cp-meta-icon'),node('span','',c.cost));
  li.append(top,h,node('p','cp-line',c.line),cost);
  if(c.short)h.after(node('p','cp-short',c.short));
+ // A kit (several coordinated files in one flow) says so on its own card: no separate «Kit completi» row repeating it.
+ const kit=KIT_OF[c.id];if(kit){const f=node('p','cp-kit-line');f.title=kit.files;const t=node('span','','Kit completo');t.append(node('span','cp-kit-more',': tutti i file in un solo flusso'));f.append(ico('layers','cp-meta-icon'),t);(li.querySelector('.cp-short')||h).after(f)}
  if(c.hint){const p=node('p','cp-hint');p.append(ico('info','cp-meta-icon'),node('span','',c.hint));li.append(p)}
  li.append(goButton(c,'cp-go'));return li;
 }
-// «Tutti»: the index by area (number, icon, name, line, count) with compact cards; one area: its cards in full.
+// «Tutti»: the index by area (number, icon, name, line, count) as compact one-line rows; one area: its cards in full.
+// The filter box narrows both, live, by core.filterServices (the same synonyms as the command box). On a phone each
+// area of the index shows its first PEEK rows and «Mostra tutti (N)» (agency/crea.css hides the rest; on a computer
+// every row is shown and the button is hidden). «Usati di recente» (this browser) comes first when there is any.
+const PEEK=3,expanded=new Set();
+const find=$('crFind'),findClear=$('crFindClear');
+$('crFindIcon').innerHTML=L.svg('search')||L.svg('spark');
+const query=()=>find.value.replace(/\s+/g,' ').trim();
+function areaEl(g,cards,{collapsible}){
+ const sec=node('section','cp-area'),slug=core.areaOf(g),a=L.AREAS[slug]||{color:'#a68bff',icon:'spark'};sec.style.setProperty('--c',a.color);sec.dataset.area=slug;
+ const head=node('div','cp-area-head');const id='crArea-'+slug;
+ const h=node('h3','cp-area-title');h.id=id;h.append(node('span','cp-area-num',core.areaNumber(g)),node('span','',g));
+ head.append(ico(a.icon,'ma-area-icon cp-area-icon'),h,node('span','cp-area-line',O&&O.AREA_LINE?O.AREA_LINE[slug]||'':''),node('span','ma-pill ma-pill--count',plural(cards.length,'servizio','servizi')));
+ sec.setAttribute('aria-labelledby',id);
+ const ul=node('ul','cp-grid');ul.id='crList-'+slug;ul.append(...cards.map(cardEl));sec.append(head,ul);
+ // The area of the card whose studio is open is never folded.
+ if(collapsible&&cards.length>PEEK){
+  const open=expanded.has(g)||cards.some(c=>c.id===openCard);sec.dataset.collapsed=String(!open);
+  const more=node('button','cp-more');more.type='button';more.setAttribute('aria-controls',ul.id);more.setAttribute('aria-expanded',String(open));
+  more.append(node('span','',open?'Mostra meno':'Mostra tutti ('+cards.length+')'),ico('chev','cp-more-icon'));
+  more.addEventListener('click',()=>{if(open)expanded.delete(g);else expanded.add(g);render();const b=document.querySelector('.cp-area[data-area="'+slug+'"] .cp-more');if(b)b.focus({preventScroll:true})});
+  sec.append(more);
+ }
+ return sec;
+}
 function render(){
- renderFilters();
+ const q=query(),hits=q?core.filterServices(q):null,shown=c=>!hits||hits.includes(c);
+ renderFilters(hits);
  $('crCards').dataset.view=group?'area':'index';
- const groups=group?[group]:core.groups();
- $('crCount').textContent=plural(core.inGroup(group).length,'servizio','servizi')+(group?' in '+group:' in '+core.groups().length+' aree');
- $('crCards').replaceChildren(...groups.map(g=>{
-  const sec=node('section','cp-area'),slug=core.areaOf(g),a=L.AREAS[slug]||{color:'#a68bff',icon:'spark'},cards=core.inGroup(g);sec.style.setProperty('--c',a.color);sec.dataset.area=slug;
-  const head=node('div','cp-area-head');const id='crArea-'+slug;
-  const h=node('h3','cp-area-title');h.id=id;h.append(node('span','cp-area-num',core.areaNumber(g)),node('span','',g));
-  head.append(ico(a.icon,'ma-area-icon cp-area-icon'),h,node('span','cp-area-line',O&&O.AREA_LINE?O.AREA_LINE[slug]||'':''),node('span','ma-pill ma-pill--count',plural(cards.length,'servizio','servizi')));
-  sec.setAttribute('aria-labelledby',id);
-  const ul=node('ul','cp-grid');ul.append(...cards.map(cardEl));sec.append(head,ul);return sec}));
- renderKits();
+ $('crCards').dataset.filter=String(!!q);findClear.hidden=!q;
+ const groups=(group?[group]:core.groups()).filter(g=>core.inGroup(g).some(shown));
+ const n=core.inGroup(group).filter(shown).length;
+ $('crCount').textContent=q?(n?plural(n,'servizio','servizi')+' per «'+q.slice(0,40)+'»'+(group?' in '+group:''):'Nessun servizio per «'+q.slice(0,40)+'»'+(group?' in '+group:''))
+  :plural(n,'servizio','servizi')+(group?' in '+group:' in '+core.groups().length+' aree');
+ const out=[];
+ const last=!group&&!q?recent():[];
+ if(last.length){const sec=node('section','cp-area cp-recent');sec.setAttribute('aria-labelledby','crRecentTitle');
+  const head=node('div','cp-area-head'),h=node('h3','cp-area-title','Usati di recente');h.id='crRecentTitle';head.append(ico('check','ma-area-icon cp-area-icon'),h);
+  const ul=node('ul','cp-grid');ul.append(...last.map(id=>cardEl(core.card(id))));sec.append(head,ul);out.push(sec)}
+ out.push(...groups.map(g=>areaEl(g,core.inGroup(g).filter(shown),{collapsible:!group&&!q})));
+ if(q&&!groups.length){const p=node('div','cp-empty');p.append(node('p','','Nessun servizio con queste parole'+(group?' in '+group:'')+'. Prova con «post», «sito», «volantino» o «logo».'));
+  const b=node('button','cp-empty-clear','Mostra tutti i servizi');b.type='button';b.addEventListener('click',()=>{find.value='';group='';render();find.focus()});p.append(b);out.push(p)}
+ $('crCards').replaceChildren(...out);
 }
-function renderKits(){
- const k=core.kits();$('crKitsCount').textContent=plural(k.length,'kit','kit');
- $('crKits').replaceChildren(...k.map(x=>{const c=x.card,li=node('li','ma-glass cp-kit');li.style.setProperty('--c',look(c).color);li.dataset.service=c.id;
-  const top=node('div','cp-card-top');top.append(ico(L.CARDS[c.id]||look(c).icon,'cp-card-icon'),badge(c));
-  li.append(top,node('h3','cp-kit-title',x.label),node('p','cp-kit-files',x.files),goButton(c,'cp-kit-go'));return li}));
-}
+find.addEventListener('input',()=>render());
+find.addEventListener('keydown',e=>{if(e.key==='Escape'&&find.value){e.preventDefault();find.value='';render()}
+ // Invio opens the best match (as the command box does), or the only service left; else the list stays as it is.
+ else if(e.key==='Enter'&&query()){e.preventDefault();const hits=core.filterServices(query()),b=core.best(query()),c=b&&hits.some(h=>h.id===b)?core.card(b):hits.length===1?hits[0]:null;
+  if(c)choosePick(c)}});
+findClear.addEventListener('click',()=>{find.value='';render();find.focus()});
+// The filter box and the chips stay under the page bar while the list scrolls (agency/crea.css: position sticky):
+// the bar's height is read, never guessed.
+(()=>{const bar=()=>[...document.querySelectorAll('.rx-topbar,.rx-pagetop')].find(b=>/^(sticky|fixed)$/.test(getComputedStyle(b).position));const set=()=>{const b=bar(),h=b?Math.max(0,Math.round(b.getBoundingClientRect().height)):0;document.documentElement.style.setProperty('--cp-stick',h+'px')};
+ set();addEventListener('resize',set);if(window.ResizeObserver){const ro=new ResizeObserver(set);const w=()=>{const b=bar();if(b)ro.observe(b);else setTimeout(w,300)};w()}})();
 // From the Chiudi button (an event) the focus goes back to the card that opened the studio.
 function closePanel(e){const was=openCard;openCard='';$('crPanel').hidden=true;$('crPanelBody').replaceChildren();render();
  const back=was&&document.querySelector('.cp-card[data-service="'+was+'"] .cp-go');if(e&&back)back.focus({preventScroll:true})}
@@ -178,7 +226,7 @@ function openInline(c){
  const svc=service&&S&&S.service(service);
  if(!S||!rt||(service&&!svc)){say(st.name+' non si è caricato: ricarica la pagina.');return}
  const agent=svc?svc.role:st.agent;
- openCard=c.id;render();
+ openCard=c.id;used(c);render();
  $('crPanelTitle').textContent=c.title;$('crPanelEyebrow').textContent='Per '+current.name;
  $('crPanelIcon').replaceChildren(L.icon(L.CARDS[c.id]||look(c).icon));$('crPanel').style.setProperty('--c',look(c).color);
  const project=rt.profileFor(current),memoryScope={projectId:current.id,clientId:String(current.client_id||''),agentId:agent},pid=encodeURIComponent(current.id);
@@ -268,6 +316,9 @@ async function choose(id){
  suggestions(true);
 }
 async function load(){
+ // On a phone the filter box is the one search: ?q= fills it too (the command bar is not shown there), whole: the
+ // service it preselects may be named after the 80th character (the home's box takes 200).
+ if(phone.matches&&ask.q)find.value=ask.q;
  input.value=ask.q;render();suggestions(true);
  try{
   if(!(await ws.ready())){say('Accedi dal Command Center e riprova.');return}

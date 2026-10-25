@@ -73,6 +73,11 @@
 .mo-col{display:flex;flex-direction:column;gap:16px;min-width:0}
 .mo-col>section{padding:18px 20px;min-width:0}
 .mo-flow-for{margin:-4px 0 12px;font-size:12.5px;color:var(--ma-mut)}
+/* the phase to work on now: a soft band and its action, one click to the page that does it */
+.mo-flow .ma-step.is-now{margin:2px -10px;padding:8px 10px;border-radius:12px;background:var(--ma-soft)}
+.mo-flow .ma-step.is-now::after{display:none}
+.mo-flow .ma-step-text a.mo-now{color:#fff}
+.mo-now{display:inline-flex;margin-top:8px;min-height:40px;padding:8px 14px;font-size:13px;line-height:1.3;white-space:normal;text-align:left}
 .mo-job-list{list-style:none;margin:0 -8px;padding:0}
 .mo-job+.mo-job{border-top:1px solid var(--ma-line)}
 .mo-job-link{display:flex;flex-direction:column;gap:6px;padding:12px 8px;border-radius:10px}
@@ -106,31 +111,103 @@
 .mo-area-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .mo-areas .ma-area{box-shadow:none}
 .mo-orbit .mo-stage{height:330px}
+/* Phone-only controls (shown by the phone block below): «Mostra … (N)» under the long lists, the globe's fold and
+   «Tutti i servizi» under the area rows. On a computer every list is whole and these do not show. */
+.mo-more,.mo-fold,.mo-all{display:none}
+/* Phone-only too: the one-line empty «Lavori in corso», the folder icon and the short labels of the header buttons. */
+.mo-jobs-line,.mo-head-actions .mo-new-icon,.mo-short{display:none}
 .mo-foot{margin:8px 0 0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
 @media (max-width:1180px){.mo-board{grid-template-columns:minmax(0,1fr) 340px}.mo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:980px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-wait{border-left:0;border-top:1px solid var(--ma-line)}
-  /* one column: the work right after the services, as in the phone mockup */
+  /* one column: the project's path (its next action) first, then the services and the work */
   .mo-board{display:flex;flex-direction:column;align-items:stretch;gap:16px}.mo-col{display:contents}
-  .mo-areas{order:1}.mo-jobs{order:2}.mo-agents{order:3}.mo-flow{order:4}.mo-orbit{order:5}.mo-sections{order:6}}
+  .mo-flow{order:0}.mo-areas{order:1}.mo-jobs{order:2}.mo-agents{order:3}.mo-orbit{order:5}.mo-sections{order:6}}
 /* Phones: one column; chips and rows at 44px; the globe stays a picture (the area cards are the links). */
-@media (max-width:640px){
+@media (max-width:640px){.mo-now{min-height:44px}
   .mo-main{padding:16px 16px 48px;gap:16px}
   .mo-title{font-size:26px}
-  .mo-head-actions{width:100%}
-  .mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px;padding:0 12px}
-  .mo-switch{flex:1 1 100%;max-width:none}.mo-switch select{width:100%;min-height:44px}
+  /* One row of controls: the project switcher, then «Progetto» and «Lavoro» with their icons (the full «Nuovo …»
+     stays the name for screen readers): the search box rises by a row. */
+  .mo-head-actions{width:100%;flex-wrap:nowrap;gap:8px}
+  .mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px;padding:0 12px;gap:6px;white-space:nowrap}
+  .mo-switch:not([hidden])~.ma-btn{flex:none;padding:0 12px}
+  .mo-head-actions .mo-new-icon{display:inline-grid}
+  .mo-head-actions .mo-label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mo-head-actions .mo-short{display:inline}
+  .mo-switch{flex:1 1 0;max-width:none}.mo-switch select{width:100%;min-height:44px}.mo-head-actions .mo-switch select{padding:0 30px 0 34px}
+  .mo-switch::after{right:12px}
   .mo-chip--link{min-height:44px}
   .mo-ask{padding:20px 16px 16px}
   .mo-wait{padding:16px}
   .mo-ask .ma-option-link{min-height:44px}
   .mo-ask .ma-option-link{padding:4px 14px 4px 12px}
-  .mo-kpis{gap:10px}
-  .mo-kpi{flex-direction:column;align-items:stretch;padding:14px}
-  .mo-kpi-value{font-size:24px}
-  .mo-spark{width:100%}
+  .mo-kpis{gap:8px}
+  .mo-kpi{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}
+  .mo-kpi-label{font-size:12px}
+  .mo-kpi-value{font-size:20px}
+  .mo-kpi-sub{font-size:11.5px;line-height:1.35}
+  .mo-spark{width:100%;height:18px}
   .mo-kpi-bar{flex:none;width:100%}
   .mo-area-grid{grid-template-columns:minmax(0,1fr)}
   .mo-col>section{padding:16px}
   .mo-job-link{min-height:44px}
   .mo-pause{min-height:44px;height:44px}
+  /* A shorter phone page (5.851 → about 2.600 px), «Aspettano te» on the first screen: nothing removed, the long
+     parts folded. Header: no date line, the chips on one row that scrolls inside itself, the «Dati dal registro» line
+     only when something is wrong. */
+  .mo-head{gap:12px}
+  .mo-crumb,.mo-note[data-state=live]{display:none}
+  .mo-head-title{display:block}
+  .mo-project{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:8px -12px 0;padding:0 12px}/* to the page edge: the phone gutter is 12px (shell/agency.css) */
+  .mo-project::-webkit-scrollbar{display:none}
+  .mo-chip{flex:none}
+  .mo-chip--link{order:-1}/* «Apri il progetto» first: the only link of the row stays in view */
+  /* Ask: the bar says «Cosa vuoi fare oggi?» itself (the title stays for screen readers), «Inizia» beside the text,
+     the suggestions one row of chips that scrolls sideways inside the card (the arrows still walk them). */
+  .mo-ask{padding:14px 16px}
+  .mo-ask-title{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mo-lead{display:none}
+  .mo-ask .ma-command-bar{flex-wrap:nowrap;gap:8px;min-height:52px;padding:4px 4px 4px 12px}
+  .mo-ask .ma-command-bar .ma-btn{flex:none;padding:0 14px}
+  .mo-ask .ma-command-head{padding:10px 0 6px}
+  .mo-ask .ma-suggest{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+  .mo-ask .ma-suggest::-webkit-scrollbar{display:none}
+  .mo-ask .ma-suggest>li{flex:none}
+  .mo-wait{padding:14px 16px 16px}
+  .mo-wait-title{margin-bottom:8px}
+  /* Long lists: the first three, then «Mostra … (N)» (orbit.js setFold); the path shows the phase to do now with
+     the one before and the next. */
+  .mo-more:not([hidden]){display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:8px;border-radius:12px;border:1px solid var(--ma-line);background:#fff;color:var(--ma-link);font:600 13.5px var(--rx-font,Inter,sans-serif);cursor:pointer}
+  .mo-wait-list[data-collapsed=true]>li:nth-child(n+4){display:none}
+  #moJobs[data-collapsed=true] .mo-job:nth-child(n+4){display:none}
+  .mo-flow-for{margin-bottom:8px}
+  .mo-flow [data-collapsed=true]>.ma-step:not(.is-near){display:none}
+  .mo-flow [data-collapsed=true]>.ma-step.is-near-end::after{display:none}
+  .mo-jobs .ma-empty{padding:8px 8px 4px}
+  /* Nothing in progress: one line (and the panel title) instead of the empty panel, «Inizia un lavoro →» to Cosa vuoi fare. */
+  .mo-jobs[data-empty=true]{padding:12px 16px 8px}
+  .mo-jobs[data-empty=true] .ma-panel-head{margin-bottom:0}
+  .mo-jobs[data-empty=true] .ma-empty{display:none}
+  .mo-jobs-line{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;margin:0;font-size:13.5px;color:var(--ma-mut)}
+  .mo-jobs-dot{color:var(--ma-line-2)}
+  .mo-jobs-line .ma-link{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-weight:600}
+  /* Services: the eight areas as one white list of one-line rows (icon, name, how many), as the rows of «Cosa vuoi
+     fare» (agency/crea.css); each whole row opens its area there, «Tutti i servizi» the full panel. */
+  .mo-areas .ma-panel-head .ma-link{display:none}
+  .mo-area-grid{gap:0;border:1px solid var(--ma-line);border-radius:14px;background:#fff;overflow:hidden}
+  .mo-areas .ma-area{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;min-height:52px;padding:4px 12px;border:0;border-radius:0;background:none;box-shadow:none}
+  .mo-areas .ma-area+.ma-area{border-top:1px solid var(--ma-line)}
+  .mo-areas .ma-area-head{display:contents}
+  .mo-areas .ma-area-icon{grid-column:1;grid-row:1;width:28px;height:28px;border-radius:8px}
+  .mo-areas .ma-area-icon .ml-ico{width:16px;height:16px}
+  .mo-areas .ma-area-num,.mo-areas .ma-area-line,.mo-areas .ma-area-services{display:none}
+  .mo-areas .ma-area h3{grid-column:2;grid-row:1;margin:0;min-width:0;font-size:14.5px}
+  .mo-areas .ma-area-head .ma-pill{grid-column:3;grid-row:1;margin:0}
+  .mo-areas .ma-area:has(.ma-area-title:focus-visible){outline-offset:-2px}
+  .mo-areas .mo-all{display:inline-flex;margin-top:8px}
+  /* The globe is a picture on a phone (the rows above are the links): folded under its title, one press shows it. */
+  .mo-fold{display:inline-flex;align-items:center;margin-left:auto;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-link);font:600 13px var(--rx-font,Inter,sans-serif);cursor:pointer}
+  .mo-orbit .ma-panel-head{margin-bottom:0}
+  .mo-orbit[data-open=true] .ma-panel-head{margin-bottom:12px}
+  .mo-orbit:not([data-open=true]) .mo-stage{display:none}
 }
