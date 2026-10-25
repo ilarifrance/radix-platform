@@ -79,7 +79,10 @@ async function compile(){
  try{
   try{await window.RadixCrmCustom?.load?.()}catch{}
   ctx=context();
-  const r=await fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role:'crm-copilot',messages:[{role:'user',content:core.prompt(text,ctx)}]})});
+  // The dictation is Italian (it-IT recognition) and its values are read the Italian way (dates, amounts, lists):
+  // in the English UI it says lang:'it' so the English-reply rule is not added.
+  const req={role:'crm-copilot',messages:[{role:'user',content:core.prompt(text,ctx)}]};if(globalThis.RadixI18n&&RadixI18n.en)req.lang='it';
+  const r=await fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify(req)});
   const d=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(d.error||'AI non disponibile ('+r.status+').');
   const parsed=core.parseReply(d.reply,ctx);if(!parsed)throw new Error('Risposta dell’AI senza dati leggibili: riprova.');

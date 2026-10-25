@@ -9,10 +9,12 @@
 // Pure: the request to the AI for one ticket. Only the email text comes back, so it can go straight in the box.
 function aiPrompt(ticket,contact){
  const who=contact&&contact.name&&contact.name!=='Contatto anonimizzato'?contact.name:'il cliente';
+ // English UI (RadixI18n): the draft is asked in British English.
+ const en=!!(root&&root.RadixI18n&&root.RadixI18n.en);
  return 'Scrivi la risposta email al ticket di assistenza «'+String(ticket.title||'').slice(0,200)+'» per '+who+'.'
   +(ticket.body?' Richiesta del cliente: «'+String(ticket.body).slice(0,1500)+'».':'')
-  +' Tono cortese e concreto, in italiano, massimo 150 parole. Usa solo i dati del CRM, non promettere tempi, sconti o interventi che non risultano.'
-  +' Se manca un dato necessario scrivi [DA COMPLETARE: cosa]. Rispondi solo con il testo dell’email, senza oggetto, senza firma inventata e senza commenti.';
+  +' Tono cortese e concreto, '+(en?'in inglese britannico (British English)':'in italiano')+', massimo 150 parole. Usa solo i dati del CRM, non promettere tempi, sconti o interventi che non risultano.'
+  +' Se manca un dato necessario scrivi '+(en?'[TO BE COMPLETED: what]':'[DA COMPLETARE: cosa]')+'. Rispondi solo con il testo dell’email, senza oggetto, senza firma inventata e senza commenti.';
 }
 // Pure: the AI text cleaned for the box (no code fences, no «Oggetto:» line, no surrounding quotes).
 function cleanDraft(text){
@@ -76,7 +78,7 @@ function mount(c,ticket){
   let p;if(!await run('Preparo l’invio…',async()=>{const ct=await load();p=plan(ticket,ct,area.value);if(p.error)throw new Error(p.error);
    if(!p.to)throw new Error('Il contatto del ticket non ha un’email valida: usa «Segna come inviata» dopo aver risposto da un altro canale.');
    if(!await emailConfigured())throw new Error('Invio diretto non configurato (manca Gmail): usa «Apri nel programma email».')}))return;
-  if(/\[DA COMPLETARE/i.test(p.body)&&!window.confirm('La risposta contiene ancora parti [DA COMPLETARE]. Inviarla comunque?'))return;
+  if(/\[(?:DA COMPLETARE|TO BE COMPLETED)/i.test(p.body)&&!window.confirm('La risposta contiene ancora parti [DA COMPLETARE]. Inviarla comunque?'))return;
   if(!window.confirm('Inviare ora la risposta a '+p.to+'?\nOggetto: '+p.subject))return;
   if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,kind:'service',confirm:true})});
    const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record(p)})){await a.refresh(false);a.notice('Risposta inviata a '+p.to+' e registrata.')}}));

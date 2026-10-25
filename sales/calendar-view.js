@@ -9,7 +9,7 @@
 const content=document.getElementById('content'),nav=document.getElementById('navigation');if(!content||!nav)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const DAY=864e5,H0=8,H1=22,ROW=56;
-const DN=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DN=globalThis.RadixI18n&&RadixI18n.en?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const TYPES={meeting:['Riunione','teal'],call:['Call','blue'],task:['Attività','purple'],email:['Email','gold'],note:['Nota','orange'],close:['Chiusura prevista','red'],busy:['Occupato','gray']};
 const mid=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
 const monday=d=>{const x=mid(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};

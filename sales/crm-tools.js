@@ -319,7 +319,7 @@ window.RadixCrmTools={
   // The panels under the list stay hidden until their button in the heading row opens them; closing one hides it again.
   const tuck=box=>{box.hidden=true;box.addEventListener('toggle',()=>{if(!box.open)box.hidden=true});return box};
   const reveal=(box,then)=>()=>{box.hidden=false;box.open=true;box.scrollIntoView({block:'start',behavior:'smooth'});box.querySelector('input,select,textarea')?.focus({preventScroll:true});if(then)then(box)};
-  const findNow=box=>{const b=[...box.querySelectorAll('button')].find(x=>x.textContent==='Cerca doppioni');if(b&&!box.querySelector('.crm-dedupe-list').childElementCount)b.click()};
+  const findNow=box=>{const b=[...box.querySelectorAll('button')].find(x=>(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(x)==='Cerca doppioni');if(b&&!box.querySelector('.crm-dedupe-list').childElementCount)b.click()};
   if(entity==='contacts'){const seg=tuck(segmentPanel()),bar=ioBar('contacts');head.append(bar);section.append(seg);
    bar.append(B('Segmenti',reveal(seg)));
    if(window.RadixCrmCampaigns){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
