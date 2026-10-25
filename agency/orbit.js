@@ -17,6 +17,13 @@ const KEY='radix-crea-project';
 const remembered=()=>{try{return localStorage.getItem(KEY)||''}catch(e){return ''}};
 const planets=O.planets();
 const state={project:null,journey:null,tasks:null,projects:null,plans:new Map(),roles:{},signed:null};
+// ---- Phone: long lists show three items (the phase to do now with its neighbours) and «Mostra … (N)»; the rest is one
+// press away. The rules live in the phone block of orbit.css: on a computer everything shows and the buttons do not. ----
+const opened=new Set();
+function setFold(id,box,n,what){const b=$(id),open=opened.has(id),many=n>3;b.dataset.n=String(n);b.dataset.what=what;b.hidden=!many;
+ box.dataset.collapsed=String(many&&!open);b.setAttribute('aria-expanded',String(many&&open));b.textContent=open?'Mostra meno':'Mostra '+what+' ('+n+')'}
+[['moWaitMore','moWait'],['moFlowMore','moFlow'],['moJobsMore','moJobs']].forEach(([id,box])=>$(id).addEventListener('click',()=>{
+ opened.has(id)?opened.delete(id):opened.add(id);const b=$(id);setFold(id,$(box),+b.dataset.n,b.dataset.what)}));
 $('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moSwitchIcon').innerHTML=L.svg('folder');
 $('moLead').textContent='Scrivi cosa ti serve o scegli un servizio qui sotto: '+plural((C.listed?C.listed():C.CARDS).length,'servizio','servizi')+' in '+planets.length+' aree. Ogni lavoro arriva in 3 proposte e niente parte senza la tua conferma.';
 try{const d=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});$('moCrumb').textContent='Marketing Agency · '+d.charAt(0).toUpperCase()+d.slice(1)}catch(e){}
@@ -77,7 +84,7 @@ function choose(p){state.project=p||null;state.journey=p&&p.journey||null;const 
 
 // ---- «Aspettano te»: what waits for a person, from the project state, the agents' plans and the Command Center. ----
 function waitingPanel(){
- const box=$('moWait'),count=$('moWaitCount');
+ const box=$('moWait'),count=$('moWaitCount');setFold('moWaitMore',box,0,'tutti');
  if(state.signed===false){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Accedi dal Command Center per vedere cosa aspetta te.'));return}
  if(!state.projects){count.textContent='';box.replaceChildren(node('li','mo-wait-empty','Caricamento…'));return}
  const w=O.waiting({project:state.project,journey:state.journey,projects:state.projects,plans:state.plans,approvals:state.dashboard&&state.dashboard.approvals,roles:state.roles});
@@ -86,6 +93,7 @@ function waitingPanel(){
  box.replaceChildren(...w.items.map(it=>{const li=node('li'),a=node('a','mo-wait-item');a.href=it.href;a.dataset.kind=it.kind;
   const t=node('span','mo-wait-text');t.append(node('b','',it.label));if(it.hint)t.append(node('small','',it.hint));
   a.append(ico(it.icon,'mo-wait-icon'),t,node('span','mo-wait-go','Apri'));li.append(a);return li}));
+ setFold('moWaitMore',box,w.items.length,'tutti');
 }
 
 // ---- KPI tiles: only numbers the registry and the Command Center gave; «—» with the reason otherwise. ----
@@ -118,7 +126,7 @@ function areas(){
 
 // ---- Work in progress: the open Agency tasks of the team projects, drafts to review first, as a list. ----
 function jobsTable(){
- const box=$('moJobs'),count=$('moJobsCount');
+ const box=$('moJobs'),count=$('moJobsCount');setFold('moJobsMore',box,0,'tutti');
  if(state.signed===false){count.textContent='';box.replaceChildren(empty('Accedi dal Command Center per vedere i lavori del team.','Vai al Command Center','/control-center-v2.html'));return null}
  if(!state.projects){count.textContent='';box.replaceChildren(node('p','ma-empty-line','Caricamento dei lavori…'));return null}
  const j=O.jobs(state.projects,state.plans,{roles:state.roles,status:DV?DV.STATUS:{}});
@@ -131,7 +139,7 @@ function jobsTable(){
   const bar=node('span','ma-bar'),fill=node('span');fill.style.width=(r.progress.total?Math.round(r.progress.done/r.progress.total*100):0)+'%';bar.append(fill);
   bar.setAttribute('role','img');bar.setAttribute('aria-label',r.progress.done+' di '+r.progress.total+' incarichi approvati nel progetto');
   a.append(top,meta,bar);li.append(a);ul.append(li)});
- box.replaceChildren(ul);return j;
+ box.replaceChildren(ul);setFold('moJobsMore',box,j.rows.length,'tutti');return j;
 }
 function empty(title,cta,href,line){const d=node('div','ma-empty');d.append(ico('layers','ma-empty-icon'),node('b','',title));if(line)d.append(node('p','',line));if(cta){const a=node('a','ma-btn ma-btn--ghost',cta);a.href=href;d.append(a)}return d}
 
@@ -146,12 +154,15 @@ function flow(){
  const now=ph?(ph.find(p=>p.state==='waiting')||ph.find(p=>p.state!=='done')||null):null;
  $('moFlowTitle').textContent=ph?'Il percorso del progetto':'Flusso di lavoro';
  $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato: '+pp.done+' di '+pp.total+' fatte.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
- $('moFlow').replaceChildren(...(ph||O.FLOW.map(label=>({label}))).map((p,i)=>{
-  const li=node('li','ma-step'+(p.state?' is-'+p.state:'')+(p===now?' is-now':''));const n=node('span','ma-step-n');
+ // On a phone three phases show: the one before, the one to do now and the next (or the first three).
+ const steps=ph||O.FLOW.map(label=>({label})),k=now?steps.indexOf(now):-1,from=k<0?0:Math.max(0,Math.min(k-1,steps.length-3));
+ $('moFlow').replaceChildren(...steps.map((p,i)=>{
+  const li=node('li','ma-step'+(p.state?' is-'+p.state:'')+(p===now?' is-now':'')+(i>=from&&i<from+3?' is-near':'')+(i===from+2?' is-near-end':''));const n=node('span','ma-step-n');
   if(p.state==='done')n.append(ico('check'));else n.textContent=String(i+1);n.setAttribute('aria-hidden','true');
   const t=node('div','ma-step-text');t.append(node('b','',p.label));if(p.state){const w=STATE_WORD[p.state],d=String(p.detail||'');t.append(node('small','',d&&d.toLowerCase()!==w?w+' · '+d:w))}
   if(p===now&&p.action&&WHERE[p.where]&&state.project){const a=node('a','ma-btn ma-btn--primary mo-now',p.actor==='you'?p.action:'Apri · '+p.action);a.href=WHERE[p.where](state.project.id);t.append(a)}
   li.append(n,t);return li}));
+ setFold('moFlowMore',$('moFlow'),steps.length,'tutte le fasi');
 }
 
 // ---- Agents: the catalogue roles, the ones with open work first. ----
@@ -192,8 +203,9 @@ function place(){
  stage.classList.toggle('is-compact',compact);
  // In the narrow side column and on phones the labels are a picture: the area cards are the links (44px taps).
  els.forEach(({a},i)=>{if(compact){a.removeAttribute('href');a.setAttribute('aria-hidden','true')}else{a.href=planets[i].href;a.removeAttribute('aria-hidden')}});
- input.placeholder=phone.matches?'Es. «i post per il pane di Natale»':'Es. «i post per il pane di Natale, dal 1° dicembre»';
- const sizes=els.map(({li})=>{li.style.transform='';return {w:Math.ceil(li.offsetWidth)+1,h:Math.ceil(li.offsetHeight)}});
+ input.placeholder=phone.matches?'Cosa vuoi fare oggi?':'Es. «i post per il pane di Natale, dal 1° dicembre»';
+ // measured shown: a label hidden by an earlier layout (the folded globe on a phone measured 0) counts its real size
+ const sizes=els.map(({li})=>{li.hidden=false;li.style.transform='';return {w:Math.ceil(li.offsetWidth)+1,h:Math.ceil(li.offsetHeight)}});
  const pr=pauseBtn.hidden?null:pauseBtn.getBoundingClientRect(),blocked=pr&&pr.width?[{x:pr.left-r.left,y:pr.top-r.top,w:pr.width,h:pr.height}]:[];
  layout=O.globeLayout(W,H,sizes,{blocked});
  stage.classList.toggle('is-bare',!layout);
@@ -218,6 +230,10 @@ if(window.ResizeObserver)new ResizeObserver(later).observe(stage);else window.ad
 [still,phone].forEach(m=>m.addEventListener&&m.addEventListener('change',()=>{pauseBtn.hidden=still.matches;refresh()}));
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(refresh);
 refresh();
+// On a phone the globe is a picture (the area rows are the links): folded under its title, one press shows it.
+const orbitBox=stage.closest('section'),orbitFold=$('moOrbitFold');
+function showGlobe(open){orbitBox.dataset.open=String(open);orbitFold.setAttribute('aria-expanded',String(open));orbitFold.textContent=open?'Nascondi':'Mostra il globo'}
+showGlobe(!phone.matches);orbitFold.addEventListener('click',()=>showGlobe(orbitBox.dataset.open!=='true'));
 
 // ---- First paint without data, then the registry. ----
 function render(){const c=O.counts({clients:state.clients,projects:state.projects,dashboard:state.dashboard});showCounts(c);header();waitingPanel();areas();jobsTable();kpis(c);flow();agents();suggestions()}

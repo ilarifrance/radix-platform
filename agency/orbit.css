@@ -111,6 +111,9 @@
 .mo-area-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .mo-areas .ma-area{box-shadow:none}
 .mo-orbit .mo-stage{height:330px}
+/* Phone-only controls (shown by the phone block below): «Mostra … (N)» under the long lists, the globe's fold and
+   «Tutti i servizi» under the area rows. On a computer every list is whole and these do not show. */
+.mo-more,.mo-fold,.mo-all{display:none}
 .mo-foot{margin:8px 0 0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
 @media (max-width:1180px){.mo-board{grid-template-columns:minmax(0,1fr) 340px}.mo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:980px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-wait{border-left:0;border-top:1px solid var(--ma-line)}
@@ -129,13 +132,66 @@
   .mo-wait{padding:16px}
   .mo-ask .ma-option-link{min-height:44px}
   .mo-ask .ma-option-link{padding:4px 14px 4px 12px}
-  .mo-kpis{gap:10px}
-  .mo-kpi{flex-direction:column;align-items:stretch;padding:14px}
-  .mo-kpi-value{font-size:24px}
-  .mo-spark{width:100%}
+  .mo-kpis{gap:8px}
+  .mo-kpi{flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px}
+  .mo-kpi-label{font-size:12px}
+  .mo-kpi-value{font-size:20px}
+  .mo-kpi-sub{font-size:11.5px;line-height:1.35}
+  .mo-spark{width:100%;height:18px}
   .mo-kpi-bar{flex:none;width:100%}
   .mo-area-grid{grid-template-columns:minmax(0,1fr)}
   .mo-col>section{padding:16px}
   .mo-job-link{min-height:44px}
   .mo-pause{min-height:44px;height:44px}
+  /* A shorter phone page (5.851 → about 2.600 px), «Aspettano te» on the first screen: nothing removed, the long
+     parts folded. Header: no date line, the chips on one row that scrolls inside itself, the «Dati dal registro» line
+     only when something is wrong. */
+  .mo-head{gap:12px}
+  .mo-crumb,.mo-note[data-state=live]{display:none}
+  .mo-head-title{display:block}
+  .mo-project{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:8px -12px 0;padding:0 12px}/* to the page edge: the phone gutter is 12px (shell/agency.css) */
+  .mo-project::-webkit-scrollbar{display:none}
+  .mo-chip{flex:none}
+  .mo-chip--link{order:-1}/* «Apri il progetto» first: the only link of the row stays in view */
+  /* Ask: the bar says «Cosa vuoi fare oggi?» itself (the title stays for screen readers), «Inizia» beside the text,
+     the suggestions one row of chips that scrolls sideways inside the card (the arrows still walk them). */
+  .mo-ask{padding:14px 16px}
+  .mo-ask-title{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mo-lead{display:none}
+  .mo-ask .ma-command-bar{flex-wrap:nowrap;gap:8px;min-height:52px;padding:4px 4px 4px 12px}
+  .mo-ask .ma-command-bar .ma-btn{flex:none;padding:0 14px}
+  .mo-ask .ma-command-head{padding:10px 0 6px}
+  .mo-ask .ma-suggest{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 2px}
+  .mo-ask .ma-suggest::-webkit-scrollbar{display:none}
+  .mo-ask .ma-suggest>li{flex:none}
+  .mo-wait{padding:14px 16px 16px}
+  .mo-wait-title{margin-bottom:8px}
+  /* Long lists: the first three, then «Mostra … (N)» (orbit.js setFold); the path shows the phase to do now with
+     the one before and the next. */
+  .mo-more:not([hidden]){display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:8px;border-radius:12px;border:1px solid var(--ma-line);background:#fff;color:var(--ma-link);font:600 13.5px var(--rx-font,Inter,sans-serif);cursor:pointer}
+  .mo-wait-list[data-collapsed=true]>li:nth-child(n+4){display:none}
+  #moJobs[data-collapsed=true] .mo-job:nth-child(n+4){display:none}
+  .mo-flow-for{margin-bottom:8px}
+  .mo-flow [data-collapsed=true]>.ma-step:not(.is-near){display:none}
+  .mo-flow [data-collapsed=true]>.ma-step.is-near-end::after{display:none}
+  .mo-jobs .ma-empty{padding:8px 8px 4px}
+  /* Services: the eight areas as one white list of one-line rows (icon, name, how many), as the rows of «Cosa vuoi
+     fare» (agency/crea.css); each whole row opens its area there, «Tutti i servizi» the full panel. */
+  .mo-areas .ma-panel-head .ma-link{display:none}
+  .mo-area-grid{gap:0;border:1px solid var(--ma-line);border-radius:14px;background:#fff;overflow:hidden}
+  .mo-areas .ma-area{display:grid;grid-template-columns:28px minmax(0,1fr) auto;column-gap:10px;align-items:center;min-height:52px;padding:4px 12px;border:0;border-radius:0;background:none;box-shadow:none}
+  .mo-areas .ma-area+.ma-area{border-top:1px solid var(--ma-line)}
+  .mo-areas .ma-area-head{display:contents}
+  .mo-areas .ma-area-icon{grid-column:1;grid-row:1;width:28px;height:28px;border-radius:8px}
+  .mo-areas .ma-area-icon .ml-ico{width:16px;height:16px}
+  .mo-areas .ma-area-num,.mo-areas .ma-area-line,.mo-areas .ma-area-services{display:none}
+  .mo-areas .ma-area h3{grid-column:2;grid-row:1;margin:0;min-width:0;font-size:14.5px}
+  .mo-areas .ma-area-head .ma-pill{grid-column:3;grid-row:1;margin:0}
+  .mo-areas .ma-area:has(.ma-area-title:focus-visible){outline-offset:-2px}
+  .mo-areas .mo-all{display:inline-flex;margin-top:8px}
+  /* The globe is a picture on a phone (the rows above are the links): folded under its title, one press shows it. */
+  .mo-fold{display:inline-flex;align-items:center;margin-left:auto;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--ma-line-2);background:#fff;color:var(--ma-link);font:600 13px var(--rx-font,Inter,sans-serif);cursor:pointer}
+  .mo-orbit .ma-panel-head{margin-bottom:0}
+  .mo-orbit[data-open=true] .ma-panel-head{margin-bottom:12px}
+  .mo-orbit:not([data-open=true]) .mo-stage{display:none}
 }
