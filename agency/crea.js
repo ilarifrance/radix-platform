@@ -49,21 +49,23 @@ function badge(c){const b=core.costBadge(c),s=node('span','cp-cost-badge');s.dat
 // ---- Command box: a combobox whose list of suggestions stays open under it (the home's pattern). ----
 const input=$('crAsk'),list=$('crSuggest');
 let items=[],cursor=-1;
-// A placeholder that fits the phone's bar without being cut.
-const phone=window.matchMedia?matchMedia('(max-width: 640px)'):{matches:false},hint=()=>{input.placeholder=phone.matches?'Es. «un volantino per l’open day»':'Descrivi cosa ti serve. Es. «un volantino per l’open day»'};
-hint();if(phone.addEventListener)phone.addEventListener('change',hint);
+// A placeholder that fits the phone's bar without being cut. On a phone (agency/crea.css) the command bar is not shown:
+// the filter box is the one search box and the suggestions are a row of chips, plain links in the tab order.
+const phone=window.matchMedia?matchMedia('(max-width: 640px)'):{matches:false},hint=()=>{input.placeholder=phone.matches?'Es. «un volantino per l’open day»':'Descrivi cosa ti serve. Es. «un volantino per l’open day»';
+ const f=document.getElementById('crFind');if(f)f.placeholder=phone.matches?'Cerca: logo, volantino, reel…':'Filtra: logo, volantino, reel…'};
+hint();if(phone.addEventListener)phone.addEventListener('change',()=>{hint();suggestions(true)});
 function suggestions(keep){
  const q=input.value.trim();
  items=O?O.suggest({query:q,project:current,limit:phone.matches&&!q?3:5}):core.matchServices(q).slice(0,5).map(({card})=>({id:'svc-'+card.id,kind:'service',label:card.title,hint:card.group,icon:L.CARDS[card.id]||'spark',href:''}));
- cursor=-1;
+ cursor=-1;const chips=phone.matches;list.setAttribute('role',chips?'list':'listbox');
  $('crSuggestHead').textContent=q?(items.length?'Servizi per «'+q.slice(0,40)+'»':'Nessun servizio con queste parole: prova con «post», «sito», «volantino» o scegli qui sotto'):current?'Suggeriti per '+current.name:'Suggeriti per iniziare';
- list.replaceChildren(...items.map((s,i)=>{const li=node('li','ma-option'),a=node('a','ma-option-link');li.setAttribute('role','none');
+ list.replaceChildren(...items.map((s,i)=>{const li=node('li','ma-option'),a=node('a','ma-option-link');li.setAttribute('role',chips?'listitem':'none');
   const c=s.kind==='service'&&core.card(s.id.slice(4));
-  a.id='crOpt'+i;a.href=s.href||'#';a.setAttribute('role','option');a.setAttribute('aria-selected','false');a.tabIndex=-1;
+  a.id='crOpt'+i;a.href=s.href||'#';if(!chips){a.setAttribute('role','option');a.setAttribute('aria-selected','false');a.tabIndex=-1}
   const t=node('span','ma-option-text');t.append(node('b','',s.label),node('small','',c&&s.hint===s.label?c.action:s.hint));// «Stampa e documenti» is also its area: say what it does instead
   a.append(ico(s.icon,'ma-option-icon'),t);if(c)a.append(badge(c));a.append(ico('chev','ma-option-go'));
   a.addEventListener('click',e=>{if(c){e.preventDefault();choosePick(c)}});li.append(a);return li}));
- input.setAttribute('aria-expanded',String(items.length>0));input.removeAttribute('aria-activedescendant');
+ input.setAttribute('aria-expanded',String(!chips&&items.length>0));input.removeAttribute('aria-activedescendant');
  if(keep&&picked){const i=items.findIndex(s=>s.id==='svc-'+picked);if(i>=0)move(i)}
 }
 function move(to){
@@ -163,7 +165,10 @@ function render(){
  $('crCards').replaceChildren(...out);
 }
 find.addEventListener('input',()=>render());
-find.addEventListener('keydown',e=>{if(e.key==='Escape'&&find.value){e.preventDefault();find.value='';render()}});
+find.addEventListener('keydown',e=>{if(e.key==='Escape'&&find.value){e.preventDefault();find.value='';render()}
+ // Invio opens the best match (as the command box does), or the only service left; else the list stays as it is.
+ else if(e.key==='Enter'&&query()){e.preventDefault();const hits=core.filterServices(query()),b=core.best(query()),c=b&&hits.some(h=>h.id===b)?core.card(b):hits.length===1?hits[0]:null;
+  if(c)choosePick(c)}});
 findClear.addEventListener('click',()=>{find.value='';render();find.focus()});
 // The filter box and the chips stay under the page bar while the list scrolls (agency/crea.css: position sticky):
 // the bar's height is read, never guessed.
@@ -311,6 +316,8 @@ async function choose(id){
  suggestions(true);
 }
 async function load(){
+ // On a phone the filter box is the one search: ?q= fills it too (the command bar is not shown there).
+ if(phone.matches&&ask.q)find.value=ask.q.slice(0,80);
  input.value=ask.q;render();suggestions(true);
  try{
   if(!(await ws.ready())){say('Accedi dal Command Center e riprova.');return}

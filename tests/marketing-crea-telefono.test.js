@@ -64,3 +64,29 @@ test('«Usati di recente»: this browser only, wrapped in try/catch, at most 4, 
  assert.match(js,/openCard=c\.id;used\(c\);render\(\);/);assert.match(js,/go\.addEventListener\('click',\(\)=>used\(c\)\)/);
  assert.match(js,/const last=!group&&!q\?recent\(\):\[\];/);
 });
+
+test('the top on a phone: title alone, suggestions as one chip row scrolling inside itself, project on one line, one search',()=>{
+ const html=read('agency/crea.html'),js=read('agency/crea.js'),css=read('agency/crea.css');
+ const at=css.indexOf('@media (max-width:640px)'),phone=css.slice(at),desk=css.slice(0,at);
+ // the command bar is hidden on a phone only: the sticky filter is the one search box there
+ assert.match(phone,/\.cp-copy \.ma-command-bar\{display:none\}/);assert.doesNotMatch(desk,/ma-command-bar\{display:none\}/);
+ assert.match(phone,/\.cp-copy>\.ma-eyebrow,\.cp-lead\{display:none\}/);
+ assert.match(phone,/\.cp-main \.ma-title\{margin:0 0 10px;font-size:26px/);
+ // the chips: one row, scrolled inside itself (no page scroll sideways), 44 px taps, the head kept for screen readers
+ assert.match(phone,/\.cp-copy \.ma-suggest\{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;margin:0 -12px;padding:2px 12px/);
+ assert.match(phone,/\.cp-copy \.ma-option\{flex:none\}/);assert.match(phone,/\.cp-copy \.ma-option-link\{[^}]*min-height:44px[^}]*white-space:nowrap/);
+ assert.match(phone,/\.cp-copy \.ma-command-head\{position:absolute;width:1px;height:1px/);
+ assert.match(phone,/\.cp-hero\{display:flex;flex-direction:column;align-items:stretch/,'stretch, or the chip row widens the page');
+ assert.match(phone,/\.cp-project\{flex-direction:row;align-items:center/);
+ // the chips are plain links in the tab order on a phone, options of the listbox elsewhere
+ assert.match(js,/const chips=phone\.matches;list\.setAttribute\('role',chips\?'list':'listbox'\)/);
+ assert.match(js,/if\(!chips\)\{a\.setAttribute\('role','option'\);a\.setAttribute\('aria-selected','false'\);a\.tabIndex=-1\}/);
+ assert.match(js,/input\.setAttribute\('aria-expanded',String\(!chips&&items\.length>0\)\)/);
+ assert.match(js,/phone\.addEventListener\('change',\(\)=>\{hint\(\);suggestions\(true\)\}\)/);
+ // ?q= fills the filter on a phone; Invio there opens the best match, as the command box does
+ assert.match(js,/if\(phone\.matches&&ask\.q\)find\.value=ask\.q\.slice\(0,80\);/);
+ assert.match(js,/e\.key==='Enter'&&query\(\)\)\{e\.preventDefault\(\);const hits=core\.filterServices\(query\(\)\),b=core\.best\(query\(\)\)/);
+ assert.match(html,/id="crAsk"[^>]*role="combobox"/,'the command box stays for a computer');
+ // what ?q= links from the home ask for is found by the filter too (the same synonyms), with the box's pick inside
+ for(const q of ['spot','un volantino per l’open day','rispondi alle recensioni','dominio','post grafici']){const b=core.best(q);assert.ok(b,q);assert.ok(ids(q).includes(b),q+' → '+b)}
+});
