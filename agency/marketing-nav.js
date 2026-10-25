@@ -118,8 +118,9 @@
   function open() { return [].slice.call(document.querySelectorAll('details.more[open]')); }
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' && e.key !== 'Esc') return;
-    // A confirmation open on top (RadixConfirm, a <dialog>) takes its own Escape first.
-    if (document.querySelector('dialog[open]')) return;
+    // A confirmation open on top (RadixConfirm, a <dialog>) takes its own Escape first. RadixConfirm closes and removes
+    // its dialog in its own keydown (preventDefault) before the key reaches the document: that Escape is spent too.
+    if (e.defaultPrevented || document.querySelector('dialog[open]')) return;
     var list = open(); if (!list.length) return;
     var act = document.activeElement, own = null;
     list.forEach(function (d) { if (d.contains(act)) own = d; d.open = false; });

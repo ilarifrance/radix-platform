@@ -84,7 +84,14 @@ test('the top on a phone: title alone, suggestions as one chip row scrolling ins
  assert.match(js,/input\.setAttribute\('aria-expanded',String\(!chips&&items\.length>0\)\)/);
  assert.match(js,/phone\.addEventListener\('change',\(\)=>\{hint\(\);suggestions\(true\)\}\)/);
  // ?q= fills the filter on a phone; Invio there opens the best match, as the command box does
- assert.match(js,/if\(phone\.matches&&ask\.q\)find\.value=ask\.q\.slice\(0,80\);/);
+ // the whole text, as long as the box of the home and of this page allow (200): a cut at 80 lost the word that picked
+ // the service («…ci serve un volantino» → Stampa, area shown, filter «Nessun servizio»)
+ assert.match(js,/if\(phone\.matches&&ask\.q\)find\.value=ask\.q;/);
+ const maxOf=id=>+(new RegExp('<input[^>]*id="'+id+'"[^>]*maxlength="(\\d+)"').exec(html)||[])[1];
+ assert.equal(maxOf('crFind'),200);assert.equal(maxOf('crFind'),maxOf('crAsk'),'the filter takes what the command box takes');
+ const long='Buongiorno, per la festa di fine anno della nostra palestra in centro città ci serve un volantino';
+ const a=core.fromAsk('?open=stampa&q='+encodeURIComponent(long));assert.ok(long.length>80&&a.q===long&&a.match==='stampa');
+ assert.ok(ids(a.q).includes(a.match),'the filter filled from ?q= keeps the service ?q= preselects');
  assert.match(js,/e\.key==='Enter'&&query\(\)\)\{e\.preventDefault\(\);const hits=core\.filterServices\(query\(\)\),b=core\.best\(query\(\)\)/);
  assert.match(html,/id="crAsk"[^>]*role="combobox"/,'the command box stays for a computer');
  // what ?q= links from the home ask for is found by the filter too (the same synonyms), with the box's pick inside

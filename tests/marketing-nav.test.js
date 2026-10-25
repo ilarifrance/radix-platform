@@ -153,6 +153,10 @@ test('«Altro ▾»: Escape closes the open menu and gives the focus back to its
  // A confirmation on top (RadixConfirm <dialog>) keeps its own Escape: the menu below stays as it is.
  menus[0].d.open=true;setDialog({});doc.activeElement=menus[0].b;handlers.keydown({key:'Escape'});
  assert.equal(menus[0].d.open,true);assert.equal(doc.activeElement,menus[0].b);setDialog(null);
+ // RadixConfirm's own Escape: its keydown (on the dialog) closes and removes it with preventDefault before the key
+ // reaches the document, so no dialog is open any more; that Escape is spent and the menu below stays as it is.
+ menus[0].d.open=true;doc.activeElement=menus[0].b;handlers.keydown({key:'Escape',defaultPrevented:true});
+ assert.equal(menus[0].d.open,true,'one Escape closes only the confirmation');assert.equal(doc.activeElement,menus[0].b);
  // Clicks: inside the menu it stays open, outside it closes.
  handlers.click({target:menus[0].b});assert.equal(menus[0].d.open,true);
  handlers.click({target:new El('main')});assert.equal(menus[0].d.open,false);

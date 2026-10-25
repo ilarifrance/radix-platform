@@ -316,8 +316,9 @@ async function choose(id){
  suggestions(true);
 }
 async function load(){
- // On a phone the filter box is the one search: ?q= fills it too (the command bar is not shown there).
- if(phone.matches&&ask.q)find.value=ask.q.slice(0,80);
+ // On a phone the filter box is the one search: ?q= fills it too (the command bar is not shown there), whole: the
+ // service it preselects may be named after the 80th character (the home's box takes 200).
+ if(phone.matches&&ask.q)find.value=ask.q;
  input.value=ask.q;render();suggestions(true);
  try{
   if(!(await ws.ready())){say('Accedi dal Command Center e riprova.');return}
