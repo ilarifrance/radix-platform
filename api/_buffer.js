@@ -59,7 +59,7 @@ async function bufferGraphQL(apiKey, query, variables) {
 // Crea il post su Buffer. Senza dueAt va nel prossimo slot libero (addToQueue); con dueAt (ISO UTC)
 // viene programmato a quell'orario esatto (customScheduled). Errori con .status: 422 se Buffer rifiuta
 // il post, 502 se la risposta non è valida.
-async function createPost(apiKey, { channelId, text, dueAt, images, video, youtube }) {
+async function createPost(apiKey, { channelId, text, dueAt, images, video, youtube, instagram }) {
   const scheduled = !!dueAt;
   const pics = (Array.isArray(images) ? images : []).filter((u) => /^https:\/\//.test(String(u))).slice(0, 10);
   // Inline literal (see developers.buffer.com/examples/create-image-post): an ordered list, one { image: { url } } each.
@@ -73,6 +73,13 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video, youtu
     ? ', metadata: { youtube: { title: ' + JSON.stringify(String(youtube.title).slice(0, 100)) + ', categoryId: ' +
       JSON.stringify(String(youtube.categoryId || '27')) + ', madeForKids: false } }'
     : '';
+  // Instagram (developers.buffer.com/types/InstagramPostMetadataInput): type (PostType enum) and shouldShareToFeed
+  // are required, or Buffer answers «Instagram posts require a type». A video goes out as a reel, images as a post.
+  const igType = instagram && ({ post: 'post', reel: 'reel', story: 'story' })[instagram.type];
+  const ig = igType
+    ? ', metadata: { instagram: { type: ' + igType + ', shouldShareToFeed: true' +
+      (instagram.isAiGenerated ? ', isAiGenerated: true' : '') + ' } }'
+    : '';
   const data = await bufferGraphQL(
     apiKey,
     // Inline literals, as in Buffer's own examples: ids use Buffer's own scalar types (ChannelId,
@@ -80,7 +87,7 @@ async function createPost(apiKey, { channelId, text, dueAt, images, video, youtu
     'mutation {\n' +
       '  createPost(input: { text: ' + JSON.stringify(String(text)) + ', channelId: ' + JSON.stringify(String(channelId)) +
       ', schedulingType: automatic, mode: ' +
-      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + yt + ' }) {\n' +
+      (scheduled ? 'customScheduled, dueAt: ' + JSON.stringify(String(dueAt)) : 'addToQueue') + assets + (yt || ig) + ' }) {\n' +
       '    ... on PostActionSuccess { post { id text dueAt } }\n' +
       '    ... on MutationError { message }\n' +
       '  }\n' +
