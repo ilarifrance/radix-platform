@@ -115,11 +115,11 @@ test('a proposal with only rejected ops cannot be applied; a plain reply is a bu
  const c=await ui.ask('ancora?');assert.equal(c.kind,'error');assert.match(ui.log.textContent,/Non riesco a rispondere ora: rete non raggiungibile\./);
 });
 
-test('one image: png/jpeg/webp up to 5 MB, sent once with the next message as a data URL, then gone',async()=>{
+test('one image: png/jpeg/webp up to 20 MB picked, sent once with the next message as a data URL, then gone',async()=>{
  const {ui,calls}=setup();ui.open();
  assert.equal(ui.setImage({name:'doc.pdf',type:'application/pdf',size:10}),false);assert.match(ui.log.textContent,/solo un’immagine PNG, JPG o WebP/);
  assert.equal(ui.setImage({name:'anim.gif',type:'image/gif',size:10}),false);assert.equal(ui.setImage({name:'v.svg',type:'image/svg+xml',size:10}),false);
- assert.equal(ui.setImage({name:'big.png',type:'image/png',size:R.MAX_IMAGE+1}),false);assert.match(ui.log.textContent,/al massimo 5 MB/);
+ assert.equal(ui.setImage({name:'big.png',type:'image/png',size:R.PICK_IMAGE+1}),false);assert.match(ui.log.textContent,/al massimo 20 MB/);
  assert.equal(ui.setImage({name:'schermata.png',type:'image/png',size:1000}),true);
  assert.equal(ui.attach.hidden,false);assert.equal(ui.attach.querySelector('img').src,'blob:schermata.png');assert.match(ui.attach.textContent,/va con il prossimo messaggio, non viene salvata/);
  assert.equal(ui.setImage({name:'altra.webp',type:'image/webp',size:1000}),true);assert.equal(ui.attach.querySelectorAll('img').length,1,'only one');
@@ -184,4 +184,13 @@ test('the fake AI stays injectable; the shell loads the Regia and its confirm; l
  assert.match(css,/--rg-panel:#fff;/);assert.match(css,/--rg-vi:#4f46e5;/);
  assert.match(css,/@media \(max-width:640px\)\{\s*\.rx-regia,\.rx-regia--top\{top:0;left:0;right:0;bottom:0;width:100vw;/);
  assert.doesNotMatch(css+src,/ped-regia/);
+});
+
+test('a picture over 2,5 MB is redrawn as a smaller JPEG before it leaves; without a canvas it is refused before any call',async()=>{
+ const t=setup();t.ui.open();assert.equal(t.ui.setImage({name:'foto.png',type:'image/png',size:R.SEND_IMAGE+1}),true);
+ const e=await t.ui.ask('Guarda');assert.equal(e.kind,'error');assert.equal(t.calls.length,0);assert.match(t.ui.log.textContent,/troppo grande da inviare/);
+ const drawn=[];const canvas={width:0,height:0,getContext:()=>({drawImage:(b,x,y,w,h)=>drawn.push([w,h])}),toDataURL:(type,q)=>'data:'+type+';base64,/9j/4AAQ'};
+ const s=setup({win:{createImageBitmap:async()=>({width:4000,height:3000,close(){}}),document:{createElement:()=>canvas}}});s.ui.open();
+ s.ui.setImage({name:'foto.png',type:'image/png',size:R.SEND_IMAGE+1});await s.ui.ask('Guarda');
+ assert.deepEqual(drawn,[[1600,1200]]);assert.equal(s.calls.length,1);assert.equal(s.calls[0].ctx.image.dataUrl,'data:image/jpeg;base64,/9j/4AAQ');
 });
