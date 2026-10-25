@@ -114,6 +114,8 @@
 /* Phone-only controls (shown by the phone block below): «Mostra … (N)» under the long lists, the globe's fold and
    «Tutti i servizi» under the area rows. On a computer every list is whole and these do not show. */
 .mo-more,.mo-fold,.mo-all{display:none}
+/* Phone-only too: the one-line empty «Lavori in corso», the folder icon and the short labels of the header buttons. */
+.mo-jobs-line,.mo-head-actions .mo-new-icon,.mo-short{display:none}
 .mo-foot{margin:8px 0 0;padding-top:20px;border-top:1px solid var(--ma-line);color:var(--ma-mut);font-size:12px;line-height:1.5}
 @media (max-width:1180px){.mo-board{grid-template-columns:minmax(0,1fr) 340px}.mo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:980px){.mo-hero{grid-template-columns:minmax(0,1fr)}.mo-wait{border-left:0;border-top:1px solid var(--ma-line)}
@@ -124,9 +126,16 @@
 @media (max-width:640px){.mo-now{min-height:44px}
   .mo-main{padding:16px 16px 48px;gap:16px}
   .mo-title{font-size:26px}
-  .mo-head-actions{width:100%}
-  .mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px;padding:0 12px}
-  .mo-switch{flex:1 1 100%;max-width:none}.mo-switch select{width:100%;min-height:44px}
+  /* One row of controls: the project switcher, then «Progetto» and «Lavoro» with their icons (the full «Nuovo …»
+     stays the name for screen readers): the search box rises by a row. */
+  .mo-head-actions{width:100%;flex-wrap:nowrap;gap:8px}
+  .mo-head-actions>.ma-btn{flex:1 1 0;min-height:44px;padding:0 12px;gap:6px;white-space:nowrap}
+  .mo-switch:not([hidden])~.ma-btn{flex:none;padding:0 12px}
+  .mo-head-actions .mo-new-icon{display:inline-grid}
+  .mo-head-actions .mo-label{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .mo-head-actions .mo-short{display:inline}
+  .mo-switch{flex:1 1 0;max-width:none}.mo-switch select{width:100%;min-height:44px}.mo-head-actions .mo-switch select{padding:0 30px 0 34px}
+  .mo-switch::after{right:12px}
   .mo-chip--link{min-height:44px}
   .mo-ask{padding:20px 16px 16px}
   .mo-wait{padding:16px}
@@ -175,6 +184,13 @@
   .mo-flow [data-collapsed=true]>.ma-step:not(.is-near){display:none}
   .mo-flow [data-collapsed=true]>.ma-step.is-near-end::after{display:none}
   .mo-jobs .ma-empty{padding:8px 8px 4px}
+  /* Nothing in progress: one line (and the panel title) instead of the empty panel, «Inizia un lavoro →» to Cosa vuoi fare. */
+  .mo-jobs[data-empty=true]{padding:12px 16px 8px}
+  .mo-jobs[data-empty=true] .ma-panel-head{margin-bottom:0}
+  .mo-jobs[data-empty=true] .ma-empty{display:none}
+  .mo-jobs-line{display:flex;align-items:center;flex-wrap:wrap;gap:0 8px;margin:0;font-size:13.5px;color:var(--ma-mut)}
+  .mo-jobs-dot{color:var(--ma-line-2)}
+  .mo-jobs-line .ma-link{display:inline-flex;align-items:center;gap:4px;min-height:44px;font-weight:600}
   /* Services: the eight areas as one white list of one-line rows (icon, name, how many), as the rows of «Cosa vuoi
      fare» (agency/crea.css); each whole row opens its area there, «Tutti i servizi» the full panel. */
   .mo-areas .ma-panel-head .ma-link{display:none}

@@ -60,3 +60,29 @@ test('the top on a phone: no date line, chips on one row, «Inizia» beside the 
  assert.match(media(css,'max-width:1180px'),/\.mo-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
  assert.match(desktop,/\.mo-kpis\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\);gap:16px\}/,'four tiles a row on a computer');
 });
+
+test('header on a phone: switcher, «Progetto» and «Lavoro» on one row; «Nuovo …» stays the name; a computer as before',()=>{
+ assert.match(html,/<a class="ma-btn ma-btn--ghost mo-new" href="\/agency\/new-project\.html"><span class="ma-btn-icon mo-new-icon" id="moNewIcon" aria-hidden="true"><\/span><span class="mo-label">Nuovo progetto<\/span><span class="mo-short" aria-hidden="true">Progetto<\/span><\/a>/);
+ assert.match(html,/id="moNewJob" href="\/agency\/crea\.html"><span class="ma-btn-icon" id="moNewJobIcon" aria-hidden="true"><\/span><span class="mo-label">Nuovo lavoro<\/span><span class="mo-short" aria-hidden="true">Lavoro<\/span><\/a>/);
+ assert.match(js,/\$\('moNewIcon'\)\.innerHTML=L\.svg\('folder'\)/);
+ assert.match(desktop,/\.mo-jobs-line,\.mo-head-actions \.mo-new-icon,\.mo-short\{display:none\}/,'on a computer: full labels, no extra icon');
+ assert.ok(!/\.mo-label\{/.test(desktop),'the full label is untouched on a computer');
+ assert.match(phone,/\.mo-head-actions\{width:100%;flex-wrap:nowrap;gap:8px\}/,'one row');
+ assert.match(phone,/\.mo-switch\{flex:1 1 0;max-width:none\}/,'the switcher takes the room left');
+ assert.match(phone,/\.mo-head-actions \.mo-label\{position:absolute;width:1px;height:1px;[^}]*clip:rect\(0 0 0 0\)/,'«Nuovo progetto» / «Nuovo lavoro» kept for screen readers');
+ assert.match(phone,/\.mo-head-actions \.mo-short\{display:inline\}/);
+ assert.match(phone,/\.mo-head-actions \.mo-new-icon\{display:inline-grid\}/);
+ assert.match(phone,/\.mo-head-actions>\.ma-btn\{flex:1 1 0;min-height:44px/,'44px taps');
+});
+
+test('empty «Lavori in corso» on a phone: one line and «Inizia un lavoro →» to Cosa vuoi fare; the panel on a computer',()=>{
+ assert.match(js,/function emptyLine\(\)\{const p=node\('p','mo-jobs-line'\),a=node\('a','ma-link','Inizia un lavoro'\);/);
+ assert.match(js,/a\.href=state\.project\?'\/agency\/crea\.html\?project='\+encodeURIComponent\(state\.project\.id\):'\/agency\/crea\.html';/);
+ assert.match(js,/p\.append\(node\('span','','Nessun lavoro in corso'\),node\('span','mo-jobs-dot','·'\),a\)/);
+ assert.match(js,/gli incarichi compaiono qui\.'\),emptyLine\(\)\);box\.closest\('section'\)\.dataset\.empty='true';return j\}/,'only when there is nothing in progress');
+ assert.match(js,/setFold\('moJobsMore',box,0,'tutti'\);box\.closest\('section'\)\.dataset\.empty='false';/,'reset on every render (loading, signed out, rows)');
+ assert.match(phone,/\.mo-jobs\[data-empty=true\] \.ma-empty\{display:none\}/);
+ assert.match(phone,/\.mo-jobs-line\{display:flex;/);
+ assert.match(phone,/\.mo-jobs-line \.ma-link\{display:inline-flex;align-items:center;gap:4px;min-height:44px/,'a 44px tap');
+ assert.ok(!/data-empty/.test(desktop),'on a computer the empty panel stays');
+});

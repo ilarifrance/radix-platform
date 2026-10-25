@@ -24,7 +24,7 @@ function setFold(id,box,n,what){const b=$(id),open=opened.has(id),many=n>3;b.dat
  box.dataset.collapsed=String(many&&!open);b.setAttribute('aria-expanded',String(many&&open));b.textContent=open?'Mostra meno':'Mostra '+what+' ('+n+')'}
 [['moWaitMore','moWait'],['moFlowMore','moFlow'],['moJobsMore','moJobs']].forEach(([id,box])=>$(id).addEventListener('click',()=>{
  opened.has(id)?opened.delete(id):opened.add(id);const b=$(id);setFold(id,$(box),+b.dataset.n,b.dataset.what)}));
-$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moSwitchIcon').innerHTML=L.svg('folder');
+$('moAskIcon').innerHTML=L.svg('spark');$('moAskGoIcon').innerHTML=L.svg('arrow');$('moNewJobIcon').innerHTML=L.svg('spark');$('moNewIcon').innerHTML=L.svg('folder');$('moSwitchIcon').innerHTML=L.svg('folder');
 $('moLead').textContent='Scrivi cosa ti serve o scegli un servizio qui sotto: '+plural((C.listed?C.listed():C.CARDS).length,'servizio','servizi')+' in '+planets.length+' aree. Ogni lavoro arriva in 3 proposte e niente parte senza la tua conferma.';
 try{const d=new Date().toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long'});$('moCrumb').textContent='Marketing Agency · '+d.charAt(0).toUpperCase()+d.slice(1)}catch(e){}
 
@@ -126,12 +126,12 @@ function areas(){
 
 // ---- Work in progress: the open Agency tasks of the team projects, drafts to review first, as a list. ----
 function jobsTable(){
- const box=$('moJobs'),count=$('moJobsCount');setFold('moJobsMore',box,0,'tutti');
+ const box=$('moJobs'),count=$('moJobsCount');setFold('moJobsMore',box,0,'tutti');box.closest('section').dataset.empty='false';
  if(state.signed===false){count.textContent='';box.replaceChildren(empty('Accedi dal Command Center per vedere i lavori del team.','Vai al Command Center','/control-center-v2.html'));return null}
  if(!state.projects){count.textContent='';box.replaceChildren(node('p','ma-empty-line','Caricamento dei lavori…'));return null}
  const j=O.jobs(state.projects,state.plans,{roles:state.roles,status:DV?DV.STATUS:{}});
  count.textContent=j.total?plural(j.total,'aperto','aperti'):'';
- if(!j.rows.length){box.replaceChildren(empty('Nessun lavoro in corso','Inizia un lavoro','/agency/crea.html',state.projects.length?'Scegli un servizio qui sopra: gli incarichi degli agenti compaiono qui.':'Crea un progetto, poi scegli un servizio: gli incarichi compaiono qui.'));return j}
+ if(!j.rows.length){box.replaceChildren(empty('Nessun lavoro in corso','Inizia un lavoro','/agency/crea.html',state.projects.length?'Scegli un servizio qui sopra: gli incarichi degli agenti compaiono qui.':'Crea un progetto, poi scegli un servizio: gli incarichi compaiono qui.'),emptyLine());box.closest('section').dataset.empty='true';return j}
  const ul=node('ul','mo-job-list');
  j.rows.forEach(r=>{const li=node('li','mo-job'),a=node('a','mo-job-link');a.href=r.href;
   const top=node('span','mo-job-top');top.append(node('b','mo-job-title',r.title),node('span','ma-pill ma-pill--'+r.tone,r.label));
@@ -141,6 +141,10 @@ function jobsTable(){
   a.append(top,meta,bar);li.append(a);ul.append(li)});
  box.replaceChildren(ul);setFold('moJobsMore',box,j.rows.length,'tutti');return j;
 }
+// On a phone the empty «Lavori in corso» is one line (the panel above stays on a computer): what is true and where to start.
+function emptyLine(){const p=node('p','mo-jobs-line'),a=node('a','ma-link','Inizia un lavoro');
+ a.href=state.project?'/agency/crea.html?project='+encodeURIComponent(state.project.id):'/agency/crea.html';// .ma-link draws the arrow
+ p.append(node('span','','Nessun lavoro in corso'),node('span','mo-jobs-dot','·'),a);return p}
 function empty(title,cta,href,line){const d=node('div','ma-empty');d.append(ico('layers','ma-empty-icon'),node('b','',title));if(line)d.append(node('p','',line));if(cta){const a=node('a','ma-btn ma-btn--ghost',cta);a.href=href;d.append(a)}return d}
 
 // ---- Workflow: the nine phases of the project with their real state; without a project, the flow itself. ----
