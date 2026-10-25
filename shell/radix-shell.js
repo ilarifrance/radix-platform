@@ -445,18 +445,34 @@
   if (/project-editorial/.test(location.pathname) && document.getElementById('calendar')) {
     var pedJs = document.createElement('script'); pedJs.src = '/shell/ped-calendar.js'; document.body.appendChild(pedJs);
   }
-  if (window.fetch && body.dataset.shellUser !== 'off') {
+  // data-shell-user="off" (the PM page has its own account line): no user chip, but the Regia still loads for signed-in people.
+  if (window.fetch) {
     fetch('/api/auth/me', { credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         var u = d && (d.user || d);
         var name = u && (u.name || u.displayName || u.email);
         if (!name) return;
-        // Guida RADIX: the «?» button with how to use this page, for signed-in people.
+        // Regia RADIX (lib/radix-regia.js): the «Regia» button and panel built on the Guide map, for signed-in people.
+        // The scripts load in order (confirm dialog, core, area adapters, Guide, panel); if the panel cannot load, the Guide «?»
+        // starts alone. Without the confirm dialog the Regia asks with the browser's confirm().
         if (body.dataset.shellGuide !== 'off' && !document.getElementById('rxGuide')) {
           var gCss = document.createElement('link'); gCss.rel = 'stylesheet'; gCss.href = '/shell/radix-guide.css'; document.head.appendChild(gCss);
-          var gJs = document.createElement('script'); gJs.src = '/lib/radix-guide.js'; document.body.appendChild(gJs);
+          var rCss = document.createElement('link'); rCss.rel = 'stylesheet'; rCss.href = '/shell/radix-regia.css'; document.head.appendChild(rCss);
+          document.documentElement.setAttribute('data-rx-regia', 'on');
+          var regiaJs = ['/lib/radix-confirm.js', '/lib/radix-regia-core.js', '/lib/regia-cc.js', '/lib/radix-guide.js', '/lib/radix-regia.js'];
+          // A page adds its own area adapter with data-shell-regia="/lib/regia-x.js": it registers before the panel starts.
+          String(body.dataset.shellRegia || '').split(/\s+/).filter(function (u) { return /^\/lib\/regia-[a-z0-9-]+\.js$/.test(u) && regiaJs.indexOf(u) < 0; }).forEach(function (u, k) { regiaJs.splice(3 + k, 0, u); });
+          var guideAlone = function () { if (window.RadixGuide && !document.getElementById('rxGuide')) window.RadixGuide.start(); };
+          (function next(i) {
+            if (i >= regiaJs.length) { if (!window.RadixRegia) guideAlone(); return; }
+            var s = document.createElement('script'); s.src = regiaJs[i];
+            s.onload = function () { next(i + 1); };
+            s.onerror = function () { if (regiaJs[i] === '/lib/radix-confirm.js') { next(i + 1); return; } if (regiaJs[i] === '/lib/radix-guide.js') return; document.documentElement.removeAttribute('data-rx-regia'); next(regiaJs.indexOf('/lib/radix-guide.js') > i ? regiaJs.indexOf('/lib/radix-guide.js') : regiaJs.length); };
+            document.body.appendChild(s);
+          })(0);
         }
+        if (body.dataset.shellUser === 'off') return;
         if (pageTop) {
           var pill = top.querySelector('.user-pill');
           (pill ? pill.parentNode : top).insertBefore(logoutButton(), pill ? pill.nextSibling : null);
