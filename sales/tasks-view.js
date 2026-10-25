@@ -29,8 +29,8 @@ window.RadixCrmTasksView={groups,rel,dd,recall,rail};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'';
 const member=(d,id)=>d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnata';
 
-function complete(task){const card=[...document.querySelectorAll('#tasks .board article.card')].find(c=>c.querySelector('h3')?.textContent.trim()===task.title);
-  const sel=card?.querySelector('select');const btn=sel&&[...card.querySelectorAll('button')].find(b=>/Conferma stato/.test(b.textContent));
+function complete(task){const card=[...document.querySelectorAll('#tasks .board article.card')].find(c=>(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(c.querySelector('h3')).trim()===task.title);
+  const sel=card?.querySelector('select');const btn=sel&&[...card.querySelectorAll('button')].find(b=>/Conferma stato/.test((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b)));
   if(!sel||!btn||btn.disabled)return false;sel.value='done';sel.dispatchEvent(new Event('change',{bubbles:true}));btn.click();window.RadixCrmData?.reset();return true}
 
 function kpis(d,g){const row=E('div',undefined,'tv-kpis');const all=d.tasks.length,done=g.done.length,pct=all?Math.round(done/all*100):0;

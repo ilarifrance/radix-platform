@@ -56,7 +56,7 @@ function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail
   const txt=E('div');if(f.opps.length)txt.append(E('span','Trattativa aperta','cx-chip'));txt.append(E('h2',c.name),E('p',f.company?.name||'Azienda non collegata','cx-sub'));
   const sc=scoreOf(d,c);if(sc){const r=E('p',undefined,'cx-score-line');r.append(badge(sc),E('span',window.RadixCrmScore.explain(sc)));txt.append(r)}
   const tags=E('div',undefined,'cx-tags');tags.append(E('span',f.opps.length+' opportunità'),E('span',f.open.length+' attività aperte'),E('span',f.inter.length+' interazioni'));txt.append(tags);id.append(txt);top.append(id);
-  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=b.textContent.trim();if(!/^(Customer360|Messaggio LinkedIn|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
+  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b).trim();if(!/^(Customer360|Messaggio LinkedIn|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
   const grid=E('div',undefined,'cx-grid');
   const act=E('section',undefined,'cx-panel');act.append(E('h3','Attività recenti'));const ul=E('ul',undefined,'cx-timeline');
   if(!f.inter.length)ul.append(E('li','Nessuna interazione registrata.','cx-empty'));for(const i of f.inter.slice(0,4)){const li=E('li');li.append(E('b',(KIND[i.kind]||i.kind||'Interazione')+' · '+i.title),E('small',day(i.occurred_at)));ul.append(li)}act.append(ul);
@@ -69,7 +69,7 @@ function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail
 let busy=false;
 async function render(){const section=document.getElementById('contacts');if(!section||!section.classList.contains('rx-view')){document.documentElement.classList.remove('cx-on');return}
   const d=await load();if(!d||!section.isConnected)return;
-  const cards=[...section.querySelectorAll(':scope>article.card')].map(card=>{const name=card.querySelector('h3')?.textContent.trim();const comp=(card.querySelector('p.muted')?.textContent||'').replace(/^Azienda:\s*/,'').trim();
+  const cards=[...section.querySelectorAll(':scope>article.card')].map(card=>{const name=card.querySelector('h3')?.textContent.trim();const comp=((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(card.querySelector('p.muted'))||'').replace(/^Azienda:\s*/,'').trim();
     const contact=d.contacts.find(c=>c.name===name&&(!comp||d.companies.find(x=>x.id===c.company_id)?.name===comp))||d.contacts.find(c=>c.name===name);return contact?{contact,card}:null}).filter(Boolean);
   if(window.RadixCrmScore)cards.sort((a,b)=>scoreOf(d,b.contact).total-scoreOf(d,a.contact).total);
   busy=true;section.querySelector(':scope>.cx')?.remove();

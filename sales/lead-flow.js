@@ -94,7 +94,7 @@
   $('contact-job-list')?.click();
  }
  function parseJob(o){
-  const m=/^(.*) · (\d+) contatti · v\d+$/.exec(o.textContent||'');
+  const m=/^(.*) · (\d+) contatti · v\d+$/.exec((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(o)||'');
   const title=m?m[1]:o.textContent||'Lista';
   return {id:o.value,title,count:m?Number(m[2]):null,label:title.replace(/^LinkedIn Sales Navigator · /,'').replace(/ · \d+ contatti$/,'')};
  }
@@ -154,7 +154,7 @@
   const note=$('lp-open-status');if(note){note.textContent=r.note;note.hidden=false}
  }
  // Messages of the existing archive code, shown next to the LinkedIn list (the routine «N lavori disponibili» is not).
- function mirrorJobs(){const t=$('contact-job-status')?.textContent||'';if(t&&!/liste salvate nel workspace|lavori disponibili/.test(t))say('lf-jobs-status',t)}
+ function mirrorJobs(){const t=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))($('contact-job-status'))||'';if(t&&!/liste salvate nel workspace|lavori disponibili/.test(t))say('lf-jobs-status',t)}
  function mirrorBackup(){if(state.mode==='backup')say('lf-backup-status',$('contact-status')?.textContent||'')}
 
  // ---- counts ----
