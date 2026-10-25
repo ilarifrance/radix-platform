@@ -53,7 +53,7 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
     const tx=E('div');tx.append(E('b',t.title),E('small',[x&&+x<t0()?'Scaduta '+rel(x).toLowerCase():x?rel(x):'',PRI[t.priority]?PRI[t.priority][0]+' priorità':''].filter(Boolean).join(' · ')));box.append(chk,tx);
     const c=company(d,t.company_id);if(c)box.append(E('span',c,'tv-tag'));li.append(box);ol.append(li)}
   if(!list.length)ol.append(E('li','Nessuna attività aperta con una data.','tv-empty'));p.append(ol);
-  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/sales-workspace.html#calendar';p.append(a);return p}
+  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/radix-sales.html#calendar';p.append(a);return p}
 
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
   p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente. Regola fissa, non AI.','tv-note'));

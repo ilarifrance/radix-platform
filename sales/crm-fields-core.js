@@ -101,7 +101,7 @@ const CTRL=/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const MAX_CENTS=9000000000000000,MAX_EMPLOYEES=10000000;
 // «1.250.000», «1250000,50», «1,250,000.50», «€ 1.000» → cents. Null when empty, NaN when not a number.
 // A separator followed by 1-2 digits at the end is the decimal one; any other is a thousands separator.
-function euroToCents(v){const s=String(v??'').replace(/[€\s ']/g,'').replace(/^EUR/i,'');if(!s)return null;if(!/^\d[\d.,]*$/.test(s)||/[.,]$/.test(s))return NaN;
+function euroToCents(v){const s=String(v??'').replace(/[€£\s ']/g,'').replace(/^(EUR|GBP)/i,'');if(!s)return null;if(!/^\d[\d.,]*$/.test(s)||/[.,]$/.test(s))return NaN;
  const m=/^(.*?)[.,](\d{1,2})$/.exec(s);const int=(m?m[1]:s),dec=m?m[2]:'';
  if(int&&!/^\d{1,3}([.,]?\d{3})*$/.test(int))return NaN;
  const c=Number(int.replace(/[.,]/g,'')||'0')*100+Number((dec+'00').slice(0,2));return Number.isSafeInteger(c)?c:NaN}

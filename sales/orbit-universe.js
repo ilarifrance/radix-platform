@@ -20,7 +20,8 @@ const CLOSED=/vint|won|pers|lost/i;
 /* outcome (open/won/lost) when the CRM has it, otherwise the stage name */
 const isOpen=(o,stages)=>o.outcome?o.outcome==='open':!CLOSED.test((stages.get(o.stage_id)||{}).title||'');
 const t0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
-const day=v=>{const d=new Date(v);return Number.isFinite(+d)?d:null};
+// No date (null or empty) is not 1/1/1970: an undated task is neither overdue nor due.
+const day=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(+d)?d:null};
 const total=(rows,partial)=>rows.length>=100&&partial?'100+':it(rows.length);
 
 /* ---- greeting and date ---- */

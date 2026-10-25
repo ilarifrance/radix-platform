@@ -5,7 +5,16 @@ const isOpen=d=>!!d&&(d.outcome==null||d.outcome==='open');
 function outcomeCounts(deals){let won=0,lost=0,open=0;for(const d of deals||[]){if(!d)continue;if(d.outcome==='won')won++;else if(d.outcome==='lost')lost++;else if(isOpen(d))open++}return {open,won,lost}}
 function moveTargets(deal,stages){return (stages||[]).filter(s=>s&&deal&&s.id!==deal.stage_id&&(!deal.process_id||s.process_id===deal.process_id))}
 function moveConfirmation(deal,stage){return 'Spostare «'+((deal&&deal.title)||'Opportunità senza titolo')+'» in «'+((stage&&stage.title)||'Fase')+'»?'+(stage&&stage.task_title?' Verrà creata l’attività «'+stage.task_title+'».':'')}
-const core={isOpen,outcomeCounts,moveTargets,moveConfirmation};
+// A calendar date «2026-12-15» as the CRM shows it, «15/12/2026»; anything else unchanged.
+function dateLabel(v){const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(String(v==null?'':v));return m?m[3]+'/'+m[2]+'/'+m[1]:String(v==null?'':v)}
+// Today as YYYY-MM-DD in the browser's own day (not UTC), to compare with expected_close.
+function localDay(now){const d=now||new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())}
+// Open value × probability: the opportunity's own, otherwise its stage's (as Analisi › Valore ponderato), in cents.
+function weighted(deals,stages){const by=new Map((stages||[]).map(s=>[s&&s.id,s]));let t=0;
+ for(const d of deals||[]){if(!isOpen(d))continue;const c=Number(d.amount_cents);if(!Number.isSafeInteger(c))continue;
+  const own=d.probability,st=by.get(d.stage_id),p=own!=null&&own!==''?Number(own):st&&st.probability!=null?Number(st.probability):0;if(Number.isFinite(p))t+=c*Math.min(100,Math.max(0,p))/100}
+ return Math.round(t)}
+const core={isOpen,outcomeCounts,moveTargets,moveConfirmation,dateLabel,localDay,weighted};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.RadixPipelineMove=core;
 if(typeof document==='undefined')return;
@@ -51,14 +60,14 @@ function stageGroup(stage){const group=E('div',undefined,'stage');group.dataset.
  group.addEventListener('dragleave',e=>{if(!group.contains(e.relatedTarget))group.classList.remove('drop-target')});
  group.addEventListener('drop',e=>{const d=dragged();clearTargets();if(!d||!moveTargets(d,[stage]).length)return;e.preventDefault();state.dragId=null;move(d,stage)});
  return group}
-function selectionPanel(row){const target=$('selection');target.replaceChildren(E('b',row.title||'Opportunità'));if(row.expected_close)target.append(E('p','Data prevista: '+row.expected_close));
+function selectionPanel(row){const target=$('selection');target.replaceChildren(E('b',row.title||'Opportunità'));if(row.expected_close)target.append(E('p','Data prevista: '+dateLabel(row.expected_close)));
  const options=moveTargets(row,state.stages);
  if(canWrite()&&options.length){const id='move-stage';const wrap=E('p');const label=E('label','Sposta in…');label.htmlFor=id;const sel=E('select');sel.id=id;const none=E('option','Scegli una fase');none.value='';sel.append(none);
   options.forEach(s=>{const o=E('option',s.title||'Fase');o.value=s.id;sel.append(o)});const go=E('button','Sposta');go.type='button';go.disabled=true;sel.onchange=()=>{go.disabled=!sel.value};
   go.onclick=()=>{const stage=state.stages.find(s=>s.id===sel.value);if(stage)move(row,stage)};wrap.append(label,' ',sel,' ',go);target.append(wrap)}
  else if(!canWrite())target.append(E('p','Ruolo in sola lettura: lo spostamento di fase non è disponibile.'));
  const a=E('a','Apri nel CRM operativo ↗');a.href='/radix-sales.html#opportunities';target.append(a)}
-function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+row.expected_close,'date');const date=safeDate(row.expected_close);if(date&&date<new Date(new Date().toISOString().slice(0,10)+'T00:00:00Z'))d.classList.add('past');b.append(d)}b.append(E('small','Apri dettagli ↗'));
+function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}b.append(E('small','Apri dettagli ↗'));
  if(canWrite()&&isOpen(row)&&moveTargets(row,state.stages).length){b.draggable=true;b.title='Trascina su un’altra fase per spostarla';b.addEventListener('dragstart',e=>{state.dragId=row.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.id);b.classList.add('dragging')});b.addEventListener('dragend',()=>{state.dragId=null;b.classList.remove('dragging');clearTargets()})}
  b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');selectionPanel(row)};return b}
 function render(){
@@ -72,8 +81,9 @@ function render(){
 }
 function metrics(){
  const scoped=state.deals.filter(d=>!state.processId||d.process_id===state.processId),shown=scoped.filter(isOpen),oc=outcomeCounts(scoped);
- $('count').textContent=String(shown.length);const amounts=shown.filter(d=>Number.isSafeInteger(cents(d.amount_cents)));$('amount').textContent='€ '+moneyMinor(amounts.reduce((s,d)=>s+cents(d.amount_cents),0));$('amount-note').textContent=amounts.length+' importi di trattative aperte · valuta non modellata';
- const today=new Date().toISOString().slice(0,10);$('overdue').textContent=String(shown.filter(d=>typeof d.expected_close==='string'&&d.expected_close<today).length);
+ $('count').textContent=String(shown.length);const amounts=shown.filter(d=>Number.isSafeInteger(cents(d.amount_cents)));$('amount').textContent='€ '+moneyMinor(amounts.reduce((s,d)=>s+cents(d.amount_cents),0));$('amount-note').textContent=amounts.length+' trattative aperte';
+ $('weighted').textContent='€ '+moneyMinor(weighted(shown,state.stages));
+ const today=localDay();$('overdue').textContent=String(shown.filter(d=>typeof d.expected_close==='string'&&d.expected_close<today).length);
  let o=$('outcomes');if(!o){o=E('span');o.id='outcomes';$('count').parentElement.append(o)}o.textContent='Aperte · Vinte '+oc.won+' · Perse '+oc.lost;
 }
 async function load(){const generation=++state.generation;error('');$('status').textContent='Caricamento pipeline...';try{
@@ -84,7 +94,7 @@ async function load(){const generation=++state.generation;error('');$('status').
  state.processId=processes.rows.some(p=>p.id===previous)?previous:'';select.value=state.processId;select.disabled=false;
  state.stages=stages.rows.sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0));state.deals=deals.rows;state.complete=processes.complete&&stages.complete&&deals.complete;
  metrics();
- $('coverage').textContent=state.complete?'Pagine lette':'Parziale';$('status').textContent='Dati CRM autorizzati · '+(state.complete?'copertura delle pagine lette (snapshot non garantito)':'almeno una risorsa ha altre pagine non caricate');
+ $('status').textContent=state.complete?'Dati aggiornati dal server.':'Dati CRM autorizzati · almeno una risorsa ha altre pagine non caricate';
  render()
 }catch(e){if(generation===state.generation){error(e.message);$('status').textContent='Impossibile caricare la pipeline.';idle('Pipeline non disponibile: premi Aggiorna per riprovare.');}}}
 // The board starts with a loading line (sales-pipeline-premium.html); when nothing can load it says why instead.

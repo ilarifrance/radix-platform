@@ -387,7 +387,8 @@ function openEditor(entity,row=null){
   const label=el('label','Testo (opzionale, massimo 4000 caratteri)');const body=el('textarea');body.name='body';body.maxLength=4000;body.rows=6;body.value=row?.body || '';label.append(body);fields.append(label);
  }
  if(entity==='opportunities'){
-  addInput('amount_cents','Importo in centesimi *','number',row?.amount_cents ?? 0,true);
+  // The amount is typed in currency units («24.000» or «24.000,50»), like «Fatturato annuo»; the API keeps cents.
+  const amount=addInput('amount_cents','Importo *','text',window.RadixCrmFields?window.RadixCrmFields.centsToEuro(row?.amount_cents ?? 0):(row?.amount_cents ?? 0),true);amount.inputMode='decimal';
   addSelect('owner_id','Responsabile opportunità',references('members',row?.owner_id),row?.owner_id);
   const close=addInput('expected_close','Chiusura prevista (opzionale)','date',row?.expected_close || '');close.min='0001-01-01';close.max='9999-12-31';
   fields.append(el('small','Data di calendario YYYY-MM-DD, senza ora o fuso. Responsabile e data possono restare non impostati; nessun valore è dedotto.'));
@@ -420,7 +421,8 @@ $('editor-form').addEventListener('submit',event=>{
   if(record&&key.startsWith('custom:'))continue;
   if(record&&key==='name'&&entity==='contacts'){data.name=value.trim();continue;}
   if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id,current:row?.[key]});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
-  if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
+  if(key==='amount_cents'&&RF){const n=RF.euroToCents(value);if(!Number.isSafeInteger(n) || n<0){error('Importo non valido.');return;}data[key]=n;}
+  else if(['position','amount_cents'].includes(key)){const n=Number(value);if(!Number.isSafeInteger(n) || n<0){error('Inserisci un intero non negativo valido.');return;}data[key]=n;}
   else if(['owner_id','assignee_id','task_assignee_id','task_due_days'].includes(key)){
    if(!value.trim())data[key]=null;
    else{const n=Number(value);if(!/^\d+$/.test(value) || !Number.isSafeInteger(n) || (key==='task_due_days'?(n<0 || n>3650):(n<1 || n>2147483647))){error('Assegnatario o giorni non validi.');return;}data[key]=n;}
