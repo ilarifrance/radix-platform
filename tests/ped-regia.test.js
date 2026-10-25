@@ -71,15 +71,41 @@ test('applyProposal: changes go through editorial-core with history, new posts t
  assert.throws(()=>rg.applyProposal(st,v,{}),/needs core and newId/);
 });
 
-test('PED page: «Regia» panel loaded after the workspace, plan changed only through the page save; no AI in F1',()=>{
+test('PED adapter of the common Regia: page wiring, core rules first, then the plan checks; apply saves once and undo restores',async()=>{
  const html=read('project-editorial.html');
- assert.match(html,/<script src="editorial-workspace\.js"><\/script><script src="\/lib\/ped-regia-core\.js"><\/script><script src="\/lib\/ped-regia\.js"><\/script>/);
- assert.match(html,/href="\/shell\/ped-regia\.css"/);
- const ws=read('editorial-workspace.js');assert.match(ws,/window\.RadixPedPage=Object\.freeze\(\{state:\(\)=>state,busy:\(\)=>writing,persist,notify,askConfirm,renderPed/);
- const ui=read('lib/ped-regia.js');
- assert.match(ui,/textContent:'Sì, applica'/);assert.match(ui,/p\.persist\('Regia: '/);assert.match(ui,/rg\.undoLast\(/);
- assert.doesNotMatch(ui,/RadixAgents|\.reply\(|fetch\(/,'F1 makes no AI or network call');
- assert.match(read('shell/ped-regia.css'),/@media \(max-width:640px\)\{\.rx-regia\{top:0;right:0;bottom:0;width:100vw/);
+ assert.match(html,/data-shell-page="agency-ped" data-shell-regia="\/lib\/regia-ped\.js"/);
+ assert.match(html,/<script src="editorial-workspace\.js"><\/script><script src="\/lib\/ped-regia-core\.js"><\/script><\/body>/);
+ assert.doesNotMatch(html,/ped-regia\.css|lib\/ped-regia\.js/);
+ assert.ok(!fs.existsSync(path.join(__dirname,'..','lib','ped-regia.js')),'the provisional panel is gone');
+ assert.match(read('shell/radix-shell.js'),/body\.dataset\.shellRegia/);
+ assert.match(read('editorial-workspace.js'),/sources:\(\)=>\[JSON\.stringify\(state&&state\.brief\|\|\{\}\),clientFacts\(\)\],personal:/);
+ const C=require('../lib/radix-regia-core.js'),{adapter}=require('../lib/regia-ped.js');
+ const st=plan(),saves=[];let renders=0;
+ globalThis.RadixPedPage={state:()=>st,busy:()=>false,persist:m=>saves.push(m),renderPed:()=>renders++,today:()=>today,isOut:c=>!!(c.publication&&c.publication.service),queued:()=>false,
+  sources:()=>['15 anni nel B2B. +1M€ di fatturato annuo'],personal:()=>true};
+ try{
+  const reg=C.createRegistry();const a=reg.register('ped',adapter);assert.equal(reg.adapterFor('agency-ped'),a);
+  assert.match(adapter.context(st),/Da approvare 2/);assert.match(adapter.context(st),/id u1/);
+  assert.match(adapter.context(st),/Spazi liberi settimana del 26\/10\/2026: 29\/10\/2026 08:00 LinkedIn/);
+  assert.match(String(adapter.digest(st)),/impression 3000/);assert.ok(adapter.view(st).items.length>0);
+  const r=C.validateProposal({area:'ped',summary:'Settimana',ops:[
+   {op:'add',date:'2026-10-28',time:'18:00',channel:'Instagram',format:'reel-avatar',title:'Ascoltare',copy:'In 15 anni ho imparato ad ascoltare. E tu?',script:'Script'},
+   {op:'add',date:'2026-10-28',time:'12:30',channel:'Instagram',title:'Numeri',copy:'Ho chiuso 37 contratti in un mese.'},
+   {op:'rewrite',contentId:'u2',copy:'Con HeyGen il CRM si riempie'},
+   {op:'remove',contentId:'q1'},
+   {op:'move',contentId:'u1',date:'2026-10-28',time:'12:30',publish:true},
+   {op:'send_to_buffer',contentId:'u1'}]},a,st);
+  assert.deepEqual(r.accepted.map(o=>o.op),['add']);
+  const why=r.rejected.map(x=>x.reason).join('\n');
+  for(const re of [/Numeri non presenti/,/nomina «HeyGen»/,/già su Buffer/,/non invia, non pubblica/])assert.match(why,re);
+  assert.match(C.previewOf(r.accepted[0],a,st),/^Nuovo post: 28\/10\/2026 18:00 · Instagram · «Ascoltare»/);
+  assert.equal(C.costOf(r.accepted,a).label,'nessuna chiamata AI · nessun credito');
+  const out=await C.applyProposal(a,st,r.accepted);
+  const added=st.contents.find(c=>c.title==='Ascoltare');assert.equal(added.status,'review');assert.equal(added.format,'video');
+  assert.equal(saves.length,1);assert.match(saves[0],/1 post cambiato/);assert.equal(renders,1);
+  assert.equal(await out.undo(),st);assert.equal(st.contents.find(c=>c.title==='Ascoltare').date,'');assert.equal(saves.length,2);
+  globalThis.RadixPedPage.busy=()=>true;await assert.rejects(C.applyProposal(a,st,r.accepted),/Attendi/);
+ }finally{delete globalThis.RadixPedPage}
 });
 
 test('factCheck: tools, numbers and links outside the facts sheet block the change; lint and gaps are warnings',()=>{
