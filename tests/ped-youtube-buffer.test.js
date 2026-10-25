@@ -34,7 +34,7 @@ test('server: no publishing with open placeholders; YouTube gets title, category
  const guard=src.indexOf('pv.placeholders(String(item.copy)',send),claim=src.indexOf('INSERT INTO rx_publications',send);
  assert.ok(guard>send&&guard<claim,'refused before anything is claimed or sent');
  assert.match(src,/const yt=\/youtube\/i\.test\(String\(item\.channel\|\|''\)\+' '\+String\(r\.channelName\|\|''\)\)\?pv\.youtubeMeta\(item\):null;/);
- assert.match(src,/text:yt\?yt\.description:String\(item\.copy\),dueAt:scheduledAt,video,youtube:yt/);
+ assert.match(src,/text:pv\.plainSocial\(yt\?yt\.description:String\(item\.copy\),item\.channel\),dueAt:scheduledAt,video,youtube:yt/);
 });
 
 test('PED page: approval and avatar video blocked on open placeholders; Buffer channel follows the post',()=>{
@@ -52,4 +52,34 @@ test('publish preview: a video post shows its video (or that it is missing), You
  assert.match(fn,/pv\.youtubeMeta\(item\):null;if\(yt\)\{text\.textContent=yt\.description;/);
  assert.match(fn,/const v=document\.createElement\('video'\);v\.src=item\.video\.url;/);
  assert.match(fn,/Manca il video: generalo o collegalo qui sopra/);
+});
+
+test('a post published outside Buffer (YouTube Studio) can be recorded as out, with confirmation and its link',()=>{
+ const src=read('editorial-workspace.js');
+ assert.match(src,/el\('summary',\{textContent:'Pubblicato fuori da Buffer\?'\}\)/);
+ assert.match(src,/askConfirm\(\{title:'Segnare il post come pubblicato fuori da Buffer\?'/);
+ assert.match(src,/cur\.publication=\{service:'manual',[^}]*link:url,mode:'scheduled',[^}]*revision:cur\.revision\}/);
+ assert.match(src,/p\.service==='manual'\?'Programmato fuori da Buffer'/);
+ const pv=require('../lib/ped-views.js');assert.equal(pv.isQueued({status:'approved',revision:6,publication:{service:'manual',revision:6}}),true);
+});
+
+test('social posts reach Buffer without markdown: bold asterisks and #titles are removed, newsletters keep them',()=>{
+ const src=read('api/_registry-handler.js');
+ assert.match(src,/text:pv\.plainSocial\(String\(item\.copy\),item\.channel\),dueAt:scheduledAt,images,instagram:ig\}/);
+ assert.equal(pv.plainSocial('**Perché costa caro:**\nTesto','Instagram'),'Perché costa caro:\nTesto');
+ assert.equal(pv.plainSocial('## Titolo\n**uno**','YouTube'),'Titolo\nuno');
+ assert.equal(pv.plainSocial('**Grassetto**','Newsletter email'),'**Grassetto**');
+});
+
+test('createPost: Instagram needs a type, a reel for video and a post for images, always shared to feed',async()=>{
+ const {createPost}=require('../api/_buffer.js');let sent=null;const realFetch=global.fetch;
+ global.fetch=async(u,o)=>{sent=JSON.parse(o.body);return {ok:true,status:200,json:async()=>({data:{createPost:{post:{id:'p1',dueAt:null}}}})}};
+ try{await createPost('k',{channelId:'c',text:'Reel',video:'https://blob.test/v.mp4',instagram:{type:'reel',isAiGenerated:true}});
+  assert.match(sent.query,/metadata: \{ instagram: \{ type: reel, shouldShareToFeed: true, isAiGenerated: true \} \}/);
+  await createPost('k',{channelId:'c',text:'Carosello',images:['https://blob.test/a.png','https://blob.test/b.png'],instagram:{type:'post'}});
+  assert.match(sent.query,/metadata: \{ instagram: \{ type: post, shouldShareToFeed: true \} \}/);
+  await createPost('k',{channelId:'c',text:'x',instagram:{type:'reel"}){hack'}});assert.doesNotMatch(sent.query,/metadata/,'only known types')}
+ finally{global.fetch=realFetch}
+ const h=require('fs').readFileSync(require('path').join(__dirname,'..','api','_registry-handler.js'),'utf8');
+ assert.match(h,/\{type:'reel',isAiGenerated:true\}/);assert.match(h,/\{type:'post'\}/);
 });
