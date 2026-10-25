@@ -27,9 +27,12 @@
 </section>
 <section id="crPanel" class="cr-panel" hidden aria-labelledby="crPanelTitle"><div class="cr-panel-head"><span class="cr-panel-icon" id="crPanelIcon" aria-hidden="true"></span><div class="cr-panel-titles"><p class="cr-panel-eyebrow" id="crPanelEyebrow">Servizio guidato</p><h2 id="crPanelTitle"></h2></div><button type="button" class="cr-close" id="crClose">Chiudi</button></div><div id="crPanelBody"></div></section>
 <section class="cp-services" aria-labelledby="crServicesTitle">
-<div class="ma-sec-head"><h2 id="crServicesTitle">Servizi</h2><span class="ma-count" id="crCount"></span></div>
+<div class="ma-sec-head"><h2 id="crServicesTitle">Servizi</h2><span class="ma-count" id="crCount" role="status"></span></div>
+<div class="cp-toolbar" id="crToolbar">
+<div class="cp-find" role="search"><span class="cp-find-icon" id="crFindIcon" aria-hidden="true"></span><label class="ma-sr" for="crFind">Filtra i servizi</label><input class="cp-find-input" id="crFind" type="search" autocomplete="off" spellcheck="false" maxlength="80" placeholder="Filtra: logo, volantino, reel…" aria-controls="crCards" aria-describedby="crCount"><button class="cp-find-clear" id="crFindClear" type="button" hidden>Cancella<span class="ma-sr"> il filtro</span></button></div>
 <div id="crFilters" class="cp-tabs" role="group" aria-label="Filtra i servizi per area"></div>
-<div id="crCards" class="cp-index" aria-live="polite"></div>
+</div>
+<div id="crCards" class="cp-index"></div>
 </section>
 <p class="cr-note cp-foot">Tutti i servizi ora sono guidati. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma.</p>
 </main>

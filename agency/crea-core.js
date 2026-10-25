@@ -131,6 +131,18 @@ function fromAsk(search){
  const q=String(s.get('q')||'').replace(/\s+/g,' ').trim().slice(0,200),p=String(s.get('project')||'');
  return {q,project:ID.test(p)?p:'',match:q?best(q):''};
 }
+// The panel's own filter box («Filtra i servizi»), live while typing: the cards in the panel whose title or short line
+// contain the typed text at the start of a word (accents and case ignored: «logo», not «catalogo»), plus the cards the command box matches surely (score 3: a title
+// word or a synonym such as «spot» → Reel, «carosello» → Social e post), also from a word still being typed («volan»
+// → «volantino»). Panel order, no AI; '' gives every listed card.
+function filterServices(query,cards){
+ const list=(Array.isArray(cards)?cards:CARDS).filter(c=>c&&!c.merged),q=fold(query).replace(/\s+/g,' ').trim();
+ if(!q)return list.slice();
+ const hit=new Set(matchServices(query,list).filter(m=>m.score>=SURE).map(m=>m.card.id));
+ for(const t of words(query))if(t.length>=4)for(const k of Object.keys(SYNONYMS))if(k!==t&&k.startsWith(t))for(const id of SYNONYMS[k])hit.add(id);
+ const at=t=>(' '+fold(t).replace(/[^a-z0-9]+/g,' ')).includes(' '+q.replace(/[^a-z0-9]+/g,' ').trim());
+ return list.filter(c=>hit.has(c.id)||at(c.title+' '+c.short));
+}
 // The short cost badge of a card, read from its cost line (no prices or credits are invented): free, one AI call,
 // AI in batches, or the paid media service it uses. The full line stays on the card, before any click.
 function costBadge(c){
@@ -143,6 +155,14 @@ function costBadge(c){
  if(/^Una chiamata AI per [^,]+ e una per/.test(t))return {tone:'ai',label:'2 chiamate AI'};
  if(/^Una chiamata AI/.test(t))return {tone:'ai',label:'1 chiamata AI'};
  return {tone:'ai',label:'AI con conferma'};
+}
+// The badge in a few letters, for the one-line rows on a phone («Gratis», «1 AI», «3 foto»): the full label stays on
+// the card of its area and in the row's tooltip.
+function costShort(c){
+ const b=costBadge(c),l=b.label;
+ if(b.tone==='free')return /facoltativ/.test(l)?'Gratis + AI':'Gratis';
+ const m=l.match(/^(\d+) (?:chiamat[ae] AI|foto Higgsfield)$/);if(m)return /foto/.test(l)?m[1]+' foto':m[1]+' AI';
+ return {'AI a lotti':'AI a lotti','Crediti HeyGen':'HeyGen','AI + HeyGen':'AI + HeyGen'}[l]||'AI';
 }
 // The kits: the services that hand over a whole set of coordinated files in one guided flow (what they deliver comes
 // from the card's own line). Only cards that exist are returned.
@@ -160,5 +180,5 @@ const areaNumber=group=>{const i=groups().indexOf(group);return i<0?'':String(i+
 const fileSize=b=>b<1024?Math.max(0,Math.round(b))+' B':b<1048576?Math.round(b/1024)+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
 const fileSummary=files=>{const list=[...(files||[])].filter(f=>f&&typeof f.size==='number');if(!list.length)return '';
  const total=list.reduce((t,f)=>t+f.size,0);return (list.length===1?String(list[0].name||'file'):list.length+' file')+' · '+fileSize(total)};
-return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,listed,groups,inGroup,areaOf,fromQuery,words,matchServices,best,fromAsk,costBadge,kits,areaNumber,fileSize,fileSummary});
+return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,listed,groups,inGroup,areaOf,fromQuery,words,matchServices,filterServices,best,fromAsk,costBadge,costShort,kits,areaNumber,fileSize,fileSummary});
 });
