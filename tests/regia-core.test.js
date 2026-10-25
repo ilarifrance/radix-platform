@@ -115,7 +115,8 @@ test('conversationDigest: newest messages kept, each capped, total under the cap
  assert.equal(long.length,1);assert.equal(long[0].content.length,100);assert.ok(long[0].content.endsWith('…'));
  assert.deepEqual(C.conversationDigest([{role:'system',content:'a'},null,{role:'user'}]),[{role:'user',content:'a'}]);
  const r=C.createRegistry(),a=r.register('demo',fakeArea());
- assert.equal(C.contextBlock(a,STATE),'[Area: Area finta (demo)]\n[Contesto] 2 post\n[Numeri] {"posts":2}');
+ assert.equal(C.contextBlock(a,STATE),'[Area: Area finta (demo)]\n[Operazioni] retitle, draft, note\n[Contesto] 2 post\n[Numeri] {"posts":2}');
+ assert.match(C.contextBlock(a,{posts:Array(5000).fill({})},null,200),/^\[Area: Area finta \(demo\)\]\n\[Operazioni\] retitle, draft, note\n/,'the op names survive the cap');
  assert.ok(C.contextBlock(a,{posts:Array(5000).fill({})},null,200).length<=200);
 });
 
@@ -143,19 +144,55 @@ test('Command Center adapter: reads the page, says what is stuck, one harmless u
  assert.deepEqual(s.metrics,{projects:7,workflows:3,approvals:2,agents:null});
  assert.deepEqual(s.attention,[{title:'Piano Forno Aurora',detail:'Manca la scheda fatti'}]);
  assert.deepEqual(CC.stuckOf(s).map(w=>w.name),['Orchestratore PED','Avatar']);
- assert.match(a.context(s),/7 progetti, 3 workflow in corso, 2 approvazioni in attesa\. Da guardare: Piano Forno Aurora \(Manca la scheda fatti\)\. Fermi: Orchestratore PED · blocked/);
+ assert.match(a.context(s),/7 progetti, 3 workflow in corso, 2 approvazioni in attesa\. Da guardare: Piano Forno Aurora \(Manca la scheda fatti\)\. Fermi: Orchestratore PED · bloccato · Aspetta l’identità visiva; Avatar · in attesa/);
  assert.deepEqual(a.digest(s),{progetti:7,workflowInCorso:3,approvazioni:2,attenzione:1,fermi:2});
  const p=a.sample(s);assert.equal(p.area,'cc');assert.match(p.summary,/2 lavori fermi: parti da «Orchestratore PED»/);
  const v=C.validateProposal(p,a,s);
- assert.deepEqual(v.accepted,[{op:'pin',item:'Orchestratore PED',note:'blocked'}]);
+ assert.deepEqual(v.accepted,[{op:'pin',item:'Orchestratore PED',note:'bloccato'}]);
  assert.deepEqual(v.rejected.map(x=>x.op.op+' · '+x.reason),['send_reminder · '+C.REASON.effect]);
  assert.equal(C.costOf(v.accepted,a).label,'nessuna chiamata AI · nessun credito');
  const res=await C.applyProposal(a,s,v.accepted);
- assert.deepEqual(a.view(res.state),{title:'Da guardare oggi',items:['Orchestratore PED · blocked']});
+ assert.deepEqual(a.view(res.state),{title:'Da guardare oggi',items:['Orchestratore PED · bloccato']});
  assert.match(C.validateProposal(p,a,res.state).rejected[0].reason,/già in «Da guardare oggi»/);
  assert.deepEqual(a.read(ccDoc(),res.state).pins,res.state.pins,'a fresh read keeps the pins');
  const back=await res.undo();assert.equal(back,s);assert.equal(a.view(back),null);
  // read keeps nothing from the server: no fetch, no storage in the adapter
  const src=require('fs').readFileSync(require('path').join(__dirname,'../lib/regia-cc.js'),'utf8');
  assert.doesNotMatch(src,/fetch\(|localStorage|sessionStorage|\/api\//);
+});
+
+test('Command Center: the workflow states in Italian, Italian words kept, stuck still found by the class',()=>{
+ assert.equal(CC.statusIt('blocked'),'bloccato');assert.equal(CC.statusIt('ERROR'),'errore');assert.equal(CC.statusIt('running'),'in corso');
+ assert.equal(CC.statusIt('pending'),'in attesa');assert.equal(CC.statusIt('done'),'completato');assert.equal(CC.statusIt('needs-approval'),'da approvare');
+ assert.equal(CC.statusIt('da approvare'),'da approvare');assert.equal(CC.statusIt(''),'');
+ const s=CC.read(ccDoc());assert.deepEqual(s.workflows.map(w=>w.status),['bloccato','completato','in attesa']);
+ assert.deepEqual(s.workflows.map(w=>w.stuck),[true,false,true]);
+ assert.doesNotMatch(CC.adapter.context(s),/\b(blocked|waiting|done)\b/);
+});
+
+test('a rejected op reads as one Italian line: the adapter preview, else «Operazione X» with its main field',()=>{
+ const r=C.createRegistry(),a=r.register('demo',fakeArea());
+ assert.equal(C.rejectedPreview({op:'retitle',id:'p9',title:'Altro'},a,STATE),'Nuovo titolo: Altro');
+ assert.equal(C.rejectedPreview({op:'send_reminder',to:'team',message:'Sblocca il workflow'},a,STATE),'Operazione «send_reminder»: Sblocca il workflow');
+ assert.equal(C.rejectedPreview({op:'delete_all'},a,STATE),'Operazione «delete_all»');
+ assert.equal(C.rejectedPreview({nope:true,title:'X'},a,STATE),'Operazione senza nome: X');
+ assert.equal(C.rejectedPreview(null,a,STATE),'Operazione non leggibile');
+ // a preview that breaks on a bad op falls back to the generic line, never «undefined»
+ const cc=r.register('cc',CC.adapter);assert.equal(C.rejectedPreview({op:'pin'},cc,{}),'Operazione «pin»');
+ assert.equal(C.rejectedPreview({op:'note',copy:'x'.repeat(300)},a,STATE).length<=130,true);
+ for(const x of [C.rejectedPreview({op:'send_reminder',to:'team',message:'M'},a,STATE)])assert.doesNotMatch(x,/\w+: \w+ · /);
+});
+
+test('memoryEntry: one proposed decision with the summary as title and the applied ops as content, project or agency scope',()=>{
+ const r=C.createRegistry(),a=r.register('demo',fakeArea());
+ const v=C.validateProposal({area:'demo',summary:'Titoli più chiari',ops:[{op:'retitle',id:'p1',title:'Pane caldo'},{op:'retitle',id:'p2',title:'Lievito'}]},a,STATE);
+ const e=C.memoryEntry(v,a,STATE,{projectId:'forno-aurora',clientId:'cl-1',agentId:'radix-director'});
+ assert.deepEqual(Object.keys(e).sort(),['agentId','clientId','content','kind','level','projectId','source','status','title']);
+ assert.equal(e.kind,'decision');assert.equal(e.status,'proposed');assert.equal(e.level,'project');assert.equal(e.projectId,'forno-aurora');assert.equal(e.clientId,'cl-1');assert.equal(e.agentId,'radix-director');
+ assert.equal(e.title,'Regia: Titoli più chiari');assert.match(e.content,/2 modifiche\):\n- Nuovo titolo: Pane caldo\n- Nuovo titolo: Lievito$/);assert.equal(e.source,'Regia · Area finta');
+ // the server's own check accepts it
+ const core=require('../api/_agency-memory-core');assert.equal(core.validate(e).level,'project');
+ const g=C.memoryEntry({summary:'',accepted:[{op:'retitle',id:'p1',title:'X'}]},a,STATE,{projectId:'bad id!'});
+ assert.equal(g.level,'agency');assert.equal(g.projectId,'');assert.equal(g.agentId,'radix-director');assert.equal(g.title,'Regia: Modifiche applicate in «Area finta»');
+ assert.equal(core.validate(g).level,'agency');
 });
