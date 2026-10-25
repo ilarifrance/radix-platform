@@ -459,6 +459,8 @@
           var rCss = document.createElement('link'); rCss.rel = 'stylesheet'; rCss.href = '/shell/radix-regia.css'; document.head.appendChild(rCss);
           document.documentElement.setAttribute('data-rx-regia', 'on');
           var regiaJs = ['/lib/radix-regia-core.js', '/lib/regia-cc.js', '/lib/radix-guide.js', '/lib/radix-regia.js'];
+          // A page adds its own area adapter with data-shell-regia="/lib/regia-x.js": it registers before the panel starts.
+          String(body.dataset.shellRegia || '').split(/\s+/).filter(function (u) { return /^\/lib\/regia-[a-z0-9-]+\.js$/.test(u) && regiaJs.indexOf(u) < 0; }).forEach(function (u, k) { regiaJs.splice(2 + k, 0, u); });
           var guideAlone = function () { if (window.RadixGuide && !document.getElementById('rxGuide')) window.RadixGuide.start(); };
           (function next(i) {
             if (i >= regiaJs.length) { if (!window.RadixRegia) guideAlone(); return; }
