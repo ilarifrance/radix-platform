@@ -182,7 +182,7 @@ test('the fake AI stays injectable; the shell loads the Regia and its confirm; l
  assert.match(read('lib/radix-guide.js'),/if\(root\.document&&!root\.document\.documentElement\.hasAttribute\('data-rx-regia'\)\)api\.start\(\)/);
  const css=read('shell/radix-regia.css');
  assert.match(css,/--rg-panel:#fff;/);assert.match(css,/--rg-vi:#4f46e5;/);
- assert.match(css,/@media \(max-width:640px\)\{\s*\.rx-regia,\.rx-regia--top\{top:0;left:0;right:0;bottom:0;width:100vw;/);
+ assert.match(css,/@media \(max-width:640px\)\{\s*\.rx-regia:is\(#rxRegia\),\.rx-regia:is\(#rxRegia\)\.rx-regia--top\{top:0;left:0;right:0;bottom:0;width:100vw;/);
  assert.doesNotMatch(css+src,/ped-regia/);
 });
 
