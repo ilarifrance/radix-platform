@@ -20,7 +20,14 @@ test('every card has one of the 8 groups; the filters list only groups with card
  assert.deepEqual(by('Immagini'),['images','fotoprodotto','fotoritocco','mockup','infografica']);assert.deepEqual(by('Video'),['avatar','video','reel','logoanimato']);
  assert.deepEqual(core.groups(),core.GROUPS);
  assert.deepEqual(core.inGroup('Brand').map(c=>c.id),['naming','identita','logovettoriale','tono','coordinato','icone']);
- assert.equal(core.inGroup('').length,core.CARDS.length,'«Tutti»');assert.equal(core.inGroup('boh').length,core.CARDS.length,'unknown group: all');
+ assert.equal(core.inGroup('').length,core.CARDS.length-1,'«Tutti»: every card but the merged one');assert.equal(core.inGroup('boh').length,core.CARDS.length-1,'unknown group: all');
+ // «Post grafici» opened the same page as «Social e post»: one card in the panel, the other still reachable by its id.
+ assert.deepEqual(core.CARDS.filter(c=>c.merged).map(c=>[c.id,c.merged]),[['graphics','social']]);
+ assert.deepEqual(core.inGroup('Social e contenuti').map(c=>c.id),['social','socialgrafica','testi','comunicato','mediakit','influencer','evento']);
+ assert.equal(core.card('graphics').href,core.card('social').href);assert.match(core.card('social').hint,/«Grafica»/);
+ assert.equal(core.best('carosello'),'social');assert.equal(core.best('post grafici'),'social');
+ assert.equal(core.best('spot'),'reel');assert.equal(core.best('dominio'),'naming');
+ assert.ok(core.matchServices('post').every(m=>!m.card.merged),'the search lists only the cards in the panel');
 });
 
 test('the text cards open the Studio Testi inline, one service each, with the role of the service',()=>{
@@ -152,7 +159,7 @@ test('rifinitura: a short line per card for the «Tutti» index, no card named l
  assert.match(js,/\$\('crCards'\)\.dataset\.view=group\?'area':'index';/);assert.match(js,/h\.after\(node\('p','cp-short',c\.short\)\)/);
  assert.match(js,/\$\('crPanelTitle'\)\.textContent=c\.title;\$\('crPanelEyebrow'\)\.textContent='Per '\+current\.name;/,'the project in the eyebrow, the title on its own');
  assert.match(css,/\.cp-index\[data-view=index\] \.cp-line,\.cp-index\[data-view=index\] \.cp-cost,\.cp-index\[data-view=index\] \.cp-hint\{display:none\}/);
- assert.match(css,/\.cp-kit-row\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/,'five kits in one row');
+ assert.ok(!/\.cp-kit-row\{/.test(css),'no kit row: the five kits are marked on their own cards');assert.match(css,/\.cp-kit-line\{/);
  assert.match(css,/\.cp-hint\{color:var\(--ma-tx2\)\}/,'hints are notes, not warnings');
  const studio=fs.readFileSync(path.join(root,'shell/crea.css'),'utf8');
  assert.ok(!/background:var\(--ink\);color:#0a1026/.test(studio),'no ink-on-ink selected segment');

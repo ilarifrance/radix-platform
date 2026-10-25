@@ -40,17 +40,18 @@ test('kits and area numbers come from the cards',()=>{
  assert.deepEqual(core.groups().map(core.areaNumber),['01','02','03','04','05','06','07','08']);assert.equal(core.areaNumber(''),'');
 });
 
-test('the page: Marketing look over the studio styles, the combobox, kits before tabs before cards, no AI call on load',()=>{
+test('the page: Marketing look over the studio styles, the combobox, tabs before cards (the kits marked on their own cards), no AI call on load',()=>{
  const html=read('agency/crea.html'),js=read('agency/crea.js'),at=s=>html.indexOf(s);
  assert.ok(at('/shell/crea.css')<at('/shell/marketing-a.css')&&at('/shell/marketing-a.css')<at('/agency/crea.css'));
  assert.match(html,/<main class="cr-main cp-main ma">/);
  assert.match(html,/id="crAsk"[^>]*role="combobox"[^>]*aria-controls="crSuggest"/);assert.match(html,/<ul class="ma-suggest" id="crSuggest" role="listbox"/);
- assert.ok(at('id="crKits"')<at('id="crFilters"')&&at('id="crFilters"')<at('id="crCards"'));
+ assert.ok(at('id="crKits"')<0,'no separate «Kit completi» row repeating five services');assert.ok(at('id="crFilters"')<at('id="crCards"'));
+ assert.match(js,/const KIT_OF=Object\.fromEntries\(core\.kits\(\)\.map\(k=>\[k\.id,k\]\)\)/,'a kit says so on its card');
  assert.ok(at('/agency/crea-core.js')<at('/agency/orbit-core.js')&&at('/agency/marketing-look.js')<at('/agency/orbit-core.js')&&at('/agency/orbit-core.js')<at('/agency/crea.js'));
  assert.match(js,/ask=core\.fromAsk\(location\.search\)/);assert.match(js,/input\.value=ask\.q;render\(\);suggestions\(true\);/);
  assert.match(js,/const want=ask\.project\|\|remembered\(\);/);
  assert.ok(!/\.reply\(|fetch\(/.test(js),'no AI call from the page itself: the studios ask RadixConfirm before spending');
  assert.match(js,/li\.append\(top,h,node\('p','cp-line',c\.line\),cost\)/,'cost line on every card, before the click');
  const css=read('agency/crea.css');
- assert.match(css,/\.cp-card\[data-match=true\]/);assert.match(css,/\.cp-kit:has\(\.cp-kit-go:focus-visible\)\{outline:2px solid var\(--ma-focus\)/);
+ assert.match(css,/\.cp-card\[data-match=true\]/);assert.match(css,/\.cp-kit-line\{/);
 });

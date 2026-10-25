@@ -27,8 +27,8 @@ const CARDS=[
  {id:'tono',group:'Brand',icon:'♪',title:'Tono di voce per canale',short:'Come parla la marca su sito, social, email e WhatsApp.',line:'Come parla la marca su sito, LinkedIn, Instagram, email e WhatsApp: tratti, sì e no, frasi d’esempio. 3 personalità, scegli tu.',state:'ready',action:'Definisci il tono',cost:'Una chiamata AI allo Stratega di Marca, con conferma.',inline:'copy:tono'},
  {id:'coordinato',group:'Brand',icon:'▤',title:'Coordinato aziendale',short:'Biglietti, carta intestata, busta, firma e modelli Office.',line:'Dal Kit identità salvato al set completo: biglietti da visita, carta intestata, busta, cartellina, firma email, copertine LinkedIn, Facebook e YouTube, modelli Word e PowerPoint. 3 layout, scegli tu.',state:'ready',action:'Prepara il coordinato',cost:'Nessuna chiamata AI: tutti i file si creano qui, senza costi.',inline:'coordinato',hint:'Parte dal Kit identità del progetto. I dati aziendali che mancano restano vuoti: RADIX non li inventa.'},
  {id:'icone',group:'Brand',icon:'◇',title:'Set di icone',short:'Icone coerenti per sito, social, app e stampa, dal tuo elenco.',line:'Scrivi i concetti che ti servono (fino a 24): RADIX sceglie un’icona per ognuno da un catalogo libero (Lucide) e la disegna in 3 stili coerenti, con i colori del Kit identità. Rifinisci tratto, griglia e sfondo, controlla contrasto e leggibilità a 16 px, scarica SVG, PNG, sprite e foglio di anteprima. La mascotte è da collegare.',state:'ready',action:'Crea il set di icone',cost:'Nessuna chiamata AI: icone e file si creano qui, senza costi.',inline:'icons',hint:'Icone Lucide con licenza ISC: uso commerciale permesso, la nota di licenza va nello zip. La mascotte richiede la generazione di immagini a pagamento, ancora da collegare.'},
- {id:'social',group:'Social e contenuti',icon:'▦',title:'Social e post',short:'Il calendario del mese con i testi, fino alla pubblicazione.',line:'Il piano editoriale del mese: calendario, testi e pubblicazione su Buffer.',state:'ready',action:'Apri il piano editoriale',cost:'Ogni testo AI chiede conferma; pubblicare è sempre un tuo clic.',href:'/project-editorial.html?project={p}#ped'},
- {id:'graphics',group:'Social e contenuti',icon:'▣',title:'Post grafici',short:'Caroselli e post con il testo sopra, dai post del piano.',line:'Caroselli e post con testo sopra, nei colori del brand.',state:'ready',action:'Crea dai post del piano',cost:'L’Art Director AI chiede conferma prima di disegnare.',href:'/project-editorial.html?project={p}#ped',hint:'Apri un post del piano e premi «Grafica».'},
+ {id:'social',group:'Social e contenuti',icon:'▦',title:'Social e post',short:'Il calendario del mese: testi, grafiche e pubblicazione.',line:'Il piano editoriale del mese: calendario, testi, post grafici e caroselli nei colori del brand, pubblicazione su Buffer.',state:'ready',action:'Apri il piano editoriale',cost:'Ogni testo AI chiede conferma; pubblicare è sempre un tuo clic.',href:'/project-editorial.html?project={p}#ped',hint:'Grafiche e caroselli: apri un post del piano e premi «Grafica».'},
+ {id:'graphics',merged:'social',group:'Social e contenuti',icon:'▣',title:'Post grafici',short:'Caroselli e post con il testo sopra, dai post del piano.',line:'Caroselli e post con testo sopra, nei colori del brand.',state:'ready',action:'Crea dai post del piano',cost:'L’Art Director AI chiede conferma prima di disegnare.',href:'/project-editorial.html?project={p}#ped',hint:'Apri un post del piano e premi «Grafica».'},
  {id:'socialgrafica',group:'Social e contenuti',icon:'◫',title:'Grafica profili e template social',short:'Foto profilo, copertine, «in evidenza» e template dei post.',line:'Dal Kit identità: immagine del profilo, copertine Facebook, LinkedIn, YouTube e X con le aree sicure, copertine «in evidenza» di Instagram e template dei post (offerta, recensione, evento, novità, consiglio, annuncio) in quadrato, verticale e storia. 3 direzioni, scegli tu.',state:'ready',action:'Prepara la grafica social',cost:'Nessuna chiamata AI: le immagini si disegnano qui, senza costi.',inline:'socialkit',hint:'Parte dal Kit identità del progetto. Prezzi, date, recensioni e stelle li scrivi tu: RADIX non li inventa.'},
  {id:'testi',group:'Social e contenuti',icon:'¶',title:'Testi per sito, blog e prodotti',short:'Una pagina del sito, un articolo o una descrizione prodotto.',line:'Una pagina del sito, un articolo o una descrizione prodotto: 3 versioni, scegli e modifichi.',state:'ready',action:'Scrivi un testo',cost:'Una chiamata AI al Content e UX Writer, con conferma.',inline:'copy:testi'},
  {id:'comunicato',group:'Social e contenuti',icon:'☰',title:'Comunicato stampa',short:'Il comunicato con le 5W, la citazione e i contatti stampa.',line:'Titolo, attacco con le 5W, corpo, citazione, profilo aziendale e contatti: 3 angoli, scegli e modifichi.',state:'ready',action:'Scrivi il comunicato',cost:'Una chiamata AI al Copywriter, con conferma.',inline:'copy:comunicato',hint:'Citazioni solo dalle persone che indichi tu; superlativi senza dati segnalati.'},
@@ -79,9 +79,12 @@ function linkFor(card,projectId){
  return card.href.replace('{p}',encodeURIComponent(p));
 }
 function card(id){return CARDS.find(c=>c.id===id)||null}
+// The cards shown in the panel, the counts and the search: a card with `merged` (e.g. «Post grafici», the same page as
+// «Social e post») stays reachable by its id (links ?open=, suggestions) but is not listed twice.
+const listed=()=>CARDS.filter(c=>!c.merged);
 // The filters that have cards, in GROUPS order; '' (or an unknown group) is «Tutti».
-const groups=()=>GROUPS.filter(g=>CARDS.some(c=>c.group===g));
-const inGroup=group=>groups().includes(group)?CARDS.filter(c=>c.group===group):CARDS;
+const groups=()=>GROUPS.filter(g=>listed().some(c=>c.group===g));
+const inGroup=group=>groups().includes(group)?listed().filter(c=>c.group===group):listed();
 const areaOf=group=>Object.keys(AREAS).find(k=>AREAS[k]===group)||'';
 // ?area=<slug> picks the filter, ?open=<card id> also opens that studio once a project is chosen (its group wins
 // when no area is given). Unknown values are ignored: {group:'',open:''} is the page as it always was.
@@ -96,10 +99,10 @@ const STOP=new Set('di da del della dei degli delle il lo la le gli un una uno p
 const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 const words=s=>fold(s).split(/[^a-z0-9]+/).filter(w=>w.length>=2&&!STOP.has(w));
 // Everyday words that name a service without its title (deterministic: no AI reads the text).
-const SYNONYMS=Object.freeze({post:['social','graphics'],instagram:['social'],facebook:['social'],linkedin:['social'],carosello:['graphics'],caroselli:['graphics'],
+const SYNONYMS=Object.freeze({post:['social'],grafica:['social','socialgrafica'],grafiche:['social','socialgrafica'],instagram:['social'],facebook:['social'],linkedin:['social'],carosello:['social'],caroselli:['social'],
  logo:['identita','logovettoriale','logoanimato'],vettoriale:['logovettoriale'],vettorializzare:['logovettoriale'],vettorizzare:['logovettoriale'],svg:['logovettoriale'],ricalco:['logovettoriale'],ricalcare:['logovettoriale'],restyling:['logovettoriale','identita'],mockup:['mockup'],mockups:['mockup'],ritocco:['fotoritocco'],ritoccare:['fotoritocco'],ritocca:['fotoritocco'],fotoritocco:['fotoritocco'],luminosita:['fotoritocco'],scure:['fotoritocco'],scura:['fotoritocco'],schiarire:['fotoritocco'],esposizione:['fotoritocco'],nitidezza:['fotoritocco'],exif:['fotoritocco'],prospettiva:['mockup'],infografica:['infografica'],funnel:['funnel'],mediakit:['mediakit'],media:['mediakit'],giornalisti:['mediakit','comunicato'],giornalista:['mediakit','comunicato'],rassegna:['mediakit'],presskit:['mediakit'],press:['mediakit'],imbuto:['funnel'],magnet:['funnel'],leadmagnet:['funnel'],contatti:['funnel'],infografiche:['infografica'],grafico:['infografica'],grafici:['infografica'],diagramma:['infografica'],istogramma:['infografica'],timeline:['infografica'],anteprima:['mockup'],vetrina:['mockup'],insegna:['mockup','stampa'],animazione:['logoanimato'],animato:['logoanimato'],gif:['logoanimato'],intro:['logoanimato','reel'],outro:['logoanimato'],sticker:['logoanimato'],loader:['logoanimato'],caricamento:['logoanimato'],marchio:['identita','naming'],colori:['identita'],palette:['identita'],font:['identita'],recensioni:['google'],recensione:['google'],scheda:['google','scheda'],
  mail:['newsletter','emailhtml'],email:['newsletter','sequenze'],sms:['sms'],whatsapp:['sms','tono'],sito:['site','analisi'],landing:['site','funnel'],pagina:['site','testi'],blog:['testi'],articolo:['testi'],
- seo:['seo','analisi'],google:['seo','google','annunci','searchads'],adwords:['searchads'],campagne:['searchads'],campagna:['searchads'],keyword:['searchads','seo'],cpc:['searchads'],sem:['searchads'],negative:['searchads'],geo:['seo'],audit:['analisi'],video:['video','reel'],reel:['reel'],spot:['reel'],spots:['reel'],bumper:['reel'],dominio:['naming'],domini:['naming'],domain:['naming'],tiktok:['reel'],avatar:['avatar'],
+ seo:['seo','analisi'],google:['seo','google','annunci','searchads'],adwords:['searchads'],campagne:['searchads'],campagna:['searchads'],keyword:['searchads','seo'],cpc:['searchads'],sem:['searchads'],negative:['searchads'],geo:['seo'],audit:['analisi'],video:['video','reel'],reel:['reel'],spot:['reel'],dominio:['naming'],domini:['naming'],spot:['reel'],spots:['reel'],bumper:['reel'],dominio:['naming'],domini:['naming'],domain:['naming'],tiktok:['reel'],avatar:['avatar'],
  foto:['images'],fotografie:['images'],immagine:['images'],volantino:['stampa'],flyer:['stampa'],locandina:['stampa'],biglietto:['stampa'],biglietti:['stampa'],rollup:['stampa'],totem:['stampa'],striscione:['stampa'],forex:['stampa'],dibond:['stampa'],manifesto:['stampa'],
  catalogo:['catalogo'],menu:['menu'],listino:['menu','catalogo'],allergeni:['menu','packaging'],etichetta:['packaging'],etichette:['packaging'],packaging:['packaging'],confezione:['packaging'],scatola:['packaging'],scatole:['packaging'],astuccio:['packaging'],fustella:['packaging'],adesivo:['packaging'],adesivi:['packaging'],barattolo:['packaging'],bottiglia:['packaging'],tappo:['packaging'],ean:['packaging'],barcode:['packaging'],ristorante:['menu'],bar:['menu'],qr:['menu'],brochure:['brochure'],presentazione:['presentazione'],slide:['presentazione'],traduci:['traduzione'],tradurre:['traduzione'],inglese:['traduzione'],tedesco:['traduzione'],
  annunci:['annunci','creativita'],ads:['annunci','creativita','searchads'],banner:['creativita'],comunicato:['comunicato'],coordinato:['coordinato'],coordinata:['coordinato'],icone:['icone'],icona:['icone'],icon:['icone'],icons:['icone'],iconset:['icone'],pittogrammi:['icone'],pittogramma:['icone'],mascotte:['icone'],mascot:['icone'],intestata:['coordinato','stampa'],busta:['coordinato'],buste:['coordinato'],cartellina:['coordinato'],firma:['firma','coordinato'],copertina:['socialgrafica','coordinato'],copertine:['socialgrafica','coordinato'],evidenza:['socialgrafica'],highlight:['socialgrafica'],template:['socialgrafica'],profilo:['socialgrafica'],stampa:['comunicato','stampa'],evento:['evento'],fiera:['evento'],webinar:['evento'],
@@ -108,7 +111,7 @@ const SYNONYMS=Object.freeze({post:['social','graphics'],instagram:['social'],fa
 const near=(t,w)=>t===w||(t.length>=4&&w.length>=4&&(w.startsWith(t)||t.startsWith(w)));
 // The services that match the typed text, best first: [{card,score}]; score 0 is never returned. Same text, same list.
 function matchServices(query,cards){
- const list=Array.isArray(cards)?cards:CARDS,tokens=words(query);if(!tokens.length)return [];
+ const list=(Array.isArray(cards)?cards:CARDS).filter(c=>c&&!c.merged),tokens=words(query);if(!tokens.length)return [];
  return list.map((card,i)=>{
   const title=words(card.title),group=words(card.group),line=words(card.line+' '+(card.action||''));let score=0;
   for(const t of tokens){
@@ -128,6 +131,18 @@ function fromAsk(search){
  const q=String(s.get('q')||'').replace(/\s+/g,' ').trim().slice(0,200),p=String(s.get('project')||'');
  return {q,project:ID.test(p)?p:'',match:q?best(q):''};
 }
+// The panel's own filter box («Filtra i servizi»), live while typing: the cards in the panel whose title or short line
+// contain the typed text at the start of a word (accents and case ignored: «logo», not «catalogo»), plus the cards the command box matches surely (score 3: a title
+// word or a synonym such as «spot» → Reel, «carosello» → Social e post), also from a word still being typed («volan»
+// → «volantino»). Panel order, no AI; '' gives every listed card.
+function filterServices(query,cards){
+ const list=(Array.isArray(cards)?cards:CARDS).filter(c=>c&&!c.merged),q=fold(query).replace(/\s+/g,' ').trim();
+ if(!q)return list.slice();
+ const hit=new Set(matchServices(query,list).filter(m=>m.score>=SURE).map(m=>m.card.id));
+ for(const t of words(query))if(t.length>=4)for(const k of Object.keys(SYNONYMS))if(k!==t&&k.startsWith(t))for(const id of SYNONYMS[k])hit.add(id);
+ const at=t=>(' '+fold(t).replace(/[^a-z0-9]+/g,' ')).includes(' '+q.replace(/[^a-z0-9]+/g,' ').trim());
+ return list.filter(c=>hit.has(c.id)||at(c.title+' '+c.short));
+}
 // The short cost badge of a card, read from its cost line (no prices or credits are invented): free, one AI call,
 // AI in batches, or the paid media service it uses. The full line stays on the card, before any click.
 function costBadge(c){
@@ -140,6 +155,14 @@ function costBadge(c){
  if(/^Una chiamata AI per [^,]+ e una per/.test(t))return {tone:'ai',label:'2 chiamate AI'};
  if(/^Una chiamata AI/.test(t))return {tone:'ai',label:'1 chiamata AI'};
  return {tone:'ai',label:'AI con conferma'};
+}
+// The badge in a few letters, for the one-line rows on a phone («Gratis», «1 AI», «3 foto»): the full label stays on
+// the card of its area and in the row's tooltip.
+function costShort(c){
+ const b=costBadge(c),l=b.label;
+ if(b.tone==='free')return /facoltativ/.test(l)?'Gratis + AI':'Gratis';
+ const m=l.match(/^(\d+) (?:chiamat[ae] AI|foto Higgsfield)$/);if(m)return /foto/.test(l)?m[1]+' foto':m[1]+' AI';
+ return {'AI a lotti':'AI a lotti','Crediti HeyGen':'HeyGen','AI + HeyGen':'AI + HeyGen'}[l]||'AI';
 }
 // The kits: the services that hand over a whole set of coordinated files in one guided flow (what they deliver comes
 // from the card's own line). Only cards that exist are returned.
@@ -157,5 +180,5 @@ const areaNumber=group=>{const i=groups().indexOf(group);return i<0?'':String(i+
 const fileSize=b=>b<1024?Math.max(0,Math.round(b))+' B':b<1048576?Math.round(b/1024)+' KB':(b/1048576).toFixed(1).replace('.',',')+' MB';
 const fileSummary=files=>{const list=[...(files||[])].filter(f=>f&&typeof f.size==='number');if(!list.length)return '';
  const total=list.reduce((t,f)=>t+f.size,0);return (list.length===1?String(list[0].name||'file'):list.length+' file')+' · '+fileSize(total)};
-return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,groups,inGroup,areaOf,fromQuery,words,matchServices,best,fromAsk,costBadge,kits,areaNumber,fileSize,fileSummary});
+return Object.freeze({CARDS,GROUPS,AREAS,KITS,SYNONYMS,linkFor,card,listed,groups,inGroup,areaOf,fromQuery,words,matchServices,filterServices,best,fromAsk,costBadge,costShort,kits,areaNumber,fileSize,fileSummary});
 });

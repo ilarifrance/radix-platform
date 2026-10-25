@@ -96,3 +96,16 @@ html.rx-shell .mk-side details.mk-fold>summary.mk-label:hover{background:#f8f7fb
   html.rx-shell[data-rx-area="agency"] :is(.rx-steps li a,.rx-project-extra a,a.rx-project-switch){min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}
   html.rx-shell[data-rx-area="agency"] #npSteps li button{min-height:44px}
 }
+
+/* «Altro ▾»: the secondary actions of a card or a page folded in one menu (Progetti, Scheda progetto).
+   Enter/Space open it (native <details>), Escape or a click outside close it (marketing-nav.js); destructive last, in red. */
+details.more{position:relative;margin-left:auto}
+details.more summary{list-style:none;display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border-radius:10px;cursor:pointer;color:#55516a;font-weight:600}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:"▾";margin-left:6px;font-size:11px}
+details.more[open] summary{background:#f1f0f7}
+details.more .more-list{position:absolute;right:0;top:calc(100% + 6px);z-index:5;display:grid;min-width:210px;padding:6px;background:#fff;border:1px solid #d7d6e0;border-radius:12px;box-shadow:0 12px 32px -12px rgba(29,26,39,.28)}
+details.more .more-list a,details.more .more-list button{display:flex;align-items:center;width:100%;min-height:40px;margin:0;padding:0 12px;border:0;border-radius:8px;background:none;color:#1d1a27;text-align:left;text-decoration:none;font-weight:500;white-space:nowrap}
+details.more .more-list a:hover,details.more .more-list button:hover:not(:disabled){background:#f4f4f8}
+details.more .more-list .danger{color:#b42318;font-weight:600}
+details.more summary:focus-visible,details.more .more-list a:focus-visible,details.more .more-list button:focus-visible{outline:2px solid #4f46e5;outline-offset:2px}

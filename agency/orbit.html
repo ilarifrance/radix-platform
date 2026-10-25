@@ -9,8 +9,8 @@
 </div>
 <div class="mo-head-actions">
 <label class="mo-switch" id="moSwitchBox" hidden><span class="ma-sr">Progetto</span><span class="mo-switch-icon" id="moSwitchIcon" aria-hidden="true"></span><select id="moSwitch" aria-label="Progetto"></select></label>
-<a class="ma-btn ma-btn--ghost mo-new" href="/agency/new-project.html">Nuovo progetto</a>
-<a class="ma-btn ma-btn--primary" id="moNewJob" href="/agency/crea.html"><span class="ma-btn-icon" id="moNewJobIcon" aria-hidden="true"></span>Nuovo lavoro</a>
+<a class="ma-btn ma-btn--ghost mo-new" href="/agency/new-project.html"><span class="ma-btn-icon mo-new-icon" id="moNewIcon" aria-hidden="true"></span><span class="mo-label">Nuovo progetto</span><span class="mo-short" aria-hidden="true">Progetto</span></a>
+<a class="ma-btn ma-btn--primary" id="moNewJob" href="/agency/crea.html"><span class="ma-btn-icon" id="moNewJobIcon" aria-hidden="true"></span><span class="mo-label">Nuovo lavoro</span><span class="mo-short" aria-hidden="true">Lavoro</span></a>
 </div>
 </header>
 <section class="ma-glass mo-hero" aria-label="Cosa vuoi fare oggi e cosa aspetta te">
@@ -30,28 +30,31 @@
 <aside class="mo-wait" aria-labelledby="moWaitTitle">
 <h2 class="mo-wait-title"><span id="moWaitTitle">Aspettano te</span><span class="mo-wait-count" id="moWaitCount"></span></h2>
 <ul class="mo-wait-list" id="moWait"></ul>
+<button type="button" class="mo-more" id="moWaitMore" aria-controls="moWait" aria-expanded="false" hidden></button>
 </aside>
 </section>
 <section class="mo-kpis" id="moKpis" aria-label="Il lavoro del team in numeri"></section>
 <div class="mo-board">
 <div class="mo-col">
+<section class="ma-glass mo-flow" aria-labelledby="moFlowTitle"><div class="ma-panel-head"><h2 id="moFlowTitle">Flusso di lavoro</h2><span class="ma-tag">AI + TU</span></div><p class="mo-flow-for" id="moFlowFor"></p><ol class="ma-steps" id="moFlow"></ol><button type="button" class="mo-more" id="moFlowMore" aria-controls="moFlow" aria-expanded="false" hidden></button></section>
 <section class="ma-glass mo-areas" aria-labelledby="moAreasTitle">
 <div class="ma-panel-head"><h2 id="moAreasTitle">Servizi</h2><span class="ma-count" id="moAreasCount"></span><a class="ma-link" href="/agency/crea.html" id="moAllServices">Catalogo completo</a></div>
 <ul class="mo-area-grid" id="moAreas"></ul>
+<a class="ma-link mo-all" href="/agency/crea.html" id="moAllServicesFoot">Tutti i servizi</a>
 </section>
-<section class="ma-glass mo-flow" aria-labelledby="moFlowTitle"><div class="ma-panel-head"><h2 id="moFlowTitle">Workflow operativo</h2><span class="ma-tag">AI + TU</span></div><p class="mo-flow-for" id="moFlowFor"></p><ol class="ma-steps" id="moFlow"></ol></section>
 </div>
 <div class="mo-col mo-side">
 <section class="ma-glass mo-jobs" aria-labelledby="moJobsTitle">
-<div class="ma-panel-head"><h2 id="moJobsTitle">Lavori in corso</h2><span class="ma-count" id="moJobsCount"></span><a class="ma-link" href="/agency/workspace.html">Vedi tutti</a></div>
+<div class="ma-panel-head"><h2 id="moJobsTitle">Lavori in corso</h2><span class="ma-count" id="moJobsCount"></span><a class="ma-link" href="/agency/projects.html">Tutti i progetti</a></div>
 <div class="mo-jobs-body" id="moJobs"></div>
+<button type="button" class="mo-more" id="moJobsMore" aria-controls="moJobs" aria-expanded="false" hidden></button>
 </section>
-<section class="ma-glass mo-agents" aria-labelledby="moAgentsTitle"><div class="ma-panel-head"><h2 id="moAgentsTitle">Team AI</h2><span class="ma-count" id="moAgentsCount"></span><a class="ma-link" href="/agency/index.html">Vedi tutti</a></div><ul class="ma-rows" id="moAgents"></ul></section>
-<section class="ma-glass mo-orbit" aria-labelledby="moOrbitTitle"><div class="ma-panel-head"><h2 id="moOrbitTitle">Le aree in orbita</h2><span class="ma-count" id="moOrbitCount"></span></div>
+<section class="ma-glass mo-agents" aria-labelledby="moAgentsTitle"><div class="ma-panel-head"><h2 id="moAgentsTitle">Team AI</h2><span class="ma-count" id="moAgentsCount"></span><a class="ma-link" href="/agents.html">Vedi tutti</a></div><ul class="ma-rows" id="moAgents"></ul></section>
+<section class="ma-glass mo-orbit" aria-labelledby="moOrbitTitle"><div class="ma-panel-head"><h2 id="moOrbitTitle">Le aree in orbita</h2><span class="ma-count" id="moOrbitCount"></span><button type="button" class="mo-fold" id="moOrbitFold" aria-controls="moStage" aria-expanded="true">Nascondi</button></div>
 <div class="mo-stage" id="moStage"><canvas class="mo-sky" id="moSky" aria-hidden="true"></canvas>
 <ul class="mo-planets" id="moPlanets" aria-label="Aree di servizio: ognuna apre i suoi servizi"></ul>
 <button type="button" class="mo-pause" id="moPause" aria-pressed="false">Ferma l’animazione</button></div></section>
-<section class="ma-glass mo-sections" aria-labelledby="moSectionsTitle"><div class="ma-panel-head"><h2 id="moSectionsTitle">Tutte le sezioni</h2></div><ul class="ma-rows" id="moSections"></ul></section>
+<section class="ma-glass mo-sections" aria-labelledby="moSectionsTitle" hidden><div class="ma-panel-head"><h2 id="moSectionsTitle">Tutte le sezioni</h2></div><ul class="ma-rows" id="moSections"></ul></section>
 </div>
 </div>
 <p class="mo-foot">I numeri vengono dal registro del team e dal Command Center: dove un dato non c’è, la pagina non mostra numeri. Nessuna richiesta all’AI parte da questa pagina: i servizi chiedono conferma prima di ogni chiamata.</p>

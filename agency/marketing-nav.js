@@ -1,5 +1,5 @@
 /* One Marketing menu for every Marketing Agency page (Panoramica, Cosa vuoi fare, Clienti, Progetti, Piano editoriale,
-   Studio Avatar, Agenzia, Operations, Memoria), as the Sales pages have theirs (sales/sales-nav.js): the Marketing entries
+   Studio Avatar, Produzione, Memoria; the divisions overview folded under Piattaforma), as the Sales pages have theirs (sales/sales-nav.js): the Marketing entries
    get the room, the platform entries (Command Center, Progetti, Approvazioni, Agenti AI, the other areas) shrink to one
    small link on top and two folded groups. Navigation only: it regroups the links shell/radix-shell.js already built
    (same elements, same hrefs, data-rx-id and aria-current, project-aware links included), so nothing new is linked.
@@ -19,15 +19,16 @@
       { id: 'agency-ped', text: 'Piano editoriale', ic: 'calendar' },
       { id: 'agency-avatar', text: 'Studio Avatar', ic: 'avatar' }
     ] },
+    // «Agenzia e divisioni» (the older overview of 13 divisions, agency/index.html) and its «Workflow» anchor repeat the
+    // Panoramica: the divisions page moves into the folded «Piattaforma» group, the anchor stays in the ⌘K search.
     { label: 'Agenzia', items: [
-      { id: 'agency', text: 'Agenzia e divisioni', ic: 'layers' },
-      { id: 'agency-workflow', text: 'Workflow', ic: 'flow' },
-      { id: 'agency-operations', text: 'Operations', ic: 'pulse' },
+      { id: 'agency-operations', text: 'Produzione', ic: 'pulse' },
       { id: 'agency-memory', text: 'Memoria', ic: 'book' }
     ] },
     { label: 'Piattaforma', fold: true, items: [
       { id: 'cc-projects' }, { id: 'cc-approvals' }, { id: 'agents' },
-      { id: 'cc-knowledge' }, { id: 'cc-analytics' }, { id: 'cc-integrations' }, { id: 'archive' }
+      { id: 'cc-knowledge' }, { id: 'cc-analytics' }, { id: 'cc-integrations' }, { id: 'archive' },
+      { id: 'agency', text: 'Divisioni dell’agenzia', ic: 'layers' }
     ] },
     { label: 'Altre aree', fold: true, items: [
       { id: 'sales-orbit', text: 'Sales Intelligence', ic: 'target' },
@@ -97,17 +98,36 @@
   side.setAttribute('aria-label', 'Menu Marketing');
   document.documentElement.classList.add('mk-shell');
 
-  // The current page: the shell marks it by data-shell-page; on the agency overview the #workflow link wins over its page.
+  // The current page: the shell marks it by data-shell-page; on the agency overview (also at #workflow) it is the
+  // «Divisioni dell’agenzia» link, and a fold holding the current page opens.
   function mark() {
-    if (/\/agency\/(index\.html)?$/.test(location.pathname)) {
-      var h = location.hash, wf = own['agency-workflow'], ag = own.agency;
-      if (wf && ag) {
-        if (h === '#workflow') { wf.setAttribute('aria-current', 'page'); ag.removeAttribute('aria-current'); }
-        else if (body.getAttribute('data-shell-page') === 'agency') { ag.setAttribute('aria-current', 'page'); wf.removeAttribute('aria-current'); }
-      }
-    }
+    var ag = own.agency;
+    if (ag && /\/agency\/(index\.html)?$/.test(location.pathname)) ag.setAttribute('aria-current', 'page');
     [].slice.call(nav.querySelectorAll('details.mk-fold')).forEach(function (d) { if (d.querySelector('[aria-current]')) d.open = true; });
   }
   mark();
   window.addEventListener('hashchange', mark);
+})();
+
+/* «Altro ▾» menus (details.more, in Progetti and in the Scheda progetto): Enter/Space open them (native <details>);
+   Escape closes the open one and puts the focus back on its «Altro»; a click outside closes it. Runs on every page
+   that loads this file, menu or not, and only touches details.more. */
+(function () {
+  'use strict';
+  if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+  function open() { return [].slice.call(document.querySelectorAll('details.more[open]')); }
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' && e.key !== 'Esc') return;
+    // A confirmation open on top (RadixConfirm, a <dialog>) takes its own Escape first. RadixConfirm closes and removes
+    // its dialog in its own keydown (preventDefault) before the key reaches the document: that Escape is spent too.
+    if (e.defaultPrevented || document.querySelector('dialog[open]')) return;
+    var list = open(); if (!list.length) return;
+    var act = document.activeElement, own = null;
+    list.forEach(function (d) { if (d.contains(act)) own = d; d.open = false; });
+    var back = (own || list[list.length - 1]).querySelector('summary');
+    if (back) back.focus();
+  });
+  document.addEventListener('click', function (e) {
+    open().forEach(function (d) { if (!d.contains(e.target)) d.open = false; });
+  });
 })();

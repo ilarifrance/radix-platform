@@ -45,9 +45,9 @@ test('sections: every link is a page of the repo; studios open where they live',
 });
 
 test('counts are real or missing: never invented',()=>{
- assert.deepEqual(orbit.counts({}),{servizi:crea.CARDS.length,clienti:null,progetti:null,approvazioni:null});
+ assert.deepEqual(orbit.counts({}),{servizi:crea.listed().length,clienti:null,progetti:null,approvazioni:null});
  const c=orbit.counts({clients:[{id:'a'},{id:'b'}],projects:[{status:'active'},{status:'archived'},{}],dashboard:{approvalsSupported:true,metrics:{approvals:3}}});
- assert.deepEqual(c,{servizi:crea.CARDS.length,clienti:2,progetti:2,approvazioni:3});
+ assert.deepEqual(c,{servizi:crea.listed().length,clienti:2,progetti:2,approvazioni:3});
  assert.equal(orbit.counts({dashboard:{approvalsSupported:false,metrics:{approvals:0}}}).approvazioni,null,'approvals not active: no number');
  assert.equal(orbit.counts({dashboard:{approvalsSupported:true,metrics:{approvals:'7'}}}).approvazioni,null);
  assert.equal(orbit.counts({dashboard:{approvalsSupported:true,metrics:{approvals:0}}}).approvazioni,0);
@@ -271,4 +271,18 @@ test('KPI tiles and sparklines: counts from the plans and the Command Center, a 
  assert.equal(orbit.kpis({projects,plans,dashboard:{approvalsSupported:false,approvals:[]},approvals:null,now})[2].value,null,'approvals not active: no number');
  const full=Array.from({length:24},()=>({at:'2026-10-22T08:00:00'}));
  assert.equal(orbit.kpis({dashboard:{activity:full},now})[3].value,'24+','the summary keeps the last 24: at least, never exactly');
+});
+
+test('Panoramica: the header chip and «Il percorso del progetto» count the same phases (journey.phases)',()=>{
+ const phases=require('../lib/project-journey.js').PHASES.map((p,i)=>({id:p.id,label:p.label,state:i<3?'done':i===4?'waiting':'todo'}));
+ // journey.done/total count the five project steps: the page no longer reads them for the phases
+ const pp=orbit.phaseProgress({done:1,total:4,steps:[],phases});
+ assert.equal(pp.total,9);assert.equal(pp.done,3);assert.equal(pp.phases.length,9);assert.equal(pp.phases[0].label,'Brief');
+ assert.equal(orbit.phaseProgress({done:1,total:4}),null,'no phases, no count');
+ for(const j of [null,undefined,{},{phases:[]},{phases:'x'},{phases:[null]}])assert.equal(orbit.phaseProgress(j),null,JSON.stringify(j));
+ const js=read('agency/orbit.js');
+ assert.ok(!/journey\.done\+' di '\+state\.journey\.total/.test(js),'the chip does not count the steps any more');
+ assert.match(js,/const pp=O\.phaseProgress\(state\.journey\);if\(pp\)box\.append\(node\('span','mo-chip mo-chip--ok',pp\.done\+' di '\+pp\.total\+' fasi fatte'\)\);/);
+ assert.match(js,/const pp=O\.phaseProgress\(state\.journey\),ph=pp\?pp\.phases:null;/,'the percorso draws the same list');
+ assert.match(js,/'Le fasi di '\+state\.project\.name\+', dallo stato salvato: '\+pp\.done\+' di '\+pp\.total\+' fatte\.'/);
 });
