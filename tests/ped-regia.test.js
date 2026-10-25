@@ -1,0 +1,83 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),path=require('path');
+const core=require('../editorial-core.js'),rg=require('../lib/ped-regia-core.js'),read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+
+// A small fake plan: two published posts with numbers, three upcoming, one already on Buffer.
+const stats=(imp,inter)=>({source:'buffer',metrics:{impressions:imp,reach:imp,reactions:inter,comments:0,shares:0,clicks:null}});
+function plan(){return {briefApproved:true,strategyRevision:1,planApproval:null,contents:[
+ {id:'p1',title:'Delega',channel:'LinkedIn',date:'2026-10-20',time:'08:00',copy:'Hai mai delegato?',status:'approved',revision:1,strategyRevision:1,history:[],stats:stats(2000,60)},
+ {id:'p2',title:'Metriche',channel:'LinkedIn',date:'2026-10-22',time:'08:00',copy:'Tre numeri.',status:'approved',revision:1,strategyRevision:1,history:[],stats:stats(1000,10)},
+ {id:'u1',title:'Pipeline',channel:'Instagram',date:'2026-10-27',time:'18:00',copy:'È in trattativa.',status:'review',revision:1,strategyRevision:1,history:[]},
+ {id:'u2',title:'CRM vuoto',channel:'Instagram',date:'2026-10-29',time:'18:00',copy:'Il CRM è vuoto?',status:'review',revision:2,strategyRevision:1,history:[{revision:1,title:'CRM vuoto',copy:'vecchio',channel:'Instagram',date:'2026-10-29',time:'18:00',status:'draft',strategyRevision:1}]},
+ {id:'q1',title:'In coda',channel:'LinkedIn',date:'2026-10-27',time:'08:00',copy:'Già su Buffer.',status:'approved',revision:1,strategyRevision:1,history:[],publication:{service:'buffer'}}
+]}}
+const today='2026-10-25';
+
+test('statsDigest: real numbers per channel, best first, and it says when there are too few posts',()=>{
+ const d=rg.statsDigest(plan(),{today});
+ assert.equal(d.posts,2);assert.equal(d.byChannel[0].channel,'LinkedIn');assert.equal(d.byChannel[0].enough,false);
+ assert.equal(d.best[0].id,'p1');assert.deepEqual(d.worst,[]);
+ assert.match(d.notes[0],/LinkedIn: 2 post con numeri, troppo pochi/);
+ const text=rg.digestText(d);assert.match(text,/impression 3000/);assert.doesNotMatch(text,/undefined|NaN/);
+ const empty=rg.statsDigest({contents:[]},{today});assert.equal(empty.posts,0);assert.match(empty.notes[0],/Nessun post con numeri/);
+ const old=rg.statsDigest(plan(),{today:'2026-12-31'});assert.equal(old.posts,0,'only the last 30 days');
+});
+
+test('validateProposal: keeps the good changes and lists every discarded one with its reason',()=>{
+ const raw='Ecco la proposta:\n```json\n'+JSON.stringify({summary:'Più Reel',ops:[
+  {op:'add',date:'2026-10-28',time:'18:00',channel:'instagram',format:'reel-avatar',title:'Ascoltare',copy:'Chi parla di più?',script:'Il primo incontro…'},
+  {op:'add',date:'2026-10-20',time:'18:00',channel:'instagram',title:'Passato',copy:'x'},
+  {op:'add',date:'2026-10-28',time:'18:00',channel:'tiktok',title:'TikTok',copy:'x'},
+  {op:'add',date:'2026-10-28',time:'18:00',channel:'instagram',title:'Strumento',copy:'Uso RADIX ogni giorno'},
+  {op:'move',contentId:'u1',date:'2026-10-28',time:'12.30'},
+  {op:'rewrite',contentId:'u1',copy:'altro'},
+  {op:'rewrite',contentId:'u2',copy:'Il tuo CRM è pieno o vuoto? [da fornire]',reason:'apertura più forte'},
+  {op:'remove',contentId:'q1'},
+  {op:'move',contentId:'nope',date:'2026-10-30'},
+  {op:'frequency',channel:'Instagram',perWeek:5},
+  {op:'publish',contentId:'u1'}
+ ]})+'\n```';
+ const v=rg.validateProposal(raw,plan(),{today});
+ assert.equal(v.summary,'Più Reel');
+ assert.deepEqual(v.ops.map(o=>o.op),['add','move','rewrite','frequency']);
+ const add=v.ops[0];assert.equal(add.channel,'Instagram');assert.equal(add.format,'video');assert.equal(add.script,'Il primo incontro…');
+ assert.equal(v.ops[1].time,'12:30');assert.deepEqual(v.ops[2].gaps,['[da fornire]']);
+ const reasons=v.rejected.map(r=>r.reason).join('\n');
+ for(const r of [/già passata/,/Canale non collegato/,/nomina RADIX/,/Una sola modifica per post/,/già su Buffer/,/non esiste più/,/Operazione sconosciuta/])assert.match(reasons,r);
+ assert.equal(rg.validateProposal('non è json',plan(),{today}).error,'Proposta non leggibile: riprova.');
+ const many={ops:Array.from({length:25},(_,i)=>({op:'frequency',channel:'LinkedIn',perWeek:3}))};
+ assert.equal(rg.validateProposal(many,plan(),{today}).ops.length,rg.MAX_OPS);
+});
+
+test('applyProposal: changes go through editorial-core with history, new posts to review, one log entry; undo restores',()=>{
+ const st=plan();let n=0;
+ const v=rg.validateProposal({summary:'Settimana',ops:[
+  {op:'add',date:'2026-10-28',time:'18:00',channel:'Instagram',format:'reel-avatar',title:'Ascoltare',copy:'Chi parla di più?',script:'Script'},
+  {op:'move',contentId:'u1',date:'2026-10-28',time:'12:30'},
+  {op:'rewrite',contentId:'u2',copy:'Il tuo CRM è pieno o vuoto?'},
+  {op:'frequency',channel:'Instagram',perWeek:5}]},st,{today});
+ const out=rg.applyProposal(st,v,{core,newId:()=>'new'+(++n),at:'2026-10-25T10:00:00Z'});
+ assert.deepEqual(out.failed,[]);assert.deepEqual(out.changed,['new1','u1','u2']);
+ const added=st.contents.find(c=>c.id==='new1');assert.equal(added.format,'video');assert.equal(added.script,'Script');assert.equal(added.status,'review');
+ const u1=st.contents.find(c=>c.id==='u1');assert.equal(u1.time,'12:30');assert.equal(u1.revision,2);assert.equal(u1.status,'review');assert.equal(u1.history.length,1);
+ assert.equal(st.regia.log.length,1);assert.equal(st.regia.log[0].summary,'Settimana');
+ assert.equal(rg.lastApplied(st),st.regia.log[0]);
+ const u=rg.undoLast(st,{core,at:'2026-10-25T11:00:00Z'});
+ assert.equal(u.undone,3);assert.deepEqual(u.failed,[]);
+ assert.equal(st.contents.find(c=>c.id==='u1').time,'18:00');
+ assert.equal(st.contents.find(c=>c.id==='u2').copy,'Il CRM è vuoto?');
+ assert.equal(st.contents.find(c=>c.id==='new1').date,'','the new post leaves the calendar, its text stays');
+ assert.equal(rg.lastApplied(st),null);
+ assert.throws(()=>rg.applyProposal(st,v,{}),/needs core and newId/);
+});
+
+test('PED page: «Regia» panel loaded after the workspace, plan changed only through the page save; no AI in F1',()=>{
+ const html=read('project-editorial.html');
+ assert.match(html,/<script src="editorial-workspace\.js"><\/script><script src="\/lib\/ped-regia-core\.js"><\/script><script src="\/lib\/ped-regia\.js"><\/script>/);
+ assert.match(html,/href="\/shell\/ped-regia\.css"/);
+ const ws=read('editorial-workspace.js');assert.match(ws,/window\.RadixPedPage=Object\.freeze\(\{state:\(\)=>state,busy:\(\)=>writing,persist,notify,askConfirm,renderPed/);
+ const ui=read('lib/ped-regia.js');
+ assert.match(ui,/textContent:'Sì, applica'/);assert.match(ui,/p\.persist\('Regia: '/);assert.match(ui,/rg\.undoLast\(/);
+ assert.doesNotMatch(ui,/RadixAgents|\.reply\(|fetch\(/,'F1 makes no AI or network call');
+ assert.match(read('shell/ped-regia.css'),/@media \(max-width:640px\)\{\.rx-regia\{top:0;right:0;bottom:0;width:100vw/);
+});
