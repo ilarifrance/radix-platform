@@ -17,6 +17,8 @@ button.rx-regia-fab[aria-expanded="true"]{box-shadow:0 0 0 3px var(--rg-soft-lin
 .rx-regia>:not(.rx-regia-log){flex:none}
 .rx-regia :focus-visible{outline:2px solid var(--rg-vi);outline-offset:2px}
 .rx-regia-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--rg-line)}
+/* Pages without the shell (the CRM) style every <header>: the panel's head keeps its own look. */
+.rx-regia .rx-regia-head{background:var(--rg-panel);flex-wrap:nowrap}
 .rx-regia-titles{display:flex;flex-direction:column;min-width:0}
 .rx-regia-titles strong{font:600 17px/1.2 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:var(--rg-tx)}
 .rx-regia-page{color:var(--rg-mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

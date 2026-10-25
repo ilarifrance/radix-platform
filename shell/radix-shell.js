@@ -445,7 +445,8 @@
   if (/project-editorial/.test(location.pathname) && document.getElementById('calendar')) {
     var pedJs = document.createElement('script'); pedJs.src = '/shell/ped-calendar.js'; document.body.appendChild(pedJs);
   }
-  if (window.fetch && body.dataset.shellUser !== 'off') {
+  // data-shell-user="off" (the PM page has its own account line): no user chip, but the Regia still loads for signed-in people.
+  if (window.fetch) {
     fetch('/api/auth/me', { credentials: 'same-origin', headers: { accept: 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
@@ -471,6 +472,7 @@
             document.body.appendChild(s);
           })(0);
         }
+        if (body.dataset.shellUser === 'off') return;
         if (pageTop) {
           var pill = top.querySelector('.user-pill');
           (pill ? pill.parentNode : top).insertBefore(logoutButton(), pill ? pill.nextSibling : null);
