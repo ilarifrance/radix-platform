@@ -452,10 +452,21 @@
         var u = d && (d.user || d);
         var name = u && (u.name || u.displayName || u.email);
         if (!name) return;
-        // Guida RADIX: the «?» button with how to use this page, for signed-in people.
+        // Regia RADIX (lib/radix-regia.js): the «Regia» button and panel built on the Guide map, for signed-in people.
+        // The scripts load in order (core, area adapters, Guide, panel); if the panel cannot load, the Guide «?» starts alone.
         if (body.dataset.shellGuide !== 'off' && !document.getElementById('rxGuide')) {
           var gCss = document.createElement('link'); gCss.rel = 'stylesheet'; gCss.href = '/shell/radix-guide.css'; document.head.appendChild(gCss);
-          var gJs = document.createElement('script'); gJs.src = '/lib/radix-guide.js'; document.body.appendChild(gJs);
+          var rCss = document.createElement('link'); rCss.rel = 'stylesheet'; rCss.href = '/shell/radix-regia.css'; document.head.appendChild(rCss);
+          document.documentElement.setAttribute('data-rx-regia', 'on');
+          var regiaJs = ['/lib/radix-regia-core.js', '/lib/regia-cc.js', '/lib/radix-guide.js', '/lib/radix-regia.js'];
+          var guideAlone = function () { if (window.RadixGuide && !document.getElementById('rxGuide')) window.RadixGuide.start(); };
+          (function next(i) {
+            if (i >= regiaJs.length) { if (!window.RadixRegia) guideAlone(); return; }
+            var s = document.createElement('script'); s.src = regiaJs[i];
+            s.onload = function () { next(i + 1); };
+            s.onerror = function () { if (regiaJs[i] === '/lib/radix-guide.js') return; document.documentElement.removeAttribute('data-rx-regia'); next(regiaJs.indexOf('/lib/radix-guide.js') > i ? regiaJs.indexOf('/lib/radix-guide.js') : regiaJs.length); };
+            document.body.appendChild(s);
+          })(0);
         }
         if (pageTop) {
           var pill = top.querySelector('.user-pill');

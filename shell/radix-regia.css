@@ -1,0 +1,90 @@
+/* Regia RADIX (lib/radix-regia.js): the «Regia» button in the top bar and its side panel, full screen on a phone.
+   The light look of the platform (white panel, soft lines, dark text, one indigo accent): the neutrals of the white
+   CRM and of the Marketing «B» (shell/marketing-a.css), as local tokens so the panel reads the same on every page. */
+.rx-regia,.rx-regia-fab{--rg-bg:#f4f4f8;--rg-panel:#fff;--rg-panel-2:#f8f7fb;--rg-line:#e4e1ec;--rg-line-2:#cfcadb;--rg-tx:#1d1a27;--rg-tx2:#55516a;--rg-mut:#6b6780;
+  --rg-link:#4338ca;--rg-vi:#4f46e5;--rg-soft:#eef0ff;--rg-soft-line:#c7cbfb;--rg-ok:#15803d;--rg-warn:#a85b06;--rg-err:#b42318;--rg-btn:linear-gradient(180deg,#5249e8,#4338ca);
+  --rg-shadow:0 1px 2px rgba(29,26,39,.04),0 12px 40px rgba(29,26,39,.14)}
+/* The button: replaces the round «?» of the Guide; a pill with the word «Regia». */
+button.rx-guide-fab.rx-regia-fab{width:auto;min-width:72px;height:40px;padding:0 14px;border-radius:999px!important;border:1px solid var(--rg-soft-line);background:var(--rg-btn)!important;color:#fff;font:600 14px/1 var(--rx-font,Inter,system-ui,sans-serif);letter-spacing:.01em}
+.rx-topbar button.rx-guide-fab--top.rx-regia-fab,.rx-pagetop button.rx-guide-fab--top.rx-regia-fab{aspect-ratio:auto;height:36px;font-size:14px}
+button.rx-regia-fab[aria-expanded="true"]{box-shadow:0 0 0 3px var(--rg-soft-line)}
+/* The side panel */
+.rx-regia{position:fixed;top:0;right:0;bottom:0;z-index:950;width:min(420px,100vw);display:flex;flex-direction:column;box-sizing:border-box;
+  background:var(--rg-panel);color:var(--rg-tx);border-left:1px solid var(--rg-line);box-shadow:var(--rg-shadow);font:14px/1.45 var(--rx-font,Inter,system-ui,sans-serif)}
+.rx-regia *,.rx-regia *::before,.rx-regia *::after{box-sizing:border-box}
+.rx-regia--top{top:var(--rx-topbar,60px)}
+.rx-regia[hidden]{display:none}
+.rx-regia>:not(.rx-regia-log){flex:none}
+.rx-regia :focus-visible{outline:2px solid var(--rg-vi);outline-offset:2px}
+.rx-regia-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;border-bottom:1px solid var(--rg-line)}
+.rx-regia-titles{display:flex;flex-direction:column;min-width:0}
+.rx-regia-titles strong{font:600 17px/1.2 var(--rx-display,"Space Grotesk",Inter,sans-serif);color:var(--rg-tx)}
+.rx-regia-page{color:var(--rg-mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-regia-x{min-width:36px;min-height:36px;border:1px solid var(--rg-line);border-radius:10px;background:var(--rg-panel);color:var(--rg-tx2);font-size:15px;cursor:pointer}
+.rx-regia-shortcuts{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px 4px}
+.rx-regia-shortcuts[hidden]{display:none}
+.rx-regia-chip{min-height:32px;padding:6px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer;text-align:left}
+.rx-regia-chip.ai{border:1px solid var(--rg-soft-line);background:var(--rg-soft);color:var(--rg-link);font-weight:600}
+.rx-regia-chip.free{border:1px solid var(--rg-line-2);background:var(--rg-panel);color:var(--rg-tx2)}
+.rx-regia-chip:hover{border-color:var(--rg-vi)}
+.rx-regia-view{margin:10px 16px 0;padding:10px 12px;border:1px solid var(--rg-line);border-radius:12px;background:var(--rg-panel-2)}
+.rx-regia-view[hidden]{display:none}
+.rx-regia-view strong{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--rg-mut)}
+.rx-regia-view ul{margin:6px 0 0;padding-left:18px}
+.rx-regia-log{flex:1;min-height:0;overflow:auto;margin-top:10px;border-top:1px solid var(--rg-line);padding:12px 16px;display:flex;flex-direction:column;gap:10px;background:var(--rg-panel)}
+.rx-regia-msg{padding:9px 12px;border-radius:14px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.rx-regia-msg.bot{background:var(--rg-panel-2);border:1px solid var(--rg-line);align-self:flex-start}
+.rx-regia-msg.bot.free::after{content:"Risposta immediata · senza AI";display:block;margin-top:4px;color:var(--rg-mut);font-size:11px}
+.rx-regia-msg.wait{color:var(--rg-mut)}
+.rx-regia-msg.me{background:var(--rg-vi);color:#fff;align-self:flex-end}
+.rx-regia-link{display:inline-block;margin:6px 6px 0 0;padding:3px 10px;border:1px solid var(--rg-soft-line);border-radius:999px;color:var(--rg-link);text-decoration:none;font-size:13px}
+.rx-regia-faq{display:flex;flex-wrap:wrap;gap:6px}
+.rx-regia-faq-label{flex-basis:100%;color:var(--rg-mut);font-size:12px}
+/* The proposal card */
+.rx-regia-card{padding:14px;border:1px solid var(--rg-soft-line);border-radius:14px;background:var(--rg-panel);box-shadow:0 1px 2px rgba(29,26,39,.05)}
+.rx-regia-card-kind{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--rg-vi)}
+.rx-regia-card h4{margin:4px 0 8px;font-size:15px;line-height:1.35;color:var(--rg-tx)}
+.rx-regia-ops{margin:0 0 8px;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.rx-regia-ops li{padding:8px 10px;border:1px solid var(--rg-line);border-left:3px solid var(--rg-ok);border-radius:10px;background:var(--rg-panel-2)}
+.rx-regia-rejected{margin:0 0 8px}
+.rx-regia-rejected strong{font-size:12px;color:var(--rg-warn)}
+.rx-regia-rejected ul{margin:4px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.rx-regia-rejected li{padding:8px 10px;border:1px dashed var(--rg-line-2);border-radius:10px;color:var(--rg-tx2);text-decoration:none}
+.rx-regia-rejected li span{display:block;text-decoration:line-through;overflow-wrap:anywhere}
+.rx-regia-rejected li em{display:block;margin-top:2px;font-style:normal;color:var(--rg-warn);font-size:13px}
+.rx-regia-error{margin:0 0 8px;color:var(--rg-err)}
+.rx-regia-cost{margin:0 0 10px;color:var(--rg-tx2);font-size:13px}
+.rx-regia-actions{display:flex;gap:8px;flex-wrap:wrap}
+.rx-regia-yes,.rx-regia-no,.rx-regia-send,.rx-regia-undo-btn{min-height:38px;padding:8px 16px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.rx-regia-yes,.rx-regia-send{border:0;background:var(--rg-btn);color:#fff}
+.rx-regia-no,.rx-regia-undo-btn{border:1px solid var(--rg-line-2);background:var(--rg-panel);color:var(--rg-tx)}
+.rx-regia button:disabled{opacity:.5;cursor:default}
+.rx-regia-status{margin:8px 0 0;font-size:13px;color:var(--rg-tx2)}
+.rx-regia-status:empty{display:none}
+.rx-regia-card[data-state="applied"]{border-color:color-mix(in srgb,var(--rg-ok) 45%,var(--rg-line))}
+.rx-regia-card[data-state="applied"] .rx-regia-status{color:var(--rg-ok)}
+/* Undo stays visible after an apply */
+.rx-regia-undo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;border-top:1px solid var(--rg-line);background:#f0fdf4;color:var(--rg-ok);font-size:13px;font-weight:600}
+.rx-regia-undo[hidden]{display:none}
+/* The question box */
+.rx-regia-ask{padding:10px 16px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--rg-line);background:var(--rg-panel)}
+.rx-regia-row{display:flex;gap:8px;align-items:flex-end}
+.rx-regia-input{flex:1;min-width:0;min-height:40px;max-height:140px;padding:9px 11px;border:1px solid var(--rg-line-2);border-radius:10px;background:var(--rg-panel);color:var(--rg-tx);font:inherit;resize:none}
+.rx-regia-clip{flex:none;width:40px;height:40px;border:1px solid var(--rg-line-2);border-radius:10px;background:var(--rg-panel);color:var(--rg-tx2);font-size:18px;cursor:pointer}
+.rx-regia-file{display:none}
+.rx-regia-note{margin:6px 0 0;color:var(--rg-mut);font-size:12px}
+.rx-regia-attach{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:6px;border:1px solid var(--rg-line);border-radius:10px;background:var(--rg-panel-2);font-size:12px;color:var(--rg-tx2)}
+.rx-regia-attach[hidden]{display:none}
+.rx-regia-attach img{width:48px;height:48px;object-fit:cover;border-radius:8px;background:var(--rg-line)}
+.rx-regia-attach span{flex:1;min-width:0;overflow-wrap:anywhere}
+.rx-regia-attach-x{min-width:32px;min-height:32px;border:0;background:transparent;color:var(--rg-tx2);cursor:pointer}
+/* Phone: the panel takes the whole screen */
+@media (max-width:640px){
+  .rx-regia,.rx-regia--top{top:0;left:0;right:0;bottom:0;width:100vw;border-left:0}
+  html.rx-regia-open,html.rx-regia-open body{overflow:hidden}
+  .rx-regia-x{min-width:44px;min-height:44px}
+  .rx-regia-chip{min-height:40px}
+  .rx-regia-yes,.rx-regia-no,.rx-regia-send,.rx-regia-undo-btn{min-height:44px}
+  .rx-regia-input{font-size:16px}
+}
+@media print{.rx-regia-fab,.rx-regia{display:none}}
