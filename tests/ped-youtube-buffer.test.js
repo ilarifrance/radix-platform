@@ -65,8 +65,21 @@ test('a post published outside Buffer (YouTube Studio) can be recorded as out, w
 
 test('social posts reach Buffer without markdown: bold asterisks and #titles are removed, newsletters keep them',()=>{
  const src=read('api/_registry-handler.js');
- assert.match(src,/text:pv\.plainSocial\(String\(item\.copy\),item\.channel\),dueAt:scheduledAt,images\}/);
+ assert.match(src,/text:pv\.plainSocial\(String\(item\.copy\),item\.channel\),dueAt:scheduledAt,images,instagram:ig\}/);
  assert.equal(pv.plainSocial('**Perché costa caro:**\nTesto','Instagram'),'Perché costa caro:\nTesto');
  assert.equal(pv.plainSocial('## Titolo\n**uno**','YouTube'),'Titolo\nuno');
  assert.equal(pv.plainSocial('**Grassetto**','Newsletter email'),'**Grassetto**');
+});
+
+test('createPost: Instagram needs a type, a reel for video and a post for images, always shared to feed',async()=>{
+ const {createPost}=require('../api/_buffer.js');let sent=null;const realFetch=global.fetch;
+ global.fetch=async(u,o)=>{sent=JSON.parse(o.body);return {ok:true,status:200,json:async()=>({data:{createPost:{post:{id:'p1',dueAt:null}}}})}};
+ try{await createPost('k',{channelId:'c',text:'Reel',video:'https://blob.test/v.mp4',instagram:{type:'reel',isAiGenerated:true}});
+  assert.match(sent.query,/metadata: \{ instagram: \{ type: reel, shouldShareToFeed: true, isAiGenerated: true \} \}/);
+  await createPost('k',{channelId:'c',text:'Carosello',images:['https://blob.test/a.png','https://blob.test/b.png'],instagram:{type:'post'}});
+  assert.match(sent.query,/metadata: \{ instagram: \{ type: post, shouldShareToFeed: true \} \}/);
+  await createPost('k',{channelId:'c',text:'x',instagram:{type:'reel"}){hack'}});assert.doesNotMatch(sent.query,/metadata/,'only known types')}
+ finally{global.fetch=realFetch}
+ const h=require('fs').readFileSync(require('path').join(__dirname,'..','api','_registry-handler.js'),'utf8');
+ assert.match(h,/\{type:'reel',isAiGenerated:true\}/);assert.match(h,/\{type:'post'\}/);
 });
