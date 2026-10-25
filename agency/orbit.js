@@ -144,7 +144,7 @@ function flow(){
  // Same source and count as the header chip (O.phaseProgress): «N di 9 fasi fatte» agrees with the steps below.
  const pp=O.phaseProgress(state.journey),ph=pp?pp.phases:null;
  const now=ph?(ph.find(p=>p.state==='waiting')||ph.find(p=>p.state!=='done')||null):null;
- $('moFlowTitle').textContent=ph?'Il percorso del progetto':'Workflow operativo';
+ $('moFlowTitle').textContent=ph?'Il percorso del progetto':'Flusso di lavoro';
  $('moFlowFor').textContent=ph?'Le fasi di '+state.project.name+', dallo stato salvato: '+pp.done+' di '+pp.total+' fatte.':'Le fasi di ogni progetto: brief, proposte, la tua scelta, la pubblicazione.';
  $('moFlow').replaceChildren(...(ph||O.FLOW.map(label=>({label}))).map((p,i)=>{
   const li=node('li','ma-step'+(p.state?' is-'+p.state:'')+(p===now?' is-now':''));const n=node('span','ma-step-n');
