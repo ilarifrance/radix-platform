@@ -14,7 +14,12 @@ function weighted(deals,stages){const by=new Map((stages||[]).map(s=>[s&&s.id,s]
  for(const d of deals||[]){if(!isOpen(d))continue;const c=Number(d.amount_cents);if(!Number.isSafeInteger(c))continue;
   const own=d.probability,st=by.get(d.stage_id),p=own!=null&&own!==''?Number(own):st&&st.probability!=null?Number(st.probability):0;if(Number.isFinite(p))t+=c*Math.min(100,Math.max(0,p))/100}
  return Math.round(t)}
-const core={isOpen,outcomeCounts,moveTargets,moveConfirmation,dateLabel,localDay,weighted};
+// After a move: the new stage's default probability when the deal still had the old stage's default; a value set by hand
+// (or no value at all, which already follows the stage) is never touched. null = nothing to change.
+function nextProbability(row,stages,stage){const num=v=>v==null||v===''?null:Number(v);
+ const from=(stages||[]).find(s=>s&&s.id===row?.stage_id),own=num(row?.probability),was=num(from?.probability),to=num(stage?.probability);
+ return own!=null&&was!=null&&to!=null&&own===was&&to!==was&&Number.isInteger(to)?to:null}
+const core={isOpen,outcomeCounts,moveTargets,moveConfirmation,dateLabel,localDay,weighted,nextProbability};
 if(typeof module!=='undefined'&&module.exports)module.exports=core;
 root.RadixPipelineMove=core;
 if(typeof document==='undefined')return;
@@ -47,6 +52,8 @@ async function move(row,stage){
  let failure=null,conflict=false;
  try{const r=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:state.workspace,entity:'opportunities',action:'transition',data:{id:row.id,version:row.version,stage_id:stage.id,key}})});
   let data={};try{data=await r.json()}catch{data={}}
+  const p=r.ok?nextProbability(row,state.stages,stage):null,moved=data.rows?.[0];
+  if(p!=null&&moved&&moved.version!=null){try{await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:state.workspace,entity:'opportunities',action:'update',data:{id:row.id,version:moved.version,probability:p}})})}catch{}}
   if(!r.ok){const msg=typeof data.error==='string'?data.error:data.error?.message;conflict=r.status===409;
    failure=r.status===401?'Sessione non autenticata: effettua il login sullo stesso dominio.':r.status===403?'Non hai i permessi per spostare opportunità in questo workspace.':conflict?'Conflitto: l’opportunità è stata modificata nel frattempo. Pipeline ricaricata: verifica e riprova.':(msg||'Spostamento non riuscito ('+r.status+').')}
  }catch{failure='Errore di rete durante lo spostamento: premi Aggiorna e verifica prima di ripetere.'}

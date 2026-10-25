@@ -395,7 +395,7 @@ td.late{color:#ff8f80}
 .cal-left,.cal-rail{display:grid;gap:16px}
 .cal-card{background:linear-gradient(160deg,#0a2a33f0,#061b25f2);border:1px solid #1f5a5c;border-radius:14px;padding:16px;box-shadow:0 14px 34px #0005;min-width:0}
 .cal-card h3{margin:0 0 4px;font-size:17px;font-weight:600}
-.cal-sub{margin:0 0 10px;color:#9fbdc0;font-size:13px;text-transform:capitalize}
+.cal-sub{margin:0 0 10px;color:#9fbdc0;font-size:13px}.cal-sub::first-letter{text-transform:uppercase}
 .cal-empty{color:#9fbdc0;font-size:13px;margin:6px 0 0}
 .cal-mini-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .cal-mini-head button,.cal-bar>button{min-height:34px;min-width:34px;padding:0 10px;background:transparent}
@@ -418,7 +418,7 @@ td.late{color:#ff8f80}
 .teal{--c:#36edbd}.blue{--c:#4aa3ff}.purple{--c:#a48cff}.gold{--c:#f2c063}.orange{--c:#ff9f4a}.red{--c:#ff6b6b}
 .cal-main{padding:0;overflow:hidden}
 .cal-bar{display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:1px solid #1f5a5c;flex-wrap:wrap}
-.cal-bar h3{margin:0 auto 0 10px;font-size:18px;font-weight:600;text-transform:capitalize}
+.cal-bar h3{margin:0 auto 0 10px;font-size:18px;font-weight:600}.cal-bar h3::first-letter{text-transform:uppercase}
 .cal-modes{display:flex;border:1px solid #1f5a5c;border-radius:10px;padding:3px}
 .cal-modes button{min-height:34px;border:0;background:transparent;border-radius:8px;padding:0 16px;font-size:14px}
 .cal-modes button[aria-pressed=true]{background:#13514c;box-shadow:inset 0 0 0 1px #36edbd}

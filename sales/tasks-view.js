@@ -73,6 +73,9 @@ function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-tab
     const pr=E('td');if(PRI[r.priority])pr.append(E('span',PRI[r.priority][0],'tv-pri '+PRI[r.priority][1]));else pr.textContent='—';
     const who=E('td');const av=E('span',initials(member(d,r.assignee_id)),'tv-av sm');av.setAttribute('aria-hidden','true');who.append(av,document.createTextNode(member(d,r.assignee_id)));
     const st=E('td');st.append(E('span',STATUS[r.status]||r.status,'tv-status '+(r.status||'')));
+    // A row opens the task editor (the same one as «Modifica» in the kanban), when the role can write.
+    const app=window.RadixSalesApp,rec=app?.rows('tasks').find(x=>x.id===r.id);
+    if(rec&&app.writable('tasks')){tr.classList.add('tv-open');tr.tabIndex=0;tr.title='Apri l’attività';tr.addEventListener('click',()=>app.edit('tasks',rec));tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();app.edit('tasks',rec)}})}
     tr.append(a,E('td',company(d,r.company_id)||'—'),E('td',x?rel(x)+(hm(x)!=='00:00'?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
   t.append(tb);p.append(t);return p}
 
@@ -95,7 +98,7 @@ async function render(){const sec=document.getElementById('tasks');if(!sec||!sec
   const kb=E('button','Vista kanban','tv-kanban');kb.type='button';kb.setAttribute('aria-pressed',String(state.kanban));kb.addEventListener('click',()=>{state.kanban=!state.kanban;render()});tabs.append(kb);
   main.append(tabs);
   if(!state.kanban){main.append(kpis(d,g));const two=E('div',undefined,'tv-two');two.append(day(d,g),recall(d));main.append(two);
-    if(state.tab!=='due')main.append(table(d,'In scadenza',g.due,{warn:true,limit:5,empty:'Nessuna attività scaduta o in scadenza oggi.'}));
+    if(state.tab!=='due')main.append(table(d,'In scadenza',g.due,{warn:true,empty:'Nessuna attività scaduta o in scadenza oggi.'}));
     const label=TABS.find(x=>x[0]===state.tab)[1];main.append(table(d,state.tab==='done'?'Attività completate':'Attività · '+label.toLowerCase(),g[state.tab],{warn:state.tab==='due',empty:'Nessuna attività in questa vista.'}))}
   root.append(main,rail(d,g));
   const anchor=sec.querySelector(':scope>.row');anchor?anchor.after(root):sec.prepend(root);

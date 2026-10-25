@@ -74,7 +74,7 @@
  function autoPick(){
   if(!ws||ws.disabled||wsValue()||hashJob())return;
   const opts=[...ws.options].filter(o=>UUID.test(o.value));if(!opts.length)return;
-  const saved=store.get(KEY_WS),pick=opts.find(o=>o.value===saved)||(opts.length===1?opts[0]:null);
+  const saved=store.get(KEY_WS)||store.get('radix.workspace'),pick=opts.find(o=>o.value===saved)||(opts.length===1?opts[0]:null);
   if(!pick)return;
   ws.value=pick.value;ws.dispatchEvent(new Event('change'));
  }
@@ -83,7 +83,7 @@
   say('lf-ws-hint',v?'Vale per tutta la pagina: liste, CRM e newsletter.':'Scegli il workspace: vale per tutta la pagina.');
   tidyPickers();
   if(!v){renderJobs();return}
-  store.set(KEY_WS,v);follow();refreshJobs(true);
+  store.set(KEY_WS,v);store.set('radix.workspace',v);follow();refreshJobs(true);
  }
 
  // ---- LinkedIn: jobs the extension saved in the workspace (read through the existing «Aggiorna» button) ----

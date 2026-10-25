@@ -114,7 +114,7 @@ function render(d){if(!d)return;const m=model(d),P=d.partial;
   $('so-callout-b').textContent=P?'Prime 100 righe per area: alcuni totali sono parziali.':'Dati, relazioni e opportunità del workspace, letti ora.';
   const value=m.active.reduce((s,o)=>s+num(o.amount_cents),0);
   kpi('active',it(m.active.length),'su '+total(m.opps,P)+' registrate',byMonth(m.active,'expected_close',()=>1),'Opportunità attive per mese di chiusura prevista, prossimi 6 mesi');
-  kpi('value',m.active.length?eur(value):'—','valuta non indicata',byMonth(m.active,'expected_close',o=>num(o.amount_cents)),'Valore per mese di chiusura prevista, prossimi 6 mesi');
+  kpi('value',m.active.length?eur(value):'—','pipeline attiva',byMonth(m.active,'expected_close',o=>num(o.amount_cents)),'Valore per mese di chiusura prevista, prossimi 6 mesi');
   kpi('due',it(m.due.length),m.overdue.length?m.overdue.length+' già scadute':'nei prossimi 7 giorni',weeks(m.open),'Attività aperte per settimana di scadenza: scadute, questa settimana e le 4 successive');
   kpi('coverage',m.companies.size?Math.round(m.covered/m.companies.size*100)+'%':'—','sentite negli ultimi 90 giorni',byMonth(m.inter,'occurred_at',()=>1,true),'Interazioni registrate per mese, ultimi 6 mesi');
   fill('priorities','so-prio-n',m.prio.map(t=>row('/radix-sales.html#tasks','task',t.title||'Attività',m.who(t)||(m.opps.find(o=>o.id===t.opportunity_id)||{}).title||'Attività CRM',when(t))),'Nessuna attività in scadenza oggi.');

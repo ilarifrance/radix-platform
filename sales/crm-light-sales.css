@@ -198,6 +198,7 @@ html.pv-on #dashboard>.row:first-child>h2::after,html.tv-on #tasks>.row:first-ch
 .tv-recall-row .tv-deal{color:var(--crm-muted)}
 .tv-av{color:var(--crm-accent);background:var(--crm-accent-soft);box-shadow:none}
 .tv-table th{color:var(--crm-muted);font-weight:600}
+.tv-table tr.tv-open{cursor:pointer}.tv-table tr.tv-open:hover td{background:var(--crm-hover)}.tv-table tr.tv-open:focus-visible{outline:2px solid var(--crm-accent);outline-offset:-2px}
 .tv-table td{background:var(--crm-card);border-top:1px solid var(--crm-line);border-bottom:1px solid var(--crm-line)}
 .tv-table td:first-child{border-left:1px solid var(--crm-line)}
 .tv-table td:last-child{border-right:1px solid var(--crm-line)}

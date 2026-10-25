@@ -7,6 +7,8 @@
 /* The button: replaces the round «?» of the Guide; a pill with the word «Regia». */
 button.rx-guide-fab.rx-regia-fab:is(#rxGuide){width:auto;min-width:72px;height:40px;padding:0 14px;border-radius:999px!important;border:1px solid var(--rg-soft-line);background:var(--rg-btn)!important;color:#fff;font:600 14px/1 var(--rx-font,Inter,system-ui,sans-serif);letter-spacing:.01em}
 .rx-topbar button.rx-guide-fab--top.rx-regia-fab:is(#rxGuide),.rx-pagetop button.rx-guide-fab--top.rx-regia-fab:is(#rxGuide){aspect-ratio:auto;height:36px;font-size:14px}
+.sx-side>button.rx-guide-fab.rx-regia-fab.rx-regia-fab--side:is(#rxGuide){position:static;flex:none;align-self:flex-start;margin:0 10px;box-shadow:none}
+@media (max-width:900px){.sx-side>button.rx-guide-fab.rx-regia-fab.rx-regia-fab--side:is(#rxGuide){order:9;align-self:center;margin:0;min-width:0;height:36px;padding:0 12px}}
 button.rx-regia-fab:is(#rxGuide)[aria-expanded="true"]{box-shadow:0 0 0 3px var(--rg-soft-line)}
 /* The side panel */
 .rx-regia:is(#rxRegia){position:fixed;top:0;right:0;bottom:0;z-index:950;width:min(420px,100vw);display:flex;flex-direction:column;box-sizing:border-box;

@@ -39,7 +39,7 @@
    text('contact-api-result','Verifica in corso...');
    const response=await fetch(path,options),body=await response.json();
    if(!response.ok)throw Error(body.error||'Provider non disponibile');
-   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY e CAPTAIN_DATA_USER_UID nelle variabili Preview di Vercel.');
+   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata, non ancora collegata a una ricerca.':'Chiave API non configurata: chiedi all’amministratore di collegare Captain Data.');
   }catch(e){text('contact-api-result','Verifica API: '+e.message)}
  }
  $('contact-api-status').onclick=()=>apiStatus(false);

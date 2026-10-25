@@ -3,6 +3,10 @@
 const $ = id => document.getElementById(id);
 const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',tickets:'Assistenza',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
+// The last workspace chosen in the CRM, shared with the Sales pages (Lead Intelligence, Growth, LinkedIn): a convenience only.
+const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
+// Interaction types as people read them (the stored value stays call/meeting/note/email).
+const INTERACTION_KINDS={note:'Nota',call:'Telefonata',meeting:'Incontro',email:'Email registrata'};
 const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
 let editing = null;
 let customer = null;
@@ -62,7 +66,8 @@ async function refresh(memberships=true){
  if(state.busy)return;lock(true);error('');notice('Caricamento dal server…');
  try{
   if(memberships&&state.me===null){try{const r=await fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():null;state.me=Number.isInteger(d?.user?.id)?d.user.id:0;}catch{state.me=0;}}
-  if(memberships){const generation=state.generation;const result=await api('workspaces');if(!current(generation))return;state.workspaces=result.rows;if(!result.rows.some(w=>w.id===state.workspace))state.workspace=result.rows[0]?.id || null;}
+  if(memberships){const generation=state.generation;const result=await api('workspaces');if(!current(generation))return;state.workspaces=result.rows;if(!result.rows.some(w=>w.id===state.workspace)){const kept=wsMemo.get();state.workspace=(result.rows.find(w=>w.id===kept)||result.rows[0])?.id || null;}}
+  wsMemo.set(state.workspace);
   renderWorkspace();
   if(!state.workspace){state.ready=false;state.rows={};$('content').replaceChildren();$('membership').textContent='Nessun workspace disponibile. Chiedi a un amministratore di assegnarti una membership. Nessun workspace viene creato automaticamente.';notice('Nessun dato da mostrare.');return;}
   await reload();notice(state.ready?'Dati aggiornati dal server.':'Caricamento parziale.');
@@ -79,7 +84,7 @@ function card(entity,row,readonly=false){
  if(['contacts','companies'].includes(entity)){const reach=[row.email,row.phone,entity==='companies'?row.city:null].filter(Boolean).join(' · ');if(reach)c.append(el('p',reach,'muted'));if(entity==='companies'&&row.website)c.append(el('p',row.website,'muted'));if(entity==='contacts')c.append(el('p',row.marketing_consent?'Consenso marketing registrato'+(row.consent_at?' il '+row.consent_at.slice(0,10):''):'Nessun consenso marketing','muted'));}
  if(entity==='opportunities'&&row.outcome&&row.outcome!=='open')c.append(el('p',row.outcome==='won'?'Vinta'+(row.closed_at?' il '+row.closed_at.slice(0,10):''):'Persa'+(row.lost_reason?' · '+row.lost_reason:''),'outcome outcome-'+row.outcome));
  if(entity==='opportunities'&&(row.probability!=null||stageProbability(row)!=null))c.append(el('p','Probabilità: '+(row.probability??stageProbability(row))+'%'+(row.probability==null?' (dalla fase)':''),'muted'));
- if(entity==='opportunities')c.append(el('p','Valore: '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)+' (valuta del workspace)'));
+ if(entity==='opportunities')c.append(el('p','Valore: € '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)));
  if(entity==='opportunities'){const q=el('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(row.id)+'#quotes/new';c.append(q);}
  if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close ? (window.RadixCrmDates?.dateLabel(row.expected_close)||row.expected_close) : 'non impostata')));
  if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
@@ -103,7 +108,7 @@ function card(entity,row,readonly=false){
  if(entity==='opportunities' && readonly)c.append(el('p','Fase: '+relation('stages',row.stage_id)));
  if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza: '+(row.due_at ? when(row.due_at) : 'nessuna')));
  if(entity==='stages' && row.task_title)c.append(el('p','Regole esplicite: '+relation('members',row.task_assignee_id)+' · '+(row.task_priority || 'non impostata')+' · Giorni: '+(row.task_due_days ?? 'non impostati')));
- if(entity==='interactions'){c.append(el('p','Tipo: '+row.kind+' · Data: '+when(row.occurred_at)+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
+ if(entity==='interactions'){c.append(el('p','Tipo: '+(INTERACTION_KINDS[row.kind]||row.kind)+' · Data: '+when(row.occurred_at)+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
  if(entity==='tickets'){
   c.append(el('p',(ticketStatus[row.status]||row.status)+' · Priorità: '+({low:'bassa',normal:'normale',high:'alta',urgent:'urgente'}[row.priority]||row.priority)+' · Canale: '+(ticketChannel[row.channel]||row.channel),'ticket-state ticket-'+row.status));
   c.append(el('p','Assegnato a: '+relation('members',row.assignee_id)+' · Scadenza: '+(row.due_at?when(row.due_at):'nessuna')+(row.resolved_at?' · Risolto il '+(window.RadixCrmDates?.dayLabel(row.resolved_at)||row.resolved_at.slice(0,10)):''),'muted'));
@@ -202,7 +207,7 @@ function render(){
   if(entity==='dashboard'){
    const stats=rows(entity)[0];if(stats){const metrics=el('div',undefined,'metrics');for(const key of ['companies','contacts','leads','opportunities','tasks','open_amount_cents']){const box=el('div',undefined,'metric');box.append(el('span',names[key] || 'Valore pipeline · valuta workspace'),el('strong',key==='open_amount_cents'?new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(stats[key] || 0)/100):stats[key] ?? '—'));metrics.append(box);}section.append(metrics);}else section.append(el('p','Indicatori server non disponibili.','muted'));
   }else{
-   section.append(el('p',rows(entity).length+' record caricati.'+(state.more[entity]?' Elenco parziale: sono disponibili altre pagine.':'')+' I selettori includono solo i riferimenti già caricati.','muted'));
+   if(state.more[entity])section.append(el('p','Elenco parziale: sono disponibili altre pagine.','muted'));
    if(entity==='tickets'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label','Assistenza · ticket per stato');
     Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=rows(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
@@ -249,7 +254,6 @@ async function loadCustomer(append=false){
 function customerPanel(){
  const panel=el('section',undefined,'panel customer360');panel.id='customer360';panel.tabIndex=-1;
  const heading=el('div',undefined,'row');heading.append(el('h2','Customer360 · '+customer.title),button('Chiudi Customer360',()=>{if(!state.busy){customer=null;render();}}));panel.append(heading);
- panel.append(el('p','Relazioni restituite dal server, inclusa la scheda selezionata. '+customer.rows.length+' record caricati. Vista sola lettura; le modifiche sono nelle sezioni dedicate.','muted'));
  if(customer.error)panel.append(el('p',customer.error,'notice'),button('Riprova Customer360',()=>loadCustomer(customer.offset>0)));
  // Riepilogo AI and the activity composer for this record (sales/crm-record.js).
  if(customer.rows.length)window.RadixCrmRecord?.mount(panel,{subject:customer.subject,id:customer.id,title:customer.title,rows:customer.rows});
@@ -380,9 +384,10 @@ function openEditor(entity,row=null){
   fields.append(el('p','Con un titolo automatico, specifica tutte e tre le regole. Senza titolo, lascia tutte le regole vuote.','muted'));
  }
  if(entity==='interactions'){
-  addSelect('kind','Tipo *',[['note','Nota'],['call','Telefonata'],['meeting','Incontro'],['email','Email registrata']],row?.kind || 'note',true);
+  addSelect('kind','Tipo *',Object.entries(INTERACTION_KINDS),row?.kind || 'note',true);
   // «Slot liberi» per un’interazione da fissare: nuova, o già in programma (data futura); non per quelle passate.
-  localInput('occurred_at','Data interazione *',row?.occurred_at,true,!row||(Date.parse(row.occurred_at)>Date.now()));
+  // A new interaction starts at «now» (to the minute): most are logged right after the call or meeting.
+  localInput('occurred_at','Data interazione *',row?.occurred_at || (row?.id ? '' : new Date(Math.floor(Date.now()/60000)*60000).toISOString()),true,!row||(Date.parse(row.occurred_at)>Date.now()));
   addSelect('opportunity_id','Opportunità collegata',references('opportunities',row?.opportunity_id),row?.opportunity_id);
   const label=el('label','Testo (opzionale, massimo 4000 caratteri)');const body=el('textarea');body.name='body';body.maxLength=4000;body.rows=6;body.value=row?.body || '';label.append(body);fields.append(label);
  }
@@ -391,7 +396,6 @@ function openEditor(entity,row=null){
   const amount=addInput('amount_cents','Importo *','text',window.RadixCrmFields?window.RadixCrmFields.centsToEuro(row?.amount_cents ?? 0):(row?.amount_cents ?? 0),true);amount.inputMode='decimal';
   addSelect('owner_id','Responsabile opportunità',references('members',row?.owner_id),row?.owner_id);
   const close=addInput('expected_close','Chiusura prevista (opzionale)','date',row?.expected_close || '');close.min='0001-01-01';close.max='9999-12-31';
-  fields.append(el('small','Data di calendario YYYY-MM-DD, senza ora o fuso. Responsabile e data possono restare non impostati; nessun valore è dedotto.'));
   const prob=addInput('probability','Probabilità di chiusura % (vuoto = quella della fase)','number',row?.probability ?? '');prob.max='100';
   if(row){addSelect('outcome','Esito',[['open','Aperta'],['won','Vinta'],['lost','Persa']],row.outcome||'open',true);addText('lost_reason','Motivo della perdita (obbligatorio se persa)',500);}
  }
@@ -476,7 +480,7 @@ $('editor-form').addEventListener('submit',event=>{
 });
 $('editor-cancel').addEventListener('click',()=>{if(!state.busy)$('editor').close();});
 $('editor').addEventListener('cancel',event=>{if(state.busy)event.preventDefault();});
-$('workspace').addEventListener('change',()=>{if(state.busy)return;state.search={};state.taskDue='all';state.workspace=$('workspace').value;$('editor').close();refresh(false);});
+$('workspace').addEventListener('change',()=>{if(state.busy)return;state.search={};state.taskDue='all';state.workspace=$('workspace').value;wsMemo.set(state.workspace);$('editor').close();refresh(false);});
 $('refresh').addEventListener('click',()=>refresh(true));
 for(const [entity,label] of Object.entries(names)){const a=el('a',label);a.href='#'+entity;$('navigation').append(a);}
 refresh(true);
