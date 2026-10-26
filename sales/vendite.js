@@ -40,12 +40,14 @@ async function run(label,fn){
  finally{busy=false}
 }
 
+// The workspace last chosen in the CRM (radix.workspace, see sales.js), so every Sales page opens the same one.
+const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 async function loadWorkspaces(){
  const rows=await request('/api/sales?entity=workspaces').then(d=>d.rows||[]);
  S.workspaces=rows;const sel=$('vd-workspace');sel.textContent='';
  for(const w of rows)sel.append(h('option',{value:w.id,text:w.name+(w.role==='viewer'?' · sola lettura':'')}));
  if(!rows.length){say('Nessun workspace CRM: chiedi a un owner di aggiungerti.','err');return false}
- S.workspace=rows[0].id;sel.value=S.workspace;return true;
+ const kept=wsMemo.get();S.workspace=(rows.find(w=>w.id===kept)||rows[0]).id;sel.value=S.workspace;wsMemo.set(S.workspace);return true;
 }
 async function loadAll(){
  S.loaded=false;S.missing='';render();
@@ -358,7 +360,7 @@ function settingsView(){
 /* ---------- Boot ---------- */
 window.addEventListener('hashchange',route);
 document.addEventListener('DOMContentLoaded',async()=>{
- $('vd-workspace').addEventListener('change',e=>{S.workspace=e.target.value;S.current=null;S.form=null;loadAll()});
+ $('vd-workspace').addEventListener('change',e=>{S.workspace=e.target.value;wsMemo.set(S.workspace);S.current=null;S.form=null;loadAll()});
  try{if(await loadWorkspaces())await loadAll();else{S.loaded=true;render()}}
  catch(e){S.loaded=true;say(e.message,'err');render()}
 });
