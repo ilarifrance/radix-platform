@@ -111,7 +111,7 @@ function classify(err,attempts){
  const auth=code==='EAUTH'||rc===535||rc===534||rc===530;
  const message=cleanError(err);
  // Login refused is the mailbox's problem, not the recipient's: the email waits, its attempts are not used up.
- if(auth)return {auth:true,status:'queued',retryInMs:30*60e3,error:'Accesso SMTP rifiutato: controlla utente e password per le app. '+message};
+ if(auth)return {auth:true,status:'queued',retryInMs:30*60e3,error:'Accesso alla casella rifiutato: controlla utente e password per le app, o ricollega la casella Microsoft. '+message};
  const permanent=rc>=500&&rc<600;
  if(permanent)return {auth:false,status:'failed',error:message};
  return {auth:false,status:attempts>=MAX_ATTEMPTS?'failed':'queued',retryInMs:15*60e3,error:message};
