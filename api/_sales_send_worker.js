@@ -76,7 +76,7 @@ function sqlDb(sql){
    return new Map(r.map(x=>[key(x.workspace_id,x.id),x]));
   },
   mailboxes:async rows=>{
-   const r=await sql('SELECT m.workspace_id,m.id,m.label,m.from_name,m.from_email,m.smtp_host,m.smtp_port,m.smtp_secure,m.smtp_user,m.password_ciphertext,m.password_iv,m.password_tag,m.daily_limit,m.warmup_start::text AS warmup_start,m.status FROM sales_mailboxes m JOIN jsonb_to_recordset($1::jsonb) AS x(w uuid,m uuid) ON m.workspace_id=x.w AND m.id=x.m',[JSON.stringify(rows.filter(x=>x.mailbox_id).map(x=>({w:x.workspace_id,m:x.mailbox_id})))]);
+   const r=await sql('SELECT m.workspace_id,m.id,m.label,m.from_name,m.from_email,m.smtp_host,m.smtp_port,m.smtp_secure,m.smtp_user,m.provider,m.password_ciphertext,m.password_iv,m.password_tag,m.oauth_ciphertext,m.oauth_iv,m.oauth_tag,m.daily_limit,m.warmup_start::text AS warmup_start,m.status FROM sales_mailboxes m JOIN jsonb_to_recordset($1::jsonb) AS x(w uuid,m uuid) ON m.workspace_id=x.w AND m.id=x.m',[JSON.stringify(rows.filter(x=>x.mailbox_id).map(x=>({w:x.workspace_id,m:x.mailbox_id})))]);
    return new Map(r.map(x=>[key(x.workspace_id,x.id),x]));
   },
   sentToday:async(rows,since)=>{
@@ -87,15 +87,24 @@ function sqlDb(sql){
   finish:(row,p)=>sql("UPDATE sales_send_queue SET status=$3,error=$4,sent_at=$5::timestamptz,locked_at=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='sending'",[row.workspace_id,row.id,p.status,p.error||null,p.sent_at?iso(p.sent_at):null]),
   release:(row,p)=>sql("UPDATE sales_send_queue SET status='queued',attempts=CASE WHEN $5 THEN attempts ELSE greatest(attempts-1,0) END,scheduled_at=COALESCE($3::timestamptz,scheduled_at),error=COALESCE($4,error),locked_at=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2 AND status='sending'",[row.workspace_id,row.id,p.scheduled_at?iso(p.scheduled_at):null,p.error||null,!!p.keepAttempt]),
   recordInteraction:(row,contact)=>sql("INSERT INTO sales_interactions(workspace_id,id,title,kind,occurred_at,body,contact_id,company_id,created_by) VALUES($1,$2,left($3,200),'email',now(),left($4,4000),$5,$6,$7)",[row.workspace_id,crypto.randomUUID(),'Email: '+row.subject,row.body,row.contact_id,contact.company_id||null,row.created_by||null]),
+  saveToken:(m,e)=>sql('UPDATE sales_mailboxes SET oauth_ciphertext=$3,oauth_iv=$4,oauth_tag=$5 WHERE workspace_id=$1 AND id=$2',[m.workspace_id,m.id,e.oauth_ciphertext,e.oauth_iv,e.oauth_tag]),
   mailboxResult:(m,r)=>r.ok?sql("UPDATE sales_mailboxes SET auth_failures=0 WHERE workspace_id=$1 AND id=$2 AND auth_failures<>0",[m.workspace_id,m.id])
    :sql("UPDATE sales_mailboxes SET auth_failures=auth_failures+1,last_error=left($3,500),status=CASE WHEN auth_failures+1>=$4 THEN 'error' ELSE status END,updated_at=now() WHERE workspace_id=$1 AND id=$2",[m.workspace_id,m.id,r.error,core.AUTH_PAUSE_AFTER])
  };
 }
 // One SMTP transport per mailbox and run; the password is decrypted only here, in memory.
-function smtpSender({env,createTransport}){
- const cache=new Map(),mailboxes=require('./_sales_mailboxes');
+function smtpSender({env,createTransport,fetchImpl,saveToken}){
+ const cache=new Map(),mailboxes=require('./_sales_mailboxes'),ms=require('./_ms_oauth');
  return async(m,msg)=>{
   const k=m.workspace_id+':'+m.id;let t=cache.get(k);
+  // Microsoft 365 mailbox: Graph sendMail with a short-lived access token (refreshed once per run); Microsoft may rotate the refresh token.
+  if(m.provider==='microsoft'){
+   if(!t){let rt;try{rt=ms.openToken(m,env)}catch(e){const err=new Error(e.message);err.code='EAUTH';throw err}
+    const r=await ms.refresh(env,rt,fetchImpl);
+    if(r.refresh_token&&r.refresh_token!==rt&&saveToken)await saveToken(m,ms.sealToken(r.refresh_token,m.workspace_id,m.id,env));
+    t={access:r.access_token};cache.set(k,t)}
+   return ms.sendMail(t.access,{to:msg.to,subject:msg.subject,text:msg.text,unsubscribe:msg.unsubscribe},fetchImpl);
+  }
   if(!t){let pass;try{pass=mcrypto.decrypt(m,env)}catch(e){const err=new Error(e.message);err.code='EAUTH';throw err}t=createTransport(mailboxes.transportOptions(m,pass));cache.set(k,t)}
   return t.sendMail({from:mailboxes.fromOf(m),to:msg.to,subject:msg.subject,text:msg.text,list:{unsubscribe:msg.unsubscribe},headers:{'List-Unsubscribe-Post':'List-Unsubscribe=One-Click'}});
  };
@@ -107,7 +116,7 @@ function authorized(req,env){
  const a=Buffer.from(got),b=Buffer.from('Bearer '+secret);
  return a.length===b.length&&crypto.timingSafeEqual(a,b);
 }
-function createHandler({getSql=()=>require('./_db').sql(),env=process.env,createTransport=o=>require('nodemailer').createTransport(o)}={}){
+function createHandler({getSql=()=>require('./_db').sql(),env=process.env,createTransport=o=>require('nodemailer').createTransport(o),fetchImpl}={}){
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');
   const ok=authorized(req,env);
@@ -115,7 +124,7 @@ function createHandler({getSql=()=>require('./_db').sql(),env=process.env,create
   if(!ok)return res.status(401).json({error:'Non autorizzato.'});
   if(!['GET','POST'].includes(req.method)){res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Metodo non consentito.'})}
   try{
-   const result=await runWorker({db:sqlDb(getSql()),send:smtpSender({env,createTransport})});
+   const db=sqlDb(getSql()),result=await runWorker({db,send:smtpSender({env,createTransport,fetchImpl,saveToken:db.saveToken})});
    return res.status(200).json({ok:true,...result});
   }catch(e){
    // Codes only: never the message, which could quote data of a row.
