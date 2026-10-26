@@ -2474,7 +2474,7 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
  .cr-panel .annual-plan .ap-grid tbody th{grid-column:1/-1}
  .cr-panel .annual-plan .ap-grid :is(thead th:first-child,tbody th,tfoot th){padding-left:0}
  .cr-panel .annual-plan .ap-grid tbody td{display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0}
- .cr-panel .annual-plan .ap-grid tbody td::before{content:attr(data-label);font-size:11.5px;font-weight:600;color:var(--ink-2);overflow-wrap:anywhere}
+ .cr-panel .annual-plan .ap-grid tbody td::before{content:var(--rx-label,attr(data-label));font-size:11.5px;font-weight:600;color:var(--ink-2);overflow-wrap:anywhere}
  .cr-panel .annual-plan .ap-grid tbody td input{min-height:42px}
  .cr-panel .annual-plan .ap-grid tbody :is(.ap-row-total,.ap-row-share){justify-content:flex-end;font-size:13px}
  .cr-panel .annual-plan .ap-grid tfoot tr{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:12px;background:rgba(29,26,39,.03)}
@@ -2482,7 +2482,7 @@ html.rx-shell body.cr-page{--line:var(--ma-line)}
  .cr-panel .annual-plan .ap-grid tfoot tr:first-child>*{border-top:0}
  .cr-panel .annual-plan .ap-grid tfoot :is(th,td){background:none;padding-left:0}
  .cr-panel .annual-plan .ap-grid tfoot td{display:flex;justify-content:space-between;gap:12px}
- .cr-panel .annual-plan .ap-grid tfoot td::before{content:attr(data-label);font-weight:500;color:var(--ink-2);white-space:normal;text-align:left}
+ .cr-panel .annual-plan .ap-grid tfoot td::before{content:var(--rx-label,attr(data-label));font-weight:500;color:var(--ink-2);white-space:normal;text-align:left}
  .cr-panel .annual-plan .ap-grid tfoot td:empty{display:none}
  .cr-panel .annual-plan .ap-kpi-months{grid-template-columns:repeat(6,minmax(0,1fr))}}
 @media (max-width:640px){.cr-panel .annual-plan .ap-event{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cr-panel .annual-plan .ap-event input{grid-column:1/-1}

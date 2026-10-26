@@ -85,7 +85,7 @@
  .crm-crep-table,.crm-crep-table tbody,.crm-crep-table tr,.crm-crep-table td{display:block;width:auto}
  .crm-crep-table tr{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:8px 10px;border-top:1px solid var(--crm-line)}
  .crm-crep-table td{border:0;padding:2px 0;text-align:left;display:flex;justify-content:space-between;gap:8px}
- .crm-crep-table td::before{content:attr(data-label);color:var(--crm-muted);font-size:12px}
+ .crm-crep-table td::before{content:var(--rx-label,attr(data-label));color:var(--crm-muted);font-size:12px}
  .crm-crep-table td:first-child{grid-column:1/-1;display:block}
  .crm-crep-table td:first-child::before{content:none}
 }
