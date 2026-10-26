@@ -65,8 +65,8 @@ async function handle(req,res,{getStore,secret}){
  if(req.method!=='POST'){res.setHeader('Allow','GET, POST');throw failure(405,'Metodo non consentito.')}
  if(req.headers['x-radix-sales']!=='1'||!/^application\/json(?:;|$)/i.test(req.headers['content-type']||''))throw failure(403,'Richiesta non consentita.');
  let body=req.body;
- if(typeof body==='string'){if(Buffer.byteLength(body)>1700000)throw failure(413,'Richiesta troppo grande.');try{body=JSON.parse(body)}catch{throw failure(400,'JSON non valido.')}}
- if(Buffer.byteLength(JSON.stringify(body)||'')>1700000)throw failure(413,'Richiesta troppo grande.');
+ if(typeof body==='string'){if(Buffer.byteLength(body)>4000000)throw failure(413,'Richiesta troppo grande.');try{body=JSON.parse(body)}catch{throw failure(400,'JSON non valido.')}}
+ if(Buffer.byteLength(JSON.stringify(body)||'')>4000000)throw failure(413,'Richiesta troppo grande.');
  if(!body||body.entity!=='lead_contact_jobs'||body.action!=='create')throw failure(403,'Il collegamento estensione può solo importare nuovi contatti.');
  if(String(body.workspace||'').toLowerCase()!==claims.ws)throw failure(403,'Workspace diverso da quello collegato.');
  const c=leadContactJobs.command(body);
