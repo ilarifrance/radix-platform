@@ -185,7 +185,7 @@ test('an open form limits the proposal to its record; formValues gives the form 
  assert.equal(cards.length,1);assert.equal(cards[0].action,'update');assert.equal(cards[0].target.id,'o1');
  const amt=field(cards[0],'amount_cents');assert.equal(amt.checked,false,'overwrites € 18.500');assert.equal(amt.old,'€ 18.500');
  assert.equal(field(cards[0],'expected_close'),undefined,'same date');assert.equal(field(cards[0],'probability').checked,true);
- amt.checked=true;assert.deepEqual(D.formValues(cards[0],ctx),{error:null,values:{amount_cents:'2000000',probability:'70'}});
+ amt.checked=true;assert.deepEqual(D.formValues(cards[0],ctx),{error:null,values:{amount_cents:'20000',probability:'70'}});
  const cctx={...CTX,fixed:{entity:'companies',row:null}};
  const cc=D.propose(D.parseReply(reply([{tipo:'azienda',campi:{name:'Zeta',fatturato:'1,5 milioni',Settore:'Informatica e software'}}]),cctx),cctx);
  assert.deepEqual(D.formValues(cc[0],cctx).values,{name:'Zeta',industry:'Informatica e software',annual_revenue_cents:'1500000'},'the company form takes euros');

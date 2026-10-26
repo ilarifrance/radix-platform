@@ -74,7 +74,7 @@
  function autoPick(){
   if(!ws||ws.disabled||wsValue()||hashJob())return;
   const opts=[...ws.options].filter(o=>UUID.test(o.value));if(!opts.length)return;
-  const saved=store.get(KEY_WS),pick=opts.find(o=>o.value===saved)||(opts.length===1?opts[0]:null);
+  const saved=store.get(KEY_WS)||store.get('radix.workspace'),pick=opts.find(o=>o.value===saved)||(opts.length===1?opts[0]:null);
   if(!pick)return;
   ws.value=pick.value;ws.dispatchEvent(new Event('change'));
  }
@@ -83,7 +83,7 @@
   say('lf-ws-hint',v?'Vale per tutta la pagina: liste, CRM e newsletter.':'Scegli il workspace: vale per tutta la pagina.');
   tidyPickers();
   if(!v){renderJobs();return}
-  store.set(KEY_WS,v);follow();refreshJobs(true);
+  store.set(KEY_WS,v);store.set('radix.workspace',v);follow();refreshJobs(true);
  }
 
  // ---- LinkedIn: jobs the extension saved in the workspace (read through the existing «Aggiorna» button) ----
@@ -94,7 +94,7 @@
   $('contact-job-list')?.click();
  }
  function parseJob(o){
-  const m=/^(.*) · (\d+) contatti · v\d+$/.exec(o.textContent||'');
+  const m=/^(.*) · (\d+) contatti · v\d+$/.exec((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(o)||'');
   const title=m?m[1]:o.textContent||'Lista';
   return {id:o.value,title,count:m?Number(m[2]):null,label:title.replace(/^LinkedIn Sales Navigator · /,'').replace(/ · \d+ contatti$/,'')};
  }
@@ -154,7 +154,7 @@
   const note=$('lp-open-status');if(note){note.textContent=r.note;note.hidden=false}
  }
  // Messages of the existing archive code, shown next to the LinkedIn list (the routine «N lavori disponibili» is not).
- function mirrorJobs(){const t=$('contact-job-status')?.textContent||'';if(t&&!/liste salvate nel workspace|lavori disponibili/.test(t))say('lf-jobs-status',t)}
+ function mirrorJobs(){const t=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))($('contact-job-status'))||'';if(t&&!/liste salvate nel workspace|lavori disponibili/.test(t))say('lf-jobs-status',t)}
  function mirrorBackup(){if(state.mode==='backup')say('lf-backup-status',$('contact-status')?.textContent||'')}
 
  // ---- counts ----

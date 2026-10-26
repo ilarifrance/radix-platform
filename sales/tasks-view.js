@@ -29,8 +29,8 @@ window.RadixCrmTasksView={groups,rel,dd,recall,rail};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'';
 const member=(d,id)=>d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnata';
 
-function complete(task){const card=[...document.querySelectorAll('#tasks .board article.card')].find(c=>c.querySelector('h3')?.textContent.trim()===task.title);
-  const sel=card?.querySelector('select');const btn=sel&&[...card.querySelectorAll('button')].find(b=>/Conferma stato/.test(b.textContent));
+function complete(task){const card=[...document.querySelectorAll('#tasks .board article.card')].find(c=>(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(c.querySelector('h3')).trim()===task.title);
+  const sel=card?.querySelector('select');const btn=sel&&[...card.querySelectorAll('button')].find(b=>/Conferma stato/.test((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b)));
   if(!sel||!btn||btn.disabled)return false;sel.value='done';sel.dispatchEvent(new Event('change',{bubbles:true}));btn.click();window.RadixCrmData?.reset();return true}
 
 function kpis(d,g){const row=E('div',undefined,'tv-kpis');const all=d.tasks.length,done=g.done.length,pct=all?Math.round(done/all*100):0;
@@ -53,7 +53,7 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
     const tx=E('div');tx.append(E('b',t.title),E('small',[x&&+x<t0()?'Scaduta '+rel(x).toLowerCase():x?rel(x):'',PRI[t.priority]?PRI[t.priority][0]+' priorità':''].filter(Boolean).join(' · ')));box.append(chk,tx);
     const c=company(d,t.company_id);if(c)box.append(E('span',c,'tv-tag'));li.append(box);ol.append(li)}
   if(!list.length)ol.append(E('li','Nessuna attività aperta con una data.','tv-empty'));p.append(ol);
-  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/sales-workspace.html#calendar';p.append(a);return p}
+  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/radix-sales.html#calendar';p.append(a);return p}
 
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
   p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente. Regola fissa, non AI.','tv-note'));
@@ -73,6 +73,9 @@ function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-tab
     const pr=E('td');if(PRI[r.priority])pr.append(E('span',PRI[r.priority][0],'tv-pri '+PRI[r.priority][1]));else pr.textContent='—';
     const who=E('td');const av=E('span',initials(member(d,r.assignee_id)),'tv-av sm');av.setAttribute('aria-hidden','true');who.append(av,document.createTextNode(member(d,r.assignee_id)));
     const st=E('td');st.append(E('span',STATUS[r.status]||r.status,'tv-status '+(r.status||'')));
+    // A row opens the task editor (the same one as «Modifica» in the kanban), when the role can write.
+    const app=window.RadixSalesApp,rec=app?.rows('tasks').find(x=>x.id===r.id);
+    if(rec&&app.writable('tasks')){tr.classList.add('tv-open');tr.tabIndex=0;tr.title='Apri l’attività';tr.addEventListener('click',()=>app.edit('tasks',rec));tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();app.edit('tasks',rec)}})}
     tr.append(a,E('td',company(d,r.company_id)||'—'),E('td',x?rel(x)+(hm(x)!=='00:00'?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
   t.append(tb);p.append(t);return p}
 
@@ -95,7 +98,7 @@ async function render(){const sec=document.getElementById('tasks');if(!sec||!sec
   const kb=E('button','Vista kanban','tv-kanban');kb.type='button';kb.setAttribute('aria-pressed',String(state.kanban));kb.addEventListener('click',()=>{state.kanban=!state.kanban;render()});tabs.append(kb);
   main.append(tabs);
   if(!state.kanban){main.append(kpis(d,g));const two=E('div',undefined,'tv-two');two.append(day(d,g),recall(d));main.append(two);
-    if(state.tab!=='due')main.append(table(d,'In scadenza',g.due,{warn:true,limit:5,empty:'Nessuna attività scaduta o in scadenza oggi.'}));
+    if(state.tab!=='due')main.append(table(d,'In scadenza',g.due,{warn:true,empty:'Nessuna attività scaduta o in scadenza oggi.'}));
     const label=TABS.find(x=>x[0]===state.tab)[1];main.append(table(d,state.tab==='done'?'Attività completate':'Attività · '+label.toLowerCase(),g[state.tab],{warn:state.tab==='due',empty:'Nessuna attività in questa vista.'}))}
   root.append(main,rail(d,g));
   const anchor=sec.querySelector(':scope>.row');anchor?anchor.after(root):sec.prepend(root);

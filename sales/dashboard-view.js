@@ -8,6 +8,8 @@ const content=document.getElementById('content');if(!content)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const NS='http://www.w3.org/2000/svg',S=(tag,attrs)=>{const n=document.createElementNS(NS,tag);for(const k in attrs)n.setAttribute(k,String(attrs[k]));return n};
 const eur=c=>{const v=Number(c||0)/100;return v>=1e6?(v/1e6).toLocaleString('it-IT',{maximumFractionDigits:1})+'M':v>=1e4?Math.round(v/1e3).toLocaleString('it-IT')+'K':v.toLocaleString('it-IT',{maximumFractionDigits:0})};
+// Top of the «Pipeline per mese» axis: the larger of a month's value and the running total (never below 1).
+const trendMax=months=>{let acc=0,top=1;for(const x of months||[]){const v=Number(x&&x.value)||0;acc+=v;top=Math.max(top,v,acc)}return top};
 // Open/won/lost: one rule for every CRM view, RadixCrmForecast.isOpen (analytics-view.js).
 const isOpen=o=>window.RadixCrmForecast.isOpen(o);
 const DAY=864e5,today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
@@ -37,7 +39,7 @@ function model(d){const t0=today(),open=d.tasks.filter(t=>t.status!=='done');
   const board=[...owners.entries()].map(([id,v])=>({name:d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnato',v})).sort((a,b)=>b.v-a.v);
   return{t0,open,stages,opps,total,months,dueWeeks,closeWeeks,due,in30,risk,board}}
 
-window.RadixCrmDashboardView={model};
+window.RadixCrmDashboardView={model,trendMax};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'—';
 const panel=(title,cls,link)=>{const p=E('section',undefined,'pv-panel '+(cls||''));const h=E('div',undefined,'pv-head');h.append(E('h3',title));if(link){const a=E('a',link[0]);a.href=link[1];h.append(a)}p.append(h);return p};
 
@@ -58,14 +60,15 @@ function funnel(m){const p=panel('Opportunità per fase','pv-funnel',['Vedi dett
   const fig=E('div',undefined,'pv-funnel-fig');fig.append(svg);const tot=E('p',undefined,'pv-conv');tot.append(E('small','In '+(last?.title||'ultima fase').toLowerCase()),E('b',share+'%'));fig.append(tot);
   body.append(fig,list);p.append(body);return p}
 
-function trend(m){const p=panel('Pipeline per mese di chiusura prevista','pv-trend');const max=Math.max(1,...m.months.map(x=>x.value));
+// One scale for both lines: the axis goes up to the cumulative total, so «Cumulato» reads its real value.
+function trend(m){const p=panel('Pipeline per mese di chiusura prevista','pv-trend');const max=trendMax(m.months);
   const svg=S('svg',{viewBox:'0 0 600 240',class:'pv-chart',role:'img','aria-label':'Valore delle opportunità per mese di chiusura prevista'});
   for(let i=0;i<=4;i++){const y=20+i*45;svg.append(S('line',{x1:60,x2:590,y1:y,y2:y,class:'grid'}));const t=S('text',{x:52,y:y+4,class:'ax','text-anchor':'end'});t.textContent='€ '+eur(max*(4-i)/4);svg.append(t)}
-  let acc=0;const cum=m.months.map(x=>acc+=x.value),cmax=Math.max(1,acc);
+  let acc=0;const cum=m.months.map(x=>acc+=x.value);
   const X=i=>70+i*(510/5),Y=(v,mx)=>200-v/mx*180;
   const line=(vals,mx,cls)=>{const d=vals.map((v,i)=>(i?'L':'M')+X(i)+' '+Y(v,mx)).join(' ');if(cls==='l1')svg.append(S('path',{d:d+` L${X(5)} 200 L${X(0)} 200 Z`,class:'fill'}));svg.append(S('path',{d,class:cls}));vals.forEach((v,i)=>svg.append(S('circle',{cx:X(i),cy:Y(v,mx),r:4,class:'dot '+cls})))};
   m.months.forEach((x,i)=>{const t=S('text',{x:X(i),y:224,class:'ax','text-anchor':'middle'});t.textContent=x.label;svg.append(t)});
-  line(m.months.map(x=>x.value),max,'l2');line(cum.map(v=>v/cmax*max),max,'l1');
+  line(m.months.map(x=>x.value),max,'l2');line(cum,max,'l1');
   p.append(svg);const lg=E('p',undefined,'pv-legend');lg.append(E('span','Cumulato','l1'),E('span','Valore nel mese','l2'));p.append(lg);return p}
 
 function risks(d,m){const p=panel('Opportunità a rischio','pv-risk',['Vedi tutte ('+m.risk.length+')','#opportunities']);

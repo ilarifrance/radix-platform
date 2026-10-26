@@ -9,7 +9,7 @@
 const content=document.getElementById('content'),nav=document.getElementById('navigation');if(!content||!nav)return;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const DAY=864e5,H0=8,H1=22,ROW=56;
-const DN=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DN=globalThis.RadixI18n&&RadixI18n.en?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],MN=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const TYPES={meeting:['Riunione','teal'],call:['Call','blue'],task:['Attività','purple'],email:['Email','gold'],note:['Nota','orange'],close:['Chiusura prevista','red'],busy:['Occupato','gray']};
 const mid=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
 const monday=d=>{const x=mid(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x};
@@ -86,7 +86,7 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   const prev=E('button','‹');prev.type='button';prev.setAttribute('aria-label','Precedente');prev.onclick=()=>{const c=state.cursor;state.cursor=step?new Date(+c-step*DAY):new Date(c.getFullYear(),c.getMonth()-1,1);render()};
   const next=E('button','›');next.type='button';next.setAttribute('aria-label','Successivo');next.onclick=()=>{const c=state.cursor;state.cursor=step?new Date(+c+step*DAY+3600e3):new Date(c.getFullYear(),c.getMonth()+1,1);state.cursor=mid(state.cursor);render()};
   const today=E('button','Oggi');today.type='button';today.onclick=()=>{state.cursor=mid(new Date());render()};
-  const mon=monday(state.cursor),sun=new Date(+mon+6*DAY);const title=state.mode==='month'?MN[state.cursor.getMonth()]+' '+state.cursor.getFullYear():state.mode==='day'?state.cursor.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):mon.getDate()+(mon.getMonth()!==sun.getMonth()?' '+MN[mon.getMonth()]:'')+' – '+sun.getDate()+' '+MN[sun.getMonth()]+' '+sun.getFullYear();
+  const mon=monday(state.cursor),sun=new Date(+mon+6*DAY);const title=state.mode==='month'?MN[state.cursor.getMonth()]+' '+state.cursor.getFullYear():state.mode==='day'?state.cursor.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):mon.getDate()+(mon.getMonth()!==sun.getMonth()?' '+MN[mon.getMonth()].toLowerCase():'')+' – '+sun.getDate()+' '+MN[sun.getMonth()].toLowerCase()+' '+sun.getFullYear();
   const modes=E('div',undefined,'cal-modes');for(const [k,l] of [['day','Giorno'],['week','Settimana'],['month','Mese']]){const b=E('button',l);b.type='button';b.setAttribute('aria-pressed',String(state.mode===k));b.onclick=()=>{state.mode=k;render()};modes.append(b)}
   bar.append(prev,today,next,E('h3',title),modes);main.append(bar,state.mode==='month'?month(all):grid(all));
   const legend=E('div',undefined,'cal-legend');for(const [name,tone] of Object.values(TYPES))legend.append(E('span',name,'dot '+tone));main.append(legend);

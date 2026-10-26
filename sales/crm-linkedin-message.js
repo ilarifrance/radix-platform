@@ -99,7 +99,7 @@ function useTemplate(msg){
 async function copyOpen(){
  const e=entry(),c=core.counter(ui.area.value,e.purpose),text=ui.area.value.trim();
  if(!text){say('Il messaggio è vuoto.',true);return}
- if(/\[DA COMPLETARE/i.test(text)&&!root.confirm('Il messaggio contiene ancora parti [DA COMPLETARE]. Copiarlo comunque?'))return;
+ if(/\[(?:DA COMPLETARE|TO BE COMPLETED)/i.test(text)&&!root.confirm('Il messaggio contiene ancora parti [DA COMPLETARE]. Copiarlo comunque?'))return;
  if(c.over&&!root.confirm('Il messaggio supera '+c.limit+' caratteri: LinkedIn potrebbe non accettarlo. Copiarlo comunque?'))return;
  // The clipboard write starts first (the page still has focus), the tab opens in the same tick, then we wait for the copy.
  const copying=copy(text,ui.area);openTab(ui.url);const ok=await copying;

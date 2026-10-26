@@ -31,6 +31,13 @@
 /* Room under the page so the floating button never hides the last content. */
 body:has(>.cc-fab){padding-bottom:84px}
 @media (max-width:600px){body:has(>.cc-fab){padding-bottom:calc(72px + env(safe-area-inset-bottom))}}
+/* With the Regia (sales/regia-loader.js sets html[data-rx-regia]) its button sits in the same corner: the Copilota goes above it. */
+html[data-rx-regia] .cc-fab{bottom:72px}
+html[data-rx-regia] body:has(>.cc-fab){padding-bottom:132px}
+@media (max-width:600px){
+ html[data-rx-regia] .cc-fab{bottom:calc(64px + env(safe-area-inset-bottom))}
+ html[data-rx-regia] body:has(>.cc-fab){padding-bottom:calc(124px + env(safe-area-inset-bottom))}
+}
 .cc-chips button{display:inline-block;width:auto;margin:0}
 .cc-form textarea{height:58px;min-height:0;width:auto}
 .cc-form button{align-self:stretch;height:auto;margin:0}

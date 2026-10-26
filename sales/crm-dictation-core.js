@@ -399,7 +399,7 @@ function formValues(card,ctx){
   const v=r.value;
   if(sp.custom)out['custom:'+sp.custom]=v==null?'':String(v);
   else if(sp.type==='stage'){out.process_id=r.process;out.stage_id=v}
-  else if(sp.type==='money')out[sp.key]=v==null?'':(card.entity==='opportunities'?String(v):RF().centsToEuro(v));
+  else if(sp.type==='money')out[sp.key]=v==null?'':RF().centsToEuro(v);
   else if(sp.type==='datetime')out[sp.key]=toUtc(v)||'';
   else out[sp.key]=v==null?'':String(v);
  }
