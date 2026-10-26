@@ -87,3 +87,11 @@ test('Pipeline: a move takes the new stage default only when the deal had the ol
  assert.equal(nextProbability({stage_id:'q',probability:10},stages,stages[2]),null,'no default on the new stage');
  assert.equal(nextProbability({stage_id:'x',probability:10},stages,stages[1]),null,'unknown old stage');
 });
+
+test('English dictionary: the new strings are translated, the removed ones are gone',()=>{
+ const I=require('../lib/radix-i18n.js');require('../lib/radix-i18n-en.js');const EN=globalThis.RadixI18nEn,T=I.compile(EN,I.HAND);
+ for(const [it,en] of [['Mostra','Show'],['Dati aggiornati dal CRM','Data up to date from the CRM'],['pipeline attiva','active pipeline'],['ESTENSIONE CHROME + PROVIDER','CHROME EXTENSION + PROVIDER'],
+  ['Apri l’attività','Open the task'],['Importo non valido.','Invalid amount.'],['Registrata da Ilari France','Logged by Ilari France'],
+  ['Archivio non disponibile: rete. La ricerca può comunque essere preparata, ma non verificata come connessione.','Archive not available: rete. The search can still be prepared, but not verified as a connection.']])assert.equal(T.tr(it),en,it);
+ for(const k of Object.keys(EN))assert.ok(!/Vercel Preview|archivio Preview|workspace Preview|snapshot transazionale|I selettori includono|Importo in centesimi/.test(k),k);
+});
