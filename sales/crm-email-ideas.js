@@ -14,7 +14,8 @@ function prompt(a){const g=GOALS.find(x=>x[0]===a.goal)||GOALS[0],t=TONES.find(x
 // The three versions from the reply: JSON first, else the agent's own «Oggetto: / Corpo:» blocks.
 function parse(text){const s=String(text||''),clip=(v,n)=>String(v||'').trim().slice(0,n);let out=[];
  const m=/\{[\s\S]*\}/.exec(s);if(m){try{const d=JSON.parse(m[0]);out=(Array.isArray(d.emails)?d.emails:[]).map(e=>({angle:clip(e&&e.angle,60),subject:clip(e&&e.subject,200).replace(/\s+/g,' '),body:clip(e&&e.body,4000)}))}catch(e){}}
- if(!out.length)out=s.split(/^\s*\**Oggetto\**\s*:/mi).slice(1).map(b=>{const [subj,...rest]=b.split('\n');const body=rest.join('\n').replace(/^\s*\**Corpo\**\s*:\s*/i,'').replace(/\n+(?:#+|\**Versione)[^\n]*\s*$/i,'');return {angle:'',subject:clip(String(subj).replace(/\*+/g,''),200),body:clip(body,4000)}});
+ // (Subject / Body / Version: the same blocks when the reply is in English.)
+ if(!out.length)out=s.split(/^\s*\**(?:Oggetto|Subject)\**\s*:/mi).slice(1).map(b=>{const [subj,...rest]=b.split('\n');const body=rest.join('\n').replace(/^\s*\**(?:Corpo|Body)\**\s*:\s*/i,'').replace(/\n+(?:#+|\**(?:Versione|Version))[^\n]*\s*$/i,'');return {angle:'',subject:clip(String(subj).replace(/\*+/g,''),200),body:clip(body,4000)}});
  return out.filter(e=>e.subject&&e.body).slice(0,3)}
 // Placeholders the CRM does not know would be sent as they are: report them.
 function unknownPlaceholders(text){return [...new Set(String(text||'').match(/\{[a-z_]+\}/gi)||[])].filter(p=>!PLACEHOLDERS.includes(p.toLowerCase()))}

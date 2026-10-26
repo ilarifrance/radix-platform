@@ -4,6 +4,7 @@
  if(!S)return;
  const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
  const say=(id,value)=>{$(id).textContent=value};
+ const memo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
  const addOption=(target,value,label)=>{const opt=document.createElement('option');opt.value=value;opt.textContent=label;target.append(opt)};
  const workspace=()=>{const id=$('linkedin-workspace').value;if(!UUID.test(id))throw Error('Seleziona un workspace RADIX');return id};
  const request=async(path,params)=>{
@@ -19,7 +20,7 @@
  async function check(test){
   try{
    const ws=workspace();
-   say('linkedin-connection-status',test?'Verifica read-only dell’account Captain Data in corso...':'Verifica delle variabili API Preview in corso...');
+   say('linkedin-connection-status',test?'Verifica read-only dell’account Captain Data in corso...':'Verifica della configurazione in corso...');
    const result=await request(test?'/api/sales':'/api/sales?'+new URLSearchParams({entity:'lead_provider_status',workspace:ws}),test?{
      method:'POST',headers:{'Content-Type':'application/json','x-radix-sales':'1'},
      body:JSON.stringify({workspace:ws,entity:'lead_provider_status',action:'test',data:{}})
@@ -29,11 +30,11 @@
    if(test&&result.connection==='ok'){
     say('linkedin-account',result.linked?'Presente nel provider':'Non confermato');
     say('linkedin-connection-pill',result.linked?'LINKEDIN RILEVATO':'API VERIFICATA');
-    say('linkedin-connection-status',result.linked?'Captain Data restituisce una integrazione LinkedIn per l’utente configurato. La compatibilità Advanced Plus e l’azione Sales Navigator restano da collaudare.':'Chiave API valida, ma il provider non ha confermato l’integrazione LinkedIn su questo utente.');
+    say('linkedin-connection-status',result.linked?'Captain Data restituisce una integrazione LinkedIn per l’utente configurato.':'Chiave API valida, ma il provider non ha confermato l’integrazione LinkedIn su questo utente.');
    }else{
     say('linkedin-account','Non verificato');
     say('linkedin-connection-pill',result.configured?'API CONFIGURATA':'CONFIGURAZIONE ASSENTE');
-    say('linkedin-connection-status',result.configured?'Chiave configurata in Preview. Usa Verifica collegamento per controllare l’account; nessun job verrà avviato.':'Chiave e UID Captain Data non configurati nel server Preview. Il collegamento reale richiede queste variabili.');
+    say('linkedin-connection-status',result.configured?'Chiave configurata. Usa Verifica collegamento per controllare l’account; nessun job verrà avviato.':'Captain Data non è ancora configurato: chiedi all’amministratore di collegarlo.');
    }
   }catch(e){resetConnection();say('linkedin-connection-status','Verifica non riuscita: '+e.message)}
  }
@@ -54,14 +55,16 @@
    const list=info.rows||[];
    for(const ws of list)if(UUID.test(ws.id))addOption(target,ws.id,ws.name+' · '+ws.role);
    const selected=new URLSearchParams(location.search).get('workspace');
-   if(selected&&list.some(w=>w.id===selected))target.value=selected;
+   const kept=memo.get();if(selected&&list.some(w=>w.id===selected))target.value=selected;
+   else if(list.some(w=>w.id===kept))target.value=kept;
    else if(list.length===1)target.value=list[0].id;
+   memo.set(target.value);
    if(target.value){await loadProjects();await check(false)}
-  }catch(e){say('linkedin-connection-status','Archivio Preview non disponibile: '+e.message+'. La ricerca può comunque essere preparata, ma non verificata come connessione.')}
+  }catch(e){say('linkedin-connection-status','Archivio non disponibile: '+e.message+'. La ricerca può comunque essere preparata, ma non verificata come connessione.')}
  }
  $('linkedin-check').onclick=()=>check(false);
  $('linkedin-test').onclick=()=>check(true);
- $('linkedin-workspace').onchange=async()=>{resetConnection();if($('linkedin-workspace').value){await loadProjects();await check(false)}};
+ $('linkedin-workspace').onchange=async()=>{memo.set($('linkedin-workspace').value);resetConnection();if($('linkedin-workspace').value){await loadProjects();await check(false)}};
  $('linkedin-prepare').onclick=()=>{
   try{
    const url=S.validate($('linkedin-search-url').value),requested=S.quantity($('linkedin-quantity').value);

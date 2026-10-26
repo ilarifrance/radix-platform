@@ -101,7 +101,7 @@ const CTRL=/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const MAX_CENTS=9000000000000000,MAX_EMPLOYEES=10000000;
 // «1.250.000», «1250000,50», «1,250,000.50», «€ 1.000» → cents. Null when empty, NaN when not a number.
 // A separator followed by 1-2 digits at the end is the decimal one; any other is a thousands separator.
-function euroToCents(v){const s=String(v??'').replace(/[€\s ']/g,'').replace(/^EUR/i,'');if(!s)return null;if(!/^\d[\d.,]*$/.test(s)||/[.,]$/.test(s))return NaN;
+function euroToCents(v){const s=String(v??'').replace(/[€£\s ']/g,'').replace(/^(EUR|GBP)/i,'');if(!s)return null;if(!/^\d[\d.,]*$/.test(s)||/[.,]$/.test(s))return NaN;
  const m=/^(.*?)[.,](\d{1,2})$/.exec(s);const int=(m?m[1]:s),dec=m?m[2]:'';
  if(int&&!/^\d{1,3}([.,]?\d{3})*$/.test(int))return NaN;
  const c=Number(int.replace(/[.,]/g,'')||'0')*100+Number((dec+'00').slice(0,2));return Number.isSafeInteger(c)?c:NaN}
@@ -145,6 +145,10 @@ const label=(options,v)=>(options.find(([k])=>k===v)||[null,v])[1];
 const nameOf=r=>r&&(r.name||r.title)||'';
 const money=c=>'€ '+new Intl.NumberFormat('it-IT',{maximumFractionDigits:2}).format(Number(c)/100);
 const itDate=s=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));return m?m[3]+'/'+m[2]+'/'+m[1]:String(s)};
+/* «GB» → «Regno Unito» (in the page language); anything that is not a two-letter code stays as written. */
+function countryName(v,lang){const s=String(v??'').trim();if(!/^[a-z]{2}$/i.test(s))return s;
+ const l=lang||(typeof document!=='undefined'&&/^en/i.test(document.documentElement?.lang||'')?'en-GB':'it');
+ const c=s.toUpperCase();if(c==='ZZ')return s;try{return new Intl.DisplayNames([l],{type:'region',fallback:'none'}).of(c)||s}catch{return s}}
 /* Display text of one stored value; ctx: {companies, contacts, members} to show names, not ids. */
 function display(kind,key,row,ctx){
  const fd=fieldOf(kind,key),v=row?row[key]:null;if(!fd||v==null||v==='')return '';
@@ -158,6 +162,7 @@ function display(kind,key,row,ctx){
   case 'int':return Number.isFinite(Number(v))?new Intl.NumberFormat('it-IT').format(Number(v)):'';
   case 'date':return itDate(v);
  }
+ if(/(^|_)country$/.test(key))return countryName(v);
  return String(v).trim();
 }
 /* Non-empty fields grouped by section; `skip` lists keys already shown elsewhere. */
@@ -174,6 +179,6 @@ function classify(kind,key,text){
  for(const [l] of list)if(plain(l)===t)return l;
  for(const [l,re] of list)if(re&&re.test(t))return l;
  return null}
-const api={ACCOUNT_TYPES,RATINGS,INDUSTRIES,ROLES,classify,SECTIONS,FIELDS,ADDED,MAX_CENTS,MAX_EMPLOYEES,fieldOf,supported,vat,taxCode,sdi,pivaChecksum,cfChecksum,euroToCents,centsToEuro,parse,formValue,displayName,prune,display,details};
+const api={ACCOUNT_TYPES,RATINGS,INDUSTRIES,ROLES,classify,SECTIONS,FIELDS,ADDED,MAX_CENTS,MAX_EMPLOYEES,fieldOf,supported,vat,taxCode,sdi,pivaChecksum,cfChecksum,euroToCents,centsToEuro,parse,formValue,displayName,prune,display,details,countryName};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmFields=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

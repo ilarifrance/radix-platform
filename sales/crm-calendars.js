@@ -37,16 +37,21 @@ async function copy(text,input){
  try{await navigator.clipboard.writeText(text);return true}
  catch{try{input.focus();input.select();return document.execCommand('copy')}catch{return false}}
 }
+// «https://host/api/sales?calendar=••••••••••••»: the origin stays readable, the token never shows by default.
+function maskUrl(url){const s=String(url||''),i=s.indexOf('calendar=');return i<0?s:s.slice(0,i+9)+'\u2022'.repeat(12)}
 function fillFeed(box){
  box.replaceChildren(E('h3','Calendario da abbonare'),
   E('p','I tuoi appuntamenti, richiami e attività con scadenza del CRM dentro Outlook e Google Calendar. Si aggiornano da soli: le modifiche si fanno qui.','cal-empty'));
  if(feed.error){box.append(E('p',feed.error,'cal-feed-err'));const again=E('button','Riprova','cal-btn');again.type='button';again.onclick=()=>{feed.ws=null;render(box)};box.append(again);return}
  if(!feed.url){box.append(E('p','Preparo il tuo link…','cal-empty'));return}
- const row=E('div',undefined,'cal-feed-row');const input=E('input');input.type='text';input.readOnly=true;input.value=feed.url;input.setAttribute('aria-label','Link del calendario da abbonare');input.spellcheck=false;
+ // The link is the permission: masked by default, «Mostra» reveals it, «Copia link» copies the real one either way.
+ const row=E('div',undefined,'cal-feed-row');const input=E('input');input.type='text';input.readOnly=true;input.value=maskUrl(feed.url);input.setAttribute('aria-label','Link del calendario da abbonare');input.spellcheck=false;
  input.addEventListener('focus',()=>input.select());
+ const show=E('button','Mostra','cal-feed-show');show.type='button';show.setAttribute('aria-pressed','false');
+ show.onclick=()=>{const on=show.getAttribute('aria-pressed')!=='true';show.setAttribute('aria-pressed',String(on));show.textContent=on?'Nascondi':'Mostra';input.value=on?feed.url:maskUrl(feed.url)};
  const btn=E('button','Copia link','cal-feed-copy');btn.type='button';const note=E('p','','cal-feed-note');note.setAttribute('aria-live','polite');
- btn.onclick=async()=>{const ok=await copy(feed.url,input);note.textContent=ok?'Link copiato: incollalo in Outlook o in Google Calendar.':'Copia non riuscita: seleziona il link e copialo a mano.'};
- row.append(input,btn);box.append(row,note);
+ btn.onclick=async()=>{const shown=input.value;input.value=feed.url;const ok=await copy(feed.url,input);input.value=shown;note.textContent=ok?'Link copiato: incollalo in Outlook o in Google Calendar.':'Copia non riuscita: premi «Mostra», seleziona il link e copialo a mano.'};
+ row.append(input,show,btn);box.append(row,note);
  const steps=E('div',undefined,'cal-feed-steps');
  const o=E('section');o.append(E('h4','Outlook / Microsoft 365'));const ol=E('ol');
  for(const s of ['Apri il Calendario di Outlook (web o nuovo Outlook).','Aggiungi calendario › Da Internet (in alcune versioni «Sottoscrivi dal web»).','Incolla il link, dai un nome, ad esempio «RADIX CRM», e conferma.'])ol.append(E('li',s));o.append(ol);
@@ -219,5 +224,5 @@ function slotPicker({onPick}){
  draw();return box;
 }
 
-window.RadixCrmCalendars={feedBox,sourcesBox,ensureBusy,busyFor,busyEvents,slotPicker,workHours,setWorkHours,post};
+window.RadixCrmCalendars={feedBox,maskUrl,sourcesBox,ensureBusy,busyFor,busyEvents,slotPicker,workHours,setWorkHours,post};
 })();

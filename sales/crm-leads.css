@@ -102,7 +102,7 @@ dialog.ld-sheet::backdrop{background:rgba(20,16,40,.4)}
  .ld-table tr{position:relative;margin:10px 12px;padding:12px;border:1px solid var(--ld-line);border-radius:12px}
  .ld-table td{border:0;padding:2px 0;max-width:none!important;white-space:normal!important}
  .ld-table td[data-label]{display:flex;gap:8px;font-size:13px}
- .ld-table td[data-label]::before{content:attr(data-label);flex:0 0 96px;color:var(--ld-subtle)}
+ .ld-table td[data-label]::before{content:var(--rx-label,attr(data-label));flex:0 0 96px;color:var(--ld-subtle)}
  .ld-name{max-width:none;padding-bottom:6px!important}
  .ld-title{white-space:normal;font-size:15px}
  .ld-st{margin-top:6px}

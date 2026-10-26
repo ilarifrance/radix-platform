@@ -121,14 +121,14 @@ textarea{resize:vertical}
  .vd-table,.vd-table tbody,.vd-table tr,.vd-table td{display:block;width:100%}
  .vd-table tr{border:1px solid var(--crm-line);border-radius:var(--vd-r);margin-bottom:10px;padding:8px 12px}
  .vd-table td{border:0;padding:3px 0;display:flex;justify-content:space-between;gap:12px;text-align:right}
- .vd-table td::before{content:attr(data-label);color:var(--crm-muted);font-size:12px;text-align:left}
+ .vd-table td::before{content:var(--rx-label,attr(data-label));color:var(--crm-muted);font-size:12px;text-align:left}
  .vd-table td[data-label="Cliente"],.vd-table td[data-label="Nome"]{display:block;text-align:left}
  .vd-table td[data-label="Cliente"]::before,.vd-table td[data-label="Nome"]::before{content:none}
  .vd-table .num{text-align:right}
  .vd-lines,.vd-lines tbody{display:block}
  .vd-lines tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 8px;border:1px solid var(--crm-line);border-radius:var(--vd-r);padding:10px;margin-bottom:10px;position:relative}
  .vd-lines td{display:flex;flex-direction:column;gap:2px;border:0;padding:0!important;text-align:left!important}
- .vd-lines td::before{content:attr(data-label);font-size:11px;color:var(--crm-muted)}
+ .vd-lines td::before{content:var(--rx-label,attr(data-label));font-size:11px;color:var(--crm-muted)}
  .vd-lines td[data-label="Prodotto"],.vd-lines td[data-label="Descrizione"]{grid-column:1/-1}
  .vd-lines td[data-label="Prodotto"]{padding-right:36px!important}
  .vd-lines td:last-child{position:absolute;top:6px;right:6px}

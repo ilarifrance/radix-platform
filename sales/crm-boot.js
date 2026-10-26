@@ -22,7 +22,7 @@
   var first = ms.textContent;
   root.classList.add('crm-booting');
   function check() {
-    var loading = st.textContent === 'Caricamento dal server…';
+    var loading = (globalThis.RadixI18n ? globalThis.RadixI18n.source(st) : st.textContent) === 'Caricamento dal server…';
     if ((ms.textContent !== first && !loading) || (er && !er.hidden)) { root.classList.remove('crm-booting'); obs.disconnect(); }
   }
   var obs = new MutationObserver(check);
