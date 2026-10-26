@@ -380,7 +380,9 @@ async function attachSlides(item){const slides=media.parseSlides(item.slides||''
  try{if(document.fonts){await Promise.all(['400 40px Inter','700 40px Inter','800 40px Montserrat'].map(f=>document.fonts.load(f)));await document.fonts.ready}}catch(e){}
  return attachCanvases(item,slides.map((x,i)=>media.renderSlide(x,i,slides.length,null,project)))}
 async function renderAttached(item,box){try{const d=await api('GET','projectId='+encodeURIComponent(projectId)+'&contentId='+encodeURIComponent(item.id));const p=document.createElement('p');p.className='muted';
-  p.textContent=d.items.length?''+d.items.length+(d.items.length===1?' immagine allegata':' immagini allegate')+': partono con il post su Buffer.':'Nessuna immagine allegata al post.';box.append(p)}catch(e){}}
+  p.textContent=d.items.length?''+d.items.length+(d.items.length===1?' immagine allegata':' immagini allegate')+': partono con il post su Buffer.':'Nessuna immagine allegata al post.';box.append(p);
+  if(d.items.length){const row=document.createElement('div');row.className='attached-thumbs';row.style.cssText='display:flex;flex-wrap:wrap;gap:10px;margin-top:8px';
+   for(const x of d.items){const a=document.createElement('a');a.href=x.url;a.target='_blank';a.rel='noopener';const im=Object.assign(document.createElement('img'),{src:x.url,alt:'Immagine allegata al post',loading:'lazy'});im.style.cssText='max-width:220px;max-height:220px;border-radius:8px;border:1px solid #d0d5dd;display:block';a.append(im);row.append(a)}box.append(row)}}catch(e){}}
 // «Scarica il post»: one .zip with the text (hashtag, CTA, canale, data), every graphic as PNG, the Studio Foto photo
 // through the same-origin proxy and, for a video, only its link. Drawn locally: no AI, no paid generation.
 const pngBytes=c=>new Promise((ok,ko)=>c.toBlob(b=>b?b.arrayBuffer().then(x=>ok(new Uint8Array(x)),ko):ko(Error('PNG non creato')),'image/png'));
