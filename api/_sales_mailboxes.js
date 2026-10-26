@@ -16,6 +16,7 @@ const mcrypto=require('./_mailbox_crypto');
 const core=require('./_sales_queue_core');
 const campaigns=require('../sales/crm-campaigns.js');
 const unsubscribe=require('./_sales_unsubscribe');
+const msoauth=require('./_ms_oauth');
 const clicks=require('./_sales_clicks');
 // «Prospezione B2B» (sales/crm-prospecting-core.js) and the opt-out / reply signals (api/_sales_optout.js).
 const prospecting=require('../sales/crm-prospecting-core.js');
@@ -35,7 +36,7 @@ const MAX_CONTACTS=5000;
 // Timestamps as ISO text in SQL: the CRM store normalizes only known column names.
 const iso=x=>`to_char((${x}) AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS"Z"')`;
 // Columns a browser may see: never the encrypted password fields.
-const PUBLIC='id,label,from_name,from_email,smtp_host,smtp_port,smtp_secure,smtp_user,daily_limit,warmup_start::text AS warmup_start,status,last_error,created_at,updated_at,(password_ciphertext IS NOT NULL) AS password_saved';
+const PUBLIC='id,label,from_name,from_email,smtp_host,smtp_port,smtp_secure,smtp_user,daily_limit,warmup_start::text AS warmup_start,status,last_error,created_at,updated_at,provider,(password_ciphertext IS NOT NULL OR oauth_ciphertext IS NOT NULL) AS password_saved';
 const MAILBOX_FIELDS=['label','from_name','from_email','smtp_host','smtp_port','smtp_secure','smtp_user','password','daily_limit'];
 
 // Single-line text; multiline (the email text) keeps line breaks and tabs.
@@ -73,6 +74,10 @@ function command(body){
   if(action==='add'){keys(...MAILBOX_FIELDS);return {workspace,entity,action,data:{id:randomUUID(),...mailboxData(d,true)}}}
   if(action==='update'){keys('id',...MAILBOX_FIELDS);if(!uuid(d.id))fail(400,'Casella non valida.');const rest={...d};delete rest.id;const data=mailboxData(rest,false);if(!Object.keys(data).length)fail(400,'Nessuna modifica.');return {workspace,entity,action,data:{id:d.id,...data}}}
   if(['pause','resume','delete'].includes(action)){keys('id');if(!uuid(d.id))fail(400,'Casella non valida.');return {workspace,entity,action,data:{id:d.id}}}
+  if(action==='oauth_start'){keys('label','from_name','daily_limit');const out={label:text(d.label,60,'Nome della casella'),daily_limit:d.daily_limit===undefined?core.MAX_DAILY:d.daily_limit};
+   if(d.from_name!==undefined&&d.from_name!=='')out.from_name=text(d.from_name,80,'Nome mittente');
+   if(!Number.isInteger(out.daily_limit)||out.daily_limit<1||out.daily_limit>core.MAX_DAILY)fail(400,'Limite al giorno: da 1 a '+core.MAX_DAILY+'.');
+   return {workspace,entity,action,data:out}}
   if(action==='test'){keys('id','confirm');if(!uuid(d.id))fail(400,'Casella non valida.');if(d.confirm!==true)fail(400,'Prova non confermata: conferma l’invio nella finestra del CRM.');return {workspace,entity,action,data:{id:d.id}}}
   fail(400,'Azione non valida.');
  }
@@ -134,8 +139,9 @@ async function listMailboxes(sql,workspace,now){
 }
 // Only these keys leave the server.
 function publicMailbox(r,load={},today){
- const out={};for(const k of ['id','label','from_name','from_email','smtp_host','smtp_port','smtp_secure','smtp_user','daily_limit','warmup_start','status','last_error','created_at','updated_at'])out[k]=r[k]===undefined?null:r[k];
- out.password_saved=!!(r.password_saved||r.password_ciphertext);
+ const out={};for(const k of ['id','label','from_name','from_email','smtp_host','smtp_port','smtp_secure','smtp_user','daily_limit','warmup_start','status','last_error','created_at','updated_at','provider'])out[k]=r[k]===undefined?null:r[k];
+ out.password_saved=!!(r.password_saved||r.password_ciphertext||r.oauth_ciphertext);
+ if(out.provider==='microsoft'){out.smtp_host='Microsoft 365';out.smtp_port=null}
  if(today){out.today_limit=core.rampLimit(r.daily_limit,r.warmup_start,today);out.today_planned=(load[r.id]||{})[today]||0}
  return out;
 }
@@ -243,7 +249,7 @@ const defaultTransport=opts=>require('nodemailer').createTransport(opts);
 function transportOptions(m,pass){return {host:m.smtp_host,port:m.smtp_port,secure:!!m.smtp_secure,auth:{user:m.smtp_user,pass},connectionTimeout:15000,greetingTimeout:10000,socketTimeout:20000}}
 const fromOf=m=>m.from_name?{name:m.from_name,address:m.from_email}:m.from_email;
 
-async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTransport}){
+async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTransport,req,fetchImpl}){
  const d=c.data,w=c.workspace;
  const one=async()=>{const r=await sql('SELECT '+PUBLIC+' FROM sales_mailboxes WHERE workspace_id=$1 AND id=$2',[w,d.id]);if(!r.length)fail(404,'Casella non trovata.');return r[0]};
  const audit=(id,action,detail)=>sql('INSERT INTO sales_audit(workspace_id,actor_id,entity,entity_id,action,detail) VALUES($1,$2,$3,$4,$5,$6::jsonb)',[w,user,'mailboxes',id,action,JSON.stringify(detail||{})]);
@@ -256,6 +262,17 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
   if(!r.length)fail(409,'Massimo '+core.MAX_MAILBOXES+' caselle per workspace: eliminane una prima di aggiungerne un’altra.');
   await audit(d.id,'create',{from_email:d.from_email,smtp_host:d.smtp_host});
   return publicMailbox(await one());
+ }
+ if(c.action==='oauth_start'){
+  if(!msoauth.configured(env))fail(503,'Accesso Microsoft non ancora configurato sul server: mancano MS_CLIENT_ID e MS_CLIENT_SECRET nelle variabili d’ambiente.');
+  if(!mcrypto.configured(env))throw new mcrypto.MailboxKeyError();
+  const n=(await sql('SELECT count(*)::int AS n FROM sales_mailboxes WHERE workspace_id=$1',[w]))[0].n;
+  if(n>=core.MAX_MAILBOXES)fail(409,'Massimo '+core.MAX_MAILBOXES+' caselle per workspace: eliminane una prima di aggiungerne un’altra.');
+  const host=String((req.headers&&(req.headers['x-forwarded-host']||req.headers.host))||'').split(',')[0].trim();
+  if(!/^[a-z0-9.-]+(:\d+)?$/i.test(host))fail(400,'Origine non valida.');
+  const redirectUri=msoauth.redirectOf(env,(/^localhost|^127\./.test(host)?'http://':'https://')+host);
+  const state=msoauth.signState(env.JWT_SECRET,{w,u:user,l:d.label,f:d.from_name||null,d:d.daily_limit,r:redirectUri},now);
+  return {oauth_url:msoauth.authorizeUrl(env,{redirectUri,state})};
  }
  const before=await one();
  if(c.action==='update'){
@@ -281,6 +298,21 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
   const me=(await sql('SELECT email FROM users WHERE id=$1',[user]))[0];
   if(!me||!core.EMAIL.test(String(me.email||'')))fail(400,'Il tuo account non ha un indirizzo email valido.');
   const full=(await sql('SELECT * FROM sales_mailboxes WHERE workspace_id=$1 AND id=$2',[w,d.id]))[0];
+  if(full.provider==='microsoft'){
+   try{
+    let rt;try{rt=msoauth.openToken(full,env)}catch(e){fail(409,e.message)}
+    const t=await msoauth.refresh(env,rt,fetchImpl);
+    if(t.refresh_token&&t.refresh_token!==rt){const e=msoauth.sealToken(t.refresh_token,w,d.id,env);await sql('UPDATE sales_mailboxes SET oauth_ciphertext=$3,oauth_iv=$4,oauth_tag=$5 WHERE workspace_id=$1 AND id=$2',[w,d.id,e.oauth_ciphertext,e.oauth_iv,e.oauth_tag])}
+    await msoauth.sendMail(t.access_token,{to:me.email,subject:'Prova invio da RADIX · '+full.label,text:'Questa è una email di prova inviata da RADIX con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'},fetchImpl);
+   }catch(e){
+    if(e instanceof QueueError)throw e;
+    const error=core.cleanError(e);
+    await sql("UPDATE sales_mailboxes SET last_error=$3,updated_at=now() WHERE workspace_id=$1 AND id=$2",[w,d.id,'Prova non riuscita: '+error]);
+    return {ok:false,to:me.email,error,mailbox:publicMailbox(await one())};
+   }
+   await sql("UPDATE sales_mailboxes SET last_error=NULL,auth_failures=0,status=CASE WHEN status='error' THEN 'active' ELSE status END,updated_at=now() WHERE workspace_id=$1 AND id=$2",[w,d.id]);
+   return {ok:true,to:me.email,mailbox:publicMailbox(await one())};
+  }
   let pass;try{pass=mcrypto.decrypt(full,env)}catch(e){fail(409,e.message)}
   try{
    await createTransport(transportOptions(full,pass)).sendMail({from:fromOf(full),to:me.email,subject:'Prova invio da RADIX · '+full.label,text:'Questa è una email di prova inviata da RADIX con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'});
@@ -300,14 +332,14 @@ async function handle(c,opts){
  try{return await run(c,opts)}
  catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: servono le migrazioni sales 016 e 017 (da approvare).');throw e}
 }
-async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport}){
+async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport,fetchImpl}){
  if(req.method==='GET'){
-  if(c.entity==='mailboxes'){const rows=await listMailboxes(sql,c.workspace,now);return {rows,max:core.MAX_MAILBOXES,encryption:mcrypto.configured(env),can_manage:roleAdmin(role)}}
+  if(c.entity==='mailboxes'){const rows=await listMailboxes(sql,c.workspace,now);return {rows,max:core.MAX_MAILBOXES,encryption:mcrypto.configured(env),microsoft:msoauth.configured(env),can_manage:roleAdmin(role)}}
   return {rows:await status(sql,c.workspace,user)};
  }
  if(c.entity==='mailboxes'){
   if(!roleAdmin(role))fail(403,'Solo owner e admin gestiscono le caselle email.');
-  return {rows:[await mailboxCommand(sql,c,user,{env,now,createTransport})]};
+  return {rows:[await mailboxCommand(sql,c,user,{env,now,createTransport,req,fetchImpl})]};
  }
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
  if(c.action==='cancel'){const r=await sql("UPDATE sales_send_queue q SET status='cancelled',error='Annullata dall’utente.',updated_at=now() WHERE workspace_id=$1 AND campaign=$2 AND status='queued' AND "+vis.contact('q.contact_id','$1','$3')+" RETURNING id",[c.workspace,c.data.campaign,user]);return {rows:[{campaign:c.data.campaign,cancelled:r.length}]}}

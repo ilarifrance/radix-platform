@@ -30,7 +30,9 @@ function panel(){
  async function refresh(){
   let d;try{d=await app().api('mailboxes',{})}catch(e){list.replaceChildren(E('p',e.message,'notice'));return}
   render(d);
+  if(!shown){shown=true;const sp=new URLSearchParams(location.search),r=sp.get('ms');if(r){box.open=true;if(r==='ok')app().notice('Casella Microsoft 365 collegata. Usa «Prova invio» per verificarla.');else app().error(sp.get('msg')||'Collegamento Microsoft non riuscito.')}}
  }
+ let shown=false;
  function render(d){
   list.replaceChildren();form.replaceChildren();
   if(!d.rows.length)list.append(E('p','Nessuna casella collegata.'+(d.can_manage?' Aggiungine una qui sotto.':' Chiedi a un owner o admin del workspace di collegarne una.'),'muted'));
@@ -38,12 +40,12 @@ function panel(){
   if(!d.can_manage)return;
   if(!d.encryption)form.append(E('p','Il server non ha ancora la chiave di cifratura delle password (MAILBOX_ENC_KEY): finché non viene impostata, le caselle non si possono salvare.','notice'));
   if(d.rows.length>=d.max){form.append(E('p','Hai collegato '+d.max+' caselle, il massimo per workspace.','muted'));return}
-  form.append(addForm());
+  form.append(addForm(d));
  }
  function card(m,manage){
   const c=E('div',undefined,'crm-mb-card');c.dataset.status=m.status;
   const head=E('div',undefined,'crm-mb-head');head.append(E('strong',m.label),E('span',STATUS[m.status]||m.status,'crm-mb-badge'));
-  c.append(head,E('p',(m.from_name?m.from_name+' · ':'')+m.from_email+' · '+m.smtp_host+':'+m.smtp_port,'muted'));
+  c.append(head,E('p',(m.from_name?m.from_name+' · ':'')+m.from_email+' · '+(m.provider==='microsoft'?'Microsoft 365':m.smtp_host+':'+m.smtp_port),'muted'));
   c.append(E('p','Oggi: '+m.today_planned+' di '+m.today_limit+' email'+(m.today_limit<m.daily_limit?' (riscaldamento, poi '+m.daily_limit+' al giorno)':' al giorno')+' · password salvata: '+(m.password_saved?'sì':'no'),'crm-mb-meta'));
   if(m.last_error)c.append(E('p','Ultimo errore: '+m.last_error,'crm-mb-error'));
   if(!manage)return c;
@@ -51,7 +53,7 @@ function panel(){
   acts.append(B('Prova invio',()=>testSend(m)));
   if(m.status==='active')acts.append(B('Metti in pausa',()=>act(m,'pause','Mettere in pausa «'+m.label+'»? Le email in coda per questa casella aspettano finché non la riattivi.')));
   else acts.append(B('Riattiva',()=>act(m,'resume','Riattivare «'+m.label+'»? Le email in coda ripartono dal prossimo giro (ogni 10 minuti).')));
-  acts.append(B('Cambia password',()=>{if(c.querySelector('.crm-mb-pass'))return;const f=E('div',undefined,'actions crm-mb-pass'),p=input('password',{maxLength:200,autocomplete:'new-password',placeholder:'Nuova password per le app'});p.setAttribute('aria-label','Nuova password per le app di '+m.label);
+  if(m.provider!=='microsoft')acts.append(B('Cambia password',()=>{if(c.querySelector('.crm-mb-pass'))return;const f=E('div',undefined,'actions crm-mb-pass'),p=input('password',{maxLength:200,autocomplete:'new-password',placeholder:'Nuova password per le app'});p.setAttribute('aria-label','Nuova password per le app di '+m.label);
    f.append(p,B('Salva password',async()=>{if(p.value.trim()&&await save('update',{id:m.id,password:p.value},'Password di «'+m.label+'» aggiornata.'))p.value=''},'primary'),B('Annulla',()=>f.remove()));c.append(f);p.focus()}));
   acts.append(B('Elimina',()=>act(m,'delete','Eliminare la casella «'+m.label+'»? Le email in coda per questa casella verranno annullate (quelle già inviate restano nello storico).'),'danger'));
   c.append(acts);return c;
@@ -68,9 +70,9 @@ function panel(){
   refresh();
  }
  async function save(action,data,done){if(await run('Salvo la casella…',()=>post('mailboxes',action,data))){app().notice(done);refresh();return true}return false}
- function addForm(){
+ function addForm(info){
   const wrap=E('div',undefined,'crm-mb-add');wrap.append(E('h4','Aggiungi una casella'));
-  const kind=E('select');for(const [v,t] of [['gmail','Gmail o Google Workspace'],['smtp','Altro server SMTP']]){const o=E('option',t);o.value=v;kind.append(o)}
+  const kind=E('select');for(const [v,t] of [['gmail','Gmail o Google Workspace'],['microsoft','Microsoft 365 / Outlook (accesso con OAuth)'],['smtp','Altro server SMTP']]){const o=E('option',t);o.value=v;kind.append(o)}
   const label=input('text',{maxLength:60,placeholder:'Ad esempio: Commerciale Anna'}),fromName=input('text',{maxLength:80,placeholder:'Anna Rossi · RADIX'}),from=input('email',{maxLength:254,placeholder:'anna@azienda.it',autocomplete:'off'});
   const host=input('text',{maxLength:253,value:'smtp.gmail.com'}),port=E('select');for(const p of [465,587,25,2525]){const o=E('option',String(p));o.value=String(p);port.append(o)}
   const user=input('text',{maxLength:254,placeholder:'di solito uguale all’email mittente',autocomplete:'off'}),pass=input('password',{maxLength:200,autocomplete:'new-password',placeholder:'16 lettere, ad esempio abcd efgh ijkl mnop'});
@@ -79,14 +81,22 @@ function panel(){
   help.append(E('strong','Come ottenere la password per le app di Gmail'));
   const ol=E('ol');for(const s of ['Attiva la verifica in due passaggi sul tuo account Google.','Apri myaccount.google.com › Sicurezza › Password per le app.','Crea una password con nome «RADIX» e copia le 16 lettere.','Incollala qui: non usare la password normale di Gmail.'])ol.append(E('li',s));help.append(ol);
   const smtp=E('div',undefined,'crm-mb-grid');smtp.append(field('Server SMTP',host),field('Porta',port,'465 = connessione sicura (SSL); 587 = STARTTLS'),field('Utente SMTP',user));
-  const sync=()=>{const g=kind.value==='gmail';help.hidden=!g;smtp.hidden=g;if(g){host.value='smtp.gmail.com';port.value='465'}};kind.addEventListener('change',sync);
-  const grid=E('div',undefined,'crm-mb-grid');grid.append(field('Tipo',kind),field('Nome della casella',label),field('Nome mittente',fromName,'Facoltativo: come appare a chi riceve'),field('Email mittente',from),field('Password per le app',pass,'Viene cifrata e non sarà più mostrata.'),field('Limite al giorno',limit,'Da 1 a 50.'));
+  const msHelp=E('div',undefined,'crm-mb-help');msHelp.append(E('strong','Collegamento con Microsoft 365'),E('p','Premi «Collega con Microsoft 365»: accedi con l’account della casella e consenti a RADIX di inviare email a tuo nome. Non serve password per le app e funziona anche se l’azienda ha disattivato l’SMTP. L’indirizzo mittente è quello dell’account che accedi.'));
+  if(!info.microsoft)msHelp.append(E('p','Non ancora attivo sul server: mancano MS_CLIENT_ID e MS_CLIENT_SECRET nelle variabili d’ambiente.','notice'));
+  const sync=()=>{const g=kind.value==='gmail',ms=kind.value==='microsoft';help.hidden=!g;msHelp.hidden=!ms;smtp.hidden=g||ms;fromF.hidden=ms;passF.hidden=ms;addB.hidden=ms;msB.hidden=!ms;if(g){host.value='smtp.gmail.com';port.value='465'}};kind.addEventListener('change',sync);
+  const fromF=field('Email mittente',from),passF=field('Password per le app',pass,'Viene cifrata e non sarà più mostrata.');
+  const grid=E('div',undefined,'crm-mb-grid');grid.append(field('Tipo',kind),field('Nome della casella',label),field('Nome mittente',fromName,'Facoltativo: come appare a chi riceve'),fromF,passF,field('Limite al giorno',limit,'Da 1 a 50.'));
   const addB=B('Salva casella',async()=>{
    const data={label:label.value,from_email:from.value.trim(),smtp_host:host.value.trim(),smtp_port:Number(port.value),smtp_secure:Number(port.value)===465,smtp_user:(kind.value==='gmail'||!user.value.trim()?from.value:user.value).trim(),password:pass.value,daily_limit:Number(limit.value)};
    if(fromName.value.trim())data.from_name=fromName.value;
    if(await save('add',data,'Casella «'+label.value.trim()+'» salvata. Usa «Prova invio» per verificarla.'))pass.value='';
   },'primary');
-  wrap.append(grid,smtp,help,E('div',undefined,'actions'));wrap.lastChild.append(addB);sync();
+  const msB=B('Collega con Microsoft 365',async()=>{
+   if(!label.value.trim()){app().error('Scrivi il nome della casella.');return}
+   let r;if(!await run('Apro Microsoft…',async()=>{const data={label:label.value,daily_limit:Number(limit.value)};if(fromName.value.trim())data.from_name=fromName.value;r=(await post('mailboxes','oauth_start',data)).rows[0]}))return;
+   if(r&&r.oauth_url)location.href=r.oauth_url;
+  },'primary');
+  wrap.append(grid,smtp,help,msHelp,E('div',undefined,'actions'));wrap.lastChild.append(addB,msB);sync();
   return wrap;
  }
  return box;
