@@ -146,6 +146,15 @@ async function hasMx(domain,{env,fetch:f}){
   return Array.isArray(b.Answer)&&b.Answer.some(a=>a&&a.type===15&&!/^0\s+\.$/.test(String(a.data||'').trim()))}
  catch{return null}
 }
+// The company's own domain from its name: a candidate counts only with mail (MX) and a home page that names the company.
+async function guessDomain(company,{getPage,env,fetch:f}){
+ const cands=F.domainCandidates(company);if(!cands.length)return null;
+ const mx=await Promise.all(cands.map(d=>hasMx(d,{env,fetch:f})));
+ const live=cands.filter((d,i)=>mx[i]===true).slice(0,3);
+ const pages=await Promise.all(live.map(async d=>{for(const h of ['https://www.'+d+'/','https://'+d+'/']){const html=await getPage(h,d).catch(()=>null);if(html)return html}return null}));
+ const i=pages.findIndex(html=>html&&F.pageMentions(html,company));
+ return i>=0?live[i]:null;
+}
 async function readSite(domain,website,{getPage,deadline}){
  const hosts=[...new Set([website&&F.domainOf(website)===domain?(()=>{try{return new URL(/^[a-z]+:\/\//i.test(website)?website:'https://'+website).hostname.toLowerCase()}catch{return null}})():null,'www.'+domain,domain].filter(Boolean))];
  const found=new Set();
@@ -231,6 +240,18 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
   const rows=await load(c.data.contacts),pick=F.candidates(rows),deadline=Date.now()+budgetMs;
   // Every company site of the batch is read in parallel (each page 4 s at most), then each contact is looked up.
   const sites=new Map(),mx=new Map(),domainOf=ct=>F.domainOf(ct.website)||F.domainOf(ct.company_email);
+  // A contact without a website (a LinkedIn lead): the domain is guessed from the company name and kept on the company.
+  const guesses=new Map();
+  for(const ct of pick.contacts){
+   if(domainOf(ct)||!ct.company||!ct.company_id)continue;
+   if(!guesses.has(ct.company_id))guesses.set(ct.company_id,guessDomain(ct.company,{getPage,env,fetch:f}));
+  }
+  for(const ct of pick.contacts){
+   if(domainOf(ct)||!guesses.has(ct.company_id))continue;
+   const d=await guesses.get(ct.company_id);if(!d)continue;
+   ct.website='https://'+d;
+   if(!companiesDone.has('site:'+ct.company_id)){companiesDone.add('site:'+ct.company_id);try{await save('companies',{id:ct.company_id,version:ct.company_version,website:ct.website});ct.company_version++;out.domains=(out.domains||0)+1}catch{}}
+  }
   for(const ct of pick.contacts){const d=domainOf(ct);if(d&&!sites.has(d))sites.set(d,readSite(d,ct.website,{getPage,deadline}))}
   for(const ct of pick.contacts){
    const domain=domainOf(ct);
