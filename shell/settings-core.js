@@ -42,6 +42,9 @@ const SERVICES=Object.freeze([
  {id:'email',label:'Gmail',does:'Invia le email degli agenti commerciali dall’indirizzo RADIX.'},
  {id:'vercel-sites',label:'Vercel siti',does:'Mette online i siti creati nello Studio Sito.'},
  {id:'captain-data',label:'Captain Data',does:'Verifica e arricchisce i lead in Lead Intelligence.'},
+ {id:'hunter',label:'Hunter',does:'Trova l’email delle persone nel CRM («Trova email»), primo servizio a pagamento.'},
+ {id:'apollo',label:'Apollo.io',does:'Trova l’email delle persone nel CRM, dopo Hunter.'},
+ {id:'dropcontact',label:'Dropcontact',does:'Trova l’email delle persone nel CRM, ultimo della catena, a lotti.'},
  {id:'blob',label:'Vercel Blob',does:'Tiene le immagini pubbliche che Buffer deve poter leggere.'},
  {id:'database',label:'Database RADIX',does:'Conserva CRM, progetti, memoria del team e approvazioni.'}
 ]);
