@@ -147,12 +147,12 @@ async function hasMx(domain,{env,fetch:f}){
  catch{return null}
 }
 // The company's own domain from its name: a candidate counts only with mail (MX) and a home page that names the company.
-async function guessDomain(company,{getPage,env,fetch:f}){
+async function guessDomain(company,{getPage,env,fetch:f,city}){
  const cands=F.domainCandidates(company);if(!cands.length)return null;
  const mx=await Promise.all(cands.map(d=>hasMx(d,{env,fetch:f})));
  const live=cands.filter((d,i)=>mx[i]===true).slice(0,3);
  const pages=await Promise.all(live.map(async d=>{for(const h of ['https://www.'+d+'/','https://'+d+'/']){const html=await getPage(h,d).catch(()=>null);if(html)return html}return null}));
- const i=pages.findIndex(html=>html&&F.pageMentions(html,company));
+ const i=pages.findIndex((html,k)=>html&&F.pageMentions(html,company,{city,domain:live[k]}));
  return i>=0?live[i]:null;
 }
 async function readSite(domain,website,{getPage,deadline}){
@@ -192,7 +192,7 @@ function query(q){
  return {workspace:q.workspace,entity:'email_finder'};
 }
 const CONTACTS=`SELECT t.id,t.version,t.name,to_jsonb(t)->>'first_name' AS first_name,to_jsonb(t)->>'last_name' AS last_name,t.email,t.notes,t.linkedin_url,
- ${optout.OPTED_OUT('t')} AS opted_out,t.company_id,co.version AS company_version,co.name AS company,co.website,co.email AS company_email
+ ${optout.OPTED_OUT('t')} AS opted_out,t.company_id,co.version AS company_version,co.name AS company,co.city AS company_city,co.website,co.email AS company_email
  FROM sales_contacts t LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id
  WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`;
 async function orderOf(sql,w){
@@ -244,7 +244,7 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
   const guesses=new Map();
   for(const ct of pick.contacts){
    if(domainOf(ct)||!ct.company||!ct.company_id)continue;
-   if(!guesses.has(ct.company_id))guesses.set(ct.company_id,guessDomain(ct.company,{getPage,env,fetch:f}));
+   if(!guesses.has(ct.company_id))guesses.set(ct.company_id,Promise.race([guessDomain(ct.company,{getPage,env,fetch:f,city:ct.company_city}),new Promise(r=>setTimeout(()=>r(null),Math.max(0,deadline-Date.now())))]).catch(()=>null));
   }
   for(const ct of pick.contacts){
    if(domainOf(ct)||!guesses.has(ct.company_id))continue;
