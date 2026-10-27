@@ -180,7 +180,31 @@ async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,
  return out;
 }
 
-const core={RESERVED,KEY,PROVIDERS,PAID,DEFAULT_ORDER,byId,settingsError,orderOf,domainOf,extractEmails,nameParts,PATTERNS,personalMatch,detectPattern,applyPattern,privateIp,candidates,chain,firstConfirmText,paidConfirmText,runFinder};
+// Domains a company could own, from its name only: «Acrotecna S.r.l.» → acrotecna.it, acrotecna.com. The legal form
+// and filler words are dropped; at most 6 candidates, every one verified later (MX + the name on the home page).
+const LEGAL=new Set(['srl','s r l','srls','spa','s p a','snc','sas','sapa','scarl','soc','societa','coop','cooperativa','ditta','di','e','&','and','group','gruppo','italia','italy','the','il','la','lo','dei','del','della','by','ltd','llc','gmbh']);
+const fold=v=>String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function nameTokens(name){
+ return fold(name).replace(/\b(s\.?\s?r\.?\s?l\.?s?|s\.?\s?p\.?\s?a\.?|s\.?\s?n\.?\s?c\.?|s\.?\s?a\.?\s?s\.?)(?=\W|$)/g,' ').replace(/&/g,' ').replace(/[^a-z0-9]+/g,' ').trim().split(' ').filter(t=>t&&!LEGAL.has(t));
+}
+function domainCandidates(name){
+ const t=nameTokens(name).slice(0,4);if(!t.length)return [];
+ const bases=[];
+ if(t.join('').length>=4)bases.push(t.join(''));
+ if(t.length>1&&t.slice(0,2).join('').length>=4)bases.push(t.slice(0,2).join(''));
+ if(t[0].length>=5)bases.push(t[0]);
+ const out=[];
+ for(const b of [...new Set(bases)])for(const tld of ['it','com']){const d=b+'.'+tld;if(domainOf(d)&&!out.includes(d))out.push(d)}
+ return out.slice(0,6);
+}
+// The home page proves the guess when it mentions the company's most distinctive word.
+function pageMentions(html,name){
+ const t=nameTokens(name).sort((a,b)=>b.length-a.length)[0];
+ if(!t||t.length<4)return false;
+ return fold(String(html||'').slice(0,300000)).replace(/[^a-z0-9]+/g,' ').includes(t);
+}
+
+const core={RESERVED,KEY,PROVIDERS,PAID,DEFAULT_ORDER,byId,settingsError,orderOf,domainOf,domainCandidates,pageMentions,nameTokens,extractEmails,nameParts,PATTERNS,personalMatch,detectPattern,applyPattern,privateIp,candidates,chain,firstConfirmText,paidConfirmText,runFinder};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmEmailFinderCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);
