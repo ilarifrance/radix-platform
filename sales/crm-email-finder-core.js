@@ -137,7 +137,7 @@ function paidConfirmText(k,ch){
 /* The whole run in the page, with the two confirm gates. deps: ask(text)→bool, api(action,data)→result,
    wait(ms), progress(text), configured {provider:bool}, order. Nothing is sent before the first «OK»,
    no paid provider is called before the second. */
-async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,ms)),progress=()=>{},configured={},order=DEFAULT_ORDER,chunk=8,pollMs=20000,maxPolls=45}){
+async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,ms)),progress=()=>{},configured={},order=DEFAULT_ORDER,chunk=4,pollMs=20000,maxPolls=45}){
  const pick=candidates(contacts),ch=chain(order,configured);
  const out={ran:false,free:{saved:0,guessed:0,company:0},paid:{},remaining:0,suppressed:0,skipped:pick.skipped};
  if(!pick.contacts.length)return {...out,reason:'none'};
@@ -146,7 +146,8 @@ async function runFinder(contacts,{ask,api,wait=ms=>new Promise(r=>setTimeout(r,
  let left=pick.contacts.map(c=>c.id);const open=new Set(left);
  for(let i=0;i<left.length;i+=chunk){
   progress('Fonti gratuite: '+Math.min(i+chunk,left.length)+' di '+left.length+'…');
-  const r=await api('free',{contacts:left.slice(i,i+chunk),confirm:true});
+  // A slow batch (the server reads company sites) that times out does not stop the run: its contacts stay open.
+  let r;try{r=await api('free',{contacts:left.slice(i,i+chunk),confirm:true})}catch(e){if(e&&/Tempo di attesa scaduto/.test(e.message)){out.timeouts=(out.timeouts||0)+1;continue}throw e}
   out.free.saved+=r.saved||0;out.free.guessed+=r.guessed||0;out.free.company+=r.company||0;out.suppressed+=r.suppressed||0;
   for(const id of r.resolved||[])open.delete(id);
  }
@@ -197,11 +198,17 @@ function domainCandidates(name){
  for(const b of [...new Set(bases)])for(const tld of ['it','com']){const d=b+'.'+tld;if(domainOf(d)&&!out.includes(d))out.push(d)}
  return out.slice(0,6);
 }
-// The home page proves the guess when it mentions the company's most distinctive word.
-function pageMentions(html,name){
- const t=nameTokens(name).sort((a,b)=>b.length-a.length)[0];
- if(!t||t.length<4)return false;
- return fold(String(html||'').slice(0,300000)).replace(/[^a-z0-9]+/g,' ').includes(t);
+// The home page proves the guess when it mentions every distinctive word of the company's name (3 longest, 4+ letters).
+// A domain that is not .it needs one more sign that it is the same company: its city, or an Italian VAT/legal form.
+function pageMentions(html,name,{city,domain}={}){
+ const toks=nameTokens(name).filter(t=>t.length>=4).sort((a,b)=>b.length-a.length).slice(0,3);
+ if(!toks.length)return false;
+ const text=fold(String(html||'').slice(0,300000)).replace(/[^a-z0-9]+/g,' ');
+ if(!toks.every(t=>text.includes(t)))return false;
+ const weak=!/\.it$/.test(String(domain||''));
+ if(!weak)return true;
+ const c=fold(city).replace(/[^a-z0-9]+/g,' ').trim();
+ return (c.length>=3&&text.includes(c))||/\b(p iva|partita iva|s r l|srl|s p a)\b/.test(text);
 }
 
 const core={RESERVED,KEY,PROVIDERS,PAID,DEFAULT_ORDER,byId,settingsError,orderOf,domainOf,domainCandidates,pageMentions,nameTokens,extractEmails,nameParts,PATTERNS,personalMatch,detectPattern,applyPattern,privateIp,candidates,chain,firstConfirmText,paidConfirmText,runFinder};
