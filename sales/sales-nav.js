@@ -15,6 +15,7 @@
       { href: CRM + '#tasks', text: 'Attività', ic: 'check' },
       { href: CRM + '#tickets', text: 'Assistenza', ic: 'chat' },
       { href: CRM + '#calendar', text: 'Calendario', ic: 'cal' },
+      { href: '/sales-posta.html', text: 'Posta', ic: 'mail' },
       { href: CRM + '#analytics', text: 'Analisi', ic: 'chart' },
       { href: CRM + '#report', text: 'Report', ic: 'steps' }
    

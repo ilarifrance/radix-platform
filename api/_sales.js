@@ -21,6 +21,7 @@ const docs=require('./_sales_documents');
 const customFields=require('./_sales_custom_fields');
 // «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
 const mailq=require('./_sales_mailboxes');
+const mailRead=require('./_sales_mail_read');
 // «Trova email» (Dropcontact, paid): own validator; found emails are saved through the normal contact update.
 const finder=require('./_sales_email_finder');
 // «Indirizzi disiscritti» (migration sales 017): own validator, owner/admin only; addresses are hashed, never stored.
@@ -236,6 +237,7 @@ function createHandler({getSessionUser,getStore}){
      if(q.entity==='email_finder')c={...finder.query(q),finder:true};
      else if(q.entity==='email_suppressions')c={...suppressions.query(q),suppressions:true};
      else if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
+     else if(q.entity===mailRead.ENTITY)c={...mailRead.query(q),mailRead:true};
      else if(calendars.ENTITIES.includes(q.entity))c={...calendars.query(q),calendars:true};
      else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
@@ -279,6 +281,8 @@ function createHandler({getSessionUser,getStore}){
    if(c.calendars)return res.status(200).json(await calendars.handle(c,{sql:store.sql,user:user.uid}));
    // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.
    if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req}));
+   // «Posta»: any member reads only the mailbox they connected themselves (checked in mailRead.handle).
+   if(c.mailRead)return res.status(200).json(await mailRead.handle(c,{sql:store.sql,user:user.uid}));
    // «Indirizzi disiscritti»: owner/admin only, checked in suppressions.handle (reads included).
    if(c.suppressions)return res.status(200).json(await suppressions.handle(c,{sql:store.sql,user:user.uid,role:membership.role,method:req.method}));
    // «Trova email»: owner/admin/member, visibility in its own query; a found email is saved with the contact update command.
@@ -302,7 +306,7 @@ function createHandler({getSessionUser,getStore}){
    if(e.code==='22023'&&e.message==='invalid field')return res.status(400).json({error:'Campi non ancora disponibili in questo archivio: serve l’ultima migrazione sales (da approvare). Gli altri campi si salvano lasciando vuoti quelli nuovi.'});
    if(e.code==='23514'&&e.message==='already converted')return res.status(409).json({error:'Questo lead è già stato convertito: ricarica i dati.'});
    const codes={'42P01':[503,'Archivio CRM non aggiornato: applica le migrazioni sales mancanti (fino alla 017) a questo database.'],'22007':[400,'Timestamp non valido.'],'22008':[400,'Timestamp fuori intervallo.'],'42501':[403,'Permessi insufficienti.'],'P0002':[404,'Record non trovato.'],'40001':[409,'Conflitto: ricarica i dati o riusa la stessa chiave per riprovare.'],'40P01':[409,'Concorrenza: riprova la richiesta.'],'23503':[409,'Relazione non valida o record ancora collegato.'],'23505':[409,'Record o posizione già esistente.'],'23514':[400,'Dati non validi.'],'23502':[400,'Campi obbligatori mancanti.'],'22023':[400,'Comando non valido.'],'22P02':[400,'Formato non valido.']};
-   const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.'});
+   const mapped=codes[e.code];res.status(e.status||mapped?.[0]||503).json({error:e.status?e.message:mapped?.[1]||'Sales non disponibile. Verificare dipendenza Neon, configurazione e migrazioni manuali in ambiente isolato.',...(e.status&&typeof e.code==='string'&&/^[a-z_]+$/.test(e.code)?{code:e.code}:{})});
  }
  };
 }

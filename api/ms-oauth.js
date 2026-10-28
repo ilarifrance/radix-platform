@@ -30,7 +30,7 @@ function createHandler({getSessionUser,getStore,env=process.env,fetchImpl,now=()
    const old=(await sql('SELECT id FROM sales_mailboxes WHERE workspace_id=$1 AND lower(from_email)=$2',[st.w,who.address]))[0];
    const id=old?old.id:randomUUID(),e=msoauth.sealToken(t.refresh_token,st.w,id,env);
    if(old){
-    await sql("UPDATE sales_mailboxes SET provider='microsoft',oauth_ciphertext=$3,oauth_iv=$4,oauth_tag=$5,password_ciphertext=NULL,password_iv=NULL,password_tag=NULL,smtp_host='graph.microsoft.com',smtp_port=443,smtp_secure=true,smtp_user=$6,status='active',auth_failures=0,last_error=NULL,updated_at=now() WHERE workspace_id=$1 AND id=$2",[st.w,id,e.oauth_ciphertext,e.oauth_iv,e.oauth_tag,who.address]);
+    await sql("UPDATE sales_mailboxes SET provider='microsoft',oauth_ciphertext=$3,oauth_iv=$4,oauth_tag=$5,password_ciphertext=NULL,password_iv=NULL,password_tag=NULL,smtp_host='graph.microsoft.com',smtp_port=443,smtp_secure=true,smtp_user=$6,status='active',auth_failures=0,last_error=NULL,created_by=$7,updated_at=now() WHERE workspace_id=$1 AND id=$2",[st.w,id,e.oauth_ciphertext,e.oauth_iv,e.oauth_tag,who.address,user.uid]);
    }else{
     const r=await sql(`INSERT INTO sales_mailboxes(workspace_id,id,label,from_name,from_email,smtp_host,smtp_port,smtp_secure,smtp_user,provider,oauth_ciphertext,oauth_iv,oauth_tag,daily_limit,created_by)
      SELECT $1,$2,$3,$4,$5,'graph.microsoft.com',443,true,$5,'microsoft',$6,$7,$8,$9,$10 WHERE (SELECT count(*) FROM sales_mailboxes WHERE workspace_id=$1)<$11 RETURNING id`,
