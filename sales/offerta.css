@@ -1,0 +1,110 @@
+/* «Offerta grafica»: the dialog on sales-vendite.html and the pages themselves (preview iframes and print).
+   Page variables (--of-*) are set inline by offerta-core.js html() from the look (or the identity kit). */
+
+/* ---------- the pages ---------- */
+.of-page{box-sizing:border-box;width:210mm;min-height:297mm;margin:0 auto 8mm;padding:18mm 20mm;background:var(--of-paper);color:var(--of-ink);font:11pt/1.5 var(--of-font);position:relative;overflow:hidden;page:offer;break-after:page}
+.of-page:last-child{margin-bottom:0}
+.of-page h1,.of-page h2{font-family:var(--of-head);color:var(--of-primary);margin:0}
+.of-page p{margin:0 0 .6em}
+.of-cover{display:flex;flex-direction:column;justify-content:flex-end;padding:0;height:297mm;page:cover}
+.of-body{background:#fff;page:body}
+.of-cover-band{flex:0 0 46%;background:var(--of-primary)}
+.of-cover-body{padding:18mm 20mm 24mm}
+.of-eyebrow{font-size:9.5pt;letter-spacing:.14em;text-transform:uppercase;color:var(--of-accent);margin-bottom:10mm}
+.of-cover h1{font-size:30pt;line-height:1.1;max-width:150mm;margin-bottom:5mm}
+.of-sub{font-size:14pt;color:var(--of-primary);opacity:.85}
+.of-date{margin-top:14mm;font-size:10pt;opacity:.8}
+.of-run{display:flex;justify-content:space-between;font-size:8.5pt;letter-spacing:.08em;text-transform:uppercase;color:var(--of-primary);opacity:.75;border-bottom:1px solid var(--of-accent);padding-bottom:3mm;margin-bottom:8mm}
+.of-block{margin-bottom:8mm;break-inside:avoid}
+.of-block h2{font-size:15pt;margin-bottom:2.5mm;padding-left:4mm;border-left:3px solid var(--of-accent)}
+.of-intro p:first-child{font-weight:600;color:var(--of-primary)}
+.of-bullets{margin:0;padding-left:0;list-style:none}
+.of-bullets li{position:relative;padding-left:7mm;margin-bottom:1.6mm}
+.of-bullets li::before{content:'';position:absolute;left:0;top:.45em;width:3.5mm;height:3.5mm;border-radius:50%;background:var(--of-accent)}
+.of-steps{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,1fr);gap:3mm 8mm}
+.of-steps li{display:flex;gap:3mm;align-items:flex-start}
+.of-n{flex:0 0 7mm;height:7mm;border-radius:50%;background:var(--of-primary);color:#fff;font-weight:700;font-size:9.5pt;display:inline-flex;align-items:center;justify-content:center}
+.of-lines table{width:100%;border-collapse:collapse;font-size:10pt}
+.of-lines th{text-align:left;font-size:8.5pt;letter-spacing:.06em;text-transform:uppercase;color:var(--of-primary);border-bottom:1.5px solid var(--of-primary);padding:2mm 1.5mm}
+.of-lines td{padding:2.2mm 1.5mm;border-bottom:1px solid rgba(0,0,0,.12);vertical-align:top}
+.of-lines .num{text-align:right;white-space:nowrap}
+.of-lines small{display:block;opacity:.7}
+.of-totals{margin-left:auto;width:70mm;display:flex;flex-direction:column;gap:1.2mm}
+.of-totals div{display:flex;justify-content:space-between}
+.of-total{border-top:2px solid var(--of-primary);padding-top:1.5mm;font-size:15pt;color:var(--of-primary)}
+.of-total b{font-family:var(--of-head)}
+.of-note{font-size:9pt;opacity:.75;margin-top:3mm}
+.of-sign{margin-top:12mm;white-space:pre-line}
+.of-sign p:first-child{font-family:var(--of-head);font-size:13pt;color:var(--of-primary)}
+.of-contact{font-size:9pt;opacity:.8}
+/* Looks: the same structure, a different voice. */
+.of-elegante .of-cover-band{flex-basis:38%;background:var(--of-primary);box-shadow:inset 0 -6mm 0 var(--of-accent)}
+.of-elegante .of-cover h1{font-weight:400;letter-spacing:-.01em}
+.of-elegante .of-block h2{border-left:0;padding-left:0;font-weight:400;font-size:17pt}
+.of-elegante .of-block h2::after{content:'';display:block;width:14mm;height:1px;background:var(--of-accent);margin-top:2mm}
+.of-deciso .of-cover-band{flex-basis:56%;background:linear-gradient(135deg,var(--of-primary),var(--of-primary) 70%,var(--of-accent))}
+.of-deciso .of-cover h1{font-weight:800;font-size:34pt;letter-spacing:-.02em}
+.of-deciso .of-block h2{text-transform:uppercase;letter-spacing:.05em;font-size:12pt;font-weight:800}
+.of-deciso .of-invest{background:var(--of-primary);color:#fff;padding:7mm;border-radius:3mm}
+.of-deciso .of-invest h2,.of-deciso .of-invest .of-total{color:#fff;border-color:var(--of-accent)}
+.of-deciso .of-invest .of-totals b{color:var(--of-accent)}
+.of-deciso .of-invest .of-note{opacity:.85}
+.of-caldo{border-radius:4mm}
+.of-caldo .of-cover-band{flex-basis:44%;background:var(--of-primary);border-radius:0 0 12mm 0}
+.of-caldo .of-block h2{border-left:0;padding:1.5mm 4mm;background:rgba(0,0,0,.05);border-radius:2mm;display:inline-block;font-size:13pt}
+.of-caldo .of-n{background:var(--of-accent)}
+.of-caldo .of-lines th{border-bottom-color:var(--of-accent)}
+
+/* ---------- the dialog ---------- */
+.of-dialog{border:0;border-radius:16px;padding:0;width:min(1180px,96vw);max-height:94vh;background:var(--crm-card,#fff);color:var(--crm-text,#111);box-shadow:0 30px 80px rgba(20,10,60,.35);font:14px/1.5 var(--crm-font,Inter,system-ui,sans-serif)}
+.of-dialog::backdrop{background:rgba(20,10,60,.45)}
+.of-step{padding:24px 28px 20px;overflow:auto;max-height:94vh;box-sizing:border-box}
+.of-close{position:absolute;top:14px;right:16px;border:1px solid var(--crm-line-2,#ddd);background:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+.of-head h2{margin:0 0 4px;font-size:22px}
+.of-sub-text{margin:0 0 14px;color:var(--crm-text-2,#555)}
+.of-stepper{display:flex;gap:18px;list-style:none;margin:0 0 20px;padding:0;font-size:13px;color:var(--crm-text-2,#666)}
+.of-stepper li{display:flex;align-items:center;gap:7px}
+.of-stepper b{width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font-size:12px}
+.of-stepper .is-current{color:var(--crm-accent,#6d28d9);font-weight:600}
+.of-stepper .is-done b{background:var(--crm-accent,#6d28d9);border-color:var(--crm-accent,#6d28d9);color:#fff}
+.of-q{border:0;padding:0;margin:0 0 18px}
+.of-q legend{font-weight:600;margin-bottom:8px}
+.of-choices{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.of-choice{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--crm-line-2,#ddd);border-radius:10px;padding:10px 12px;cursor:pointer;background:#fff}
+.of-choice.is-on{border-color:var(--crm-accent,#6d28d9);background:var(--crm-accent-soft,#f2ecfe)}
+.of-choice input{margin-top:3px}
+.of-choice span{display:flex;flex-direction:column}
+.of-choice small{color:var(--crm-text-2,#666)}
+.of-bar{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;flex-wrap:wrap}
+.of-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;border-radius:8px;border:1px solid var(--crm-line-2,#ddd);background:#fff;color:inherit;font-weight:500;cursor:pointer;font:inherit}
+.of-btn.is-primary{background:var(--crm-accent,#6d28d9);border-color:var(--crm-accent,#6d28d9);color:#fff}
+.of-looks{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.of-look{border:1px solid var(--crm-line-2,#ddd);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;background:#faf9fc}
+.of-look.is-on{border-color:var(--crm-accent,#6d28d9);box-shadow:0 0 0 2px var(--crm-accent-soft,#f2ecfe)}
+.of-look-text{display:flex;flex-direction:column}
+.of-look-text small{color:var(--crm-text-2,#666)}
+.of-preview{border-radius:8px;overflow:hidden;background:#e9e6ef;border:1px solid var(--crm-line-2,#ddd)}
+.of-preview iframe{width:100%;height:270px;border:0;display:block}
+.of-step-3 .of-preview iframe{height:380px}
+.of-two{display:grid;grid-template-columns:minmax(300px,1fr) minmax(320px,1fr);gap:20px}
+.of-form{display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow:auto;padding-right:4px}
+.of-field{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.of-field input,.of-field textarea{font:14px/1.45 var(--crm-font,inherit);padding:8px 10px;border:1px solid var(--crm-line-2,#ddd);border-radius:8px;font-weight:400;resize:vertical}
+.of-looksel{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--crm-text-2,#666)}
+.of-chip{border:1px solid var(--crm-line-2,#ddd);background:#fff;border-radius:999px;padding:4px 11px;cursor:pointer;font:inherit}
+.of-chip.is-on{background:var(--crm-accent,#6d28d9);border-color:var(--crm-accent,#6d28d9);color:#fff}
+.of-warn{margin:14px 0 0;padding:10px 14px 10px 28px;border-radius:10px;background:#fff7e6;border:1px solid #f3d9a4;color:#6b4a00;font-size:13px}
+.of-warn[hidden]{display:none}
+@media (max-width:900px){.of-looks{grid-template-columns:1fr}.of-two{grid-template-columns:1fr}.of-form{max-height:none}.of-preview iframe{height:300px}.of-step{padding:18px 14px}.of-stepper{gap:10px}.of-stepper span{display:none}.of-stepper .is-current span{display:inline}}
+
+/* ---------- print ---------- */
+/* The cover fills its sheet (no margins); the body pages get the sheet's margins from @page, so a proposal longer
+   than one page keeps the same margins on every page. */
+@page cover{size:A4;margin:0}
+@page body{size:A4;margin:18mm 20mm}
+@media print{
+ .vd-print.is-offer{display:block!important}
+ .vd-print.is-offer .of-page{margin:0;box-shadow:none;border-radius:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .vd-print.is-offer .of-cover{width:210mm;height:297mm}
+ .vd-print.is-offer .of-body{width:auto;min-height:0;padding:0;overflow:visible;break-after:auto}
+}
