@@ -40,7 +40,9 @@ def parse_artlist(payload: dict, query: str) -> list[dict]:
     return items
 
 
-def fetch_articles(query: str, timespan: str = "1h", max_records: int = 100) -> list[dict]:
+# Finestra di 24 ore: con 1 ora GDELT restituisce spesso un elenco vuoto. I doppioni si
+# scartano per URL nell'archivio.
+def fetch_articles(query: str, timespan: str = "24h", max_records: int = 250) -> list[dict]:
     params = {
         "query": query,
         "mode": "artlist",

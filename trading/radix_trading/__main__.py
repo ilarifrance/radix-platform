@@ -19,7 +19,7 @@ from dataclasses import replace
 import pandas as pd
 
 from . import backtest, data, paper, strategies, universe, validation
-from .collectors import binance, fred, gdelt, kraken, yahoo
+from .collectors import binance, fred, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
 
@@ -40,10 +40,15 @@ def collect(store: Store, tier: str = "all") -> dict:
         for i, sym in enumerate(universe.SLOW["symbols"]):
             if i:
                 time.sleep(2)  # Yahoo limita le richieste ravvicinate
-            report[f"yahoo:{sym}"] = _safe(lambda: store.upsert_bars("yahoo", sym, "1d", yahoo.fetch_daily(sym)))
+            report[f"etf:{sym}"] = _safe(lambda: store.upsert_bars("yahoo", sym, "1d", fetch_etf(sym)))
         for series in fred.DEFAULT_SERIES:
             report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
     return report
+
+
+def fetch_etf(symbol: str) -> pd.DataFrame:
+    """Tiingo se c'e' la chiave (affidabile), altrimenti Yahoo (spesso bloccato con 429)."""
+    return tiingo.fetch_daily(symbol) if tiingo.api_key() else yahoo.fetch_daily(symbol)
 
 
 def backfill_history(store: Store, symbol: str) -> int:

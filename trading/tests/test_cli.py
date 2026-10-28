@@ -12,6 +12,8 @@ def test_collect_tiers(monkeypatch):
     monkeypatch.setattr(cli.gdelt, "fetch_all", lambda: calls.append("gdelt") or ([], {}))
     monkeypatch.setattr(cli.binance, "fetch_hourly", lambda s, start: calls.append("binance") or bars)
     monkeypatch.setattr(cli.yahoo, "fetch_daily", lambda s: calls.append("yahoo") or bars)
+    monkeypatch.setattr(cli.tiingo, "api_key", lambda: None)
+    monkeypatch.setattr(cli.time, "sleep", lambda s: None)
     monkeypatch.setattr(cli.fred, "fetch_series", lambda s: calls.append("fred") or pd.Series(dtype=float))
     cli.collect(Store(":memory:"), "fast")
     assert set(calls) == {"kraken", "binance", "gdelt"}

@@ -1,4 +1,4 @@
-from radix_trading.collectors import binance, fred, gdelt, kraken, yahoo
+from radix_trading.collectors import binance, fred, gdelt, kraken, tiingo, yahoo
 
 
 def test_kraken_parse():
@@ -48,3 +48,10 @@ def test_gdelt_parse():
     items = gdelt.parse_artlist(payload, "rates")
     assert items[0]["ts"] == "2026-10-28T12:00:00Z"
     assert items[0]["sentiment"] is None
+
+
+def test_tiingo_parse_uses_adjusted_prices():
+    rows = [{"date": "2026-10-27T00:00:00.000Z", "open": 600, "high": 605, "low": 598, "close": 604, "volume": 10,
+             "adjOpen": 590, "adjHigh": 595, "adjLow": 588, "adjClose": 594, "adjVolume": 10}]
+    df = tiingo.parse_prices(rows)
+    assert df["close"].iloc[0] == 594 and str(df.index.tz) == "UTC"
