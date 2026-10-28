@@ -1,4 +1,4 @@
-/* Language switch of the CRM pages (lib/radix-i18n.js): a flag button in the top bar and a two-item menu. */
+/* Language switch of the CRM and Command Center pages (lib/radix-i18n.js): a flag button in the top bar and a two-item menu. */
 .rx-lang{position:relative;display:inline-flex;flex:0 0 auto;align-items:center;font:500 13px/1.2 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;z-index:60}
 .rx-lang-btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;min-width:44px;padding:0 10px;margin:0;border:1px solid #d9d6e8;border-radius:10px;background:#fff;color:#2a2640;font:inherit;cursor:pointer;box-shadow:none;text-transform:none;letter-spacing:0;width:auto}
 .rx-lang-btn:hover{border-color:#a99cf0;background:#faf9ff}
@@ -11,6 +11,11 @@
 .rx-lang-item:hover,.rx-lang-item:focus{background:#f3f0ff}
 .rx-lang-item[aria-checked="true"]{font-weight:700;color:#4b2fd6}
 .rx-lang-item[aria-checked="true"]::after{content:"✓";margin-left:auto}
+/* Command Center (dark top bar): same shape, dark glass like its status pills. */
+body.rx-cc header.topbar .rx-lang-btn{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.14);color:#e8ecf4}
+body.rx-cc header.topbar .rx-lang-btn:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.28)}
+/* Shell top bar (Settings, Agents, Archive, Profile, Ecosystem): the shell's own surface tokens, light or dark. */
+header.rx-topbar>.rx-lang .rx-lang-btn{background:var(--rx-surface,#fff);color:var(--rx-text,#2a2640);border-color:var(--rx-border,#d9d6e8)}
 .rx-lang-float{position:fixed;top:12px;right:16px;z-index:1000}
 @media (max-width:600px){.rx-lang-code{display:none}.rx-lang-btn{min-width:40px;padding:0 9px}}
 @media print{.rx-lang{display:none}}

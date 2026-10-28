@@ -94,8 +94,15 @@ const R={
    finally{lock(false)}});
   const lang=card('Lingua','La lingua dell’interfaccia di RADIX.');
   const l=E('label',undefined,'st-field'),sel=E('select');sel.name='lingua';
-  for(const x of C.LANGUAGES){const o=E('option',x.label+(x.active?'':' — '+x.note));o.value=x.id;o.disabled=!x.active;sel.append(o)}
-  sel.value='it';l.append(E('span','Lingua'),sel);lang.append(l,E('p','English è in arrivo: per ora RADIX è solo in italiano.','st-note'));out.append(lang);
+  // With the language layer loaded (lib/radix-i18n.js), English is selectable here as well as from the flag in the top bar.
+  const I18N=window.RadixI18n&&typeof window.RadixI18n.saveLang==='function'?window.RadixI18n:null;
+  for(const x of C.LANGUAGES){const on=x.active||!!I18N;const o=E('option',x.label+(on?'':' — '+x.note));o.value=x.id;o.disabled=!on;sel.append(o)}
+  sel.value=I18N?I18N.lang:'it';
+  if(I18N)sel.addEventListener('change',()=>{if(sel.value===I18N.lang)return;I18N.saveLang(window,sel.value);
+   try{const u=new URL(location.href);if(u.searchParams.has('lang')){u.searchParams.set('lang',sel.value);location.href=u.toString();return}}catch(e){}
+   location.reload()});
+  l.append(E('span','Lingua'),sel);
+  lang.append(l,E('p',I18N?'English vale per il Command Center, Project manager, Agenti AI, Archivio, Profilo del progetto, Impostazioni e il CRM; le altre aree restano in italiano per ora. La lingua si cambia anche dalla bandiera in alto.':'English è in arrivo: per ora RADIX è solo in italiano.','st-note'));out.append(lang);
  },
  async membri(out){
   await workspaces();if(needWorkspace(out))return;
