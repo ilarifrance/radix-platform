@@ -107,10 +107,12 @@ const COLUMNS=Object.freeze([
  {id:'revenue',group:'company',label:'Fatturato',edit:['companies','annual_revenue_cents'],num:true,added:true,hidden:true},
  {id:'companyPhone',group:'company',label:'Tel. azienda',edit:['companies','phone'],tel:true,hidden:true},
  {id:'stage',group:'company',label:'Fase trattativa'},
+ // «Storico attività»: every activity done, newest first, each with its date, in one cell (28/10, Francesco).
+ {id:'history',group:'history',label:'Storico attività'},
  {id:'todos',group:'todo',label:'Da fare',many:true},
  {id:'acts',group:'activity',label:'Attività svolte',many:true}
 ].map(Object.freeze));
-const GROUPS=Object.freeze({who:'Chi',contact:'Contatto',company:'Azienda',todo:'Da fare',activity:'Attività'});
+const GROUPS=Object.freeze({who:'Chi',contact:'Contatto',company:'Azienda',history:'Storico',todo:'Da fare',activity:'Attività'});
 /* The group header row over the drawn columns (from expand; {call:true} is the «Registra chiamata»
    column, part of the frozen block). Frozen columns get one cell each, so each sticks to the left with
    its column (on a phone the company scrolls away); the label «Chi» sits on the first of them only.
@@ -190,7 +192,7 @@ function matches(row,query){const q=fold(query);if(!q)return true;
 const collator=typeof Intl!=='undefined'?new Intl.Collator('it',{sensitivity:'base',numeric:true}):null;
 const cmpText=(a,b)=>collator?collator.compare(a,b):a<b?-1:a>b?1:0;
 // Sort keys: «Attività svolte» by the last one, «Da fare» by the soonest, the deal by its stage position.
-const SORT_KEY={stage:'stagePos',acts:'lastAt',todos:'nextAt'};
+const SORT_KEY={stage:'stagePos',acts:'lastAt',todos:'nextAt',history:'lastAt'};
 function sortKey(row,key){const v=row[SORT_KEY[key]||key];return v===''||v==null?null:v}
 /* Sort: empty values always last, then by name. */
 function sortRows(rows,sort){
@@ -201,15 +203,17 @@ function sortRows(rows,sort){
   return c*dir||cmpText(a.name,b.name)||String(a.id).localeCompare(String(b.id))});
 }
 function apply(rows,state,now){const s=state||{};return sortRows(list(rows).filter(r=>passes(r,s.filters,now??Date.now())&&matches(r,s.query)),s.sort)}
-const DESC_FIRST=new Set(['acts','employees','revenue','stage']);
+const DESC_FIRST=new Set(['acts','history','employees','revenue','stage']);
 function nextSort(sort,key){if(sort&&sort.key===key)return {key,dir:sort.dir==='asc'?'desc':'asc'};return {key,dir:DESC_FIRST.has(key)?'desc':'asc'}}
 
 /* Preferences per workspace, as the list views (crm-list-core.js): only known values survive. */
 const storageKey=workspace=>'radix-crm-sheet:'+String(workspace||'');
-function defaults(){return {columns:COLUMNS.filter(c=>!c.hidden).map(c=>c.id),sort:{key:'name',dir:'asc'},filters:{outcome:'',next:''}}}
+function defaults(){return {known:COLUMNS.map(c=>c.id),columns:COLUMNS.filter(c=>!c.hidden).map(c=>c.id),sort:{key:'name',dir:'asc'},filters:{outcome:'',next:''}}}
 function normalize(saved){
  const def=defaults();if(!saved||typeof saved!=='object')return def;const out={...def,filters:{...def.filters}};
- if(Array.isArray(saved.columns)){const chosen=COLUMNS.filter(c=>c.fixed||saved.columns.includes(c.id)).map(c=>c.id);if(chosen.length)out.columns=chosen}
+ // A column added after the choice was saved (not in saved.known) shows when it is on by default.
+ if(Array.isArray(saved.columns)){const known=Array.isArray(saved.known)?saved.known:COLUMNS.filter(c=>c.id!=='history').map(c=>c.id);
+  const chosen=COLUMNS.filter(c=>c.fixed||saved.columns.includes(c.id)||(!c.hidden&&!known.includes(c.id))).map(c=>c.id);if(chosen.length)out.columns=chosen}
  if(saved.sort&&colOf(saved.sort.key))out.sort={key:saved.sort.key,dir:saved.sort.dir==='desc'?'desc':'asc'};
  const f=saved.filters||{};
  if(f.outcome==='never'||f.outcome==='none'||Object.hasOwn(OUTCOMES,f.outcome))out.filters.outcome=f.outcome;
@@ -303,6 +307,7 @@ function cellText(row,col){
  if(c.base&&c.base.id==='acts')return actText(list(row.acts)[c.index]);
  if(c.base&&c.base.id==='todos')return todoText(list(row.todos)[c.index]);
  switch(c.id){
+  case 'history':return list(row.acts).map(actText).join('\n');
   case 'stage':return row.deal?row.stage+(row.deal.title?' · '+row.deal.title:''):'';
   case 'revenue':return row.revenue==null?'':String(Math.round(row.revenue/100));
   case 'employees':return row.employees==null?'':String(row.employees);

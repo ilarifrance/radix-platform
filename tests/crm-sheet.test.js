@@ -133,7 +133,7 @@ test('inline edit: update body with version, checks of the edit form, unchanged 
 
 test('columns: few defaults, frozen first, one column per activity and per to-do',()=>{
  const d=S.defaults();
- assert.deepEqual(d.columns,['name','phone','company','role','mobile','email','industry','country','stage','todos','acts']);
+ assert.deepEqual(d.columns,['name','phone','company','role','mobile','email','industry','country','stage','history','todos','acts']);
  assert.deepEqual(S.COLUMNS.filter(c=>c.freeze).map(c=>c.id),['name','phone','company']);
  const x=S.expand(d.columns,rows());
  assert.deepEqual(x.filter(c=>c.base.id==='todos').map(c=>c.label),['Da fare 1','Da fare 2','Da fare 3','Da fare 4']);
@@ -156,20 +156,20 @@ test('group header: Chi over the frozen block, then Contatto, Azienda, Da fare, 
  const labels=g=>g.map(x=>x.label).filter(Boolean);
  // Groups are contiguous in COLUMNS, so a label can never come back after another group.
  const order=S.COLUMNS.map(c=>c.group).filter((g,i,a)=>g!==a[i-1]);
- assert.deepEqual(order,['who','contact','company','todo','activity']);
+ assert.deepEqual(order,['who','contact','company','history','todo','activity']);
  assert.deepEqual(Object.keys(S.GROUPS),order);
  assert.ok(S.COLUMNS.filter(c=>c.freeze).every(c=>c.group==='who')&&S.COLUMNS.filter(c=>c.group==='who').every(c=>c.freeze));
  const def=S.headerGroups(nav(S.expand(S.defaults().columns,rows())));
- assert.deepEqual(labels(def),['Chi','Contatto','Azienda','Da fare','Attività']);
+ assert.deepEqual(labels(def),['Chi','Contatto','Azienda','Storico','Da fare','Attività']);
  // Frozen: one cell per column (name, phone, call, company), label on the first only.
  assert.deepEqual(def.filter(g=>g.frozen).map(g=>[g.col,g.label]),[['name','Chi'],['phone',''],['call',''],['company','']]);
- assert.deepEqual(def.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',3],['company',3],['todo',4],['activity',3]]);
+ assert.deepEqual(def.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',3],['company',3],['history',1],['todo',4],['activity',3]]);
  // Every drawn column under exactly one group cell.
  const drawn=nav(S.expand(S.defaults().columns,rows()));assert.equal(def.reduce((n,g)=>n+g.span,0),drawn.length);
  // Every column the chooser can add: still each label once, «Fase trattativa» stays with Azienda.
  const all=S.headerGroups(nav(S.expand(S.COLUMNS.map(c=>c.id),rows())));
- assert.deepEqual(labels(all),['Chi','Contatto','Azienda','Da fare','Attività']);
- assert.deepEqual(all.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',4],['company',7],['todo',4],['activity',3]]);
+ assert.deepEqual(labels(all),['Chi','Contatto','Azienda','Storico','Da fare','Attività']);
+ assert.deepEqual(all.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',4],['company',7],['history',1],['todo',4],['activity',3]]);
  // Without migration 011 fields and with only some columns chosen.
  assert.deepEqual(labels(S.headerGroups(nav(S.expand(['name','phone','company','email','acts'],rows(),{added:false})))),['Chi','Contatto','Attività']);
  assert.deepEqual(S.headerGroups([]),[]);
@@ -208,7 +208,8 @@ test('filters, search and sort',()=>{
 test('preferences: per workspace, unknown values dropped; the list keeps «sheet» for Contatti only',()=>{
  assert.equal(S.storageKey('w1'),'radix-crm-sheet:w1');
  const p=S.normalize({columns:['email','nope'],sort:{key:'__proto__'},filters:{outcome:'callback',next:'boh'}});
- assert.deepEqual(p.columns,['name','phone','company','email']);assert.deepEqual(p.sort,{key:'name',dir:'asc'});assert.deepEqual(p.filters,{outcome:'callback',next:''});
+ assert.deepEqual(p.columns,['name','phone','company','email','history'],'«Storico attività», added after this choice was saved, shows');
+ assert.deepEqual(S.normalize({known:S.COLUMNS.map(c=>c.id),columns:['email']}).columns,['name','phone','company','email'],'once known, turning it off sticks');assert.deepEqual(p.sort,{key:'name',dir:'asc'});assert.deepEqual(p.filters,{outcome:'callback',next:''});
  assert.deepEqual(S.parse('{rotto'),S.defaults());
  assert.equal(L.normalize('contacts',{mode:'sheet'}).mode,'sheet');assert.equal(L.normalize('companies',{mode:'sheet'}).mode,'table');
 });
@@ -386,4 +387,18 @@ test('the sheet shows the hint, the count and visible scrollbars; on a phone a w
  assert.match(phone,/--cs-fzw:calc\(var\(--cs-name\) \+ var\(--cs-call\)\)/);assert.match(phone,/\.cs-table \.cs-fz-call\{left:var\(--cs-name\);/);
  // 390 px: grid 352 px wide, frozen name + ☎ = 152 px; an activity column is at most 100vw - 196px, so one fits whole.
  assert.ok(352-(116+36)>=Math.min(190,390-196));assert.match(phone,/max-width:min\(190px,calc\(100vw - 196px\)\)!important/);
+});
+
+test('«Storico attività»: every activity done in one cell, newest first, each with date and time',()=>{
+ const now=Date.parse('2026-10-28T12:00:00Z');
+ const r=S.buildRows({contacts:[{id:'c1',name:'Mario'}],interactions:[
+  {id:'i1',contact_id:'c1',kind:'call',occurred_at:'2026-10-20T08:30:00Z',body:'Esito: Da richiamare\nRichiamare dopo la fiera'},
+  {id:'i2',contact_id:'c1',kind:'email',title:'Offerta inviata',occurred_at:'2026-10-25T14:00:00Z',body:''},
+  {id:'i3',contact_id:'c1',kind:'meeting',title:'Demo',occurred_at:'2026-11-05T09:00:00Z',body:''}]},{now})[0];
+ const lines=S.cellText(r,'history').split('\n');
+ assert.equal(lines.length,2,'a meeting still to come is not history');
+ assert.match(lines[0],/^25\/10\/2026 15:00 · Email · Offerta inviata/);
+ assert.match(lines[1],/^20\/10\/2026 10:30 · Chiamata · (.+ · )?Richiamare dopo la fiera/);
+ assert.equal(S.colOf('history').label,'Storico attività');
+ assert.deepEqual(S.nextSort(null,'history'),{key:'history',dir:'desc'});
 });
