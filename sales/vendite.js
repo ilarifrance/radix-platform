@@ -219,7 +219,7 @@ function actions(doc,f){
  }
  if(doc)out.push(h('button',{type:'button',class:'vd-btn',onclick:()=>printDoc(doc)},'Stampa / PDF'));
  // «Offerta grafica» (sales/offerta.js): the quote as a proposal to look at, three looks, printed to PDF by the browser.
- if(doc&&kind==='quote'&&window.RadixOfferta)out.push(h('button',{type:'button',class:'vd-btn',title:'Il preventivo impaginato come proposta commerciale: configuratore, tre look, stampa o PDF',onclick:()=>window.RadixOfferta.open(doc,{workspace:S.workspace,industry:S.companies.find(c=>c.id===doc.company_id)?.industry||''})},'✦ Offerta grafica'));
+ if(doc&&kind==='quote'&&window.RadixOfferta)out.push(h('button',{type:'button',class:'vd-btn',title:'Il preventivo impaginato come proposta commerciale: configuratore, tre look, stampa o PDF',onclick:()=>window.RadixOfferta.open(doc,{workspace:S.workspace,industry:S.companies.find(c=>c.id===doc.company_id)?.industry||'',brand:V.brandOf(S.settings)})},'✦ Offerta grafica'));
  if(doc&&canWrite()&&doc.status==='bozza'&&!(kind==='quote'&&S.docs.invoice.some(i=>i.quote_id===doc.id)))out.push(h('button',{type:'button',class:'vd-btn is-danger',onclick:remove},'Elimina'));
  return out;
 }
@@ -345,13 +345,21 @@ function settingsView(){
  const st=S.settings||{},iss=st.issuer||{};
  const f={quote_terms:st.quote_terms||'',invoice_terms:st.invoice_terms||'',quote_validity_days:String(st.quote_validity_days||30),payment_days:String(st.payment_days??30)};
  for(const [k] of V.ISSUER)f['issuer_'+k]=iss[k]||'';
+ for(const [k] of V.BRAND)f['issuer_'+k]=iss[k]||'';
  const lock=el=>{if(!canAdmin())el.disabled=true;return el};
  const inp=(k,attrs)=>lock(h(attrs?.rows?'textarea':'input',{value:f[k],...attrs,oninput:e=>{f[k]=e.target.value}}));
+ // A colour: the picker and the hex side by side, both write the same value; «Nessuno» empties it.
+ const colourInput=k=>{const hex=inp(k,{maxlength:'7',placeholder:'#1f2a44',autocomplete:'off',class:'vd-hex'});const pick=lock(h('input',{type:'color',value:/^#[0-9a-f]{6}$/i.test(f[k])?f[k]:'#1f2a44',oninput:e=>{f[k]=e.target.value;hex.value=e.target.value}}));
+  hex.addEventListener('input',()=>{if(/^#[0-9a-f]{6}$/i.test(hex.value))pick.value=hex.value});
+  return h('span',{class:'vd-colour'},pick,hex,canAdmin()?h('button',{type:'button',class:'vd-btn',onclick:()=>{f[k]='';hex.value=''}},'Nessuno'):null)};
  const form=h('form',{class:'vd-panel vd-form',onsubmit:async e=>{e.preventDefault();const r=V.settingsPayload(S.settings,{...f,quote_validity_days:Number(f.quote_validity_days),payment_days:Number(f.payment_days)});if(r.error){say(r.error,'err');return}
   await run('Salvataggio intestazione',async()=>{await post('document_settings','set',r.data);S.settings=(await get('document_settings'))[0]||null;render();return 'Intestazione salvata: vale per i nuovi documenti e per le bozze.'})}},
   h('div',{class:'vd-head'},h('div',{},h('h2',{text:'Intestazione e condizioni'}),h('p',{class:'vd-sub',text:'I tuoi dati che compaiono in alto su preventivi e fatture. I documenti già inviati o emessi conservano i dati di quel momento.'}))),
   canAdmin()?null:h('p',{class:'vd-note',text:'Si modifica solo da owner o admin del workspace.'}),
   h('div',{class:'vd-grid'},V.ISSUER.map(([k,t])=>field(t,inp('issuer_'+k,{maxlength:'200',autocomplete:'off'}),k==='name'||k==='legal_name'||k==='street'?'wide':null))),
+  h('h3',{class:'vd-h3',text:'Colori dell’offerta grafica'}),
+  h('p',{class:'vd-sub',text:'I colori della tua azienda: l’«Offerta grafica» dei preventivi li usa al posto di quelli del look. Vuoti, restano i colori del look.'}),
+  h('div',{class:'vd-grid'},V.BRAND.map(([k,t])=>field(t,colourInput('issuer_'+k)))),
   h('h3',{class:'vd-h3',text:'Condizioni predefinite'}),
   h('div',{class:'vd-grid'},field('Validità del preventivo (giorni)',inp('quote_validity_days',{type:'number',min:'1',max:'365'})),field('Pagamento fattura (giorni)',inp('payment_days',{type:'number',min:'0',max:'365'})),
    field('Condizioni del preventivo',inp('quote_terms',{rows:'3',maxlength:'4000'}),'wide'),field('Condizioni della fattura',inp('invoice_terms',{rows:'3',maxlength:'4000',placeholder:'Es. Bonifico bancario a 30 giorni data fattura'}),'wide')),

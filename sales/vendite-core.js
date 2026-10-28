@@ -137,8 +137,13 @@ function productPayload(p,form){
 }
 
 const ISSUER=Object.freeze([['name','Nome commerciale'],['legal_name','Ragione sociale'],['vat_number','Partita IVA'],['tax_code','Codice fiscale'],['street','Indirizzo'],['zip','CAP'],['city','Città'],['province','Provincia'],['country','Paese'],['email','Email'],['pec','PEC'],['sdi_code','Codice destinatario SdI'],['phone','Telefono'],['iban','IBAN'],['website','Sito web']]);
+// Colours of the «Offerta grafica» (sales/offerta.js), kept in issuer: the two chosen in Intestazione replace the look's own.
+const BRAND=Object.freeze([['brand_primary','Colore principale'],['brand_accent','Colore secondario']]);
+const HEX=/^#[0-9a-f]{6}$/i;
+function brandOf(settings){const i=settings?.issuer||{};if(!HEX.test(i.brand_primary||''))return null;return {primary:i.brand_primary.toLowerCase(),accent:HEX.test(i.brand_accent||'')?i.brand_accent.toLowerCase():i.brand_primary.toLowerCase()}}
 function settingsPayload(current,form){
  const issuer={};for(const [k] of ISSUER){const v=str(form['issuer_'+k]);if(v)issuer[k]=v.slice(0,200)}
+ for(const [k,t] of BRAND){const v=str(form['issuer_'+k]);if(!v)continue;if(!HEX.test(v))return {error:t+': usa il formato #rrggbb.'};issuer[k]=v.toLowerCase()}
  const v=Number(form.quote_validity_days),p=Number(form.payment_days);
  if(!Number.isInteger(v)||v<1||v>365)return {error:'Validità del preventivo: da 1 a 365 giorni.'};
  if(!Number.isInteger(p)||p<0||p>365)return {error:'Giorni di pagamento: da 0 a 365.'};
@@ -166,6 +171,6 @@ function counts(rows,kind){const c={};for(const [k] of (kind==='invoice'?INVOICE
 function openValue(rows,kind){return (rows||[]).filter(r=>kind==='invoice'?r.status==='emessa':r.status==='inviato').reduce((s,r)=>s+Number(r.total_cents||0),0)}
 function overdue(doc,now){return doc.kind==='invoice'&&doc.status==='emessa'&&doc.due_date&&doc.due_date<today(now)}
 
-const api={QUOTE,INVOICE,LABEL,MOVES,VAT_RATES,ISSUER,moves,editable,label,cents,bp,qty,euro,plain,pct,qtyText,lineGross,lineNet,totals,priceOf,lineFromProduct,emptyLine,lineForm,cleanLines,documentPayload,apiLine,today,addDays,newDocument,formOf,productPayload,settingsPayload,party,kindName,docName,filter,counts,openValue,overdue};
+const api={QUOTE,INVOICE,LABEL,MOVES,VAT_RATES,ISSUER,BRAND,brandOf,moves,editable,label,cents,bp,qty,euro,plain,pct,qtyText,lineGross,lineNet,totals,priceOf,lineFromProduct,emptyLine,lineForm,cleanLines,documentPayload,apiLine,today,addDays,newDocument,formOf,productPayload,settingsPayload,party,kindName,docName,filter,counts,openValue,overdue};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixVenditeCore=api;
 })(typeof window==='object'?window:globalThis);

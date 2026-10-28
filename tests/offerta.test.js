@@ -54,6 +54,20 @@ test('html: two pages per look, escaped texts, the look variables inline, nothin
  assert.ok(O.html(m,'unknown').includes('of-elegante'));
 });
 
+test('company colours: from the header (issuer.brand_*), validated as hex, handed to the offer, with the switch',()=>{
+ const V=require('../sales/vendite-core.js');
+ assert.equal(V.brandOf(null),null);assert.equal(V.brandOf({issuer:{brand_primary:'blu'}}),null);
+ assert.deepEqual(V.brandOf({issuer:{brand_primary:'#1F2A44'}}),{primary:'#1f2a44',accent:'#1f2a44'});
+ assert.deepEqual(V.brandOf({issuer:{brand_primary:'#1f2a44',brand_accent:'#C9A227'}}),{primary:'#1f2a44',accent:'#c9a227'});
+ const ok=V.settingsPayload(null,{issuer_name:'Doc',issuer_brand_primary:'#1F2A44',issuer_brand_accent:'',quote_validity_days:30,payment_days:30});
+ assert.deepEqual(ok.data.issuer,{name:'Doc',brand_primary:'#1f2a44'});
+ assert.match(V.settingsPayload(null,{issuer_brand_primary:'rosso',quote_validity_days:30,payment_days:30}).error,/#rrggbb/);
+ const m=O.plan(doc,{business:'servizi'});assert.ok(O.html(m,'deciso',V.brandOf({issuer:{brand_primary:'#1f2a44',brand_accent:'#c9a227'}})).includes('--of-primary:#1f2a44;--of-accent:#c9a227'));
+ const v=fs.readFileSync(__dirname+'/../sales/vendite.js','utf8');assert.match(v,/brand:V\.brandOf\(S\.settings\)/);assert.ok(v.includes('Colori dell’offerta grafica'));
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/Colori della tua azienda/);assert.ok(!/C\.html\([^)]*st\.ctx\.brand/.test(w),'the pages always go through brand(), which honours the switch');assert.equal((w.match(/C\.html\(st\.model,[^,]+,brand\(\)\)/g)||[]).length,2);
+ const api=fs.readFileSync(__dirname+'/../api/_sales_documents.js','utf8');assert.ok(api.includes("'brand_primary','brand_accent'"));assert.match(api,/#rrggbb/);
+});
+
 test('wiring: the quotes page loads the core, the widget and the styles; the quote actions offer it',()=>{
  const html=fs.readFileSync(__dirname+'/../sales-vendite.html','utf8');
  assert.ok(html.includes('/sales/offerta.css'));assert.ok(html.indexOf('/sales/offerta-core.js')<html.indexOf('/sales/offerta.js'));assert.ok(html.indexOf('/sales/offerta.js')<html.indexOf('/sales/vendite.js'));
