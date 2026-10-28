@@ -12,11 +12,12 @@ from datetime import datetime, timezone
 from .http import get
 
 API = "https://api.gdeltproject.org/api/v2/doc/doc"
+# GDELT vuole le alternative OR tra parentesi.
 DEFAULT_QUERIES = (
-    '"interest rates" OR "central bank" OR inflation',
-    "sanctions OR tariffs OR war OR ceasefire",
-    "bitcoin OR crypto OR stablecoin",
-    "recession OR earnings OR layoffs",
+    '("interest rates" OR "central bank" OR inflation)',
+    "(sanctions OR tariffs OR war OR ceasefire)",
+    "(bitcoin OR crypto OR stablecoin)",
+    "(recession OR earnings OR layoffs)",
 )
 
 

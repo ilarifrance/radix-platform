@@ -61,8 +61,27 @@ def mean_reversion(close: pd.DataFrame, window: int = 24, z_entry: float = -2.0,
     return w / close.shape[1]
 
 
+def crypto_trend_daily(close: pd.DataFrame, fast: int = 24 * 20, slow: int = 24 * 100,
+                       vol_target: float = 0.5, hour: int = 0) -> pd.DataFrame:
+    """Livello veloce a bassa rotazione: trend di fondo delle crypto, deciso una volta al giorno.
+
+    Investiti quando la media a `fast` ore e' sopra quella a `slow` ore; il peso scende quando la
+    volatilita' annua supera `vol_target`. Il peso cambia solo all'ora `hour` UTC: con commissioni
+    Kraken intorno allo 0,4% a operazione, decidere ogni ora costa piu' di quanto rende.
+    """
+    on = close.rolling(fast).mean() > close.rolling(slow).mean()
+    vol = np.log(close).diff().rolling(24 * 30).std() * np.sqrt(24 * 365)
+    scale = (vol_target / vol).clip(upper=1.0)
+    w = (on.astype(float) * scale / close.shape[1]).fillna(0.0)
+    # Pesi arrotondati al 25%: piccole variazioni di volatilita' non generano ordini.
+    w = (w * 4 * close.shape[1]).round() / (4 * close.shape[1])
+    at_hour = pd.Series(close.index.hour == hour, index=close.index)
+    return w.where(at_hour, axis=0).ffill().fillna(0.0)
+
+
 STRATEGIES = {
     "trend_momentum": (trend_momentum, "1d", {"lookback": [126, 252], "sma": [100, 200]}),
     "breakout_regime": (breakout_regime, "1h", {"entry": [24, 48, 96], "exit": [12, 24]}),
     "mean_reversion": (mean_reversion, "1h", {"window": [24, 48], "z_entry": [-2.0, -2.5]}),
+    "crypto_trend_daily": (crypto_trend_daily, "1h", {"fast": [24 * 10, 24 * 20], "slow": [24 * 50, 24 * 100]}),
 }

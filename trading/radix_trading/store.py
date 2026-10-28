@@ -7,7 +7,9 @@ cambia solo questo modulo.
 
 from __future__ import annotations
 
+import json
 import sqlite3
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -38,6 +40,15 @@ CREATE TABLE IF NOT EXISTS news (
     sentiment REAL
 );
 CREATE INDEX IF NOT EXISTS news_ts ON news(ts);
+CREATE TABLE IF NOT EXISTS strategy_status (
+    name TEXT PRIMARY KEY,
+    timeframe TEXT NOT NULL,
+    passed INTEGER NOT NULL,
+    deflated_sharpe REAL,
+    sharpe REAL,
+    params TEXT,
+    updated TEXT NOT NULL
+);
 """
 
 BAR_COLUMNS = ["open", "high", "low", "close", "volume"]
@@ -111,6 +122,24 @@ class Store:
         if since:
             sql, params = sql + " WHERE ts >= ?", (since,)
         return pd.read_sql_query(sql + " ORDER BY ts", self.conn, params=params)
+
+
+    # --- esito dei backtest (cancello 1) ----------------------------------------------------
+    def save_strategy_status(self, name: str, timeframe: str, passed: bool, dsr: float, sharpe: float,
+                             params: dict) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO strategy_status VALUES (?,?,?,?,?,?,?)",
+            (name, timeframe, int(passed), float(dsr), float(sharpe), json.dumps(params),
+             datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")),
+        )
+        self.conn.commit()
+
+    def approved_strategy(self, timeframe: str) -> tuple[str, dict] | None:
+        """La strategia con il Deflated Sharpe piu' alto tra quelle che hanno superato il cancello 1."""
+        row = self.conn.execute(
+            "SELECT name, params FROM strategy_status WHERE timeframe = ? AND passed = 1"
+            " ORDER BY deflated_sharpe DESC LIMIT 1", (timeframe,)).fetchone()
+        return (row[0], json.loads(row[1])) if row else None
 
 
 def _iso(ts) -> str:

@@ -10,7 +10,9 @@ import pandas as pd
 
 from .http import BROWSER_UA, get
 
-API = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+# query1 risponde spesso 429 dal bordo della rete; query2 di solito no. Si prova in ordine.
+HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
+PATH = "/v8/finance/chart/{symbol}"
 
 
 def parse_chart(payload: dict) -> pd.DataFrame:
@@ -36,6 +38,15 @@ def parse_chart(payload: dict) -> pd.DataFrame:
 def fetch_daily(symbol: str, period: str = "max") -> pd.DataFrame:
     """L'ultima barra (la giornata in corso) viene scartata finche' il mercato e' aperto."""
     params = {"range": period, "interval": "1d", "events": "div,splits"}
-    df = parse_chart(get(API.format(symbol=symbol), params, user_agent=BROWSER_UA).json())
+    last: Exception | None = None
+    for host in HOSTS:
+        try:
+            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=BROWSER_UA, rate_limit_wait=10)
+            break
+        except RuntimeError as e:
+            last = e
+    else:
+        raise RuntimeError(f"Yahoo non raggiungibile per {symbol}: {last}")
+    df = parse_chart(r.json())
     today = pd.Timestamp.now(tz="UTC").normalize()
     return df[df.index < today]

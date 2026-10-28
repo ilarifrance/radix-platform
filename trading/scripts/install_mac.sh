@@ -1,7 +1,7 @@
 #!/bin/bash
 # Installa la raccolta dati automatica su macOS (launchd).
 #   - ogni ora: crypto Kraken e notizie GDELT, poi un giro di paper trading simulato
-#   - ogni giorno alle 23:30: ETF Stooq e macro FRED
+#   - ogni giorno alle 23:30: ETF e macro, poi il backtest che decide quali strategie il paper puo' usare
 # Dati e log in ~/RadixTrading. Nessun ordine, nessuna chiave broker.
 # Disinstallare: bash scripts/install_mac.sh --uninstall
 set -euo pipefail
@@ -75,6 +75,6 @@ PLIST
 # Ogni ora: raccolta veloce + un giro di paper trading su conto simulato (nessun broker).
 write_plist $FAST fast "<key>StartInterval</key><integer>3600</integer>" "<string>hourly</string>"
 write_plist $SLOW slow "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>" \
-  "<string>collect</string><string>--tier</string><string>slow</string>"
+  "<string>daily</string>"
 
 echo "Raccolta automatica attiva. Dati: $HOME_DIR/data, log: $HOME_DIR/logs"

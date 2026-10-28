@@ -3,6 +3,7 @@
     python -m radix_trading collect          # scarica prezzi, macro e notizie nell'archivio
     python -m radix_trading collect --tier fast   # solo crypto e notizie (ogni ora)
     python -m radix_trading hourly           # raccolta veloce + un giro di paper trading simulato
+    python -m radix_trading daily            # raccolta lenta + backtest (aggiorna le strategie approvate)
     python -m radix_trading report           # riepilogo del conto paper
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
@@ -12,6 +13,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 from dataclasses import replace
 
 import pandas as pd
@@ -35,7 +37,9 @@ def collect(store: Store, tier: str = "all") -> dict:
         store.upsert_news(items)
         report.update({f"gdelt:{k}": v for k, v in news_report.items()})
     if slow:
-        for sym in universe.SLOW["symbols"]:
+        for i, sym in enumerate(universe.SLOW["symbols"]):
+            if i:
+                time.sleep(2)  # Yahoo limita le richieste ravvicinate
             report[f"yahoo:{sym}"] = _safe(lambda: store.upsert_bars("yahoo", sym, "1d", yahoo.fetch_daily(sym)))
         for series in fred.DEFAULT_SERIES:
             report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
@@ -68,8 +72,11 @@ def run_backtests(store: Store) -> dict:
         if wf.oos_returns.empty:
             out[name] = {"errore": f"storico insufficiente ({len(close)} barre)"}
             continue
-        out[name] = {"metriche_fuori_campione": wf.metrics, "cancello_1": validation.passes_gate(wf.oos_returns, wf.trials),
-                     "finestre": len(wf.folds)}
+        gate = validation.passes_gate(wf.oos_returns, wf.trials)
+        out[name] = {"metriche_fuori_campione": wf.metrics, "cancello_1": gate, "finestre": len(wf.folds),
+                     "parametri_ultimi": wf.folds[-1]["params"]}
+        store.save_strategy_status(name, timeframe, gate["passed"], gate["deflated_sharpe"],
+                                   wf.metrics.get("sharpe", 0.0), wf.folds[-1]["params"])
     return out
 
 
@@ -82,7 +89,7 @@ def _safe(fn):
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
-    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "report"])
+    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report"])
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -92,6 +99,9 @@ def main(argv: list[str] | None = None) -> int:
             result = collect(store, args.tier)
         elif args.command == "backtest":
             result = run_backtests(store)
+        elif args.command == "daily":
+            # Ogni sera: dati lenti e nuovo backtest, che decide quali strategie il paper puo' usare.
+            result = {"raccolta": collect(store, "slow"), "backtest": run_backtests(store)}
         elif args.command == "report":
             result = paper.report(store)
         else:

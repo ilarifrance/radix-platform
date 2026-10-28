@@ -40,6 +40,7 @@ def test_waits_without_history(settings):
 def test_runs_over_time_and_respects_limits(settings):
     st = Store(":memory:")
     idx = fill_store(st, 24 * 120, drift=0.0004, seed=1)
+    st.save_strategy_status("breakout_regime", "1h", True, 0.99, 1.0, {})
     eng = paper.PaperEngine(st, settings, cfg=paper.PaperConfig(min_probability=0.0))
     full = {s: st.load_bars("kraken", s, "1h") for s in universe.FAST["symbols"]}
     for i in range(24 * 60, len(idx), 24):
@@ -66,3 +67,12 @@ def test_kill_switch_closes_positions(settings):
     out = eng.step(idx[-1].to_pydatetime() + timedelta(hours=1))
     assert "kill switch" in out["sistema"]
     assert eng.positions() == {}
+
+
+def test_no_buys_without_approved_strategy(settings):
+    st = Store(":memory:")
+    idx = fill_store(st, 24 * 120, drift=0.001, seed=2)
+    st.save_strategy_status("breakout_regime", "1h", False, 0.1, -1.0, {})
+    out = paper.PaperEngine(st, settings, cfg=paper.PaperConfig(min_probability=0.0)).step(idx[-1].to_pydatetime())
+    assert "cancello 1" in out["kraken:XBTEUR"]
+    assert st.conn.execute("SELECT COUNT(*) FROM paper_fills").fetchone()[0] == 0

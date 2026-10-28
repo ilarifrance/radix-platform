@@ -105,8 +105,18 @@ class PaperEngine:
 
     def _decide(self, key: str, sym: str, close: pd.DataFrame, prices: dict, now: datetime) -> str:
         price = prices[key]
-        signal = float(strategies.breakout_regime(close).iloc[-1, 0] > 0)
         pos = self.positions().get(key)
+        # Si opera solo con una strategia che ha superato il cancello 1 nell'ultimo backtest.
+        approved = self.store.approved_strategy(universe.FAST["timeframe"])
+        if approved is None:
+            if pos:
+                return self._sell(key, pos, price, now, 0.0, None, "nessuna strategia piu' approvata")
+            return self._log(now, key, price, None, None, "nessuna azione", 0,
+                             "nessuna strategia ha superato il cancello 1")
+        name, params = approved
+        fn = strategies.STRATEGIES[name][0]
+        weights = fn(close, **params)[sym]
+        signal = float(weights.iloc[-1] > 0)
         if pos and price <= pos["stop"]:
             return self._sell(key, pos, price, now, signal, None, "stop raggiunto")
         if pos and not signal:
@@ -116,7 +126,7 @@ class PaperEngine:
                              "posizione mantenuta" if pos else "nessun segnale")
 
         series = close[sym]
-        sig_hist = strategies.breakout_regime(close)[sym]
+        sig_hist = weights
         cost = 2 * (self.costs.fee_bps + self.costs.slippage_bps) / 1e4
         p = probability.latest_probability(series, sig_hist, self.cfg.horizon, cost, self.cfg.train)
         if p is None or p < self.cfg.min_probability:
@@ -126,7 +136,7 @@ class PaperEngine:
         day_vol = float(np.log(series).diff().tail(24 * 30).std() * np.sqrt(24))
         stop = float(np.clip(2 * day_vol, self.cfg.stop_min, self.cfg.stop_max))
         intent = OrderIntent(key.split(":")[0], sym, "buy", self.settings.limits.max_position_eur, stop,
-                             reason=f"breakout, p={p:.2f}")
+                             reason=f"{name}, p={p:.2f}")
         decision = self.risk.check(intent, self.state(prices), now)
         if not decision.approved:
             return self._log(now, key, price, signal, p, "rifiutato dal risk manager", 0, "; ".join(decision.reasons))

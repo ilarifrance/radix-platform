@@ -44,7 +44,8 @@ python -m radix_trading report     # riepilogo del conto paper
 
 La raccolta gira sul Mac di Francesco (scelta del 28 ottobre): `bash scripts/install_mac.sh` crea
 un ambiente Python in `~/RadixTrading` e due job launchd, ogni ora `hourly` (crypto, notizie e un
-giro di paper trading simulato) e ogni giorno alle 23:30 `collect --tier slow` (ETF e macro). I dati si accumulano solo
+giro di paper trading simulato) e ogni giorno alle 23:30 `daily` (ETF, macro e backtest: solo le strategie che superano il cancello 1
+vengono usate dal paper trading). I dati si accumulano solo
 quando il Mac e' acceso. `bash scripts/install_mac.sh --uninstall` li rimuove. L'ambiente cloud
 di Claude non raggiunge queste fonti.
 
