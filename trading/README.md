@@ -22,6 +22,13 @@ variabile `RADIX_TRADING_LIVE_CONFIRMED`, che si imposta solo dopo l'OK scritto 
 - `validation.py` — Probabilistic e Deflated Sharpe Ratio; `passes_gate` e' il cancello 1 della roadmap.
 - `risk.py` — risk manager deterministico: rischio per operazione, massimo per posizione, perdita giornaliera, drawdown, ordini per ora, niente leva e niente scoperto, kill switch e uscita forzata. Le vendite che riducono una posizione passano sempre.
 - `config.py` — limiti di rischio (1.000 euro di capitale di test, posizioni da 100 euro).
+- `probability.py` — meta-modello: regressione logistica walk-forward che stima la probabilita' che un'operazione superi i costi; misurato con il Brier score (0,25 = nessuna capacita').
+- `paper.py` — paper trading interno: conto simulato da 1.000 euro con prezzi veri; ogni ora segnale → probabilita' (soglia 55%) → risk manager → esecuzione simulata, con ogni decisione registrata e motivata. `report` ne fa il riepilogo.
+
+## Kill switch
+
+Creare il file `~/RadixTrading/data/KILL_SWITCH` (es. `touch ~/RadixTrading/data/KILL_SWITCH`) blocca ogni
+nuovo acquisto e al giro successivo chiude tutte le posizioni. Cancellarlo riattiva il sistema.
 
 ## Uso
 
@@ -31,11 +38,13 @@ pip install -r requirements-dev.txt
 python -m pytest -q
 python -m radix_trading collect    # scarica i dati in ./data/radix_trading.sqlite
 python -m radix_trading backtest   # walk-forward fuori campione + cancello 1 per ogni strategia
+python -m radix_trading hourly     # raccolta veloce + un giro di paper trading simulato
+python -m radix_trading report     # riepilogo del conto paper
 ```
 
 La raccolta gira sul Mac di Francesco (scelta del 28 ottobre): `bash scripts/install_mac.sh` crea
-un ambiente Python in `~/RadixTrading` e due job launchd, ogni ora `collect --tier fast` (crypto e
-notizie) e ogni giorno alle 23:30 `collect --tier slow` (ETF e macro). I dati si accumulano solo
+un ambiente Python in `~/RadixTrading` e due job launchd, ogni ora `hourly` (crypto, notizie e un
+giro di paper trading simulato) e ogni giorno alle 23:30 `collect --tier slow` (ETF e macro). I dati si accumulano solo
 quando il Mac e' acceso. `bash scripts/install_mac.sh --uninstall` li rimuove. L'ambiente cloud
 di Claude non raggiunge queste fonti.
 

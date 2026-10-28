@@ -2,6 +2,8 @@
 
     python -m radix_trading collect          # scarica prezzi, macro e notizie nell'archivio
     python -m radix_trading collect --tier fast   # solo crypto e notizie (ogni ora)
+    python -m radix_trading hourly           # raccolta veloce + un giro di paper trading simulato
+    python -m radix_trading report           # riepilogo del conto paper
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
 
@@ -10,10 +12,11 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, strategies, universe, validation
+from . import backtest, paper, strategies, universe, validation
 from .collectors import fred, gdelt, kraken, stooq
 from .config import Settings
 from .store import Store
@@ -65,13 +68,23 @@ def _safe(fn):
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
-    p.add_argument("command", choices=["collect", "backtest"])
+    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "report"])
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
     store = Store(settings.db_path)
     try:
-        result = collect(store, args.tier) if args.command == "collect" else run_backtests(store)
+        if args.command == "collect":
+            result = collect(store, args.tier)
+        elif args.command == "backtest":
+            result = run_backtests(store)
+        elif args.command == "report":
+            result = paper.report(store)
+        else:
+            # paper / hourly: il giro di paper trading usa sempre un conto simulato.
+            result = {"raccolta": collect(store, "fast")} if args.command == "hourly" else {}
+            engine = paper.PaperEngine(store, replace(settings, mode="paper"))
+            result["paper"] = engine.step()
     finally:
         store.close()
     json.dump(result, sys.stdout, indent=2, default=str, ensure_ascii=False)

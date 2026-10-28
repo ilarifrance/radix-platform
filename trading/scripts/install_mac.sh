@@ -1,6 +1,6 @@
 #!/bin/bash
 # Installa la raccolta dati automatica su macOS (launchd).
-#   - ogni ora: crypto Kraken e notizie GDELT
+#   - ogni ora: crypto Kraken e notizie GDELT, poi un giro di paper trading simulato
 #   - ogni giorno alle 23:30: ETF Stooq e macro FRED
 # Dati e log in ~/RadixTrading. Nessun ordine, nessuna chiave broker.
 # Disinstallare: bash scripts/install_mac.sh --uninstall
@@ -47,7 +47,7 @@ fi
 "$VENV/bin/pip" install --quiet --upgrade pip
 "$VENV/bin/pip" install --quiet -r "$HERE/requirements.txt"
 
-write_plist() {  # $1 = label, $2 = tier, $3 = blocco di pianificazione
+write_plist() {  # $1 = label, $2 = nome log, $3 = pianificazione, $4 = argomenti
   cat > "$AGENTS/$1.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -55,7 +55,7 @@ write_plist() {  # $1 = label, $2 = tier, $3 = blocco di pianificazione
   <key>Label</key><string>$1</string>
   <key>ProgramArguments</key><array>
     <string>$VENV/bin/python</string><string>-m</string><string>radix_trading</string>
-    <string>collect</string><string>--tier</string><string>$2</string>
+    $4
   </array>
   <key>WorkingDirectory</key><string>$HERE</string>
   <key>EnvironmentVariables</key><dict>
@@ -72,7 +72,9 @@ PLIST
   launchctl bootstrap "gui/$(id -u)" "$AGENTS/$1.plist"
 }
 
-write_plist $FAST fast "<key>StartInterval</key><integer>3600</integer>"
-write_plist $SLOW slow "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>"
+# Ogni ora: raccolta veloce + un giro di paper trading su conto simulato (nessun broker).
+write_plist $FAST fast "<key>StartInterval</key><integer>3600</integer>" "<string>hourly</string>"
+write_plist $SLOW slow "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>23</integer><key>Minute</key><integer>30</integer></dict>" \
+  "<string>collect</string><string>--tier</string><string>slow</string>"
 
 echo "Raccolta automatica attiva. Dati: $HOME_DIR/data, log: $HOME_DIR/logs"

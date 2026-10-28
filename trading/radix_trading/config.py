@@ -40,7 +40,8 @@ class Settings:
     mode: str = field(default_factory=lambda: os.environ.get("RADIX_TRADING_MODE", "research"))
     # File che, se presente, blocca ogni nuovo ordine (kill switch).
     kill_switch_file: Path = field(
-        default_factory=lambda: Path(os.environ.get("RADIX_TRADING_KILL", "./data/KILL_SWITCH"))
+        default_factory=lambda: Path(os.environ.get(
+            "RADIX_TRADING_KILL", str(Path(os.environ.get("RADIX_TRADING_DATA", "./data")) / "KILL_SWITCH")))
     )
     limits: RiskLimits = field(default_factory=RiskLimits)
 
