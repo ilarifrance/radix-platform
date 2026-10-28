@@ -20,3 +20,14 @@ def test_news_and_macro():
     st.upsert_macro("DGS10", pd.Series([4.1, 4.2], index=pd.to_datetime(["2026-10-27", "2026-10-28"])))
     assert len(st.load_news("2026-10-01")) == 1
     assert st.load_macro("DGS10").iloc[-1] == 4.2
+
+
+def test_load_close_merges_history_and_live():
+    from radix_trading import data, universe
+    st = Store(":memory:")
+    idx = pd.date_range("2026-01-01", periods=6, freq="h", tz="UTC")
+    mk = lambda v, ix: pd.DataFrame({c: v for c in ["open", "high", "low", "close", "volume"]}, index=ix)
+    st.upsert_bars("binance", "XBTEUR", "1h", mk(1.0, idx[:4]))
+    st.upsert_bars("kraken", "XBTEUR", "1h", mk(2.0, idx[2:]))
+    c = data.load_close(st, universe.FAST, "XBTEUR")
+    assert list(c.values) == [1.0, 1.0, 2.0, 2.0, 2.0, 2.0]

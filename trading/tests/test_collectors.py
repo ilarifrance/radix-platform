@@ -1,4 +1,4 @@
-from radix_trading.collectors import fred, gdelt, kraken, stooq
+from radix_trading.collectors import binance, fred, gdelt, kraken, yahoo
 
 
 def test_kraken_parse():
@@ -19,11 +19,21 @@ def test_kraken_error():
         kraken.parse_ohlc({"error": ["EQuery:Unknown asset pair"], "result": {}})
 
 
-def test_stooq_parse():
-    text = "Date,Open,High,Low,Close,Volume\n2026-10-26,580,585,579,584,1000\n2026-10-27,584,590,583,589,1200\n"
-    df = stooq.parse_daily_csv(text)
-    assert len(df) == 2 and df["close"].iloc[0] == 584
-    assert stooq.parse_daily_csv("No data").empty
+def test_yahoo_parse_adjusts_for_dividends():
+    payload = {"chart": {"error": None, "result": [{
+        "timestamp": [1761580800, 1761667200],
+        "indicators": {"quote": [{"open": [100, 101], "high": [102, 103], "low": [99, 100],
+                                  "close": [100, 102], "volume": [10, 12]}],
+                       "adjclose": [{"adjclose": [99, 102]}]}}]}}
+    df = yahoo.parse_chart(payload)
+    assert len(df) == 2 and df["close"].iloc[0] == 99 and df["open"].iloc[0] == 99
+    assert df["close"].iloc[1] == 102
+
+
+def test_binance_parse():
+    rows = [[1730000000000, "60000", "60500", "59900", "60400", "12.5", 1730003599999, "0", 100, "0", "0", "0"]]
+    df = binance.parse_klines(rows)
+    assert df["close"].iloc[0] == 60400 and str(df.index.tz) == "UTC"
 
 
 def test_fred_parse_missing_values():

@@ -16,8 +16,8 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, paper, strategies, universe, validation
-from .collectors import fred, gdelt, kraken, stooq
+from . import backtest, data, paper, strategies, universe, validation
+from .collectors import binance, fred, gdelt, kraken, yahoo
 from .config import Settings
 from .store import Store
 
@@ -26,23 +26,37 @@ def collect(store: Store, tier: str = "all") -> dict:
     """`tier`: "fast" (crypto e notizie, ogni ora), "slow" (ETF e macro, una volta al giorno) o "all"."""
     report: dict[str, object] = {}
     fast, slow = tier in ("fast", "all"), tier in ("slow", "all")
-    for sym in universe.FAST["symbols"] if fast else []:
-        report[f"kraken:{sym}"] = _safe(lambda: store.upsert_bars(
-            "kraken", sym, "1h", kraken.fetch_ohlc(sym, "1h")))
-    for sym in universe.SLOW["symbols"] if slow else []:
-        report[f"stooq:{sym}"] = _safe(lambda: store.upsert_bars("stooq", sym, "1d", stooq.fetch_daily(sym)))
-    for series in fred.DEFAULT_SERIES if slow else []:
-        report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
-    for q in gdelt.DEFAULT_QUERIES if fast else []:
-        report[f"gdelt:{q[:30]}"] = _safe(lambda: store.upsert_news(gdelt.fetch_articles(q)))
+    if fast:
+        f = universe.FAST
+        for sym in f["symbols"]:
+            report[f"kraken:{sym}"] = _safe(lambda: store.upsert_bars("kraken", sym, "1h", kraken.fetch_ohlc(sym, "1h")))
+            report[f"storico:{sym}"] = _safe(lambda: backfill_history(store, sym))
+        items, news_report = gdelt.fetch_all()
+        store.upsert_news(items)
+        report.update({f"gdelt:{k}": v for k, v in news_report.items()})
+    if slow:
+        for sym in universe.SLOW["symbols"]:
+            report[f"yahoo:{sym}"] = _safe(lambda: store.upsert_bars("yahoo", sym, "1d", yahoo.fetch_daily(sym)))
+        for series in fred.DEFAULT_SERIES:
+            report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
     return report
+
+
+def backfill_history(store: Store, symbol: str) -> int:
+    """Scarica (solo la parte mancante) lo storico orario lungo del simbolo."""
+    f = universe.FAST
+    have = store.load_bars(f["history_venue"], symbol, "1h")
+    start = (have.index[-1] + pd.Timedelta(hours=1) if len(have)
+             else pd.Timestamp.now(tz="UTC").floor("h") - pd.DateOffset(years=f["history_years"]))
+    bars = binance.fetch_hourly(f["history_symbols"][symbol], start)
+    return store.upsert_bars(f["history_venue"], symbol, "1h", bars)
 
 
 def run_backtests(store: Store) -> dict:
     out = {}
     for name, (fn, timeframe, grid) in strategies.STRATEGIES.items():
         tier = universe.FAST if timeframe == "1h" else universe.SLOW
-        closes = {s: store.load_bars(tier["venue"], s, timeframe)["close"] for s in tier["symbols"]}
+        closes = {s: data.load_close(store, tier, s) for s in tier["symbols"]}
         close = pd.DataFrame({s: c for s, c in closes.items() if len(c)}).dropna(how="all").ffill()
         if close.empty:
             out[name] = {"errore": "nessun dato nell'archivio: eseguire prima `collect`"}

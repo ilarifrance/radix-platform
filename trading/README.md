@@ -12,11 +12,11 @@ variabile `RADIX_TRADING_LIVE_CONFIRMED`, che si imposta solo dopo l'OK scritto 
 | Livello | Orizzonte | Mercato | Strategie di partenza |
 | --- | --- | --- | --- |
 | Veloce | minuti / ore | crypto su Kraken (XBTEUR, ETHEUR) | `breakout_regime`, `mean_reversion` |
-| Lento | giorni / settimane | ETF e indici (ricerca su Stooq, ordini futuri su IBKR con ETF UCITS) | `trend_momentum` |
+| Lento | giorni / settimane | ETF e indici (ricerca su dati Yahoo, ordini futuri su IBKR con ETF UCITS) | `trend_momentum` |
 
 ## Moduli
 
-- `collectors/` — agenti di raccolta: Kraken (prezzi crypto), Stooq (storico ETF), FRED (macro), GDELT (notizie e geopolitica). Fonti gratuite, senza chiavi.
+- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Yahoo (storico ETF), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi). Fonti gratuite, senza chiavi.
 - `store.py` — archivio unico SQLite (prezzi, macro, notizie), lo stesso per backtest e live.
 - `backtest.py` — backtest vettoriale: decisione a t, posizione da t+1; commissioni, slippage e commissione minima in euro; banda di non intervento; walk-forward.
 - `validation.py` — Probabilistic e Deflated Sharpe Ratio; `passes_gate` e' il cancello 1 della roadmap.

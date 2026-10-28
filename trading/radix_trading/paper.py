@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
-from . import probability, strategies, universe
+from . import data, probability, strategies, universe
 from .backtest import Costs
 from .config import Settings
 from .risk import OrderIntent, PortfolioState, RiskManager
@@ -77,8 +77,11 @@ class PaperEngine:
     def step(self, now: datetime | None = None) -> dict:
         now = now or datetime.now(timezone.utc)
         tier = universe.FAST
-        closes = {s: self.store.load_bars(tier["venue"], s, tier["timeframe"])["close"] for s in tier["symbols"]}
-        prices = {f"{tier['venue']}:{s}": float(c.iloc[-1]) for s, c in closes.items() if len(c)}
+        closes = {s: data.load_close(self.store, tier, s) for s in tier["symbols"]}
+        # Il prezzo operativo e' l'ultimo di Kraken, non quello dello storico Binance.
+        live = {s: self.store.load_bars(tier["venue"], s, tier["timeframe"])["close"] for s in tier["symbols"]}
+        prices = {f"{tier['venue']}:{s}": float(c.iloc[-1]) for s, c in live.items() if len(c)}
+        closes = {s: c for s, c in closes.items() if f"{tier['venue']}:{s}" in prices}
         self._roll_day(now, prices)
         summary: dict[str, str] = {}
 

@@ -5,6 +5,8 @@ Il sentiment non viene calcolato qui: lo assegna l'agente di analisi testi.
 
 from __future__ import annotations
 
+import json
+import time
 from datetime import datetime, timezone
 
 from .http import get
@@ -46,4 +48,25 @@ def fetch_articles(query: str, timespan: str = "1h", max_records: int = 100) -> 
         "timespan": timespan,
         "sort": "datedesc",
     }
-    return parse_artlist(get(API, params).json(), query)
+    r = get(API, params, rate_limit_wait=8.0)
+    try:
+        payload = r.json()
+    except json.JSONDecodeError:
+        # GDELT a volte risponde con testo (es. limite di frequenza) anche con codice 200.
+        raise RuntimeError(f"GDELT: risposta non JSON: {r.text[:120]!r}") from None
+    return parse_artlist(payload, query)
+
+
+def fetch_all(queries=DEFAULT_QUERIES, pause: float = 6.0) -> tuple[list[dict], dict]:
+    """Tutte le ricerche, distanziate: GDELT accetta al massimo una richiesta ogni 5 secondi."""
+    items, report = [], {}
+    for i, q in enumerate(queries):
+        if i:
+            time.sleep(pause)
+        try:
+            got = fetch_articles(q)
+            items += got
+            report[q[:30]] = len(got)
+        except Exception as e:
+            report[q[:30]] = f"errore: {e}"
+    return items, report
