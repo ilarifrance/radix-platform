@@ -325,3 +325,13 @@ html:root{
 @media (max-width:700px){.crm-boot-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-boot-kpis i{height:80px}}
 html.rx-has-view #crm-boot,html.sx-no-crm #crm-boot,main>#error:not([hidden])~#crm-boot{display:none}
 html.crm-booting main>#membership,html.crm-booting main>#status{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+/* «+ Nuova azienda» / «+ Nuovo contatto» under the Azienda / Contatto list of the editor (sales.js quickAdd). */
+.quick-add{display:grid;gap:6px;margin-top:6px}
+.quick-add-open{justify-self:start;padding:4px 10px;border:1px dashed var(--crm-line-2);background:transparent;color:var(--crm-accent);border-radius:8px;font-size:12px;cursor:pointer}
+.quick-add-open:hover,.quick-add-open:focus-visible{border-style:solid;border-color:var(--crm-accent);background:var(--crm-accent-soft)}
+.quick-add-form{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.quick-add-form[hidden],.quick-add-open[hidden]{display:none}
+.quick-add-form input{flex:1 1 180px;min-width:0}
+.quick-add-create{background:var(--crm-accent);color:var(--crm-on-accent);border:1px solid var(--crm-accent);border-radius:8px;padding:6px 12px;cursor:pointer}
+.quick-add-cancel{background:var(--crm-card);color:var(--crm-text);border:1px solid var(--crm-line-2);border-radius:8px;padding:6px 12px;cursor:pointer}
+.quick-add-msg{color:var(--crm-muted);font-size:12px}.quick-add-msg:empty{display:none}

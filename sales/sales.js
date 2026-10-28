@@ -321,6 +321,32 @@ function recordSections(entity,row,host,references,selectControl){
  if(entity==='contacts'){const name=host.querySelector('input[name="name"]'),hint=()=>{if(name)name.placeholder=RF.displayName(inputs.first_name?.value,inputs.last_name?.value)||'Vuoto = Nome e Cognome';};
   for(const k of ['first_name','last_name'])inputs[k]?.addEventListener('input',hint);hint();}
 }
+// «+ Nuova azienda» / «+ Nuovo contatto» under the Azienda / Contatto list of the editor: a name and «Crea», then the new
+// record is chosen in the list. A name already in the CRM (crm-quick-core.js) is chosen instead of creating a duplicate.
+function quickAdd(select,entity,fields){
+ const Q=window.RadixCrmQuick,wrap=select?.parentElement?.parentElement;if(!Q||!wrap||!writable(entity))return;
+ const company=entity==='companies',box=el('div',undefined,'quick-add'),form=el('div',undefined,'quick-add-form'),msg=el('small',undefined,'quick-add-msg'),input=el('input');
+ input.maxLength=200;input.placeholder=company?'Nome della nuova azienda':'Nome e cognome del nuovo contatto';input.setAttribute('aria-label',input.placeholder);form.hidden=true;
+ const choose=row=>{if(![...select.querySelectorAll('option')].some(o=>o.value===row.id)){const o=el('option',title(row));o.value=row.id;select.append(o);}select.value=row.id;select.dispatchEvent(new Event('change',{bubbles:true}));};
+ const close=()=>{form.hidden=true;open.hidden=false;input.value='';};
+ let saving=false;
+ const create=button('Crea',async()=>{
+  const name=input.value.replace(/\s+/g,' ').trim();if(!name){msg.textContent=company?'Scrivi il nome dell’azienda.':'Scrivi il nome del contatto.';input.focus();return;}if(saving)return;
+  const companyId=company?null:[...fields.querySelectorAll('select')].find(n=>n.name==='company_id')?.value||null;
+  const same=Q.findByName(rows(entity),name,r=>!companyId||r.company_id===companyId);
+  if(same){choose(same);close();msg.textContent='«'+title(same)+'» era già nel CRM: l’ho scelto.';return;}
+  saving=true;create.disabled=true;msg.textContent='Creazione in corso…';
+  try{const data=await api(entity,{body:{workspace:state.workspace,entity,action:'create',data:company?{name}:{name,company_id:companyId}}});const row=data.rows?.[0];
+   if(!row?.id)throw new Error('Il server non ha restituito il record: premi Aggiorna e verifica.');
+   state.rows[entity]=[...rows(entity),row];choose(row);close();msg.textContent=(company?'Azienda':'Contatto')+' «'+title(row)+'» creat'+(company?'a':'o')+' e scelt'+(company?'a':'o')+'. Completa i dati dalla sua scheda quando vuoi.';}
+  catch(e){msg.textContent='Non creato: '+e.message;}
+  finally{saving=false;create.disabled=false;}
+ },'quick-add-create');
+ const open=button(company?'+ Nuova azienda':'+ Nuovo contatto',()=>{form.hidden=false;open.hidden=true;msg.textContent='';input.focus();},'quick-add-open');
+ // Enter in this field creates the record, it does not submit the whole editor.
+ input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();create.click();}if(e.key==='Escape'){e.preventDefault();close();}});
+ form.append(input,create,button('Annulla',close,'quick-add-cancel'));box.append(open,form,msg);wrap.append(box);
+}
 function openEditor(entity,row=null){
  if(state.busy || !writable(entity))return;
  error('');editing={entity,row};$('editor-title').textContent=(row?'Modifica · ':'Crea · ')+names[entity];const fields=$('editor-fields');fields.replaceChildren();
@@ -413,6 +439,7 @@ function openEditor(entity,row=null){
   const stage=addSelect('stage_id','Fase',[],row?.stage_id,entity==='opportunities');
   const fill=()=>{stage.replaceChildren();const choices=[['','Nessuna fase'],...rows('stages').filter(s=>s.process_id===process.value).sort((a,b)=>a.position-b.position).map(s=>[s.id,s.title])];if(row?.stage_id && process.value===row.process_id && !choices.some(c=>c[0]===row.stage_id))choices.push([row.stage_id,'Fase corrente non caricata']);choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;stage.append(o);});stage.value=process.value===row?.process_id?row?.stage_id || '':'';stage.required=Boolean(process.value);};process.addEventListener('change',fill);fill();
  }
+ for(const n of fields.querySelectorAll('select')){if(n.name==='company_id'&&entity!=='companies')quickAdd(n,'companies',fields);if(n.name==='contact_id'&&entity!=='contacts')quickAdd(n,'contacts',fields);}
  // «Detta i campi» (sales/crm-dictation.js): the dictated values go into this form, saved by its own button.
  window.RadixCrmDictation?.editor(entity,row,fields);
  $('editor').showModal();fields.querySelector('input')?.focus();
