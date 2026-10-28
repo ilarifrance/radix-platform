@@ -22,8 +22,24 @@ if [[ "${1:-}" == "--uninstall" ]]; then
   exit 0
 fi
 
+# Serve Python 3.10 o piu' recente: quello di sistema su macOS e' spesso 3.9.
+PY=""
+for cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 "$(command -v python3 || true)" /usr/bin/python3; do
+  if [[ -x "$cand" ]] && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+    PY="$cand"; break
+  fi
+done
+if [[ -z "$PY" ]]; then
+  echo "Serve Python 3.10 o piu' recente (es. brew install python)." >&2
+  exit 1
+fi
+echo "Uso $PY ($("$PY" --version))"
+
 mkdir -p "$HOME_DIR/data" "$HOME_DIR/logs" "$AGENTS"
-/usr/bin/python3 -m venv "$VENV"
+if [[ -x "$VENV/bin/python" ]] && ! "$VENV/bin/python" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+  rm -rf "$VENV"
+fi
+"$PY" -m venv "$VENV"
 "$VENV/bin/pip" install --quiet --upgrade pip
 "$VENV/bin/pip" install --quiet -r "$HERE/requirements.txt"
 
