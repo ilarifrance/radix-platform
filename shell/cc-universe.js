@@ -309,7 +309,7 @@
   }
   function serviceCaption() {
     var caption = document.getElementById('networkCaption'), text = SERVICES.length + ' servizi · ' + SERVICE_LINKS.length + ' scambi diretti · passa sopra un servizio';
-    if (caption && caption.textContent !== text) caption.textContent = text;
+    if (caption && (window.RadixI18n && window.RadixI18n.source ? window.RadixI18n.source(caption) : caption.textContent) !== text) caption.textContent = text;
   }
   function buildProjects() {
     var all = mapProjects(); distinctColors(all);
@@ -702,10 +702,13 @@
   function systemsKpi(on, total) {
     var v = document.getElementById('metricAgents'); if (!v) return;
     var card = v.closest('.metric'), label = card && card.querySelector('.metric-label'), note = v.parentElement.querySelector('.metric-note');
+    // Compare with the Italian the page wrote: in English (lib/radix-i18n.js) the text on screen is the translation,
+    // and rewriting it on every mutation would loop with the translator.
+    function src(el) { return window.RadixI18n && window.RadixI18n.source ? window.RadixI18n.source(el) : el.textContent; }
     function paint() {
-      if (label && label.textContent !== 'Sistemi connessi') label.textContent = 'Sistemi connessi';
-      if (v.textContent !== String(on)) v.textContent = String(on);
-      var n = on + '/' + total + ' configurati'; if (note && note.textContent !== n) note.textContent = n;
+      if (label && src(label) !== 'Sistemi connessi') label.textContent = 'Sistemi connessi';
+      if (src(v) !== String(on)) v.textContent = String(on);
+      var n = on + '/' + total + ' configurati'; if (note && src(note) !== n) note.textContent = n;
     }
     if (card) { card.classList.add('cc-kpi-systems'); card.title = 'Servizi esterni con la chiave configurata su questo ambiente'; }
     paint(); new MutationObserver(paint).observe(card || v, { childList: true, subtree: true, characterData: true });

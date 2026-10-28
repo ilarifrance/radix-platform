@@ -382,7 +382,9 @@
   var sel = 0, shown = [];
   function render() {
     var q = input.value.trim().toLowerCase();
-    shown = entries.filter(function (e) { return !q || (e.text + ' ' + e.where + ' ' + e.kw).toLowerCase().indexOf(q) !== -1; });
+    // In English (lib/radix-i18n.js) the entries read in English, so the English words match too.
+    var en = window.RadixI18n && window.RadixI18n.en ? window.RadixI18n : null;
+    shown = entries.filter(function (e) { return !q || (e.text + ' ' + e.where + ' ' + e.kw + (en ? ' ' + en.t(e.text) + ' ' + en.t(e.where) : '')).toLowerCase().indexOf(q) !== -1; });
     sel = Math.min(sel, Math.max(shown.length - 1, 0));
     list.innerHTML = shown.length ? shown.map(function (e, i) {
       return '<li><a role="option" href="' + e.href + '" aria-selected="' + (i === sel) + '">' + esc(e.text) + (e.where ? '<small>' + esc(e.where) + '</small>' : '') + '</a></li>';

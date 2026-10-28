@@ -175,3 +175,24 @@ test('pages: every CRM page loads the language layer before its scripts, and Ita
   const src = fs.readFileSync(path.join(__dirname, '..', 'lib/radix-i18n.js'), 'utf8');
   assert.match(src, /return lang \|\| 'it';/);
 });
+
+test('pages: the Command Center pages load the language layer before any script too', () => {
+  const pages = ['control-center-v2.html', 'radix-pm-concept.html', 'impostazioni.html', 'agents.html', 'archive.html', 'project-profile.html', 'radix-ecosystem.html'];
+  for (const p of pages) {
+    const html = fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
+    const i = html.indexOf('<script src="/lib/radix-i18n.js"></script>');
+    assert.ok(i > 0, p);
+    assert.ok(html.indexOf('/lib/radix-i18n-en.js') < i, p);
+    assert.ok(html.indexOf('/lib/radix-i18n.css') > 0, p);
+    const first = html.search(/<script\b/);
+    assert.ok(first >= html.indexOf('/lib/radix-i18n-en.js') - 13, p + ': no script before the language layer');
+  }
+});
+
+test('Command Center strings: journey, activity and approvals written by the server read in English', () => {
+  assert.equal(T.display('3 campi da completare', true), '3 fields to complete');
+  assert.equal(T.display('Piano approvato · 4 contenuti', true), 'Plan approved · 4 items');
+  assert.equal(T.display('Alex Morgan ha salvato il piano editoriale', true), 'Alex Morgan saved the editorial plan');
+  assert.equal(T.display('Aura Skincare · richiesta da una persona del team', true), 'Aura Skincare · requested by a team member');
+  assert.equal(T.tr('Rossi e Figli ha creato il cliente Bianchi Srl'), 'Rossi e Figli created the client Bianchi Srl', 'names stay as typed');
+});

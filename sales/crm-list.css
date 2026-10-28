@@ -94,3 +94,5 @@ th.lv-cb{padding:0 8px}
 .lv-mass select,.lv-mass input{min-height:32px;max-width:100%}
 .lv-mass button{min-height:32px;padding:4px 12px;font-size:13px}
 .lv-mass-out{flex-basis:100%;margin:0;font-size:13px;color:var(--crm-muted)}
+/* Modifica/Elimina stay in view when the table is wider than the card (the column sticks to the right edge). */
+.lv-table th.lv-actions,.lv-table td.lv-actions{position:sticky;right:0;z-index:1;background:var(--crm-card);box-shadow:-10px 0 10px -10px var(--crm-shadow-c,rgba(0,0,0,.18))}
