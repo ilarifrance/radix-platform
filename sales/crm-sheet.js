@@ -183,6 +183,13 @@ function cell(r,c,now,host,ctx,canCall){
   case 'country':td.append(r.country?E('span',r.country):empty());if(r.countryFrom==='contact'&&r.companyRecord){td.append(E('small','dal contatto','lv-sub'));td.title='Paese del contatto: l’azienda non ha il Paese di fatturazione. Modificando scrivi quello dell’azienda.'}break;
   case 'revenue':td.append(r.revenue==null?empty():E('span',money(r.revenue)));break;
   case 'employees':td.append(r.employees==null?empty():E('span',int(r.employees)));break;
+  // Every activity in one cell, newest first: date and time, type, outcome, the start of the note. The cell scrolls when
+  // there are many; a click (or Enter) opens the full text from the newest, a click on one line opens that one.
+  case 'history':{if(!r.acts.length){td.append(empty());break}td.classList.add('cs-history','cs-detail');const box=E('div',undefined,'cs-hist');
+   r.acts.forEach((x,k)=>{const line=E('div',undefined,'cs-hist-line');line.append(E('b',dShort(x.at)+' '+hm(x.at)),' ',E('span',C().KINDS[x.kind]||x.kind||'Interazione','cs-hist-kind'));
+    if(x.outcome)line.append(' ',E('span',C().OUTCOMES[x.outcome],'cs-out cs-out-'+x.outcome));const note=x.note||(x.outcome?'':x.title);if(note)line.append(' · '+note);
+    line.dataset.k=String(k);box.append(line)});
+   td.append(box);td.setAttribute('aria-haspopup','dialog');td.title=C().cellText(r,'history')+'\n· Invio o clic: testo completo';break}
   case 'stage':if(!r.deal)td.append(empty());else{td.append(E('span',r.stage,'cs-stage'));if(r.deal.title)td.append(E('small',r.deal.title+(r.deal.count>1?' · '+r.deal.count+' aperte':''),'lv-sub'))}break;
   default:td.append(r[c.id]?E('span',r[c.id]):empty());
  }
@@ -211,6 +218,8 @@ function onKey(e,host,ctx){
 }
 // Click selects a cell (an activity or to-do cell also opens its full text); double click edits it.
 document.addEventListener('click',e=>{const td=e.target.closest?.('.cs td[data-r]');if(!td||S.editing)return;const host=td.closest('.cs');S.pos={r:+td.dataset.r,c:+td.dataset.c};if(e.target.closest('a,button'))return;focusCell(host,false);
+ // «Storico attività»: a click on one of its lines opens that activity.
+ const line=e.target.closest('.cs-hist-line');if(line&&td.contains(line)){noteDialog(current.shown[S.pos.r],{id:'acts:'+(+line.dataset.k+1),base:C().colOf('acts'),index:+line.dataset.k},td,host);return}
  if(td.classList.contains('cs-detail'))noteDialog(current.shown[S.pos.r],current.nav[S.pos.c],td,host)});
 // Width of the columns frozen on the left on this screen (on a phone the company scrolls: its left is auto).
 const frozenWidth=ui=>[...ui.scroll.querySelectorAll('thead tr.cs-head th.cs-fz')].filter(x=>{const s=getComputedStyle(x);return s.display!=='none'&&s.left!=='auto'}).reduce((w,x)=>w+x.offsetWidth,0);
@@ -312,6 +321,7 @@ function callDialog(r,host,ctx){
    back to the cell. ‹ › (or the arrow keys) move to the previous or next one of the same contact. */
 let noteDlg=null;
 function noteDialog(r,c,td,host){
+ if(c&&c.id==='history')c={id:'acts:1',base:C().colOf('acts'),index:0};
  if(!r||!c||!c.base||!c.base.many)return;
  const items=c.base.id==='acts'?r.acts:r.todos;let i=c.index;if(!items[i])return;
  if(!noteDlg){noteDlg=E('dialog',undefined,'cs-note');noteDlg.setAttribute('aria-labelledby','cs-note-title');document.body.append(noteDlg);

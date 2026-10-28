@@ -171,3 +171,11 @@ html[data-lv-contacts="sheet"] #contacts .lv[data-kind="contacts"]{scroll-margin
  .cs-act,.cs-todo{min-width:min(170px,calc(100vw - 196px))!important;max-width:min(190px,calc(100vw - 196px))!important}
  .cs-flash-msg{left:8px}
 }
+/* «Storico attività»: all activities in one cell, newest first; the cell scrolls past five lines. */
+.cs-history{min-width:300px!important;max-width:380px!important;white-space:normal!important;vertical-align:top}
+.cs-hist{max-height:7.4em;overflow-y:auto;display:grid;gap:3px;scrollbar-width:thin}
+.cs-hist-line{font-size:12px;line-height:1.35;color:var(--crm-muted);overflow-wrap:anywhere;border-radius:4px}
+.cs-hist-line b{color:var(--crm-text);font-weight:600}
+.cs-hist-kind{color:var(--crm-text)}
+.cs-hist-line:hover{background:var(--crm-hover);color:var(--crm-text)}
+@media (max-width:700px){.cs-history{min-width:min(260px,calc(100vw - 196px))!important;max-width:min(280px,calc(100vw - 196px))!important}}
