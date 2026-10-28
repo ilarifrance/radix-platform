@@ -24,13 +24,17 @@ fi
 
 # Serve Python 3.10 o piu' recente: quello di sistema su macOS e' spesso 3.9.
 PY=""
-for cand in /opt/homebrew/bin/python3 /usr/local/bin/python3 "$(command -v python3 || true)" /usr/bin/python3; do
-  if [[ -x "$cand" ]] && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+# Prima le versioni stabili esplicite, poi il python3 generico. Si scarta un Python che non
+# riesce a importare pyexpat (serve a pip): succede con alcune build Homebrew su macOS recenti.
+for cand in /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.13 /usr/local/bin/python3.12 \
+            /usr/local/bin/python3.13 /opt/homebrew/bin/python3 /usr/local/bin/python3 \
+            "$(command -v python3 || true)" /usr/bin/python3; do
+  if [[ -x "$cand" ]] && "$cand" -c 'import sys, pyexpat; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
     PY="$cand"; break
   fi
 done
 if [[ -z "$PY" ]]; then
-  echo "Serve Python 3.10 o piu' recente (es. brew install python)." >&2
+  echo "Serve un Python 3.10+ funzionante (es. brew install python@3.12)." >&2
   exit 1
 fi
 echo "Uso $PY ($("$PY" --version))"
