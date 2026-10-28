@@ -25,22 +25,28 @@ function toCsv(rows,columns){
 }
 const norm=s=>String(s).normalize('NFKC').trim().toLocaleLowerCase('it').replace(/[\s_.-]/g,'');
 const ALIASES={
- contacts:{name:['nome','name','nomecompleto','fullname','contatto','contact'],first:['firstname','nomeproprio'],last:['lastname','cognome','surname'],role:['ruolo','role','jobtitle','titolo','position','posizione'],email:['email','mail','emailaddress','posta'],phone:['telefono','phone','tel','cellulare','mobile'],linkedin_url:['linkedin','linkedinurl','profilolinkedin','profileurl'],company:['azienda','company','companyname','societa','società','organizzazione'],notes:['note','notes']},
- companies:{name:['azienda','nome','name','company','companyname','ragionesociale','societa','società'],industry:['settore','industry'],website:['sito','website','sitoweb','url','dominio','domain'],email:['email','mail'],phone:['telefono','phone','tel'],city:['citta','città','city','comune','sede'],notes:['note','notes']}
+ contacts:{name:['nome','name','nomecompleto','fullname','contatto','contact'],first:['firstname','nomeproprio'],last:['lastname','cognome','surname'],role:['ruolo','role','jobtitle','titolo','position','posizione'],email:['email','mail','emailaddress','posta'],phone:['telefono','phone','tel','cellulare','mobile','phoneno','businessphone'],linkedin_url:['linkedin','linkedinurl','profilolinkedin','profileurl'],company:['azienda','company','companyname','societa','società','organizzazione'],notes:['note','notes']},
+ companies:{name:['azienda','nome','name','company','companyname','ragionesociale','societa','società'],industry:['settore','industry'],website:['sito','website','sitoweb','url','dominio','domain','homepage'],email:['email','mail'],phone:['telefono','phone','tel','phoneno','mainphone'],city:['citta','città','city','comune','sede','address1:city'],notes:['note','notes']}
 };
 const LIMITS={name:200,role:120,email:254,phone:40,linkedin_url:300,notes:4000,industry:120,website:300,city:120,company:200};
 /* Fields of migration sales 011 (crm-fields-core.js), with Italian and English (Salesforce export) headers.
    Read only with opts.extended: an archive without 011 refuses them. */
 const ADDR=(p,it,en)=>({[p+'street']:[...it.map(x=>'indirizzo'+x),...it.map(x=>'via'+x),...en.map(x=>x+'street'),...en.map(x=>x+'address')],[p+'zip']:[...it.map(x=>'cap'+x),...en.map(x=>x+'postalcode'),...en.map(x=>x+'zip'),...en.map(x=>x+'zipcode')],[p+'city']:[...it.map(x=>'citta'+x),...it.map(x=>'città'+x),...en.map(x=>x+'city')],[p+'province']:[...it.map(x=>'provincia'+x),...it.map(x=>'prov'+x),...en.map(x=>x+'state'),...en.map(x=>x+'province')],[p+'country']:[...it.map(x=>'paese'+x),...it.map(x=>'nazione'+x),...en.map(x=>x+'country')]});
+/* Microsoft Dynamics exports (Business Central «No., Name, Address, Post Code, Country/Region Code»;
+   Dynamics 365 «Address 1: City»): the company's main address goes to the billing address. */
+const DYN_COUNTRY=['country/regioncode','countryregioncode','address1:country/region'];
+function withDynamicsAddress(a){
+ a.billing_street.push('address','address1:street1');a.billing_zip.push('postcode','address1:zip/postalcode');
+ a.billing_province.push('county','address1:state/province');a.billing_country.push(...DYN_COUNTRY);return a}
 const EXTENDED={
  contacts:{first_name:['firstname','nomeproprio'],last_name:['lastname','cognome','surname'],title:['qualifica','title','titolo professionale'.replace(/\s/g,'')],department:['reparto','department','ufficio'],division:['dipartimento','divisione','division'],
-  mobile:['cellulare','mobile','mobilephone','cell','telefonocellulare'],phone:['telefono','phone','tel','telefonoufficio','businessphone','phonenumber'],
-  street:['indirizzo','via','street','address','mailingstreet'],zip:['cap','zip','zipcode','postalcode','mailingpostalcode','codicepostale'],city:['citta','città','city','comune','mailingcity'],province:['provincia','prov','province','state','mailingstate'],country:['paese','nazione','country','mailingcountry'],
+  mobile:['cellulare','mobile','mobilephone','cell','telefonocellulare','mobilephoneno'],phone:['telefono','phone','tel','telefonoufficio','businessphone','phonenumber','phoneno'],
+  street:['indirizzo','via','street','address','mailingstreet','address1:street1'],zip:['cap','zip','zipcode','postalcode','mailingpostalcode','codicepostale','postcode','address1:zip/postalcode'],city:['citta','città','city','comune','mailingcity','address1:city'],province:['provincia','prov','province','state','mailingstate','county','address1:state/province'],country:['paese','nazione','country','mailingcountry',...DYN_COUNTRY],
   birthdate:['datadinascita','birthdate','birthday','datanascita','nascita'],lead_source:['origine','fonte','leadsource','originecontatto','fontecontatto'],preferred_language:['lingua','linguapreferita','language','preferredlanguage']},
  companies:{division:['dipartimento','divisione','division'],legal_name:['ragionesociale','legalname','denominazione'],account_type:['tipo','tipoazienda','tipologia','type','accounttype'],rating:['valutazione','rating','temperatura'],
   annual_revenue_cents:['fatturato','fatturatoannuo','annualrevenue','revenue','ricavi'],employees:['dipendenti','numerodipendenti','addetti','employees','numberofemployees'],
-  ...ADDR('billing_',['fatturazione'],['billing']),...ADDR('shipping_',['spedizione'],['shipping']),
-  vat_number:['partitaiva','piva','vat','vatnumber','vatid','partitaivacee'],tax_code:['codicefiscale','cf','taxcode','fiscalcode'],pec:['pec','emailpec','indirizzopec'],sdi_code:['sdi','codicesdi','codicedestinatario','codiceunivoco','sdicode'],description:['descrizione','description']}
+  ...withDynamicsAddress(ADDR('billing_',['fatturazione'],['billing'])),...ADDR('shipping_',['spedizione'],['shipping']),
+  vat_number:['partitaiva','piva','vat','vatnumber','vatid','partitaivacee','vatregistrationno'],tax_code:['codicefiscale','cf','taxcode','fiscalcode'],pec:['pec','emailpec','indirizzopec'],sdi_code:['sdi','codicesdi','codicedestinatario','codiceunivoco','sdicode'],description:['descrizione','description']}
 };
 // Spreadsheet words for the two lists, in Italian and English.
 const VALUE_WORDS={account_type:{cliente:'cliente',customer:'cliente',prospect:'prospect',potenziale:'prospect',partner:'partner',fornitore:'fornitore',supplier:'fornitore',vendor:'fornitore',altro:'altro',other:'altro'},rating:{calda:'calda',caldo:'calda',hot:'calda',tiepida:'tiepida',tiepido:'tiepida',warm:'tiepida',fredda:'fredda',freddo:'fredda',cold:'fredda'}};
