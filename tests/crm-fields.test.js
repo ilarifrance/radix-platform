@@ -156,6 +156,16 @@ test('CSV: Italian and Salesforce headers for the new fields; values the CRM wou
  assert.equal(csv.mapRows('companies',csv.parse('Ragione sociale\nSolo Ragione S.p.A.\n'),{extended:true}).rows[0].name,'Solo Ragione S.p.A.','ragione sociale alone also names the company');
  assert.equal(csv.isoDate('1.2.1980'),'1980-02-01');
 });
+test('CSV: Microsoft Dynamics exports (Business Central and Dynamics 365 headers) fill the same fields',()=>{
+ const bc=csv.mapRows('companies',csv.parse('No.;Name;Address;City;Post Code;County;Country/Region Code;Phone No.;E-Mail;Home Page;VAT Registration No.;Contact\nC10000;Acme Foods Ltd;1 Mill Lane;Aylesbury;HP17 8AA;Bucks;GB;01844 000000;sales@acme.co.uk;www.acme.co.uk;GB123456789;Jane Smith\n'),{extended:true});
+ assert.deepEqual(bc.rows,[{name:'Acme Foods Ltd',website:'https://www.acme.co.uk',email:'sales@acme.co.uk',phone:'01844 000000',city:'Aylesbury',billing_street:'1 Mill Lane',billing_zip:'HP17 8AA',billing_province:'Bucks',billing_country:'GB',vat_number:'GB123456789'}]);
+ assert.deepEqual(bc.unknown,['No.','Contact'],'the customer number and contact name are listed as not imported');
+ const ce=csv.mapRows('companies',csv.parse('Account Name,Main Phone,Address 1: City,Website\nBeta Ltd,0118 1,Reading,beta.co.uk\n'),{extended:true});
+ assert.deepEqual(ce.rows,[{name:'Beta Ltd',website:'https://beta.co.uk',phone:'0118 1',city:'Reading'}]);
+ const k=csv.mapRows('contacts',csv.parse('Full Name;Company Name;Job Title;Business Phone;Mobile Phone No.;E-Mail;Post Code\nJane Smith;Acme Foods Ltd;Buyer;01844 1;07700 1;jane@acme.co.uk;HP17 8AA\n'),{extended:true});
+ assert.deepEqual(k.columns,{name:'Full Name',role:'Job Title',email:'E-Mail',phone:'Business Phone',company:'Company Name',mobile:'Mobile Phone No.',zip:'Post Code'});
+ assert.equal(k.rows[0].title,'Buyer');
+});
 test('CSV import and export keep working on an archive without 011',()=>{
  const src=fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8');
  assert.match(src,/mapRows\(kind,parsed,\{extended:true,custom\}\)/);
