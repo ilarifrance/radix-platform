@@ -1,6 +1,7 @@
 """Riga di comando.
 
     python -m radix_trading collect          # scarica prezzi, macro e notizie nell'archivio
+    python -m radix_trading collect --tier fast   # solo crypto e notizie (ogni ora)
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
 
@@ -18,16 +19,18 @@ from .config import Settings
 from .store import Store
 
 
-def collect(store: Store) -> dict:
+def collect(store: Store, tier: str = "all") -> dict:
+    """`tier`: "fast" (crypto e notizie, ogni ora), "slow" (ETF e macro, una volta al giorno) o "all"."""
     report: dict[str, object] = {}
-    for sym in universe.FAST["symbols"]:
+    fast, slow = tier in ("fast", "all"), tier in ("slow", "all")
+    for sym in universe.FAST["symbols"] if fast else []:
         report[f"kraken:{sym}"] = _safe(lambda: store.upsert_bars(
             "kraken", sym, "1h", kraken.fetch_ohlc(sym, "1h")))
-    for sym in universe.SLOW["symbols"]:
+    for sym in universe.SLOW["symbols"] if slow else []:
         report[f"stooq:{sym}"] = _safe(lambda: store.upsert_bars("stooq", sym, "1d", stooq.fetch_daily(sym)))
-    for series in fred.DEFAULT_SERIES:
+    for series in fred.DEFAULT_SERIES if slow else []:
         report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
-    for q in gdelt.DEFAULT_QUERIES:
+    for q in gdelt.DEFAULT_QUERIES if fast else []:
         report[f"gdelt:{q[:30]}"] = _safe(lambda: store.upsert_news(gdelt.fetch_articles(q)))
     return report
 
@@ -63,11 +66,12 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest"])
+    p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
     store = Store(settings.db_path)
     try:
-        result = collect(store) if args.command == "collect" else run_backtests(store)
+        result = collect(store, args.tier) if args.command == "collect" else run_backtests(store)
     finally:
         store.close()
     json.dump(result, sys.stdout, indent=2, default=str, ensure_ascii=False)

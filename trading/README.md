@@ -33,8 +33,11 @@ python -m radix_trading collect    # scarica i dati in ./data/radix_trading.sqli
 python -m radix_trading backtest   # walk-forward fuori campione + cancello 1 per ogni strategia
 ```
 
-`collect` va eseguito su un server sempre acceso (es. Railway), ogni ora per crypto e notizie e
-ogni giorno per ETF e macro. L'ambiente di sviluppo cloud di Claude non raggiunge queste fonti.
+La raccolta gira sul Mac di Francesco (scelta del 28 ottobre): `bash scripts/install_mac.sh` crea
+un ambiente Python in `~/RadixTrading` e due job launchd, ogni ora `collect --tier fast` (crypto e
+notizie) e ogni giorno alle 23:30 `collect --tier slow` (ETF e macro). I dati si accumulano solo
+quando il Mac e' acceso. `bash scripts/install_mac.sh --uninstall` li rimuove. L'ambiente cloud
+di Claude non raggiunge queste fonti.
 
 ## Verifiche fatte
 
