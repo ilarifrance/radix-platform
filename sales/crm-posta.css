@@ -1,0 +1,67 @@
+/* sales-posta.html «Posta»: list of mails on the left, the open one on the right with «Collega al CRM». Tokens from crm-light.css. */
+*{box-sizing:border-box}
+body{margin:0;background:var(--crm-bg);color:var(--crm-text);font:14px/1.5 var(--crm-font)}
+.shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+main{min-width:0;padding:24px clamp(14px,2.4vw,40px) 48px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:10px;z-index:20}
+a{color:var(--crm-link)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+button,select,input[type=search]{background:var(--crm-card);border:1px solid var(--crm-line-2);border-radius:9px;padding:8px 12px}
+button{cursor:pointer;color:var(--crm-accent)}button:disabled{opacity:.5;cursor:default}
+.pm-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.pm-eyebrow{margin:0;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--crm-accent)}
+.pm-top h1{margin:4px 0;font-size:28px;letter-spacing:-.02em}
+.pm-lead{margin:0;color:var(--crm-muted);max-width:640px}
+.pm-pick{display:flex;gap:10px;flex-wrap:wrap}.pm-pick label{display:grid;gap:4px;font-size:12px;color:var(--crm-muted)}.pm-pick select{min-width:200px;color:var(--crm-text)}
+.pm-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.pm-tabs{display:flex;border:1px solid var(--crm-line-2);border-radius:10px;overflow:hidden}
+.pm-tabs button{border:0;border-radius:0;color:var(--crm-text)}.pm-tabs button[aria-selected=true]{background:var(--crm-accent-soft);color:var(--crm-accent);font-weight:600}
+.pm-search{display:flex;gap:6px;flex:1 1 260px}.pm-search input{flex:1;min-width:0;color:var(--crm-text)}
+.pm-only{font-size:13px;color:var(--crm-muted);display:flex;gap:6px;align-items:center}
+.pm-status{margin:6px 0 12px;color:var(--crm-muted);font-size:13px}.pm-status.err{color:var(--crm-err)}
+.pm-layout{display:grid;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:14px;align-items:start}
+.pm-list,.pm-read{background:var(--crm-card);border:1px solid var(--crm-line);border-radius:12px;box-shadow:var(--crm-shadow)}
+.pm-list ul{list-style:none;margin:0;padding:0;max-height:calc(100vh - 230px);overflow:auto}
+.pm-list li+li{border-top:1px solid var(--crm-line)}
+.pm-item{display:grid;gap:2px;width:100%;text-align:left;border:0;border-radius:0;background:transparent;color:var(--crm-text);padding:11px 14px}
+.pm-item:hover{background:var(--crm-hover)}.pm-item.on{background:var(--crm-accent-soft);box-shadow:inset 3px 0 var(--crm-accent)}
+.pm-item-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}.pm-item-top b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pm-item-top time{color:var(--crm-muted);font-size:12px;white-space:nowrap}
+.pm-item-subject{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pm-item-preview{font-size:12px;color:var(--crm-muted);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.pm-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.pm-tag{font-size:11px;padding:1px 8px;border-radius:99px;background:var(--crm-info-soft);color:var(--crm-info)}.pm-tag.ok{background:var(--crm-ok-soft);color:var(--crm-ok)}.pm-tag.clip{background:transparent;padding:0}
+.pm-none{padding:14px;color:var(--crm-muted);font-size:13px}
+.pm-more{margin:10px 14px 14px}
+.pm-read{padding:18px 22px;min-height:320px}
+.pm-read h2{margin:6px 0 10px;font-size:20px;line-height:1.3}
+.pm-empty,.pm-muted{color:var(--crm-muted)}
+.pm-back{display:none}
+.pm-meta{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0 0 8px;font-size:13px}.pm-meta dt{color:var(--crm-muted)}.pm-meta dd{margin:0;overflow-wrap:anywhere}
+.pm-outlook{font-size:13px}
+.pm-link{margin:14px 0;padding:14px;border:1px solid var(--crm-accent-line);background:var(--crm-accent-soft);border-radius:10px}
+.pm-link h3{margin:0 0 8px;font-size:14px}
+.pm-link-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pm-link-grid label{display:grid;gap:4px;font-size:12px;color:var(--crm-muted)}.pm-link-grid select{width:100%;color:var(--crm-text)}
+.pm-new{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:12px;color:var(--crm-muted)}
+.pm-chip{padding:3px 10px;font-size:12px;border-style:dashed}
+.pm-link-actions{margin-top:12px}
+.pm-btn{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--crm-line-2);background:var(--crm-card);text-decoration:none}
+.pm-btn.primary{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent);font-weight:600}
+.pm-link-msg{margin:6px 0 0;font-size:13px;color:var(--crm-err)}.pm-link-msg:empty{display:none}
+.pm-ok{margin:0 0 8px;color:var(--crm-ok);font-size:13px}
+.pm-err{color:var(--crm-err)}
+.pm-body{font-size:14px;line-height:1.6;overflow-wrap:anywhere}.pm-body p{margin:0 0 10px;white-space:pre-line}
+@media(max-width:900px){
+ .pm-layout{grid-template-columns:1fr}
+ .pm-layout:has(.pm-read .pm-back) .pm-list{display:none}
+ .pm-read:not(:has(.pm-back,.pm-force)){display:none}
+ .pm-back{display:inline-block;margin-bottom:6px}
+ .pm-list ul{max-height:none}
+}
+@media(max-width:620px){
+ .shell{grid-template-columns:1fr}
+ main{padding:16px 16px 40px}
+ .pm-top h1{font-size:23px}
+ .pm-pick,.pm-pick label,.pm-pick select{width:100%}
+ .pm-link-grid{grid-template-columns:1fr}
+}
