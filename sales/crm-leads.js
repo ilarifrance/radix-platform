@@ -66,7 +66,7 @@ function convert(lead){
   const who=E('div',undefined,'ld-sheet-lead');who.append(E('b',lead.title),E('small',[names.contact,names.company].filter(Boolean).join(' · ')||'Senza azienda né contatto collegati'));body.append(who);
   const create=E('input');create.type='checkbox';create.checked=pipes.length>0;create.disabled=!pipes.length;
   const createBox=E('label',undefined,'ld-check');createBox.append(create,E('span','Crea una trattativa nella pipeline'));body.append(createBox);
-  if(!pipes.length)body.append(E('p','Nel CRM non c’è ancora una pipeline con fasi: puoi convertire il lead senza trattativa, oppure crea prima la pipeline in «Processi».','ld-note'));
+  if(!pipes.length)body.append(E('p','Nel CRM non c’è ancora una pipeline con fasi: puoi convertire il lead senza trattativa, oppure crea prima la pipeline da «Personalizza pipeline» nella pagina Pipeline.','ld-note'));
   const box=E('div',undefined,'ld-grid');
   const title=input(def.title,{maxLength:200,required:true});
   const proc=select(pipes.map(p=>[p.id,p.title]),def.process_id);

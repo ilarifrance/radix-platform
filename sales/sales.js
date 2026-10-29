@@ -58,6 +58,9 @@ async function reload(){
  if(!state.workspace)return;
  const generation=++state.generation;
  state.ready=false;state.rows={};state.more={};state.offset={};state.errors={};customer=null;
+ // The views that read through crm-data.js (Panoramica, tabelle) see the same fresh data: without this a saved
+ // record left «Suggerimenti per oggi» and «Primi passi» as they were until Aggiorna or a reload of the page.
+ window.RadixCrmData?.reset?.();
  const result=await Promise.allSettled(Object.keys(names).map(entity=>load(entity)));
  if(!current(generation))return;state.ready=result.every(r=>r.status==='fulfilled');render();
  if(!state.ready)error('Alcuni dati non sono disponibili. Scrittura disabilitata: premi Aggiorna per riprovare.');

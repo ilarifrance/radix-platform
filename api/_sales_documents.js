@@ -27,7 +27,9 @@ const PRODUCT=['name','code','description','unit','unit_price_cents','vat_rate_b
 const BOOK=['name','description','is_default','active'];
 const DOC=['title','company_id','contact_id','opportunity_id','price_book_id','issue_date','valid_until','due_date','notes','terms','lines'];
 const LINE=['product_id','description','quantity','unit','unit_price_cents','discount_bp','vat_rate_bp'];
-const ISSUER=['name','legal_name','vat_number','tax_code','street','zip','city','province','country','email','pec','phone','iban','sdi_code','website'];
+const ISSUER=['name','legal_name','vat_number','tax_code','street','zip','city','province','country','email','pec','phone','iban','sdi_code','website','brand_primary','brand_accent'];
+// The two offer colours (sales/offerta.js) live in issuer as #rrggbb: no column, no migration.
+const HEX=/^#[0-9a-f]{6}$/i;
 const QUOTE_STATUS=['bozza','inviato','accettato','rifiutato','scaduto'],INVOICE_STATUS=['bozza','emessa','pagata','annullata'];
 
 function product(d,create){
@@ -99,7 +101,7 @@ function command(body){
   keys(d,['version','issuer','quote_terms','invoice_terms','quote_validity_days','payment_days']);
   data={};
   if(d.version!==undefined)data.version=int(d.version,'Versione',1,2147483646);
-  if(d.issuer!==undefined){keys(d.issuer,ISSUER,'Intestazione: campo non consentito.');data.issuer={};for(const [k,v] of Object.entries(d.issuer)){const t=text(v,'Intestazione',200);if(t)data.issuer[k]=t}}
+  if(d.issuer!==undefined){keys(d.issuer,ISSUER,'Intestazione: campo non consentito.');data.issuer={};for(const [k,v] of Object.entries(d.issuer)){const t=text(v,'Intestazione',200);if(t&&k.startsWith('brand_')&&!HEX.test(t))fail(400,'Colore non valido: usa il formato #rrggbb.');if(t)data.issuer[k]=k.startsWith('brand_')?t.toLowerCase():t}}
   if(d.quote_terms!==undefined)data.quote_terms=text(d.quote_terms,'Condizioni del preventivo',4000,{multiline:true});
   if(d.invoice_terms!==undefined)data.invoice_terms=text(d.invoice_terms,'Condizioni della fattura',4000,{multiline:true});
   if(d.quote_validity_days!==undefined)data.quote_validity_days=int(d.quote_validity_days,'Validità del preventivo',1,365);
