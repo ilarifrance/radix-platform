@@ -26,6 +26,7 @@
     check: '<circle cx="12" cy="12" r="8.5"/><path d="m8.5 12.2 2.4 2.4 4.8-5"/>',
     spark: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/>',
     chart: '<path d="M4 20V4M4 20h16"/><path d="m7 15 4-4 3 3 5-6"/>',
+    candles: '<path d="M7 4v16M17 4v16M12 7v10"/><rect x="5" y="8" width="4" height="7" rx="1"/><rect x="15" y="6" width="4" height="8" rx="1"/><rect x="10" y="10" width="4" height="4" rx="1"/>',
     target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
     scale: '<path d="M12 4v16M7 20h10M5 8h14"/><path d="m5 8-2.5 6a3 3 0 0 0 5 0Zm14 0-2.5 6a3 3 0 0 0 5 0Z"/>',
     gantt: '<path d="M4 6h9M7 12h10M10 18h10"/>',
@@ -92,8 +93,14 @@
     { id: 'cc-knowledge', text: 'Knowledge', href: '/control-center-v2.html#knowledge', icon: 'book' },
     { id: 'archive', text: 'Archivio v3.7', href: '/archive.html', icon: 'clock', kw: 'archivio conversazioni vecchia piattaforma' },
     { id: 'cc-analytics', text: 'Analytics', href: '/control-center-v2.html#analytics', icon: 'chart' },
-    { id: 'cc-integrations', text: 'Integrazioni', href: '/control-center-v2.html#integrations', icon: 'plug' }
+    { id: 'cc-integrations', text: 'Integrazioni', href: '/control-center-v2.html#integrations', icon: 'plug' },
+    // Personal page: shown only in a browser that has opened it with its own data (the page sets the flag).
+    { id: 'trading', text: 'Trading', href: '/trading.html', icon: 'candles', personal: 'rx-trading', kw: 'crypto etf borsa cambi materie prime backtest paper trading' }
   ];
+  NAV = NAV.filter(function (n) {
+    if (!n.personal) return true;
+    try { return localStorage.getItem(n.personal) === '1'; } catch (e) { return false; }
+  });
   var FOOT = [
     { id: 'coordination', text: 'Control Room', href: '/coordination/index.html', icon: 'radar' },
     { id: 'ecosystem', text: 'Tutte le aree', href: '/radix-ecosystem.html', icon: 'globe' },

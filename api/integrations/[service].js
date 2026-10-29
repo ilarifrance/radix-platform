@@ -20,7 +20,9 @@ const handlers = Object.freeze({
   'site-publish': () => require('../_site_publish'),
   'status': () => require('../_integrations-status'),
   // App «Meeting»: one audio segment to text (OpenAI), only after the person confirmed the cost.
-  'transcribe': () => require('../_transcribe')
+  'transcribe': () => require('../_transcribe'),
+  // Personal Trading page: snapshot pushed by the member's Mac (rtr1 bearer) and read with the session cookie.
+  'trading': () => require('../_trading')
 });
 module.exports = async function integrationRoute(req, res) {
   const service = req.query && req.query.service;

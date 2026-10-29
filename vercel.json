@@ -26,6 +26,10 @@
     {
       "source": "/api/send-email",
       "destination": "/api/integrations/send-email"
+    },
+    {
+      "source": "/api/trading",
+      "destination": "/api/integrations/trading"
     }
   ],
   "headers": [

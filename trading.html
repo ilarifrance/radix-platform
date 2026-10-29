@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>RADIX · Trading</title>
+<link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/system.css">
+<style>
+.tr{max-width:1320px;margin:0 auto;padding:22px 28px 70px;font-family:var(--rx-font);color:var(--rx-text)}
+.tr h1{font-family:var(--rx-display);font-size:clamp(28px,3.4vw,44px);letter-spacing:-.03em;margin:6px 0 8px;font-weight:600}
+.tr h2{font-family:var(--rx-display);font-size:18px;margin:0 0 4px;font-weight:600}
+.tr p{color:var(--rx-muted);line-height:1.6;margin:0}
+.tr .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--rx-core)}
+.tr .lead{max-width:860px;font-size:15px}
+.tr .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 22px}
+.tr .chip{border:1px solid var(--rx-border-strong);border-radius:99px;padding:6px 11px;font-size:12px;color:var(--rx-muted)}
+.tr .chip.ok{color:var(--rx-success);border-color:color-mix(in srgb,var(--rx-success) 45%,transparent)}
+.tr .chip.warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 45%,transparent)}
+.tr .chip.bad{color:var(--rx-error);border-color:color-mix(in srgb,var(--rx-error) 45%,transparent)}
+.tr .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-bottom:14px}
+.tr .kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));margin-bottom:14px}
+.tr .card{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;padding:18px 20px;min-width:0}
+.tr .card.wide{margin-bottom:14px}
+.tr .note{font-size:12.5px;color:var(--rx-muted);margin:2px 0 14px}
+.tr .kpi .lab{font-size:12px;color:var(--rx-muted)}
+.tr .kpi .big{font-family:var(--rx-display);font-size:30px;margin:6px 0 4px;font-variant-numeric:tabular-nums}
+.tr .kpi .sub{font-size:12px;color:var(--rx-muted)}
+.tr .pos{color:var(--rx-success)}.tr .neg{color:var(--rx-error)}.tr .warn{color:var(--rx-warning)}
+.tr .filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.tr .filters button,.tr .btn{font:inherit;font-size:13px;border:1px solid var(--rx-border-strong);background:transparent;color:var(--rx-text);border-radius:99px;padding:6px 12px;cursor:pointer}
+.tr .filters button[aria-pressed=true]{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.tr .btn.primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600;border-radius:10px;padding:9px 14px}
+.tr .scroll{overflow-x:auto}
+.tr table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tr th,.tr td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rx-border);white-space:nowrap}
+.tr th{font-size:11.5px;color:var(--rx-muted);font-weight:500}
+.tr td.n,.tr th.n{text-align:right}
+.tr tbody tr.pick{cursor:pointer}.tr tbody tr.pick:hover{background:var(--rx-surface-2)}
+.tr tbody tr[aria-selected=true]{background:color-mix(in srgb,var(--rx-core) 12%,transparent)}
+.tr .bar{display:inline-block;position:relative;width:90px;height:8px;border-radius:4px;background:var(--rx-surface-2);vertical-align:middle;margin-right:8px}
+.tr .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--rx-subtle)}
+.tr .bar i.ok{background:var(--rx-success)}
+.tr .bar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--rx-text);opacity:.7}
+.tr .verdict{font-size:12px;color:var(--rx-muted);white-space:normal;min-width:200px}
+.tr .verdict.ok{color:var(--rx-success)}
+.tr .chart{position:relative;min-height:240px}
+.tr .chart svg{display:block;width:100%;height:auto}
+.tr .chart .axis{fill:var(--rx-muted);font-size:11px}
+.tr .chart .grid-l{stroke:var(--rx-border);stroke-width:1}
+.tr .tip{position:absolute;pointer-events:none;background:var(--rx-bg-raised);border:1px solid var(--rx-border-strong);border-radius:10px;padding:7px 10px;font-size:12px;white-space:nowrap;z-index:2}
+.tr .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--rx-muted);margin-top:8px}
+.tr .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.tr select{font:inherit;font-size:13px;background:var(--rx-bg-raised);color:var(--rx-text);border:1px solid var(--rx-border-strong);border-radius:10px;padding:7px 10px;max-width:100%}
+.tr .row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.tr ul.list{list-style:none;margin:0;padding:0}
+.tr ul.list li{padding:9px 0;border-bottom:1px solid var(--rx-border);font-size:13px}
+.tr ul.list li:last-child{border:0}
+.tr ul.list small{display:block;color:var(--rx-muted);margin-top:3px;white-space:normal}
+.tr .macro{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.tr .macro div{background:var(--rx-surface-2);border-radius:12px;padding:11px 12px}
+.tr .macro b{display:block;font-family:var(--rx-display);font-size:20px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.tr .macro span,.tr .macro small{font-size:11.5px;color:var(--rx-muted)}
+.tr .empty{color:var(--rx-muted);font-size:13px;padding:10px 0}
+.tr dl{display:grid;grid-template-columns:minmax(120px,190px) 1fr;gap:8px 16px;margin:0;font-size:13.5px}
+.tr dt{font-weight:600}.tr dd{margin:0;color:var(--rx-muted);line-height:1.55}
+.tr pre{background:var(--rx-bg-raised);border:1px solid var(--rx-border-strong);border-radius:10px;padding:12px;font-size:12px;white-space:pre-wrap;word-break:break-all;margin:10px 0}
+.tr .notice{border-left:3px solid var(--rx-warning);background:color-mix(in srgb,var(--rx-warning) 10%,transparent);padding:10px 13px;border-radius:0 10px 10px 0;font-size:13px;color:var(--rx-text);margin:10px 0}
+.tr [hidden]{display:none!important}
+@media (max-width:640px){.tr{padding:16px 16px 50px}.tr .chart{min-height:0}.tr dl{grid-template-columns:1fr}.tr .kpi .big{font-size:26px}}
+</style>
+<script src="/shell/radix-shell.js" defer></script><script src="/lib/trading-view.js"></script>
+</head>
+<body class="rx-system" data-shell-area="system" data-shell-page="trading" data-shell-state="live">
+<main class="tr">
+ <header>
+  <div class="eyebrow">Personale · solo prove con soldi finti</div>
+  <h1>Trading</h1>
+  <p class="lead" id="lead">Caricamento dei risultati…</p>
+  <div class="chips"><span class="chip" id="updated">—</span><span class="chip ok">Modalità prova: nessun euro reale</span><span class="chip" id="kill" hidden>Blocco di emergenza attivo</span></div>
+ </header>
+
+ <section class="card wide" id="signin" hidden><h2>Accedi a RADIX</h2><p>Questa pagina mostra solo i tuoi risultati: <a href="/control-center-v2.html">accedi</a> e tornaci.</p></section>
+
+ <section class="card wide" id="welcome" hidden>
+  <h2>Collega il tuo Mac</h2>
+  <p>Il sistema di trading gira sul tuo Mac: raccoglie i prezzi ogni ora, prova le strategie ogni sera e manda qui i risultati. Genera il token qui sotto, nella sezione «Collegamento con il Mac», e aggiungilo al Mac: i primi numeri arrivano al giro successivo.</p>
+ </section>
+
+ <div id="content" hidden>
+  <section class="kpis">
+   <div class="card kpi"><div class="lab">Conto simulato</div><div class="big" id="kEquity">—</div><div class="sub" id="kEquitySub">Parte da 1.000 €</div></div>
+   <div class="card kpi"><div class="lab">Prove che superano il controllo</div><div class="big" id="kPassed">—</div><div class="sub">Ne serve almeno una per operare</div></div>
+   <div class="card kpi"><div class="lab">Operazioni negli ultimi 30 giorni</div><div class="big" id="kFills">—</div><div class="sub" id="kPositions">—</div></div>
+   <div class="card kpi"><div class="lab" id="kBestLab">Prova più vicina al controllo</div><div class="big" id="kBest">—</div><div class="sub" id="kBestSub">—</div></div>
+  </section>
+
+  <section class="card wide" id="portfolio" hidden>
+   <div class="row"><div><h2>Portafoglio con più strategie</h2><p class="note">1.000 € finti divisi tra più strade. Il direttore dà più capitale a chi rischia meno. Ogni giorno il guadagno sopra i 1.000 € va nella riserva, che copre i giorni sotto i 1.000 €.</p></div></div>
+   <div class="macro" id="pfTiles"></div>
+   <h2 style="margin-top:14px;font-size:15px">Come è diviso il capitale</h2>
+   <div class="macro" id="pfLanes"></div>
+   <div class="chart" id="pfChart" style="min-height:160px"></div>
+   <div class="legend"><span><i style="background:var(--rx-core)"></i>Totale (investito + riserva)</span><span><i style="background:var(--rx-subtle)"></i>Riserva</span></div>
+   <p class="empty" id="pfEmpty" hidden>L’andamento compare dopo qualche giro del Mac.</p>
+   <p class="note" id="pfPositions"></p>
+  </section>
+
+  <section class="card wide" id="tests">
+   <div class="row"><div><h2>Le prove delle strategie</h2><p class="note">Ogni strategia è allenata su un periodo e provata su quello dopo, più volte di seguito, con commissioni e costi veri. Tocca una riga per vederla nel tempo.</p></div></div>
+   <div class="filters" id="filters" role="group" aria-label="Filtra per mercato"></div>
+   <div class="scroll"><table>
+    <thead><tr><th>Strategia</th><th>Mercato</th><th class="n">100 € diventano</th><th class="n">Compra e tieni</th><th class="n">Discesa peggiore</th><th>Affidabilità</th><th class="n">Ordini</th><th>Esito</th></tr></thead>
+    <tbody id="testRows"></tbody>
+   </table></div>
+   <p class="empty" id="testsEmpty" hidden>Nessuna prova per questo mercato: i dati arrivano dopo il giro delle 23:30.</p>
+  </section>
+
+  <section class="card wide" id="history">
+   <div class="row"><div><h2 id="curveTitle">Nel tempo</h2><p class="note" id="curveNote">Quanto sarebbero diventati 100 €, mese per mese, solo nei periodi di prova.</p></div><select id="curveSel" aria-label="Prova da mostrare"></select></div>
+   <div class="chart" id="curveChart"></div>
+   <div class="legend"><span><i style="background:var(--rx-core)"></i>Strategia</span><span><i style="background:var(--rx-subtle)"></i>Compra e tieni (tutti i titoli del mercato a pesi uguali)</span></div>
+  </section>
+
+  <div class="grid">
+   <section class="card" id="account">
+    <h2>Conto simulato</h2><p class="note">Soldi finti, prezzi veri di Kraken. Compra solo con una strategia che ha superato il controllo, al massimo 100 € per posizione.</p>
+    <div class="chart" id="equityChart" style="min-height:160px"></div>
+    <p class="empty" id="equityEmpty" hidden>L’andamento compare dopo qualche ora di giri.</p>
+    <h2 style="margin-top:14px;font-size:15px">Posizioni aperte</h2>
+    <div class="scroll"><table><thead><tr><th>Crypto</th><th class="n">Prezzo di entrata</th><th class="n">Stop</th></tr></thead><tbody id="posRows"></tbody></table></div>
+    <p class="empty" id="posEmpty">Nessuna posizione aperta.</p>
+   </section>
+   <section class="card" id="decisions">
+    <h2>Ultime decisioni</h2><p class="note">Ogni ora, per ogni crypto, il sistema scrive cosa ha deciso e perché.</p>
+    <ul class="list" id="decList"></ul>
+    <p class="empty" id="decEmpty" hidden>Ancora nessuna decisione registrata.</p>
+   </section>
+  </div>
+
+  <div class="grid">
+   <section class="card" id="macro">
+    <h2>Contesto macro</h2><p class="note">Dati della Federal Reserve (FRED), con la variazione rispetto a un mese prima.</p>
+    <div class="macro" id="macroTiles"></div>
+    <p class="empty" id="macroEmpty" hidden>I dati macro arrivano con il giro serale.</p>
+   </section>
+   <section class="card" id="news">
+    <h2>Notizie</h2><p class="note" id="newsNote">Titoli economici e geopolitici raccolti da GDELT.</p>
+    <ul class="list" id="newsList"></ul>
+    <p class="empty" id="newsEmpty" hidden>Nessuna notizia raccolta: la fonte GDELT è ancora da sistemare.</p>
+   </section>
+  </div>
+
+  <section class="card wide" id="research" hidden>
+   <h2>Ricerca larga</h2><p class="note" id="resNote">—</p>
+   <p id="resLead" style="color:var(--rx-text);margin-bottom:12px">—</p>
+   <div class="scroll"><table>
+    <thead><tr><th>Strategia</th><th>Mercato</th><th class="n">All’anno (ricerca)</th><th class="n">Dopo tasse</th><th class="n">Discesa peggiore</th><th class="n">Affidabilità</th><th class="n">Anno chiuso a chiave</th></tr></thead>
+    <tbody id="resRows"></tbody>
+   </table></div>
+  </section>
+
+  <section class="card wide" id="sources">
+   <h2>Dati raccolti dal Mac</h2><p class="note">Il Mac raccoglie le crypto ogni ora e gli altri mercati ogni sera, solo quando è acceso.</p>
+   <div class="scroll"><table><thead><tr><th>Mercato</th><th class="n">Titoli</th><th class="n">Barre di prezzo</th><th>Ultimo dato</th><th>Stato</th></tr></thead><tbody id="srcRows"></tbody></table></div>
+  </section>
+ </div>
+
+ <section class="card wide" id="link">
+  <h2>Collegamento con il Mac</h2>
+  <p class="note" id="linkState">—</p>
+  <button class="btn primary" type="button" id="tokenBtn">Genera il token per il Mac</button>
+  <div id="tokenOut" hidden>
+   <div class="notice">Copialo adesso: per sicurezza non viene più mostrato. Permette solo di inviare i risultati a questa pagina, niente altro. Un nuovo token sostituisce quello vecchio.</div>
+   <p>Nel Terminale del Mac:</p>
+   <pre id="tokenCmd"></pre>
+   <button class="btn" type="button" id="copyBtn">Copia il comando</button> <span class="note" id="copyDone" hidden>Copiato.</span>
+  </div>
+  <p class="note" id="tokenErr" hidden></p>
+ </section>
+
+ <section class="card wide" id="glossary">
+  <h2>Come leggere questa pagina</h2>
+  <dl>
+   <dt>100 € diventano</dt><dd>Quanto sarebbero diventati 100 € seguendo la strategia nei soli periodi di prova, commissioni comprese.</dd>
+   <dt>Compra e tieni</dt><dd>Lo stesso periodo comprando tutto subito e non toccando più niente. Una strategia utile deve fare meglio, o perdere molto meno nelle discese.</dd>
+   <dt>Discesa peggiore</dt><dd>La perdita più grande da un massimo al minimo successivo. −48% vuol dire che a un certo punto 140 € erano scesi a 73 € prima di risalire.</dd>
+   <dt>Affidabilità</dt><dd>Da 0 a 1 (Deflated Sharpe). Dice quanto è probabile che il risultato non sia fortuna, tenendo conto di quante varianti abbiamo provato. La linea bianca è la soglia 0,95.</dd>
+   <dt>Controllo</dt><dd>Una prova lo supera se l’affidabilità è almeno 0,95, la discesa peggiore non supera il 25% e alla fine si guadagna. Solo allora il conto simulato può usarla.</dd>
+   <dt>Blocco di emergenza</dt><dd>Sul Mac, <code>touch ~/RadixTrading/data/KILL_SWITCH</code> chiude tutte le posizioni simulate e ferma i nuovi acquisti.</dd>
+  </dl>
+ </section>
+</main>
+<script>
+(function(){
+'use strict';
+const V=window.RadixTradingView,$=id=>document.getElementById(id);
+const CMD_PREFIX="echo 'RADIX_TRADING_TOKEN=",CMD_SUFFIX="' >> ~/RadixTrading/.env && chmod 600 ~/RadixTrading/.env";
+let snap=null,market='all',selected=null;
+
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=String(text);return e}
+function td(text,cls){return el('td',cls,text)}
+function signed(v){return v==null?'':(v>=0?'pos':'neg')}
+function remember(){try{localStorage.setItem('rx-trading','1')}catch(e){}}
+
+/* ---------- line chart (SVG, sized from its box) ---------- */
+function lineChart(box,series,{format=v=>V.num(v,2),dates,tick=d=>d.slice(0,7)}={}){
+ box.replaceChildren();
+ const W=Math.max(280,box.clientWidth||600),H=Math.round(Math.min(300,Math.max(150,W*0.36))),pad={l:46,r:12,t:10,b:24};
+ const vals=series.flatMap(s=>s.values).filter(v=>v!=null);
+ if(!vals.length)return;
+ let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo*=0.95;hi*=1.05}
+ const n=dates.length,x=i=>pad.l+(n<2?0:i*(W-pad.l-pad.r)/(n-1)),y=v=>pad.t+(hi-v)*(H-pad.t-pad.b)/(hi-lo);
+ const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+ svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');
+ const mk=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e};
+ for(let k=0;k<=3;k++){const v=lo+(hi-lo)*k/3,yy=y(v);svg.append(mk('line',{x1:pad.l,x2:W-pad.r,y1:yy,y2:yy,class:'grid-l'}));const t=mk('text',{x:pad.l-6,y:yy+4,'text-anchor':'end',class:'axis'});t.textContent=format(v);svg.append(t)}
+ const ticks=Math.min(W<520?3:6,n);for(let k=0;k<ticks;k++){const i=Math.round(k*(n-1)/Math.max(1,ticks-1)),t=mk('text',{x:x(i),y:H-6,'text-anchor':k===0?'start':k===ticks-1?'end':'middle',class:'axis'});t.textContent=tick(dates[i]);svg.append(t)}
+ for(const s of series){let d='';s.values.forEach((v,i)=>{if(v==null)return;d+=(d?'L':'M')+x(i).toFixed(1)+','+y(v).toFixed(1)});svg.append(mk('path',{d,fill:'none',style:'stroke:'+s.color,'stroke-width':s.width||2,'stroke-linejoin':'round','stroke-linecap':'round'}))}
+ const dot=mk('circle',{r:4,style:'fill:'+series[0].color,visibility:'hidden'});svg.append(dot);
+ box.append(svg);
+ const tip=el('div','tip');tip.hidden=true;box.append(tip);
+ svg.addEventListener('pointermove',e=>{const r=svg.getBoundingClientRect(),px=(e.clientX-r.left)*W/r.width;const i=Math.max(0,Math.min(n-1,Math.round((px-pad.l)/((W-pad.l-pad.r)/Math.max(1,n-1)))));
+  tip.replaceChildren(el('div','',dates[i]));for(const s of series)tip.append(el('div','',s.name+': '+format(s.values[i])));
+  const v0=series[0].values[i];if(v0!=null){dot.setAttribute('cx',x(i));dot.setAttribute('cy',y(v0));dot.setAttribute('visibility','visible')}
+  tip.hidden=false;const left=Math.min(box.clientWidth-tip.offsetWidth-4,Math.max(0,x(i)*r.width/W+10));tip.style.left=left+'px';tip.style.top='6px'});
+ svg.addEventListener('pointerleave',()=>{tip.hidden=true;dot.setAttribute('visibility','hidden')});
+}
+
+/* ---------- sections ---------- */
+function renderKpis(s){
+ const a=s.account;
+ $('kEquity').textContent=V.eur(a.equity,2);
+ $('kEquitySub').textContent=(a.change==null?'Parte da 1.000 €':V.pct(a.change)+' da 1.000 €')+(a.reserve>0?' · messi da parte '+V.eur(a.reserve,2):'');
+ $('kEquitySub').className='sub '+signed(a.change);
+ $('kPassed').textContent=s.passed+' su '+s.tests;
+ $('kFills').textContent=String(s.fills);
+ $('kPositions').textContent=s.openPositions?s.openPositions+' posizioni aperte':'Nessuna posizione aperta';
+ if(s.best){$('kBestLab').textContent=s.best.name+' · '+s.best.marketName;$('kBest').textContent=V.hundred(s.best.totalReturn);
+  $('kBestSub').textContent='da 100 €, discesa peggiore '+V.pct(s.best.maxDrawdown,0)+', affidabilità '+V.num(s.best.dsr,2)}
+}
+function renderFilters(all){
+ const ids=['all',...Object.keys(V.MARKETS).filter(m=>all.some(t=>t.market===m))];
+ $('filters').replaceChildren(...ids.map(id=>{const b=el('button','',id==='all'?'Tutti':V.marketName(id));b.type='button';b.setAttribute('aria-pressed',String(id===market));b.addEventListener('click',()=>{market=id;render()});return b}));
+}
+function renderTests(all){
+ const rows=all.filter(t=>market==='all'||t.market===market);
+ $('testsEmpty').hidden=rows.length>0;
+ $('testRows').replaceChildren(...rows.map(t=>{
+  const tr=el('tr','pick');tr.tabIndex=0;tr.setAttribute('aria-selected',String(t.key===selected));
+  const pick=()=>{selected=t.key;render();$('history').scrollIntoView({behavior:'smooth',block:'start'})};
+  tr.addEventListener('click',pick);tr.addEventListener('keydown',e=>{if(e.key==='Enter')pick()});
+  const v=V.verdict(t);
+  const name=td(t.name);name.title=V.STRATEGIES[t.strategy]?.how||'';
+  const rel=td('');if(t.dsr!=null){const bar=el('span','bar'),fill=el('i',t.passed?'ok':''),gate=el('b');fill.style.width=Math.max(2,Math.min(100,t.dsr*100))+'%';gate.style.left=(V.GATE_DSR*100)+'%';bar.append(fill,gate);rel.append(bar,document.createTextNode(V.num(t.dsr,2)))}else rel.textContent='—';
+  tr.append(name,td(t.marketName),td(V.hundred(t.totalReturn),'n '+signed(t.totalReturn)),td(V.hundred(t.holdReturn),'n'),
+   td(V.pct(t.maxDrawdown,0),'n'+(t.maxDrawdown!=null&&t.maxDrawdown<V.GATE_MAX_DD?' warn':'')),rel,td(t.orders==null?'—':String(t.orders),'n'),td(v.text,'verdict'+(v.ok?' ok':'')));
+  return tr}));
+}
+function renderCurve(all){
+ const withCurve=all.filter(t=>V.curve(snap,t.key).length);
+ const sel=$('curveSel');
+ if(!withCurve.some(t=>t.key===selected))selected=(withCurve[0]||{}).key||null;
+ sel.replaceChildren(...withCurve.map(t=>{const o=el('option','',t.name+' · '+t.marketName);o.value=t.key;return o}));
+ sel.value=selected||'';sel.hidden=!withCurve.length;
+ const t=all.find(x=>x.key===selected),pts=selected?V.curve(snap,selected):[];
+ if(!t||!pts.length){$('curveChart').replaceChildren(el('p','empty','Le curve arrivano con il giro serale delle prove.'));$('curveTitle').textContent='Nel tempo';return}
+ $('curveTitle').textContent=t.name+' · '+t.marketName;
+ $('curveNote').textContent=`100 € sarebbero diventati ${V.hundred(t.totalReturn)} (compra e tieni ${V.hundred(t.holdReturn)}). Discesa peggiore ${V.pct(t.maxDrawdown,0)} contro ${V.pct(t.holdDrawdown,0)}. ${V.STRATEGIES[t.strategy]?.how||''}`;
+ lineChart($('curveChart'),[{name:'Strategia',color:'var(--rx-core)',values:pts.map(p=>p.strategy==null?null:100*p.strategy),width:2.5},{name:'Compra e tieni',color:'var(--rx-subtle)',values:pts.map(p=>p.hold==null?null:100*p.hold)}],{dates:pts.map(p=>p.date),format:v=>V.eur(v)});
+}
+function renderAccount(a){
+ const h=a.history;$('equityEmpty').hidden=h.length>1;
+ if(h.length>1)lineChart($('equityChart'),[{name:'Conto',color:'var(--rx-core)',values:h.map(p=>p.patrimonio)}],{dates:h.map(p=>p.ts.slice(0,13).replace('T',' ')+':00'),format:v=>V.eur(v),tick:d=>d.slice(8,10)+'/'+d.slice(5,7)+' '+d.slice(11,13)+'h'});else $('equityChart').replaceChildren();
+ $('posEmpty').hidden=a.positions.length>0;
+ $('posRows').replaceChildren(...a.positions.map(p=>{const tr=el('tr');tr.append(td(String(p.chiave||'').replace('kraken:','')),td(V.eur(p.prezzo_entrata,2),'n'),td(V.eur(p.stop,2),'n'));return tr}));
+ const d=a.decisions.slice(0,20);$('decEmpty').hidden=d.length>0;
+ $('decList').replaceChildren(...d.map(x=>{const li=el('li','',String(x.key||'').replace('kraken:','')+' · '+String(x.action||''));li.append(el('small','',V.ago(x.ts)+' · '+String(x.reasons||'')));return li}));
+}
+function renderMacro(){
+ const m=V.macro(snap);$('macroEmpty').hidden=m.length>0;
+ $('macroTiles').replaceChildren(...m.map(x=>{const d=el('div');d.append(el('span','',x.name),el('b','',V.num(x.value,2)),el('small','',x.change==null?x.date:(x.change>=0?'+':'')+V.num(x.change,2)+' in un mese'));return d}));
+}
+function renderNews(){
+ const n=V.news(snap);$('newsEmpty').hidden=n.items.length>0;
+ $('newsNote').textContent='Titoli economici e geopolitici raccolti da GDELT: '+n.total+' in archivio.';
+ $('newsList').replaceChildren(...n.items.map(x=>{const li=el('li','',x.titolo);li.append(el('small','',[x.fonte,V.ago(x.ts)].filter(Boolean).join(' · ')));return li}));
+}
+function renderSources(){
+ $('srcRows').replaceChildren(...V.sources(snap).map(s=>{const tr=el('tr');tr.append(td(s.name),td(String(s.symbols),'n'),td(V.num(s.bars,0),'n'),td(s.last?V.ago(s.last):'—'),td(s.fresh?'aggiornato':'da aggiornare',s.fresh?'pos':'warn'));return tr}));
+}
+function renderResearch(){
+ const r=V.research(snap);$('research').hidden=!r;if(!r)return;
+ $('resNote').textContent=`${V.num(r.combos,0)} combinazioni su ${r.tests} prove (famiglie di strategie × mercati). Obiettivo: almeno ${V.pct(r.goal.yearly,0)} l’anno con perdita massima entro ${V.pct(r.goal.maxDrawdown,0)}. L’ultimo anno resta chiuso a chiave e si apre solo per le finaliste.`;
+ $('resLead').textContent=r.lead;
+ const rows=r.finals.length?r.finals.concat(r.ranking.filter(x=>!r.finals.some(f=>f.family===x.family&&f.market===x.market&&f.capital===x.capital)).slice(0,10)):r.ranking.slice(0,12);
+ $('resRows').replaceChildren(...rows.map(x=>{const tr=el('tr');
+  const lock=x.final?(V.pct(x.lockYearly,1)+' · '+V.pct(x.lockDrawdown,0)+(x.lockPassed?' ✓':' ✗')):'non aperto';
+  tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName+(x.capital?' · '+V.eur(x.capital,0):'')),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
+}
+function renderPortfolio(){
+ const p=V.portfolio(snap);$('portfolio').hidden=!p;if(!p)return;
+ const tile=(name,value,sub,cls)=>{const d=el('div');d.append(el('span','',name),el('b','',value));if(sub)d.append(el('small',cls||'',sub));return d};
+ $('pfTiles').replaceChildren(tile('Totale',V.eur(p.total,2),V.pct(p.change)+' da '+(p.start===1000?'1.000 €':V.eur(p.start,0)),'sub '+signed(p.change)),tile('Investito oggi',V.eur(p.invested,2)),tile('Messi da parte',V.eur(p.reserve,2)));
+ $('pfLanes').replaceChildren(...p.lanes.map(l=>tile(l.title,V.num(l.weight*100,0)+'%')));
+ const h=p.history;$('pfEmpty').hidden=h.length>1;
+ if(h.length>1)lineChart($('pfChart'),[{name:'Totale',color:'var(--rx-core)',values:h.map(x=>x.total)},{name:'Riserva',color:'var(--rx-subtle)',values:h.map(x=>x.reserve)}],{dates:h.map(x=>x.ts.slice(0,13).replace('T',' ')+':00'),format:v=>V.eur(v),tick:d=>d.slice(8,10)+'/'+d.slice(5,7)});else $('pfChart').replaceChildren();
+ $('pfPositions').textContent=p.positions.length?'Posizioni: '+p.positions.map(x=>x.symbol+(x.short?' (scoperto)':'')).join(', ')+'.':'Nessuna posizione aperta: tutto in liquidità.';
+}
+function render(){
+ const s=V.summary(snap),all=V.tests(snap);
+ $('lead').textContent=s.lead;
+ renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();renderPortfolio();
+}
+
+/* ---------- loading and the Mac link ---------- */
+function linkState(data){
+ $('linkState').textContent=data.receivedAt?'Collegato: ultimo invio dal Mac '+V.ago(data.receivedAt)+'.':data.linked?'Token creato: in attesa del primo invio dal Mac.':'Non ancora collegato.';
+ $('tokenBtn').textContent=data.linked?'Genera un nuovo token':'Genera il token per il Mac';
+}
+async function load(){
+ let res;try{res=await fetch('/api/trading',{credentials:'same-origin'})}catch(e){$('lead').textContent='RADIX non risponde: riprova tra poco.';return}
+ if(res.status===401){$('signin').hidden=false;$('link').hidden=true;$('lead').textContent='Accedi per vedere i tuoi risultati.';return}
+ const data=await res.json().catch(()=>({}));
+ if(!res.ok){$('lead').textContent=data.error||'Pagina non disponibile.';return}
+ linkState(data);
+ if(data.linked||data.snapshot)remember();
+ snap=data.snapshot;
+ if(!snap){$('welcome').hidden=false;$('lead').textContent='Ancora nessun risultato dal Mac.';$('updated').textContent='In attesa del Mac';return}
+ $('content').hidden=false;
+ $('updated').textContent='Aggiornato '+V.ago(snap.generato);
+ const old=(Date.now()-Date.parse(snap.generato||''))/3600000>3;$('updated').className='chip'+(old?' warn':'');
+ if(old)$('updated').title='Il Mac non manda dati da più di 3 ore: forse è spento.';
+ $('kill').hidden=!snap.kill_switch;$('kill').className='chip bad';
+ render();
+}
+$('tokenBtn').addEventListener('click',async()=>{
+ if($('tokenBtn').textContent.startsWith('Genera un nuovo')&&!confirm('Il token attuale smetterà di funzionare. Continuare?'))return;
+ $('tokenErr').hidden=true;$('tokenBtn').disabled=true;
+ try{
+  const res=await fetch('/api/trading',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json','x-radix-trading':'1'},body:JSON.stringify({action:'token'})});
+  const d=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(d.error||'Token non creato.');
+  $('tokenCmd').textContent=CMD_PREFIX+d.token+CMD_SUFFIX;$('tokenOut').hidden=false;remember();linkState({linked:true});
+ }catch(e){$('tokenErr').textContent=e.message;$('tokenErr').hidden=false}
+ finally{$('tokenBtn').disabled=false}
+});
+$('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('tokenCmd').textContent);$('copyDone').hidden=false}catch(e){}});
+$('curveSel').addEventListener('change',e=>{selected=e.target.value;render()});
+let rw;addEventListener('resize',()=>{clearTimeout(rw);rw=setTimeout(()=>{if(snap)render()},150)});
+load();
+})();
+</script>
+</body>
+</html>
