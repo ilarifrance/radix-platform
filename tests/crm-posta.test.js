@@ -92,3 +92,22 @@ test('wiring: route in /api/sales, page, nav entry, reconnect sets the owner',()
  assert.ok(fs.existsSync('sales/icons/mail.svg'));
  for(const s of ['crm-dates-core.js','crm-posta-core.js','crm-posta.js'])assert.ok(html.includes('/sales/'+s));
 });
+test('replies to campaigns: a received mail from a contact the queue wrote to, with no answer recorded since; one button records them',()=>{
+ const sent={contact_id:'c1',kind:'email',title:'Email: Proposta per Cliente',occurred_at:'2026-10-26T08:00:00Z'};
+ const reply={...msg,at:'2026-10-27T09:15:42Z'};
+ const r=P.campaignReply(reply,OWN,contacts,[sent]);assert.equal(r.contact.id,'c1');assert.equal(r.sent,sent);
+ assert.equal(P.campaignReply(reply,OWN,contacts,[]),null,'never written to by the queue');
+ assert.equal(P.campaignReply(reply,OWN,contacts,[{...sent,occurred_at:'2026-10-28T08:00:00Z'}]),null,'the campaign email came after this mail');
+ assert.equal(P.campaignReply(reply,OWN,contacts,[sent,{contact_id:'c1',kind:'call',title:'Telefonata',occurred_at:'2026-10-26T12:00:00Z'}]),null,'an answer is already recorded');
+ assert.equal(P.campaignReply(reply,OWN,contacts,[sent,{contact_id:'c1',kind:'email',title:'Email: Follow-up 1',occurred_at:'2026-10-26T12:00:00Z'}]).sent.title,'Email: Follow-up 1','a second queue email is not an answer');
+ assert.equal(P.campaignReply(reply,OWN,contacts,[sent,{contact_id:'c1',kind:'note',title:'Disiscrizione dalla newsletter',occurred_at:'2026-10-26T12:00:00Z'}]),null,'an opt-out is not an answer either: no follow-up, nothing to record');
+ assert.equal(P.campaignReply(reply,OWN,contacts,[{...sent,contact_id:'c2'}]),null,'another contact');
+ assert.equal(P.campaignReply({...reply,from:{address:OWN}},OWN,contacts,[sent]),null,'sent by the mailbox itself');
+ const linked=P.interaction(reply,OWN,{contact:contacts[0]}).data;assert.equal(P.campaignReply(reply,OWN,contacts,[sent,linked]),null,'already linked: «Email ricevuta: …» counts as the answer');
+ assert.deepEqual(P.campaignReplies([reply,{...reply,id:'m2',from:{address:'nobody@x.it'}}],OWN,contacts,[sent]).map(x=>x.msg.id),[reply.id]);
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8');
+ assert.ok(ui.includes("'↩ Risposta a una campagna','pm-tag reply'")&&ui.includes("b.id='pm-replies'")&&ui.includes('window.confirm(')&&ui.includes("post('interactions',p.data)"));
+ assert.ok(ui.indexOf('window.confirm(')<ui.indexOf("get({entity:'mail',workspace:S.workspace,mailbox:S.mailbox,id:r.msg.id})"),'nothing is read or saved before the confirmation');
+ assert.ok(fs.readFileSync(__dirname+'/../sales/crm-posta.css','utf8').includes('.pm-tag.reply'));
+ require('../lib/radix-i18n-en.js');assert.equal(globalThis.RadixI18nEn['↩ Risposta a una campagna'],'↩ Reply to a campaign');
+});

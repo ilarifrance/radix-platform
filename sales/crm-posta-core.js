@@ -51,6 +51,26 @@ function contactFrom(p){const a=addr(p&&p.address);if(!EMAIL.test(a))return null
 const FREE=new Set(['gmail.com','googlemail.com','outlook.com','hotmail.com','hotmail.it','live.com','live.it','msn.com','yahoo.com','yahoo.it','icloud.com','me.com','libero.it','virgilio.it','tiscali.it','alice.it','tim.it','fastwebnet.it','aol.com','proton.me','protonmail.com','gmx.com','gmx.it','pec.it','legalmail.it']);
 function companyByDomain(address,contacts){const d=addr(address).split('@')[1]||'';if(!d||FREE.has(d))return null;
  const ids=new Set((contacts||[]).filter(c=>c&&c.company_id&&addr(c.email).split('@')[1]===d).map(c=>c.company_id));return ids.size===1?[...ids][0]:null}
-const api={participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,MAX};
+/* Replies to the campaigns: a received mail from a contact the queue wrote to (the worker records «Email: …» interactions,
+   api/_sales_send_worker.js) with no answer recorded since (any interaction that is not «Email: …», as LAST_REPLY in api/_sales_optout.js,
+   an opt-out included: then nothing more goes out and there is nothing to record). Once linked, the follow-ups stop and the worker skips the contact.
+   → {contact, sent} or null. */
+const SENT=/^Email: /;
+function campaignReply(msg,own,contacts,interactions){
+ if(!msg||direction(msg,own)!=='received')return null;
+ const at=Date.parse(text(msg.at));if(Number.isNaN(at))return null;
+ const from=addr(msg.from&&msg.from.address);if(!EMAIL.test(from))return null;
+ const c=(contacts||[]).find(x=>x&&addr(x.email)===from);if(!c)return null;
+ const mine=(interactions||[]).filter(i=>i&&i.contact_id===c.id&&!Number.isNaN(Date.parse(i.occurred_at)));
+ const sent=mine.filter(i=>SENT.test(text(i.title))&&Date.parse(i.occurred_at)<=at).sort((a,b)=>Date.parse(b.occurred_at)-Date.parse(a.occurred_at))[0];
+ if(!sent)return null;
+ const since=Date.parse(sent.occurred_at);
+ // An answer already recorded, or an opt-out since the send (nothing more goes out): nothing to record.
+ if(mine.some(i=>!SENT.test(text(i.title))&&Date.parse(i.occurred_at)>=since))return null;
+ return {contact:c,sent};
+}
+/* The mails of the list that are replies to campaigns still to record, in list order. */
+function campaignReplies(items,own,contacts,interactions){const out=[];for(const m of items||[]){const r=campaignReply(m,own,contacts,interactions);if(r)out.push({msg:m,...r})}return out}
+const api={participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,MAX};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmPosta=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

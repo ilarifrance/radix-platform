@@ -8,6 +8,7 @@
    whole lot (api/_sales_mailboxes.js texts). Nothing is sent from this file; the queue sends in working hours. */
 (function(){
 const C=window.RadixCrmAiEmailsCore;if(!C)return;
+const PARALLEL=3;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const app=()=>window.RadixSalesApp;
@@ -59,12 +60,15 @@ function open(o){
  async function generate(list){
   if(!list.length||a.state.busy)return;
   if(!window.confirm('Chiedere all’AI di scrivere '+n(list.length,'email','email')+', una per contatto?\n'+n(list.length,'chiamata AI','chiamate AI')+', consumano crediti API. Usa solo i dati del CRM su ogni persona e il tuo testo: nulla viene inviato, leggerai ogni email prima di metterla in coda.'))return;
-  let k=0;a.lock(true);a.error('');
-  try{for(const it of list){k++;status.textContent='L’AI scrive l’email '+k+' di '+list.length+' · '+it.contact.name+'…';
+  // PARALLEL calls at a time (a lot of 100 takes minutes, not a quarter of an hour); the cards keep the contacts' order.
+  let done=0,next=0;a.lock(true);a.error('');
+  const one=async it=>{status.textContent='L’AI scrive le email: '+done+' di '+list.length+' pronte · '+it.contact.name+'…';
    try{const got=C.parse(await ask(C.prompt(t,it.facts,{mode:o.mode||'consent'})),it.facts,t);if(!got)throw new Error('risposta non leggibile');
     it.subject=got.subject;it.body=got.body;it.warnings=got.warnings;it.ai=true;it.error=null}
    catch(e){it.error=(e&&e.message)||String(e);it.ai=false;it.subject=null;it.body=null;it.warnings=[]}
-   redraw()}}
+   done++;redraw()};
+  const lane=async()=>{while(next<list.length){const it=list[next++];await one(it)}};
+  try{await Promise.all(Array.from({length:Math.min(PARALLEL,list.length)},lane))}
   finally{a.lock(false)}
   status.textContent='';const ok=list.filter(it=>it.ai).length;
   a.notice(ok===list.length?n(ok,'email scritta','email scritte')+' dall’AI: rileggile, poi «Metti in coda».':ok+' di '+list.length+' scritte: le altre useranno il testo base, oppure premi «Rigenera».');

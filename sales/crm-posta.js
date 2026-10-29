@@ -55,10 +55,27 @@ function drawList(){const ul=$('pm-items');ul.replaceChildren();const only=$('pm
   const top=E('span',undefined,'pm-item-top');top.append(E('b',(sent?'A: ':'')+(people||'(sconosciuto)')),E('time',when(m.at)));
   b.append(top,E('span',m.subject||'(senza oggetto)','pm-item-subject'),E('span',m.preview||'','pm-item-preview'));
   const tags=E('span',undefined,'pm-tags'),cs=matched(m);for(const c of cs.slice(0,2))tags.append(E('span',c.name||c.email,'pm-tag'));if(cs.length>2)tags.append(E('span','+'+(cs.length-2),'pm-tag'));
-  if(isLinked(m))tags.append(E('span','✓ Collegata','pm-tag ok'));if(m.attachments)tags.append(E('span','📎','pm-tag clip'));if(tags.children.length)b.append(tags);
+  if(isLinked(m))tags.append(E('span','✓ Collegata','pm-tag ok'));else if(S.crmReady&&P.campaignReply(m,own(),S.crm.contacts,S.crm.interactions))tags.append(E('span','↩ Risposta a una campagna','pm-tag reply'));if(m.attachments)tags.append(E('span','📎','pm-tag clip'));if(tags.children.length)b.append(tags);
   b.onclick=()=>openMessage(m);li.append(b);ul.append(li)}
  if(!shown.length&&S.items.length)ul.append(E('li','Nessuna di queste mail riguarda contatti del CRM.','pm-none'));
- $('pm-more').hidden=!S.more}
+ $('pm-more').hidden=!S.more;drawReplies()}
+/* «Registra le risposte alle campagne»: the received mails of this page from contacts the queue wrote to, not yet
+   recorded, saved as email interactions in one go (one confirmation). A recorded reply stops the follow-ups of the
+   contact and the worker skips it (api/_sales_optout.js LAST_REPLY). */
+function drawReplies(){let b=$('pm-replies');if(!b){b=E('button',undefined,'pm-replies');b.id='pm-replies';b.type='button';$('pm-reload').after(b)}
+ const list=S.crmReady?P.campaignReplies(S.items,own(),S.crm.contacts,S.crm.interactions):[];
+ b.hidden=!list.length;if(!list.length)return;
+ b.textContent='Registra '+list.length+(list.length===1?' risposta a una campagna':' risposte alle campagne');
+ b.onclick=async()=>{if(S.busy)return;
+  if(!window.confirm('Registrare nel CRM '+list.length+(list.length===1?' risposta':' risposte')+' di contatti a cui la coda ha scritto?\n'+list.slice(0,8).map(r=>'· '+(r.contact.name||r.contact.email)+' · «'+(r.msg.subject||'(senza oggetto)')+'»').join('\n')+(list.length>8?'\n· …':'')+'\nOgni mail entra nella cronologia del contatto come email ricevuta; i follow-up automatici a quel contatto si fermano. Nulla viene inviato.'))return;
+  S.busy=true;b.disabled=true;let ok=0;const failed=[];
+  try{for(const r of list){status('Registro la risposta di '+(r.contact.name||r.contact.email)+'… ('+(ok+failed.length+1)+' di '+list.length+')');
+   try{const d=await get({entity:'mail',workspace:S.workspace,mailbox:S.mailbox,id:r.msg.id});const full={...r.msg,...d.rows[0],full:true};
+    const p=P.interaction(full,own(),{contact:r.contact});if(p.error)throw new Error(p.error);
+    const row=await post('interactions',p.data);S.crm.interactions.push(row);ok++}
+   catch(e){failed.push((r.contact.name||r.contact.email)+': '+e.message)}}}
+  finally{S.busy=false;b.disabled=false}
+  drawList();drawRead();status(ok+(ok===1?' risposta registrata':' risposte registrate')+(failed.length?' · non registrate: '+failed.join(' · '):'')+'.',failed.length>0)}}
 
 /* ---------- Reading pane ---------- */
 async function openMessage(m){S.open={...m};drawList();drawRead();const gen=S.gen,id=m.id;
