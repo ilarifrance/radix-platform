@@ -10,9 +10,11 @@ const str=v=>v===null||v===undefined?'':String(v).trim();
 const esc=s=>str(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const FIELD_MAX=200,TEXT_MAX=1200;
 /* lang: 'it' (default) or 'en' (British English, when the CRM runs in English): texts, dates and number formats.
-   In English the amounts carry the pound sign, as the whole CRM does in that mode (lib/radix-i18n.js turns € into £). */
+   In English the amounts carry the sign of the chosen currency (opts.currency 'GBP', the default, or 'EUR'), as the
+   whole CRM does in that mode (lib/radix-i18n.js: currency in the language menu). Italian always writes euro. */
 const LANG=l=>l==='en'?'en':'it',LOCALE={it:'it-IT',en:'en-GB'};
-const euro=(c,lang)=>{const n=Number(c||0)/100;return (LANG(lang)==='en'?'£':'€ ')+n.toLocaleString(LOCALE[LANG(lang)],{minimumFractionDigits:2,maximumFractionDigits:2})};
+const CUR=(lang,c)=>LANG(lang)==='en'?(String(c||'').toUpperCase()==='EUR'?'EUR':'GBP'):'EUR';
+const euro=(c,lang,cur)=>{const n=Number(c||0)/100;return (LANG(lang)==='en'?(CUR(lang,cur)==='EUR'?'€':'£'):'€ ')+n.toLocaleString(LOCALE[LANG(lang)],{minimumFractionDigits:2,maximumFractionDigits:2})};
 const pct=(bp,lang)=>{const n=Number(bp||0)/100;return (Number.isInteger(n)?String(n):n.toLocaleString(LOCALE[LANG(lang)],{maximumFractionDigits:2}))+'%'};
 const qty=(q,lang)=>{const n=Number(q||0);return Number.isInteger(n)?String(n):n.toLocaleString(LOCALE[LANG(lang)],{maximumFractionDigits:3})};
 const MONTHS={it:['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],en:['January','February','March','April','May','June','July','August','September','October','November','December']};
@@ -100,10 +102,10 @@ function questions(doc,saved,lang){
 const lineNet=l=>{const gross=Number(l.quantity||0)*Number(l.unit_price_cents||0);return Math.round(gross*(1-Number(l.discount_bp||0)/10000))};
 /* The content model: every text here can be edited in step 3; numbers come from the quote only. */
 function plan(doc,answers,opts){
- const a=answers||{},lang=LANG(opts&&opts.lang),b=locBusiness(byId(BUSINESS,a.business)||BUSINESS[0],lang),goal=a.goal||'nuovo',tone=a.tone||'sicuro';
+ const a=answers||{},lang=LANG(opts&&opts.lang),cur=CUR(lang,opts&&opts.currency),b=locBusiness(byId(BUSINESS,a.business)||BUSINESS[0],lang),goal=a.goal||'nuovo',tone=a.tone||'sicuro';
  const cust=(doc&&doc.customer)||{},co=cust.company||{},ct=cust.contact||{},issuer=(doc&&doc.issuer)||{};
  const customer=str(co.name)||str(co.legal_name)||T(lang,'il cliente','the customer'),seller=str(issuer.name)||str(issuer.legal_name)||'';
- const lines=(doc&&doc.lines||[]).map(l=>({description:str(l.description),quantity:qty(l.quantity,lang),unit:str(l.unit)||T(lang,'pz','pcs'),unit_price:euro(l.unit_price_cents,lang),discount:Number(l.discount_bp||0)?pct(l.discount_bp,lang):'',vat:pct(l.vat_rate_bp,lang),net:euro(l.net_cents!=null?l.net_cents:lineNet(l),lang)}));
+ const lines=(doc&&doc.lines||[]).map(l=>({description:str(l.description),quantity:qty(l.quantity,lang),unit:str(l.unit)||T(lang,'pz','pcs'),unit_price:euro(l.unit_price_cents,lang,cur),discount:Number(l.discount_bp||0)?pct(l.discount_bp,lang):'',vat:pct(l.vat_rate_bp,lang),net:euro(l.net_cents!=null?l.net_cents:lineNet(l),lang,cur)}));
  const title=str(doc&&doc.title)||(lang==='en'?(b.id==='software'?'Activation proposal':b.id==='agenzia'?'Creative proposal':'Commercial proposal'):(b.id==='software'?'Proposta di attivazione':b.id==='agenzia'?'Proposta creativa':'Proposta commerciale'));
  const greet=lang==='en'?'Dear':tone==='caldo'?'Gentile':tone==='tecnico'?'Spett.le':'Gentile';
  const who=str(ct.name)?greet+' '+str(ct.name)+',':greet+' '+customer+',';
@@ -124,8 +126,8 @@ function plan(doc,answers,opts){
   if(id==='condizioni')return {id,title,kind:'text',text:str(doc&&doc.terms)||T(lang,'Pagamento come da accordi. Offerta non vincolante fino alla conferma scritta.','Payment as agreed. This proposal is not binding until confirmed in writing.')};
   return {id,title,kind:'text',text:str(doc&&doc.notes)||(lang==='en'?(id==='brief'?'The brief we gathered and the agreed goals: add here, in a few lines, what the customer needs to achieve.':'The context and goals of '+customer+': add here, in a few lines, where we start from and where we want to get to.'):(id==='brief'?'Il brief raccolto e gli obiettivi concordati: aggiungi qui, in poche righe, cosa deve ottenere il cliente.':'Il contesto e gli obiettivi di '+customer+': aggiungi qui, in poche righe, da dove si parte e dove si vuole arrivare.'))};
  });
- return {lang,business:b.id,goal,tone,title,subtitle:T(lang,'Per ','For ')+customer,customer,contact:str(ct.name),seller,date:longDate(doc&&doc.issue_date,lang)||longDate(new Date().toISOString(),lang),number:str(doc&&doc.number),
-  validUntil:longDate(doc&&doc.valid_until,lang),intro,sections,lines,totals:{subtotal:euro(doc&&doc.subtotal_cents,lang),discount:Number(doc&&doc.discount_cents||0)?euro(doc.discount_cents,lang):'',vat:(doc&&doc.vat_summary||[]).map(r=>({label:T(lang,'IVA ','VAT ')+pct(r.vat_rate_bp,lang),amount:euro(r.vat_cents,lang)})),total:euro(doc&&doc.total_cents,lang)},
+ return {lang,currency:cur,business:b.id,goal,tone,title,subtitle:T(lang,'Per ','For ')+customer,customer,contact:str(ct.name),seller,date:longDate(doc&&doc.issue_date,lang)||longDate(new Date().toISOString(),lang),number:str(doc&&doc.number),
+  validUntil:longDate(doc&&doc.valid_until,lang),intro,sections,lines,totals:{subtotal:euro(doc&&doc.subtotal_cents,lang,cur),discount:Number(doc&&doc.discount_cents||0)?euro(doc.discount_cents,lang,cur):'',vat:(doc&&doc.vat_summary||[]).map(r=>({label:T(lang,'IVA ','VAT ')+pct(r.vat_rate_bp,lang),amount:euro(r.vat_cents,lang,cur)})),total:euro(doc&&doc.total_cents,lang,cur)},
   signature:seller?T(lang,'A presto,\n','Kind regards,\n')+seller:T(lang,'A presto','Kind regards'),contactLine:[str(issuer.email),str(issuer.phone),str(issuer.website)].filter(Boolean).join(' · ')};
 }
 /* Editable fields (step 3), in page order; value/limit for the inputs, apply() writes them back into the model. */
