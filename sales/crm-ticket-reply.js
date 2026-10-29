@@ -45,8 +45,9 @@ const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const app=()=>root.RadixSalesApp;
 const post=(entity,action,data)=>app().api(entity,{body:{workspace:app().state.workspace,entity,action,data}});
-let emailReady=null;
-async function emailConfigured(){if(emailReady!==null)return emailReady;try{const r=await fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{};emailReady=!!(d.items||[]).find(i=>i.id==='email'&&i.configured)}catch{emailReady=false}return emailReady}
+const sender=()=>root.RadixCrmSendDirect;
+// Direct send = a workspace mailbox (Impostazioni › Caselle email) or the server Gmail (sales/crm-send-direct.js).
+async function emailConfigured(){const S=sender();return S?await S.ready():null}
 async function contactOf(ticket){
  if(!ticket.contact_id)return null;
  const a=app(),known=a.rows('contacts').find(c=>c.id===ticket.contact_id);if(known)return known;
@@ -77,11 +78,10 @@ function mount(c,ticket){
  acts.append(B('Invia',async()=>{
   let p;if(!await run('Preparo l’invio…',async()=>{const ct=await load();p=plan(ticket,ct,area.value);if(p.error)throw new Error(p.error);
    if(!p.to)throw new Error('Il contatto del ticket non ha un’email valida: usa «Segna come inviata» dopo aver risposto da un altro canale.');
-   if(!await emailConfigured())throw new Error('Invio diretto non configurato (manca Gmail): usa «Apri nel programma email».')}))return;
+   if(!await emailConfigured())throw new Error('Invio diretto non configurato (nessuna casella in Impostazioni › Caselle email): usa «Apri nel programma email».')}))return;
   if(/\[(?:DA COMPLETARE|TO BE COMPLETED)/i.test(p.body)&&!window.confirm('La risposta contiene ancora parti [DA COMPLETARE]. Inviarla comunque?'))return;
   if(!window.confirm('Inviare ora la risposta a '+p.to+'?\nOggetto: '+p.subject))return;
-  if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,kind:'service',confirm:true})});
-   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');await record(p)})){await a.refresh(false);a.notice('Risposta inviata a '+p.to+' e registrata.')}}));
+  if(await run('Invio in corso…',async()=>{await sender().send({to:p.to,subject:p.subject,body:p.body,kind:'service',confirm:true});await record(p)})){await a.refresh(false);a.notice('Risposta inviata a '+p.to+' e registrata.')}}));
  acts.append(B('Apri nel programma email',async()=>{
   let p;if(!await run('Preparo l’email…',async()=>{p=plan(ticket,await load(),area.value);if(p.error)throw new Error(p.error)}))return;
   location.href='mailto:'+(p.to?encodeURIComponent(p.to):'')+'?subject='+encodeURIComponent(p.subject)+'&body='+encodeURIComponent(p.body);

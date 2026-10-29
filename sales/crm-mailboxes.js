@@ -28,6 +28,7 @@ function panel(){
  box.addEventListener('toggle',()=>{if(box.open)refresh()});
  box.refresh=refresh;
  async function refresh(){
+  if(root.RadixCrmSendDirect)root.RadixCrmSendDirect.reset();
   let d;try{d=await app().api('mailboxes',{})}catch(e){list.replaceChildren(E('p',e.message,'notice'));return}
   render(d);
   if(!shown){shown=true;const sp=new URLSearchParams(location.search),r=sp.get('ms');if(r){box.open=true;if(r==='ok')app().notice('Casella Microsoft 365 collegata. Usa «Prova invio» per verificarla.');else app().error(sp.get('msg')||'Collegamento Microsoft non riuscito.')}}

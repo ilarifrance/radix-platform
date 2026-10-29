@@ -15,18 +15,27 @@ const EN=()=>!!(root&&root.RadixI18n&&root.RadixI18n.en);
 const clip=(v,n)=>{const s=String(v??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s};
 const domainOf=e=>{const m=/@([^\s@]+)$/.exec(String(e||'').trim());return m?m[1].toLowerCase():''};
 // Pure: the facts the AI may use on one contact (c: a row of the contacts export; co: its company row or null).
+// Role = the exact job title («Qualifica», what the import from Lead Intelligence/Sales Navigator fills) plus the
+// function («Ruolo», a CRM choice) when both are known and differ; a bare «Altro» says nothing and is left out.
+function roleOf(c){
+ const t=clip(c.title,120),r=clip(c.role,120),rr=r&&r.toLowerCase()!=='altro'?r:'';
+ if(t&&rr)return t.toLowerCase()===rr.toLowerCase()?t:t+' ('+rr+')';
+ return t||rr;
+}
+const employees=v=>{const n=Number(v);return Number.isFinite(n)&&n>0?String(Math.round(n))+' dipendenti':''};
 function facts(c,co){
  c=c||{};co=co||{};
  return {
-  nome:clip(c.name,120),ruolo:clip(c.role,120),azienda:clip(c.company||co.name,160),
-  settore:clip(co.industry,120),citta:clip(co.city,80),sito:clip(co.website,200),dominio_email:domainOf(c.email),
-  note:clip(c.notes,400),note_azienda:clip(co.notes,300),linkedin:!!c.linkedin_url
+  nome:clip(c.name,120),ruolo:roleOf(c),reparto:clip(c.department,120),azienda:clip(c.company||co.name,160),
+  settore:clip(co.industry,120),citta:clip(co.city||co.billing_city||c.city,80),paese:clip(co.billing_country||c.country,80),dipendenti:employees(co.employees),
+  sito:clip(co.website,200),dominio_email:domainOf(c.email),
+  note:clip(c.notes,400),note_azienda:clip(co.description||co.notes,300),linkedin:!!c.linkedin_url
  };
 }
 // Pure: the lines of the facts block (only what is known: an empty field is not a fact).
 function factLines(f){
  const L=[],put=(k,v)=>{if(v)L.push('- '+k+': '+v)};
- put('Nome',f.nome);put('Ruolo',f.ruolo);put('Azienda',f.azienda);put('Settore',f.settore);put('Città',f.citta);put('Sito',f.sito);put('Dominio email',f.dominio_email);
+ put('Nome',f.nome);put('Ruolo',f.ruolo);put('Reparto',f.reparto);put('Azienda',f.azienda);put('Settore',f.settore);put('Dimensione',f.dipendenti);put('Città',f.citta);put('Paese',f.paese);put('Sito',f.sito);put('Dominio email',f.dominio_email);
  put('Note sul contatto',f.note);put('Note sull’azienda',f.note_azienda);if(f.linkedin)L.push('- Profilo LinkedIn: presente nel CRM (contenuto non disponibile)');
  return L;
 }
@@ -72,7 +81,9 @@ function texts(items){
  for(const it of items||[]){if(!it||!it.id||!it.subject||!it.body)continue;if(it.base&&it.base.subject===it.subject&&it.base.body===it.body)continue;out[it.id]={subject:String(it.subject).slice(0,SUBJECT_MAX),body:String(it.body).slice(0,BODY_MAX)}}
  return out;
 }
-const core={MAX_LOT,SUBJECT_MAX,BODY_MAX,BODY_TARGET,PLACEHOLDERS,facts,factLines,prompt,parse,texts,numbersIn,urlsIn,domainOf};
+// Pure: the lots of a list of n contacts, MAX_LOT each, in the sending order ({from,to} as slice bounds).
+function lots(n){const out=[];for(let i=0;i<Math.max(0,Number(n)||0);i+=MAX_LOT)out.push({from:i,to:Math.min(i+MAX_LOT,n)});return out.length?out:[{from:0,to:0}]}
+const core={MAX_LOT,lots,SUBJECT_MAX,BODY_MAX,BODY_TARGET,PLACEHOLDERS,facts,factLines,prompt,parse,texts,numbersIn,urlsIn,domainOf};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmAiEmailsCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -16,6 +16,16 @@ const REQ={method:'POST',headers:{host:'radix.example'}};
 const T={subject:'{nome}, una proposta per {azienda}',body:'Gentile {nome},\nabbiamo 3 soluzioni per {azienda}. Dettagli: https://radix.example/offerta\nPossiamo sentirci giovedì?'};
 const F=C.facts({name:'Luca Bianchi',role:'Direttore operations',email:'luca@rossi.it',notes:'Ha 4 stabilimenti; ci ha visti in fiera\x07.',linkedin_url:'https://linkedin.com/in/x'},{name:'Rossi Srl',industry:'Meccanica',city:'Brescia',website:'https://rossi.it',notes:'Gruppo da 120 persone'});
 
+test('core: facts read the job title (Qualifica), the department, company size and country as the import fills them',()=>{
+ const f=C.facts({name:'Marta Neri',title:'Head of Procurement',role:'Acquisti e logistica',department:'Supply chain',country:'Italia'},{name:'Neri Spa',employees:1200,billing_city:'Torino',billing_country:'Italia',description:'Gruppo alimentare'});
+ assert.equal(f.ruolo,'Head of Procurement (Acquisti e logistica)');assert.equal(f.reparto,'Supply chain');assert.equal(f.dipendenti,'1200 dipendenti');
+ assert.equal(f.citta,'Torino');assert.equal(f.paese,'Italia');assert.equal(f.note_azienda,'Gruppo alimentare');
+ const L=C.factLines(f);assert.ok(L.includes('- Ruolo: Head of Procurement (Acquisti e logistica)')&&L.includes('- Reparto: Supply chain')&&L.includes('- Dimensione: 1200 dipendenti')&&L.includes('- Paese: Italia'));
+ assert.equal(C.facts({title:'CEO',role:'Altro'},null).ruolo,'CEO','«Altro» is not a fact');
+ assert.equal(C.facts({title:'Marketing',role:'marketing'},null).ruolo,'Marketing','same word once');
+ assert.equal(C.facts({role:'Titolare / CEO'},{employees:'x'}).ruolo,'Titolare / CEO');assert.equal(C.facts({},{employees:'x'}).dipendenti,'');
+});
+
 test('core: facts keep only what the CRM knows, cleaned and clipped; the prompt carries template and facts as data',()=>{
  assert.equal(F.nome,'Luca Bianchi');assert.equal(F.dominio_email,'rossi.it');assert.equal(F.note,'Ha 4 stabilimenti; ci ha visti in fiera .');assert.equal(F.linkedin,true);
  const empty=C.facts({name:'Anna',email:'a@b.it'},null);assert.equal(empty.azienda,'');assert.equal(C.factLines(empty).length,2,'only the name and the email domain are facts');
@@ -103,8 +113,10 @@ test('wiring: button in the campaign panel, lot from the campaign rules, texts t
  assert.ok(camp.includes("B('Scrivi con l’AI una per contatto'"));
  assert.ok(/root\.RadixCrmAiEmails&&root\.RadixCrmAiEmailsCore/.test(camp));
  assert.ok(camp.includes('planB2B(subject.value.trim(),body.value.trim(),contacts,')&&camp.includes('planCampaign(subject.value.trim(),body.value.trim(),contacts).emails.map(e=>e.contact)'),'only the contacts the rules would send to');
- assert.ok(camp.includes('lot=eligible.slice(0,AI.MAX_LOT)'));
- assert.ok(camp.includes('contacts:lot.map(c=>c.id),texts,...mode'),'the queue gets the lot and the texts');
+ assert.ok(camp.includes('contacts:eligible,companies,mode:'),'the panel gets every eligible contact and takes them in lots');
+ assert.ok(camp.includes('enqueue:async(texts,ids)=>')&&camp.includes('contacts:ids,texts,...mode'),'the queue gets the lot’s contacts and the texts');
+ assert.deepEqual(C.lots(0),[{from:0,to:0}]);assert.deepEqual(C.lots(100),[{from:0,to:100}]);assert.deepEqual(C.lots(250),[{from:0,to:100},{from:100,to:200},{from:200,to:250}]);
+ const ui0=read('sales/crm-ai-emails.js');assert.ok(ui0.includes("B('Lotto successivo'")&&ui0.includes('o.enqueue(texts,items.map(it=>it.id))'),'next lot after the queue, same campaign');
  const mb=read('sales/crm-mailboxes.js');
  assert.ok(mb.includes('if(input.texts&&Object.keys(input.texts).length)data.texts=input.texts;'));
  assert.ok(mb.includes('Questa è l’unica approvazione per tutto il lotto.'));

@@ -20,27 +20,34 @@ async function ask(content){
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'AI non disponibile ('+r.status+').');return d.reply;
 }
 // open({subject, body, contacts, companies, mode, mount, enqueue}): contacts = the lot (already filtered by the campaign
-// rules), companies = rows of the companies export, enqueue(texts) → RadixCrmMailboxes.enqueue with the texts.
+// rules, in the order they would be sent: more than MAX_LOT are taken in lots, one after the other), companies = rows of
+// the companies export, enqueue(texts, ids) → RadixCrmMailboxes.enqueue with the texts and the contacts of the lot.
 function open(o){
  const a=app(),mount=o.mount,t={subject:String(o.subject||'').trim(),body:String(o.body||'').trim()};
  const byName=new Map((o.companies||[]).map(c=>[String(c.name||'').trim().toLowerCase(),c]));
- const items=(o.contacts||[]).slice(0,C.MAX_LOT).map(c=>({id:c.id,contact:c,facts:C.facts(c,c.company?byName.get(String(c.company).trim().toLowerCase()):null),base:{subject:fill(t.subject,c).slice(0,C.SUBJECT_MAX),body:fill(t.body,c).slice(0,C.BODY_MAX)},subject:null,body:null,warnings:[],error:null,ai:false}));
+ const all=o.contacts||[],lots=C.lots(all.length);let lot=0,items=[];
+ const build=c=>({id:c.id,contact:c,facts:C.facts(c,c.company?byName.get(String(c.company).trim().toLowerCase()):null),base:{subject:fill(t.subject,c).slice(0,C.SUBJECT_MAX),body:fill(t.body,c).slice(0,C.BODY_MAX)},subject:null,body:null,warnings:[],error:null,ai:false});
  const box=E('div',undefined,'crm-ai-emails');mount.replaceChildren(box);
- const head=E('p','','crm-ai-emails-head'),status=E('p','','muted crm-ai-emails-status');status.setAttribute('role','status');
+ const head=E('p','','crm-ai-emails-head'),lotLine=E('p','','muted crm-ai-emails-lot'),status=E('p','','muted crm-ai-emails-status');status.setAttribute('role','status');
  const cards=E('div',undefined,'crm-ai-emails-cards'),acts=E('div',undefined,'actions');
  const gen=B('Genera le email con l’AI',()=>generate(items.filter(it=>!it.ai)),'primary');
  const queue=B('Metti in coda queste email',async()=>{
   const texts=C.texts(items.map(it=>({id:it.id,subject:it.subject,body:it.body,base:it.base})));
-  const r=await o.enqueue(texts);if(r)gen.disabled=queue.disabled=true;
+  const r=await o.enqueue(texts,items.map(it=>it.id));if(r){gen.disabled=queue.disabled=true;queued=true;summary()}
  });
- const close=B('Chiudi',()=>mount.replaceChildren());
- acts.append(gen,queue,close);box.append(E('h4','Email scritte dall’AI, una per contatto'),head,acts,status,cards);
+ // The next lot (same campaign: the queue skips a contact already in it, so nothing is sent twice).
+ const next=B('Lotto successivo',()=>{if(lot+1>=lots.length)return;lot++;queued=false;gen.disabled=queue.disabled=false;items=all.slice(lots[lot].from,lots[lot].to).map(build);redraw();box.scrollIntoView({block:'start'})});
+ const close=B('Chiudi',()=>mount.replaceChildren());let queued=false;
+ acts.append(gen,queue,next,close);box.append(E('h4','Email scritte dall’AI, una per contatto'),head,lotLine,acts,status,cards);
  function summary(){
-  const done=items.filter(it=>it.ai).length,warn=items.filter(it=>it.ai&&it.warnings.length).length,failed=items.filter(it=>it.error).length;
-  head.textContent=n(items.length,'contatto nel lotto','contatti nel lotto')+(o.left?' ('+o.left+' oltre il massimo di '+C.MAX_LOT+': restringi il segmento per un secondo lotto)':'')+'. '
+  const done=items.filter(it=>it.ai).length,warn=items.filter(it=>it.ai&&it.warnings.length).length,failed=items.filter(it=>it.error).length,L=lots[lot];
+  head.textContent=n(items.length,'contatto nel lotto','contatti nel lotto')+'. '
    +(done?n(done,'email scritta dall’AI','email scritte dall’AI')+(warn?', '+warn+' da rileggere':'')+(failed?', '+failed+' non riuscite (useranno il testo base)':'')+'. Correggi quello che vuoi, poi «Metti in coda»: una sola conferma per tutto il lotto.':'Una chiamata AI per contatto, solo dopo la tua conferma. Nulla viene inviato da qui.');
-  gen.textContent=done?'Scrivi le mancanti con l’AI ('+(items.length-done)+')':'Genera le email con l’AI';gen.hidden=done===items.length;
+  lotLine.hidden=lots.length<=1;
+  lotLine.textContent=lots.length>1?'Lotto '+(lot+1)+' di '+lots.length+': contatti da '+(L.from+1)+' a '+L.to+' su '+all.length+'. '+(queued?'In coda. Passa al lotto successivo: stessa campagna, chi è già in coda non viene ripreso.':'Dopo «Metti in coda» passi al lotto successivo, fino all’ultimo contatto.'):'';
+  gen.textContent=done?'Scrivi le mancanti con l’AI ('+(items.length-done)+')':'Genera le email con l’AI';gen.hidden=done===items.length||queued;
   queue.textContent='Metti in coda queste '+n(items.length,'email','email');
+  const more=lot+1<lots.length;next.hidden=!(queued&&more);next.textContent=more?'Lotto successivo ('+(lots[lot+1].from+1)+'–'+lots[lot+1].to+')':'Lotto successivo';
  }
  function card(it){
   const el=E('article',undefined,'crm-ai-email'+(it.warnings.length?' has-warnings':''));
@@ -73,7 +80,7 @@ function open(o){
   status.textContent='';const ok=list.filter(it=>it.ai).length;
   a.notice(ok===list.length?n(ok,'email scritta','email scritte')+' dall’AI: rileggile, poi «Metti in coda».':ok+' di '+list.length+' scritte: le altre useranno il testo base, oppure premi «Rigenera».');
  }
- redraw();box.scrollIntoView({block:'start'});return {items,redraw};
+ items=all.slice(lots[0].from,lots[0].to).map(build);redraw();box.scrollIntoView({block:'start'});return {get items(){return items},get lot(){return lot},lots,redraw};
 }
 window.RadixCrmAiEmails={open};
 })();

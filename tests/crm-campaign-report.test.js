@@ -100,7 +100,7 @@ test('conversions: what counts, once per recipient, inside the Rome calendar win
  assert.equal(R.buildReport(data,{days:99}).days,14,'only 7/14/30, default 14');
  assert.equal(R.buildReport(data,{days:14,now:Date.parse('2026-10-25T00:00:00Z')}).campaigns[0].windowOpen,8,'windows still open are reported');
  assert.match(r.conversionNote,/entro 14 giorni/);
- assert.equal(R.isReply('Risposta: ok'),true);assert.equal(R.isReply('Risposta al ticket: x'),false);assert.equal(R.isReply('Email: Re: x'),false);assert.equal(R.isReply('re:x'),true);
+ assert.equal(R.isReply('Risposta: ok'),true);assert.equal(R.isReply('Risposta al ticket: x'),false);assert.equal(R.isReply('Email: Re: x'),false);assert.equal(R.isReply('re:x'),true);assert.equal(R.isReply('Email ricevuta: Nuovo ordine'),true,'a mail read in Posta and linked to the contact is a reply');assert.equal(R.isReply('Email inviata: Re: x'),false);
 });
 
 test('unsubscribes: stamp attributed to the latest campaign received before it; consent lost without a date counted apart',()=>{
@@ -140,9 +140,9 @@ test('server: campaign rows are read-only, bounded and never return email bodies
  assert.match(calls[0][0],/substring\(s\.body from '\[\?&\]k=\(\[\^&\[:space:\]\]\+\)&u='\) AS k/);assert.doesNotMatch(calls[0][0],/SELECT[^F]*\bs\.body\b\s*,/,'body only inside substring');
  assert.match(calls[0][0],/title LIKE 'Email: %'/);
  assert.match(calls[2][0],/Disiscrizione dalle email commerciali tramite link: /);
- assert.match(calls[3][0],/kind IN \('meeting','call'\)/);assert.match(calls[3][0],/\^\\s\*\(re\|r\|risposta\)\\s\*:/);
+ assert.match(calls[3][0],/kind IN \('meeting','call'\)/);assert.match(calls[3][0],/\^\\s\*\(email ricevuta:\|\(re\|r\|risposta\)\\s\*:\)/);
  // The SQL reply filter and the core agree.
- const re=new RegExp(calls[3][0].match(/~\* '([^']+)'/)[1],'i');for(const t of ['Re: x','R: x','risposta: x','Risposta al ticket: x','Email: x'])assert.equal(re.test(t),R.isReply(t),t);
+ const re=new RegExp(calls[3][0].match(/~\* '([^']+)'/)[1],'i');for(const t of ['Re: x','R: x','risposta: x','Risposta al ticket: x','Email: x','Email ricevuta: ordine','Email inviata: Re: x'])assert.equal(re.test(t),R.isReply(t),t);
  const stamp=calls[2][0].match(/'(Disiscrizione[^']+)'/)[1];assert.ok(new RegExp(stamp).test('Disiscrizione dalle email commerciali tramite link: 21/10/2026 09:05'));
  const unsub=fs.readFileSync(__dirname+'/../api/_sales_unsubscribe.js','utf8');assert.match(unsub,/'Disiscrizione dalle email commerciali tramite link: '\|\|to_char\(now\(\) AT TIME ZONE 'Europe\/Rome','DD\/MM\/YYYY HH24:MI'\)/,'stamp format the report parses');
 });
