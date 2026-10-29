@@ -4,12 +4,11 @@
 <script src="/sales/crm-dates-core.js" defer></script><script src="/sales/crm-posta-core.js" defer></script><script src="/sales/crm-posta.js" defer></script></head>
 <body data-shell-page="sales-posta" data-shell-regia="/lib/regia-sales.js"><a class="skip" href="#main">Salta al contenuto</a><div class="shell">
 <aside class="sidebar"><a href="/radix-sales.html">CRM operativo</a></aside><script src="/sales/sales-nav.js"></script>
-<main id="main"><header class="pm-top"><div><p class="pm-eyebrow">Sales · Posta</p><h1>Posta</h1><p class="pm-lead">La tua casella Microsoft 365 dentro RADIX: leggi le mail e collega quelle che contano a un contatto o a un’opportunità. Restano nella cronologia del CRM.</p></div>
-<div class="pm-pick"><label>Workspace<select id="pm-workspace"><option value="">Caricamento…</option></select></label><label>Casella<select id="pm-mailbox" disabled></select></label></div></header>
+<main id="main" class="pm-app"><header class="pm-top"><div class="pm-title"><p class="pm-eyebrow">Sales · Posta</p><h1>Posta</h1></div>
+<div class="pm-pick"><label><span>Workspace</span><select id="pm-workspace"><option value="">Caricamento…</option></select></label><label><span>Casella</span><select id="pm-mailbox" disabled></select></label></div></header>
 <div class="pm-bar"><div class="pm-tabs" role="tablist" aria-label="Cartella"><button type="button" role="tab" data-folder="inbox" aria-selected="true">In arrivo</button><button type="button" role="tab" data-folder="sent" aria-selected="false">Inviata</button></div>
-<form id="pm-search" class="pm-search" role="search"><input id="pm-q" type="search" maxlength="100" placeholder="Cerca nella casella…" aria-label="Cerca nella casella"><button type="submit">Cerca</button></form>
-<label class="pm-only"><input type="checkbox" id="pm-only"> Solo mail di contatti del CRM</label><button type="button" id="pm-reload">Aggiorna</button></div>
-<p id="pm-status" class="pm-status" role="status" aria-live="polite">Verifica della sessione…</p>
-<div class="pm-layout"><section class="pm-list" aria-label="Messaggi"><ul id="pm-items"></ul><button type="button" id="pm-more" class="pm-more" hidden>Mostra altre 25</button></section>
-<section class="pm-read" id="pm-read" aria-label="Messaggio" tabindex="-1"><p class="pm-empty">Scegli una mail a sinistra per leggerla e collegarla al CRM.</p></section></div>
+<form id="pm-search" class="pm-search" role="search"><span class="pm-search-ic" aria-hidden="true"></span><input id="pm-q" type="search" maxlength="100" placeholder="Cerca nella casella…" aria-label="Cerca nella casella"><button type="submit">Cerca</button></form>
+<label class="pm-only"><input type="checkbox" id="pm-only"><span>Solo contatti del CRM</span></label><button type="button" id="pm-reload" class="pm-icon" title="Aggiorna" aria-label="Aggiorna"><span class="pm-reload-ic" aria-hidden="true"></span><span class="pm-reload-txt">Aggiorna</span></button></div>
+<div class="pm-layout"><section class="pm-list" aria-label="Messaggi"><p id="pm-status" class="pm-status" role="status" aria-live="polite">Verifica della sessione…</p><ul id="pm-items"></ul><button type="button" id="pm-more" class="pm-more" hidden>Mostra altre 25</button></section>
+<section class="pm-read" id="pm-read" aria-label="Messaggio" tabindex="-1"><div class="pm-empty"><span class="pm-empty-ic" aria-hidden="true"></span><p>Scegli una mail a sinistra per leggerla e collegarla al CRM.</p><p class="pm-keys"><kbd>↑</kbd> <kbd>↓</kbd> per muoverti tra le mail</p></div></section></div>
 </main></div><script src="/sales/regia-loader.js" defer></script></body></html>

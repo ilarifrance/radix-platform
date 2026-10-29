@@ -92,3 +92,12 @@ body.st-page{margin:0;background:var(--crm-bg);color:var(--crm-text);font:14px/1
  .st-nav-link small{display:none}
  .st-ws select{min-width:0;width:100%}
 }
+
+/* Reached from Sales (shell/settings-area.js): the Sales sidebar on the left, same grid as the other Sales pages. */
+body.st-sales{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100vh}
+@media (max-width:900px){body.st-sales{display:block}}
+
+/* «Calendari»: the CRM's calendar boxes (sales/crm-calendars.css) as plain cards here. */
+.st-cal .cal-card{background:transparent;border:0;box-shadow:none;padding:0;min-width:0}
+.st-cal .cal-card>h3{margin:0 0 6px;font-size:16px}
+.st-cal .cal-empty,.st-cal .cal-sub{color:var(--crm-muted)}

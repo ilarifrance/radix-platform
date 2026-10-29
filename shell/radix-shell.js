@@ -6,7 +6,8 @@
    Elements marked data-rx-local-nav (the page's old sidebar) are hidden by radix-shell.css. */
 (function () {
   'use strict';
-  if (window.__radixShell) return;
+  // A page that chose another sidebar for this visit (shell/settings-area.js) marks <html data-rx-shell-off>.
+  if (window.__radixShell || document.documentElement.hasAttribute('data-rx-shell-off')) return;
   window.__radixShell = true;
 
   var AREAS = {
