@@ -90,7 +90,7 @@ async function campaignData(sql,workspace,uid){
   sql(`SELECT c.id,c.name,c.company_id,c.marketing_consent,(SELECT array_agg(m[1]) FROM regexp_matches(coalesce(c.notes,''),'Disiscrizione dalle email commerciali tramite link: ([0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2})','g') m) AS unsubscribed
  FROM sales_contacts c WHERE c.workspace_id=$1 AND (EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=c.id) OR EXISTS(SELECT 1 FROM sales_email_clicks k WHERE k.workspace_id=$1 AND k.contact_id=c.id AND k.clicked_at>=${SINCE}))${a('contacts','c')} LIMIT 20000`,p(workspace)),
   sql(`SELECT i.id,i.contact_id,i.kind,i.title,i.occurred_at FROM sales_interactions i WHERE i.workspace_id=$1 AND i.contact_id IS NOT NULL AND i.occurred_at>=${SINCE}
- AND (i.kind IN ('meeting','call') OR (i.kind='email' AND i.title ~* '^\\s*(re|r|risposta)\\s*:'))
+ AND (i.kind IN ('meeting','call') OR (i.kind='email' AND i.title ~* '^\\s*(email ricevuta:|(re|r|risposta)\\s*:)'))
  AND EXISTS(SELECT 1 FROM sales_interactions s WHERE ${SENT} AND s.contact_id=i.contact_id)${f('i.contact_id')}${a('interactions','i')} ORDER BY i.occurred_at DESC LIMIT 20000`,p(workspace)),
   sql(`SELECT o.id,o.title,o.contact_id,o.company_id,o.created_at FROM sales_opportunities o WHERE o.workspace_id=$1 AND o.created_at>=${SINCE}${a('opportunities','o')} ORDER BY o.created_at DESC LIMIT 5000`,p(workspace))
  ]);
