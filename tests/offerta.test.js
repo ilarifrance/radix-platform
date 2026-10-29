@@ -76,8 +76,26 @@ test('AI rewrite: the prompt carries the texts and the facts; the parse keeps kn
  assert.deepEqual(Object.keys(got.texts),['title','intro']);assert.equal(got.texts.title,'Linea di imballaggio: più colli, meno fermi');
  assert.deepEqual(got.dropped,['La soluzione che proponiamo']);
  const long=O.aiParse('{"title":"'+'x'.repeat(400)+'"}',m);assert.equal(long.texts.title.length,O.FIELD_MAX);
- const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/window\.confirm\('Chiedere all’AI/);assert.ok(w.indexOf('window.confirm')<w.indexOf("fetch('/api/chat'"),'the confirmation comes before the only AI call');
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/window\.confirm\(T\('Chiedere all’AI/);assert.ok(w.indexOf('window.confirm')<w.indexOf("fetch('/api/chat'"),'the confirmation comes before the only AI call');
  assert.equal((w.match(/fetch\(/g)||[]).length,1);assert.match(w,/role:'crm-copilot'/);assert.match(w,/C\.apply\(st\.model,k,t\)/,'applied only on click');
+});
+
+test('English: the same quote as a British English proposal, en-GB figures and dates, everything else untouched',()=>{
+ const m=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'},{lang:'en'});
+ assert.equal(m.lang,'en');assert.equal(m.subtitle,'For Officine Rossi Srl');assert.match(m.intro,/^Dear Luca Bianchi,\nthank you for involving us/);
+ assert.deepEqual(m.sections.map(s=>s.title),['The solution we propose','Supply details','Why us','Delivery and installation','The investment','Next steps','Terms']);
+ assert.equal(m.totals.total,'€77,287.00');assert.equal(m.lines[0].unit_price,'€65,000.00');assert.equal(m.date,'28 October 2026');assert.equal(m.validUntil,'30 November 2026');assert.deepEqual(m.totals.vat,[{label:'VAT 22%',amount:'€13,937.00'}]);
+ assert.match(m.sections.find(s=>s.id==='investimento').note,/Proposal valid until 30 November 2026/);assert.equal(m.signature,'Kind regards,\nRADIX Macchine');
+ const f=O.fields(m);assert.deepEqual(f.slice(0,3).map(x=>x.label),['Title','Subtitle','Opening']);assert.match(f.find(x=>x.key==='section:2').label,/Why us \(one line per item\)/);
+ const h=O.html(m,'elegante');assert.ok(h.includes('<th>Supply</th>'));assert.ok(h.includes('Net total'));assert.ok(h.includes(' · for the attention of Luca Bianchi'));assert.ok(!/Imponibile|Totale|Q\.tà/.test(h));
+ assert.ok(O.check(m).some(t=>/still has the sample text/.test(t)));
+ assert.match(O.aiPrompt(m,{business:'prodotto',goal:'gara'}),/^Rewrite the texts .* British English/);assert.match(O.aiPrompt(m,{business:'prodotto',goal:'gara'}),/Comparison with other suppliers/);
+ const g=O.aiParse('{"title":"Pay only €9,999.00","subtitle":"Total €77,287.00, guaranteed"}',m);assert.deepEqual(Object.keys(g.texts),['subtitle']);assert.deepEqual(g.dropped,['Title']);
+ const q=O.questions(doc,'','en');assert.equal(q[0].label,'Who sells: what kind of business are you?');assert.equal(q[0].options[1].label,'Products and machinery');assert.equal(q[1].options[2].label,'Comparison with other suppliers');
+ assert.deepEqual(O.looks('en').map(l=>l.label),['Elegant','Bold','Warm']);assert.deepEqual(O.looks('it').map(l=>l.label),['Elegante','Deciso','Caldo']);
+ // Italian stays exactly as before
+ const it=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'});assert.equal(it.lang,'it');assert.equal(it.totals.total,'€ 77.287,00');assert.equal(it.date,'28 ottobre 2026');
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/C\.plan\(st\.doc,answers,\{lang:lang\(\)\}\)/);assert.match(w,/C\.questions\(st\.doc,mem\.get\(st\.ctx\.workspace\),lang\(\)\)/);assert.match(w,/C\.looks\(lang\(\)\)/);
 });
 
 test('wiring: the quotes page loads the core, the widget and the styles; the quote actions offer it',()=>{

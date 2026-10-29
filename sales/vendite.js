@@ -219,7 +219,7 @@ function actions(doc,f){
  }
  if(doc)out.push(h('button',{type:'button',class:'vd-btn',onclick:()=>printDoc(doc)},'Stampa / PDF'));
  // «Offerta grafica» (sales/offerta.js): the quote as a proposal to look at, three looks, printed to PDF by the browser.
- if(doc&&kind==='quote'&&window.RadixOfferta)out.push(h('button',{type:'button',class:'vd-btn',title:'Il preventivo impaginato come proposta commerciale: configuratore, tre look, stampa o PDF',onclick:()=>window.RadixOfferta.open(doc,{workspace:S.workspace,industry:S.companies.find(c=>c.id===doc.company_id)?.industry||'',brand:V.brandOf(S.settings)})},'✦ Offerta grafica'));
+ if(doc&&kind==='quote'&&window.RadixOfferta)out.push(h('button',{type:'button',class:'vd-btn',title:'Il preventivo impaginato come proposta commerciale: configuratore, tre look, stampa o PDF',onclick:()=>window.RadixOfferta.open(doc,{workspace:S.workspace,industry:S.companies.find(c=>c.id===doc.company_id)?.industry||'',brand:V.brandOf(S.settings)})},window.RadixI18n&&window.RadixI18n.en?'✦ Graphic proposal':'✦ Offerta grafica'));
  if(doc&&canWrite()&&doc.status==='bozza'&&!(kind==='quote'&&S.docs.invoice.some(i=>i.quote_id===doc.id)))out.push(h('button',{type:'button',class:'vd-btn is-danger',onclick:remove},'Elimina'));
  return out;
 }
