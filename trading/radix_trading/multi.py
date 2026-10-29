@@ -61,7 +61,8 @@ def _macro_frame(macro: pd.DataFrame, index: pd.DatetimeIndex) -> pd.DataFrame:
 
 
 def gold_macro(close: pd.DataFrame, macro: pd.DataFrame | None = None, trend: int = 100, lookback: int = 60,
-               symbol: str = "GLD") -> pd.DataFrame:
+               vol_target: float = 0.0, symbol: str = "GLD") -> pd.DataFrame:
+    """`vol_target` > 0: peso ridotto quando l'oro oscilla piu' del valore annuo indicato."""
     w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
     if symbol not in close:
         return w
@@ -74,7 +75,11 @@ def gold_macro(close: pd.DataFrame, macro: pd.DataFrame | None = None, trend: in
         tailwind |= rate < rate.shift(lookback)
     if dollar is not None:
         tailwind |= dollar < dollar.shift(lookback)
-    w[symbol] = ((px > px.rolling(trend).mean()) & tailwind).astype(float)
+    on = ((px > px.rolling(trend).mean()) & tailwind).astype(float)
+    if vol_target > 0:
+        vol = px.pct_change().rolling(60).std() * np.sqrt(252)
+        on = on * (vol_target / vol).clip(upper=1.0).fillna(0.0)
+    w[symbol] = (on * 4).round() / 4  # pesi al 25%: meno ordini piccoli
     keep = pd.Series(np.arange(len(w)) % 5 == 0, index=w.index)  # al massimo una decisione a settimana
     return w.where(keep, axis=0).ffill().fillna(0.0)
 
