@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 from . import data, universe
-from .collectors import fred, wikinews
+from .collectors import fomc, fred, wikinews
 from .config import env_value
 from .store import Store
 

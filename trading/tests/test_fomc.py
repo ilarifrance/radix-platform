@@ -21,3 +21,19 @@ def test_parse_calendar_takes_last_day_and_skips_unscheduled():
 def test_parse_historical():
     page = "<h5>January 26-27 Meeting - 2016</h5><p>Statement</p><h5>March 15-16 Meeting - 2016</h5>"
     assert fomc.parse_historical(page, 2016) == [date(2016, 1, 27), date(2016, 3, 16)]
+
+
+def test_collect_calendar_replaces_fomc_rows(monkeypatch):
+    import pandas as pd
+    from radix_trading import events
+    from radix_trading.store import Store
+    st = Store(":memory:")
+    events.init(st)
+    st.conn.executemany("INSERT INTO calendar VALUES (?, 'fomc')", [(f"2021-01-{d:02d}",) for d in range(1, 29)])
+    monkeypatch.setattr(events.fred, "fetch_series", lambda s: pd.Series([1.0, 1.0], index=pd.to_datetime(["2020-01-01", "2020-01-02"])))
+    monkeypatch.setattr(events, "env_value", lambda k: None)
+    days = [date(2021, m, 15) for m in range(1, 13)] * 2 + [date(2022, m, 15) for m in range(1, 13)]
+    monkeypatch.setattr(events.fomc, "fetch", lambda y: (sorted(set(days)), {"per_anno": {}, "errori": {}}))
+    out = events.collect_calendar(st)
+    assert out["fomc"]["riunioni"] == 24
+    assert st.conn.execute("SELECT COUNT(*) FROM calendar WHERE kind='fomc'").fetchone()[0] == 24
