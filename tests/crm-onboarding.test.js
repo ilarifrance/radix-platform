@@ -43,3 +43,9 @@ test('the newsletter title format matches the Lead Intelligence recorder',()=>{
  const m=fs.readFileSync(p,'utf8').match(/title:\('([^']+)'\+e\.subject\)/);
  if(m)assert.equal(done({interactions:[{kind:'email',title:m[1]+'Ottobre'}]}).campaign,true);
 });
+
+test('«Crea la pipeline» opens the Pipeline page, where «Personalizza pipeline» lives, not the technical Processi view',()=>{
+ const s=steps({}).find(x=>x.id==='pipeline');assert.equal(s.href,'/sales-pipeline-premium.html');assert.match(s.hint,/Personalizza pipeline/);
+ assert.match(fs.readFileSync(__dirname+'/../sales/crm-leads.js','utf8'),/crea prima la pipeline da «Personalizza pipeline» nella pagina Pipeline/);
+ const en=fs.readFileSync(__dirname+'/../lib/radix-i18n-en.js','utf8');assert.ok(en.includes('"'+s.hint+'"'),'hint translated');assert.ok(!en.includes('"Un processo «Opportunità» con almeno una fase."'));
+});

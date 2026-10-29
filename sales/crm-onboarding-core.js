@@ -12,7 +12,7 @@ function steps(d){
  const processes=list(x.processes),stages=list(x.stages);
  const pipeline=processes.some(p=>p.kind==='opportunity'&&stages.some(s=>s.process_id===p.id));
  return [
-  {id:'pipeline',label:'Crea la pipeline',hint:'Un processo «Opportunità» con almeno una fase.',done:pipeline,href:'#processes'},
+  {id:'pipeline',label:'Crea la pipeline',hint:'Nome e colonne da «Personalizza pipeline», nella pagina Pipeline.',done:pipeline,href:'/sales-pipeline-premium.html'},
   {id:'company',label:'Aggiungi la prima azienda',hint:'Il cliente o il prospect con cui lavori.',done:list(x.companies).length>0,href:'#companies'},
   {id:'contact',label:'Aggiungi il primo contatto',hint:'La persona di riferimento in azienda.',done:list(x.contacts).length>0,href:'#contacts'},
   {id:'opportunity',label:'Apri la prima opportunità',hint:'Una trattativa con importo e fase.',done:list(x.opportunities).length>0,href:'#opportunities'},
