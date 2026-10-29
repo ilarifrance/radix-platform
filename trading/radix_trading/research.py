@@ -124,6 +124,7 @@ NAMES = {
     "crash_guard": "Compra e tieni con protezione",
     "trend_brake": "Trend crypto con freno allo scoperto", "gold_macro": "Oro con segnali macro",
     "risk_switch": "Azioni o obbligazioni secondo la paura (VIX)", "portafoglio_multi": "Portafoglio di piu' strategie",
+    "portafoglio_rischio_costante": "Portafoglio a rischio costante",
     "ibs_reversion": "Rimbalzo dopo chiusura sul minimo", "turn_of_month": "Fine e inizio mese",
     "tsmom": "Trend su piu' mercati", "pre_fomc": "Rialzo prima della Fed",
 }
@@ -248,7 +249,7 @@ def _leverage(rows: list[dict], target_dd: float) -> list[dict]:
     """Le strategie migliori (e il portafoglio) con la leva: margine IBKR e CFD."""
     ok = [r for r in rows if "_returns" in r and "ricerca" in r and "annuo" in r["ricerca"]]
     ok.sort(key=lambda r: r["dsr"], reverse=True)
-    pick = ok[:LEVERAGE_TOP] + [r for r in ok[LEVERAGE_TOP:] if r["famiglia"] == "portafoglio_multi"]
+    pick = ok[:LEVERAGE_TOP] + [r for r in ok[LEVERAGE_TOP:] if r["famiglia"].startswith("portafoglio")]
     out = []
     for r in pick:
         cut = r["_returns"].index[-1] - pd.Timedelta(days=LOCKBOX_DAYS)
@@ -314,6 +315,9 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
     port = _portfolio(rows, lockbox_days, total_trials)
     if port:
         rows.append(port)
+        vt = _vol_managed(port, lockbox_days, total_trials)
+        if vt:
+            rows.append(vt)
     ok = [r for r in rows if "ricerca" in r and "annuo" in r["ricerca"]]
     ok.sort(key=lambda r: r["dsr"], reverse=True)
     meets = [r for r in ok if r["ricerca"]["annuo"] >= target_cagr and r["ricerca"]["max_drawdown"] >= target_dd]
@@ -362,6 +366,30 @@ def _portfolio(rows: list[dict], lockbox_days: int, total_trials: int) -> dict |
             "timeframe": "1d", "capitale": 1000.0, "combinazioni": 0, "ricerca": _summary(search, "1d", "multi"),
             "dsr": validation.deflated_sharpe(search, total_trials),
             "parametri_ultimi": {"corsie": sorted(picked)}, "_lock": lock, "_returns": r}
+
+
+PORTFOLIO_VOL_TARGET = 0.08
+PORTFOLIO_MAX_SCALE = 1.5
+
+
+def _vol_managed(port: dict, lockbox_days: int, total_trials: int) -> dict | None:
+    """Portafoglio a rischio costante (Moreira-Muir 2017): esposizione = obiettivo / volatilita' dei
+    60 giorni prima, tra 0 e 1,5 volte; sopra 1 si paga il margine (4% l'anno sulla parte in prestito)."""
+    r = port["_returns"]
+    vol = r.rolling(60).std().shift(1) * np.sqrt(365)
+    scale = (PORTFOLIO_VOL_TARGET / vol).clip(upper=PORTFOLIO_MAX_SCALE).fillna(0.0)
+    x = scale * r - (scale - 1).clip(lower=0) * 0.04 / 365
+    x = x.iloc[60:]
+    cut = x.index[-1] - pd.Timedelta(days=lockbox_days)
+    search, lock = x[x.index <= cut], x[x.index > cut]
+    if len(search) < 30:
+        return None
+    return {"famiglia": "portafoglio_rischio_costante", "nome": NAMES["portafoglio_rischio_costante"], "mercato": "multi",
+            "timeframe": "1d", "capitale": 1000.0, "combinazioni": 0, "ricerca": _summary(search, "1d", "multi"),
+            "dsr": validation.deflated_sharpe(search, total_trials),
+            "parametri_ultimi": port["parametri_ultimi"] | {"rischio_annuo": PORTFOLIO_VOL_TARGET,
+                                                            "esposizione_max": PORTFOLIO_MAX_SCALE},
+            "_lock": lock, "_returns": x}
 
 
 def save(settings, result: dict) -> None:
