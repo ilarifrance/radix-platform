@@ -114,6 +114,7 @@ test('wiring: button in the campaign panel, lot from the campaign rules, texts t
  assert.ok(ui.includes('consumano crediti API')&&ui.includes("'chiamata AI','chiamate AI'"),'the confirmation names the number of calls');
  assert.ok(ui.includes('window.confirm(')&&ui.indexOf('window.confirm(')<ui.indexOf('await ask('),'no AI call before the confirmation');
  for(const s of ['Rigenera','Usa il testo base','Metti in coda queste'])assert.ok(ui.includes(s),s);
+ assert.ok(/const PARALLEL=3;/.test(ui)&&ui.includes('Math.min(PARALLEL,list.length)'),'three AI calls at a time, never more');
  const html=read('radix-sales.html'),at=f=>html.indexOf('sales/'+f);
  assert.ok(at('crm-ai-emails-core.js')>at('crm-campaigns.js')&&at('crm-ai-emails.js')>at('crm-ai-emails-core.js')&&at('crm-ai-emails.js')>at('crm-mailboxes.js'));
  assert.ok(read('sales/crm-mailboxes.css').includes('.crm-ai-email'));
