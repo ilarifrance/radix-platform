@@ -1891,7 +1891,7 @@ module.exports = async (req, res) => {
     system += crmBlock;
   }
   // Interface language (CRM in English): a strict rule at the end of the prompt, for every role.
-  system += languageRule(body && (body.lang || body.language));
+  system += languageRule(body && (body.lang || body.language), body && body.currency);
 
   // Un modello che in una conversazione lunga ha già detto (erroneamente, con un verbo qualsiasi:
   // "creare"/"generare"/"produrre" file scaricabili, "non ho questa/la capacità tecnica", ecc.) tende a
@@ -2012,10 +2012,16 @@ const ENGLISH_RULE =
   "LANGUAGE: Write the whole answer in British English, including any drafts, regardless of the language of the " +
   "instructions or data; keep names and quoted record data as they are. Keep JSON keys, codes and values taken " +
   "from a fixed list exactly as given, and placeholders in curly braces such as {nome} or {azienda} unchanged.";
-function languageRule(lang) {
+// Valuta in inglese: 'GBP' (sterline, predefinita) o 'EUR'; ogni altro valore è ignorato.
+const CURRENCY_RULE = {
+  GBP: " Amounts are in pounds sterling: write them with the £ sign (£1,200.00), never with €.",
+  EUR: " Amounts are in euro: write them with the € sign (€1,200.00), never with £."
+};
+function languageRule(lang, currency) {
   const l = typeof lang === "string" ? lang.trim().toLowerCase() : "";
   if (!LANGUAGES.includes(l) || l === "it") return "";
-  return "\n\n" + ENGLISH_RULE;
+  const c = typeof currency === "string" ? currency.trim().toUpperCase() : "";
+  return "\n\n" + ENGLISH_RULE + (CURRENCY_RULE[c] || "");
 }
 module.exports.friendlyApiError = friendlyApiError;
 module.exports.languageRule = languageRule;

@@ -29,6 +29,8 @@ class QueueError extends Error{constructor(status,message){super(message);this.s
 const fail=(s,m)=>{throw new QueueError(s,m)};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const uuid=v=>typeof v==='string'&&UUID.test(v);
+// «Scrivi con l’AI una per contatto» (sales/crm-ai-emails.js): at most this many personalised texts per lot.
+const MAX_TEXTS=100;
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.getPrototypeOf(v)===Object.prototype;
 const CTRL=/[\u0000-\u001f\u007f]/;
 const HOST=/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
@@ -84,7 +86,7 @@ function command(body){
  if(entity==='send_queue'){
   if(action==='cancel'){keys('campaign');if(!clicks.validCampaign(d.campaign))fail(400,'Campagna non valida.');return {workspace,entity,action,data:{campaign:d.campaign.trim()}}}
   if(!['plan','enqueue'].includes(action))fail(400,'Azione non valida.');
-  keys('campaign','subject','body','contacts','origin','mode','step','base','include_unverified',...(action==='enqueue'?['confirm']:[]));
+  keys('campaign','subject','body','contacts','origin','mode','step','base','include_unverified','texts',...(action==='enqueue'?['confirm']:[]));
   if(action==='enqueue'&&d.confirm!==true)fail(400,'Coda non confermata: conferma nella finestra del CRM.');
   const mode=d.mode===undefined?'consent':d.mode;
   if(!['consent','b2b'].includes(mode))fail(400,'Modalità non valida.');
@@ -107,9 +109,29 @@ function command(body){
   const subject=text(d.subject,200,'Oggetto'),bodyText=text(d.body,4000,'Testo',{multiline:true});
   if(!Array.isArray(d.contacts)||!d.contacts.length||d.contacts.length>MAX_CONTACTS||!d.contacts.every(uuid))fail(400,'Destinatari non validi (da 1 a '+MAX_CONTACTS+' contatti).');
   if(typeof d.origin!=='string'||d.origin.length>200)fail(400,'Origine non valida.');
-  return {workspace,entity,action,data:{campaign:campaign.trim(),subject,body:bodyText,contacts:[...new Set(d.contacts)],origin:d.origin,...(b2b?{mode:'b2b',...b2b}:{})}};
+  const texts=textsOf(d.texts,d.contacts);
+  return {workspace,entity,action,data:{campaign:campaign.trim(),subject,body:bodyText,contacts:[...new Set(d.contacts)],origin:d.origin,...(texts?{texts}:{}),...(b2b?{mode:'b2b',...b2b}:{})}};
  }
  fail(400,'Comando non valido.');
+}
+// Personalised texts per contact ({contactId:{subject,body}}, written by the AI and approved in one go in the CRM):
+// each one replaces the campaign subject and text of that contact only; the rest (placeholders, unsubscribe link,
+// click tracking, B2B footer) applies as to every other email. Undefined when none were sent.
+function textsOf(v,contacts){
+ if(v===undefined||v===null)return undefined;
+ if(typeof v!=='object'||Array.isArray(v))fail(400,'Testi personalizzati non validi.');
+ const ids=Object.keys(v);if(!ids.length)return undefined;
+ if(ids.length>MAX_TEXTS)fail(400,'Testi personalizzati: massimo '+MAX_TEXTS+' per lotto.');
+ const wanted=new Set(Array.isArray(contacts)?contacts:[]),out={};
+ for(const id of ids){const t=v[id];
+  if(!uuid(id)||!wanted.has(id))fail(400,'Testi personalizzati: contatto non nel segmento.');
+  if(!t||typeof t!=='object'||Array.isArray(t)||Object.keys(t).some(k=>!['subject','body'].includes(k)))fail(400,'Testi personalizzati non validi.');
+  out[id]={subject:text(t.subject,200,'Oggetto personalizzato'),body:text(t.body,4000,'Testo personalizzato',{multiline:true})}}
+ return out;
+}
+function withTexts(emails,texts){
+ if(!texts)return {emails,personalised:0};let personalised=0;
+ return {emails:emails.map(e=>{const t=texts[e.contact.id];if(!t)return e;personalised++;return {...e,subject:campaigns.fill(t.subject,e.contact).slice(0,200),body:campaigns.fill(t.body,e.contact).slice(0,4000),personalised:true}}),personalised};
 }
 function query(q){
  if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||!uuid(q.workspace))fail(400,'Parametri non validi.');
@@ -159,6 +181,7 @@ async function planQueue(sql,c,user,ctx){
  const inCampaign=await sql('SELECT q.contact_id,lower(btrim(c.email)) AS email FROM sales_send_queue q JOIN sales_contacts c ON c.workspace_id=q.workspace_id AND c.id=q.contact_id WHERE q.workspace_id=$1 AND q.campaign=$2',[c.workspace,d.campaign]);
  const queued=new Set(inCampaign.map(r=>r.contact_id).filter(id=>d.contacts.includes(id)));
  let plan=campaigns.planCampaign(d.subject,d.body,contacts.filter(x=>!queued.has(x.id)));
+ const pers=withTexts(plan.emails,d.texts);plan={...plan,emails:pers.emails};
  // Two contacts with the same address get one email per campaign.
  const seen=new Set(inCampaign.map(r=>r.email).filter(Boolean));let duplicate=0;plan={...plan,emails:plan.emails.filter(e=>{const k=e.to.trim().toLowerCase();if(seen.has(k)){duplicate++;return false}seen.add(k);return true})};
  const ids=plan.emails.map(e=>e.contact.id),urls=campaigns.urlsIn(d.body),secret=unsubscribe.secretOf(env);
@@ -169,13 +192,14 @@ async function planQueue(sql,c,user,ctx){
  const {load,last}=await loadOf(sql,c.workspace);
  const sched=core.schedule({count:plan.emails.length,mailboxes,load,last,now,random});
  const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
- const summary={campaign:d.campaign,recipients:plan.emails.length,skipped:{consent:plan.skipped.consent,optout:optedOut,email:plan.skipped.email,link:plan.skipped.link||0,duplicate,already:queued.size,missing:d.contacts.length-all.length},
+ const summary={campaign:d.campaign,recipients:plan.emails.length,personalised:pers.personalised,skipped:{consent:plan.skipped.consent,optout:optedOut,email:plan.skipped.email,link:plan.skipped.link||0,duplicate,already:queued.size,missing:d.contacts.length-all.length},
   mailboxes:used,active_mailboxes:mailboxes.filter(m=>m.status==='active').length,days:sched.days.length,first_at:sched.slots[0]?new Date(sched.slots[0].at).toISOString():null,last_at:sched.slots.length?new Date(sched.slots[sched.slots.length-1].at).toISOString():null,unplanned:sched.unplanned};
  return {summary,emails:plan.emails,slots:sched.slots};
 }
 // Issuer data of the workspace (Impostazioni › Documenti, migration 013): who writes, in every B2B footer.
 async function issuerOf(sql,workspace){
- try{return (await sql('SELECT name,legal_name,vat_number,street,zip,city,province,country FROM sales_document_settings WHERE workspace_id=$1',[workspace]))[0]||null}
+ // The letterhead lives in the jsonb column «issuer» (migration 013), not in columns of its own.
+ try{const r=(await sql('SELECT issuer FROM sales_document_settings WHERE workspace_id=$1',[workspace]))[0];return r&&r.issuer&&typeof r.issuer==='object'?r.issuer:null}
  catch(e){if(e&&e.code==='42P01')return null;throw e}
 }
 /* «Prospezione B2B»: contacts without marketing consent too, only with the rules of sales/crm-prospecting-core.js
@@ -202,6 +226,7 @@ async function planB2BQueue(sql,c,user,{req,env,now,random}){
   rules.prevSent=new Map(r.filter(x=>x.campaign===prev).map(x=>[x.contact_id,Date.parse(x.sent_at)]));
  }
  let plan=prospecting.planB2B(d.subject,d.body,all.filter(x=>!queued.has(x.id)),rules);
+ const pers=withTexts(plan.emails,d.texts);plan={...plan,emails:pers.emails};
  const seen=new Set(inCampaign.map(r=>r.email).filter(Boolean));let duplicate=0;
  plan={...plan,emails:plan.emails.filter(e=>{const k=e.to.trim().toLowerCase();if(seen.has(k)){duplicate++;return false}seen.add(k);return true})};
  const ids=plan.emails.map(e=>e.contact.id),links=ids.length?await unsubscribe.links(sql,w,ids,unsubscribe.secretOf(env)):{};
@@ -215,7 +240,7 @@ async function planB2BQueue(sql,c,user,{req,env,now,random}){
   const foot=prospecting.footer({issuer,sender,contact:e.contact,url});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
  const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
  const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…'});
- const summary={campaign:d.campaign,mode:'b2b',step:d.step,base:d.base,recipients:emails.length,
+ const summary={campaign:d.campaign,mode:'b2b',step:d.step,base:d.base,recipients:emails.length,personalised:pers.personalised,
   skipped:{consent:0,...plan.skipped,link:missingLink,duplicate,already:queued.size,missing:d.contacts.length-all.length},
   issuer_ready:prospecting.issuerReady(issuer),footer_preview:sampleFoot.replace(/^\n+/,''),
   mailboxes:used,active_mailboxes:mailboxes.filter(m=>m.status==='active').length,days:sched.days.length,first_at:sched.slots[0]?new Date(sched.slots[0].at).toISOString():null,last_at:sched.slots.length?new Date(sched.slots[sched.slots.length-1].at).toISOString():null,unplanned:sched.unplanned};
@@ -347,4 +372,4 @@ async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Ma
  if(c.action==='plan')return {rows:[(await planQueue(sql,c,user,ctx)).summary]};
  return {rows:[await enqueue(sql,c,user,ctx)]};
 }
-module.exports={command,query,handle,publicMailbox,originOf,transportOptions,fromOf,mailboxData,ENTITIES:['mailboxes','send_queue'],MAX_CONTACTS,PUBLIC};
+module.exports={command,query,handle,publicMailbox,originOf,transportOptions,fromOf,mailboxData,ENTITIES:['mailboxes','send_queue'],MAX_CONTACTS,MAX_TEXTS,PUBLIC};

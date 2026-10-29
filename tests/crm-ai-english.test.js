@@ -119,7 +119,7 @@ test('client: wrapFetch wraps window.fetch once and passes the window as this', 
 test('client: in Italian the layer does not touch fetch', () => {
   const src = require('node:fs').readFileSync(require.resolve('../lib/radix-i18n.js'), 'utf8');
   const boot = src.slice(src.indexOf('function boot('));
-  assert.ok(boot.indexOf("if (lang !== 'en') return;") < boot.indexOf('wrapFetch(win, lang)'), 'wrapFetch only after the Italian return');
+  assert.ok(boot.indexOf("if (lang !== 'en') return;") < boot.indexOf('wrapFetch(win, lang'), 'wrapFetch only after the Italian return');
 });
 
 test('prompts: campaign next email asks for English and English weekdays; parse maps them back', () => {
@@ -196,4 +196,13 @@ test('the TO BE COMPLETED placeholders of English drafts are caught like DA COMP
   }
   const d = fs.readFileSync(require.resolve('../sales/crm-dictation.js'), 'utf8');
   assert.match(d, /RadixI18n\.en\)req\.lang='it'/, 'dictation stays Italian (its values are read the Italian way)');
+});
+
+test('api/chat languageRule: in English the chosen currency is named; unknown or missing → pounds unnamed', () => {
+  const { languageRule } = require('../api/chat.js');
+  assert.match(languageRule('en', 'GBP'), /pounds sterling: write them with the £ sign/);
+  assert.match(languageRule('en', 'eur'), /euro: write them with the € sign/);
+  assert.equal(languageRule('en', 'USD'), languageRule('en'), 'unknown currency: just the language rule');
+  assert.equal(languageRule('it', 'GBP'), '', 'Italian: no rule at all');
+  assert.ok(languageRule('en', 'EUR').startsWith(languageRule('en')), 'the currency sentence comes after the language rule');
 });

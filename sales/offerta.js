@@ -10,7 +10,7 @@ const E=(t,text,cls)=>{const n=document.createElement(t);if(text!=null)n.textCon
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const KEY=w=>'radix.offerta.business.'+w;
 // The CRM's language switch (lib/radix-i18n.js) decides the language of the dialog and of the pages: it or en.
-const EN=()=>!!(window.RadixI18n&&window.RadixI18n.en),lang=()=>EN()?'en':'it',T=(it,en)=>EN()?en:it;
+const EN=()=>!!(window.RadixI18n&&window.RadixI18n.en),lang=()=>EN()?'en':'it',T=(it,en)=>EN()?en:it,planOpts=()=>({lang:lang(),currency:EN()&&window.RadixI18n.currency||'EUR'});
 const mem={get(w){try{return localStorage.getItem(KEY(w))||''}catch(e){return ''}},set(w,v){try{localStorage.setItem(KEY(w),v)}catch(e){}}};
 /* The last version of each quote's proposal (answers, look, colours switch, edited texts) stays in this browser's
    localStorage: reopening the dialog resumes at step 3; «Ricomincia» forgets it. Numbers are never stored: the model
@@ -19,7 +19,7 @@ const DKEY=(w,id)=>'radix.offerta.doc.'+w+'.'+id;
 const saved={get(){try{const v=JSON.parse(localStorage.getItem(DKEY(st.ctx.workspace,st.doc.id))||'null');return v&&v.answers&&v.texts?v:null}catch(e){return null}},
  set(){if(!st.model||!st.doc.id)return;try{const texts={};for(const f of C.fields(st.model))texts[f.key]=f.value;localStorage.setItem(DKEY(st.ctx.workspace,st.doc.id),JSON.stringify({answers:st.answers,look:st.look,useBrand:st.useBrand,texts,at:new Date().toISOString()}))}catch(e){}},
  clear(){try{localStorage.removeItem(DKEY(st.ctx.workspace,st.doc.id))}catch(e){}}};
-function resume(v){st.answers=v.answers;st.look=v.look||'elegante';st.useBrand=v.useBrand!==false;st.model=C.plan(st.doc,v.answers,{lang:lang()});const keys=new Set(C.fields(st.model).map(f=>f.key));for(const [k,t] of Object.entries(v.texts))if(keys.has(k)&&typeof t==='string')C.apply(st.model,k,t);st.resumed=v.at||true;st.step=3}
+function resume(v){st.answers=v.answers;st.look=v.look||'elegante';st.useBrand=v.useBrand!==false;st.model=C.plan(st.doc,v.answers,planOpts());const keys=new Set(C.fields(st.model).map(f=>f.key));for(const [k,t] of Object.entries(v.texts))if(keys.has(k)&&typeof t==='string')C.apply(st.model,k,t);st.resumed=v.at||true;st.step=3}
 const st={doc:null,ctx:null,step:1,answers:null,model:null,look:'elegante',useBrand:true,ai:null,aiBusy:false};
 // The colours in use: the company's (Intestazione › Colori dell’offerta grafica) while the switch is on, else the look's.
 const brand=()=>st.useBrand&&st.ctx.brand?st.ctx.brand:null;
@@ -35,7 +35,7 @@ function step1(){
   for(const o of q.options){const l=E('label',undefined,'of-choice'+(o.value===q.value?' is-on':''));const i=E('input');i.type='radio';i.name='of-'+q.id;i.value=o.value;i.checked=o.value===q.value;i.addEventListener('change',()=>{answers[q.id]=o.value;row.querySelectorAll('.of-choice').forEach(x=>x.classList.toggle('is-on',x===l))});
    const t=E('span');t.append(E('b',o.label));if(o.hint)t.append(E('small',o.hint));l.append(i,t);row.append(l)}
   f.append(row);w.append(f)}
- const bar=E('div',undefined,'of-bar');bar.append(B(T('Mostra le 3 proposte','Show the 3 proposals'),()=>{st.answers=answers;mem.set(st.ctx.workspace,answers.business);st.model=C.plan(st.doc,answers,{lang:lang()});st.step=2;saved.set();render()},'of-btn is-primary'));w.append(bar);return w;
+ const bar=E('div',undefined,'of-bar');bar.append(B(T('Mostra le 3 proposte','Show the 3 proposals'),()=>{st.answers=answers;mem.set(st.ctx.workspace,answers.business);st.model=C.plan(st.doc,answers,planOpts());st.step=2;saved.set();render()},'of-btn is-primary'));w.append(bar);return w;
 }
 function preview(lookId,scale){const box=E('div',undefined,'of-preview');const f=document.createElement('iframe');f.title=T('Anteprima ','Preview ')+lookId;f.setAttribute('sandbox','');f.loading='lazy';
  f.srcdoc='<!doctype html><html lang="'+lang()+'"><head><meta charset="utf-8"><link rel="stylesheet" href="'+location.origin+'/sales/offerta.css"><style>html,body{margin:0;background:#e9e6ef}body{zoom:'+scale+';display:flex;gap:6mm;padding:4mm;align-items:flex-start}.of-page{margin:0;flex:0 0 210mm}</style></head><body class="of-paper">'+C.html(st.model,lookId,brand())+'</body></html>';box.append(f);return box}
