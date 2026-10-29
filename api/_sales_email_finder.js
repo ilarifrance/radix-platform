@@ -69,8 +69,10 @@ const hunter={id:'hunter',label:'Hunter',configured:env=>keyOk(env.HUNTER_API_KE
   if(r.special!==undefined)return null;
   const d=object(r.body.data)?r.body.data:{},email=String(d.email||'').trim().toLowerCase();
   if(!personal(email))return null;
+  // Looked up by company name: Hunter also chose the company's domain, kept only when it looks like this company's.
+  const domain=email.slice(email.indexOf('@')+1);if(!p.domain&&!F.companyDomainOk(domain,p.company))return null;
   const st=object(d.verification)?String(d.verification.status||''):'';
-  return {email,qualification:st==='valid'?'verificata':st==='accept_all'?'catch_all':'da verificare',score:Number.isFinite(d.score)?d.score:null};
+  return {email,qualification:st==='valid'?'verificata':st==='accept_all'?'catch_all':'da verificare',score:Number.isFinite(d.score)?d.score:null,domain};
  }};
 const apollo={id:'apollo',label:'Apollo.io',configured:env=>keyOk(env.APOLLO_API_KEY),
  // POST /api/v1/people/match (docs.apollo.io/reference/people-enrichment), no personal emails, no phone, no waterfall.
@@ -83,8 +85,9 @@ const apollo={id:'apollo',label:'Apollo.io',configured:env=>keyOk(env.APOLLO_API
   if(r.special!==undefined)return null;
   const person=object(r.body.person)?r.body.person:{},email=String(person.email||'').trim().toLowerCase(),st=String(person.email_status||'').toLowerCase();
   if(!personal(email)||/email_not_unlocked|not_unlocked/.test(email))return null;
-  if(st==='verified')return {email,qualification:'verificata'};
-  if(['guessed','unverified','extrapolated','likely to engage','likely_to_engage'].includes(st))return {email,qualification:'da verificare'};
+  const domain=email.slice(email.indexOf('@')+1);if(!p.domain&&!F.companyDomainOk(domain,p.company))return null;
+  if(st==='verified')return {email,qualification:'verificata',domain};
+  if(['guessed','unverified','extrapolated','likely to engage','likely_to_engage'].includes(st))return {email,qualification:'da verificare',domain};
   return null;
  }};
 // Captain Data: no public email-finding endpoint (it relies on Dropcontact for emails); kept in the list as «non disponibile».
@@ -235,6 +238,13 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
   companiesDone.add(contact.company_id);
   try{await save('companies',{id:contact.company_id,version:contact.company_version,email});out.company++}catch{}
  }
+ // A provider that found the person from the company name also found its domain: kept as the company's website
+ // when it has none, so the free step and the next searches start from the site.
+ async function companySite(contact,domain){
+  if(!contact.company_id||!domain||F.domainOf(contact.website)||companiesDone.has('site:'+contact.company_id))return;
+  companiesDone.add('site:'+contact.company_id);
+  try{await save('companies',{id:contact.company_id,version:contact.company_version,website:'https://'+domain});contact.website='https://'+domain;contact.company_version++;out.domains=(out.domains||0)+1}catch{}
+ }
  const load=async ids=>sql(CONTACTS,[c.workspace,ids,user]);
  if(c.action==='free'){
   const rows=await load(c.data.contacts),pick=F.candidates(rows),deadline=Date.now()+budgetMs;
@@ -280,7 +290,7 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
    await Promise.all(pick.contacts.map(async ct=>{
     let hit=null;try{hit=await p.find(personOf(ct),{env,fetch:f})}catch(e){out.failed++;out.rows.push({id:ct.id,name:ct.name,error:e&&e.status?e.message:'Ricerca non riuscita.'});return}
     if(!hit){out.not_found++;return}
-    await keep(ct,hit,p.label);
+    await keep(ct,hit,p.label);await companySite(ct,hit.domain);
    }));
    return {...out,provider:p.label,skipped:pick.skipped};
   }

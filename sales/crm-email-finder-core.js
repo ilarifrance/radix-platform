@@ -211,7 +211,20 @@ function pageMentions(html,name,{city,domain}={}){
  return (c.length>=3&&text.includes(c))||/\b(p iva|partita iva|s r l|srl|s p a)\b/.test(text);
 }
 
-const core={RESERVED,KEY,PROVIDERS,PAID,DEFAULT_ORDER,byId,settingsError,orderOf,domainOf,domainCandidates,pageMentions,nameTokens,extractEmails,nameParts,PATTERNS,personalMatch,detectPattern,applyPattern,privateIp,candidates,chain,firstConfirmText,paidConfirmText,runFinder};
+// A domain a provider found from the company NAME alone (no site known) is this company's only when it looks like it:
+// an ordinary TLD (never a two-level foreign one such as com.pr) and the name before the TLD shares a word with the
+// company («MR Centro Clima Srl» → mrcentroclima.it, «SCM srl» → scmsim.it; «MCS» → mcs.com.pr refused).
+const TLDS=new Set(['it','com','eu','net','org','info','biz','io','co','de','fr','es','ch','at']);
+function companyDomainOk(domain,company){
+ const d=domainOf(domain);if(!d)return false;
+ const labels=d.split('.');if(labels.length<2||!TLDS.has(labels[labels.length-1]))return false;
+ const base=labels[labels.length-2].replace(/-/g,'');if(base.length<2)return false;
+ const toks=nameTokens(company).filter(t=>t.length>=3);
+ if(!toks.length)return base.length>=3&&fold(company).replace(/[^a-z0-9]/g,'').includes(base);
+ return toks.some(t=>base.includes(t)||(base.length>=3&&t.includes(base)))||base===toks.map(t=>t[0]).join('');
+}
+
+const core={RESERVED,KEY,PROVIDERS,PAID,DEFAULT_ORDER,byId,settingsError,orderOf,domainOf,domainCandidates,companyDomainOk,pageMentions,nameTokens,extractEmails,nameParts,PATTERNS,personalMatch,detectPattern,applyPattern,privateIp,candidates,chain,firstConfirmText,paidConfirmText,runFinder};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmEmailFinderCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);
