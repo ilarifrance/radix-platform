@@ -91,3 +91,14 @@ details.crm-supp>summary{color:var(--crm-text,inherit)}
  .crm-supp-table td:nth-child(3),.crm-supp-table td:nth-child(4){color:var(--crm-muted,inherit);font-size:12px}
  .crm-supp-table td:last-child{grid-column:2;grid-row:2 / span 2;text-align:right;align-self:center}
 }
+/* «Scrivi con l’AI una per contatto» (sales/crm-ai-emails.js): one card per contact in the campaign panel. */
+.crm-ai-emails{margin:12px 0;padding:12px;border:1px solid var(--crm-line,#2b3550);border-radius:12px;background:var(--crm-soft,transparent)}
+.crm-ai-emails h4{margin:0 0 6px}
+.crm-ai-emails-cards{display:grid;gap:10px;margin-top:10px}
+.crm-ai-email{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border:1px solid var(--crm-line,#2b3550);border-radius:10px}
+.crm-ai-email.has-warnings{border-color:var(--crm-warn,#d99a2b)}
+.crm-ai-email label{display:flex;flex-direction:column;gap:3px;font-size:.85em}
+.crm-ai-email textarea{min-height:120px;resize:vertical}
+.crm-ai-email-tag{font-size:.8em;opacity:.75}
+.crm-ai-email-tag.ai{opacity:1;font-weight:600}
+.crm-ai-email-warnings{margin:0;padding-left:18px;font-size:.85em;color:var(--crm-warn,#d99a2b)}
