@@ -9,7 +9,7 @@ const PROJECT_STATUSES=Object.freeze(['draft','active','paused','done','archived
 // One JSON document per project and module. PED and PM get their own tables in F3/F4;
 // until then their whole state lives here, shared by the team and versioned.
 // 'agents' holds the project's conversations with the v3.7 agents (agents.html).
-const MODULES=Object.freeze(['agency-workspace','agency-operations','editorial','pm','agents']);
+const MODULES=Object.freeze(['agency-workspace','agency-operations','editorial','pm','agents','meetings']);
 const SUBJECT_TYPES=Object.freeze(['strategy','ped-plan','content','agency-task','pm-task']);
 const DECISIONS=Object.freeze({approve:'approved',revise:'needs_revision',reject:'rejected'});
 const MAX_DOCUMENT_BYTES=1500000;
@@ -46,7 +46,7 @@ const SCHEMA=Object.freeze([
 `CREATE INDEX IF NOT EXISTS rx_projects_client_idx ON rx_projects(client_id, updated_at DESC)`,
 `CREATE TABLE IF NOT EXISTS rx_documents (
  project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
- module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents')),
+ module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents','meetings')),
  data jsonb NOT NULL CHECK (jsonb_typeof(data) = 'object' AND octet_length(data::text) <= 1500000),
  revision integer NOT NULL DEFAULT 1 CHECK (revision > 0),
  updated_by integer REFERENCES users(id),
@@ -55,7 +55,7 @@ const SCHEMA=Object.freeze([
 )`,
 // Databases created before the 'agents' module: widen the module check in place.
 `ALTER TABLE rx_documents DROP CONSTRAINT IF EXISTS rx_documents_module_check`,
-`ALTER TABLE rx_documents ADD CONSTRAINT rx_documents_module_check CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents'))`,
+`ALTER TABLE rx_documents ADD CONSTRAINT rx_documents_module_check CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents','meetings'))`,
 `CREATE TABLE IF NOT EXISTS rx_approvals (
  id uuid PRIMARY KEY,
  project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,

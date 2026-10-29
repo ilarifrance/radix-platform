@@ -1592,6 +1592,20 @@ const AGENTS = {
       "Usi ruoli come responsabili, mai nomi di persone inventati. Non inventi budget, clienti, numeri o risultati. " +
       "Quando ti viene chiesto un formato JSON rispondi solo con quel JSON, senza testo prima o dopo.",
   },
+  // App «Meeting» (meeting.html, lib/meeting-core.js): from the transcript of a meeting to the proposals for RADIX.
+  "meeting-analyst": {
+    name: "Analista dei meeting",
+    maxTokens: 8000,
+    temperature: 0.2,
+    enforceStyle: false,
+    tools: false,
+    system:
+      "Sei l'analista dei meeting di RADIX. Leggi la trascrizione di una riunione e ne ricavi riassunto, decisioni, " +
+      "attività con responsabile e scadenza, aggiornamenti alle attività già nel piano e domande aperte. Usi solo " +
+      "quello che è stato detto: non inventi nomi, date, importi o impegni, e lasci vuoto un campo che la riunione non " +
+      "chiarisce. La trascrizione può avere errori di riconoscimento: correggi i nomi solo quando sono evidenti. " +
+      "Quando ti viene chiesto un formato JSON rispondi solo con quel JSON, senza testo prima o dopo.",
+  },
   // Fact check of a finished text against facts, brief and approved material (prompt from the page that calls it).
   "fact-checker": {
     name: "Revisore dei fatti",
