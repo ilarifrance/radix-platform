@@ -175,7 +175,8 @@ async function planQueue(sql,c,user,ctx){
 }
 // Issuer data of the workspace (Impostazioni › Documenti, migration 013): who writes, in every B2B footer.
 async function issuerOf(sql,workspace){
- try{return (await sql('SELECT name,legal_name,vat_number,street,zip,city,province,country FROM sales_document_settings WHERE workspace_id=$1',[workspace]))[0]||null}
+ // The letterhead lives in the jsonb column «issuer» (migration 013), not in columns of its own.
+ try{const r=(await sql('SELECT issuer FROM sales_document_settings WHERE workspace_id=$1',[workspace]))[0];return r&&r.issuer&&typeof r.issuer==='object'?r.issuer:null}
  catch(e){if(e&&e.code==='42P01')return null;throw e}
 }
 /* «Prospezione B2B»: contacts without marketing consent too, only with the rules of sales/crm-prospecting-core.js

@@ -196,3 +196,59 @@ test('Command Center strings: journey, activity and approvals written by the ser
   assert.equal(T.display('Aura Skincare · richiesta da una persona del team', true), 'Aura Skincare · requested by a team member');
   assert.equal(T.tr('Rossi e Figli ha creato il cliente Bianchi Srl'), 'Rossi e Figli created the client Bianchi Srl', 'names stay as typed');
 });
+
+const cstore = () => { const m = new Map(); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), m }; };
+test('currency: ?currency / «rx-currency», pounds by default; with euro chosen the amounts pass through', () => {
+  const store = cstore;
+  const s1 = store();
+  assert.equal(I.readCurrency({ location: { search: '?currency=EUR' }, localStorage: s1 }), 'eur');
+  assert.equal(s1.m.get('rx-currency'), 'eur', 'the URL choice is remembered');
+  assert.equal(I.readCurrency({ location: { search: '' }, localStorage: s1 }), 'eur');
+  assert.equal(I.readCurrency({ location: { search: '?currency=usd' }, localStorage: store() }), 'gbp', 'unknown → pounds');
+  assert.equal(I.readCurrency({ location: { search: '' }, localStorage: store() }), 'gbp');
+  assert.equal(I.saveCurrency({ localStorage: s1 }, 'gbp'), true);
+  assert.equal(I.saveCurrency({ localStorage: s1 }, 'chf'), false);
+  assert.equal(s1.m.get('rx-currency'), 'gbp');
+  assert.equal(I.currency, 'EUR', 'Italian: always euro');
+  const T2 = T;
+  assert.equal(T2.t('Valore aperto (€)'), 'Open value (£)');
+  assert.equal(I.setCurrency('eur'), 'eur');
+  try {
+    assert.equal(T2.t('Valore aperto (€)'), 'Open value (€)', 'euro chosen: translated, amount sign untouched');
+    assert.equal(T2.display('€ 1,200'), null, 'nothing to change');
+    assert.equal(T2.t('€ 1,200'), '€ 1,200');
+    const init = { method: 'POST', body: JSON.stringify({ role: 'crm-copilot', messages: [] }) };
+    assert.equal(JSON.parse(I.withLang('/api/chat', init, 'en', 'eur').body).currency, 'EUR');
+    assert.equal(JSON.parse(I.withLang('/api/chat', init, 'en', 'gbp').body).currency, 'GBP');
+    assert.equal(JSON.parse(I.withLang('/api/chat', init, 'en').body).currency, undefined, 'no currency known: nothing added');
+    const own = { method: 'POST', body: JSON.stringify({ role: 'x', currency: 'EUR' }) };
+    assert.equal(JSON.parse(I.withLang('/api/chat', own, 'en', 'gbp').body).currency, 'EUR', 'a currency already in the body wins');
+  } finally { I.setCurrency('gbp'); }
+  assert.equal(T2.t('Valore aperto (€)'), 'Open value (£)');
+});
+
+test('currency: the language menu carries the currency only in English', () => {
+  const store = cstore;
+  const made = [];
+  const doc = {
+    getElementById: () => null,
+    querySelector: () => null,
+    addEventListener() {},
+    body: { appendChild() {} },
+    createElementNS(ns, tag) { return this.createElement(tag); },
+    createElement(tag) {
+      const el = { tagName: tag, attrs: {}, children: [], dataset: {}, classList: { add() {} }, style: {},
+        setAttribute(k, v) { this.attrs[k] = v; }, appendChild(c) { this.children.push(c); return c; }, append(...cs) { this.children.push(...cs); },
+        addEventListener() {}, get textContent() { return this._t || ''; }, set textContent(v) { this._t = v; } };
+      made.push(el); return el;
+    }
+  };
+  I.mountSwitch({ document: doc, location: { href: 'https://radix.example/x' }, localStorage: store() }, 'en', 'eur');
+  const items = made.filter(e => e.attrs.role === 'menuitemradio');
+  assert.deepEqual(items.map(i => i.dataset.lang || i.dataset.currency), ['it', 'en', 'gbp', 'eur']);
+  assert.deepEqual(items.map(i => i.attrs['aria-checked']), ['false', 'true', 'false', 'true']);
+  assert.ok(made.some(e => e.className === 'rx-lang-head' && e.textContent === 'Currency'));
+  made.length = 0;
+  I.mountSwitch({ document: doc, location: { href: 'https://radix.example/x' }, localStorage: store() }, 'it', 'eur');
+  assert.deepEqual(made.filter(e => e.attrs.role === 'menuitemradio').map(i => i.dataset.lang), ['it', 'en'], 'Italian: no currency entries');
+});
