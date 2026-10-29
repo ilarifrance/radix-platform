@@ -81,7 +81,9 @@ function texts(items){
  for(const it of items||[]){if(!it||!it.id||!it.subject||!it.body)continue;if(it.base&&it.base.subject===it.subject&&it.base.body===it.body)continue;out[it.id]={subject:String(it.subject).slice(0,SUBJECT_MAX),body:String(it.body).slice(0,BODY_MAX)}}
  return out;
 }
-const core={MAX_LOT,SUBJECT_MAX,BODY_MAX,BODY_TARGET,PLACEHOLDERS,facts,factLines,prompt,parse,texts,numbersIn,urlsIn,domainOf};
+// Pure: the lots of a list of n contacts, MAX_LOT each, in the sending order ({from,to} as slice bounds).
+function lots(n){const out=[];for(let i=0;i<Math.max(0,Number(n)||0);i+=MAX_LOT)out.push({from:i,to:Math.min(i+MAX_LOT,n)});return out.length?out:[{from:0,to:0}]}
+const core={MAX_LOT,lots,SUBJECT_MAX,BODY_MAX,BODY_TARGET,PLACEHOLDERS,facts,factLines,prompt,parse,texts,numbersIn,urlsIn,domainOf};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 root.RadixCrmAiEmailsCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);
