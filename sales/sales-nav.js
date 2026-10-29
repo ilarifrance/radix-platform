@@ -41,7 +41,7 @@
     ] },
     // Password, membri, caselle email, collegamenti, regole CRM: one page for every setting (impostazioni.html).
     { label: 'Sistema', items: [
-      { href: '/impostazioni.html', text: 'Impostazioni', ic: 'sliders' }
+      { href: '/impostazioni.html?area=sales', text: 'Impostazioni', ic: 'sliders' }
     ] }
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };

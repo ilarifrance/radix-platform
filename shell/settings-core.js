@@ -7,13 +7,14 @@ const SECTIONS=Object.freeze([
  {id:'profilo',label:'Profilo',hint:'Nome, email, password e lingua'},
  {id:'membri',label:'Workspace e membri',hint:'Chi lavora nel CRM e cosa vede',crm:true},
  {id:'caselle',label:'Caselle email',hint:'Da dove partono le campagne in coda',crm:true},
+ {id:'calendari',label:'Calendari',hint:'Outlook e Google: abbonamento e calendari esterni',crm:true},
  {id:'collegamenti',label:'Collegamenti',hint:'Servizi esterni e estensione Chrome'},
  {id:'crm',label:'CRM',hint:'Automazioni, SLA e campi aggiunti',crm:true},
  {id:'crediti',label:'Crediti e fatturazione',hint:'In arrivo'}
 ]);
 const IDS=SECTIONS.map(s=>s.id);
 // Old names and anchors that point to the same section.
-const ALIAS={profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
+const ALIAS={profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',calendars:'calendari',calendario:'calendari',calendar:'calendari',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
 // '#caselle', 'caselle', '#members' → a section id; anything else → 'profilo'.
 function sectionFromHash(hash){
  const h=String(hash||'').replace(/^#/,'').split(/[?&/]/)[0].trim().toLowerCase();

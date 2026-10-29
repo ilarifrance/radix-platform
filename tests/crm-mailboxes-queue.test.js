@@ -295,7 +295,7 @@ test('wiring: cron every 10 minutes on the dispatcher, router entities, Impostaz
  assert.deepEqual(mailq.ENTITIES,['mailboxes','send_queue']);
  const html=read('radix-sales.html');assert.ok(html.indexOf('sales/crm-mailboxes.js')>html.indexOf('sales/crm-campaigns.js'));assert.ok(html.includes('href="sales/crm-mailboxes.css"'));
  const ui=read('sales/crm-mailboxes.js');for(const s of ['Caselle email','Prova invio','Metti in pausa','Password per le app','Annulla quelle in coda'])assert.ok(ui.includes(s),s);
- assert.match(read('sales/crm-campaigns.js'),/B\('Metti in coda'/);assert.match(read('sales/crm-tools.js'),/href='\/impostazioni\.html#caselle'/);assert.ok(!read('sales/crm-tools.js').includes('RadixCrmMailboxes.panel()'),'the panel lives in Impostazioni');assert.match(read('shell/settings.js'),/RadixCrmMailboxes;[\s\S]*M\.panel\(\)/);
+ assert.match(read('sales/crm-campaigns.js'),/B\('Metti in coda'/);assert.match(read('sales/crm-tools.js'),/href='\/impostazioni\.html\?area=sales#caselle'/);assert.ok(!read('sales/crm-tools.js').includes('RadixCrmMailboxes.panel()'),'the panel lives in Impostazioni');assert.match(read('shell/settings.js'),/RadixCrmMailboxes;[\s\S]*M\.panel\(\)/);
  assert.equal(campaigns.campaignName(' {nome}, una   proposta ','2026-10-20'),'una proposta');assert.equal(campaigns.campaignName('{nome}','2026-10-20'),'Campagna 2026-10-20');
  assert.ok(!/console\.(log|error)\([^)]*pass/i.test(read('api/_sales_mailboxes.js')+read('api/_sales_send_worker.js')+read('api/_mailbox_crypto.js')),'passwords are never logged');
 });

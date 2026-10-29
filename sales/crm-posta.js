@@ -43,7 +43,7 @@ async function folder(append){if(!S.mailbox)return;const gen=S.gen;if(!append){S
  catch(e){if(gen!==S.gen)return;S.items=[];drawList();status(e.message,true);if(e.code==='needs_reconnect')reconnectHint()}}
 function reconnectHint(){const host=$('pm-read');host.replaceChildren(E('h2','Serve un nuovo collegamento della casella','pm-force'),
  E('p','La casella è stata collegata prima che RADIX chiedesse il permesso di leggere la posta. Vai in Impostazioni › Caselle email e premi di nuovo «Collega con Microsoft 365» con lo stesso account: Microsoft chiederà di consentire la lettura. L’invio continua a funzionare anche prima.'),
- Object.assign(E('a','Apri Impostazioni › Caselle email ↗','pm-btn'),{href:'/impostazioni.html'}))}
+ Object.assign(E('a','Apri Impostazioni › Caselle email ↗','pm-btn'),{href:'/impostazioni.html?area=sales#caselle'}))}
 
 /* ---------- List ---------- */
 const matched=m=>S.crmReady?P.matches(m,S.crm.contacts,own()):[];
@@ -136,6 +136,18 @@ for(const b of document.querySelectorAll('[data-folder]'))b.onclick=()=>{S.folde
 $('pm-search').addEventListener('submit',e=>{e.preventDefault();S.search=$('pm-q').value.trim().slice(0,100);folder()});
 $('pm-q').addEventListener('search',()=>{if(!$('pm-q').value&&S.search){S.search='';folder()}});
 $('pm-only').onchange=drawList;$('pm-reload').onclick=()=>folder();
+/* Keyboard: ↑ ↓ (or k j) open the previous / next mail of the list, Home / End the first / last; works from the list and from the open mail. */
+const listButtons=()=>[...$('pm-items').querySelectorAll('button.pm-item')];
+function step(key){const btns=listButtons();if(!btns.length)return false;
+ let i=btns.findIndex(b=>b.classList.contains('on'));if(i<0)i=btns.indexOf(document.activeElement);
+ const n=key==='Home'?0:key==='End'?btns.length-1:key==='ArrowUp'||key==='k'?Math.max(0,i-1):Math.min(btns.length-1,i+1);
+ if(n===i&&btns[n].classList.contains('on'))return true;
+ const shown=S.items.filter(m=>!$('pm-only').checked||matched(m).length),m=shown[n];if(!m)return false;
+ openMessage(m);const b=listButtons()[n];if(b){b.focus({preventScroll:true});b.scrollIntoView({block:'nearest'})}return true}
+function onKeys(e){if(e.altKey||e.ctrlKey||e.metaKey)return;const t=e.target,tag=t&&t.tagName;
+ if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable))return;
+ if(['ArrowDown','ArrowUp','Home','End','j','k'].includes(e.key)&&step(e.key))e.preventDefault()}
+$('pm-items').addEventListener('keydown',onKeys);$('pm-read').addEventListener('keydown',onKeys);
 $('pm-more').onclick=()=>{S.skip+=25;folder(true)};
 init();
 })();

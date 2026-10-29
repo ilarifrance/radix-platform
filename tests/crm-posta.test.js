@@ -111,3 +111,12 @@ test('replies to campaigns: a received mail from a contact the queue wrote to, w
  assert.ok(fs.readFileSync(__dirname+'/../sales/crm-posta.css','utf8').includes('.pm-tag.reply'));
  require('../lib/radix-i18n-en.js');assert.equal(globalThis.RadixI18nEn['↩ Risposta a una campagna'],'↩ Reply to a campaign');
 });
+
+test('keyboard: ↑ ↓ j k Home End move between the mails from the list and from the open mail; typing in a field is left alone',()=>{
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8');
+ assert.match(ui,/\$\('pm-items'\)\.addEventListener\('keydown',onKeys\);\$\('pm-read'\)\.addEventListener\('keydown',onKeys\)/);
+ assert.match(ui,/\['ArrowDown','ArrowUp','Home','End','j','k'\]\.includes\(e\.key\)&&step\(e\.key\)\)e\.preventDefault\(\)/);
+ assert.match(ui,/tag==='INPUT'\|\|tag==='TEXTAREA'\|\|tag==='SELECT'/);
+ assert.match(ui,/openMessage\(m\);const b=listButtons\(\)\[n\];if\(b\)\{b\.focus\(\{preventScroll:true\}\);b\.scrollIntoView\(\{block:'nearest'\}\)\}/,'the newly opened row keeps the focus after the list is redrawn');
+ assert.match(ui,/href:'\/impostazioni\.html\?area=sales#caselle'/,'the reconnect link keeps the Sales menu');
+});

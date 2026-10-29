@@ -133,6 +133,17 @@ const R={
   const T=root.RadixCrmEmailFinder;
   if(T&&T.settingsPanel){const f=card('Trova email','Come il CRM cerca l’email aziendale dei contatti che ne sono senza (Contatti › seleziona › Trova email): prima gratis sul sito dell’azienda, poi i servizi a pagamento collegati, in quest’ordine.','st-mount');const fp=T.settingsPanel();f.append(fp);out.append(f);fp.open=true}
  },
+ async calendari(out){
+  await workspaces();if(needWorkspace(out))return;
+  // The CRM's own boxes (sales/crm-calendars.js), the same the Calendario page showed before: the link to subscribe
+  // Outlook / Google to the CRM appointments, and the person's own Outlook / Google links for «Occupato» and free slots.
+  const K=root.RadixCrmCalendars;
+  if(!K||!K.feedBox||!K.sourcesBox){const c=card('Calendari');c.append(E('p','Modulo dei calendari non caricato: ricarica la pagina.','st-err'));out.append(c);return}
+  const feed=card(undefined,undefined,'st-mount st-cal');feed.append(K.feedBox());out.append(feed);
+  const src=card(undefined,undefined,'st-mount st-cal');src.append(K.sourcesBox());out.append(src);
+  const c=card('Nel CRM','Gli impegni dei calendari esterni compaiono come «Occupato» nel Calendario del CRM e negli slot liberi di «Registra chiamata».');
+  const a=E('div',undefined,'st-actions');a.append(A('Apri il Calendario','/radix-sales.html#calendar','st-btn'));c.append(a);out.append(c);
+ },
  async collegamenti(out){
   const c=card('Servizi collegati','Quali servizi esterni RADIX può usare su questo sito. Le chiavi si impostano dall’amministratore (variabili d’ambiente di Vercel): non si inseriscono nell’app e non vengono mai mostrate qui.');
   const list=E('ul',undefined,'st-conn');list.append(E('li','Controllo i collegamenti…','st-sub'));c.append(list);out.append(c);
