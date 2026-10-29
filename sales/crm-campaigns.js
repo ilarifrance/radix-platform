@@ -83,8 +83,9 @@ async function segmentContacts(filterOf){
  const byName=new Map(companies.map(c=>[String(c.name).trim().toLowerCase(),c.id]));
  return contacts.filter(f).filter(c=>c.name!=='Contatto anonimizzato').map(c=>({...c,company_id:c.company?byName.get(String(c.company).trim().toLowerCase())||null:null}));
 }
-let emailReady=null;
-async function emailConfigured(){if(emailReady!==null)return emailReady;try{const r=await fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{};emailReady=!!(d.items||[]).find(i=>i.id==='email'&&i.configured)}catch{emailReady=false}return emailReady}
+const sender=()=>root.RadixCrmSendDirect;
+// Direct send = a workspace mailbox (Impostazioni › Caselle email) or the server Gmail (sales/crm-send-direct.js).
+async function emailConfigured(){const S=sender();return S?await S.ready():null}
 function sequencePanel(filterOf){
  const box=E('div',undefined,'crm-sequence');box.append(E('h3','Sequenze automatiche'));
  const sel=E('select');sel.setAttribute('aria-label','Sequenza');const custom=[];
@@ -161,7 +162,7 @@ function campaignPanel(filterOf){
   const csv=B('Esporta per stampa unione (CSV)',()=>{const C=window.RadixCrmCsv;if(!C)return;const t=C.toCsv(plan.emails.map(e=>({to:e.to,name:e.contact.name,subject:e.subject,body:e.body})),[{label:'Email',key:'to'},{label:'Nome',key:'name'},{label:'Oggetto',key:'subject'},{label:'Testo',key:'body'}]);const a=E('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download='campagna-'+new Date().toISOString().slice(0,10)+'.csv';document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)});
   out.append(csv);
   const sent=new Set(),marks=new Map();
-  const deliver=async e=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:e.to,subject:e.subject,body:e.body,unsubscribeUrl:e.unsubscribeUrl,confirm:true})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');sent.add(e.to);await marks.get(e)()};
+  const deliver=async e=>{await sender().send({to:e.to,subject:e.subject,body:e.body,unsubscribeUrl:e.unsubscribeUrl});sent.add(e.to);await marks.get(e)()};
   if(configured&&plan.emails.length){const all=B('Invia a tutti ('+plan.emails.length+')',async()=>{
    const q=bulkQueue(plan.emails,sent);if(!q.now.length){app().notice('Tutte le email sono già state inviate.');return}
    if(!window.confirm('Inviare ora '+q.now.length+' email dal tuo indirizzo?\nOggetto: '+subject.value.trim()+(q.later?'\nNe restano '+q.later+' per un secondo giro (limite di '+BULK_MAX+' per volta).':'')+'\nL’invio non si può annullare.'))return;
