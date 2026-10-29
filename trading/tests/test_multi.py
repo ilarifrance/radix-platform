@@ -64,8 +64,8 @@ def test_allocate_inverse_vol_and_daily():
     calm = pd.Series(rng.normal(0, 0.002, 200), index=days)
     r, w = multi.allocate({"crypto": hourly, "calmo": calm})
     assert len(r) == 200
-    assert w["calmo"].iloc[-1] > w["crypto"].iloc[-1]
-    assert np.allclose(w.iloc[60:].sum(axis=1), 1.0)
+    assert w["calmo"].iloc[-1] >= w["crypto"].iloc[-1]
+    assert np.allclose(w.iloc[90:].sum(axis=1), 1.0)
 
 
 def test_sweep_sets_profit_aside_and_covers_losses(tmp_path):
@@ -98,3 +98,16 @@ def test_research_builds_the_portfolio(monkeypatch):
     assert {"gold_macro", "risk_switch", "portafoglio_multi"} <= fams
     port = next(r for r in out["classifica"] if r["famiglia"] == "portafoglio_multi")
     assert port["parametri_ultimi"]["corsie"] == ["gold_macro@materie_prime", "risk_switch@etf"]
+
+
+def test_allocate_lane_in_cash_does_not_take_everything():
+    days = pd.date_range("2024-01-01", periods=400, freq="D", tz="UTC")
+    rng = np.random.default_rng(2)
+    active = pd.Series(rng.normal(0.0005, 0.01, 400), index=days)
+    sleepy = pd.Series(0.0, index=days)
+    sleepy.iloc[300:] = rng.normal(-0.002, 0.03, 100)  # ferma in liquidita', poi rientra e perde
+    weekdays = days[days.dayofweek < 5]
+    etf = pd.Series(rng.normal(0.0003, 0.008, len(weekdays)), index=weekdays)
+    _, w = multi.allocate({"attiva": active, "ferma": sleepy, "etf": etf})
+    assert w["ferma"].max() <= multi.MAX_WEIGHT + 1e-9
+    assert (w["etf"].iloc[100:] > 0).all()  # anche se il ribilancio cade di sabato

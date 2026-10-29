@@ -126,7 +126,8 @@ NAMES = {
     "risk_switch": "Azioni o obbligazioni secondo la paura (VIX)", "portafoglio_multi": "Portafoglio di piu' strategie",
 }
 # Piu' strade insieme (multi.py): scoperto solo con calo probabile, macro, e il portafoglio che le unisce.
-BRAKE_GRID = {"fast": [24 * 10], "slow": [24 * 50, 24 * 100], "vol_target": [0.25, 0.5], "short_size": [0.25, 0.5]}
+BRAKE_GRID = {"fast": [24 * 10], "slow": [24 * 50, 24 * 100], "vol_target": [0.25, 0.5], "short_size": [0.25, 0.5],
+              "exit_on": ["rebound", "trend"]}
 MACRO_FAMILIES = {
     "materie_prime": ("gold_macro", multi.gold_macro, {"trend": [100, 200], "lookback": [20, 60, 120]}),
     "etf": ("risk_switch", multi.risk_switch, {"vix_window": [126, 252], "trend": [100, 200]}),

@@ -8,7 +8,8 @@
 - `risk_switch` (ETF): azioni USA quando la paura (VIX) e' bassa e il credito non si allarga,
   altrimenti obbligazioni a medio termine. Una sola posizione alla volta: poche commissioni minime.
 - `allocate`: il "direttore" divide il capitale tra le strategie in proporzione inversa al loro
-  rischio recente (solo dati passati), ribilanciando ogni mese.
+  rischio dell'ultimo anno (solo dati passati, con un minimo e un tetto del 50% per strategia),
+  ribilanciando ogni mese.
 
 I dati macro FRED escono il giorno dopo: si usano sempre con un giorno di ritardo.
 """
@@ -31,7 +32,10 @@ def _daily_at(w: pd.DataFrame, hour: int = 0) -> pd.DataFrame:
 
 
 def trend_brake(close: pd.DataFrame, fast: int = HOUR * 10, slow: int = HOUR * 100, vol_target: float = 0.25,
-                short_size: float = 0.25, hour: int = 0) -> pd.DataFrame:
+                short_size: float = 0.25, exit_on: str = "rebound", hour: int = 0) -> pd.DataFrame:
+    """`exit_on`: "rebound" esce dallo scoperto al primo massimo di 10 giorni (prudente, ma nei
+    mercati che scendono a strappi si fa fermare spesso); "trend" esce solo quando le medie
+    tornano al rialzo."""
     n = close.shape[1]
     long_w = strategies.crypto_trend_daily(close, fast, slow, vol_target, hour)
     down = close.rolling(fast).mean() < close.rolling(slow).mean()
@@ -41,7 +45,7 @@ def trend_brake(close: pd.DataFrame, fast: int = HOUR * 10, slow: int = HOUR * 1
     rebound = close > close.rolling(HOUR * 10).max().shift(1)
     state = pd.DataFrame(np.nan, index=close.index, columns=close.columns)
     state[down & breakdown & rising_risk] = 1.0
-    state[rebound | ~down] = 0.0
+    state[(rebound | ~down) if exit_on == "rebound" else ~down] = 0.0
     short_w = -state.ffill().fillna(0.0) * short_size / n
     return _daily_at(long_w.where(long_w > 0, short_w), hour)
 
@@ -118,14 +122,28 @@ def to_daily(r: pd.Series) -> pd.Series:
     return (1 + r).groupby(r.index.normalize()).prod() - 1
 
 
-def allocate(returns: dict[str, pd.Series], window: int = 90, rebalance: int = 21) -> tuple[pd.Series, pd.DataFrame]:
-    """Il direttore: pesi inversi alla volatilita' dei 90 giorni precedenti, rivisti ogni mese.
-    Nei giorni in cui un mercato e' chiuso la sua strategia rende 0 (soldi fermi)."""
+MIN_DAILY_VOL = 0.005   # circa 8% l'anno: una strategia ferma in liquidita' non sembra "senza rischio"
+MAX_WEIGHT = 0.5
+
+
+def allocate(returns: dict[str, pd.Series], window: int = 365, rebalance: int = 21) -> tuple[pd.Series, pd.DataFrame]:
+    """Il direttore: pesi inversi alla volatilita' dell'ultimo anno (solo passato), rivisti ogni mese.
+    La volatilita' ha un minimo e nessuna strategia supera meta' del capitale: altrimenti una corsia
+    rimasta a lungo in liquidita' (volatilita' quasi zero) prenderebbe quasi tutto il capitale proprio
+    quando rientra. Nei giorni in cui un mercato e' chiuso la sua strategia rende 0 (soldi fermi)."""
     df = pd.DataFrame({k: to_daily(v) for k, v in returns.items()}).sort_index()
+    live = df.notna().cummax()  # una corsia conta da quando ha i primi risultati (anche nei weekend)
     df = df.dropna(how="all").fillna(0.0)
-    vol = df.rolling(window, min_periods=30).std().shift(1)
-    inv = 1 / vol.replace(0, np.nan)
+    live = live.reindex(df.index).fillna(False)
+    vol = df.rolling(window, min_periods=60).std().shift(1).clip(lower=MIN_DAILY_VOL)
+    inv = (1 / vol).where(live.shift(1, fill_value=False))
     w = inv.div(inv.sum(axis=1), axis=0)
+    for _ in range(len(df.columns)):  # tetto per corsia: l'eccesso va alle altre, in proporzione
+        capped = w >= MAX_WEIGHT - 1e-12
+        w = w.clip(upper=MAX_WEIGHT)
+        free = w.where(~capped)
+        spare = (1 - w.sum(axis=1)).clip(lower=0)
+        w = w + free.div(free.sum(axis=1), axis=0).mul(spare, axis=0).fillna(0.0).where(~capped, 0.0)
     keep = pd.Series(np.arange(len(w)) % rebalance == 0, index=w.index)
     w = w.where(keep, axis=0).ffill().fillna(0.0)
     return (w * df).sum(axis=1), w
