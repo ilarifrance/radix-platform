@@ -182,3 +182,12 @@ def test_daily_families_use_only_the_past():
         cut = fn(close.iloc[:600], **params)
         pd.testing.assert_frame_equal(full.iloc[:600], cut, check_freq=False, obj=name)
         assert (full.values >= 0).all() and (full.sum(axis=1) <= 1 + 1e-9).all(), name
+
+
+def test_daily_metrics_use_real_calendar():
+    from radix_trading import backtest
+    week = pd.Series(0.001, index=pd.date_range("2024-01-01", periods=366, freq="D", tz="UTC"))
+    work = pd.Series(0.001, index=pd.date_range("2024-01-01", periods=262, freq="B", tz="UTC"))
+    for r in (week, work):  # un anno di calendario in entrambi i casi
+        m = backtest.metrics(r, "1d")
+        assert abs(m["cagr"] - m["total_return"]) < 0.01 * abs(m["total_return"]) + 1e-3

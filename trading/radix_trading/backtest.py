@@ -110,6 +110,12 @@ def metrics(returns: pd.Series, timeframe: str, held: pd.DataFrame | None = None
     n = len(r)
     if n < 2:
         return {"periods": n}
+    if timeframe == "1d" and isinstance(r.index, pd.DatetimeIndex):
+        # Le crypto si scambiano anche nel fine settimana (365 giorni l'anno, non 252):
+        # i giorni per anno si ricavano dalle date.
+        span = (r.index[-1] - r.index[0]).days / 365.25
+        if span > 0.25:
+            ppy = (n - 1) / span
     equity = (1 + r).cumprod()
     years = n / ppy
     vol = r.std(ddof=1) * np.sqrt(ppy)
