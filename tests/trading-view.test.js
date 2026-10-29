@@ -76,3 +76,15 @@ test('research: finalists opened on the locked year',()=>{
  r=V.research({ricerca:{...base,finaliste:[],classifica:[{famiglia:'ma_cross',mercato:'cambi',ricerca:{annuo:0.01}}]}});
  assert.match(r.lead,/Nessuna delle 40 prove/);assert.equal(r.ranking[0].marketName,'Cambi');
 });
+
+test('portfolio: total includes the reserve, lanes sorted by weight',()=>{
+ assert.equal(V.portfolio({}),null);
+ const p=V.portfolio({portafoglio:{capitale_iniziale:1000,patrimonio:1000,riserva:42.5,
+  corsie:[{id:'gold_macro',titolo:'Oro con segnali macro',peso:0.27},{id:'risk_switch',titolo:'VIX',peso:0.34},{id:'x',peso:'nan'}],
+  posizioni:[{simbolo:'ETHEUR',quantita:-0.1},{simbolo:'GLD',quantita:0}],
+  andamento:[{ts:'2026-10-29T10:00:00Z',patrimonio:1000,riserva:0},{ts:'2026-10-30T10:00:00Z',patrimonio:1000,riserva:42.5},{ts:5}]}});
+ assert.equal(p.total,1042.5);assert.ok(Math.abs(p.change-0.0425)<1e-9);
+ assert.deepEqual(p.lanes.map(l=>l.id),['risk_switch','gold_macro']);
+ assert.equal(p.history.length,2);assert.equal(p.history[1].total,1042.5);
+ assert.deepEqual(p.positions,[{symbol:'ETHEUR',units:-0.1,short:true}]);
+});

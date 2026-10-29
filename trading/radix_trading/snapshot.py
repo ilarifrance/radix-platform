@@ -16,7 +16,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from . import paper, universe
+from . import paper, portfolio, universe
 from .collectors import fred
 from .config import Settings, env_value
 from .store import Store
@@ -102,6 +102,7 @@ def build(store: Store, settings: Settings) -> dict:
         "mercati": _markets(),
         "backtest": bt,
         "paper": paper.report(store, days=30),
+        "portafoglio": portfolio.report(store, days=90),
         "dati": [dict(zip(("mercato", "simbolo", "barre", "ultima"), r)) for r in store.conn.execute(
             "SELECT venue, symbol, COUNT(*), MAX(ts) FROM bars GROUP BY 1, 2 ORDER BY 1, 2").fetchall()],
         "macro": _macro(store),

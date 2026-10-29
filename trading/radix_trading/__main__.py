@@ -21,7 +21,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, data, intraday, paper, research, snapshot, strategies, universe, validation
+from . import backtest, data, intraday, paper, portfolio, research, snapshot, strategies, universe, validation
 from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
@@ -262,6 +262,8 @@ def main(argv: list[str] | None = None) -> int:
             result = {"raccolta": collect(store, "fast")} if args.command == "hourly" else {}
             engine = paper.PaperEngine(store, replace(settings, mode="paper"))
             result["paper"] = engine.step()
+            # Portafoglio simulato con piu' strade insieme (soldi finti).
+            result["portafoglio"] = _safe(lambda: portfolio.Portfolio(store).step())
             if args.command == "hourly":
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
     finally:

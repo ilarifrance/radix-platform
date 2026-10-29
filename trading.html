@@ -91,6 +91,17 @@
    <div class="card kpi"><div class="lab" id="kBestLab">Prova più vicina al controllo</div><div class="big" id="kBest">—</div><div class="sub" id="kBestSub">—</div></div>
   </section>
 
+  <section class="card wide" id="portfolio" hidden>
+   <div class="row"><div><h2>Portafoglio con più strategie</h2><p class="note">1.000 € finti divisi tra più strade. Il direttore dà più capitale a chi rischia meno. Ogni giorno il guadagno sopra i 1.000 € va nella riserva, che copre i giorni sotto i 1.000 €.</p></div></div>
+   <div class="macro" id="pfTiles"></div>
+   <h2 style="margin-top:14px;font-size:15px">Come è diviso il capitale</h2>
+   <div class="macro" id="pfLanes"></div>
+   <div class="chart" id="pfChart" style="min-height:160px"></div>
+   <div class="legend"><span><i style="background:var(--rx-core)"></i>Totale (investito + riserva)</span><span><i style="background:var(--rx-subtle)"></i>Riserva</span></div>
+   <p class="empty" id="pfEmpty" hidden>L’andamento compare dopo qualche giro del Mac.</p>
+   <p class="note" id="pfPositions"></p>
+  </section>
+
   <section class="card wide" id="tests">
    <div class="row"><div><h2>Le prove delle strategie</h2><p class="note">Ogni strategia è allenata su un periodo e provata su quello dopo, più volte di seguito, con commissioni e costi veri. Tocca una riga per vederla nel tempo.</p></div></div>
    <div class="filters" id="filters" role="group" aria-label="Filtra per mercato"></div>
@@ -283,10 +294,19 @@ function renderResearch(){
   const lock=x.final?(V.pct(x.lockYearly,1)+' · '+V.pct(x.lockDrawdown,0)+(x.lockPassed?' ✓':' ✗')):'non aperto';
   tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName+(x.capital?' · '+V.eur(x.capital,0):'')),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
 }
+function renderPortfolio(){
+ const p=V.portfolio(snap);$('portfolio').hidden=!p;if(!p)return;
+ const tile=(name,value,sub,cls)=>{const d=el('div');d.append(el('span','',name),el('b','',value));if(sub)d.append(el('small',cls||'',sub));return d};
+ $('pfTiles').replaceChildren(tile('Totale',V.eur(p.total,2),V.pct(p.change)+' da '+(p.start===1000?'1.000 €':V.eur(p.start,0)),'sub '+signed(p.change)),tile('Investito oggi',V.eur(p.invested,2)),tile('Messi da parte',V.eur(p.reserve,2)));
+ $('pfLanes').replaceChildren(...p.lanes.map(l=>tile(l.title,V.num(l.weight*100,0)+'%')));
+ const h=p.history;$('pfEmpty').hidden=h.length>1;
+ if(h.length>1)lineChart($('pfChart'),[{name:'Totale',color:'var(--rx-core)',values:h.map(x=>x.total)},{name:'Riserva',color:'var(--rx-subtle)',values:h.map(x=>x.reserve)}],{dates:h.map(x=>x.ts.slice(0,13).replace('T',' ')+':00'),format:v=>V.eur(v),tick:d=>d.slice(8,10)+'/'+d.slice(5,7)});else $('pfChart').replaceChildren();
+ $('pfPositions').textContent=p.positions.length?'Posizioni: '+p.positions.map(x=>x.symbol+(x.short?' (scoperto)':'')).join(', ')+'.':'Nessuna posizione aperta: tutto in liquidità.';
+}
 function render(){
  const s=V.summary(snap),all=V.tests(snap);
  $('lead').textContent=s.lead;
- renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();
+ renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();renderPortfolio();
 }
 
 /* ---------- loading and the Mac link ---------- */
