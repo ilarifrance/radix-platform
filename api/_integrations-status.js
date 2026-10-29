@@ -9,6 +9,7 @@ const SERVICES=Object.freeze([
  {id:'buffer',label:'Buffer',use:'Coda di pubblicazione del PED',env:['BUFFER_ACCESS_TOKEN']},
  {id:'blob',label:'Archivio immagini pubblico (Vercel Blob)',use:'Immagini del PED raggiungibili da Buffer anche in anteprima',env:['BLOB_READ_WRITE_TOKEN']},
  {id:'openai-image',label:'Immagini (OpenAI)',use:'Sfondi delle slide dei caroselli',env:['OPENAI_API_KEY']},
+ {id:'transcribe',label:'Trascrizione meeting (OpenAI)',use:'App Meeting: dall’audio della riunione al testo',env:['OPENAI_API_KEY']},
  {id:'heygen',label:'HeyGen',use:'Video con avatar',env:['HEYGEN_API_KEY']},
  {id:'email',label:'Email (Gmail)',use:'Invio email dagli agenti commerciali',env:['GMAIL_USER','GMAIL_APP_PASSWORD']},
  {id:'higgsfield',label:'Higgsfield',use:'Generazione di immagini e video per Agency e PED',env:['HIGGSFIELD_API_KEY']},

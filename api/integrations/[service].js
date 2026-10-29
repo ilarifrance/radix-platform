@@ -16,7 +16,9 @@ const handlers = Object.freeze({
   'send-queue': () => require('../_sales_send_worker'),
   'site-audit': () => require('../_site_audit'),
   'site-publish': () => require('../_site_publish'),
-  'status': () => require('../_integrations-status')
+  'status': () => require('../_integrations-status'),
+  // App «Meeting»: one audio segment to text (OpenAI), only after the person confirmed the cost.
+  'transcribe': () => require('../_transcribe')
 });
 module.exports = async function integrationRoute(req, res) {
   const service = req.query && req.query.service;

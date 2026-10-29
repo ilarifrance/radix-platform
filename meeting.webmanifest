@@ -1,0 +1,17 @@
+{
+  "name": "RADIX · Meeting",
+  "short_name": "RADIX Meeting",
+  "description": "Registra le riunioni, trascrivile e porta decisioni, attività e scadenze nel Project Manager di RADIX.",
+  "lang": "it",
+  "id": "/meeting.html",
+  "start_url": "/meeting.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#02090B",
+  "theme_color": "#02090B",
+  "icons": [
+    { "src": "/sales/icons/radix-app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/tools/radix-chrome-extension/icons/icon128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" }
+  ]
+}
