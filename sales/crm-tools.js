@@ -172,7 +172,7 @@ async function followUps(days){
 // Automations: each rule shows how many tasks it would create; one confirmation per rule.
 // With sales/crm-rules.js the panel is the configurable one («Regole» and «Registro»); the fixed rules are its defaults.
 function automationsPanel(){
- if(window.RadixCrmRules&&window.RadixCrmRules.panel)return window.RadixCrmRules.panel();
+ if(window.RadixCrmRules&&window.RadixCrmRules.panel)return window.RadixCrmRules.panel({mode:'proposals'});
  const R=window.RadixCrmAutomations;if(!R)return null;
  const box=E('details',undefined,'panel crm-automations');box.append(E('summary','Automazioni'));
  const list=E('div',undefined,'crm-automation-list');box.append(E('p','Le regole propongono attività dai dati caricati: nulla parte da solo, confermi tu. Le attività automatiche all’ingresso in una fase si impostano sulla fase della pipeline.','muted'),list);

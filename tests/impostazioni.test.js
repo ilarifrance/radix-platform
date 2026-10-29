@@ -85,7 +85,7 @@ test('wiring: page, sidebars, mounted CRM modules, no inline code, no secrets',(
  const html=read('impostazioni.html');
  assert.ok(!/<script(?![^>]*src=)/.test(html),'no inline script');assert.ok(!/style="/.test(html),'no inline style');
  assert.match(html,/data-shell-page="impostazioni"/);assert.match(html,/Content-Security-Policy/);
- const order=['/shell/settings-area.js','/shell/radix-shell.js','/lib/radix-workspace-client.js','/shell/settings-core.js','/sales/crm-custom-fields.js','/sales/crm-mailboxes.js','/sales/crm-visibility-core.js','/sales/crm-visibility.js','/sales/crm-sla-core.js','/sales/crm-sla.js','/sales/crm-dates-core.js','/sales/crm-freebusy-core.js','/sales/crm-calendars.js','/shell/settings.js'];
+ const order=['/shell/settings-area.js','/shell/radix-shell.js','/lib/radix-workspace-client.js','/shell/settings-core.js','/sales/crm-custom-fields.js','/sales/crm-mailboxes.js','/sales/crm-visibility-core.js','/sales/crm-visibility.js','/sales/crm-sla-core.js','/sales/crm-sla.js','/sales/crm-dates-core.js','/sales/crm-freebusy-core.js','/sales/crm-calendars.js','/sales/crm-score-core.js','/sales/crm-automations-core.js','/sales/crm-rules-core.js','/sales/crm-rules.js','/shell/settings.js'];
  let at=-1;for(const s of order){const i=html.indexOf('src="'+s+'"');assert.ok(i>at,s);at=i}
  for(const css of ['/sales/crm-light.css','/sales/crm-mailboxes.css','/sales/crm-calendars.css','/shell/settings.css'])assert.ok(html.includes('href="'+css+'"'),css);
  assert.match(read('shell/radix-shell.js'),/\{ id: 'impostazioni', text: 'Impostazioni', href: '\/impostazioni\.html'/);
@@ -125,4 +125,14 @@ test('calendari: the CRM calendar boxes live in Impostazioni; crm-calendars read
  assert.match(cal,/const wsOf=\(\)=>window\.RadixCrmData\?\.workspace\(\)\|\|window\.RadixSalesApp\?\.state\?\.workspace\|\|null;/);
  assert.equal(cal.split('window.RadixCrmData?.workspace()').length-1,1,'every lookup goes through wsOf()');
  assert.match(read('shell/settings.css'),/\.st-cal \.cal-card\{background:transparent/);
+});
+
+test('automazioni: the rules are switched, added and edited in Impostazioni › CRM; the CRM panel only proposes',()=>{
+ const js=read('shell/settings.js'),rules=read('sales/crm-rules.js'),tools=read('sales/crm-tools.js');
+ assert.match(js,/const p=Ru\.settingsPanel\(\);auto\.append\(p,aa\)/);assert.match(js,/\['stages','processes','members','leads'\]\.map\(e=>api\(e,\{limit:500\}\)/,'the editor needs stages, members and lead sources');
+ assert.match(rules,/R\.settingsPanel=\(\)=>panel\(\{mode:'settings'\}\)/);
+ assert.match(rules,/runs=settings\?R\.effective\(st\.list\)\.map\(rule=>\(\{rule,items:\[\],skipped:\[\]\}\)\):R\.evaluate/,'no evaluation without the records');
+ assert.match(rules,/edit=settings&&canEdit\(\)/,'no editing from the CRM panel');assert.match(rules,/if\(settings\)\{const toggle=E\('input'\)/);
+ assert.match(rules,/a\.href='\/impostazioni\.html\?area=sales#crm'/);assert.match(tools,/panel\(\{mode:'proposals'\}\)/);
+ assert.ok(read('impostazioni.html').includes('/sales/crm-rules.css'));
 });
