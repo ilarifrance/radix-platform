@@ -67,3 +67,12 @@ test('day trading rows say coin and cost level',()=>{
  assert.equal(t[0].name,'Day trading selettivo (Bitcoin, costi bassi)');
  assert.equal(t[0].marketName,'Crypto');
 });
+
+test('research: finalists opened on the locked year',()=>{
+ assert.equal(V.research({}),null);
+ const base={obiettivo:{annuo:0.1,max_drawdown:-0.15},combinazioni_totali:900,prove:40,rispettano_obiettivo:1};
+ let r=V.research({ricerca:{...base,finaliste:[{famiglia:'rsi_dip',nome:'Acquisto sui cali',mercato:'etf',timeframe:'1d',ricerca:{annuo:0.12,max_drawdown:-0.1},dsr:0.7,anno_chiuso:{annuo:0.02,max_drawdown:-0.08},supera_anno_chiuso:false}],classifica:[]}});
+ assert.match(r.lead,/nessuna regge/);assert.equal(r.finals[0].lockYearly,0.02);
+ r=V.research({ricerca:{...base,finaliste:[],classifica:[{famiglia:'ma_cross',mercato:'cambi',ricerca:{annuo:0.01}}]}});
+ assert.match(r.lead,/Nessuna delle 40 prove/);assert.equal(r.ranking[0].marketName,'Cambi');
+});

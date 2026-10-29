@@ -7,6 +7,7 @@
     python -m radix_trading report           # riepilogo del conto paper
     python -m radix_trading export > x.json  # la fotografia che riceve il pannello di RADIX
     python -m radix_trading push             # manda la fotografia a RADIX adesso
+    python -m radix_trading research         # ricerca larga: tutte le famiglie su tutti i mercati, anno chiuso a chiave
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
 
@@ -20,7 +21,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, data, intraday, paper, snapshot, strategies, universe, validation
+from . import backtest, data, intraday, paper, research, snapshot, strategies, universe, validation
 from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
@@ -203,7 +204,7 @@ def _safe(fn):
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
-    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push"])
+    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research"])
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -224,6 +225,9 @@ def main(argv: list[str] | None = None) -> int:
             snapshot.save_backtest(settings, result["backtest"], curves)
             if args.command == "daily":
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
+        elif args.command == "research":
+            result = research.run(store)
+            research.save(settings, result)
         elif args.command == "report":
             result = paper.report(store)
         elif args.command == "export":

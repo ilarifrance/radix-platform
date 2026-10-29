@@ -136,6 +136,15 @@
    </section>
   </div>
 
+  <section class="card wide" id="research" hidden>
+   <h2>Ricerca larga</h2><p class="note" id="resNote">—</p>
+   <p id="resLead" style="color:var(--rx-text);margin-bottom:12px">—</p>
+   <div class="scroll"><table>
+    <thead><tr><th>Strategia</th><th>Mercato</th><th class="n">All’anno (ricerca)</th><th class="n">Dopo tasse</th><th class="n">Discesa peggiore</th><th class="n">Affidabilità</th><th class="n">Anno chiuso a chiave</th></tr></thead>
+    <tbody id="resRows"></tbody>
+   </table></div>
+  </section>
+
   <section class="card wide" id="sources">
    <h2>Dati raccolti dal Mac</h2><p class="note">Il Mac raccoglie le crypto ogni ora e gli altri mercati ogni sera, solo quando è acceso.</p>
    <div class="scroll"><table><thead><tr><th>Mercato</th><th class="n">Titoli</th><th class="n">Barre di prezzo</th><th>Ultimo dato</th><th>Stato</th></tr></thead><tbody id="srcRows"></tbody></table></div>
@@ -265,10 +274,19 @@ function renderNews(){
 function renderSources(){
  $('srcRows').replaceChildren(...V.sources(snap).map(s=>{const tr=el('tr');tr.append(td(s.name),td(String(s.symbols),'n'),td(V.num(s.bars,0),'n'),td(s.last?V.ago(s.last):'—'),td(s.fresh?'aggiornato':'da aggiornare',s.fresh?'pos':'warn'));return tr}));
 }
+function renderResearch(){
+ const r=V.research(snap);$('research').hidden=!r;if(!r)return;
+ $('resNote').textContent=`${V.num(r.combos,0)} combinazioni su ${r.tests} prove (famiglie di strategie × mercati). Obiettivo: almeno ${V.pct(r.goal.yearly,0)} l’anno con perdita massima entro ${V.pct(r.goal.maxDrawdown,0)}. L’ultimo anno resta chiuso a chiave e si apre solo per le finaliste.`;
+ $('resLead').textContent=r.lead;
+ const rows=r.finals.length?r.finals.concat(r.ranking.filter(x=>!r.finals.some(f=>f.family===x.family&&f.market===x.market)).slice(0,10)):r.ranking.slice(0,12);
+ $('resRows').replaceChildren(...rows.map(x=>{const tr=el('tr');
+  const lock=x.final?(V.pct(x.lockYearly,1)+' · '+V.pct(x.lockDrawdown,0)+(x.lockPassed?' ✓':' ✗')):'non aperto';
+  tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
+}
 function render(){
  const s=V.summary(snap),all=V.tests(snap);
  $('lead').textContent=s.lead;
- renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();
+ renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();
 }
 
 /* ---------- loading and the Mac link ---------- */

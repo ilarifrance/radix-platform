@@ -79,6 +79,15 @@ def _macro(store: Store) -> list[dict]:
     return out
 
 
+def _research(settings: Settings) -> dict | None:
+    p = settings.data_dir / "research.json"
+    if not p.exists():
+        return None
+    r = json.loads(p.read_text())
+    return {k: r.get(k) for k in ("obiettivo", "combinazioni_totali", "prove", "rispettano_obiettivo", "finaliste")} | \
+        {"classifica": (r.get("classifica") or [])[:15], "generato": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+
+
 def build(store: Store, settings: Settings) -> dict:
     bt_path = backtest_file(settings)
     bt = json.loads(bt_path.read_text()) if bt_path.exists() else {"generato": None, "risultati": {}, "curve": {}}
@@ -99,6 +108,7 @@ def build(store: Store, settings: Settings) -> dict:
             "ultime": [dict(zip(("ts", "titolo", "fonte", "tema"), r)) for r in news],
         },
         "kill_switch": settings.kill_switch_file.exists(),
+        "ricerca": _research(settings),
     }
 
 

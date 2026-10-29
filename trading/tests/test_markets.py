@@ -144,3 +144,39 @@ def test_run_intraday_end_to_end():
     assert "compra_e_tieni" in out[k] and curves[k]["date"]
     assert "errore" in out["intraday_momentum@ETHEUR:kraken"]
     json.dumps(snapshot.clean(out), allow_nan=False, default=str)
+
+
+def test_research_lockbox_and_trials(tmp_path, monkeypatch):
+    from radix_trading import research
+    st = Store(":memory:")
+    rng = np.random.default_rng(7)
+    idx = pd.date_range("2016-01-01", periods=2600, freq="B", tz="UTC")
+    for s in ["SPY", "QQQ", "TLT"]:
+        c = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.01, len(idx))))
+        st.upsert_bars("yahoo", s, "1d", pd.DataFrame({"open": c, "high": c, "low": c, "close": c, "volume": 1.0}, index=idx))
+    monkeypatch.setattr(research, "HOURLY_FAMILIES", {})
+    monkeypatch.setattr(research, "DAILY_FAMILIES", {"ma_cross": research.DAILY_FAMILIES["ma_cross"],
+                                                     "dual_momentum": research.DAILY_FAMILIES["dual_momentum"]})
+    out = research.run(st, target_cagr=-1.0, target_dd=-1.0)  # obiettivo largo: tutte finaliste
+    assert out["combinazioni_totali"] == 18 + 9
+    assert out["prove"] == 2 and len(out["finaliste"]) == 2
+    for f in out["finaliste"]:
+        assert "anno_chiuso" in f and f["anno_chiuso"]["periodi"] > 200
+        assert 0 <= f["dsr"] <= 1
+    json.dumps(snapshot.clean(out), allow_nan=False, default=str)
+    # su prezzi casuali nessuna rispetta l'obiettivo vero
+    strict = research.run(st)
+    assert all(not f["supera_anno_chiuso"] for f in strict["finaliste"])
+
+
+def test_daily_families_use_only_the_past():
+    from radix_trading import research
+    rng = np.random.default_rng(11)
+    idx = pd.date_range("2018-01-01", periods=900, freq="B", tz="UTC")
+    close = pd.DataFrame({s: 100 * np.exp(np.cumsum(rng.normal(0, 0.01, len(idx)))) for s in "ABC"}, index=idx)
+    for name, (fn, grid) in research.DAILY_FAMILIES.items():
+        params = {k: v[0] for k, v in grid.items()}
+        full = fn(close, **params)
+        cut = fn(close.iloc[:600], **params)
+        pd.testing.assert_frame_equal(full.iloc[:600], cut, check_freq=False, obj=name)
+        assert (full.values >= 0).all() and (full.sum(axis=1) <= 1 + 1e-9).all(), name
