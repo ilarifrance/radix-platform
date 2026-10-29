@@ -22,7 +22,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, data, events, intraday, paper, portfolio, research, snapshot, strategies, universe, validation
+from . import backtest, data, events, intraday, intraday_events, paper, portfolio, research, snapshot, strategies, universe, validation
 from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
@@ -231,6 +231,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="solo per events: scarica prima notizie e calendario")
+    p.add_argument("--minuto", action="store_true", help="solo per events: studio al minuto intorno a CPI, lavoro USA e Fed")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -268,6 +269,14 @@ def main(argv: list[str] | None = None) -> int:
             result["studio"] = {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica",
                                                           "giorni_di_notizie", "errore")}
             result["legami"] = (study.get("legami") or [])[:20]
+            if args.minuto:
+                if args.collect:
+                    result["minuto_raccolta"] = _safe(lambda: intraday_events.collect(store))
+                minute = intraday_events.study(store)
+                intraday_events.save(settings, minute)
+                result["minuto"] = {k: minute.get(k) for k in ("prove", "superano_correzione", "reggono_verifica",
+                                                               "eventi", "mercati")}
+                result["minuto_legami"] = (minute.get("legami") or [])[:15]
         elif args.command == "report":
             result = paper.report(store)
         elif args.command == "export":

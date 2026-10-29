@@ -99,3 +99,10 @@ test('eventsView: friendly names, verification and lead',()=>{
  assert.equal(e.links.length,2);assert.match(e.lead,/1 legame regge/);assert.equal(e.links[1].holds,true);
  assert.match(V.eventsView({eventi:{prove:5,legami:[]}}).lead,/Nessun legame/);
 });
+
+test('eventsView: minute rules with follow/fade and lead',()=>{
+ const e=V.eventsView({eventi:{prove:10,legami:[],minuto:{prove:400,legami:[],migliori_non_corretti:[
+  {evento:'cpi',mercato:'Bitcoin',ritardo_min:1,uscita:'2 ore',modo:'segui',netto_medio:0.002,vince:0.55,n:90,verifica_n:12,verifica_netto:0.001}]}}});
+ assert.match(e.minute.lead,/nessuna regola regge/);assert.equal(e.minute.hints[0].event,'Dato sull’inflazione USA');assert.equal(e.minute.hints[0].follow,true);
+ assert.equal(V.eventsView({eventi:{prove:1,legami:[]}}).minute,null);
+});

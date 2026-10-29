@@ -124,7 +124,7 @@ def collect_calendar(store: Store) -> dict:
     out["fed"] = len(rows)
     key = env_value("FRED_API_KEY")
     if key:
-        for kind, release_id in (("cpi", 10), ("lavoro_usa", 50)):
+        for kind, release_id in release_ids(key).items():
             r = fred.get("https://api.stlouisfed.org/fred/release/dates",
                          {"release_id": release_id, "api_key": key, "file_type": "json",
                           "realtime_start": START.isoformat(), "include_release_dates_with_no_data": "false",
@@ -136,6 +136,22 @@ def collect_calendar(store: Store) -> dict:
         out["cpi"] = out["lavoro_usa"] = "manca FRED_API_KEY (gratuita) in ~/RadixTrading/.env"
     store.conn.commit()
     return out
+
+
+# Uscite con orario fisso (ora di New York): l'ora esatta serve allo studio al minuto.
+RELEASES = {"cpi": ("Consumer Price Index", 10, "08:30"), "lavoro_usa": ("Employment Situation", 50, "08:30"),
+            "fomc": ("FOMC Press Release", None, "14:00")}
+
+
+def release_ids(key: str) -> dict[str, int]:
+    """Id FRED delle uscite. CPI e lavoro hanno id noti; la Fed si cerca per nome nell'elenco."""
+    ids = {k: v[1] for k, v in RELEASES.items() if v[1]}
+    r = fred.get("https://api.stlouisfed.org/fred/releases", {"api_key": key, "file_type": "json", "limit": 1000})
+    for rel in r.json().get("releases", []):
+        for kind, (name, _, _) in RELEASES.items():
+            if kind not in ids and rel.get("name", "").strip().lower() == name.lower():
+                ids[kind] = int(rel["id"])
+    return ids
 
 
 # --- eventi -----------------------------------------------------------------------------------

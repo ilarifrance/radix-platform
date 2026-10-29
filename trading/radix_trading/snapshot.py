@@ -97,7 +97,14 @@ def _events(settings: Settings) -> dict | None:
     r = json.loads(p.read_text())
     keep = ("generato", "prove", "superano_correzione", "reggono_verifica", "periodo_scoperta", "periodo_verifica",
             "giorni_di_notizie", "costo_andata_ritorno", "errore")
-    return {k: r.get(k) for k in keep} | {"legami": (r.get("legami") or [])[:25]}
+    out = {k: r.get(k) for k in keep} | {"legami": (r.get("legami") or [])[:25]}
+    m = settings.data_dir / "events_intraday.json"
+    if m.exists():
+        mi = json.loads(m.read_text())
+        out["minuto"] = {k: mi.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica",
+                                                 "eventi", "mercati", "costi")} | {
+            "legami": (mi.get("legami") or [])[:15], "migliori_non_corretti": (mi.get("migliori_non_corretti") or [])[:6]}
+    return out
 
 
 def build(store: Store, settings: Settings) -> dict:

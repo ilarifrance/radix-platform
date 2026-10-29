@@ -154,6 +154,15 @@
     <thead><tr><th>Evento</th><th>Mercato</th><th class="n">Giorni</th><th class="n">Movimento medio</th><th class="n">Casi nel verso giusto</th><th class="n">Ultimo anno</th></tr></thead>
     <tbody id="evRows"></tbody>
    </table></div>
+   <div id="evMinute" hidden>
+    <h2 style="margin-top:14px;font-size:15px">Entrare subito, al minuto</h2>
+    <p class="note">Inflazione e lavoro USA (14:30 in Italia) e comunicato della Fed (20:00): si entra pochi minuti dopo nel verso della prima reazione (“segui”) o contro (“contrasta”). Movimenti già al netto dei costi.</p>
+    <p id="evMinLead"></p>
+    <div class="scroll"><table>
+     <thead><tr><th>Evento</th><th>Mercato</th><th>Regola</th><th class="n">Netto medio</th><th class="n">Casi in guadagno</th><th class="n">Ultimo anno</th></tr></thead>
+     <tbody id="evMinRows"></tbody>
+    </table></div>
+   </div>
   </section>
 
   <section class="card wide" id="research" hidden>
@@ -310,6 +319,13 @@ function renderEvents(){
  $('evRows').replaceChildren(...e.links.slice(0,20).map(l=>{const tr=el('tr');
   const check=l.checkN?V.pct(l.checkMove,1)+' su '+l.checkN+(l.holds?' ✓':' ✗'):'nessun caso';
   tr.append(td(l.event),td(l.market),td(String(l.days),'n'),td(V.pct(l.move,2),'n '+signed(l.move)),td(l.hit==null?'—':V.pct(l.hit,0),'n'),td(check,'n'+(l.checkN?(l.holds?' pos':' neg'):'')));return tr}));
+ const m=e.minute;$('evMinute').hidden=!m;if(!m)return;
+ $('evMinLead').textContent=m.lead+(m.links.length?'':' Sotto i casi migliori, solo indicativi.');
+ const rows=m.links.length?m.links:m.hints;
+ $('evMinRows').replaceChildren(...rows.slice(0,15).map(l=>{const tr=el('tr');
+  const rule=(l.follow?'Segui':'Contrasta')+' dopo '+l.delay+' min, esci '+l.exit;
+  const check=l.checkN?V.pct(l.checkNet,2)+' su '+l.checkN+(l.holds?' ✓':''):'nessun caso';
+  tr.append(td(l.event),td(l.market),td(rule),td(V.pct(l.net,2),'n '+signed(l.net)),td(l.hit==null?'—':V.pct(l.hit,0),'n'),td(check,'n'+(l.checkN?(l.checkNet>0?' pos':' neg'):'')));return tr}));
 }
 function renderPortfolio(){
  const p=V.portfolio(snap);$('portfolio').hidden=!p;if(!p)return;
