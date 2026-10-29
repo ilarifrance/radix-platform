@@ -127,6 +127,8 @@ function composerPanel(ctx){
  const a=app(),key=keyOf(ctx),rec=recordOf(ctx);
  const box=E('section',undefined,'crm-rec-composer');box.setAttribute('aria-labelledby','crm-rec-cmp-title');
  const h=E('h3','Registra un’attività');h.id='crm-rec-cmp-title';box.append(h);
+ const call=core.meetingCall(a.state.workspace,ctx.subject,rec);
+ if(call&&a.writable('interactions')){const l=E('a','📞 Chiama da RADIX e registra','crm-rec-call');l.href=call.href;l.title='Chiama '+call.number+' dal numero RADIX: la telefonata viene registrata, trascritta e salvata qui nello storico';box.append(l)}
  if(!a.writable('interactions')){box.append(E('p','Sola lettura: il tuo ruolo non può registrare attività.','muted'));return box}
  if(!rec){box.append(E('p','Scheda non caricata: premi Riprova Customer360.','muted'));return box}
  const bar=E('div',undefined,'crm-rec-tabs');bar.setAttribute('role','tablist');bar.setAttribute('aria-label','Tipo di attività');

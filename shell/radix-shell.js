@@ -29,6 +29,7 @@
     target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/>',
     scale: '<path d="M12 4v16M7 20h10M5 8h14"/><path d="m5 8-2.5 6a3 3 0 0 0 5 0Zm14 0-2.5 6a3 3 0 0 0 5 0Z"/>',
     gantt: '<path d="M4 6h9M7 12h10M10 18h10"/>',
+    mic: '<rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M6 11.5a6 6 0 0 0 12 0M12 17.5V21M9 21h6"/>',
     bot: '<rect x="5" y="8" width="14" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/>',
     book: '<path d="M5 4h10a4 4 0 0 1 4 4v12H9a4 4 0 0 1-4-4Z"/><path d="M5 16a4 4 0 0 1 4-4h10"/>',
     plug: '<path d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-10 0Zm5 8v5"/>',
@@ -79,6 +80,7 @@
       { id: 'sales-linkedin', text: 'LinkedIn', href: '/sales-linkedin.html' }
     ] },
     { id: 'pm', text: 'Project Management', href: '/radix-pm-concept.html', icon: 'gantt', project: 'project', kw: 'pm gantt attività' },
+    { id: 'meeting', text: 'Meeting', href: '/meeting.html', icon: 'mic', kw: 'registra riunione call verbale trascrizione decisioni' },
     { group: 'studio', text: 'Studio', icon: 'scale', items: [
       { id: 'commercial', text: 'Commerciale', href: '/commercial/index.html' },
       { id: 'legal', text: 'Legal', href: '/legal/index.html' },
