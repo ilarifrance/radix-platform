@@ -7,6 +7,9 @@
   scendono (i due motori classici dell'oro).
 - `risk_switch` (ETF): azioni USA quando la paura (VIX) e' bassa e il credito non si allarga,
   altrimenti obbligazioni a medio termine. Una sola posizione alla volta: poche commissioni minime.
+- `ibs_reversion` (azioni): compra un indice che ha chiuso nel 10% piu' basso dell'escursione del
+  giorno e lo tiene qualche giorno ("internal bar strength", ritrovato dallo studio sulle candele).
+- `turn_of_month` (azioni): investiti dagli ultimi giorni del mese ai primi del mese dopo.
 - `allocate`: il "direttore" divide il capitale tra le strategie in proporzione inversa al loro
   rischio dell'ultimo anno (solo dati passati, con un minimo e un tetto del 50% per strategia),
   ribilanciando ogni mese.
@@ -103,6 +106,74 @@ def risk_switch(close: pd.DataFrame, macro: pd.DataFrame | None = None, vix_wind
     w[risk_off] = (~on).astype(float)
     keep = pd.Series(np.arange(len(w)) % 5 == 0, index=w.index)
     return w.where(keep, axis=0).ffill().fillna(0.0)
+
+
+BONDS = {"TLT", "IEF", "LQD", "HYG"}
+
+
+def ibs(bars: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Posizione della chiusura nell'escursione del giorno: 0 = sul minimo, 1 = sul massimo."""
+    out = {}
+    for s, b in bars.items():
+        rng = (b["high"] - b["low"]).replace(0, np.nan)
+        out[s] = (b["close"] - b["low"]) / rng
+    return pd.DataFrame(out)
+
+
+def ibs_reversion(close: pd.DataFrame, ibs: pd.DataFrame | None = None, entry: float = 0.1, hold: int = 5,
+                  exit_ibs: float = 0.8, trend: int = 0, max_names: int = 5) -> pd.DataFrame:
+    """Entrata alla chiusura del giorno "brutto", uscita dopo `hold` giorni o alla prima chiusura forte.
+    Ogni posizione vale 1/`max_names` del capitale; solo azioni (niente obbligazioni)."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    if ibs is None:
+        return w
+    for s in close.columns:
+        if s in BONDS or s not in ibs.columns:
+            continue
+        x = ibs[s].reindex(close.index).to_numpy()
+        sig = x < entry
+        if trend:
+            sig &= (close[s] > close[s].rolling(trend).mean()).to_numpy()
+        on, left = np.zeros(len(x)), 0
+        for i in range(len(x)):
+            if sig[i]:
+                left = hold
+            elif left and x[i] > exit_ibs:
+                left = 0
+            if left:
+                on[i], left = 1.0, left - 1
+        w[s] = on
+    w = w / max_names
+    gross = w.sum(axis=1)
+    return w.div(gross.where(gross > 1, 1.0), axis=0)
+
+
+def turn_of_month(close: pd.DataFrame, before: int = 4, after: int = 3, trend: int = 0,
+                  symbols: tuple = ("SPY",)) -> pd.DataFrame:
+    """Investiti dagli ultimi `before` giorni di borsa del mese ai primi `after` del mese dopo."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    names = [s for s in symbols if s in close.columns] or [c for c in close.columns if c not in BONDS][:1]
+    # giorni lavorativi dal calendario (non dai dati): l'ultimo mese, ancora a meta', non sembra finito
+    day = close.index.tz_localize(None).normalize().values.astype("datetime64[D]")
+    first = close.index.tz_localize(None).to_period("M").start_time.values.astype("datetime64[D]")
+    end = (close.index.tz_localize(None).to_period("M").end_time.normalize().values.astype("datetime64[D]")
+           + np.timedelta64(1, "D"))
+    pos = pd.Series(np.busday_count(first, day), index=close.index)
+    left = pd.Series(np.busday_count(day, end), index=close.index)  # 1 = ultimo giorno lavorativo del mese
+    # decisione a t, posizione da t+1: si entra la sera del giorno before+1 dalla fine
+    on = ((left >= 2) & (left <= before + 1)) | (left == 1) | (pos < after - 1)
+    for s in names:
+        ok = on
+        if trend:
+            ok = on & (close[s] > close[s].rolling(trend).mean())
+        w[s] = ok.astype(float) / len(names)
+    return w
+
+
+def with_bars(fn, frame: pd.DataFrame, name: str = "ibs"):
+    f = partial(fn, **{name: frame})
+    f.__name__ = fn.__name__
+    return f
 
 
 def with_macro(fn, macro: pd.DataFrame):

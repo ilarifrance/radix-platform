@@ -133,6 +133,13 @@ MACRO_FAMILIES = {
                                                        "vol_target": [0.0, 0.10, 0.15]}),
     "etf": ("risk_switch", multi.risk_switch, {"vix_window": [126, 252], "trend": [100, 200]}),
 }
+# Effetti di candela e di calendario sulle azioni (studio candele del 29/10/2026, letteratura).
+BAR_FAMILIES = {
+    "ibs_reversion": (multi.ibs_reversion, {"entry": [0.1, 0.2], "hold": [1, 3, 5], "exit_ibs": [0.8, 1.1],
+                                            "trend": [0, 200], "max_names": [3, 5]}),
+    "turn_of_month": (multi.turn_of_month, {"before": [2, 4], "after": [2, 3], "trend": [0, 200]}),
+}
+BAR_MARKETS = ("etf", "italia")
 # Le corsie del portafoglio: per ognuna si prende la versione migliore trovata dalla ricerca.
 PORTFOLIO_LANES = [("crypto_trend_daily", "crypto"), ("trend_brake", "crypto"),
                    ("gold_macro", "materie_prime"), ("risk_switch", "etf")]
@@ -177,6 +184,11 @@ def candidates(store: Store) -> list[Candidate]:
         if m in MACRO_FAMILIES:
             name, fn, grid = MACRO_FAMILIES[m]
             fams[name] = (multi.with_macro(fn, macro), grid)
+        if m in BAR_MARKETS:
+            bars = {s: store.load_bars(mk["venue"], s, "1d") for s in close.columns}
+            frame = multi.ibs({s: b for s, b in bars.items() if len(b)}).reindex(close.index)
+            for name, (fn, grid) in BAR_FAMILIES.items():
+                fams[name] = (multi.with_bars(fn, frame) if name == "ibs_reversion" else fn, grid)
         for fam, (fn, grid) in fams.items():
             for cap in capitals:
                 out.append(Candidate(fam, m, "1d", fn, grid, close, costs, cap, mk["min_trade"]))
