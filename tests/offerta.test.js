@@ -98,6 +98,13 @@ test('English: the same quote as a British English proposal, en-GB figures and d
  const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/C\.plan\(st\.doc,answers,\{lang:lang\(\)\}\)/);assert.match(w,/C\.questions\(st\.doc,mem\.get\(st\.ctx\.workspace\),lang\(\)\)/);assert.match(w,/C\.looks\(lang\(\)\)/);
 });
 
+test('resume: the last version of a quote’s proposal is kept in this browser and reopened at step 3, never the amounts',()=>{
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');
+ assert.match(w,/const DKEY=\(w,id\)=>'radix\.offerta\.doc\.'\+w\+'\.'\+id/);assert.match(w,/texts\[f\.key\]=f\.value/);assert.ok(!/totals|lines/.test(w.split('const saved=')[1].split('function resume')[0]),'nothing but texts, answers, look and switch is stored');
+ assert.match(w,/st\.model=C\.plan\(st\.doc,v\.answers,\{lang:lang\(\)\}\)/,'the model is rebuilt from the quote, then the texts applied');assert.match(w,/if\(keys\.has\(k\)/);assert.match(w,/st\.step=3\}/);
+ assert.match(w,/Ricomincia da capo/);assert.match(w,/saved\.clear\(\)/);assert.ok((w.match(/saved\.set\(\)/g)||[]).length>=7,'saved on every change');
+});
+
 test('wiring: the quotes page loads the core, the widget and the styles; the quote actions offer it',()=>{
  const html=fs.readFileSync(__dirname+'/../sales-vendite.html','utf8');
  assert.ok(html.includes('/sales/offerta.css'));assert.ok(html.indexOf('/sales/offerta-core.js')<html.indexOf('/sales/offerta.js'));assert.ok(html.indexOf('/sales/offerta.js')<html.indexOf('/sales/vendite.js'));

@@ -113,6 +113,8 @@
 .of-ai-row .of-ai-label{font-size:12px;font-weight:600;color:var(--crm-text-2,#666)}
 .of-ai-row p{margin:0;white-space:pre-line;font-size:13.5px}
 .of-ai-row .of-btn{align-self:flex-start;padding:5px 10px;font-size:13px}
+.of-resumed{margin:-8px 0 14px;padding:8px 12px;border-radius:10px;background:var(--crm-accent-soft,#f2ecfe);font-size:13px;color:var(--crm-text-2,#444)}
+.of-link{border:0;background:none;color:var(--crm-accent,#6d28d9);font:inherit;font-weight:600;cursor:pointer;padding:0;text-decoration:underline}
 @media (max-width:900px){.of-looks{grid-template-columns:1fr}.of-two{grid-template-columns:1fr}.of-form{max-height:none}.of-preview iframe{height:300px}.of-step{padding:18px 14px}.of-stepper{gap:10px}.of-stepper span{display:none}.of-stepper .is-current span{display:inline}}
 
 /* ---------- print ---------- */
