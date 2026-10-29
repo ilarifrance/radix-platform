@@ -19,7 +19,7 @@ CALENDAR = "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"
 HISTORICAL = "https://www.federalreserve.gov/monetarypolicy/fomchistorical{year}.htm"
 MONTHS = {m: i for i, m in enumerate(["january", "february", "march", "april", "may", "june", "july", "august",
                                        "september", "october", "november", "december"], 1)}
-_MON = r"(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
+_MON = r"(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
 _ENTRY = re.compile(_MON + r"(?:/" + _MON + r")?\s+(\d{1,2})(?:\s*-\s*(\d{1,2}))?(\*?)\s*(\((?:notation vote|unscheduled)\))?", re.I)
 
 
@@ -40,7 +40,7 @@ def _entries(segment: str, year: int) -> list[date]:
         if m.group(6):  # straordinaria o voto per iscritto
             continue
         before, after = segment[max(0, m.start() - 25):m.start()].lower(), segment[m.end():m.end() + 7]
-        if "released" in before or "minutes" in before or re.match(r",?\s*\d{4}", after):
+        if "released" in before[-12:] or re.match(r",?\s*\d{4}", after):
             continue  # date di uscita dei verbali, non riunioni
         month = _month(m.group(2) or m.group(1))
         day = int(m.group(4) or m.group(3))
@@ -51,8 +51,20 @@ def _entries(segment: str, year: int) -> list[date]:
     return out
 
 
+_PANEL = re.compile(r"(\d{4}) FOMC Meetings")
+_CELLS = re.compile(r'fomc-meeting__month[^>]*>(.*?)</div>.*?fomc-meeting__date[^>]*>(.*?)</div>', re.S | re.I)
+
+
 def parse_calendar(page: str) -> list[date]:
-    """Pagina del calendario: una sezione «2025 FOMC Meetings» per anno."""
+    """Pagina del calendario: una sezione «2025 FOMC Meetings» per anno, con le celle mese/giorni."""
+    heads = list(_PANEL.finditer(page))
+    out = []
+    for k, h in enumerate(heads):
+        chunk = page[h.end(): heads[k + 1].start() if k + 1 < len(heads) else len(page)]
+        cells = [(text_of(a).strip(), text_of(b).strip()) for a, b in _CELLS.findall(chunk)]
+        out += _entries(" ".join(f"{m} {d}" for m, d in cells), int(h.group(1)))
+    if len(out) >= 8:
+        return sorted(set(out))
     t = text_of(page)
     parts = re.split(r"(\d{4}) FOMC Meetings", t)
     out = []

@@ -26,7 +26,7 @@ from .store import Store
 LOCKBOX_DAYS = 365
 FINALISTS = 5
 TARGET_CAGR = 0.10        # almeno il 10% l'anno...
-TARGET_MAX_DD = -0.15     # ...con una perdita massima non oltre il 15%
+TARGET_MAX_DD = -0.20     # ...con una perdita massima non oltre il 20% (scelta di Francesco, 29/10/2026)
 TAX = {"crypto": 0.33, "default": 0.26}   # stima: plusvalenze crypto dal 2026, altri strumenti
 
 
@@ -148,6 +148,7 @@ MULTI_FAMILIES = {"tsmom": (multi.tsmom, {"lookback": [63, 126, 252], "vol_targe
                                           "rebalance": [5, 21]})}
 FOMC_GRID = {"days_before": [1, 2]}
 LEVERAGE_TOP = 8
+LANE_MIN_SHARPE = 0.3
 # Le corsie del portafoglio: per ognuna si prende la versione migliore trovata dalla ricerca.
 PORTFOLIO_LANES = [("crypto_trend_daily", "crypto"), ("trend_brake", "crypto"),
                    ("gold_macro", "materie_prime"), ("risk_switch", "etf"),
@@ -344,7 +345,10 @@ def _portfolio(rows: list[dict], lockbox_days: int, total_trials: int) -> dict |
         cands = [r for r in rows if r.get("famiglia") == fam and r.get("mercato") == market and "_returns" in r]
         if cands:
             best = max(cands, key=lambda r: r["dsr"])
-            picked[f"{fam}@{market}"] = best
+            # solo corsie che hanno reso qualcosa per il rischio preso negli anni di ricerca:
+            # le corsie deboli diluiscono le buone (prova del 29/10: da 4 a 7 corsie, DSR da 0,36 a 0,02)
+            if best["ricerca"].get("sharpe", 0) >= LANE_MIN_SHARPE:
+                picked[f"{fam}@{market}"] = best
     if len(picked) < 2:
         return None
     r, _ = multi.allocate({k: v["_returns"] for k, v in picked.items()})

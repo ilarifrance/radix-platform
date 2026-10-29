@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import math
+import zlib
 from datetime import timedelta
 
 import numpy as np
@@ -52,7 +53,7 @@ def event_times(store: Store) -> list[tuple[str, pd.Timestamp]]:
     return out
 
 
-def collect(store: Store, max_crypto: int = 300, max_iex: int = 40, now: pd.Timestamp | None = None) -> dict:
+def collect(store: Store, max_crypto: int = 1500, max_iex: int = 40, now: pd.Timestamp | None = None) -> dict:
     """Scarica solo le finestre intorno agli eventi, un po' per giro (Tiingo gratis: ~50 richieste l'ora)."""
     store.conn.executescript(SCHEMA)
     now = now or pd.Timestamp.now(tz="UTC")
@@ -60,7 +61,9 @@ def collect(store: Store, max_crypto: int = 300, max_iex: int = 40, now: pd.Time
     f = universe.FAST
     report = {"crypto": 0, "iex": 0, "errori": []}
     budget = {"crypto": max_crypto, "iex": max_iex}
-    for kind, t in reversed(event_times(store)):  # dai piu' recenti
+    # ordine mescolato (sempre lo stesso): servono sia anni vecchi (scoperta) sia l'ultimo anno (verifica)
+    times = sorted(event_times(store), key=lambda e: zlib.crc32(f"{e[0]}{e[1].isoformat()}".encode()))
+    for kind, t in times:
         if t > now - pd.Timedelta(days=2):
             continue
         ts = t.isoformat()

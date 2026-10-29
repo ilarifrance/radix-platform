@@ -37,3 +37,11 @@ def test_collect_calendar_replaces_fomc_rows(monkeypatch):
     out = events.collect_calendar(st)
     assert out["fomc"]["riunioni"] == 24
     assert st.conn.execute("SELECT COUNT(*) FROM calendar WHERE kind='fomc'").fetchone()[0] == 24
+
+
+def test_parse_calendar_reads_cells_including_sept():
+    cells = "".join(f'<div class="fomc-meeting__month"><strong>{m}</strong></div><div class="fomc-meeting__date">{d}</div>'
+                    for m, d in [("January", "27-28"), ("March", "17-18*"), ("April", "28-29"), ("June", "16-17*"),
+                                 ("July", "28-29"), ("Sept", "22-23*"), ("Oct/Nov", "31-1"), ("December", "15-16*")])
+    d = fomc.parse_calendar("<h4>2026 FOMC Meetings</h4>" + cells)
+    assert len(d) == 8 and date(2026, 9, 23) in d and date(2026, 11, 1) in d
