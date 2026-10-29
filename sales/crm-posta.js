@@ -6,7 +6,7 @@
 (function(){
 const P=window.RadixCrmPosta,$=id=>document.getElementById(id);
 const E=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=String(txt);if(cls)n.className=cls;return n};
-const S={workspace:'',workspaces:[],mailbox:'',mailboxes:[],folder:'inbox',search:'',skip:0,items:[],more:false,open:null,crm:{contacts:[],companies:[],opportunities:[],interactions:[],processes:[],stages:[]},crmReady:false,gen:0,busy:false,opps:false,created:new Set()};
+const S={meName:'',workspace:'',workspaces:[],mailbox:'',mailboxes:[],folder:'inbox',search:'',skip:0,items:[],more:false,open:null,crm:{contacts:[],companies:[],opportunities:[],interactions:[],processes:[],stages:[]},crmReady:false,gen:0,busy:false,opps:false,created:new Set()};
 const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 const status=(m,err)=>{const p=$('pm-status');p.textContent=m||'';p.classList.toggle('err',!!err)};
 class ApiError extends Error{constructor(m,s,code){super(m);this.status=s;this.code=code}}
@@ -24,6 +24,8 @@ const avatar=p=>{const a=E('span',initials(p),'pm-av');a.setAttribute('aria-hidd
 const longWhen=t=>{const D=window.RadixCrmDates,ms=Date.parse(t);return Number.isNaN(ms)?'':D?D.dateTimeLabel(ms):new Date(ms).toLocaleString('it-IT')};
 
 async function init(){
+ // The signature of the drafts: the signed-in person's name (not required).
+ fetch('/api/auth/me',{credentials:'same-origin',cache:'no-store'}).then(r=>r.ok?r.json():null).then(d=>{S.meName=String(d&&d.user&&d.user.name||'').trim()}).catch(()=>{});
  try{const d=await get({entity:'workspaces'});S.workspaces=d.rows;const sel=$('pm-workspace');sel.replaceChildren();
   if(!d.rows.length){sel.append(E('option','Nessun workspace'));status('Nessun workspace CRM disponibile per questo account.');return}
   for(const w of d.rows){const o=E('option',w.name||w.id);o.value=w.id;sel.append(o)}const kept=wsMemo.get();if(d.rows.some(w=>w.id===kept))sel.value=kept;S.workspace=sel.value;wsMemo.set(S.workspace);await workspace()}
@@ -37,7 +39,7 @@ async function workspace(){const gen=++S.gen;S.mailbox='';S.items=[];S.open=null
  crm(gen);await folder()}
 // The CRM side, loaded once per workspace: contacts (to match addresses), companies, opportunities, email interactions.
 async function crm(gen){try{const [contacts,companies,opportunities,interactions,processes,stages]=await Promise.all(['contacts','companies','opportunities','interactions','processes','stages'].map(e=>pages(e,gen)));
- if(gen!==S.gen||!contacts)return;S.crm={contacts,companies,opportunities,interactions:interactions.filter(i=>i.kind==='email'),processes:processes||[],stages:stages||[]};S.crmReady=true;drawList();drawRead()}
+ if(gen!==S.gen||!contacts)return;S.crm={contacts,companies,opportunities,interactions:interactions.filter(i=>i.kind==='email'),all:interactions,processes:processes||[],stages:stages||[]};S.crmReady=true;drawList();drawRead()}
  catch(e){if(gen===S.gen)status('CRM non caricato: '+e.message+' Puoi leggere la posta, ma non collegarla.',true)}}
 async function folder(append){if(!S.mailbox)return;const gen=S.gen;if(!append){S.skip=0;S.items=[];S.open=null;drawRead()}
  status(S.search?'Ricerca in corso…':'Lettura della casella…');$('pm-more').hidden=true;
@@ -134,6 +136,7 @@ function drawRead(){const host=$('pm-read'),m=S.open;host.replaceChildren();
  // CRM context: the contacts of this mail that are in the CRM, each a link to its card.
  const known=S.crmReady?P.matches(m,S.crm.contacts,own()):[];
  if(known.length){const ctx=E('div',undefined,'pm-ctx');for(const c of known.slice(0,4)){const a=E('a',undefined);a.href='/radix-sales.html?ws='+encodeURIComponent(S.workspace)+'&contatto='+encodeURIComponent(c.id)+'#contacts';a.append(E('i'),document.createTextNode((c.name||c.email)+(S.crm.companies.find(x=>x.id===c.company_id)?.name?' · '+S.crm.companies.find(x=>x.id===c.company_id).name:'')));a.title='Apri la scheda nel CRM';ctx.append(a)}head.append(ctx)}
+ if(known.length&&P.nextMove)head.append(moveCard(m,known[0]));
  const acts=E('div',undefined,'pm-actions');
  const linkBtn=E('button',P.linked(m,own(),S.crm.interactions).length?'✓ Collegata al CRM':'Collega al CRM','pm-btn primary');linkBtn.type='button';linkBtn.onclick=()=>{const b=host.querySelector('.pm-link');if(b){b.scrollIntoView({block:'start',behavior:'smooth'});const s=b.querySelector('select');if(s)s.focus({preventScroll:true})}};acts.append(linkBtn);
  if(m.link){const a=E('a','Apri in Outlook ↗','pm-btn pm-outlook');a.href=m.link;a.target='_blank';a.rel='noopener noreferrer';acts.append(a)}
@@ -145,6 +148,27 @@ function drawRead(){const host=$('pm-read'),m=S.open;host.replaceChildren();
  content.append(body);host.append(content);
  // Keyboard users moving with ↑ ↓ keep the focus on the list row; otherwise the pane takes it (screen readers, phones).
  if(!document.activeElement||!document.activeElement.closest('#pm-items'))host.focus({preventScroll:true})}
+
+/* «Prossima mossa»: what to send to this contact now, from fixed rules on the CRM state (crm-posta-core nextMove).
+   The draft opens on click with «Copia» and «Segna come inviata» (records the email interaction); nothing is sent from here. */
+function moveCard(m,contact){
+ const mv=P.nextMove(contact,{...S.crm,interactions:S.crm.all||S.crm.interactions},{now:Date.now(),mail:m,direction:P.direction(m,own()),me:S.meName||''});
+ const box=E('section',undefined,'pm-move pm-move-'+mv.kind);const h=E('h3');h.append(E('span','Prossima mossa','pm-move-eyebrow'),E('b',mv.title));
+ box.append(h,E('p',mv.why,'pm-move-why'));
+ if(!mv.draft)return box;
+ const open=E('button','Apri la bozza','pm-btn');open.type='button';const pane=E('div',undefined,'pm-move-draft');pane.hidden=true;
+ const subj=E('input');subj.value=mv.draft.subject;subj.maxLength=200;subj.setAttribute('aria-label','Oggetto');const body=E('textarea');body.rows=7;body.value=mv.draft.body;body.setAttribute('aria-label','Testo');
+ const note=E('p','Bozza da regole fisse, non dall’AI: adattala e inviala dal tuo programma di posta. RADIX non invia nulla da qui.','pm-muted');
+ const copy=E('button','Copia','pm-btn');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText('Oggetto: '+subj.value+'\n\n'+body.value);copy.textContent='Copiata ✓';setTimeout(()=>{copy.textContent='Copia'},1500)}catch{copy.textContent='Copia non riuscita'}};
+ const mark=E('button','Segna come inviata','pm-btn');mark.type='button';
+ mark.onclick=async()=>{if(S.busy)return;if(!window.confirm('Registrare l’email «'+subj.value+'» come inviata da te a '+(contact.name||contact.email)+' (fuori da RADIX)?\nEntra nella cronologia del contatto come email inviata.'))return;
+  S.busy=true;mark.disabled=true;
+  try{const row=await post('interactions',{kind:'email',title:'Email: '+subj.value.slice(0,180),body:body.value.slice(0,4000),contact_id:contact.id,company_id:contact.company_id||null,occurred_at:new Date().toISOString().slice(0,19)+'Z'});S.crm.interactions.push(row);status('Email registrata nella cronologia di '+(contact.name||contact.email)+'.');drawRead()}
+  catch(e){status('Non registrata: '+e.message,true);mark.disabled=false}finally{S.busy=false}};
+ const acts=E('div',undefined,'pm-move-acts');acts.append(copy,mark);
+ pane.append(E('label','Oggetto'),subj,E('label','Testo'),body,note,acts);
+ open.onclick=()=>{pane.hidden=!pane.hidden;open.textContent=pane.hidden?'Apri la bozza':'Chiudi la bozza'};
+ box.append(open,pane);return box}
 
 /* «Collega al CRM»: contact (suggested from the addresses), opportunity (that contact's open ones), «Collega». */
 function linkBox(m){const box=E('section',undefined,'pm-link');box.append(E('h3','Collega al CRM'));

@@ -126,3 +126,15 @@ button{cursor:pointer;color:var(--crm-text)}button:disabled{opacity:.5;cursor:de
  .pm-link-grid{grid-template-columns:1fr}
  .pm-reload-txt{display:none}
 }
+
+/* «Prossima mossa» card in the mail header */
+.pm-move{margin-top:12px;padding:12px 14px;border:1px solid var(--crm-line);border-radius:12px;background:var(--crm-soft)}
+.pm-move h3{margin:0 0 4px;display:flex;align-items:baseline;gap:8px;font-size:14px}
+.pm-move-eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--crm-accent);font-weight:600}
+.pm-move-why{margin:0 0 10px;font-size:13px;color:var(--crm-muted)}
+.pm-move-reply{border-color:var(--crm-accent-line);background:var(--crm-accent-soft)}
+.pm-move-wait{opacity:.85}
+.pm-move-draft{margin-top:10px;display:grid;gap:6px}
+.pm-move-draft label{font-size:12px;color:var(--crm-muted)}
+.pm-move-draft input,.pm-move-draft textarea{width:100%;background:var(--crm-card);border:1px solid var(--crm-line-2);border-radius:9px;padding:8px 10px;font:inherit;color:inherit}
+.pm-move-acts{display:flex;gap:8px;flex-wrap:wrap}
