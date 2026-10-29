@@ -170,6 +170,42 @@ def turn_of_month(close: pd.DataFrame, before: int = 4, after: int = 3, trend: i
     return w
 
 
+def tsmom(close: pd.DataFrame, lookback: int = 252, vol_target: float = 0.10, rebalance: int = 21) -> pd.DataFrame:
+    """Trend su piu' mercati insieme (Moskowitz-Ooi-Pedersen): investiti in cio' che e' salito
+    nell'ultimo periodo, con peso tale che ogni mercato pesi lo stesso rischio. Solo acquisti."""
+    ret = close.pct_change()
+    vol = ret.rolling(60).std() * np.sqrt(252)
+    on = (close / close.shift(lookback) - 1) > 0
+    n = close.notna().sum(axis=1).clip(lower=1)
+    w = (on * (vol_target / vol.clip(lower=0.02))).div(n, axis=0)
+    gross = w.sum(axis=1)
+    w = w.div(gross.where(gross > 1, 1.0), axis=0)
+    keep = pd.Series(np.arange(len(w)) % rebalance == 0, index=w.index)
+    return w.where(keep, axis=0).ffill().fillna(0.0)
+
+
+def pre_fomc(close: pd.DataFrame, dates: pd.DatetimeIndex | None = None, days_before: int = 1,
+             symbols: tuple = ("SPY", "QQQ")) -> pd.DataFrame:
+    """Rialzo prima della Fed (Lucca-Moench 2015): investiti dalla chiusura di `days_before` giorni
+    prima della decisione fino alla chiusura del giorno della decisione."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    names = [s for s in symbols if s in close.columns]
+    if dates is None or not len(dates) or not names:
+        return w
+    day = close.index.tz_localize(None).normalize() if close.index.tz is not None else close.index.normalize()
+    pos = pd.Series(np.arange(len(close)), index=day)
+    on = np.zeros(len(close))
+    for d in pd.DatetimeIndex(dates).tz_localize(None).normalize() if pd.DatetimeIndex(dates).tz is not None \
+            else pd.DatetimeIndex(dates).normalize():
+        i = pos.index.searchsorted(d)
+        if i < len(pos) and pos.index[i] == d:
+            # decisione a t, posizione da t+1: per stare investiti nel giorno i si decide in i-1
+            on[max(0, i - days_before):i] = 1.0
+    for s in names:
+        w[s] = on / len(names)
+    return w
+
+
 def with_bars(fn, frame: pd.DataFrame, name: str = "ibs"):
     f = partial(fn, **{name: frame})
     f.__name__ = fn.__name__

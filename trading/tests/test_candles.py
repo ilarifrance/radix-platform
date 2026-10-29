@@ -52,3 +52,20 @@ def test_turn_of_month_window():
     held = multi.turn_of_month(close, before=2, after=2)["SPY"].shift(1).fillna(0)
     on = [d.strftime("%m-%d") for d in held.index[held > 0]]
     assert on == ["01-30", "01-31", "02-01", "02-02"]
+
+
+def test_tsmom_long_only_and_capped():
+    idx = pd.date_range("2020-01-01", periods=400, freq="B", tz="UTC")
+    up = pd.Series(np.linspace(100, 200, 400), index=idx)
+    close = pd.DataFrame({"A": up, "B": up[::-1].to_numpy()}, index=idx)
+    w = multi.tsmom(close, lookback=63, vol_target=0.5, rebalance=1)
+    assert (w["B"].iloc[100:] == 0).all() and (w["A"].iloc[100:] > 0).all()
+    assert (w.sum(axis=1) <= 1 + 1e-9).all()
+
+
+def test_pre_fomc_holds_the_decision_day():
+    idx = pd.bdate_range("2024-03-11", "2024-03-22", tz="UTC")
+    close = pd.DataFrame({"SPY": 100.0}, index=idx)
+    w = multi.pre_fomc(close, pd.DatetimeIndex(["2024-03-20"]), days_before=1)
+    held = w["SPY"].shift(1).fillna(0)
+    assert [d.strftime("%m-%d") for d in held.index[held > 0]] == ["03-20"]

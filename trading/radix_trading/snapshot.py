@@ -86,7 +86,7 @@ def _research(settings: Settings) -> dict | None:
     if not p.exists():
         return None
     r = json.loads(p.read_text())
-    return {k: r.get(k) for k in ("obiettivo", "combinazioni_totali", "prove", "rispettano_obiettivo", "finaliste")} | \
+    return {k: r.get(k) for k in ("obiettivo", "combinazioni_totali", "prove", "rispettano_obiettivo", "finaliste", "leva")} | \
         {"classifica": (r.get("classifica") or [])[:15], "generato": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
@@ -109,15 +109,18 @@ def _events(settings: Settings) -> dict | None:
 
 def _candles(settings: Settings) -> dict | None:
     p = settings.data_dir / "candles.json"
-    if not p.exists():
-        return None
-    r = json.loads(p.read_text())
+    r = json.loads(p.read_text()) if p.exists() else {}
     out = {k: r.get(k) for k in ("generato", "mercati", "costi", "errore")}
     for part in ("figure", "modello"):
         x = r.get(part) or {}
         out[part] = {k: x.get(k) for k in ("prove", "superano_correzione", "reggono_verifica")} | {
             "legami": (x.get("legami") or [])[:20]}
-    return out
+    w = settings.data_dir / "weekend.json"
+    if w.exists():
+        x = json.loads(w.read_text())
+        out["weekend"] = {k: x.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica")} | {
+            "legami": (x.get("legami") or [])[:15]}
+    return out if (r or "weekend" in out) else None
 
 
 def build(store: Store, settings: Settings) -> dict:
