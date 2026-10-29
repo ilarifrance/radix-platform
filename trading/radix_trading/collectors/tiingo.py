@@ -6,26 +6,16 @@ Prezzi aggiustati per dividendi e split.
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
 import pandas as pd
 
+from ..config import env_value
 from .http import get
 
 API = "https://api.tiingo.com/tiingo/daily/{symbol}/prices"
 
 
 def api_key() -> str | None:
-    key = os.environ.get("TIINGO_API_KEY")
-    if key:
-        return key
-    env = Path.home() / "RadixTrading" / ".env"
-    if env.exists():
-        for line in env.read_text().splitlines():
-            if line.startswith("TIINGO_API_KEY="):
-                return line.split("=", 1)[1].strip() or None
-    return None
+    return env_value("TIINGO_API_KEY")
 
 
 def parse_prices(rows: list[dict]) -> pd.DataFrame:

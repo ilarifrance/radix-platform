@@ -79,9 +79,33 @@ def crypto_trend_daily(close: pd.DataFrame, fast: int = 24 * 20, slow: int = 24 
     return w.where(at_hour, axis=0).ffill().fillna(0.0)
 
 
+def crypto_trend_guarded(close: pd.DataFrame, fast: int = 24 * 20, slow: int = 24 * 100,
+                         vol_target: float = 0.3, stop: float = 0.15, hour: int = 0) -> pd.DataFrame:
+    """Come `crypto_trend_daily`, ma pensata per perdere meno nelle discese lunghe.
+
+    In piu': si esce da una crypto quando scende oltre `stop` sotto il massimo degli ultimi
+    20 giorni (anche se le medie dicono ancora "trend"), e si rientra solo quando torna vicino al
+    massimo. Obiettivo volatilita' piu' basso (30% invece di 50%). Rende meno nei rally e taglia
+    prima i crolli: con 100 euro e' piu' facile da reggere.
+    """
+    on = close.rolling(fast).mean() > close.rolling(slow).mean()
+    near_high = close >= close.rolling(24 * 20).max() * (1 - stop)
+    vol = np.log(close).diff().rolling(24 * 30).std() * np.sqrt(24 * 365)
+    scale = (vol_target / vol).clip(upper=1.0)
+    w = ((on & near_high).astype(float) * scale / close.shape[1]).fillna(0.0)
+    w = (w * 4 * close.shape[1]).round() / (4 * close.shape[1])
+    at_hour = pd.Series(close.index.hour == hour, index=close.index)
+    return w.where(at_hour, axis=0).ffill().fillna(0.0)
+
+
+# Strategie che cambiano posizione al massimo una volta al giorno: possono usare ordini limite.
+DAILY_DECISION = {"crypto_trend_daily", "crypto_trend_guarded"}
+
 STRATEGIES = {
     "trend_momentum": (trend_momentum, "1d", {"lookback": [126, 252], "sma": [100, 200]}),
-    "breakout_regime": (breakout_regime, "1h", {"entry": [24, 48, 96], "exit": [12, 24]}),
+    # Segnali piu' rari (fino a una settimana di massimi): meno operazioni, meno commissioni.
+    "breakout_regime": (breakout_regime, "1h", {"entry": [48, 96, 168], "exit": [24, 48]}),
     "mean_reversion": (mean_reversion, "1h", {"window": [24, 48], "z_entry": [-2.0, -2.5]}),
     "crypto_trend_daily": (crypto_trend_daily, "1h", {"fast": [24 * 10, 24 * 20], "slow": [24 * 50, 24 * 100]}),
+    "crypto_trend_guarded": (crypto_trend_guarded, "1h", {"slow": [24 * 50, 24 * 100], "stop": [0.10, 0.20]}),
 }

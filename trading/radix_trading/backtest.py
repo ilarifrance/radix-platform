@@ -35,6 +35,28 @@ class Costs:
         # IBKR Tiered su azioni/ETF europei: circa 0,05% con minimo intorno a 1,25 euro.
         return cls(fee_bps=5.0, slippage_bps=5.0, min_fee_eur=1.25)
 
+    @classmethod
+    def kraken_maker(cls) -> "Costs":
+        # Ordini limite che aspettano nel book: circa 0,25%. Realistico solo per chi decide di rado
+        # (una volta al giorno) e puo' aspettare qualche minuto che l'ordine venga eseguito.
+        return cls(fee_bps=25.0, slippage_bps=5.0, min_fee_eur=0.0)
+
+    @classmethod
+    def ibkr_italia(cls) -> "Costs":
+        # Azioni italiane su IBKR: ~0,05% (minimo 1,25 euro) + Tobin tax 0,1% sugli acquisti,
+        # qui spalmata come 0,05% su ogni ordine (acquisti e vendite si alternano).
+        return cls(fee_bps=10.0, slippage_bps=8.0, min_fee_eur=1.25)
+
+    @classmethod
+    def ibkr_fx(cls) -> "Costs":
+        # Cambi su IBKR: ~0,002% ma con un minimo di circa 2 dollari a ordine, che con capitali
+        # piccoli pesa molto piu' dello spread.
+        return cls(fee_bps=0.2, slippage_bps=1.0, min_fee_eur=1.9)
+
+    @classmethod
+    def named(cls, name: str) -> "Costs":
+        return getattr(cls, name)()
+
 
 @dataclass
 class Result:

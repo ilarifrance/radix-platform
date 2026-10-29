@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS decisions (
     ts TEXT NOT NULL, key TEXT NOT NULL, price REAL, signal REAL, probability REAL,
     action TEXT NOT NULL, notional REAL, reasons TEXT
 );
+CREATE TABLE IF NOT EXISTS paper_equity (ts TEXT PRIMARY KEY, equity REAL NOT NULL);
 """
 
 
@@ -99,6 +100,8 @@ class PaperEngine:
 
         st = self.state(prices)
         self.db.execute("UPDATE paper_account SET peak = MAX(peak, ?)", (st.equity_eur,))
+        self.db.execute("INSERT OR REPLACE INTO paper_equity VALUES (?, ?)",
+                        (now.strftime("%Y-%m-%dT%H:00:00Z"), st.equity_eur))
         self.db.commit()
         summary["patrimonio"] = f"{st.equity_eur:.2f} EUR"
         return summary
@@ -199,15 +202,22 @@ def report(store: Store, days: int = 7) -> dict:
     db = store.conn
     db.executescript(SCHEMA)
     acc = db.execute("SELECT cash, peak FROM paper_account").fetchone()
-    fills = pd.read_sql_query(
-        "SELECT * FROM paper_fills WHERE ts >= datetime('now', ?) ORDER BY ts DESC", db, params=(f"-{days} days",))
+    since = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    fills = pd.read_sql_query("SELECT * FROM paper_fills WHERE ts >= ? ORDER BY ts DESC", db, params=(since,))
     dec = pd.read_sql_query(
-        "SELECT action, COUNT(*) AS n FROM decisions WHERE ts >= datetime('now', ?) GROUP BY action",
-        db, params=(f"-{days} days",))
+        "SELECT action, COUNT(*) AS n FROM decisions WHERE ts >= ? GROUP BY action", db, params=(since,))
+    recent = pd.read_sql_query(
+        "SELECT ts, key, price, signal, probability, action, notional, reasons FROM decisions"
+        " ORDER BY ts DESC LIMIT 60", db)
+    equity = db.execute("SELECT ts, equity FROM paper_equity WHERE ts >= ? ORDER BY ts", (since,)).fetchall()
+    positions = db.execute("SELECT key, units, entry_price, stop_price FROM paper_positions").fetchall()
     return {
         "cassa": round(acc[0], 2) if acc else None,
         "picco": round(acc[1], 2) if acc else None,
-        "posizioni": db.execute("SELECT key, units, entry_price, stop_price FROM paper_positions").fetchall(),
+        "patrimonio": round(equity[-1][1], 2) if equity else (round(acc[0], 2) if acc else None),
+        "posizioni": [dict(zip(("chiave", "quantita", "prezzo_entrata", "stop"), p)) for p in positions],
         "operazioni": fills.to_dict("records"),
-        "decisioni": dict(zip(dec["action"], dec["n"])),
+        "decisioni": {str(k): int(v) for k, v in zip(dec["action"], dec["n"])},
+        "ultime_decisioni": recent.replace({np.nan: None}).to_dict("records"),
+        "andamento": [{"ts": ts, "patrimonio": round(v, 2)} for ts, v in equity],
     }

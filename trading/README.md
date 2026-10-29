@@ -11,8 +11,25 @@ variabile `RADIX_TRADING_LIVE_CONFIRMED`, che si imposta solo dopo l'OK scritto 
 
 | Livello | Orizzonte | Mercato | Strategie di partenza |
 | --- | --- | --- | --- |
-| Veloce | minuti / ore | crypto su Kraken (XBTEUR, ETHEUR) | `breakout_regime`, `mean_reversion` |
-| Lento | giorni / settimane | ETF e indici (ricerca su dati Yahoo, ordini futuri su IBKR con ETF UCITS) | `trend_momentum` |
+| Veloce | ore / giorni | 8 crypto su Kraken (BTC, ETH, SOL, XRP, ADA, DOT, LINK, AVAX in euro) | `crypto_trend_daily`, `crypto_trend_guarded` (con protezione dai crolli), `breakout_regime`, `mean_reversion` |
+| Lento | giorni / mesi | `universe.MARKETS`: 20 ETF (azioni, settori, obbligazioni), Borsa italiana (10 titoli FTSE MIB da Yahoo + EWI), 8 materie prime, 6 cambi contro l'euro (da FRED) | `trend_momentum`, provata su ogni mercato con i suoi costi |
+
+Ogni mercato lento e' provato a parte con i costi propri (`backtest.Costs`): IBKR ETF, azioni italiane
+con Tobin tax, cambi con il minimo di circa 2 dollari a ordine. Le strategie crypto che decidono una volta
+al giorno usano la commissione maker di Kraken (ordini limite).
+
+## Pannello in RADIX
+
+Ogni ora `hourly` (e ogni sera `daily`) manda una fotografia dei risultati alla pagina **Trading** di RADIX
+(`/trading.html`, solo per chi l'ha collegata): backtest con le curve mensili, conto simulato, decisioni,
+dati raccolti, macro e notizie (`snapshot.py`). Il token si genera nella pagina e si mette nel Mac:
+
+```bash
+echo 'RADIX_TRADING_TOKEN=rtr1....' >> ~/RadixTrading/.env && chmod 600 ~/RadixTrading/.env
+python -m radix_trading push       # invio immediato; `export` stampa la stessa fotografia
+```
+
+Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta solo risultati `paper`.
 
 ## Moduli
 

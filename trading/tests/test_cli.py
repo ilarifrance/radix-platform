@@ -19,4 +19,4 @@ def test_collect_tiers(monkeypatch):
     assert set(calls) == {"kraken", "binance", "gdelt"}
     calls.clear()
     cli.collect(Store(":memory:"), "slow")
-    assert set(calls) == {"yahoo", "fred"}
+    assert set(calls) == {"yahoo", "fred"}  # senza chiave Tiingo tutto passa da Yahoo

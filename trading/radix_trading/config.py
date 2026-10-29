@@ -11,6 +11,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+def env_value(name: str) -> str | None:
+    """Una variabile dall'ambiente o, se manca, da ~/RadixTrading/.env (chiavi e token, mai nel repository)."""
+    value = os.environ.get(name)
+    if value:
+        return value
+    env = Path.home() / "RadixTrading" / ".env"
+    if env.exists():
+        for line in env.read_text().splitlines():
+            if line.startswith(name + "="):
+                return line.split("=", 1)[1].strip() or None
+    return None
+
+
 @dataclass(frozen=True)
 class RiskLimits:
     # Capitale totale destinato ai test (euro). Il motore non usa mai piu' di questo.
