@@ -48,6 +48,8 @@ def test_collect_news_newest_first_and_themes(monkeypatch):
     row = counts.loc[pd.Timestamp("2025-04-02")]
     assert row["dazi"] == 1 and row["trump"] == 1 and row["cina"] == 1 and row["guerra"] == 1
     assert row["petrolio"] == 1 and row["tregua"] == 1 and row["medio_oriente"] == 1 and row["russia_ucraina"] == 1
+    st.conn.execute("INSERT INTO news_items VALUES ('2025-04-02', 'Law and crime', 'Court sentences man for 2018 bombing')")
+    assert events.theme_counts(st).loc[pd.Timestamp("2025-04-02"), "guerra"] == 1  # la cronaca giudiziaria non conta
     # secondo giro: i giorni gia' presenti non si riscaricano (tranne gli ultimi 3)
     asked.clear()
     events.collect_news(st, batches=1, today=date(2025, 4, 3))

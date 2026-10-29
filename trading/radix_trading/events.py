@@ -70,6 +70,9 @@ THEMES = {
     "borse": r"stock market|stock exchange|\bshares (?:fell|rose|plunged|soared)|Dow Jones|S&P 500|Nasdaq|sell-off|selloff",
 }
 _THEMES = {k: re.compile(v, re.I) for k, v in THEMES.items()}
+# Sezioni di Wikipedia in cui un tema e' quasi sempre un falso positivo (es. processi per un vecchio
+# attentato nella cronaca giudiziaria non sono una guerra in corso).
+SKIP_SECTIONS = {"guerra": ("law and crime",), "tregua": ("law and crime",)}
 
 ASSETS = {  # nome leggibile -> (mercato, simbolo)
     "S&P 500": ("etf", "SPY"), "Nasdaq": ("etf", "QQQ"), "Europa": ("etf", "VGK"), "Emergenti": ("etf", "EEM"),
@@ -140,14 +143,15 @@ def collect_calendar(store: Store) -> dict:
 def theme_counts(store: Store) -> pd.DataFrame:
     """Per ogni giorno, quante notizie toccano ciascun tema."""
     init(store)
-    rows = store.conn.execute("SELECT day, text FROM news_items").fetchall()
+    rows = store.conn.execute("SELECT day, section, text FROM news_items").fetchall()
     days = [r[0] for r in store.conn.execute("SELECT day FROM news_days ORDER BY day")]
     if not days:
         return pd.DataFrame(columns=list(THEMES))
     counts = pd.DataFrame(0, index=pd.to_datetime(days), columns=list(THEMES))
-    for day, text in rows:
+    for day, section, text in rows:
+        sec = (section or "").lower()
         for k, rx in _THEMES.items():
-            if rx.search(text):
+            if rx.search(text) and not any(sec.startswith(x) for x in SKIP_SECTIONS.get(k, ())):
                 counts.at[pd.Timestamp(day), k] += 1
     return counts.sort_index()
 
