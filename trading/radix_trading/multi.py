@@ -120,32 +120,43 @@ def ibs(bars: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(out)
 
 
+IBS_UNIVERSE = ("SPY", "QQQ", "IWM", "EFA", "EEM", "EWJ", "VGK", "XLK", "XLE", "EWI")
+
+
 def ibs_reversion(close: pd.DataFrame, ibs: pd.DataFrame | None = None, entry: float = 0.1, hold: int = 5,
                   exit_ibs: float = 0.8, trend: int = 0, max_names: int = 5) -> pd.DataFrame:
     """Entrata alla chiusura del giorno "brutto", uscita dopo `hold` giorni o alla prima chiusura forte.
-    Ogni posizione vale 1/`max_names` del capitale; solo azioni (niente obbligazioni)."""
+    `max_names` posti fissi da 1/`max_names` del capitale: una posizione aperta non viene mai
+    ridimensionata (ogni ritocco paga la commissione minima); a posti pieni i nuovi segnali si saltano.
+    Solo indici azionari principali."""
     w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
     if ibs is None:
         return w
-    for s in close.columns:
-        if s in BONDS or s not in ibs.columns:
-            continue
-        x = ibs[s].reindex(close.index).to_numpy()
-        sig = x < entry
-        if trend:
-            sig &= (close[s] > close[s].rolling(trend).mean()).to_numpy()
-        on, left = np.zeros(len(x)), 0
-        for i in range(len(x)):
-            if sig[i]:
-                left = hold
-            elif left and x[i] > exit_ibs:
-                left = 0
-            if left:
-                on[i], left = 1.0, left - 1
-        w[s] = on
-    w = w / max_names
-    gross = w.sum(axis=1)
-    return w.div(gross.where(gross > 1, 1.0), axis=0)
+    names = [s for s in close.columns if s in ibs.columns and (s in IBS_UNIVERSE or s.endswith(".MI"))]
+    if not names:
+        return w
+    x = ibs[names].reindex(close.index).to_numpy()
+    sig = x < entry
+    if trend:
+        sig &= (close[names] > close[names].rolling(trend).mean()).to_numpy()
+    left = {}                         # simbolo -> giorni rimasti
+    out = np.zeros((len(close), len(names)))
+    for i in range(len(close)):
+        for j in list(left):
+            if x[i, j] > exit_ibs:
+                del left[j]
+        for j in np.flatnonzero(sig[i]):
+            if j in left:
+                left[j] = hold        # nuovo segnale sullo stesso titolo: si prolunga
+            elif len(left) < max_names:
+                left[j] = hold
+        for j in list(left):
+            out[i, j] = 1.0 / max_names
+            left[j] -= 1
+            if left[j] <= 0:
+                del left[j]
+    w[names] = out
+    return w
 
 
 def turn_of_month(close: pd.DataFrame, before: int = 4, after: int = 3, trend: int = 0,
