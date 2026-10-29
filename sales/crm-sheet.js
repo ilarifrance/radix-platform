@@ -109,7 +109,7 @@ function draw(host,ctx){
  const partial=MORE().filter(e=>a.state.more?.[e]);ui.more.hidden=!partial.length;ui.more.disabled=S.loading||!!a.state.busy;
  ui.progress.textContent=S.progress;ui.progress.hidden=!S.progress;
  ui.jump.hidden=!drawn.some(c=>c.id==='acts:1');
- ui.note.textContent=(a.state.more?.contacts?'Elenco parziale: sono caricati i primi '+all.length+' contatti, «Carica altri 100 · Contatti» qui sotto aggiunge i successivi. ':'')
+ ui.note.textContent=(a.state.more?.contacts?'Elenco parziale: sono caricati i primi '+all.length+' contatti, «Carica altri · Contatti» qui sotto aggiunge i successivi. ':'')
   +(partial.length?'Attività, aziende e trattative vengono dalle pagine caricate ('+partial.map(e=>({companies:'aziende',interactions:'interazioni',tasks:'attività',opportunities:'trattative'})[e]).join(', ')+' parziali): «Completa i dati» legge le altre. ':'Attività, aziende e trattative dalle pagine caricate. ')
   +'«Da fare»: attività aperte e interazioni in calendario, la prima è la prossima. «Attività»: interazioni registrate, dalla più recente.';
  const focusIn=ui.scroll.contains(document.activeElement);const sl=ui.scroll.scrollLeft,st=ui.scroll.scrollTop;
@@ -381,10 +381,10 @@ async function completeData(host,ctx,auto){
   for(const e of C().toLoad(a.state.more)){let guard=0;
    while(a.state.more?.[e]&&guard<C().PAGE_CAP){guard++;
     S.progress=C().progressText({entity:e,pages});S.status='';redraw();
-    const off=a.state.offset[e]||0;const r=await a.api(e,{offset:off,...(e==='tasks'?{due:a.state.taskDue}:{}),...(a.state.search?.[e]!==undefined?{search:a.state.search[e]}:{})});
+    const off=a.state.offset[e]||0;const r=await a.api(e,{offset:off,limit:a.state.page||undefined,...(e==='tasks'?{due:a.state.taskDue}:{}),...(a.state.search?.[e]!==undefined?{search:a.state.search[e]}:{})});
     if(gen!==a.state.generation||ws!==a.state.workspace){S.progress='';return}
     const have=new Set((a.state.rows[e]||[]).map(x=>x.id));a.state.rows[e]=[...(a.state.rows[e]||[]),...r.rows.filter(x=>!have.has(x.id))];
-    a.state.offset[e]=off+r.rows.length;a.state.more[e]=r.rows.length===100;pages++;S.dirty=true}
+    a.state.offset[e]=off+r.rows.length;a.state.more[e]=r.rows.length>0&&r.rows.length===(Number(r.limit)||100);pages++;S.dirty=true}
    if(a.state.more?.[e])capped.push(e)}
   S.progress=C().progressText({pages,done:true,capped});
   if(!auto&&!pages)S.progress='Dati già completi: tutte le attività sono nel foglio.';
