@@ -16,6 +16,16 @@ const REQ={method:'POST',headers:{host:'radix.example'}};
 const T={subject:'{nome}, una proposta per {azienda}',body:'Gentile {nome},\nabbiamo 3 soluzioni per {azienda}. Dettagli: https://radix.example/offerta\nPossiamo sentirci giovedì?'};
 const F=C.facts({name:'Luca Bianchi',role:'Direttore operations',email:'luca@rossi.it',notes:'Ha 4 stabilimenti; ci ha visti in fiera\x07.',linkedin_url:'https://linkedin.com/in/x'},{name:'Rossi Srl',industry:'Meccanica',city:'Brescia',website:'https://rossi.it',notes:'Gruppo da 120 persone'});
 
+test('core: facts read the job title (Qualifica), the department, company size and country as the import fills them',()=>{
+ const f=C.facts({name:'Marta Neri',title:'Head of Procurement',role:'Acquisti e logistica',department:'Supply chain',country:'Italia'},{name:'Neri Spa',employees:1200,billing_city:'Torino',billing_country:'Italia',description:'Gruppo alimentare'});
+ assert.equal(f.ruolo,'Head of Procurement (Acquisti e logistica)');assert.equal(f.reparto,'Supply chain');assert.equal(f.dipendenti,'1200 dipendenti');
+ assert.equal(f.citta,'Torino');assert.equal(f.paese,'Italia');assert.equal(f.note_azienda,'Gruppo alimentare');
+ const L=C.factLines(f);assert.ok(L.includes('- Ruolo: Head of Procurement (Acquisti e logistica)')&&L.includes('- Reparto: Supply chain')&&L.includes('- Dimensione: 1200 dipendenti')&&L.includes('- Paese: Italia'));
+ assert.equal(C.facts({title:'CEO',role:'Altro'},null).ruolo,'CEO','«Altro» is not a fact');
+ assert.equal(C.facts({title:'Marketing',role:'marketing'},null).ruolo,'Marketing','same word once');
+ assert.equal(C.facts({role:'Titolare / CEO'},{employees:'x'}).ruolo,'Titolare / CEO');assert.equal(C.facts({},{employees:'x'}).dipendenti,'');
+});
+
 test('core: facts keep only what the CRM knows, cleaned and clipped; the prompt carries template and facts as data',()=>{
  assert.equal(F.nome,'Luca Bianchi');assert.equal(F.dominio_email,'rossi.it');assert.equal(F.note,'Ha 4 stabilimenti; ci ha visti in fiera .');assert.equal(F.linkedin,true);
  const empty=C.facts({name:'Anna',email:'a@b.it'},null);assert.equal(empty.azienda,'');assert.equal(C.factLines(empty).length,2,'only the name and the email domain are facts');
