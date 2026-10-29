@@ -17,6 +17,10 @@ async function post(entity,data){const r=await fetch('/api/sales',{method:'POST'
 async function pages(entity,gen){const all=[];for(let n=0;n<10;n++){const d=await get({entity,workspace:S.workspace,offset:String(all.length)});if(gen!==S.gen)return null;all.push(...d.rows);if(d.rows.length<100)break}return all}
 const own=()=>S.mailboxes.find(m=>m.id===S.mailbox)?.from_email||'';
 const when=t=>{const D=window.RadixCrmDates,ms=Date.parse(t);if(Number.isNaN(ms))return '';if(!D)return new Date(ms).toLocaleString('it-IT');const v=D.inputAt(ms);const today=D.inputAt(Date.now()).slice(0,10);return v.slice(0,10)===today?D.hm(ms):v.slice(8,10)+'/'+v.slice(5,7)+(v.slice(0,4)===today.slice(0,4)?'':'/'+v.slice(2,4))};
+/* Avatar: initials of the name (or the address) on a colour chosen by the address, the same across list and mail. */
+const initials=p=>{const n=String(p?.name||'').trim();if(n){const w=n.replace(/[«»"'()<>]/g,'').split(/\s+/).filter(Boolean);return ((w[0]?.[0]||'')+(w.length>1?w[w.length-1][0]:'')).toUpperCase()}const a=String(p?.address||'?');return a.slice(0,2).toUpperCase()};
+const hue=p=>{const s=String(p?.address||p?.name||'');let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h%360};
+const avatar=p=>{const a=E('span',initials(p),'pm-av');a.setAttribute('aria-hidden','true');a.style.setProperty('--h',String(hue(p)));return a};
 const longWhen=t=>{const D=window.RadixCrmDates,ms=Date.parse(t);return Number.isNaN(ms)?'':D?D.dateTimeLabel(ms):new Date(ms).toLocaleString('it-IT')};
 
 async function init(){
@@ -50,10 +54,10 @@ const matched=m=>S.crmReady?P.matches(m,S.crm.contacts,own()):[];
 const isLinked=m=>S.crmReady&&P.linked(m,own(),S.crm.interactions).length>0;
 function drawList(){const ul=$('pm-items');ul.replaceChildren();const only=$('pm-only').checked;
  const shown=S.items.filter(m=>!only||matched(m).length);
- for(const m of shown){const li=E('li'),b=E('button',undefined,'pm-item');b.type='button';if(S.open&&S.open.id===m.id)b.classList.add('on');
+ for(const m of shown){const li=E('li'),b=E('button',undefined,'pm-item');b.type='button';if(S.open&&S.open.id===m.id)b.classList.add('on');if(m.unread)b.classList.add('unread');
   const sent=P.direction(m,own())==='sent',people=sent?(m.to||[]).map(p=>p.name||p.address).join(', '):(m.from?.name||m.from?.address||'');
   const top=E('span',undefined,'pm-item-top');top.append(E('b',(sent?'A: ':'')+(people||'(sconosciuto)')),E('time',when(m.at)));
-  b.append(top,E('span',m.subject||'(senza oggetto)','pm-item-subject'),E('span',m.preview||'','pm-item-preview'));
+  b.append(avatar(sent?(m.to||[])[0]:m.from),top,E('span',m.subject||'(senza oggetto)','pm-item-subject'),E('span',String(m.preview||'').replace(/\s+/g,' ').trim(),'pm-item-preview'));
   const tags=E('span',undefined,'pm-tags'),cs=matched(m);for(const c of cs.slice(0,2))tags.append(E('span',c.name||c.email,'pm-tag'));if(cs.length>2)tags.append(E('span','+'+(cs.length-2),'pm-tag'));
   if(isLinked(m))tags.append(E('span','✓ Collegata','pm-tag ok'));else if(S.crmReady&&P.campaignReply(m,own(),S.crm.contacts,S.crm.interactions))tags.append(E('span','↩ Risposta a una campagna','pm-tag reply'));if(m.attachments)tags.append(E('span','📎','pm-tag clip'));if(tags.children.length)b.append(tags);
   b.onclick=()=>openMessage(m);li.append(b);ul.append(li)}
@@ -82,25 +86,40 @@ async function openMessage(m){S.open={...m};drawList();drawRead();const gen=S.ge
  try{const d=await get({entity:'mail',workspace:S.workspace,mailbox:S.mailbox,id});if(gen!==S.gen||S.open?.id!==id)return;S.open={...m,...d.rows[0],full:true};drawRead()}
  catch(e){if(S.open?.id===id){S.open.error=e.message;drawRead()}}}
 function drawRead(){const host=$('pm-read'),m=S.open;host.replaceChildren();
- if(!m){host.append(E('p','Scegli una mail a sinistra per leggerla e collegarla al CRM.','pm-empty'));return}
+ if(!m){const e=E('div',undefined,'pm-empty');e.append(E('span',undefined,'pm-empty-ic'),E('p','Scegli una mail a sinistra per leggerla e collegarla al CRM.'));const k=E('p',undefined,'pm-keys');k.append(E('kbd','↑'),' ',E('kbd','↓'),' per muoverti tra le mail');e.append(k);host.append(e);return}
  const back=E('button','‹ Torna all’elenco','pm-back');back.type='button';back.onclick=()=>{S.open=null;drawList();drawRead()};
- host.append(back,E('h2',m.subject||'(senza oggetto)'));
- const meta=E('dl','', 'pm-meta');const row=(k,v)=>{if(v){meta.append(E('dt',k),E('dd',v))}};
+ // Header: subject, the sender card (avatar, name, address, «a …» that opens the full headers), date, actions.
+ const head=E('header',undefined,'pm-head');head.append(back,E('h2',m.subject||'(senza oggetto)'));
  const who=p=>p?(p.name?p.name+' <'+p.address+'>':p.address):'';
- row('Da',who(m.from));row('A',(m.to||[]).map(who).join(', '));row('Cc',(m.cc||[]).map(who).join(', '));row('Data',longWhen(m.at));host.append(meta);
- if(m.link){const a=E('a','Apri in Outlook ↗','pm-outlook');a.href=m.link;a.target='_blank';a.rel='noopener noreferrer';host.append(a)}
- host.append(linkBox(m));
+ const sent=P.direction(m,own())==='sent',main=sent?(m.to||[])[0]:m.from;
+ const card=E('div',undefined,'pm-sender');const w=E('div',undefined,'pm-sender-who');
+ w.append(E('b',main?.name||main?.address||'(sconosciuto)'),E('span',main?.name&&main?.address?main.address:''));
+ const toLine=E('button',(sent?'da me a ':'a ')+((m.to||[]).map(p=>p.name||p.address).slice(0,3).join(', ')||'me')+((m.to||[]).length>3?' +'+((m.to||[]).length-3):'')+((m.cc||[]).length?' · cc '+(m.cc||[]).length:'')+' ▾','pm-to');toLine.type='button';toLine.setAttribute('aria-expanded','false');
+ const meta=E('dl','', 'pm-meta');const row=(k,v)=>{if(v){meta.append(E('dt',k),E('dd',v))}};
+ row('Da',who(m.from));row('A',(m.to||[]).map(who).join(', '));row('Cc',(m.cc||[]).map(who).join(', '));row('Data',longWhen(m.at));
+ toLine.onclick=()=>{const o=!meta.classList.contains('open');meta.classList.toggle('open',o);toLine.setAttribute('aria-expanded',String(o))};
+ w.append(toLine);card.append(avatar(main),w,E('time',longWhen(m.at)));head.append(card,meta);
+ // CRM context: the contacts of this mail that are in the CRM, each a link to its card.
+ const known=S.crmReady?P.matches(m,S.crm.contacts,own()):[];
+ if(known.length){const ctx=E('div',undefined,'pm-ctx');for(const c of known.slice(0,4)){const a=E('a',undefined);a.href='/radix-sales.html?ws='+encodeURIComponent(S.workspace)+'&contatto='+encodeURIComponent(c.id)+'#contacts';a.append(E('i'),document.createTextNode((c.name||c.email)+(S.crm.companies.find(x=>x.id===c.company_id)?.name?' · '+S.crm.companies.find(x=>x.id===c.company_id).name:'')));a.title='Apri la scheda nel CRM';ctx.append(a)}head.append(ctx)}
+ const acts=E('div',undefined,'pm-actions');
+ const linkBtn=E('button',P.linked(m,own(),S.crm.interactions).length?'✓ Collegata al CRM':'Collega al CRM','pm-btn primary');linkBtn.type='button';linkBtn.onclick=()=>{const b=host.querySelector('.pm-link');if(b){b.scrollIntoView({block:'start',behavior:'smooth'});const s=b.querySelector('select');if(s)s.focus({preventScroll:true})}};acts.append(linkBtn);
+ if(m.link){const a=E('a','Apri in Outlook ↗','pm-btn pm-outlook');a.href=m.link;a.target='_blank';a.rel='noopener noreferrer';acts.append(a)}
+ head.append(acts);host.append(head);
+ const content=E('div',undefined,'pm-content');content.append(linkBox(m));
  const body=E('div',undefined,'pm-body');
  if(m.error)body.append(E('p',m.error,'pm-err'));else if(!m.full)body.append(E('p','Caricamento del testo…','pm-muted'));
- else for(const para of String(m.text||'').split(/\n{2,}/))body.append(E('p',para));
- host.append(body);host.focus({preventScroll:true})}
+ else{let quoting=false;for(const para of String(m.text||'').split(/\n{2,}/)){if(!quoting&&/^(?:-{3,}\s*(?:messaggio originale|original message)|(?:da|from|il giorno|on)\s.{0,120}(?:ha scritto|wrote)\s*:?$|>)/i.test(para.trim().split('\n')[0]))quoting=true;body.append(E('p',para,quoting?'pm-quote':undefined))}}
+ content.append(body);host.append(content);
+ // Keyboard users moving with ↑ ↓ keep the focus on the list row; otherwise the pane takes it (screen readers, phones).
+ if(!document.activeElement||!document.activeElement.closest('#pm-items'))host.focus({preventScroll:true})}
 
 /* «Collega al CRM»: contact (suggested from the addresses), opportunity (that contact's open ones), «Collega». */
 function linkBox(m){const box=E('section',undefined,'pm-link');box.append(E('h3','Collega al CRM'));
  if(!S.crmReady){box.append(E('p','Caricamento dei contatti del CRM…','pm-muted'));return box}
  const done=P.linked(m,own(),S.crm.interactions);
  if(done.length){const names=done.map(i=>S.crm.contacts.find(c=>c.id===i.contact_id)?.name||S.crm.opportunities.find(o=>o.id===i.opportunity_id)?.title||'CRM');
-  box.append(E('p','✓ Già collegata a '+[...new Set(names)].join(', ')+'. La trovi nella cronologia del contatto.','pm-ok'))}
+  box.classList.add('done');box.append(E('p','✓ Già collegata a '+[...new Set(names)].join(', ')+'. La trovi nella cronologia del contatto.','pm-ok'))}
  const sug=P.matches(m,S.crm.contacts,own());
  const cSel=E('select'),oSel=E('select');cSel.setAttribute('aria-label','Contatto');oSel.setAttribute('aria-label','Opportunità');
  const opt=(sel,v,t)=>{const o=E('option',t);o.value=v;sel.append(o)};
