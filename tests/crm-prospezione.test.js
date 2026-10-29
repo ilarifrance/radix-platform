@@ -79,7 +79,7 @@ function fakeDb({issuer={legal_name:'Radix Srl',vat_number:'IT01234567890',stree
  db.sql=async(text,params=[])=>{
   const t=text.replace(/\s+/g,' ');db.calls.push({text:t,params});
   if(/FROM sales_contacts t LEFT JOIN sales_companies/.test(t))return db.contacts.filter(c=>params[1].includes(c.id));
-  if(/FROM sales_document_settings/.test(t))return issuer?[issuer]:[];
+  if(/FROM sales_document_settings/.test(t))return issuer?[{issuer}]:[];
   if(/^SELECT DISTINCT q\.contact_id/.test(t))return db.queue.filter(q=>q.campaign.startsWith('B2B · ')&&q.campaign!==params[2]).map(q=>({contact_id:q.contact_id,email:null}));
   if(/campaign=ANY\(\$2::text\[\]\) AND status='sent'/.test(t))return db.queue.filter(q=>params[1].includes(q.campaign)&&q.status==='sent').map(q=>({contact_id:q.contact_id,campaign:q.campaign,sent_at:q.sent_at}));
   if(/^SELECT q\.contact_id,lower\(btrim\(c\.email\)\) AS email FROM sales_send_queue/.test(t))return db.queue.filter(q=>q.campaign===params[1]).map(q=>({contact_id:q.contact_id,email:db.contacts.find(c=>c.id===q.contact_id).email}));

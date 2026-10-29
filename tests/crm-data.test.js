@@ -25,3 +25,10 @@ test('loads once sales.js sets the real workspace, without extra requests',async
  await s.api.load();assert.equal(s.urls.length,9,'cached');
  s.fire('change');await s.api.load();assert.equal(s.urls.length,18,'reloads after a workspace change');
 });
+
+test('sales.js drops the shared cache on every reload: a saved record refreshes Panoramica and the tables at once',()=>{
+ const src=fs.readFileSync(__dirname+'/../sales/sales.js','utf8');
+ const reload=/async function reload\(\)\{[\s\S]*?\n\}/.exec(src)[0];
+ assert.match(reload,/window\.RadixCrmData\?\.reset\?\.\(\);/);
+ assert.ok(reload.indexOf('RadixCrmData?.reset')<reload.indexOf('Promise.allSettled'),'reset before the rows are read again');
+});

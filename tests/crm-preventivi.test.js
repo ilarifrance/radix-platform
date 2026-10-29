@@ -42,6 +42,19 @@ test('status moves match the database',()=>{
  assert.match(sql,/doc\.status='emessa' AND d->>'status' IN\('pagata','annullata'\)/);
  assert.ok(V.overdue({kind:'invoice',status:'emessa',due_date:'2026-01-01'},new Date(2026,9,20)));
 });
+test('English mode: en-GB amounts and quantities are read back, Italian stays exact',()=>{
+ assert.equal(V.cents('1,200'),null,'Italian: three decimals after the comma are refused, not read as a thousand');
+ V.setEnglish(true);
+ try{
+  assert.equal(V.cents('65,000.00'),6500000);assert.equal(V.cents('1,200.5'),120050);assert.equal(V.cents('800.00'),80000);assert.equal(V.cents('1,200'),120000);assert.equal(V.cents('99,90'),9990);assert.equal(V.cents('€1,200'),120000);assert.equal(V.cents('1.200'),null);assert.equal(V.cents('1,2,3'),null);assert.equal(V.cents(''),0);
+  assert.equal(V.qty('1,500'),1500);assert.equal(V.qty('1.5'),1.5);assert.equal(V.qty('0.250'),0.25);assert.equal(V.qty('2'),2);assert.equal(V.qty('1,5'),1.5);
+  assert.equal(V.decim(4.5),'4.5');
+  const f=V.lineForm({quantity:'1500',unit:'pz',unit_price_cents:6500000,discount_bp:450,vat_rate_bp:2200});assert.equal(f.quantity,'1500');assert.equal(f.discount,'4.5');assert.equal(f.vat,'22');
+  const c=V.cleanLines([{description:'A',quantity:'1,500',price:'65,000.00',discount:'4.5',vat:'22'}]);assert.equal(c.error,undefined);assert.equal(c.lines[0].quantity,1500);assert.equal(c.lines[0].unit_price_cents,6500000);assert.equal(c.lines[0].discount_bp,450);
+ }finally{V.setEnglish(false)}
+ assert.equal(V.qty('1.500'),1500);assert.equal(V.qty('0,250'),0.25);assert.equal(V.qty('1,5'),1.5);assert.equal(V.decim(4.5),'4,5');
+ const f=V.lineForm({quantity:'1500',unit:'pz',unit_price_cents:6500000,discount_bp:450,vat_rate_bp:2200});assert.equal(f.quantity,'1500');assert.equal(f.discount,'4,5');assert.equal(f.price,'65.000,00');
+});
 test('product and settings payloads',()=>{
  assert.match(V.productPayload(null,{name:'',price:'1'}).error,/nome/);
  const p=V.productPayload(null,{name:'Ora di consulenza',price:'90',vat:'22',unit:'ore',code:''});

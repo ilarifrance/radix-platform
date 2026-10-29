@@ -179,6 +179,17 @@ function composerPlan(tab,input,subject,rec,now,related){
  return {error:'Tipo non valido.'};
 }
 
-const core={SUBJECT_LABEL,TABS,slotField,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan};
+// «Chiama da RADIX»: opens RADIX Meeting ready to call this contact or company, so the call is recorded,
+// transcribed and saved back in this record's history. null when the record has no usable number.
+function meetingCall(workspace,subject,record){
+ if(!record||!['contacts','companies'].includes(subject))return null;
+ const num=[record.mobile,record.phone].map(v=>String(v??'').trim()).find(v=>v.replace(/\D/g,'').length>=6);if(!num)return null;
+ const name=subject==='contacts'?(String(record.name||[record.first_name,record.last_name].filter(Boolean).join(' ')).trim()):String(record.name||'').trim();
+ const q=new URLSearchParams({call:num,name:name.slice(0,120),crmws:String(workspace||'')});
+ if(subject==='contacts'){q.set('contact',record.id);if(record.company_id)q.set('company',record.company_id)}else q.set('company',record.id);
+ return {href:'/meeting.html?'+q.toString(),number:num,name};
+}
+
+const core={SUBJECT_LABEL,TABS,slotField,summaryFacts,factLines,summaryPrompt,parseSummary,recordLinks,recipientFor,counterpart,localToUtc,localInput,composerPlan,meetingCall};
 if(typeof module==='object'&&module.exports)module.exports=core;else root.RadixCrmRecordCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

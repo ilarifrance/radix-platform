@@ -6,6 +6,8 @@
 // a require() of a computed path is not traced and fails with MODULE_NOT_FOUND.
 const handlers = Object.freeze({
   'buffer': () => require('../_buffer'),
+  // App «Meeting»: phone calls through the RADIX number (Twilio), recorded and transcribed after a confirm.
+  'call': () => require('../_twilio_call'),
   'heygen': () => require('../_heygen'),
   'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),
@@ -17,6 +19,8 @@ const handlers = Object.freeze({
   'site-audit': () => require('../_site_audit'),
   'site-publish': () => require('../_site_publish'),
   'status': () => require('../_integrations-status'),
+  // App «Meeting»: one audio segment to text (OpenAI), only after the person confirmed the cost.
+  'transcribe': () => require('../_transcribe'),
   // Personal Trading page: snapshot pushed by the member's Mac (rtr1 bearer) and read with the session cookie.
   'trading': () => require('../_trading')
 });

@@ -13,13 +13,14 @@
      received at or before that minute. Recipients now without consent and with no such stamp are counted apart.
    - Conversione entro N giorni: first of these after the contact's send and within N calendar days (Europe/Rome
      wall clock, DST-aware): a «meeting» or «call» interaction on the contact, an «email» interaction on the
-     contact whose title starts with «Re:», «R:» or «Risposta:» (a logged reply), a new opportunity
+     contact whose title starts with «Re:», «R:», «Risposta:» or «Email ricevuta:» (a logged reply, by hand or from Posta), a new opportunity
      (created_at) on the contact or on the contact's company. Each recipient counts once.
    Aperture, CTOR, consegnate e bounce: not measurable with what is stored (see NOT_MEASURED). */
 (function(root){
 const TZ='Europe/Rome',DAY=864e5,WINDOWS=Object.freeze([7,14,30]),DEFAULT_DAYS=14;
 const SEND_PREFIX='Email: ';
-const REPLY=/^\s*(re|r|risposta)\s*:/i;
+// A logged reply: a title «Re:», «R:», «Risposta:» (hand-recorded) or «Email ricevuta: …» (a mail read in Posta and linked to the contact).
+const REPLY=/^\s*(?:email ricevuta:|(?:re|r|risposta)\s*:)/i;
 const STAMP=/Disiscrizione dalle email commerciali tramite link: (\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/g;
 const NOT_MEASURED=Object.freeze({
  opens:'Aperture: non ancora misurate. Servono un pixel di tracciamento nelle email e una tabella per registrarle: non ci sono ancora.',

@@ -36,7 +36,7 @@ test('status change: «Non qualificato» needs a reason, the other states clear 
 test('«Converti»: pipelines with ordered stages, defaults, Italian amounts and the API payload',()=>{
  assert.deepEqual(pipes.map(p=>[p.title,p.stages.map(s=>s.title)]),[['Vendita B2B',['Primo contatto','Proposta']]]);
  assert.deepEqual(L.convertDefaults(lead({owner_id:2}),pipes),{title:'Mario Rossi · Acme',process_id:P,stage_id:'s0',amount:'',expected_close:'',owner_id:2});
- for(const [v,c] of [['',0],['12.500',1250000],['12500,50',1250050],['€ 1.200',120000],['99.5',9950],['1.2.3',null],['-5',null],['abc',null]])assert.equal(L.cents(v),c,v);
+ for(const [v,c] of [['',0],['12.500',1250000],['12500,50',1250050],['€ 1.200',120000],['99.5',9950],['1.2.3',null],['-5',null],['abc',null],['65,000.00',6500000],['£1,200',120000],['1,200.5',120050],['12,345',1234500],['1,2,3',null],['12.',null]])assert.equal(L.cents(v),c,v);
  const form={create:true,title:' Deal Acme ',process_id:P,stage_id:S,amount:'2.000',expected_close:'2026-12-31',owner_id:'2'};
  assert.deepEqual(L.convertPayload(lead(),form,K,pipes),{data:{id:ID,version:3,key:K,opportunity:{title:'Deal Acme',process_id:P,stage_id:S,amount_cents:200000,expected_close:'2026-12-31',owner_id:2}}});
  assert.deepEqual(L.convertPayload(lead(),{create:false},K,pipes),{data:{id:ID,version:3,key:K,opportunity:null}});

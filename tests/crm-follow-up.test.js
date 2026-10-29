@@ -92,8 +92,10 @@ test('wiring: interaction cards mount it, the page loads it with the AI/send pat
  assert.ok(at>0&&at<html.indexOf('sales/crm-tools.js')&&html.indexOf('sales/crm-email-ideas.js')<at);
  const src=fs.readFileSync('sales/crm-follow-up.js','utf8');
  const urls=[...new Set(src.match(/'\/api\/[a-z0-9/_-]+'/g))].sort();
- assert.deepEqual(urls,["'/api/chat'","'/api/integrations/status'","'/api/send-email'"]);
- assert.match(src,/role:'crm-copilot',crmScope:/);assert.match(src,/confirm:true/);
+ assert.deepEqual(urls,["'/api/chat'"],'the send goes through sales/crm-send-direct.js');
+ const direct=fs.readFileSync('sales/crm-send-direct.js','utf8');assert.deepEqual([...new Set(direct.match(/'\/api\/[a-z0-9/_-]+'/g))].sort(),["'/api/integrations/status'","'/api/send-email'"]);
+ assert.match(src,/sender\(\)\.send\(\{to:p\.to/);assert.ok(html.indexOf('sales/crm-send-direct.js')<at);
+ assert.match(src,/role:'crm-copilot',crmScope:/);assert.match(direct,/confirm:true/);
  assert.match(src,/Una chiamata AI, consuma crediti API/);
  assert.equal((src.match(/window\.confirm\(/g)||[]).length,4,'AI call, [DA COMPLETARE], send, task');
 });
