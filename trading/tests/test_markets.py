@@ -93,3 +93,54 @@ def test_snapshot_build_and_push(tmp_path, monkeypatch):
 def test_clean_removes_nan():
     out = snapshot.clean({"a": float("nan"), "b": [np.float64(1.5), float("inf")], "c": np.int64(3)})
     assert out == {"a": None, "b": [1.5, None], "c": 3}
+
+
+def _minute_bars(days=200, seed=1, jump_every=None):
+    rng = np.random.default_rng(seed)
+    n = days * 1440
+    r = rng.normal(0, 0.0005, n)
+    if jump_every:
+        # rialzi forti e brevi seguiti da un ulteriore +1,5%: la regola deve coglierli
+        for s in range(600, n - 200, jump_every):
+            r[s:s + 30] += 0.0012
+            r[s + 30:s + 60] += 0.0005
+    close = 100 * np.exp(np.cumsum(r))
+    idx = pd.date_range("2026-01-01", periods=n, freq="min", tz="UTC")
+    return pd.DataFrame({"open": close, "high": close, "low": close, "close": close, "volume": 1.0}, index=idx)
+
+
+def test_intraday_rules_are_respected():
+    from radix_trading import intraday
+    bars = _minute_bars(days=20, jump_every=1440 * 2)
+    rule = intraday.Rule(k=3.0, tp=0.01, max_trades=2)
+    t = intraday.simulate(bars, rule, cost_side=0.001)
+    assert len(t) > 0
+    per_day = t.groupby(pd.DatetimeIndex(t["entrata"]).normalize()).size()
+    assert per_day.max() <= 2
+    assert (pd.DatetimeIndex(t["entrata"]).normalize() == pd.DatetimeIndex(t["uscita"]).normalize()).all()
+    hit = t[t["motivo"] == "obiettivo"]
+    assert np.allclose(hit["lordo"], 0.01)
+    assert np.allclose(t["netto"], t["lordo"] - 0.002)
+    # nessuna operazione si sovrappone
+    assert (t["entrata"].iloc[1:].values > t["uscita"].iloc[:-1].values).all()
+
+
+def test_intraday_on_noise_does_not_pass_the_gate():
+    from radix_trading import intraday
+    bars = _minute_bars(days=150, seed=3)
+    wf = intraday.walk_forward(bars, cost_side=0.001, grid={"k": [3.0, 4.0], "tp": [0.01], "stop": [0.0]})
+    res = intraday.summarize(wf, 0.001)
+    assert res["cancello_1"]["passed"] is False
+    assert wf["trials"] == intraday.RESEARCH_TRIALS
+
+
+def test_run_intraday_end_to_end():
+    st = Store(":memory:")
+    st.upsert_bars("binance", "XBTEUR", "1m", _minute_bars(days=125, seed=5, jump_every=1440 * 3))
+    curves = {}
+    out = cli.run_intraday(st, curves)
+    k = "intraday_momentum@XBTEUR:economico"
+    assert "cancello_1" in out[k] and out[k]["metriche_fuori_campione"]["giorni"] > 0
+    assert "compra_e_tieni" in out[k] and curves[k]["date"]
+    assert "errore" in out["intraday_momentum@ETHEUR:kraken"]
+    json.dumps(snapshot.clean(out), allow_nan=False, default=str)

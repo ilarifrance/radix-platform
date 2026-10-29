@@ -20,7 +20,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, data, paper, snapshot, strategies, universe, validation
+from . import backtest, data, intraday, paper, snapshot, strategies, universe, validation
 from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
@@ -35,6 +35,8 @@ def collect(store: Store, tier: str = "all") -> dict:
         for sym in f["symbols"]:
             report[f"kraken:{sym}"] = _safe(lambda: store.upsert_bars("kraken", sym, "1h", kraken.fetch_ohlc(sym, "1h")))
             report[f"storico:{sym}"] = _safe(lambda: backfill_history(store, sym))
+        for sym in intraday.SYMBOLS:
+            report[f"minuti:{sym}"] = _safe(lambda: backfill_minutes(store, sym))
         # GDELT limita molto: una sola ricerca per giro, a rotazione (4 temi in 4 ore).
         q = gdelt.DEFAULT_QUERIES[pd.Timestamp.now(tz="UTC").hour % len(gdelt.DEFAULT_QUERIES)]
         items, news_report = gdelt.fetch_all((q,))
@@ -83,6 +85,52 @@ def backfill_history(store: Store, symbol: str) -> int:
              else pd.Timestamp.now(tz="UTC").floor("h") - pd.DateOffset(years=f["history_years"]))
     bars = binance.fetch_hourly(f["history_symbols"][symbol], start)
     return store.upsert_bars(f["history_venue"], symbol, "1h", bars)
+
+
+def backfill_minutes(store: Store, symbol: str, max_requests: int = 120) -> int:
+    """Storico al minuto per il day trading selettivo: al massimo `max_requests` richieste per giro
+    (120 mila minuti), cosi' il primo anno arriva in qualche ora senza bloccare il giro orario."""
+    f = universe.FAST
+    last = store.conn.execute("SELECT MAX(ts) FROM bars WHERE venue = ? AND symbol = ? AND timeframe = '1m'",
+                              (f["history_venue"], symbol)).fetchone()[0]
+    start = (pd.Timestamp(last) + pd.Timedelta(minutes=1) if last
+             else pd.Timestamp.now(tz="UTC").floor("min") - pd.Timedelta(days=intraday.HISTORY_DAYS))
+    bars = binance.fetch_klines(f["history_symbols"][symbol], start, interval="1m", max_requests=max_requests)
+    return store.upsert_bars(f["history_venue"], symbol, "1m", bars)
+
+
+# Costo per lato del day trading: entrata a mercato, uscita con ordine limite sull'obiettivo.
+INTRADAY_COSTS = {"kraken": (0.0040 + 0.0025) / 2 + 0.0002, "economico": 0.0010}
+
+
+def run_intraday(store: Store, curves: dict | None = None) -> dict:
+    out = {}
+    for sym in intraday.SYMBOLS:
+        bars = store.load_bars(universe.FAST["history_venue"], sym, "1m")
+        for label, cost in INTRADAY_COSTS.items():
+            key = f"intraday_momentum@{sym}:{label}"
+            base = {"strategia": "intraday_momentum", "mercato": "crypto", "simboli": [sym], "costi_livello": label}
+            if len(bars) < 1440 * 120:
+                out[key] = {**base, "errore": f"storico al minuto insufficiente ({len(bars) // 1440} giorni su 120)"}
+                continue
+            wf = intraday.walk_forward(bars, cost)
+            res = intraday.summarize(wf, cost)
+            out[key] = {**base, **res}
+            if "cancello_1" in res:
+                close = bars["close"]
+                r = wf["returns"]
+                bh = close.resample("D").last().reindex(r.index).ffill()
+                bh = bh / bh.iloc[0]
+                out[key]["compra_e_tieni"] = {"rendimento": float(bh.iloc[-1] - 1),
+                                              "max_drawdown": float((bh / bh.cummax() - 1).min())}
+                store.save_strategy_status(key, "1m", res["cancello_1"]["passed"], res["cancello_1"]["deflated_sharpe"],
+                                           res["metriche_fuori_campione"]["sharpe"], res["parametri_ultimi"])
+                if curves is not None:
+                    eq = (1 + r).cumprod().resample("ME").last()
+                    curves[key] = {"date": [d.strftime("%Y-%m-%d") for d in eq.index],
+                                   "strategia": [round(float(v), 4) for v in eq.values],
+                                   "compra_e_tieni": [round(float(v), 4) for v in bh.resample("ME").last().reindex(eq.index).values]}
+    return out
 
 
 def tests_to_run() -> list[tuple[str, str, str, dict]]:
@@ -168,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
             result = {"raccolta": collect(store, "slow")} if args.command == "daily" else {}
             curves: dict = {}
             result["backtest"] = run_backtests(store, curves)
+            day = _safe(lambda: run_intraday(store, curves))
+            if isinstance(day, dict):
+                result["backtest"].update(day)
+            else:
+                result["backtest"]["intraday_momentum"] = {"strategia": "intraday_momentum", "mercato": "crypto", "errore": day}
             snapshot.save_backtest(settings, result["backtest"], curves)
             if args.command == "daily":
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))

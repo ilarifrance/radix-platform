@@ -18,6 +18,16 @@ Ogni mercato lento e' provato a parte con i costi propri (`backtest.Costs`): IBK
 con Tobin tax, cambi con il minimo di circa 2 dollari a ordine. Le strategie crypto che decidono una volta
 al giorno usano la commissione maker di Kraken (ordini limite).
 
+## Day trading selettivo
+
+`intraday.py`: si guarda il minuto ma si opera di rado. Compra quando in un'ora il prezzo sale circa 4 volte
+piu' del normale, vende al +1% (ordine limite) o a fine giornata UTC, al massimo 2 operazioni al giorno.
+La ricerca del 29 ottobre (12 mesi di BTC/ETH al minuto, 6 mesi di prova alla cieca) ha dato +5,9% su
+Bitcoin con costo 0,10% per lato e -1,6% su Ethereum, scegliendo tra 108 combinazioni: il cancello 1 conta
+tutte quelle prove. `hourly` scarica lo storico al minuto da Binance (120 mila minuti per giro), `daily` lo
+prova con due livelli di costo (Kraken e un exchange economico). Non e' ancora nel conto simulato: serve un
+giro ogni minuto, da aggiungere solo se supera il cancello 1.
+
 ## Pannello in RADIX
 
 Ogni ora `hourly` (e ogni sera `daily`) manda una fotografia dei risultati alla pagina **Trading** di RADIX

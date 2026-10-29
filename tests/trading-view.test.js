@@ -61,3 +61,9 @@ test('formats in Italian',()=>{
  assert.equal(V.pct(null),'—');
  assert.equal(V.ago('2026-10-29T07:00:00Z',Date.parse('2026-10-29T10:00:00Z')),'3 ore fa');
 });
+
+test('day trading rows say coin and cost level',()=>{
+ const t=V.tests({backtest:{risultati:{'intraday_momentum@XBTEUR:economico':{strategia:'intraday_momentum',mercato:'crypto',simboli:['XBTEUR'],costi_livello:'economico',metriche_fuori_campione:{total_return:0.059},cancello_1:{deflated_sharpe:0.3,passed:false}}}}});
+ assert.equal(t[0].name,'Day trading selettivo (Bitcoin, costi bassi)');
+ assert.equal(t[0].marketName,'Crypto');
+});
