@@ -11,7 +11,42 @@
   "background_color": "#02090B",
   "theme_color": "#02090B",
   "icons": [
-    { "src": "/sales/icons/radix-app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "/tools/radix-chrome-extension/icons/icon128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/shell/icons/meeting.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/shell/icons/meeting-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/shell/icons/meeting-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/shell/icons/meeting-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nuova telefonata",
+      "short_name": "Telefonata",
+      "url": "/meeting.html?source=phone",
+      "icons": [
+        {
+          "src": "/shell/icons/meeting-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

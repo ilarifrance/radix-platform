@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark"><meta name="theme-color" content="#02090B">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' blob: data:; media-src blob:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
-<link rel="manifest" href="/meeting.webmanifest"><link rel="apple-touch-icon" href="/tools/radix-chrome-extension/icons/icon128.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="RADIX Meeting">
+<link rel="manifest" href="/meeting.webmanifest"><link rel="apple-touch-icon" href="/shell/icons/meeting-180.png"><link rel="icon" href="/shell/icons/meeting.svg" type="image/svg+xml"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="RADIX Meeting">
 <link rel="stylesheet" href="/lib/radix-i18n.css"><script src="/lib/radix-i18n-en.js"></script><script src="/lib/radix-i18n.js"></script><title>RADIX · Meeting</title>
 <link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/meeting.css"><script src="/shell/radix-shell.js" defer></script></head>
 <body class="mt-root" data-shell-area="pm" data-shell-page="meeting" data-shell-state="live" data-shell-user="off"><a href="#mt-main" class="mt-skip">Vai al registratore</a>
@@ -50,6 +50,7 @@
 <div id="mt-proposal" hidden>
 <div class="mt-section"><h3>Riassunto</h3><label class="mt-field"><span class="mt-muted">Modificalo pure: va nel verbale.</span><textarea id="mt-summary" maxlength="3000"></textarea></label></div>
 <div class="mt-section"><h3>Decisioni</h3><ul class="mt-list" id="mt-decisions"></ul><label class="mt-consent" id="mt-memory-box"><input type="checkbox" id="mt-memory" checked><span>Proponi le decisioni alla memoria del progetto (le confermi dalla pagina Memoria, poi gli agenti le usano).</span></label></div>
+<div class="mt-section" id="mt-crm-box" hidden><h3>Storico del cliente</h3><label class="mt-consent"><input type="checkbox" id="mt-crm" checked><span>Salva nello storico CRM di <b id="mt-crm-name"></b> il riassunto, le decisioni e le attività.</span></label></div>
 <div class="mt-section"><h3>Nuove attività</h3><ul class="mt-list" id="mt-tasks"></ul><p class="mt-muted" id="mt-tasks-empty" hidden>Nessun impegno concreto emerso dalla riunione.</p></div>
 <div class="mt-section" id="mt-updates-box" hidden><h3>Attività già nel piano da aggiornare</h3><ul class="mt-list" id="mt-updates"></ul></div>
 <div class="mt-section" id="mt-questions-box" hidden><h3>Domande aperte</h3><ul class="mt-list" id="mt-questions"></ul></div>

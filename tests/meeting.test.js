@@ -207,3 +207,26 @@ test('phone calls wiring: route, status, settings, page option behind a confirm'
  const call=js.slice(js.indexOf("$('mt-call').onclick"));assert.ok(call.indexOf('confirmBox.ask(')<call.indexOf("action:'start'"));
  assert.match(js,/action:'transcribe',sid:m\.callSid,confirm:true/);
 });
+
+test('CRM: «Chiama da RADIX» link from a contact or company, back in the client history',()=>{
+ const crmCore=require('../sales/crm-record-core.js');
+ const W='11111111-1111-4111-8111-111111111111',C='22222222-2222-4222-8222-222222222222',A='33333333-3333-4333-8333-333333333333';
+ const l=crmCore.meetingCall(W,'contacts',{id:C,company_id:A,name:'Mario Rossi',phone:'02 1234567',mobile:'+39 333 1234567'});
+ assert.equal(l.number,'+39 333 1234567','mobile first');assert.match(l.href,/^\/meeting\.html\?/);
+ assert.equal(crmCore.meetingCall(W,'contacts',{id:C,phone:'12'}),null,'no usable number');
+ assert.equal(crmCore.meetingCall(W,'opportunities',{id:C,phone:'0212345678'}),null);
+ const q=core.crmFromQuery(l.href.slice(l.href.indexOf('?')));
+ assert.deepEqual(q,{to:'+39 333 1234567',name:'Mario Rossi',crm:{workspace:W,contactId:C,companyId:A,name:'Mario Rossi'}});
+ const co=core.crmFromQuery(crmCore.meetingCall(W,'companies',{id:A,name:'Interfood',phone:'+44 20 1234 5678'}).href.split('?')[1]);
+ assert.equal(co.crm.companyId,A);assert.equal(co.crm.contactId,null);
+ assert.equal(core.crmFromQuery('?call=%2B393331234567&crmws=bad&contact='+C).crm,null,'bad workspace: call only, no history');
+ assert.equal(core.crmFromQuery('?name=x'),null);
+ const body=core.crmInteraction({crm:q.crm,source:'phone',title:'Telefonata con Mario Rossi',date:'2026-10-29',seconds:300,summary:'Offerta accettata.',decisions:['Si parte a novembre'],tasks:[{title:'Mandare contratto',due:'2026-11-03'}],questions:[],occurredAt:'2026-10-29T10:00:00.456Z'});
+ assert.deepEqual(Object.keys(body),['workspace','entity','action','data']);assert.equal(body.entity,'interactions');assert.equal(body.action,'create');
+ assert.equal(body.data.kind,'call');assert.equal(body.data.occurred_at,'2026-10-29T10:00:00Z');assert.equal(body.data.contact_id,C);assert.equal(body.data.company_id,A);
+ assert.match(body.data.body,/Offerta accettata\.[\s\S]*Si parte a novembre[\s\S]*Mandare contratto · entro il 03\/11\/2026/);assert.ok(body.data.body.length<=4000);
+ assert.equal(core.crmInteraction({crm:q.crm,source:'room',summary:'x'}).data.kind,'meeting');
+ assert.equal(core.crmInteraction({crm:null,summary:'x'}),null);
+ const js=fs.readFileSync('lib/meeting-page.js','utf8'),html=fs.readFileSync('meeting.html','utf8'),crmJs=fs.readFileSync('sales/crm-record.js','utf8');
+ assert.match(html,/id="mt-crm"/);assert.match(js,/'x-radix-sales':'1'/);assert.match(crmJs,/core\.meetingCall\(/);
+});

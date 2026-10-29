@@ -88,3 +88,5 @@
 .crm-follow-up .actions,.crm-follow-up p{grid-column:1/-1;margin:0}
 .crm-follow-up p{font-size:12px}
 @media (max-width:560px){.crm-follow-up{grid-template-columns:minmax(0,1fr)}}
+.crm-rec-call{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;padding:6px 12px;border-radius:999px;border:1px solid var(--crx-border);text-decoration:none;color:var(--crx-accent);font-weight:600;font-size:.9em}
+.crm-rec-call:hover,.crm-rec-call:focus-visible{border-color:currentColor}
