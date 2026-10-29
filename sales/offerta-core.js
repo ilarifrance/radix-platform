@@ -113,6 +113,30 @@ function apply(model,key,value){
  if(m){const s=model.sections[Number(m[1])];if(!s)return model;if(s.kind==='text')s.text=v.slice(0,TEXT_MAX);else s.items=v.split('\n').map(str).filter(Boolean).slice(0,8).map(t=>t.slice(0,FIELD_MAX));return model}
  if(['title','subtitle','signature'].includes(key))model[key]=v.slice(0,FIELD_MAX);else if(key==='intro')model.intro=v.slice(0,TEXT_MAX);return model;
 }
+/* «Riscrivi con l’AI» (sales/offerta.js, one /api/chat call after a confirmation): the prompt carries every editable
+   text with its key and the facts of the quote; the answer is JSON {key: text}. aiParse keeps only known keys, within
+   the limits, and drops any text that brings an amount the quote does not have (nothing invented about money). */
+function aiPrompt(model,answers){
+ const a=answers||{},b=byId(BUSINESS,a.business)||BUSINESS[0],goal=GOALS.find(g=>g[0]===(a.goal||'nuovo'))||GOALS[0],tone=TONES.find(t=>t[0]===(a.tone||'sicuro'))||TONES[0];
+ const f=fields(model).map(x=>'['+x.key+'] '+x.label+(x.multiline?' (max '+x.max+' caratteri'+(/una riga per voce/.test(x.label)?', una voce per riga':'')+')':' (max '+x.max+' caratteri)')+':\n'+x.value).join('\n\n');
+ return 'Riscrivi i testi di questa proposta commerciale in italiano, più convincenti e concreti, senza inventare fatti, numeri, sconti, tempi o referenze che non siano qui sotto. Chi vende: '+b.label+'. Scopo: '+goal[1]+'. Tono: '+tone[1]+'.\n'
+ +'Cliente: '+model.customer+(model.contact?' ('+model.contact+')':'')+'. Venditore: '+(model.seller||'non indicato')+'. Titolo: '+model.title+'. Totale: '+model.totals.total+'.\n'
+ +'Righe del preventivo:\n'+(model.lines.map(l=>'- '+l.description+' × '+l.quantity+' '+l.unit+' = '+l.net).join('\n')||'(nessuna)')+'\n\n'
+ +'TESTI ATTUALI (chiave tra parentesi quadre):\n\n'+f+'\n\n'
+ +'Rispondi SOLO con un oggetto JSON {chiave: testo} con le stesse chiavi, tutte, testo semplice senza markdown; nelle liste separa le voci con \\n. Mantieni i nomi e il saluto iniziale dell’apertura.';
+}
+function aiParse(text,model){
+ const m=/\{[\s\S]*\}/.exec(String(text||''));if(!m)return null;let d;try{d=JSON.parse(m[0])}catch{return null}
+ const allowed=new Set();const addNums=t=>{for(const n of String(t||'').match(/\d[\d.]*(?:,\d+)?/g)||[])allowed.add(n)};
+ for(const l of model.lines){addNums(l.quantity);addNums(l.unit_price);addNums(l.net);addNums(l.discount);addNums(l.vat);addNums(l.description)}
+ addNums(model.totals.subtotal);addNums(model.totals.total);addNums(model.totals.discount);for(const v of model.totals.vat||[])addNums(v.amount+' '+v.label);addNums(model.validUntil);addNums(model.date);addNums(model.number);
+ for(const x of fields(model))addNums(x.value);
+ const out={},dropped=[];
+ for(const x of fields(model)){const v=d[x.key];if(typeof v!=='string')continue;const t=v.trim().slice(0,x.max);if(!t||t===x.value)continue;
+  const money=(t.match(/€\s?\d[\d.]*(?:,\d+)?|\d[\d.]*(?:,\d+)?\s?(?:€|euro)/gi)||[]).map(s=>s.replace(/[^\d.,]/g,''));
+  if(money.some(n=>!allowed.has(n))){dropped.push(x.label);continue}out[x.key]=t}
+ return {texts:out,dropped};
+}
 /* Checks before printing: what a careful seller would not send. */
 function check(model){
  const out=[];if(!model.lines.length)out.push('Il preventivo non ha righe: l’offerta uscirebbe senza importi.');
@@ -137,6 +161,6 @@ function html(model,look,brand){
  body.push('<div class="of-block of-sign">'+para(model.signature)+(model.contactLine?'<p class="of-contact">'+esc(model.contactLine)+'</p>':'')+'</div>');
  return cover+P('of-body','<header class="of-run"><span>'+esc(model.seller||'')+'</span><span>'+esc(model.title)+'</span></header>'+body.join(''));
 }
-const api={BUSINESS,GOALS,TONES,LOOKS,SECTION_TITLES,FIELD_MAX,TEXT_MAX,suggestBusiness,questions,plan,fields,apply,check,html,euro,pct,longDate};
+const api={BUSINESS,GOALS,TONES,LOOKS,SECTION_TITLES,FIELD_MAX,TEXT_MAX,suggestBusiness,questions,plan,fields,apply,check,aiPrompt,aiParse,html,euro,pct,longDate};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixOffertaCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -68,10 +68,22 @@ test('company colours: from the header (issuer.brand_*), validated as hex, hande
  const api=fs.readFileSync(__dirname+'/../api/_sales_documents.js','utf8');assert.ok(api.includes("'brand_primary','brand_accent'"));assert.match(api,/#rrggbb/);
 });
 
+test('AI rewrite: the prompt carries the texts and the facts; the parse keeps known keys and refuses invented amounts',()=>{
+ const m=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'});const pr=O.aiPrompt(m,{business:'prodotto',goal:'gara',tone:'tecnico'});
+ assert.match(pr,/Prodotti e macchinari/);assert.match(pr,/Confronto con altri fornitori/);assert.match(pr,/\[intro\] Apertura/);assert.match(pr,/\[section:0\]/);assert.match(pr,/€ 77\.287,00/);assert.match(pr,/senza inventare/);
+ assert.equal(O.aiParse('nessun json',m),null);assert.equal(O.aiParse('{bad',m),null);
+ const got=O.aiParse('Ecco:\n{"title":"Linea di imballaggio: più colli, meno fermi","intro":"Spett.le Luca Bianchi,\\nla linea da € 65.000,00 copre i volumi attuali.","section:0":"Con lo sconto del 40% risparmiate € 9.999,00.","signature":"'+m.signature.replace(/\n/g,'\\n')+'","nope":"x","subtitle":123}',m);
+ assert.deepEqual(Object.keys(got.texts),['title','intro']);assert.equal(got.texts.title,'Linea di imballaggio: più colli, meno fermi');
+ assert.deepEqual(got.dropped,['La soluzione che proponiamo']);
+ const long=O.aiParse('{"title":"'+'x'.repeat(400)+'"}',m);assert.equal(long.texts.title.length,O.FIELD_MAX);
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/window\.confirm\('Chiedere all’AI/);assert.ok(w.indexOf('window.confirm')<w.indexOf("fetch('/api/chat'"),'the confirmation comes before the only AI call');
+ assert.equal((w.match(/fetch\(/g)||[]).length,1);assert.match(w,/role:'crm-copilot'/);assert.match(w,/C\.apply\(st\.model,k,t\)/,'applied only on click');
+});
+
 test('wiring: the quotes page loads the core, the widget and the styles; the quote actions offer it',()=>{
  const html=fs.readFileSync(__dirname+'/../sales-vendite.html','utf8');
  assert.ok(html.includes('/sales/offerta.css'));assert.ok(html.indexOf('/sales/offerta-core.js')<html.indexOf('/sales/offerta.js'));assert.ok(html.indexOf('/sales/offerta.js')<html.indexOf('/sales/vendite.js'));
  const v=fs.readFileSync(__dirname+'/../sales/vendite.js','utf8');assert.match(v,/kind==='quote'&&window\.RadixOfferta/);
  const css=fs.readFileSync(__dirname+'/../sales/offerta.css','utf8');assert.match(css,/@page cover\{size:A4;margin:0\}/);assert.match(css,/@page body\{size:A4;margin:18mm 20mm\}/);assert.match(css,/\.vd-print\.is-offer\{display:block!important\}/);
- const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.ok(!/fetch\(|XMLHttpRequest|api\/chat/.test(w),'no network, no AI in the widget');
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.ok(!/XMLHttpRequest/.test(w));assert.ok(!/fetch\(/.test(w.split('Riscrivi con l’AI')[0]),'no network outside the AI rewrite');
 });

@@ -10,11 +10,11 @@ const E=(t,text,cls)=>{const n=document.createElement(t);if(text!=null)n.textCon
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const KEY=w=>'radix.offerta.business.'+w;
 const mem={get(w){try{return localStorage.getItem(KEY(w))||''}catch(e){return ''}},set(w,v){try{localStorage.setItem(KEY(w),v)}catch(e){}}};
-const st={doc:null,ctx:null,step:1,answers:null,model:null,look:'elegante',useBrand:true};
+const st={doc:null,ctx:null,step:1,answers:null,model:null,look:'elegante',useBrand:true,ai:null,aiBusy:false};
 // The colours in use: the company's (Intestazione › Colori dell’offerta grafica) while the switch is on, else the look's.
 const brand=()=>st.useBrand&&st.ctx.brand?st.ctx.brand:null;
 function dialog(){let d=$('offerta');if(d)return d;d=E('dialog');d.id='offerta';d.className='of-dialog';d.setAttribute('aria-label','Offerta grafica');document.body.append(d);d.addEventListener('close',()=>{d.replaceChildren()});return d}
-function open(doc,ctx){st.ctx=ctx||{};st.doc={...doc,company_industry:st.ctx.industry||''};st.step=1;st.answers=null;st.model=null;st.look='elegante';st.useBrand=true;render();const d=dialog();if(!d.open)d.showModal()}
+function open(doc,ctx){st.ctx=ctx||{};st.doc={...doc,company_industry:st.ctx.industry||''};st.step=1;st.answers=null;st.model=null;st.look='elegante';st.useBrand=true;st.ai=null;st.aiBusy=false;render();const d=dialog();if(!d.open)d.showModal()}
 function head(title,sub){const h=E('div',undefined,'of-head');h.append(E('h2',title),E('p',sub,'of-sub-text'));const steps=E('ol',undefined,'of-stepper');[['1','Configura'],['2','Scegli il look'],['3','Rifinisci e stampa']].forEach(([n,l],i)=>{const li=E('li',undefined,i+1===st.step?'is-current':i+1<st.step?'is-done':'');li.append(E('b',n),E('span',l));steps.append(li)});h.append(steps);return h}
 function render(){const d=dialog();d.replaceChildren();const close=B('Chiudi',()=>d.close(),'of-close');close.setAttribute('aria-label','Chiudi');d.append(close);
  if(st.step===1)d.append(step1());else if(st.step===2)d.append(step2());else d.append(step3())}
@@ -42,10 +42,29 @@ function step3(){
  const w=E('div',undefined,'of-step of-step-3');w.append(head('Rifinisci e stampa','Correggi i testi: l’anteprima si aggiorna. Gli importi sono quelli del preventivo e non si toccano qui.'));
  const two=E('div',undefined,'of-two');const form=E('div',undefined,'of-form');
  const looks=E('div',undefined,'of-looksel');looks.append(E('span','Look'));for(const L of C.LOOKS){const b=B(L.label,()=>{st.look=L.id;looks.querySelectorAll('button').forEach(x=>x.classList.toggle('is-on',x===b));repaint()},'of-chip'+(L.id===st.look?' is-on':''));looks.append(b)}const sw=brandSwitch(()=>repaint());if(sw)looks.append(sw);form.append(looks);
- for(const f of C.fields(st.model)){const l=E('label',f.label,'of-field');const i=f.multiline?E('textarea'):E('input');if(!f.multiline)i.type='text';i.value=f.value;i.maxLength=f.max;if(f.multiline)i.rows=f.value.split('\n').length>3?5:3;i.addEventListener('input',()=>{C.apply(st.model,f.key,i.value);repaint()});l.append(i);form.append(l)}
+ for(const f of C.fields(st.model)){const l=E('label',f.label,'of-field');const i=f.multiline?E('textarea'):E('input');if(!f.multiline)i.type='text';i.value=f.value;i.maxLength=f.max;i.dataset.key=f.key;if(f.multiline)i.rows=f.value.split('\n').length>3?5:3;i.addEventListener('input',()=>{C.apply(st.model,f.key,i.value);repaint()});l.append(i);form.append(l)}
  const warn=E('ul',undefined,'of-warn');const paintWarn=()=>{warn.replaceChildren();C.check(st.model).forEach(t=>warn.append(E('li',t)));warn.hidden=!warn.children.length};
  const side=E('div',undefined,'of-side');let pv=preview(st.look,0.3);side.append(pv);
  const repaint=()=>{const n=preview(st.look,0.3);pv.replaceWith(n);pv=n;paintWarn()};paintWarn();
+ // «Riscrivi con l’AI»: one call after a confirmation; the proposal is shown next to the fields and applied only on «Applica».
+ const ai=E('div',undefined,'of-ai');const aiStatus=E('p','','of-ai-status');aiStatus.setAttribute('role','status');
+ const aiBtn=B('✨ Riscrivi con l’AI',async()=>{
+  if(st.aiBusy)return;if(!window.confirm('Chiedere all’AI una riscrittura dei testi dell’offerta?\nUna chiamata AI, consuma crediti API. Le proposte si applicano solo con «Applica»; gli importi non cambiano. Nulla viene inviato o salvato.'))return;
+  st.aiBusy=true;aiBtn.disabled=true;aiStatus.textContent='L’AI sta rileggendo l’offerta…';
+  try{const r=await fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role:'crm-copilot',crmScope:{workspace:st.ctx.workspace},messages:[{role:'user',content:C.aiPrompt(st.model,st.answers)}]})});
+   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'AI non disponibile ('+r.status+').');
+   const got=C.aiParse(d.reply,st.model);if(!got||!Object.keys(got.texts).length)throw new Error('Risposta dell’AI senza testi utilizzabili: riprova.');
+   st.ai=got;aiStatus.textContent='';paintAi()}
+  catch(e){aiStatus.textContent=e.message||String(e)}finally{st.aiBusy=false;aiBtn.disabled=false}},'of-btn');
+ const aiBox=E('div',undefined,'of-ai-proposal');
+ const paintAi=()=>{aiBox.replaceChildren();const got=st.ai;if(!got)return;const labels=Object.fromEntries(C.fields(st.model).map(x=>[x.key,x.label]));
+  aiBox.append(E('b','Proposta dell’AI: rileggila, poi applica quello che ti convince.'));
+  if(got.dropped.length)aiBox.append(E('p','Scartate perché citavano importi non presenti nel preventivo: '+got.dropped.join(', ')+'.','of-ai-dropped'));
+  for(const [k,t] of Object.entries(got.texts)){const row=E('div',undefined,'of-ai-row');row.append(E('span',labels[k]||k,'of-ai-label'),E('p',t));
+   row.append(B('Applica',()=>{C.apply(st.model,k,t);const i=form.querySelector('[data-key="'+k+'"]');if(i)i.value=t;delete got.texts[k];paintAi();repaint()},'of-btn is-primary'));aiBox.append(row)}
+  if(Object.keys(got.texts).length>1)aiBox.append(B('Applica tutte',()=>{for(const [k,t] of Object.entries(got.texts)){C.apply(st.model,k,t);const i=form.querySelector('[data-key="'+k+'"]');if(i)i.value=t}got.texts={};paintAi();repaint()},'of-btn is-primary'));
+  if(!Object.keys(got.texts).length)aiBox.append(E('p','Tutte le proposte sono state applicate o scartate.','of-ai-status'))};
+ ai.append(aiBtn,aiStatus,aiBox);form.insertBefore(ai,looks.nextSibling);paintAi();
  two.append(form,side);w.append(two,warn);
  const bar=E('div',undefined,'of-bar');bar.append(B('← Altro look',()=>{st.step=2;render()},'of-btn'),B('Stampa / salva PDF',print,'of-btn is-primary'));w.append(bar);return w;
 }
