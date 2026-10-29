@@ -33,7 +33,9 @@ def collect(store: Store, tier: str = "all") -> dict:
         for sym in f["symbols"]:
             report[f"kraken:{sym}"] = _safe(lambda: store.upsert_bars("kraken", sym, "1h", kraken.fetch_ohlc(sym, "1h")))
             report[f"storico:{sym}"] = _safe(lambda: backfill_history(store, sym))
-        items, news_report = gdelt.fetch_all()
+        # GDELT limita molto: una sola ricerca per giro, a rotazione (4 temi in 4 ore).
+        q = gdelt.DEFAULT_QUERIES[pd.Timestamp.now(tz="UTC").hour % len(gdelt.DEFAULT_QUERIES)]
+        items, news_report = gdelt.fetch_all((q,))
         store.upsert_news(items)
         report.update({f"gdelt:{k}": v for k, v in news_report.items()})
     if slow:

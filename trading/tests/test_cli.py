@@ -9,7 +9,7 @@ def test_collect_tiers(monkeypatch):
     bars = pd.DataFrame({c: [1.0] for c in ["open", "high", "low", "close", "volume"]},
                         index=pd.to_datetime(["2026-10-28"], utc=True))
     monkeypatch.setattr(cli.kraken, "fetch_ohlc", lambda s, tf: calls.append("kraken") or bars)
-    monkeypatch.setattr(cli.gdelt, "fetch_all", lambda: calls.append("gdelt") or ([], {}))
+    monkeypatch.setattr(cli.gdelt, "fetch_all", lambda qs=None: calls.append("gdelt") or ([], {}))
     monkeypatch.setattr(cli.binance, "fetch_hourly", lambda s, start: calls.append("binance") or bars)
     monkeypatch.setattr(cli.yahoo, "fetch_daily", lambda s: calls.append("yahoo") or bars)
     monkeypatch.setattr(cli.tiingo, "api_key", lambda: None)
