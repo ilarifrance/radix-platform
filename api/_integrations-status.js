@@ -15,7 +15,10 @@ const SERVICES=Object.freeze([
  {id:'email',label:'Email (Gmail)',use:'Invio email dagli agenti commerciali',env:['GMAIL_USER','GMAIL_APP_PASSWORD']},
  {id:'higgsfield',label:'Higgsfield',use:'Generazione di immagini e video per Agency e PED',env:['HIGGSFIELD_API_KEY']},
  {id:'vercel-sites',label:'Siti online (Vercel)',use:'«Metti online il sito» dallo Studio Sito',env:['VERCEL_SITES_TOKEN']},
- {id:'captain-data',label:'Captain Data',use:'Verifica dei lead in Lead Intelligence',env:['CAPTAIN_DATA_API_KEY','CAPTAIN_DATA_USER_UID']}
+ {id:'captain-data',label:'Captain Data',use:'Verifica dei lead in Lead Intelligence',env:['CAPTAIN_DATA_API_KEY','CAPTAIN_DATA_USER_UID']},
+ {id:'hunter',label:'Hunter',use:'«Trova email» nel CRM (primo servizio a pagamento)',env:['HUNTER_API_KEY']},
+ {id:'apollo',label:'Apollo.io',use:'«Trova email» nel CRM (secondo servizio a pagamento)',env:['APOLLO_API_KEY']},
+ {id:'dropcontact',label:'Dropcontact',use:'«Trova email» nel CRM (ultimo servizio a pagamento)',env:['DROPCONTACT_API_KEY']}
 ]);
 function status(env){
  return SERVICES.map(s=>({id:s.id,label:s.label,use:s.use,configured:s.env.every(k=>typeof env[k]==='string'&&env[k].trim()!=='')}));

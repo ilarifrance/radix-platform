@@ -428,6 +428,9 @@ html[data-ped-section="calendar"] .rx-ped #pedPage>.layout{grid-template-columns
 .rx-ped .results-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 22px 6px}
 .rx-ped .results-actions .stats-channel{display:flex;white-space:nowrap;align-items:center;gap:6px;font-size:12.5px;color:var(--rx-muted)}
 .rx-ped .results-actions .stats-channel select{min-height:36px}
+.rx-ped .result-filter{display:flex;flex-wrap:wrap;gap:6px;margin:4px 22px 10px}.rx-ped .result-filter[hidden]{display:none}
+.rx-ped .result-chip{min-height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--rx-border-strong);background:var(--rx-bg-raised);color:var(--rx-muted);font:500 12.5px var(--rx-font);cursor:pointer}
+.rx-ped .result-chip[aria-pressed="true"]{background:var(--rx-accent);border-color:var(--rx-accent);color:#fff}
 .rx-ped .stats-preview{margin:10px 22px;padding:14px;border:1px dashed var(--rx-border-strong);border-radius:12px;background:var(--rx-bg-raised)}
 .rx-ped .stats-preview .warn{color:var(--rx-error);margin:0}
 .rx-ped .stats-preview select{max-width:260px;min-height:32px;font-size:12.5px}
