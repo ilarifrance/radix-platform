@@ -119,7 +119,7 @@ async function enqueue(input){
   lines.push(n(p.recipients,'destinatario','destinatari')+' in prospezione B2B ('+(p.step?'follow-up '+p.step+' di 2':'primo contatto')+'): email aziendali della persona, senza consenso marketing, non disiscritti'+(p.step?', senza risposta registrata':', non contattati negli ultimi 90 giorni')+'.');
   lines.push('Ogni email chiude con questo piè di pagina, che non si può togliere:','',p.footer_preview,'');
  }else lines.push(n(p.recipients,'destinatario','destinatari')+' con consenso marketing ed email valida.');
- if(p.personalised)lines.push(n(p.personalised,'email ha il testo scritto dall’AI','email hanno il testo scritto dall’AI')+' che hai appena riletto'+(p.personalised<p.recipients?'; le altre '+(p.recipients-p.personalised)+' usano il testo base':'')+'. Questa è l’unica approvazione per tutto il lotto.');
+ if(p.personalised)lines.push(n(p.personalised,'email ha il testo scritto dall’AI','email hanno il testo scritto dall’AI')+' che hai appena riletto'+(p.personalised<p.recipients?(p.recipients-p.personalised===1?'; l’altra usa il testo base':'; le altre '+(p.recipients-p.personalised)+' usano il testo base'):'')+'. Questa è l’unica approvazione per tutto il lotto.');
  if(p.skipped.consent)lines.push(n(p.skipped.consent,'contatto escluso','contatti esclusi')+' perché senza consenso.');
  const other=skippedText(p,true);if(other)lines.push(other);
  lines.push('Caselle: '+p.mailboxes.map(m=>m.label+' ('+m.emails+')').join(', ')+'.');
