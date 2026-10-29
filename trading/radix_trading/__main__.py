@@ -226,6 +226,8 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research"])
+    p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
+                   help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -247,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "daily":
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
         elif args.command == "research":
-            result = research.run(store)
+            result = research.run(store, target_dd=-abs(args.max_dd))
             research.save(settings, result)
         elif args.command == "report":
             result = paper.report(store)
