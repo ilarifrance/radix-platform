@@ -103,9 +103,11 @@ function panel(){
 }
 
 // ---- «Metti in coda» (from the campaign panel) ----
-// input: {campaign, subject, body, contacts:[ids]} and, for «Prospezione B2B», mode:'b2b', step, base, include_unverified.
+// input: {campaign, subject, body, contacts:[ids]} and, for «Prospezione B2B», mode:'b2b', step, base, include_unverified;
+// texts: {contactId:{subject,body}} written by the AI and reread in the CRM (crm-ai-emails.js), one approval for the lot.
 async function enqueue(input){
  const a=app(),data={campaign:input.campaign,subject:input.subject,body:input.body,contacts:input.contacts,origin:location.origin};
+ if(input.texts&&Object.keys(input.texts).length)data.texts=input.texts;
  if(input.mode==='b2b'){data.mode='b2b';data.step=input.step||0;if(data.step)data.base=input.base;data.include_unverified=!!input.include_unverified}
  let p;if(!await run('Preparo la coda…',async()=>{p=(await post('send_queue','plan',data)).rows[0]}))return null;
  a.notice('');
@@ -117,6 +119,7 @@ async function enqueue(input){
   lines.push(n(p.recipients,'destinatario','destinatari')+' in prospezione B2B ('+(p.step?'follow-up '+p.step+' di 2':'primo contatto')+'): email aziendali della persona, senza consenso marketing, non disiscritti'+(p.step?', senza risposta registrata':', non contattati negli ultimi 90 giorni')+'.');
   lines.push('Ogni email chiude con questo piè di pagina, che non si può togliere:','',p.footer_preview,'');
  }else lines.push(n(p.recipients,'destinatario','destinatari')+' con consenso marketing ed email valida.');
+ if(p.personalised)lines.push(n(p.personalised,'email ha il testo scritto dall’AI','email hanno il testo scritto dall’AI')+' che hai appena riletto'+(p.personalised<p.recipients?'; le altre '+(p.recipients-p.personalised)+' usano il testo base':'')+'. Questa è l’unica approvazione per tutto il lotto.');
  if(p.skipped.consent)lines.push(n(p.skipped.consent,'contatto escluso','contatti esclusi')+' perché senza consenso.');
  const other=skippedText(p,true);if(other)lines.push(other);
  lines.push('Caselle: '+p.mailboxes.map(m=>m.label+' ('+m.emails+')').join(', ')+'.');
