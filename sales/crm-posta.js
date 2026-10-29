@@ -6,7 +6,7 @@
 (function(){
 const P=window.RadixCrmPosta,$=id=>document.getElementById(id);
 const E=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=String(txt);if(cls)n.className=cls;return n};
-const S={workspace:'',workspaces:[],mailbox:'',mailboxes:[],folder:'inbox',search:'',skip:0,items:[],more:false,open:null,crm:{contacts:[],companies:[],opportunities:[],interactions:[]},crmReady:false,gen:0,busy:false};
+const S={workspace:'',workspaces:[],mailbox:'',mailboxes:[],folder:'inbox',search:'',skip:0,items:[],more:false,open:null,crm:{contacts:[],companies:[],opportunities:[],interactions:[],processes:[],stages:[]},crmReady:false,gen:0,busy:false,opps:false,created:new Set()};
 const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 const status=(m,err)=>{const p=$('pm-status');p.textContent=m||'';p.classList.toggle('err',!!err)};
 class ApiError extends Error{constructor(m,s,code){super(m);this.status=s;this.code=code}}
@@ -32,8 +32,8 @@ async function workspace(){const gen=++S.gen;S.mailbox='';S.items=[];S.open=null
  for(const m of S.mailboxes){const o=E('option',(m.label||m.from_email)+' · '+m.from_email);o.value=m.id;sel.append(o)}sel.disabled=S.mailboxes.length<2;S.mailbox=sel.value;
  crm(gen);await folder()}
 // The CRM side, loaded once per workspace: contacts (to match addresses), companies, opportunities, email interactions.
-async function crm(gen){try{const [contacts,companies,opportunities,interactions]=await Promise.all(['contacts','companies','opportunities','interactions'].map(e=>pages(e,gen)));
- if(gen!==S.gen||!contacts)return;S.crm={contacts,companies,opportunities,interactions:interactions.filter(i=>i.kind==='email')};S.crmReady=true;drawList();drawRead()}
+async function crm(gen){try{const [contacts,companies,opportunities,interactions,processes,stages]=await Promise.all(['contacts','companies','opportunities','interactions','processes','stages'].map(e=>pages(e,gen)));
+ if(gen!==S.gen||!contacts)return;S.crm={contacts,companies,opportunities,interactions:interactions.filter(i=>i.kind==='email'),processes:processes||[],stages:stages||[]};S.crmReady=true;drawList();drawRead()}
  catch(e){if(gen===S.gen)status('CRM non caricato: '+e.message+' Puoi leggere la posta, ma non collegarla.',true)}}
 async function folder(append){if(!S.mailbox)return;const gen=S.gen;if(!append){S.skip=0;S.items=[];S.open=null;drawRead()}
  status(S.search?'Ricerca in corso…':'Lettura della casella…');$('pm-more').hidden=true;
@@ -58,7 +58,7 @@ function drawList(){const ul=$('pm-items');ul.replaceChildren();const only=$('pm
   if(isLinked(m))tags.append(E('span','✓ Collegata','pm-tag ok'));else if(S.crmReady&&P.campaignReply(m,own(),S.crm.contacts,S.crm.interactions))tags.append(E('span','↩ Risposta a una campagna','pm-tag reply'));if(m.attachments)tags.append(E('span','📎','pm-tag clip'));if(tags.children.length)b.append(tags);
   b.onclick=()=>openMessage(m);li.append(b);ul.append(li)}
  if(!shown.length&&S.items.length)ul.append(E('li','Nessuna di queste mail riguarda contatti del CRM.','pm-none'));
- $('pm-more').hidden=!S.more;drawReplies()}
+ $('pm-more').hidden=!S.more;drawReplies();drawOppsButton()}
 /* «Registra le risposte alle campagne»: the received mails of this page from contacts the queue wrote to, not yet
    recorded, saved as email interactions in one go (one confirmation). A recorded reply stops the follow-ups of the
    contact and the worker skips it (api/_sales_optout.js LAST_REPLY). */
@@ -77,11 +77,43 @@ function drawReplies(){let b=$('pm-replies');if(!b){b=E('button',undefined,'pm-r
   finally{S.busy=false;b.disabled=false}
   drawList();drawRead();status(ok+(ok===1?' risposta registrata':' risposte registrate')+(failed.length?' · non registrate: '+failed.join(' · '):'')+'.',failed.length>0)}}
 
+/* «Opportunità suggerite»: mails of this page that speak of proposals, quotes or amounts (crm-posta-core.js opportunityHints),
+   one card each in the reading pane; «Crea opportunità» creates the contact when missing, the opportunity in the first stage
+   of the chosen pipeline, and links the mail to it, after one confirmation. */
+const hints=()=>S.crmReady?P.opportunityHints(S.items,own(),S.crm.contacts,S.crm.companies,S.crm.opportunities,S.crm.interactions).filter(h=>!S.created.has(h.msg.id)):[];
+function drawOppsButton(){let b=$('pm-opps');if(!b){b=E('button',undefined,'pm-opps');b.id='pm-opps';b.type='button';($('pm-replies')||$('pm-reload')).after(b)}
+ const list=hints();b.hidden=!list.length;if(!list.length){if(S.opps){S.opps=false;drawRead()}return}
+ b.textContent='Opportunità suggerite ('+list.length+')';b.setAttribute('aria-pressed',String(S.opps));b.onclick=()=>{S.opps=!S.opps;if(S.opps)S.open=null;drawList();drawRead()}}
+function oppsPane(host){const list=hints();host.append(E('h2','Opportunità suggerite dalla posta'),E('p','Mail di questa pagina che parlano di proposte, preventivi, offerte o importi, con una persona che nel CRM non ha ancora una trattativa aperta. Nulla viene creato senza la tua conferma; nessuna chiamata AI.','pm-muted'));
+ const pipes=P.pipelines(S.crm.processes,S.crm.stages);
+ if(!pipes.length)host.append(E('p','Nel CRM non c’è ancora una pipeline delle opportunità: creala da Pipeline › «Personalizza pipeline», poi torna qui.','pm-err'));
+ const pSel=E('select');pSel.setAttribute('aria-label','Pipeline');for(const p of pipes){const o=E('option',p.title+' › '+p.stage);o.value=p.process_id;pSel.append(o)}
+ if(pipes.length>1){const l=E('label','Pipeline ');l.append(pSel);host.append(l)}
+ for(const h of list){const card=E('article',undefined,'pm-opp');
+  const who=h.contact?h.contact.name+(h.company?' · '+h.company.name:''):(h.participant.name||h.participant.address)+(h.company?' · '+h.company.name:'')+' (nuovo contatto)';
+  card.append(E('strong',who),E('span',(h.direction==='sent'?'Inviata · ':'Ricevuta · ')+longWhen(h.msg.at),'pm-muted'),E('span',h.msg.subject||'(senza oggetto)','pm-item-subject'),E('span',h.msg.preview||'','pm-item-preview'));
+  const tags=E('span',undefined,'pm-tags');if(h.keyword)tags.append(E('span','«'+h.keyword+'»','pm-tag'));if(h.amount!==null)tags.append(E('span',new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(h.amount/100),'pm-tag ok'));card.append(tags);
+  const t=E('input');t.value=h.title;t.maxLength=200;t.setAttribute('aria-label','Nome dell’opportunità');const lt=E('label','Nome dell’opportunità');lt.append(t);card.append(lt);
+  const acts=E('div',undefined,'pm-link-actions'),go=E('button','Crea opportunità','pm-btn primary'),openB=E('button','Apri la mail','pm-btn');go.type='button';openB.type='button';go.disabled=!pipes.length;
+  openB.onclick=()=>{S.opps=false;openMessage(h.msg)};
+  go.onclick=async()=>{if(S.busy)return;const pipe=pipes.find(p=>p.process_id===(pSel.value||pipes[0].process_id))||pipes[0];const plan=P.opportunityPlan({...h,title:t.value.trim()||h.title},pipe);if(plan.error){status(plan.error,true);return}
+   if(!window.confirm('Creare l’opportunità «'+plan.opportunity.title+'» in «'+pipe.title+' › '+pipe.stage+'»'+(plan.opportunity.amount_cents?' da '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(plan.opportunity.amount_cents/100):'')+'?\n'+(plan.contact.create?'Prima viene creato il contatto «'+plan.contact.create.name+'» ('+plan.contact.create.email+').\n':'')+'La mail viene collegata all’opportunità come email '+(h.direction==='sent'?'inviata':'ricevuta')+'. Nulla viene inviato.'))return;
+   S.busy=true;go.disabled=true;
+   try{let contact=h.contact;if(plan.contact.create){status('Creo il contatto…');contact=await post('contacts',plan.contact.create);S.crm.contacts.push(contact)}
+    status('Creo l’opportunità…');const opp=await post('opportunities',{...plan.opportunity,contact_id:contact.id,...(contact.company_id?{company_id:contact.company_id}:{})});S.crm.opportunities.push(opp);
+    status('Collego la mail…');const d=await get({entity:'mail',workspace:S.workspace,mailbox:S.mailbox,id:h.msg.id});const full={...h.msg,...d.rows[0],full:true};
+    const p=P.interaction(full,own(),{contact,opportunity:opp});if(!p.error){const row=await post('interactions',p.data);S.crm.interactions.push(row)}
+    S.created.add(h.msg.id);status('Opportunità «'+opp.title+'» creata'+(plan.contact.create?' con il contatto «'+contact.name+'»':'')+(p.error?' (mail non collegata: '+p.error+')':' e mail collegata')+'.');drawList();drawRead()}
+   catch(e){status('Non creata: '+e.message,true);go.disabled=false}finally{S.busy=false}};
+  acts.append(go,openB);card.append(acts);host.append(card)}
+ if(!list.length)host.append(E('p','Nessun suggerimento in questa pagina di mail.','pm-empty'))}
+
 /* ---------- Reading pane ---------- */
-async function openMessage(m){S.open={...m};drawList();drawRead();const gen=S.gen,id=m.id;
+async function openMessage(m){S.opps=false;S.open={...m};drawList();drawRead();const gen=S.gen,id=m.id;
  try{const d=await get({entity:'mail',workspace:S.workspace,mailbox:S.mailbox,id});if(gen!==S.gen||S.open?.id!==id)return;S.open={...m,...d.rows[0],full:true};drawRead()}
  catch(e){if(S.open?.id===id){S.open.error=e.message;drawRead()}}}
 function drawRead(){const host=$('pm-read'),m=S.open;host.replaceChildren();
+ if(!m&&S.opps){oppsPane(host);return}
  if(!m){host.append(E('p','Scegli una mail a sinistra per leggerla e collegarla al CRM.','pm-empty'));return}
  const back=E('button','‹ Torna all’elenco','pm-back');back.type='button';back.onclick=()=>{S.open=null;drawList();drawRead()};
  host.append(back,E('h2',m.subject||'(senza oggetto)'));
