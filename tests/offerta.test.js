@@ -95,13 +95,13 @@ test('English: the same quote as a British English proposal, en-GB figures and d
  assert.deepEqual(O.looks('en').map(l=>l.label),['Elegant','Bold','Warm']);assert.deepEqual(O.looks('it').map(l=>l.label),['Elegante','Deciso','Caldo']);
  // Italian stays exactly as before
  const it=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'});assert.equal(it.lang,'it');assert.equal(it.totals.total,'€ 77.287,00');assert.equal(it.date,'28 ottobre 2026');
- const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/C\.plan\(st\.doc,answers,\{lang:lang\(\)\}\)/);assert.match(w,/C\.questions\(st\.doc,mem\.get\(st\.ctx\.workspace\),lang\(\)\)/);assert.match(w,/C\.looks\(lang\(\)\)/);
+ const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.match(w,/C\.plan\(st\.doc,answers,planOpts\(\)\)/);assert.match(w,/C\.questions\(st\.doc,mem\.get\(st\.ctx\.workspace\),lang\(\)\)/);assert.match(w,/C\.looks\(lang\(\)\)/);
 });
 
 test('resume: the last version of a quote’s proposal is kept in this browser and reopened at step 3, never the amounts',()=>{
  const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');
  assert.match(w,/const DKEY=\(w,id\)=>'radix\.offerta\.doc\.'\+w\+'\.'\+id/);assert.match(w,/texts\[f\.key\]=f\.value/);assert.ok(!/totals|lines/.test(w.split('const saved=')[1].split('function resume')[0]),'nothing but texts, answers, look and switch is stored');
- assert.match(w,/st\.model=C\.plan\(st\.doc,v\.answers,\{lang:lang\(\)\}\)/,'the model is rebuilt from the quote, then the texts applied');assert.match(w,/if\(keys\.has\(k\)/);assert.match(w,/st\.step=3\}/);
+ assert.match(w,/st\.model=C\.plan\(st\.doc,v\.answers,planOpts\(\)\)/,'the model is rebuilt from the quote, then the texts applied');assert.match(w,/if\(keys\.has\(k\)/);assert.match(w,/st\.step=3\}/);
  assert.match(w,/Ricomincia da capo/);assert.match(w,/saved\.clear\(\)/);assert.ok((w.match(/saved\.set\(\)/g)||[]).length>=7,'saved on every change');
 });
 
@@ -111,4 +111,14 @@ test('wiring: the quotes page loads the core, the widget and the styles; the quo
  const v=fs.readFileSync(__dirname+'/../sales/vendite.js','utf8');assert.match(v,/kind==='quote'&&window\.RadixOfferta/);
  const css=fs.readFileSync(__dirname+'/../sales/offerta.css','utf8');assert.match(css,/@page cover\{size:A4;margin:0\}/);assert.match(css,/@page body\{size:A4;margin:18mm 20mm\}/);assert.match(css,/\.vd-print\.is-offer\{display:block!important\}/);
  const w=fs.readFileSync(__dirname+'/../sales/offerta.js','utf8');assert.ok(!/XMLHttpRequest/.test(w));assert.ok(!/fetch\(/.test(w.split('Riscrivi con l’AI')[0]),'no network outside the AI rewrite');
+});
+
+test('English with euro chosen: the same proposal keeps € (en-GB figures); Italian ignores the currency option',()=>{
+ const m=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'},{lang:'en',currency:'EUR'});
+ assert.equal(m.currency,'EUR');assert.equal(m.totals.total,'€77,287.00');assert.equal(m.lines[0].unit_price,'€65,000.00');assert.deepEqual(m.totals.vat,[{label:'VAT 22%',amount:'€13,937.00'}]);
+ assert.match(O.html(m,'elegante'),/€77,287\.00/);assert.doesNotMatch(O.html(m,'elegante'),/£/);
+ assert.equal(O.plan(doc,{business:'prodotto'},{lang:'en'}).currency,'GBP','pounds unless told otherwise');
+ assert.equal(O.plan(doc,{business:'prodotto'},{lang:'en',currency:'usd'}).currency,'GBP','unknown → pounds');
+ const it=O.plan(doc,{business:'prodotto'},{lang:'it',currency:'GBP'});assert.equal(it.currency,'EUR');assert.equal(it.totals.total,'€ 77.287,00');
+ const g=O.aiParse('{"title":"Pay only €9,999.00","subtitle":"Total €77,287.00, guaranteed"}',m);assert.deepEqual(Object.keys(g.texts),['subtitle']);
 });
