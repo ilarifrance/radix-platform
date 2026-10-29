@@ -40,13 +40,12 @@ function pipelines(processes,stages){
 }
 // Defaults of the «Converti» form: the lead title, the first pipeline and its first stage, no amount.
 function convertDefaults(lead,pipes){const p=(pipes||[])[0];return {title:str(lead?.title).slice(0,200),process_id:p?.id||'',stage_id:p?.stages[0]?.id||'',amount:'',expected_close:'',owner_id:lead?.owner_id??''}}
-// «12.500», «12500,50», «€ 1.200» → cents; '' → 0. Italian format: dot for thousands, comma for decimals.
+// «12.500», «12500,50», «€ 1.200», and in English «12,500.00», «£1,200» → cents; '' → 0. The last separator
+// followed by one or two digits is the decimal mark, the others group thousands (same rule as the CRM editor).
 function cents(v){
- let s=str(v).replace(/[€\s]/g,'');if(!s)return 0;
- if(/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s))s=s.replace(/\./g,'').replace(',','.');
- else if(/^\d+(,\d{1,2})?$/.test(s))s=s.replace(',','.');
- else if(!/^\d+(\.\d{1,2})?$/.test(s))return null;
- const n=Math.round(Number(s)*100);return Number.isSafeInteger(n)&&n>=0&&n<=9000000000000?n:null;
+ const s=str(v).replace(/[€£\s ']/g,'').replace(/^(EUR|GBP)/i,'');if(!s)return 0;if(!/^\d[\d.,]*$/.test(s)||/[.,]$/.test(s))return null;
+ const m=/^(.*?)[.,](\d{1,2})$/.exec(s),int=m?m[1]:s,dec=m?m[2]:'';if(int&&!/^\d{1,3}([.,]?\d{3})*$/.test(int))return null;
+ const n=Number(int.replace(/[.,]/g,'')||'0')*100+Number((dec+'00').slice(0,2));return Number.isSafeInteger(n)&&n>=0&&n<=9000000000000?n:null;
 }
 const realDate=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;
 // form: {create,title,process_id,stage_id,amount,expected_close,owner_id}; key: idempotency uuid kept until success.
