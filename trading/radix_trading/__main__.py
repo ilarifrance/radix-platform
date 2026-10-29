@@ -44,6 +44,7 @@ def collect(store: Store, tier: str = "all") -> dict:
         store.upsert_news(items)
         report.update({f"gdelt:{k}": v for k, v in news_report.items()})
     if slow:
+        yahoo_blocked = False
         for series in fred.DEFAULT_SERIES + fx.FRED_SERIES:
             report[f"fred:{series}"] = _safe(lambda: store.upsert_macro(series, fred.fetch_series(series)))
         for name, market in universe.MARKETS.items():
@@ -52,19 +53,39 @@ def collect(store: Store, tier: str = "all") -> dict:
                 continue
             for sym in market["symbols"]:
                 src = universe.source_of(market, sym)
-                if src == "yahoo" or not tiingo.api_key():
+                yahoo_src = src == "yahoo" or not tiingo.api_key()
+                if yahoo_src and yahoo_blocked:
+                    report[f"{name}:{sym}"] = "rimandato: Yahoo ha appena risposto 429, si riprova al prossimo giro"
+                    continue
+                if yahoo_src:
                     time.sleep(2)  # Yahoo limita le richieste ravvicinate
-                report[f"{name}:{sym}"] = _safe(
-                    lambda: store.upsert_bars(market["venue"], sym, "1d", fetch_daily(sym, src)))
+                since = refresh_start(store.last_bar(market["venue"], sym, "1d"))
+                result = _safe(lambda: store.upsert_bars(market["venue"], sym, "1d", fetch_daily(sym, src, since)))
+                if yahoo_src and isinstance(result, str) and "429" in result:
+                    yahoo_blocked = True
+                report[f"{name}:{sym}"] = result
     return report
 
 
-def fetch_daily(symbol: str, source: str = "tiingo") -> pd.DataFrame:
+# Si scaricano solo i giorni nuovi (piu' un margine): Tiingo gratis concede circa 50 richieste l'ora.
+# Il sabato si riscarica tutto lo storico, perche' i prezzi aggiustati cambiano dopo dividendi e split.
+OVERLAP_DAYS = 10
+
+
+def refresh_start(last: pd.Timestamp | None, now: pd.Timestamp | None = None) -> pd.Timestamp | None:
+    """Da quale giorno scaricare: None = tutto lo storico."""
+    now = now or pd.Timestamp.now(tz="UTC")
+    if last is None or now.weekday() == 5 or now - last > pd.Timedelta(days=60):
+        return None
+    return (last - pd.Timedelta(days=OVERLAP_DAYS)).normalize()
+
+
+def fetch_daily(symbol: str, source: str = "tiingo", since: pd.Timestamp | None = None) -> pd.DataFrame:
     """Tiingo se c'e' la chiave (affidabile), altrimenti Yahoo (spesso bloccato con 429).
     Le azioni di Piazza Affari (.MI) ci sono solo su Yahoo."""
     if source == "tiingo" and tiingo.api_key():
-        return tiingo.fetch_daily(symbol)
-    return yahoo.fetch_daily(symbol)
+        return tiingo.fetch_daily(symbol, since.strftime("%Y-%m-%d")) if since is not None else tiingo.fetch_daily(symbol)
+    return yahoo.fetch_daily(symbol, "3mo" if since is not None else "max")
 
 
 # Compatibilita' con il nome precedente.

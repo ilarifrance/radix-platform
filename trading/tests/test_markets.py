@@ -158,8 +158,10 @@ def test_research_lockbox_and_trials(tmp_path, monkeypatch):
     monkeypatch.setattr(research, "DAILY_FAMILIES", {"ma_cross": research.DAILY_FAMILIES["ma_cross"],
                                                      "dual_momentum": research.DAILY_FAMILIES["dual_momentum"]})
     out = research.run(st, target_cagr=-1.0, target_dd=-1.0)  # obiettivo largo: tutte finaliste
-    assert out["combinazioni_totali"] == 18 + 9
-    assert out["prove"] == 2 and len(out["finaliste"]) == 2
+    # ETF con commissione minima: ogni famiglia si prova con 300 e con 1.000 euro
+    assert out["combinazioni_totali"] == (18 + 24) * 2
+    assert out["prove"] == 4 and len(out["finaliste"]) == 4
+    assert sorted({f["capitale"] for f in out["finaliste"]}) == [300.0, 1000.0]
     for f in out["finaliste"]:
         assert "anno_chiuso" in f and f["anno_chiuso"]["periodi"] > 200
         assert 0 <= f["dsr"] <= 1

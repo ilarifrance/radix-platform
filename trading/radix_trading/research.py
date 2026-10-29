@@ -98,15 +98,25 @@ def crash_guard(close: pd.DataFrame, trend: int = 150, dd_exit: float = 0.10, wi
 
 DAILY_FAMILIES = {
     "ma_cross": (ma_cross, {"fast": [20, 50, 100], "slow": [100, 200, 300], "vol_target": [0.10, 0.20]}),
-    "dual_momentum": (dual_momentum, {"lookback": [63, 126, 252], "top": [1, 3, 5], "rebalance": [21]}),
+    "dual_momentum": (dual_momentum, {"lookback": [63, 126, 252], "top": [1, 2, 3, 5], "rebalance": [21, 63]}),
     "rsi_dip": (rsi_dip, {"rsi_len": [2, 3], "enter": [5.0, 10.0, 20.0], "exit_ma": [5], "trend": [100, 200]}),
-    "inverse_vol_trend": (inverse_vol_trend, {"trend": [100, 200], "vol_window": [20, 60], "rebalance": [5, 21]}),
+    "inverse_vol_trend": (inverse_vol_trend, {"trend": [100, 200], "vol_window": [20, 60], "rebalance": [5, 21, 63]}),
     "breakout_daily": (breakout_daily, {"entry": [20, 55, 100], "exit": [10, 20, 50]}),
     "crash_guard": (crash_guard, {"trend": [100, 150, 200], "dd_exit": [0.05, 0.10, 0.20], "window": [60]}),
 }
-# Le famiglie orarie gia' nel sistema, provate sulle crypto.
-HOURLY_FAMILIES = {k: v for k, v in
-                   ((n, (fn, g)) for n, (fn, tf, g) in strategies.STRATEGIES.items() if tf == "1h")}
+# Le famiglie orarie gia' nel sistema, provate sulle crypto. Per le due di trend (le uniche vicine
+# all'obiettivo) la griglia e' molto piu' larga: anche pesi piu' bassi (obiettivo di volatilita'),
+# che rinunciano a parte del rendimento per perdere meno.
+WIDE_HOURLY = {
+    "crypto_trend_daily": {"fast": [24 * 5, 24 * 10, 24 * 20], "slow": [24 * 30, 24 * 50, 24 * 100],
+                           "vol_target": [0.15, 0.25, 0.35, 0.5]},
+    "crypto_trend_guarded": {"fast": [24 * 10, 24 * 20], "slow": [24 * 50, 24 * 100],
+                             "stop": [0.08, 0.10, 0.15], "vol_target": [0.15, 0.2, 0.3]},
+}
+HOURLY_FAMILIES = {n: (fn, WIDE_HOURLY.get(n, g)) for n, (fn, tf, g) in strategies.STRATEGIES.items() if tf == "1h"}
+# Con la commissione minima IBKR (1,25 euro a ordine) 300 euro divisi su molti titoli si mangiano in
+# commissioni: ogni mercato con commissione minima si prova anche con 1.000 euro (tutto il conto).
+CAPITAL_SCENARIOS = [1000.0]
 
 NAMES = {
     "ma_cross": "Incrocio di medie", "dual_momentum": "Rotazione momentum", "rsi_dip": "Acquisto sui cali",
@@ -127,6 +137,10 @@ class Candidate:
     capital: float
     min_trade: float
 
+    @property
+    def key(self) -> str:
+        return f"{self.family}@{self.market}:{self.timeframe}:{self.capital:.0f}"
+
 
 def _daily_crypto(store: Store) -> pd.DataFrame:
     f = universe.FAST
@@ -142,9 +156,12 @@ def candidates(store: Store) -> list[Candidate]:
         close = pd.DataFrame({s: c for s, c in closes.items() if len(c)}).dropna(how="all").ffill()
         if close.empty:
             continue
+        costs = backtest.Costs.named(mk["costs"])
+        capitals = [mk["capital_eur"]] + ([c for c in CAPITAL_SCENARIOS if c != mk["capital_eur"]]
+                                          if costs.min_fee_eur > 0 else [])
         for fam, (fn, grid) in DAILY_FAMILIES.items():
-            out.append(Candidate(fam, m, "1d", fn, grid, close, backtest.Costs.named(mk["costs"]),
-                                 mk["capital_eur"], mk["min_trade"]))
+            for cap in capitals:
+                out.append(Candidate(fam, m, "1d", fn, grid, close, costs, cap, mk["min_trade"]))
     crypto_d = _daily_crypto(store)
     if not crypto_d.empty:
         for fam, (fn, grid) in DAILY_FAMILIES.items():
@@ -184,22 +201,22 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
             wf = backtest.walk_forward(c.close, c.fn, c.grid, c.timeframe, c.costs, train, test,
                                        capital_eur=c.capital, min_trade=c.min_trade)
         except Exception as e:  # una famiglia che si rompe non ferma la ricerca
-            rows.append({"famiglia": c.family, "mercato": c.market, "timeframe": c.timeframe, "errore": str(e)})
+            rows.append({"famiglia": c.family, "mercato": c.market, "timeframe": c.timeframe, "capitale": c.capital, "errore": str(e)})
             continue
         r = wf.oos_returns
         if r.empty:
             rows.append({"famiglia": c.family, "mercato": c.market, "timeframe": c.timeframe,
-                         "errore": "storico insufficiente"})
+                         "capitale": c.capital, "errore": "storico insufficiente"})
             continue
         cut = r.index[-1] - pd.Timedelta(days=lockbox_days)
         search, lock = r[r.index <= cut], r[r.index > cut]
         if len(search) < 30:
             rows.append({"famiglia": c.family, "mercato": c.market, "timeframe": c.timeframe,
-                         "errore": "storico troppo corto prima dell'anno chiuso a chiave"})
+                         "capitale": c.capital, "errore": "storico troppo corto prima dell'anno chiuso a chiave"})
             continue
         s = _summary(search, c.timeframe, c.market)
         rows.append({"famiglia": c.family, "nome": NAMES.get(c.family, c.family), "mercato": c.market,
-                     "timeframe": c.timeframe, "combinazioni": _grid_size(c.grid), "ricerca": s,
+                     "timeframe": c.timeframe, "capitale": c.capital, "combinazioni": _grid_size(c.grid), "ricerca": s,
                      "dsr": validation.deflated_sharpe(search, total_trials),
                      "parametri_ultimi": wf.folds[-1]["params"], "_lock": lock})
     ok = [r for r in rows if "ricerca" in r and "annuo" in r["ricerca"]]

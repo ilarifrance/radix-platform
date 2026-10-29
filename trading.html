@@ -278,10 +278,10 @@ function renderResearch(){
  const r=V.research(snap);$('research').hidden=!r;if(!r)return;
  $('resNote').textContent=`${V.num(r.combos,0)} combinazioni su ${r.tests} prove (famiglie di strategie × mercati). Obiettivo: almeno ${V.pct(r.goal.yearly,0)} l’anno con perdita massima entro ${V.pct(r.goal.maxDrawdown,0)}. L’ultimo anno resta chiuso a chiave e si apre solo per le finaliste.`;
  $('resLead').textContent=r.lead;
- const rows=r.finals.length?r.finals.concat(r.ranking.filter(x=>!r.finals.some(f=>f.family===x.family&&f.market===x.market)).slice(0,10)):r.ranking.slice(0,12);
+ const rows=r.finals.length?r.finals.concat(r.ranking.filter(x=>!r.finals.some(f=>f.family===x.family&&f.market===x.market&&f.capital===x.capital)).slice(0,10)):r.ranking.slice(0,12);
  $('resRows').replaceChildren(...rows.map(x=>{const tr=el('tr');
   const lock=x.final?(V.pct(x.lockYearly,1)+' · '+V.pct(x.lockDrawdown,0)+(x.lockPassed?' ✓':' ✗')):'non aperto';
-  tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
+  tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName+(x.capital?' · '+V.eur(x.capital,0):'')),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
 }
 function render(){
  const s=V.summary(snap),all=V.tests(snap);

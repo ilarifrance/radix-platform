@@ -81,6 +81,11 @@ class Store:
         self.conn.commit()
         return len(rows)
 
+    def last_bar(self, venue: str, symbol: str, timeframe: str) -> pd.Timestamp | None:
+        row = self.conn.execute("SELECT MAX(ts) FROM bars WHERE venue=? AND symbol=? AND timeframe=?",
+                                (venue, symbol, timeframe)).fetchone()
+        return pd.to_datetime(row[0], utc=True) if row and row[0] else None
+
     def load_bars(self, venue: str, symbol: str, timeframe: str) -> pd.DataFrame:
         df = pd.read_sql_query(
             "SELECT ts, open, high, low, close, volume FROM bars"
