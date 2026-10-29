@@ -63,7 +63,7 @@ function fakeCrm(){
   if(/q\.contact_id,lower\(btrim\(c\.email\)\) AS email FROM sales_send_queue/.test(t))return [];
   if(/FROM sales_send_queue WHERE workspace_id=\$1 AND mailbox_id IS NOT NULL/.test(t))return [];
   if(/FROM sales_mailboxes WHERE workspace_id=\$1 ORDER BY/.test(t))return db.mailboxes.map(m=>({...m}));
-  if(/FROM sales_document_settings/.test(t))return [{name:'Radix',legal_name:'Radix Srl',vat_number:'IT01234567890',street:'Via Roma 1',zip:'20100',city:'Milano',province:'MI',country:'IT'}];
+  if(/FROM sales_document_settings/.test(t))return [{issuer:{name:'Radix',legal_name:'Radix Srl',vat_number:'IT01234567890',street:'Via Roma 1',zip:'20100',city:'Milano',province:'MI',country:'IT'}}];
   if(/^INSERT INTO sales_send_queue/.test(t)){const rows=JSON.parse(params[3]);for(const r of rows)db.queue.push({...r,campaign:params[1]});return rows.map((r,i)=>({id:i+1}))}
   throw new Error('unexpected query: '+t.slice(0,90));
  };
