@@ -293,7 +293,7 @@ function productsView(){
  t.append(b);wrap.append(h('div',{class:'vd-scroll'},t));return wrap;
 }
 function productForm(p){
- const f={name:p.name||'',code:p.code||'',description:p.description||'',unit:p.unit||'pz',price:p.id?V.plain(p.unit_price_cents):'',vat:p.id?String(Number(p.vat_rate_bp)/100).replace('.',','):'22',active:p.id?p.active:true};
+ const f={name:p.name||'',code:p.code||'',description:p.description||'',unit:p.unit||'pz',price:p.id?V.plain(p.unit_price_cents):'',vat:p.id?V.decim(Number(p.vat_rate_bp)/100):'22',active:p.id?p.active:true};
  const inp=(k,attrs)=>h(k==='description'?'textarea':'input',{value:f[k],...attrs,oninput:e=>{f[k]=e.target.value}});
  const form=h('form',{class:'vd-form',onsubmit:async e=>{e.preventDefault();const r=V.productPayload(p,f);if(r.error){say(r.error,'err');return}if(r.nothing){S.product=null;render();return}
   await run('Salvataggio prodotto',async()=>{await post('products',r.action,r.data);S.products=await get('products');S.product=null;render();return 'Prodotto salvato.'})}},
@@ -328,7 +328,7 @@ function booksView(){
   const input=h('input',{inputmode:'decimal',size:'10',value:e?V.plain(e.unit_price_cents):'',placeholder:V.plain(p.unit_price_cents),'aria-label':'Prezzo nel listino per '+p.name});
   if(!canAdmin())input.disabled=true;
   b.append(h('tr',{},h('td',{'data-label':'Prodotto'},h('strong',{text:p.name})),h('td',{class:'num','data-label':'Catalogo',text:V.euro(p.unit_price_cents)}),h('td',{class:'num','data-label':'Listino'},input),
-   h('td',{},canAdmin()?[h('button',{type:'button',class:'vd-btn',onclick:async()=>{const c=V.cents(input.value);if(c===null||!input.value.trim()){say('Scrivi un prezzo valido, per esempio 950 o 1.200,50.','err');return}
+   h('td',{},canAdmin()?[h('button',{type:'button',class:'vd-btn',onclick:async()=>{const c=V.cents(input.value);if(c===null||!input.value.trim()){say(window.RadixI18n&&window.RadixI18n.en?'Type a valid price, for example 950 or 1,200.50.':'Scrivi un prezzo valido, per esempio 950 o 1.200,50.','err');return}
      await run('Salvataggio prezzo',async()=>{await post('price_book_entries','set',{price_book_id:bk.id,product_id:p.id,unit_price_cents:c});S.entries=await get('price_book_entries');render();return 'Prezzo salvato nel listino.'})}},'Salva'),
     e?h('button',{type:'button',class:'vd-btn',onclick:async()=>{await run('Rimozione',async()=>{await post('price_book_entries','delete',{price_book_id:bk.id,product_id:p.id});S.entries=await get('price_book_entries');render();return 'Torna al prezzo di catalogo.'})}},'Usa catalogo'):null]:null)));
  }
@@ -370,6 +370,7 @@ function settingsView(){
 /* ---------- Boot ---------- */
 window.addEventListener('hashchange',route);
 document.addEventListener('DOMContentLoaded',async()=>{
+ V.setEnglish(!!(window.RadixI18n&&window.RadixI18n.en));
  $('vd-workspace').addEventListener('change',e=>{S.workspace=e.target.value;wsMemo.set(S.workspace);S.current=null;S.form=null;loadAll()});
  try{if(await loadWorkspaces())await loadAll();else{S.loaded=true;render()}}
  catch(e){S.loaded=true;say(e.message,'err');render()}

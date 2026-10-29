@@ -84,13 +84,13 @@ test('English: the same quote as a British English proposal, en-GB figures and d
  const m=O.plan(doc,{business:'prodotto',goal:'gara',tone:'tecnico'},{lang:'en'});
  assert.equal(m.lang,'en');assert.equal(m.subtitle,'For Officine Rossi Srl');assert.match(m.intro,/^Dear Luca Bianchi,\nthank you for involving us/);
  assert.deepEqual(m.sections.map(s=>s.title),['The solution we propose','Supply details','Why us','Delivery and installation','The investment','Next steps','Terms']);
- assert.equal(m.totals.total,'€77,287.00');assert.equal(m.lines[0].unit_price,'€65,000.00');assert.equal(m.date,'28 October 2026');assert.equal(m.validUntil,'30 November 2026');assert.deepEqual(m.totals.vat,[{label:'VAT 22%',amount:'€13,937.00'}]);
+ assert.equal(m.totals.total,'£77,287.00','pounds, as the CRM shows in English mode');assert.equal(m.lines[0].unit_price,'£65,000.00');assert.equal(m.date,'28 October 2026');assert.equal(m.validUntil,'30 November 2026');assert.deepEqual(m.totals.vat,[{label:'VAT 22%',amount:'£13,937.00'}]);
  assert.match(m.sections.find(s=>s.id==='investimento').note,/Proposal valid until 30 November 2026/);assert.equal(m.signature,'Kind regards,\nRADIX Macchine');
  const f=O.fields(m);assert.deepEqual(f.slice(0,3).map(x=>x.label),['Title','Subtitle','Opening']);assert.match(f.find(x=>x.key==='section:2').label,/Why us \(one line per item\)/);
  const h=O.html(m,'elegante');assert.ok(h.includes('<th>Supply</th>'));assert.ok(h.includes('Net total'));assert.ok(h.includes(' · for the attention of Luca Bianchi'));assert.ok(!/Imponibile|Totale|Q\.tà/.test(h));
  assert.ok(O.check(m).some(t=>/still has the sample text/.test(t)));
  assert.match(O.aiPrompt(m,{business:'prodotto',goal:'gara'}),/^Rewrite the texts .* British English/);assert.match(O.aiPrompt(m,{business:'prodotto',goal:'gara'}),/Comparison with other suppliers/);
- const g=O.aiParse('{"title":"Pay only €9,999.00","subtitle":"Total €77,287.00, guaranteed"}',m);assert.deepEqual(Object.keys(g.texts),['subtitle']);assert.deepEqual(g.dropped,['Title']);
+ const g=O.aiParse('{"title":"Pay only £9,999.00","subtitle":"Total £77,287.00, guaranteed"}',m);assert.deepEqual(Object.keys(g.texts),['subtitle']);assert.deepEqual(g.dropped,['Title']);
  const q=O.questions(doc,'','en');assert.equal(q[0].label,'Who sells: what kind of business are you?');assert.equal(q[0].options[1].label,'Products and machinery');assert.equal(q[1].options[2].label,'Comparison with other suppliers');
  assert.deepEqual(O.looks('en').map(l=>l.label),['Elegant','Bold','Warm']);assert.deepEqual(O.looks('it').map(l=>l.label),['Elegante','Deciso','Caldo']);
  // Italian stays exactly as before

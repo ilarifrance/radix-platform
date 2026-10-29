@@ -9,9 +9,10 @@
 const str=v=>v===null||v===undefined?'':String(v).trim();
 const esc=s=>str(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const FIELD_MAX=200,TEXT_MAX=1200;
-/* lang: 'it' (default) or 'en' (British English, when the CRM runs in English): texts, dates and number formats. */
+/* lang: 'it' (default) or 'en' (British English, when the CRM runs in English): texts, dates and number formats.
+   In English the amounts carry the pound sign, as the whole CRM does in that mode (lib/radix-i18n.js turns € into £). */
 const LANG=l=>l==='en'?'en':'it',LOCALE={it:'it-IT',en:'en-GB'};
-const euro=(c,lang)=>{const n=Number(c||0)/100;return (LANG(lang)==='en'?'€':'€ ')+n.toLocaleString(LOCALE[LANG(lang)],{minimumFractionDigits:2,maximumFractionDigits:2})};
+const euro=(c,lang)=>{const n=Number(c||0)/100;return (LANG(lang)==='en'?'£':'€ ')+n.toLocaleString(LOCALE[LANG(lang)],{minimumFractionDigits:2,maximumFractionDigits:2})};
 const pct=(bp,lang)=>{const n=Number(bp||0)/100;return (Number.isInteger(n)?String(n):n.toLocaleString(LOCALE[LANG(lang)],{maximumFractionDigits:2}))+'%'};
 const qty=(q,lang)=>{const n=Number(q||0);return Number.isInteger(n)?String(n):n.toLocaleString(LOCALE[LANG(lang)],{maximumFractionDigits:3})};
 const MONTHS={it:['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],en:['January','February','March','April','May','June','July','August','September','October','November','December']};
@@ -165,7 +166,7 @@ function aiParse(text,model){
  for(const x of fields(model))addNums(x.value);
  const out={},dropped=[];
  for(const x of fields(model)){const v=d[x.key];if(typeof v!=='string')continue;const t=v.trim().slice(0,x.max);if(!t||t===x.value)continue;
-  const money=(t.match(/€\s?\d[\d.,]*|\d[\d.,]*\s?(?:€|euro)/gi)||[]).map(s=>s.replace(/[^\d.,]/g,'').replace(/[.,]$/,''));
+  const money=(t.match(/[€£]\s?\d[\d.,]*|\d[\d.,]*\s?(?:€|£|euro|pounds?)/gi)||[]).map(s=>s.replace(/[^\d.,]/g,'').replace(/[.,]$/,''));
   if(money.some(n=>!allowed.has(n))){dropped.push(x.label);continue}out[x.key]=t}
  return {texts:out,dropped};
 }
