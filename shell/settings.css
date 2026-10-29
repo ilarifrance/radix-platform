@@ -101,3 +101,11 @@ body.st-sales{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:
 .st-cal .cal-card{background:transparent;border:0;box-shadow:none;padding:0;min-width:0}
 .st-cal .cal-card>h3{margin:0 0 6px;font-size:16px}
 .st-cal .cal-empty,.st-cal .cal-sub{color:var(--crm-muted)}
+
+/* Members: role select and actions on the row; the add form under the list */
+.st-member-acts{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.st-member-acts select{padding:5px 8px}
+.st-btn.st-danger{color:var(--crm-err);border-color:#f0c4bf}
+.st-invite{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--crm-line)}
+.st-invite input[type=email]{flex:1 1 220px;min-width:0}
+@media (max-width:620px){.st-members li{flex-direction:column;align-items:flex-start}.st-member-acts{justify-content:flex-start}}

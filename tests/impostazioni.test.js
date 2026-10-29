@@ -136,3 +136,14 @@ test('automazioni: the rules are switched, added and edited in Impostazioni › 
  assert.match(rules,/a\.href='\/impostazioni\.html\?area=sales#crm'/);assert.match(tools,/panel\(\{mode:'proposals'\}\)/);
  assert.ok(read('impostazioni.html').includes('/sales/crm-rules.css'));
 });
+
+test('membri: added, changed and removed in Impostazioni (owner/admin rules, never your own row); the CRM only lists them',()=>{
+ const js=read('shell/settings.js'),crm=read('sales/sales.js');
+ assert.match(js,/async function mutate\(action,data,question\)\{if\(S\.busy\|\|!window\.confirm\(question\)\)return;/);
+ assert.match(js,/api\('members',\{body:\{workspace:S\.workspace,entity:'members',action,data\}\}\)/);
+ assert.match(js,/const can=manage&&!me&&\(mine==='owner'\|\|!\['owner','admin'\]\.includes\(m\.role\)\)/,'admin never touches owners or admins, nobody their own row');
+ assert.match(js,/roleChoices=Object\.entries\(C\.ROLE_NAMES\)\.filter\(\(\[k\]\)=>mine==='owner'\|\|!\['owner','admin'\]\.includes\(k\)\)/,'only an owner grants owner or admin');
+ assert.match(js,/mutate\('add',\{email:v,role:sel\.value\}/);assert.match(js,/mutate\('update',\{user_id:m\.id,role:sel\.value\}/);assert.match(js,/mutate\('remove',\{user_id:m\.id\}/);
+ assert.match(crm,/a\.href='\/impostazioni\.html\?area=sales#membri'/);assert.ok(!/section\.append\(inviteControl\(\)\)/.test(crm),'no invite form in the CRM');
+ assert.match(crm,/function memberControls\(row\)\{\s*return \[el\('p','Ruolo: '/,'no role controls in the CRM');assert.ok(!/function inviteControl|async function memberMutate/.test(crm),'invite and mutate code gone from the CRM');
+});
