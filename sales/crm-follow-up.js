@@ -109,8 +109,9 @@ const app=()=>root.RadixSalesApp;
 const post=(entity,action,data)=>app().api(entity,{body:{workspace:app().state.workspace,entity,action,data}});
 // Drafts live here, not in the DOM: sales.js rebuilds the cards on every render, and a draft costs an AI call.
 const drafts=new Map();
-let emailReady=null;
-async function emailConfigured(){if(emailReady!==null)return emailReady;try{const r=await fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{};emailReady=!!(d.items||[]).find(i=>i.id==='email'&&i.configured)}catch{emailReady=false}return emailReady}
+const sender=()=>root.RadixCrmSendDirect;
+// Direct send = a workspace mailbox (Impostazioni › Caselle email) or the server Gmail (sales/crm-send-direct.js).
+async function emailConfigured(){const S=sender();return S?await S.ready():null}
 async function run(label,fn){const a=app();if(a.state.busy)return false;a.lock(true);a.error('');a.notice(label);let ok=false;try{await fn();ok=true}catch(e){a.error(e.message||String(e))}finally{a.lock(false)}return ok}
 // The rows around the interaction: one Customer360 read of its contact (else opportunity, else company), plus the loaded pages.
 async function related(inter){
@@ -137,11 +138,10 @@ function draftBox(inter,entry,opts){
  if(a.writable('interactions')&&!(opts&&opts.send===false)){const send=B(entry.sent?'Inviata':'Invia',async()=>{keep();
   let p;if(!await run('Preparo l’invio…',async()=>{p=sendPlan(inter,entry.contact,entry.subject,entry.body);if(p.error)throw new Error(p.error);
    if(!p.to)throw new Error('Il contatto non ha un’email valida: usa «Copia» e invialo da un altro canale.');
-   if(!await emailConfigured())throw new Error('Invio diretto non configurato (manca Gmail): usa «Copia».')}))return;
+   if(!await emailConfigured())throw new Error('Invio diretto non configurato (nessuna casella in Impostazioni › Caselle email): usa «Copia».')}))return;
   if(/\[(?:DA COMPLETARE|TO BE COMPLETED)/i.test(p.body+p.subject)&&!window.confirm('Il follow-up contiene ancora parti [DA COMPLETARE]. Inviarlo comunque?'))return;
   if(!window.confirm('Inviare ora il follow-up a '+p.to+'?\nOggetto: '+p.subject+'\nL’invio non si può annullare; verrà registrato come interazione «email».'))return;
-  if(await run('Invio in corso…',async()=>{const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:p.to,subject:p.subject,body:p.body,confirm:true})});
-   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');entry.sent=p.to;
+  if(await run('Invio in corso…',async()=>{await sender().send({to:p.to,subject:p.subject,body:p.body});entry.sent=p.to;
    try{await post('interactions','create',p.interaction)}catch(e){throw new Error('Email inviata, ma non registrata nel CRM: '+(e.message||e)+' Registrala a mano senza reinviarla.')}})){
    // refresh() does nothing while the page is locked: it runs after run() has unlocked it.
    await a.refresh(false);a.notice('Follow-up inviato a '+p.to+' e registrato.')}

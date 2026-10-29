@@ -46,6 +46,7 @@ test('after «Segna come inviata» and «Invia» the page refreshes once unlocke
  const fetch=async url=>({ok:true,status:200,json:async()=>url==='/api/integrations/status'?{items:[{id:'email',configured:true}]}:{ok:true}});
  const box={tag:'div',children:[],append(...n){this.children.push(...n)}};
  const ctx={document:{createElement:node},window:{confirm:()=>true},fetch,RadixSalesApp:app};
+ vm.runInNewContext(fs.readFileSync('sales/crm-send-direct.js','utf8'),ctx);
  vm.runInNewContext(fs.readFileSync('sales/crm-ticket-reply.js','utf8'),ctx);
  assert.equal(ctx.RadixCrmTicketReply.mount(box,T),true);
  const area=(function a(n){return n.tag==='textarea'?n:n.children.map(a).find(Boolean)})(box.children[0]);

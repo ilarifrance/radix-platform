@@ -6,7 +6,7 @@
    - «Registra un’attività»: Email · Chiamata · Evento · Attività. Each form creates one existing
      entity through POST /api/sales (interactions or tasks), linked to the record.
      Email only registers, unless direct sending is configured: then «Invia e registra» uses
-     /api/send-email (one message, after an explicit confirmation), like the ticket replies.
+     sales/crm-send-direct.js (one message from the workspace mailbox or the server Gmail, after an explicit confirmation), like the ticket replies.
      Chiamata, Evento and Attività show «Slot liberi» under their date (RadixCrmCalendars.slotPicker, the same list
      as «Registra chiamata» in the Foglio chiamate): a click fills the date; only for who can save the form. */
 (()=>{
@@ -16,8 +16,9 @@ const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventL
 const app=()=>window.RadixSalesApp;
 // Summaries live here, not in the DOM: sales.js rebuilds Customer360 on every render.
 const summaries=new Map(),boxes=new Map(),tabs=new Map();
-let emailReady=null;
-async function emailConfigured(){if(emailReady!==null)return emailReady;try{const r=await fetch('/api/integrations/status',{credentials:'same-origin',cache:'no-store'});const d=r.ok?await r.json():{};emailReady=!!(d.items||[]).find(i=>i.id==='email'&&i.configured)}catch{emailReady=false}return emailReady}
+const sender=()=>window.RadixCrmSendDirect;
+// Direct send = a workspace mailbox (Impostazioni › Caselle email) or the server Gmail (sales/crm-send-direct.js).
+async function emailConfigured(){const S=sender();return S?await S.ready():null}
 const keyOf=ctx=>[app().state.workspace,ctx.subject,ctx.id].join(':');
 const recordOf=ctx=>(ctx.rows||[]).find(x=>x.entity===ctx.subject&&x.record&&x.record.id===ctx.id)?.record||null;
 
@@ -79,8 +80,7 @@ async function save(ctx,rec,plan){
  let sent=false,ok=false;
  try{
   if(plan.send){
-   const r=await fetch('/api/send-email',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({to:plan.send.to,subject:plan.send.subject,body:plan.send.body,confirm:true})});
-   const d=await r.json().catch(()=>({}));if(!r.ok||!d.ok)throw new Error(d.error||'Invio non riuscito ('+r.status+').');sent=true;
+   await sender().send({to:plan.send.to,subject:plan.send.subject,body:plan.send.body});sent=true;
   }
   await a.api(plan.entity,{body:{workspace:a.state.workspace,entity:plan.entity,action:'create',data:plan.data}});ok=true;
  }catch(e){a.error((sent?'Email inviata, ma non registrata nel CRM: ':'')+(e.message||String(e))+(sent?' Registrala con «Registra email» senza reinviarla.':''));a.notice('Operazione non completata.')}
@@ -102,7 +102,7 @@ function form(ctx,rec,tab,writableTasks){
   const reg=E('button','Registra email');reg.type='submit';actions.append(reg);
   const note=E('p','Registra un’email già inviata da un altro programma. Nessun messaggio parte.','muted');
   if(to){const send=B('Invia e registra',()=>submit({send:'1'}),'primary');
-   emailConfigured().then(ready=>{if(!f.isConnected)return;if(ready){send.disabled=!!app().state.busy;actions.prepend(send)}note.textContent=ready?'«Invia e registra» manda un solo messaggio dalla casella Gmail configurata, dopo una conferma. «Registra email» lo segna soltanto.':'Invio diretto non configurato: l’email si registra soltanto.'})}
+   emailConfigured().then(ready=>{if(!f.isConnected)return;if(ready){send.disabled=!!app().state.busy;actions.prepend(send)}note.textContent=ready?'«Invia e registra» manda un solo messaggio '+sender().describe(ready)+', dopo una conferma. «Registra email» lo segna soltanto.':'Invio diretto non configurato (nessuna casella in Impostazioni › Caselle email): l’email si registra soltanto.'})}
   f.append(actions,note);
  }else if(tab==='call'||tab==='meeting'){
   field(f,'Titolo',input('title','text','',200)).placeholder=(tab==='call'?'Chiamata con ':'Riunione con ')+(core.counterpart(ctx.subject,rec,ctx.rows)||ctx.title);
