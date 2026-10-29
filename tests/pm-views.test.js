@@ -57,7 +57,7 @@ test('cost-only edits keep status and approval; other edits still revoke it',()=
  pm.update(s,t.id,{actual:''});assert.equal('actual' in t,false);assert.equal(t.approved,true);
  assert.throws(()=>pm.update(s,t.id,{estimate:'-5'}),/Costo previsto/);
  assert.deepEqual(pm.validateState(JSON.parse(JSON.stringify(s))).tasks[0].estimate,800);
- pm.update(s,t.id,{title:'B'});assert.equal(t.approved,false);assert.equal(t.status,'Da fare');
+ pm.update(s,t.id,{title:'B'});assert.equal(t.approved,false);assert.equal(t.status,'In revisione','an edit revokes the approval but keeps the status');
 });
 
 test('phases group the timeline by sub-project with progress and dependency links',()=>{
