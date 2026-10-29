@@ -16,7 +16,7 @@ FAST = {
 # Livello lento: ETF e indici, barre giornaliere. In ricerca si usano i dati Yahoo; per gli ordini
 # reali su IBKR si useranno gli equivalenti UCITS quotati in Europa (es. VWCE, EUNL, SXR8).
 SLOW = {
-    "venue": "yahoo",
+    "venue": "yahoo",  # nome storico: i dati arrivano da Tiingo (o Yahoo senza chiave)
     "timeframe": "1d",
     "symbols": ["SPY", "QQQ", "EFA", "EEM", "TLT", "IEF", "GLD", "DBC"],
     # Con la commissione minima IBKR (~1,25 euro) 100 euro su 8 ETF costano troppo: in ricerca

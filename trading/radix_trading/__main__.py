@@ -5,6 +5,7 @@
     python -m radix_trading hourly           # raccolta veloce + un giro di paper trading simulato
     python -m radix_trading daily            # raccolta lenta + backtest (aggiorna le strategie approvate)
     python -m radix_trading report           # riepilogo del conto paper
+    python -m radix_trading export > x.json  # tutto in JSON per il pannello
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
 
@@ -63,7 +64,9 @@ def backfill_history(store: Store, symbol: str) -> int:
     return store.upsert_bars(f["history_venue"], symbol, "1h", bars)
 
 
-def run_backtests(store: Store) -> dict:
+def run_backtests(store: Store, curves: dict | None = None) -> dict:
+    """Se `curves` e' un dizionario, ci mette la curva del capitale fuori campione (mensile)
+    di ogni strategia e quella di un semplice compra-e-tieni, per il pannello."""
     out = {}
     for name, (fn, timeframe, grid) in strategies.STRATEGIES.items():
         tier = universe.FAST if timeframe == "1h" else universe.SLOW
@@ -80,6 +83,13 @@ def run_backtests(store: Store) -> dict:
             out[name] = {"errore": f"storico insufficiente ({len(close)} barre)"}
             continue
         gate = validation.passes_gate(wf.oos_returns, wf.trials)
+        if curves is not None:
+            eq = (1 + wf.oos_returns).cumprod().resample("ME").last()
+            bh = close.loc[wf.oos_returns.index].mean(axis=1)
+            bh = (bh / bh.iloc[0]).resample("ME").last()
+            curves[name] = {"date": [d.strftime("%Y-%m-%d") for d in eq.index],
+                            "strategia": [round(float(v), 4) for v in eq.values],
+                            "compra_e_tieni": [round(float(v), 4) for v in bh.reindex(eq.index).values]}
         out[name] = {"metriche_fuori_campione": wf.metrics, "cancello_1": gate, "finestre": len(wf.folds),
                      "parametri_ultimi": wf.folds[-1]["params"]}
         store.save_strategy_status(name, timeframe, gate["passed"], gate["deflated_sharpe"],
@@ -96,7 +106,7 @@ def _safe(fn):
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
-    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report"])
+    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export"])
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -111,6 +121,13 @@ def main(argv: list[str] | None = None) -> int:
             result = {"raccolta": collect(store, "slow"), "backtest": run_backtests(store)}
         elif args.command == "report":
             result = paper.report(store)
+        elif args.command == "export":
+            # Riepilogo completo per il pannello: backtest con curve, conto paper, fonti.
+            curves: dict = {}
+            result = {"backtest": run_backtests(store, curves), "curve": curves, "paper": paper.report(store, days=30),
+                      "dati": [dict(zip(("mercato", "simbolo", "barre", "ultima"), r)) for r in store.conn.execute(
+                          "SELECT venue, symbol, COUNT(*), MAX(ts) FROM bars GROUP BY 1, 2").fetchall()],
+                      "notizie": store.conn.execute("SELECT COUNT(*) FROM news").fetchone()[0]}
         else:
             # paper / hourly: il giro di paper trading usa sempre un conto simulato.
             result = {"raccolta": collect(store, "fast")} if args.command == "hourly" else {}
