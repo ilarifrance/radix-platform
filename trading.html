@@ -147,6 +147,15 @@
    </section>
   </div>
 
+  <section class="card wide" id="events" hidden>
+   <div class="row"><div><h2>Eventi e mercati</h2><p class="note" id="evNote">Da una parte cosa è successo nel mondo (notizie da Wikipedia, decisioni della Fed, shock di mercato), dall’altra come si sono mossi i mercati nei giorni dopo. Si entra alla chiusura del giorno dell’evento.</p></div></div>
+   <p id="evLead"></p>
+   <div class="scroll"><table>
+    <thead><tr><th>Evento</th><th>Mercato</th><th class="n">Giorni</th><th class="n">Movimento medio</th><th class="n">Casi nel verso giusto</th><th class="n">Ultimo anno</th></tr></thead>
+    <tbody id="evRows"></tbody>
+   </table></div>
+  </section>
+
   <section class="card wide" id="research" hidden>
    <h2>Ricerca larga</h2><p class="note" id="resNote">—</p>
    <p id="resLead" style="color:var(--rx-text);margin-bottom:12px">—</p>
@@ -294,6 +303,14 @@ function renderResearch(){
   const lock=x.final?(V.pct(x.lockYearly,1)+' · '+V.pct(x.lockDrawdown,0)+(x.lockPassed?' ✓':' ✗')):'non aperto';
   tr.append(td(x.name+' ('+x.timeframe+')'),td(x.marketName+(x.capital?' · '+V.eur(x.capital,0):'')),td(V.pct(x.yearly,1),'n '+signed(x.yearly)),td(V.pct(x.afterTax,1),'n'),td(V.pct(x.maxDrawdown,0),'n'),td(V.num(x.dsr,2),'n'),td(lock,'n'+(x.final?(x.lockPassed?' pos':' neg'):'')));return tr}));
 }
+function renderEvents(){
+ const e=V.eventsView(snap);$('events').hidden=!e;if(!e)return;
+ $('evNote').textContent=`Da una parte cosa è successo nel mondo (${V.num(e.newsDays,0)} giorni di notizie da Wikipedia, decisioni della Fed, shock di mercato), dall’altra come si sono mossi i mercati nei giorni dopo. ${V.num(e.tests,0)} combinazioni provate, con la correzione per le prove multiple. Si entra alla chiusura del giorno dell’evento.`;
+ $('evLead').textContent=e.lead;
+ $('evRows').replaceChildren(...e.links.slice(0,20).map(l=>{const tr=el('tr');
+  const check=l.checkN?V.pct(l.checkMove,1)+' su '+l.checkN+(l.holds?' ✓':' ✗'):'nessun caso';
+  tr.append(td(l.event),td(l.market),td(String(l.days),'n'),td(V.pct(l.move,2),'n '+signed(l.move)),td(l.hit==null?'—':V.pct(l.hit,0),'n'),td(check,'n'+(l.checkN?(l.holds?' pos':' neg'):'')));return tr}));
+}
 function renderPortfolio(){
  const p=V.portfolio(snap);$('portfolio').hidden=!p;if(!p)return;
  const tile=(name,value,sub,cls)=>{const d=el('div');d.append(el('span','',name),el('b','',value));if(sub)d.append(el('small',cls||'',sub));return d};
@@ -306,7 +323,7 @@ function renderPortfolio(){
 function render(){
  const s=V.summary(snap),all=V.tests(snap);
  $('lead').textContent=s.lead;
- renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();renderPortfolio();
+ renderKpis(s);renderFilters(all);renderTests(all);renderCurve(all);renderAccount(s.account);renderMacro();renderNews();renderSources();renderResearch();renderPortfolio();renderEvents();
 }
 
 /* ---------- loading and the Mac link ---------- */
