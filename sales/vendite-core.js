@@ -17,12 +17,18 @@ const editable=doc=>!doc?.id||doc.status==='bozza';
 const label=doc=>LABEL[doc?.kind]?.[doc?.status]||str(doc?.status);
 const VAT_RATES=Object.freeze([2200,1000,500,400,0]);
 
-// «12.500», «12500,50», «€ 1.200» → cents; '' → 0; anything else → null.
+/* English mode (lib/radix-i18n.js shims Intl to en-GB): the inputs then show «65,000.00» and the person types
+   «1,200.50», so the parsers follow the mode: grouping «,» and decimal «.» in English, the opposite in Italian.
+   In each mode the other notation's grouping with three decimals («12,345» in Italian) is refused, as before. */
+let EN=false;const setEnglish=on=>{EN=!!on};
+const marks=()=>EN?{g:',',d:'.',o:','}:{g:'.',d:',',o:'.'};
+// «12.500», «12500,50», «€ 1.200», «99.9» (English: «12,500.00», «1,200.5», «99,9») → cents; '' → 0; anything else → null.
 function cents(v){
- let s=str(v).replace(/[€\s]/g,'');if(!s)return 0;
- if(/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(s))s=s.replace(/\./g,'').replace(',','.');
- else if(/^\d+(,\d{1,2})?$/.test(s))s=s.replace(',','.');
- else if(!/^\d+(\.\d{1,2})?$/.test(s))return null;
+ let s=str(v).replace(/[€\s]/g,'');if(!s)return 0;const {g,d,o}=marks();
+ if(new RegExp('^\\d{1,3}(\\'+g+'\\d{3})+(\\'+d+'\\d{1,2})?$').test(s))s=s.split(g).join('').replace(d,'.');
+ else if(new RegExp('^\\d+(\\'+d+'\\d{1,2})?$').test(s))s=s.replace(d,'.');
+ else if(new RegExp('^\\d+(\\'+o+'\\d{1,2})?$').test(s))s=s.replace(o,'.');
+ else return null;
  const n=Math.round(Number(s)*100);return Number.isSafeInteger(n)&&n>=0&&n<=9000000000000?n:null;
 }
 // «22», «22%», «4,5» → basis points (2200, 450); 0..100 %.
@@ -31,9 +37,9 @@ function bp(v){
  if(!/^\d{1,3}(\.\d{1,2})?$/.test(s))return null;
  const n=Math.round(Number(s)*100);return n>=0&&n<=10000?n:null;
 }
-// «2», «1,5», «0,250» → number with at most 3 decimals, above zero.
+// «2», «1,5», «0,250» (English: «1.5», «1,500» = 1500) → number with at most 3 decimals, above zero.
 function qty(v){
- const s=str(v).replace(/\s/g,'').replace(',','.');
+ let s=str(v).replace(/\s/g,'');if(EN)s=/^\d{1,3}(,\d{3})+(\.\d{1,3})?$/.test(s)?s.replace(/,/g,''):s.replace(',','.');else s=/^\d{1,3}(\.\d{3})+(,\d{1,3})?$/.test(s)?s.replace(/\./g,'').replace(',','.'):s.replace(',','.');
  if(!/^\d{1,9}(\.\d{1,3})?$/.test(s))return null;
  const n=Number(s);return n>0?n:null;
 }
@@ -65,7 +71,9 @@ function lineFromProduct(product,entries,bookId){
  return {product_id:product.id,description:product.description?product.name+' · '+product.description:product.name,quantity:'1',unit:product.unit||'pz',price:plain(priceOf(product,entries,bookId)),discount:'',vat:String(Number(product.vat_rate_bp??2200)/100).replace('.',',')};
 }
 const emptyLine=()=>({product_id:null,description:'',quantity:'1',unit:'pz',price:'',discount:'',vat:'22'});
-const lineForm=l=>({product_id:l.product_id||null,description:l.description||'',quantity:qtyText(l.quantity).replace(/\./g,''),unit:l.unit||'pz',price:plain(l.unit_price_cents),discount:l.discount_bp?String(l.discount_bp/100).replace('.',','):'',vat:String(Number(l.vat_rate_bp)/100).replace('.',',')});
+// The decimal mark the inputs show: «,» in Italian, «.» in English; the thousands separator is dropped.
+const decim=n=>EN?String(n):String(n).replace('.',',');
+const lineForm=l=>({product_id:l.product_id||null,description:l.description||'',quantity:qtyText(l.quantity).replace(EN?/,/g:/\./g,''),unit:l.unit||'pz',price:plain(l.unit_price_cents),discount:l.discount_bp?decim(l.discount_bp/100):'',vat:decim(Number(l.vat_rate_bp)/100)});
 
 // Form rows (strings, as typed) → API lines, or {error} naming the row. Fully empty rows are skipped.
 function cleanLines(rows){
@@ -137,8 +145,13 @@ function productPayload(p,form){
 }
 
 const ISSUER=Object.freeze([['name','Nome commerciale'],['legal_name','Ragione sociale'],['vat_number','Partita IVA'],['tax_code','Codice fiscale'],['street','Indirizzo'],['zip','CAP'],['city','Città'],['province','Provincia'],['country','Paese'],['email','Email'],['pec','PEC'],['sdi_code','Codice destinatario SdI'],['phone','Telefono'],['iban','IBAN'],['website','Sito web']]);
+// Colours of the «Offerta grafica» (sales/offerta.js), kept in issuer: the two chosen in Intestazione replace the look's own.
+const BRAND=Object.freeze([['brand_primary','Colore principale'],['brand_accent','Colore secondario']]);
+const HEX=/^#[0-9a-f]{6}$/i;
+function brandOf(settings){const i=settings?.issuer||{};if(!HEX.test(i.brand_primary||''))return null;return {primary:i.brand_primary.toLowerCase(),accent:HEX.test(i.brand_accent||'')?i.brand_accent.toLowerCase():i.brand_primary.toLowerCase()}}
 function settingsPayload(current,form){
  const issuer={};for(const [k] of ISSUER){const v=str(form['issuer_'+k]);if(v)issuer[k]=v.slice(0,200)}
+ for(const [k,t] of BRAND){const v=str(form['issuer_'+k]);if(!v)continue;if(!HEX.test(v))return {error:t+': usa il formato #rrggbb.'};issuer[k]=v.toLowerCase()}
  const v=Number(form.quote_validity_days),p=Number(form.payment_days);
  if(!Number.isInteger(v)||v<1||v>365)return {error:'Validità del preventivo: da 1 a 365 giorni.'};
  if(!Number.isInteger(p)||p<0||p>365)return {error:'Giorni di pagamento: da 0 a 365.'};
@@ -166,6 +179,6 @@ function counts(rows,kind){const c={};for(const [k] of (kind==='invoice'?INVOICE
 function openValue(rows,kind){return (rows||[]).filter(r=>kind==='invoice'?r.status==='emessa':r.status==='inviato').reduce((s,r)=>s+Number(r.total_cents||0),0)}
 function overdue(doc,now){return doc.kind==='invoice'&&doc.status==='emessa'&&doc.due_date&&doc.due_date<today(now)}
 
-const api={QUOTE,INVOICE,LABEL,MOVES,VAT_RATES,ISSUER,moves,editable,label,cents,bp,qty,euro,plain,pct,qtyText,lineGross,lineNet,totals,priceOf,lineFromProduct,emptyLine,lineForm,cleanLines,documentPayload,apiLine,today,addDays,newDocument,formOf,productPayload,settingsPayload,party,kindName,docName,filter,counts,openValue,overdue};
+const api={QUOTE,INVOICE,LABEL,MOVES,VAT_RATES,ISSUER,BRAND,brandOf,setEnglish,decim,moves,editable,label,cents,bp,qty,euro,plain,pct,qtyText,lineGross,lineNet,totals,priceOf,lineFromProduct,emptyLine,lineForm,cleanLines,documentPayload,apiLine,today,addDays,newDocument,formOf,productPayload,settingsPayload,party,kindName,docName,filter,counts,openValue,overdue};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixVenditeCore=api;
 })(typeof window==='object'?window:globalThis);
