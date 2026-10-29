@@ -185,6 +185,8 @@
         if (on) delete cal.dataset.pedChannel; else cal.dataset.pedChannel = x.slug;
         [].slice.call(box.querySelectorAll('button')).forEach(function (y) { y.setAttribute('aria-pressed', String(!on && y === b)); });
         [].slice.call(cal.querySelectorAll('.calendar-event')).forEach(function (ev) { ev.classList.toggle('ped-dim', !on && ev.dataset.channel !== x.slug); });
+        // «Risultati» follows the same chip: its numbers narrow to this channel (or widen back to all).
+        try { window.dispatchEvent(new CustomEvent('ped:channel', { detail: { slug: on ? '' : x.slug } })); } catch (e) {}
       };
       box.append(b);
     });
