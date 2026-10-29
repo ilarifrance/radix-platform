@@ -33,7 +33,6 @@ button{cursor:pointer;color:var(--crm-text)}button:disabled{opacity:.5;cursor:de
 .pm-icon{display:inline-flex;align-items:center;gap:6px}
 .pm-reload-ic{width:15px;height:15px;background:currentColor;-webkit-mask:url(/sales/icons/refresh.svg) center/contain no-repeat;mask:url(/sales/icons/refresh.svg) center/contain no-repeat}
 .pm-replies{padding:7px 12px;border-radius:10px;border:1px solid var(--crm-accent);background:var(--crm-accent);color:var(--crm-on-accent);font-weight:600}
-.pm-opps{padding:7px 12px;border-radius:10px}
 /* Two columns, each scrolling on its own */
 .pm-layout{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:14px;align-items:stretch;flex:1 1 auto;min-height:0}
 .pm-list,.pm-read{background:var(--crm-card);border:1px solid var(--crm-line);border-radius:14px;box-shadow:var(--crm-shadow);min-height:0}
@@ -68,6 +67,8 @@ button{cursor:pointer;color:var(--crm-text)}button:disabled{opacity:.5;cursor:de
 .pm-empty-ic::after{content:"";position:absolute;inset:0;background:var(--crm-accent);-webkit-mask:url(/sales/icons/mail.svg) center/26px no-repeat;mask:url(/sales/icons/mail.svg) center/26px no-repeat}
 .pm-keys{font-size:12px}kbd{font:inherit;font-size:11px;padding:1px 6px;border:1px solid var(--crm-line-2);border-bottom-width:2px;border-radius:6px;background:var(--crm-soft)}
 .pm-muted{color:var(--crm-muted)}
+.pm-opps{padding:7px 12px;border-radius:10px;border:1px solid var(--crm-accent);background:var(--crm-accent-soft);color:var(--crm-accent);font-weight:600}.pm-opps[aria-pressed="true"]{background:var(--crm-accent);color:var(--crm-on-accent)}
+.pm-opp{display:flex;flex-direction:column;gap:6px;margin:12px 0;padding:14px;border:1px solid var(--crm-accent-line);border-radius:10px;background:var(--crm-surface,#fff)}.pm-opp label{display:flex;flex-direction:column;gap:4px;font-size:13px}.pm-opp input{padding:6px 8px;border:1px solid var(--crm-line,#ccd);border-radius:8px;font:inherit}
 .pm-back{display:none}
 .pm-head{padding:20px 24px 14px;border-bottom:1px solid var(--crm-line);position:sticky;top:0;background:var(--crm-card);z-index:1}
 .pm-head h2{margin:0 0 12px;font-size:20px;line-height:1.3;letter-spacing:-.01em}
@@ -104,9 +105,9 @@ button{cursor:pointer;color:var(--crm-text)}button:disabled{opacity:.5;cursor:de
 .pm-err{color:var(--crm-err)}
 .pm-body{font-size:14px;line-height:1.65;overflow-wrap:anywhere;max-width:76ch}.pm-body p{margin:0 0 12px;white-space:pre-line}
 .pm-body p.pm-quote{color:var(--crm-muted);border-left:3px solid var(--crm-line-2);padding-left:10px}
-.pm-force{margin:20px 24px 8px}.pm-read>p{margin:0 24px 12px}.pm-read>a.pm-btn{margin:0 24px 24px}
-/* Suggested opportunities (PR #295) keep their look */
-.pm-opp{padding:14px 24px;border-bottom:1px solid var(--crm-line)}
+/* Suggested opportunities pane (oppsPane) and the reconnect notice: direct children of the pane get the pane's side padding. */
+.pm-read>:not(.pm-head,.pm-content,.pm-empty){margin-left:24px;margin-right:24px}
+.pm-read>h2,.pm-read>h3{margin-top:20px}
 @media(max-width:900px){
  main{height:auto;overflow:visible}
  .pm-layout{grid-template-columns:1fr}

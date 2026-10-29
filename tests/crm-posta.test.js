@@ -132,3 +132,31 @@ test('look: avatars with initials, unread rows (Graph isRead), sender card with 
  for(const f of ['search.svg','refresh.svg','mail.svg'])assert.ok(fs.existsSync(__dirname+'/../sales/icons/'+f),f);
  const en=fs.readFileSync(__dirname+'/../lib/radix-i18n-en.js','utf8');for(const k of ['Solo contatti del CRM','per muoverti tra le mail','✓ Collegata al CRM'])assert.ok(en.includes('"'+k+'":'),k);
 });
+
+test('suggested opportunities: proposal words or amounts, one per conversation, known or new counterpart, never over an open deal',()=>{
+ assert.equal(P.amountCents('offerta da € 12.500'),1250000);assert.equal(P.amountCents('12.500,00 euro'),1250000);assert.equal(P.amountCents('1200€'),120000);assert.equal(P.amountCents('12,5 €'),1250);assert.equal(P.amountCents('£ 1,200.50'),120050);assert.equal(P.amountCents('ordine n. 1234'),null);
+ assert.equal(P.cleanSubject('Re: Fwd: R: offerta forni'),'offerta forni');
+ const companies=[{id:'co1',name:'Cliente Srl'}];
+ const h=P.opportunityHint(msg,OWN,contacts,companies,[],[]);
+ assert.equal(h.contact.id,'c1');assert.equal(h.company.id,'co1');assert.equal(h.keyword,'offerta');assert.equal(h.amount,null);assert.equal(h.title,'Cliente Srl · offerta forni');assert.equal(h.direction,'received');
+ assert.equal(P.opportunityHint({...msg,subject:'Ciao',preview:'ci vediamo'},OWN,contacts,companies,[],[]),null,'nothing about a deal');
+ assert.equal(P.opportunityHint({...msg,subject:'Ciao',preview:'il totale è 4.800,00 €'},OWN,contacts,companies,[],[]).amount,480000,'an amount is enough');
+ assert.equal(P.opportunityHint(msg,OWN,contacts,companies,[{id:'o1',contact_id:'c1',outcome:'open'}],[]),null,'the contact already has an open deal');
+ assert.ok(P.opportunityHint(msg,OWN,contacts,companies,[{id:'o1',contact_id:'c1',outcome:'won'}],[]),'a closed deal does not block a new one');
+ const linked=P.interaction(msg,OWN,{contact:contacts[0],opportunity:{id:'o9',contact_id:'c1',company_id:'co1'}}).data;
+ assert.equal(P.opportunityHint(msg,OWN,contacts,companies,[],[linked]),null,'already linked to an opportunity');
+ const sent={...msg,id:'m5',from:{name:'Francesco',address:OWN},to:[{name:'Nuova Persona',address:'laura@nuova.it'}],cc:[],subject:'Proposta commerciale',preview:'in allegato la proposta da 9.000 €'};
+ const n=P.opportunityHint(sent,OWN,contacts,companies,[],[]);assert.equal(n.contact,null);assert.equal(n.participant.address,'laura@nuova.it');assert.equal(n.direction,'sent');assert.equal(n.amount,900000);assert.equal(n.title,'Nuova Persona · Proposta commerciale');
+ const list=P.opportunityHints([{...msg,conversation:'k1'},{...msg,id:'m2',conversation:'k1',subject:'Re: offerta forni (2)'},sent,{...msg,id:'m3',conversation:'k3',subject:'Auguri'}],OWN,contacts,companies,[],[]);
+ assert.deepEqual(list.map(x=>x.msg.id),[msg.id,'m5'],'one per conversation, newest first, nothing for a plain mail');
+ const pipes=P.pipelines([{id:'p1',kind:'opportunity',title:'Vendite'},{id:'p2',kind:'service',title:'Ticket'}],[{id:'s2',process_id:'p1',position:2,title:'Offerta'},{id:'s1',process_id:'p1',position:1,title:'Contatto'}]);
+ assert.deepEqual(pipes,[{process_id:'p1',stage_id:'s1',title:'Vendite',stage:'Contatto'}]);
+ const plan=P.opportunityPlan(n,pipes[0]);assert.deepEqual(plan.contact,{create:{name:'Nuova Persona',email:'laura@nuova.it'}});assert.deepEqual(plan.opportunity,{title:'Nuova Persona · Proposta commerciale',process_id:'p1',stage_id:'s1',amount_cents:900000});
+ assert.deepEqual(P.opportunityPlan(h,pipes[0]).contact,{id:'c1'});assert.equal(P.opportunityPlan(h,pipes[0]).opportunity.amount_cents,undefined);
+ assert.match(P.opportunityPlan(h,null).error,/pipeline/);
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8');
+ assert.ok(ui.includes("b.id='pm-opps'")&&ui.includes("'Crea opportunità'")&&ui.includes("post('opportunities',")&&ui.includes("'processes','stages'"));
+ assert.ok(ui.indexOf("Creare l’opportunità «")<ui.indexOf("post('contacts',plan.contact.create)")&&ui.indexOf("window.confirm('Creare l’opportunità")<ui.indexOf("post('opportunities',"),'nothing is created before the confirmation');
+ assert.ok(fs.readFileSync(__dirname+'/../sales/crm-posta.css','utf8').includes('.pm-opp{'));
+ require('../lib/radix-i18n-en.js');assert.equal(globalThis.RadixI18nEn['Crea opportunità'],'Create opportunity');
+});

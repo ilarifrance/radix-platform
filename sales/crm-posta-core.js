@@ -71,6 +71,50 @@ function campaignReply(msg,own,contacts,interactions){
 }
 /* The mails of the list that are replies to campaigns still to record, in list order. */
 function campaignReplies(items,own,contacts,interactions){const out=[];for(const m of items||[]){const r=campaignReply(m,own,contacts,interactions);if(r)out.push({msg:m,...r})}return out}
-const api={participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,MAX};
+/* Opportunities suggested from the mail list (received or sent): a mail whose subject or preview speaks of a proposal
+   (HINT) or carries an amount, with a counterpart that is a CRM contact without an open opportunity, or a person not yet
+   in the CRM. One suggestion per conversation (the newest mail of it); a mail already linked to an opportunity is skipped.
+   Nothing is created here: the page shows the cards and creates on «Crea opportunità» after a confirmation. */
+const HINT=/\b(propost[ae]|preventiv[oi]|offert[ae]|quotazion[ei]|quote|quotation|proposal|contratt[oi]|ordine|ordini|listino|accordo|collaborazione|tariff[ae]|budget|fattur[ae]|invoice|pricing)\b/i;
+const NUM='\\d{1,3}(?:[.\\s]\\d{3})+(?:,\\d{1,2})?|\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?|\\d+(?:[.,]\\d{1,2})?';
+const AMOUNT=new RegExp('(?:€|eur\\b|euro\\b|£|gbp\\b)\\s?('+NUM+')|('+NUM+')\\s?(?:€|eur\\b|euro\\b|£|gbp\\b)','i');
+/* Amount in cents from a text («€ 12.500», «12.500,00 euro», «1200€», «12,5 €», «£ 1,200.50»), else null. */
+function amountCents(s){const m=AMOUNT.exec(text(s));if(!m)return null;let v=(m[1]||m[2]||'').replace(/\s/g,'');
+ if(/^\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/.test(v))v=v.replace(/\./g,'').replace(',','.');
+ else if(/^\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?$/.test(v))v=v.replace(/,/g,'');
+ else if(/^\d+,\d{1,2}$/.test(v))v=v.replace(',','.');
+ const n=Math.round(Number(v)*100);return Number.isFinite(n)&&n>0&&n<=1e13?n:null}
+const cleanSubject=s=>text(s).replace(/^(?:\s*(?:re|r|fwd?|fw|i|tr|aw|wg)\s*:\s*)+/i,'').replace(/\s+/g,' ').trim();
+function opportunityHint(msg,own,contacts,companies,opportunities,interactions){
+ if(!msg)return null;const blob=text(msg.subject)+' '+text(msg.preview);const kw=HINT.exec(blob),amount=amountCents(blob);if(!kw&&amount===null)return null;
+ if(linked(msg,own,interactions).some(i=>i&&i.opportunity_id))return null;
+ const parts=participants(msg,own);if(!parts.length)return null;
+ const contact=matches(msg,contacts,own)[0]||null;
+ const participant=(contact&&parts.find(p=>p.address===addr(contact.email)))||parts[0];
+ if(contact&&opportunitiesFor(contact,opportunities).length)return null;
+ const companyId=contact?(contact.company_id||null):companyByDomain(participant.address,contacts);
+ const company=companyId?(companies||[]).find(c=>c&&c.id===companyId)||null:null;
+ const who=(company&&company.name)||(contact&&contact.name)||participant.name||participant.address.split('@')[0];
+ const subject=cleanSubject(msg.subject)||'(senza oggetto)';
+ return {msg,direction:direction(msg,own),contact,participant,company,companyId,amount,keyword:kw?kw[0]:null,title:(who+' · '+subject).slice(0,200)};
+}
+function opportunityHints(items,own,contacts,companies,opportunities,interactions){
+ const out=[],seen=new Set();
+ for(const m of items||[]){const key=text(m&&m.conversation)||text(m&&m.id);if(!key||seen.has(key))continue;const h=opportunityHint(m,own,contacts,companies,opportunities,interactions);if(!h)continue;seen.add(key);out.push(h)}
+ return out;
+}
+/* First stage of every opportunity pipeline (processes of kind «opportunity», lowest position). */
+function pipelines(processes,stages){
+ return (processes||[]).filter(p=>p&&p.kind==='opportunity').map(p=>{const s=(stages||[]).filter(x=>x&&x.process_id===p.id).sort((a,b)=>a.position-b.position)[0];return s?{process_id:p.id,stage_id:s.id,title:p.title||'Pipeline',stage:s.title||''}:null}).filter(Boolean);
+}
+/* What «Crea opportunità» creates for a hint and a pipeline: the contact when missing, then the opportunity. */
+function opportunityPlan(h,pipe){
+ if(!h)return {error:'Suggerimento non valido.'};if(!pipe||!pipe.process_id||!pipe.stage_id)return {error:'Crea prima una pipeline delle opportunità nel CRM.'};
+ const contact=h.contact?{id:h.contact.id}:(()=>{const c=contactFrom(h.participant);if(!c)return null;if(h.companyId)c.company_id=h.companyId;return {create:c}})();
+ if(!contact)return {error:'La mail non ha un indirizzo valido per il contatto.'};
+ const opportunity={title:h.title,process_id:pipe.process_id,stage_id:pipe.stage_id};if(h.amount!==null&&h.amount!==undefined)opportunity.amount_cents=h.amount;
+ return {contact,opportunity,companyId:h.companyId||null};
+}
+const api={participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,amountCents,cleanSubject,opportunityHint,opportunityHints,pipelines,opportunityPlan,MAX};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmPosta=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
