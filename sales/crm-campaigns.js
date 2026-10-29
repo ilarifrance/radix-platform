@@ -130,20 +130,19 @@ function campaignPanel(filterOf){
    const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:ids,...(b2b?b2b.values():{})});if(r)RadixCrmMailboxes.showStatus(results,r.message)});
   queue.classList.add('crm-queue-button');
   row.insertBefore(queue,prep.nextSibling);row.append(B('Stato della coda',()=>RadixCrmMailboxes.showStatus(results)));
-  // «Scrivi con l’AI una per contatto» (crm-ai-emails.js): one AI call per contact of the lot (≤ MAX_LOT, only the contacts
-  // the campaign rules would send to), every text to reread in its card, then the whole lot in the queue with ONE approval.
+  // «Scrivi con l’AI una per contatto» (crm-ai-emails.js): one AI call per contact (only the contacts the campaign rules would
+  // send to, in lots of MAX_LOT), every text to reread in its card, then each lot in the queue with ONE approval.
   if(root.RadixCrmAiEmails&&root.RadixCrmAiEmailsCore){
-   const AI=root.RadixCrmAiEmailsCore;
    const per=B('Scrivi con l’AI una per contatto',async()=>{
     if(!subject.value.trim()||!body.value.trim()){app().error('Scrivi oggetto e testo: l’AI li adatta a ogni contatto.');return}
-    const mode=b2b?b2b.values():{};let lot=[],companies=[],left=0;
+    const mode=b2b?b2b.values():{};let eligible=[],companies=[];
     if(!await run('Leggo il segmento…',async()=>{const contacts=await segmentContacts(filterOf);companies=await exportRows('companies');
      const PC=root.RadixCrmProspectingCore;
-     const eligible=mode.mode==='b2b'&&PC?PC.planB2B(subject.value.trim(),body.value.trim(),contacts,{step:mode.step||0,includeUnverified:!!mode.include_unverified,now:Date.now()}).emails.map(e=>e.contact):planCampaign(subject.value.trim(),body.value.trim(),contacts).emails.map(e=>e.contact);
-     lot=eligible.slice(0,AI.MAX_LOT);left=eligible.length-lot.length}))return;
-    if(!lot.length){app().notice('Nessun contatto a cui scrivere con queste regole'+(mode.mode==='b2b'?' (email aziendale della persona, non disiscritto)':' (consenso marketing ed email valida)')+'.');return}
-    RadixCrmAiEmails.open({subject:subject.value.trim(),body:body.value.trim(),contacts:lot,companies,left,mode:mode.mode||'consent',mount:out,
-     enqueue:async texts=>{const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:lot.map(c=>c.id),texts,...mode});if(r)RadixCrmMailboxes.showStatus(results,r.message);return r}});
+     eligible=mode.mode==='b2b'&&PC?PC.planB2B(subject.value.trim(),body.value.trim(),contacts,{step:mode.step||0,includeUnverified:!!mode.include_unverified,now:Date.now()}).emails.map(e=>e.contact):planCampaign(subject.value.trim(),body.value.trim(),contacts).emails.map(e=>e.contact)}))return;
+    if(!eligible.length){app().notice('Nessun contatto a cui scrivere con queste regole'+(mode.mode==='b2b'?' (email aziendale della persona, non disiscritto)':' (consenso marketing ed email valida)')+'.');return}
+    // All the eligible contacts: the panel takes them in lots of MAX_LOT (crm-ai-emails-core.js), each lot queued with its own texts.
+    RadixCrmAiEmails.open({subject:subject.value.trim(),body:body.value.trim(),contacts:eligible,companies,mode:mode.mode||'consent',mount:out,
+     enqueue:async(texts,ids)=>{const r=await RadixCrmMailboxes.enqueue({campaign:campaignName(subject.value,new Date().toISOString().slice(0,10)),subject:subject.value.trim(),body:body.value.trim(),contacts:ids,texts,...mode});if(r)RadixCrmMailboxes.showStatus(results,r.message);return r}});
    });
    per.classList.add('crm-ai-per-contact');row.insertBefore(per,queue.nextSibling);
   }

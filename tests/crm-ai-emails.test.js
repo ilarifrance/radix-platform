@@ -103,8 +103,10 @@ test('wiring: button in the campaign panel, lot from the campaign rules, texts t
  assert.ok(camp.includes("B('Scrivi con l’AI una per contatto'"));
  assert.ok(/root\.RadixCrmAiEmails&&root\.RadixCrmAiEmailsCore/.test(camp));
  assert.ok(camp.includes('planB2B(subject.value.trim(),body.value.trim(),contacts,')&&camp.includes('planCampaign(subject.value.trim(),body.value.trim(),contacts).emails.map(e=>e.contact)'),'only the contacts the rules would send to');
- assert.ok(camp.includes('lot=eligible.slice(0,AI.MAX_LOT)'));
- assert.ok(camp.includes('contacts:lot.map(c=>c.id),texts,...mode'),'the queue gets the lot and the texts');
+ assert.ok(camp.includes('contacts:eligible,companies,mode:'),'the panel gets every eligible contact and takes them in lots');
+ assert.ok(camp.includes('enqueue:async(texts,ids)=>')&&camp.includes('contacts:ids,texts,...mode'),'the queue gets the lot’s contacts and the texts');
+ assert.deepEqual(C.lots(0),[{from:0,to:0}]);assert.deepEqual(C.lots(100),[{from:0,to:100}]);assert.deepEqual(C.lots(250),[{from:0,to:100},{from:100,to:200},{from:200,to:250}]);
+ const ui0=read('sales/crm-ai-emails.js');assert.ok(ui0.includes("B('Lotto successivo'")&&ui0.includes('o.enqueue(texts,items.map(it=>it.id))'),'next lot after the queue, same campaign');
  const mb=read('sales/crm-mailboxes.js');
  assert.ok(mb.includes('if(input.texts&&Object.keys(input.texts).length)data.texts=input.texts;'));
  assert.ok(mb.includes('Questa è l’unica approvazione per tutto il lotto.'));
