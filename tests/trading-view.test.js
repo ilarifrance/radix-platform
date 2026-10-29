@@ -88,3 +88,14 @@ test('portfolio: total includes the reserve, lanes sorted by weight',()=>{
  assert.equal(p.history.length,2);assert.equal(p.history[1].total,1042.5);
  assert.deepEqual(p.positions,[{symbol:'ETHEUR',units:-0.1,short:true}]);
 });
+
+test('eventsView: friendly names, verification and lead',()=>{
+ assert.equal(V.eventsView({}),null);
+ assert.equal(V.eventName('notizie:dazi'),'Dazi e guerre commerciali (tante notizie)');
+ assert.equal(V.eventName('shock:tassi_salto'),'Salto dei tassi a 10 anni');
+ const e=V.eventsView({eventi:{prove:900,giorni_di_notizie:4300,legami:[
+  {evento:'shock:tassi_salto',mercato:'Utility',giorni:1,medio:-0.013,vince:0.79,n:29,verifica_n:1,verifica_medio:-0.01,regge_verifica:false},
+  {evento:'notizie:guerra',mercato:'Oro',giorni:3,medio:0.008,vince:0.6,n:80,verifica_n:6,verifica_medio:0.004,regge_verifica:true},{medio:'x'}]}});
+ assert.equal(e.links.length,2);assert.match(e.lead,/1 legame regge/);assert.equal(e.links[1].holds,true);
+ assert.match(V.eventsView({eventi:{prove:5,legami:[]}}).lead,/Nessun legame/);
+});
