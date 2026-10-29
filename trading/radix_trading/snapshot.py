@@ -90,6 +90,16 @@ def _research(settings: Settings) -> dict | None:
         {"classifica": (r.get("classifica") or [])[:15], "generato": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
+def _events(settings: Settings) -> dict | None:
+    p = settings.data_dir / "events.json"
+    if not p.exists():
+        return None
+    r = json.loads(p.read_text())
+    keep = ("generato", "prove", "superano_correzione", "reggono_verifica", "periodo_scoperta", "periodo_verifica",
+            "giorni_di_notizie", "costo_andata_ritorno", "errore")
+    return {k: r.get(k) for k in keep} | {"legami": (r.get("legami") or [])[:25]}
+
+
 def build(store: Store, settings: Settings) -> dict:
     bt_path = backtest_file(settings)
     bt = json.loads(bt_path.read_text()) if bt_path.exists() else {"generato": None, "risultati": {}, "curve": {}}
@@ -112,6 +122,7 @@ def build(store: Store, settings: Settings) -> dict:
         },
         "kill_switch": settings.kill_switch_file.exists(),
         "ricerca": _research(settings),
+        "eventi": _events(settings),
     }
 
 
