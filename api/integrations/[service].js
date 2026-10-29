@@ -6,6 +6,8 @@
 // a require() of a computed path is not traced and fails with MODULE_NOT_FOUND.
 const handlers = Object.freeze({
   'buffer': () => require('../_buffer'),
+  // App «Meeting»: phone calls through the RADIX number (Twilio), recorded and transcribed after a confirm.
+  'call': () => require('../_twilio_call'),
   'heygen': () => require('../_heygen'),
   'higgsfield': () => require('../_higgsfield'),
   'openai-image': () => require('../_openai-image'),

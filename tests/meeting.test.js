@@ -145,3 +145,65 @@ test('recorder helpers: WAV header, file types',async()=>{
  assert.equal(rec.typeOf({name:'memo.m4a',type:''}),'audio/x-m4a');assert.equal(rec.typeOf({name:'x.MP3',type:''}),'audio/mpeg');assert.equal(rec.typeOf({name:'x',type:'audio/webm'}),'audio/webm');
  assert.ok(rec.MAX_BYTES<=core.SEGMENT_MAX_BYTES);
 });
+
+test('phone calls: numbers, TwiML of the bridge, announcement only where Twilio can reach it',()=>{
+ const c=require('../api/_twilio_call.js');
+ assert.equal(c.phone('333 123 4567'),'+393331234567');assert.equal(c.phone('0039 02 1234567'),'+39021234567');assert.equal(c.phone('+44 20 7946 0958'),'+442079460958');
+ assert.equal(c.phone('12'),'');assert.equal(c.phone('+39abc'),'');
+ const tw=c.bridgeTwiml({to:'+393331234567',from:'+390212345678',announceUrl:'https://radix-platform.vercel.app/api/integrations/call?step=announce'});
+ assert.match(tw,/<Dial callerId="\+390212345678" record="record-from-answer-dual"/);assert.match(tw,/<Number url="https:\/\/radix-platform\.vercel\.app\/api\/integrations\/call\?step=announce" method="GET">\+393331234567<\/Number>/);
+ assert.doesNotMatch(c.bridgeTwiml({to:'+393331234567',from:'+390212345678',announceUrl:''}),/url=/);
+ assert.match(c.bridgeTwiml({to:'+39333',from:'+39',announceUrl:''}),/avvisa la persona/);
+ assert.equal(c.publicBase({headers:{host:'radix-platform.vercel.app'}},{VERCEL_ENV:'production'}),'https://radix-platform.vercel.app');
+ assert.equal(c.publicBase({headers:{host:'x-git-y.vercel.app'}},{VERCEL_ENV:'preview'}),'','previews are behind the Vercel login');
+ assert.equal(c.publicBase({headers:{}},{TWILIO_PUBLIC_URL:'https://radix.example.com/'}),'https://radix.example.com');
+ assert.match(c.ANNOUNCE,/registrata e trascritta/);
+ const parts=c.chunks(Buffer.alloc(1000000),3600);assert.equal(parts.length,3,'20-minute parts of an hour');assert.equal(parts.reduce((a,p)=>a+p.length,0),1000000);
+ const est=core.callEstimate(10);assert.ok(est.eur>0.7&&est.eur<1,'about 0.09 € per minute');
+});
+
+test('phone calls endpoint: session, confirm, start, status, transcription and deletion of the recording',async()=>{
+ const auth=require('../api/_auth.js');const orig=auth.getSessionUser;
+ const res=()=>{const r={code:0,body:null,headers:{},status(c){r.code=c;return r},json(b){r.body=b;return r},send(b){r.body=b;return r},setHeader(k,v){r.headers[k]=v}};return r};
+ let r=res();await require('../api/_twilio_call.js').handler({method:'GET',query:{step:'announce'},headers:{}},r,{env:{}});assert.equal(r.code,200);assert.match(r.body,/<Say language="it-IT">/);
+ r=res();await require('../api/_twilio_call.js').handler({method:'GET',query:{},headers:{}},r,{env:{}});assert.equal(r.code,401);
+ auth.getSessionUser=()=>({id:1});delete require.cache[require.resolve('../api/_twilio_call.js')];delete require.cache[require.resolve('../api/_transcribe.js')];
+ const c=require('../api/_twilio_call.js');
+ const env={TWILIO_ACCOUNT_SID:'AC'+'1'.repeat(32),TWILIO_AUTH_TOKEN:'tok',TWILIO_NUMBER:'+39 02 1234 5678',OPENAI_API_KEY:'sk',VERCEL_ENV:'production'};
+ const sid='CA'+'a'.repeat(32),re='RE'+'b'.repeat(32);const calls=[];
+ const fake=async(url,opts={})=>{calls.push({url,method:opts.method||'GET',body:opts.body,auth:opts.headers&&opts.headers.authorization});
+  if(url.endsWith('/Calls.json'))return new Response(JSON.stringify({sid}),{status:201});
+  if(url.includes('/Calls/'+sid+'.json'))return new Response(JSON.stringify({status:'completed',duration:'95'}),{status:200});
+  if(url.includes('/Recordings.json?CallSid='))return new Response(JSON.stringify({recordings:[{sid:re,status:'completed',duration:'90',date_created:'x'}]}),{status:200});
+  if(url.endsWith('/Recordings/'+re+'.mp3'))return new Response(Buffer.alloc(50000,7),{status:200});
+  if(url.endsWith('/Recordings/'+re+'.json')&&opts.method==='DELETE')return new Response(null,{status:204});
+  if(url.includes('api.openai.com'))return new Response(JSON.stringify({text:'Pronto, sono Marco.'}),{status:200});
+  return new Response('{}',{status:404})};
+ try{
+  r=res();await c.handler({method:'GET',query:{},headers:{}},r,{env:{}});assert.deepEqual(r.body,{configured:false,number:''});
+  r=res();await c.handler({method:'POST',query:{},headers:{},body:{action:'start',to:'3331234567',me:'3339999999'}},r,{env,fetch:fake});assert.equal(r.code,400);assert.match(r.body.error,/Conferma/);
+  r=res();await c.handler({method:'POST',query:{},headers:{},body:{action:'start',to:'3331234567',me:'3331234567',confirm:true}},r,{env,fetch:fake});assert.equal(r.code,400);
+  r=res();await c.handler({method:'POST',query:{},headers:{host:'radix-platform.vercel.app'},body:{action:'start',to:'333 1234567',me:'+39 333 9999999',confirm:true}},r,{env,fetch:fake});
+  assert.equal(r.code,200);assert.deepEqual(r.body,{sid,announced:true});
+  const start=calls.find(x=>x.url.endsWith('/Calls.json'));const form=new URLSearchParams(start.body);
+  assert.equal(form.get('To'),'+393339999999','your phone rings first');assert.equal(form.get('From'),'+390212345678');assert.match(form.get('Twiml'),/<Number url="https:\/\/radix-platform\.vercel\.app\/api\/integrations\/call\?step=announce" method="GET">\+393331234567/);
+  assert.equal(start.auth,'Basic '+Buffer.from(env.TWILIO_ACCOUNT_SID+':tok').toString('base64'));
+  r=res();await c.handler({method:'GET',query:{sid},headers:{}},r,{env,fetch:fake});assert.deepEqual(r.body,{status:'completed',seconds:95,recording:{seconds:90,count:1},processing:false});
+  r=res();await c.handler({method:'GET',query:{sid:'nope'},headers:{}},r,{env,fetch:fake});assert.equal(r.code,400);
+  r=res();await c.handler({method:'POST',query:{},headers:{},body:{action:'transcribe',sid}},r,{env,fetch:fake});assert.equal(r.code,400);
+  r=res();await c.handler({method:'POST',query:{},headers:{},body:{action:'transcribe',sid,confirm:true}},r,{env,fetch:fake});
+  assert.equal(r.code,200);assert.equal(r.body.text,'Pronto, sono Marco.');assert.equal(r.body.seconds,90);assert.equal(r.body.deleted,true);
+  assert.ok(calls.some(x=>x.method==='DELETE'&&x.url.endsWith(re+'.json')),'the recording is deleted from Twilio after the text');
+  r=res();await c.handler({method:'GET',query:{sid},headers:{}},r,{env:{...env,TWILIO_AUTH_TOKEN:'x'},fetch:async()=>new Response(JSON.stringify({message:'Authenticate'}),{status:401})});
+  assert.match(r.body.error,/Credenziali Twilio non valide/);
+ }finally{auth.getSessionUser=orig;delete require.cache[require.resolve('../api/_twilio_call.js')];delete require.cache[require.resolve('../api/_transcribe.js')]}
+});
+
+test('phone calls wiring: route, status, settings, page option behind a confirm',()=>{
+ assert.match(fs.readFileSync('api/integrations/[service].js','utf8'),/'call': \(\) => require\('\.\.\/_twilio_call'\)/);
+ assert.ok(require('../api/_integrations-status.js').SERVICES.some(s=>s.id==='twilio'&&s.env.join()==='TWILIO_ACCOUNT_SID,TWILIO_AUTH_TOKEN,TWILIO_NUMBER'));
+ const html=fs.readFileSync('meeting.html','utf8'),js=fs.readFileSync('lib/meeting-page.js','utf8');
+ assert.match(html,/value="phone"/);assert.match(html,/id="mt-call"/);
+ const call=js.slice(js.indexOf("$('mt-call').onclick"));assert.ok(call.indexOf('confirmBox.ask(')<call.indexOf("action:'start'"));
+ assert.match(js,/action:'transcribe',sid:m\.callSid,confirm:true/);
+});

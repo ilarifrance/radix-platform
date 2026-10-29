@@ -81,30 +81,43 @@ async function handler(req, res, deps) {
   }
   const plan = transcribeRequest(body, env);
   if (plan.error) return res.status(plan.status).json({ error: plan.error });
-  const fetchImpl = deps && deps.fetch;
   try {
-    let model = plan.model;
-    let upstream = await call(apiKey, plan, model, fetchImpl);
+    const out = await transcribe(apiKey, plan, deps && deps.fetch);
+    return res.status(200).json(out);
+  } catch (err) {
+    return res.status(err.status || 502).json({ error: err.message });
+  }
+}
+
+// One transcription with the fallback model; throws an Error with `status` and a message the page can show.
+// Also used by the phone calls (api/_twilio_call.js) on the recording Twilio made.
+async function transcribe(apiKey, plan, fetchImpl) {
+  let upstream;
+  let model = plan.model;
+  try {
+    upstream = await call(apiKey, plan, model, fetchImpl);
     if (!upstream.ok && model !== FALLBACK_MODEL && [400, 403, 404].includes(upstream.status)) {
       const err = await upstream.clone().json().catch(() => ({}));
-      if (/model|access|permission|not found|does not exist/i.test(String((err && err.error && (err.error.message || err.error.code)) || ""))) {
+      if (/model|access|permission|not found|does not exist|duration/i.test(String((err && err.error && (err.error.message || err.error.code)) || ""))) {
         model = FALLBACK_MODEL;
         upstream = await call(apiKey, plan, model, fetchImpl);
       }
     }
-    const data = await upstream.json().catch(() => ({}));
-    if (!upstream.ok) {
-      const msg = (data && data.error && data.error.message) || "Errore dall'API OpenAI";
-      const status = upstream.status === 429 ? 429 : upstream.status >= 500 ? 502 : upstream.status;
-      return res.status(status).json({ error: /quota|billing/i.test(msg) ? "Credito OpenAI esaurito: ricarica il credito su platform.openai.com." : msg });
-    }
-    return res.status(200).json({ text: String((data && data.text) || "").trim(), model });
   } catch (err) {
-    return res.status(502).json({ error: "Chiamata a OpenAI fallita: " + (err && err.message ? err.message : String(err)) });
+    throw Object.assign(new Error("Chiamata a OpenAI fallita: " + (err && err.message ? err.message : String(err))), { status: 502 });
   }
+  const data = await upstream.json().catch(() => ({}));
+  if (!upstream.ok) {
+    const msg = (data && data.error && data.error.message) || "Errore dall'API OpenAI";
+    const status = upstream.status === 429 ? 429 : upstream.status >= 500 ? 502 : upstream.status;
+    throw Object.assign(new Error(/quota|billing/i.test(msg) ? "Credito OpenAI esaurito: ricarica il credito su platform.openai.com." : msg), { status });
+  }
+  return { text: String((data && data.text) || "").trim(), model };
 }
 
 module.exports = (req, res) => handler(req, res);
 module.exports.handler = handler;
 module.exports.transcribeRequest = transcribeRequest;
 module.exports.MAX_BYTES = MAX_BYTES;
+module.exports.transcribe = transcribe;
+module.exports.DEFAULT_MODEL = DEFAULT_MODEL;

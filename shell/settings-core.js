@@ -36,6 +36,7 @@ const LANGUAGES=Object.freeze([{id:'it',label:'Italiano',active:true},{id:'en',l
 const SERVICES=Object.freeze([
  {id:'anthropic',label:'Anthropic',does:'Fa lavorare gli agenti AI: chat, orchestratori, Copilota del CRM.'},
  {id:'openai-image',label:'OpenAI',does:'Crea le immagini di sfondo delle slide e dei caroselli.'},
+ {id:'twilio',label:'Telefonate (Twilio)',does:'Chiama dal numero RADIX e registra la telefonata per il verbale.'},
  {id:'transcribe',label:'Trascrizione meeting',does:'Trasforma in testo l’audio registrato con l’app Meeting.'},
  {id:'buffer',label:'Buffer',does:'Pubblica sui social i post approvati del Piano editoriale.'},
  {id:'heygen',label:'HeyGen',does:'Genera i video con avatar dello Studio Avatar.'},

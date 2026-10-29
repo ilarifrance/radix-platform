@@ -16,7 +16,7 @@ body.mt-root{margin:0;background:radial-gradient(ellipse at 80% -10%,color-mix(i
 .mt-field{display:grid;gap:5px;color:var(--rx-muted,#9BB4BD);font-size:13px}
 .mt-root .mt-field input,.mt-root .mt-field select,.mt-root .mt-field textarea,.mt-root .mt-task input,.mt-root .mt-task select{width:100%;min-height:42px;padding:9px 11px;border-radius:10px;border:1px solid var(--rx-border,#133C3D);background:var(--rx-surface-2,#07191E);color:var(--rx-text,#F1FAFB);font:inherit}
 .mt-root .mt-field textarea{min-height:110px;resize:vertical}
-.mt-sources{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 6px;border:0;padding:0}
+.mt-sources{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0 6px;border:0;padding:0}
 .mt-sources legend{color:var(--rx-muted,#9BB4BD);font-size:13px;margin-bottom:6px;padding:0}
 @media(max-width:600px){.mt-sources{grid-template-columns:1fr}}
 .mt-source{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--rx-border,#133C3D);border-radius:12px;cursor:pointer;background:var(--rx-surface-2,#07191E)}

@@ -19,6 +19,7 @@
 <fieldset class="mt-sources"><legend>Cosa registri</legend>
 <label class="mt-source"><input type="radio" name="mt-source" value="room" checked><span><b>Di persona</b><small>Il microfono di questo telefono o computer, in mezzo al tavolo.</small></span></label>
 <label class="mt-source" id="mt-source-call"><input type="radio" name="mt-source" value="call"><span><b>Call online</b><small>Dal computer: microfono + audio della scheda di Meet o Teams.</small></span></label>
+<label class="mt-source" id="mt-source-phone"><input type="radio" name="mt-source" value="phone"><span><b>Telefonata</b><small>RADIX chiama prima te, poi collega l’altra persona e registra.</small></span></label>
 <label class="mt-source"><input type="radio" name="mt-source" value="file"><span><b>Carica un audio</b><small>Un memo vocale o la registrazione di Teams già fatta.</small></span></label>
 </fieldset>
 <p class="mt-hint" id="mt-hint-call" hidden>Al via scegli la scheda della call (Meet, Teams o Zoom nel browser) e spunta «Condividi audio della scheda». Con le cuffie la tua voce arriva pulita dal microfono.</p>
@@ -29,6 +30,11 @@
 <div class="mt-time" id="mt-time" aria-live="off">00:00</div>
 <div class="mt-level" aria-hidden="true"><i id="mt-level"></i></div>
 <div class="mt-row"><button type="button" class="mt-btn" id="mt-pause" hidden>Pausa</button><button type="button" class="mt-btn mt-primary" id="mt-stop" hidden>Termina</button></div>
+</div>
+<div id="mt-phone-box" hidden>
+<div class="mt-grid"><label class="mt-field">Numero da chiamare<input id="mt-to" type="tel" inputmode="tel" autocomplete="off" maxlength="25" placeholder="+39 333 1234567"></label>
+<label class="mt-field">Il tuo cellulare (squilla per primo)<input id="mt-me" type="tel" inputmode="tel" autocomplete="tel" maxlength="25" placeholder="+39 …"></label></div>
+<div class="mt-row" style="margin-top:12px"><button type="button" class="mt-btn mt-primary" id="mt-call" disabled>Chiama</button><span class="mt-muted" id="mt-call-cost"></span></div>
 </div>
 <div id="mt-file-box" hidden><label class="mt-field">File audio (MP3, M4A, WAV, WEBM)<input type="file" id="mt-file" accept="audio/*,video/mp4,video/webm,.m4a,.mp3,.wav,.webm,.ogg,.aac,.flac"></label></div>
 <p class="mt-status" id="mt-rec-status" role="status" aria-live="polite"></p>
