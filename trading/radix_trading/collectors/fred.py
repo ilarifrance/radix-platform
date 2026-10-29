@@ -13,7 +13,7 @@ import pandas as pd
 from .http import get
 
 API = "https://fred.stlouisfed.org/graph/fredgraph.csv"
-DEFAULT_SERIES = ("DGS10", "DGS2", "T10Y2Y", "VIXCLS", "BAMLH0A0HYM2", "DTWEXBGS")
+DEFAULT_SERIES = ("DGS10", "DGS2", "T10Y2Y", "VIXCLS", "BAMLH0A0HYM2", "DTWEXBGS", "DFII10", "T10YIE")
 
 
 def parse_csv(text: str, series: str) -> pd.Series:

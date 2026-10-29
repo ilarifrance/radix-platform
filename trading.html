@@ -216,7 +216,7 @@ function lineChart(box,series,{format=v=>V.num(v,2),dates,tick=d=>d.slice(0,7)}=
 function renderKpis(s){
  const a=s.account;
  $('kEquity').textContent=V.eur(a.equity,2);
- $('kEquitySub').textContent=a.change==null?'Parte da 1.000 €':V.pct(a.change)+' da 1.000 €';
+ $('kEquitySub').textContent=(a.change==null?'Parte da 1.000 €':V.pct(a.change)+' da 1.000 €')+(a.reserve>0?' · messi da parte '+V.eur(a.reserve,2):'');
  $('kEquitySub').className='sub '+signed(a.change);
  $('kPassed').textContent=s.passed+' su '+s.tests;
  $('kFills').textContent=String(s.fills);

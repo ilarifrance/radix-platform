@@ -155,6 +155,7 @@ def test_research_lockbox_and_trials(tmp_path, monkeypatch):
         c = 100 * np.exp(np.cumsum(rng.normal(0.0003, 0.01, len(idx))))
         st.upsert_bars("yahoo", s, "1d", pd.DataFrame({"open": c, "high": c, "low": c, "close": c, "volume": 1.0}, index=idx))
     monkeypatch.setattr(research, "HOURLY_FAMILIES", {})
+    monkeypatch.setattr(research, "MACRO_FAMILIES", {})
     monkeypatch.setattr(research, "DAILY_FAMILIES", {"ma_cross": research.DAILY_FAMILIES["ma_cross"],
                                                      "dual_momentum": research.DAILY_FAMILIES["dual_momentum"]})
     out = research.run(st, target_cagr=-1.0, target_dd=-1.0)  # obiettivo largo: tutte finaliste

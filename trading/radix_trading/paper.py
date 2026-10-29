@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS decisions (
     action TEXT NOT NULL, notional REAL, reasons TEXT
 );
 CREATE TABLE IF NOT EXISTS paper_equity (ts TEXT PRIMARY KEY, equity REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS paper_reserve (id INTEGER PRIMARY KEY CHECK (id = 1), amount REAL NOT NULL);
 """
 
 
@@ -183,9 +184,30 @@ class PaperEngine:
         self.db.commit()
         return {"units": units, "price": px, "fee": fee, "stop": stop_price or 0.0}
 
+    def reserve(self) -> float:
+        row = self.db.execute("SELECT amount FROM paper_reserve").fetchone()
+        return float(row[0]) if row else 0.0
+
+    def sweep(self, prices: dict) -> float:
+        """Idea di Francesco: ogni giorno si riparte dal capitale iniziale. Il guadagno sopra il
+        capitale (se c'e' liquidita') va in una riserva; nei giorni sotto il capitale la riserva
+        lo rimette. Restituisce lo spostamento (positivo = messo da parte)."""
+        base = self.settings.limits.capital_eur
+        eq = self.state(prices).equity_eur
+        cash = self.db.execute("SELECT cash FROM paper_account").fetchone()[0]
+        res = self.reserve()
+        move = min(eq - base, cash) if eq > base else -min(base - eq, res)
+        if abs(move) < 0.01:
+            return 0.0
+        self.db.execute("UPDATE paper_account SET cash = cash - ?, peak = peak - ?", (move, move))
+        self.db.execute("INSERT OR REPLACE INTO paper_reserve VALUES (1, ?)", (res + move,))
+        self.db.commit()
+        return move
+
     def _roll_day(self, now: datetime, prices: dict) -> None:
         day = now.strftime("%Y-%m-%d")
         if self.db.execute("SELECT day FROM paper_account").fetchone()[0] != day:
+            self.sweep(prices)
             eq = self.state(prices).equity_eur
             self.db.execute("UPDATE paper_account SET day = ?, day_start = ?", (day, eq))
             self.db.commit()
@@ -211,7 +233,9 @@ def report(store: Store, days: int = 7) -> dict:
         " ORDER BY ts DESC LIMIT 60", db)
     equity = db.execute("SELECT ts, equity FROM paper_equity WHERE ts >= ? ORDER BY ts", (since,)).fetchall()
     positions = db.execute("SELECT key, units, entry_price, stop_price FROM paper_positions").fetchall()
+    reserve = db.execute("SELECT amount FROM paper_reserve").fetchone()
     return {
+        "riserva": round(reserve[0], 2) if reserve else 0.0,
         "cassa": round(acc[0], 2) if acc else None,
         "picco": round(acc[1], 2) if acc else None,
         "patrimonio": round(equity[-1][1], 2) if equity else (round(acc[0], 2) if acc else None),

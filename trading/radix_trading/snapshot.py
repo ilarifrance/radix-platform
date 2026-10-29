@@ -29,6 +29,8 @@ MACRO_LABELS = {
     "T10Y2Y": "Curva 10 anni meno 2 anni",
     "BAMLH0A0HYM2": "Spread obbligazioni high yield",
     "DTWEXBGS": "Indice del dollaro",
+    "DFII10": "Tasso reale 10 anni (al netto dell'inflazione)",
+    "T10YIE": "Inflazione attesa a 10 anni",
 }
 
 

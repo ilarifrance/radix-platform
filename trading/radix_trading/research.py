@@ -20,7 +20,7 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from . import backtest, data, strategies, universe, validation
+from . import backtest, data, multi, strategies, universe, validation
 from .store import Store
 
 LOCKBOX_DAYS = 365
@@ -122,7 +122,18 @@ NAMES = {
     "ma_cross": "Incrocio di medie", "dual_momentum": "Rotazione momentum", "rsi_dip": "Acquisto sui cali",
     "inverse_vol_trend": "Portafoglio diversificato con trend", "breakout_daily": "Rottura dei massimi (giorni)",
     "crash_guard": "Compra e tieni con protezione",
+    "trend_brake": "Trend crypto con freno allo scoperto", "gold_macro": "Oro con segnali macro",
+    "risk_switch": "Azioni o obbligazioni secondo la paura (VIX)", "portafoglio_multi": "Portafoglio di piu' strategie",
 }
+# Piu' strade insieme (multi.py): scoperto solo con calo probabile, macro, e il portafoglio che le unisce.
+BRAKE_GRID = {"fast": [24 * 10], "slow": [24 * 50, 24 * 100], "vol_target": [0.25, 0.5], "short_size": [0.25, 0.5]}
+MACRO_FAMILIES = {
+    "materie_prime": ("gold_macro", multi.gold_macro, {"trend": [100, 200], "lookback": [20, 60, 120]}),
+    "etf": ("risk_switch", multi.risk_switch, {"vix_window": [126, 252], "trend": [100, 200]}),
+}
+# Le corsie del portafoglio: per ognuna si prende la versione migliore trovata dalla ricerca.
+PORTFOLIO_LANES = [("crypto_trend_daily", "crypto"), ("trend_brake", "crypto"),
+                   ("gold_macro", "materie_prime"), ("risk_switch", "etf")]
 
 
 @dataclass
@@ -151,6 +162,7 @@ def _daily_crypto(store: Store) -> pd.DataFrame:
 
 def candidates(store: Store) -> list[Candidate]:
     out = []
+    macro = multi.load_macro(store)
     for m, mk in universe.MARKETS.items():
         closes = {s: data.load_close(store, mk, s) for s in mk["symbols"]}
         close = pd.DataFrame({s: c for s, c in closes.items() if len(c)}).dropna(how="all").ffill()
@@ -159,7 +171,11 @@ def candidates(store: Store) -> list[Candidate]:
         costs = backtest.Costs.named(mk["costs"])
         capitals = [mk["capital_eur"]] + ([c for c in CAPITAL_SCENARIOS if c != mk["capital_eur"]]
                                           if costs.min_fee_eur > 0 else [])
-        for fam, (fn, grid) in DAILY_FAMILIES.items():
+        fams = dict(DAILY_FAMILIES)
+        if m in MACRO_FAMILIES:
+            name, fn, grid = MACRO_FAMILIES[m]
+            fams[name] = (multi.with_macro(fn, macro), grid)
+        for fam, (fn, grid) in fams.items():
             for cap in capitals:
                 out.append(Candidate(fam, m, "1d", fn, grid, close, costs, cap, mk["min_trade"]))
     crypto_d = _daily_crypto(store)
@@ -173,6 +189,8 @@ def candidates(store: Store) -> list[Candidate]:
         for fam, (fn, grid) in HOURLY_FAMILIES.items():
             costs = backtest.Costs.kraken_maker() if fam in strategies.DAILY_DECISION else backtest.Costs.kraken()
             out.append(Candidate(fam, "crypto", "1h", fn, grid, crypto_h, costs, 100.0, 0.0))
+        out.append(Candidate("trend_brake", "crypto", "1h", multi.trend_brake, BRAKE_GRID, crypto_h,
+                             backtest.Costs.kraken_short(), 100.0, 0.0))
     return out
 
 
@@ -218,7 +236,10 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
         rows.append({"famiglia": c.family, "nome": NAMES.get(c.family, c.family), "mercato": c.market,
                      "timeframe": c.timeframe, "capitale": c.capital, "combinazioni": _grid_size(c.grid), "ricerca": s,
                      "dsr": validation.deflated_sharpe(search, total_trials),
-                     "parametri_ultimi": wf.folds[-1]["params"], "_lock": lock})
+                     "parametri_ultimi": wf.folds[-1]["params"], "_lock": lock, "_returns": r})
+    port = _portfolio(rows, lockbox_days, total_trials)
+    if port:
+        rows.append(port)
     ok = [r for r in rows if "ricerca" in r and "annuo" in r["ricerca"]]
     ok.sort(key=lambda r: r["dsr"], reverse=True)
     meets = [r for r in ok if r["ricerca"]["annuo"] >= target_cagr and r["ricerca"]["max_drawdown"] >= target_dd]
@@ -229,6 +250,7 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
         r["supera_anno_chiuso"] = bool(lk.get("annuo", -1) >= target_cagr and lk.get("max_drawdown", -1) >= target_dd)
     for r in rows:
         r.pop("_lock", None)
+        r.pop("_returns", None)
     return {
         "obiettivo": {"annuo": target_cagr, "max_drawdown": target_dd, "anno_chiuso_giorni": lockbox_days},
         "combinazioni_totali": total_trials,
@@ -238,6 +260,29 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
         "finaliste": final,
         "errori": [r for r in rows if "errore" in r],
     }
+
+
+def _portfolio(rows: list[dict], lockbox_days: int, total_trials: int) -> dict | None:
+    """Unisce le corsie migliori con il direttore (multi.allocate) e lo valuta come una strategia."""
+    picked = {}
+    for fam, market in PORTFOLIO_LANES:
+        cands = [r for r in rows if r.get("famiglia") == fam and r.get("mercato") == market and "_returns" in r]
+        if cands:
+            best = max(cands, key=lambda r: r["dsr"])
+            picked[f"{fam}@{market}"] = best
+    if len(picked) < 2:
+        return None
+    r, _ = multi.allocate({k: v["_returns"] for k, v in picked.items()})
+    if len(r) < 60:
+        return None
+    cut = r.index[-1] - pd.Timedelta(days=lockbox_days)
+    search, lock = r[r.index <= cut], r[r.index > cut]
+    if len(search) < 30:
+        return None
+    return {"famiglia": "portafoglio_multi", "nome": NAMES["portafoglio_multi"], "mercato": "multi",
+            "timeframe": "1d", "capitale": 1000.0, "combinazioni": 0, "ricerca": _summary(search, "1d", "multi"),
+            "dsr": validation.deflated_sharpe(search, total_trials),
+            "parametri_ultimi": {"corsie": sorted(picked)}, "_lock": lock, "_returns": r}
 
 
 def save(settings, result: dict) -> None:

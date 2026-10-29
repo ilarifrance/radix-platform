@@ -28,6 +28,17 @@ tutte quelle prove. `hourly` scarica lo storico al minuto da Binance (120 mila m
 prova con due livelli di costo (Kraken e un exchange economico). Non e' ancora nel conto simulato: serve un
 giro ogni minuto, da aggiungere solo se supera il cancello 1.
 
+## Piu' strade insieme
+
+`multi.py`: trend crypto con "freno" allo scoperto (short piccolo solo quando trend giu', rottura dei minimi
+di 20 giorni e volatilita' in salita concordano; esce al primo rimbalzo; funding dei perpetui stimato al
+10% l'anno), oro con segnali macro (tassi reali e dollaro, con un giorno di ritardo), azioni o obbligazioni
+secondo VIX e spread high yield, e un "direttore" che divide il capitale tra le corsie in base al rischio
+recente. La ricerca (`research`) valuta anche il portafoglio intero (`portafoglio_multi`).
+Nel conto simulato, ogni giorno il guadagno sopra il capitale iniziale va in una riserva che copre i giorni
+sotto il capitale (`PaperEngine.sweep`). Lo scoperto vale solo nei backtest: il conto simulato resta
+solo in acquisto.
+
 ## Pannello in RADIX
 
 Ogni ora `hourly` (e ogni sera `daily`) manda una fotografia dei risultati alla pagina **Trading** di RADIX

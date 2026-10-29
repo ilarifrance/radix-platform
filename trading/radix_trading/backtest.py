@@ -24,6 +24,8 @@ class Costs:
     fee_bps: float = 10.0       # commissione proporzionale (0,10%)
     slippage_bps: float = 5.0   # spread + slittamento stimato
     min_fee_eur: float = 0.0    # commissione minima per ordine (es. 1.0 su IBKR azioni)
+    allow_short: bool = False   # pesi negativi (scoperto) ammessi solo se il mercato lo permette
+    short_bps_year: float = 0.0 # costo annuo per tenere lo scoperto (funding dei perpetui, prestito titoli)
 
     @classmethod
     def kraken(cls) -> "Costs":
@@ -54,6 +56,12 @@ class Costs:
         return cls(fee_bps=0.2, slippage_bps=1.0, min_fee_eur=1.9)
 
     @classmethod
+    def kraken_short(cls) -> "Costs":
+        # Acquisti come `kraken_maker`; lo scoperto con i perpetui Kraken Futures. Commissioni
+        # tenute prudenti (0,25% su tutto) e funding stimato al 10% l'anno sulla parte short.
+        return cls(fee_bps=25.0, slippage_bps=5.0, min_fee_eur=0.0, allow_short=True, short_bps_year=1000.0)
+
+    @classmethod
     def named(cls, name: str) -> "Costs":
         return getattr(cls, name)()
 
@@ -79,9 +87,9 @@ def run(
     (banda di non intervento), cosi' i piccoli ritocchi non pagano la commissione minima."""
     close = _frame(prices)
     w = _frame(target_weights).reindex(close.index).reindex(columns=close.columns).fillna(0.0)
-    w = w.clip(lower=0.0)
-    gross = w.sum(axis=1)
-    w = w.div(gross.where(gross > 1.0, 1.0), axis=0)  # mai oltre il 100% del capitale
+    w = w.clip(lower=-1.0 if costs.allow_short else 0.0, upper=1.0)
+    gross = w.abs().sum(axis=1)
+    w = w.div(gross.where(gross > 1.0, 1.0), axis=0)  # mai oltre il 100% del capitale, niente leva
 
     if min_trade > 0:
         w = _apply_band(w, min_trade)
@@ -95,6 +103,8 @@ def run(
     # La commissione minima sostituisce quella proporzionale quando e' piu' alta.
     fee_only = trades.sum(axis=1) * costs.fee_bps / 1e4
     cost = prop_cost + (min_cost - fee_only).clip(lower=0.0)
+    if costs.short_bps_year:
+        cost = cost + (-held.clip(upper=0.0)).sum(axis=1) * costs.short_bps_year / 1e4 / PERIODS_PER_YEAR[timeframe]
 
     net = gross_ret - cost
     equity = (1.0 + net).cumprod()
