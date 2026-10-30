@@ -85,6 +85,7 @@ def test_probability_filter_only_removes_entries():
     w = portfolio.lane_weights(lane, close, None)
     assert ((w == 0) | (w == base)).all().all()
     assert w.to_numpy().sum() <= base.to_numpy().sum()
+    assert w.to_numpy().sum() > 0  # il modello deve anche lasciar entrare
     out = replay.run(st, "2025-02-01", "2025-04-30", lanes=["crypto_trend_prob"], every_hours=6)
     assert set(out["quote_medie"]) == {"crypto_trend_prob"}
     assert "crypto_trend_prob" not in replay.run(st, "2025-04-01", "2025-04-10", every_hours=24)["quote_medie"]
