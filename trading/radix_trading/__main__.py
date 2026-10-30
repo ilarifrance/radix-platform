@@ -239,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--to", dest="until", default=None, help="solo per replay: ultimo giorno (vuoto = oggi)")
     p.add_argument("--capital", type=float, default=None, help="solo per replay: capitale iniziale in euro")
     p.add_argument("--max-loss", type=float, default=None, help="solo per replay: stop, es. 20 = vende tutto a -20 euro")
+    p.add_argument("--fee-share", type=float, default=portfolio.MAX_FEE_SHARE,
+                   help="solo per replay: commissione minima massima sull'ordine, es. 0.005; 0 = solo banda del 3%%")
     p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
@@ -311,7 +313,7 @@ def main(argv: list[str] | None = None) -> int:
             from . import replay
             since = args.since or (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=180)).strftime("%Y-%m-%d")
             study = replay.run(store, since, args.until, args.capital or portfolio.START_EUR, args.max_loss,
-                               args.lanes.split(",") if args.lanes else None)
+                               args.lanes.split(",") if args.lanes else None, fee_share=args.fee_share)
             name = "replay.json" if not args.lanes else f"replay-{args.lanes.replace(',', '-')}.json"
             (settings.data_dir / name).write_text(json.dumps(snapshot.clean(study), default=str, ensure_ascii=False))
             result = {k: v for k, v in study.items() if k != "andamento"}

@@ -65,3 +65,13 @@ def test_daily_bars_count_only_from_the_next_day(monkeypatch):
         close = st.conn.execute("SELECT ts, close FROM bars WHERE symbol = ? ORDER BY ts", (sym,)).fetchall()
         known = [c for t, c in close if pd.Timestamp(t).tz_convert("UTC") < day]
         assert abs(px - known[-1]) < 1e-9  # il prezzo usato e' la chiusura del giorno prima
+
+
+def test_min_fee_markets_trade_only_when_the_fee_is_small():
+    st = Store(":memory:")
+    pf = portfolio.Portfolio(st)
+    t0 = datetime(2026, 11, 2, 1, tzinfo=timezone.utc)
+    plan = lambda w: {"corsie": {"gold_macro": 1.0}, "pesi": {"GLD": w}, "prezzi": {"GLD": 100.0}, "sedi": {"GLD": "materie"}}
+    assert len(pf.step(t0, plan(0.30))["operazioni"]) == 1         # 300 euro: commissione 1,25 = 0,4%
+    assert pf.step(t0 + timedelta(hours=1), plan(0.40))["operazioni"] == []   # +100 euro: costerebbe 1,25%
+    assert len(pf.step(t0 + timedelta(hours=2), plan(0.0))["operazioni"]) == 1  # l'uscita completa si fa sempre

@@ -25,6 +25,7 @@ from .store import Store
 
 START_EUR = 1000.0
 BAND = 0.03
+MAX_FEE_SHARE = 0.005  # con la commissione minima fissa si opera solo se costa al massimo lo 0,5% dell'ordine
 ALLOCATION_DAYS = 400
 EVENT_LANES = {"cot_nasdaq": 0.20}   # quota del capitale quando la corsia e' attiva
 
@@ -145,9 +146,10 @@ class Portfolio:
     """`max_loss`: se cassa + posizioni + riserva scendono sotto `start - max_loss` si vende tutto e il
     conto resta fermo (tabella pf_halt) finche' qualcuno non lo riapre a mano."""
 
-    def __init__(self, store: Store, start: float = START_EUR, max_loss: float | None = None):
+    def __init__(self, store: Store, start: float = START_EUR, max_loss: float | None = None,
+                 fee_share: float = MAX_FEE_SHARE):
         self.store, self.db = store, store.conn
-        self.start, self.max_loss = start, max_loss
+        self.start, self.max_loss, self.fee_share = start, max_loss, fee_share
         self.db.executescript(SCHEMA)
         if self.db.execute("SELECT COUNT(*) FROM pf_account").fetchone()[0] == 0:
             self.db.execute("INSERT INTO pf_account VALUES (1, ?, 0, NULL)", (start,))
@@ -191,10 +193,11 @@ class Portfolio:
             want = weights.get(s, 0.0) * eq / px
             have = pos.get(s, (p["sedi"].get(s, ""), 0.0))[1]
             delta = want - have
-            if abs(delta * px) < BAND * eq and not (want == 0 and have != 0):
-                continue
             venue = p["sedi"].get(s) or pos.get(s, ("", 0))[0]
             costs = _costs_for(venue)
+            band = max(BAND * eq, costs.min_fee_eur / self.fee_share if self.fee_share > 0 else 0.0)
+            if abs(delta * px) < band and not (want == 0 and have != 0):
+                continue
             fee = max(abs(delta * px) * (costs.fee_bps + costs.slippage_bps) / 1e4, costs.min_fee_eur)
             cash -= delta * px + fee
             self.db.execute("INSERT OR REPLACE INTO pf_positions VALUES (?,?,?)", (s, venue, want))

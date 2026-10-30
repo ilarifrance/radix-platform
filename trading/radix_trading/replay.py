@@ -25,7 +25,8 @@ def _asof(df: pd.DataFrame, t: pd.Timestamp) -> dict:
 
 
 def run(store: Store, start: str, end: str | None = None, capital: float = portfolio.START_EUR,
-        max_loss: float | None = None, lanes: list[str] | None = None, every_hours: int = 1) -> dict:
+        max_loss: float | None = None, lanes: list[str] | None = None, every_hours: int = 1,
+        fee_share: float = portfolio.MAX_FEE_SHARE) -> dict:
     macro = multi.load_macro(store)
     cot = bigplayers.signals(store, "QQQ")
     t0 = pd.Timestamp(start, tz="UTC")
@@ -63,7 +64,7 @@ def run(store: Store, start: str, end: str | None = None, capital: float = portf
         return {"errore": "nessun dato nel periodo scelto"}
 
     sim = Store(":memory:")
-    pf = portfolio.Portfolio(sim, start=capital, max_loss=max_loss)
+    pf = portfolio.Portfolio(sim, start=capital, max_loss=max_loss, fee_share=fee_share)
     venues = {}
     for t in times:
         lane_w, prices = {}, {}
