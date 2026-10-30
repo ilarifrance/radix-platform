@@ -230,11 +230,16 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend", "bigplayers"])
+                                          "events", "candles", "weekend", "bigplayers", "replay"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
     p.add_argument("--minuto", action="store_true", help="solo per events: studio al minuto intorno a CPI, lavoro USA e Fed")
+    p.add_argument("--from", dest="since", default=None, help="solo per replay: primo giorno, es. 2026-04-01")
+    p.add_argument("--to", dest="until", default=None, help="solo per replay: ultimo giorno (vuoto = oggi)")
+    p.add_argument("--capital", type=float, default=None, help="solo per replay: capitale iniziale in euro")
+    p.add_argument("--max-loss", type=float, default=None, help="solo per replay: stop, es. 20 = vende tutto a -20 euro")
+    p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -302,6 +307,14 @@ def main(argv: list[str] | None = None) -> int:
             result |= {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica", "mercati", "errore")}
             result["legami"] = (study.get("legami") or [])[:15]
             result["migliori_non_corretti"] = (study.get("migliori_non_corretti") or [])[:6]
+        elif args.command == "replay":
+            from . import replay
+            since = args.since or (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=180)).strftime("%Y-%m-%d")
+            study = replay.run(store, since, args.until, args.capital or portfolio.START_EUR, args.max_loss,
+                               args.lanes.split(",") if args.lanes else None)
+            name = "replay.json" if not args.lanes else f"replay-{args.lanes.replace(',', '-')}.json"
+            (settings.data_dir / name).write_text(json.dumps(snapshot.clean(study), default=str, ensure_ascii=False))
+            result = {k: v for k, v in study.items() if k != "andamento"}
         elif args.command == "weekend":
             from . import weekend
             study = weekend.study(store)

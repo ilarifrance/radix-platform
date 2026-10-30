@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS pf_positions (symbol TEXT PRIMARY KEY, venue TEXT NOT
 CREATE TABLE IF NOT EXISTS pf_fills (ts TEXT NOT NULL, symbol TEXT NOT NULL, units REAL, price REAL, fee REAL, lane TEXT);
 CREATE TABLE IF NOT EXISTS pf_equity (ts TEXT PRIMARY KEY, equity REAL NOT NULL, reserve REAL NOT NULL);
 CREATE TABLE IF NOT EXISTS pf_lanes (ts TEXT NOT NULL, lane TEXT NOT NULL, weight REAL NOT NULL);
+CREATE TABLE IF NOT EXISTS pf_halt (id INTEGER PRIMARY KEY CHECK (id = 1), ts TEXT NOT NULL, total REAL NOT NULL);
 """
 
 
@@ -105,17 +106,27 @@ def plan(store: Store) -> dict:
             prices[s], venues[s] = float(close[s].dropna().iloc[-1]), venue
     if not lanes:
         return {"corsie": {}, "pesi": {}, "prezzi": prices, "sedi": venues, "obiettivo": {}}
+    share, target = combine(lanes, returns)
+    return {"corsie": share, "pesi": target, "prezzi": prices, "sedi": venues, "per_corsia": lanes}
+
+
+def combine(lanes: dict[str, dict], returns: dict[str, pd.Series] | None = None,
+            share: dict[str, float] | None = None) -> tuple[dict, dict]:
+    """Quote del direttore (da `returns`, oppure gia' date in `share`) e pesi totali per simbolo."""
+    lanes = dict(lanes)
     # le corsie "a evento" stanno quasi sempre ferme: fuori dal direttore, quota fissa solo quando attive
     events = {k: v for k, v in lanes.items() if k in EVENT_LANES}
     lanes = {k: v for k, v in lanes.items() if k not in EVENT_LANES}
-    returns = {k: v for k, v in returns.items() if k not in EVENT_LANES}
-    if len(returns) > 1:
-        _, alloc = multi.allocate(returns)
-        share = alloc.iloc[-1].fillna(0.0).to_dict()
-        if sum(share.values()) <= 0:
-            share = {k: 1 / len(lanes) for k in lanes}
-    else:
-        share = {k: 1.0 for k in lanes}
+    if share is None:
+        returns = {k: v for k, v in (returns or {}).items() if k not in EVENT_LANES}
+        if len(returns) > 1:
+            _, alloc = multi.allocate(returns)
+            share = alloc.iloc[-1].fillna(0.0).to_dict()
+        else:
+            share = {k: 1.0 for k in lanes}
+    share = {k: float(share.get(k, 0.0)) for k in lanes}
+    if lanes and sum(share.values()) <= 0:
+        share = {k: 1 / len(lanes) for k in lanes}
     for key, w in events.items():
         share[key] = 0.0
         if any(np.isfinite(x) and x for x in w.values()):
@@ -127,16 +138,23 @@ def plan(store: Store) -> dict:
         for s, x in w.items():
             if np.isfinite(x) and x:
                 target[s] = target.get(s, 0.0) + share.get(key, 0.0) * float(x)
-    return {"corsie": share, "pesi": target, "prezzi": prices, "sedi": venues, "per_corsia": lanes}
+    return share, target
 
 
 class Portfolio:
-    def __init__(self, store: Store):
+    """`max_loss`: se cassa + posizioni + riserva scendono sotto `start - max_loss` si vende tutto e il
+    conto resta fermo (tabella pf_halt) finche' qualcuno non lo riapre a mano."""
+
+    def __init__(self, store: Store, start: float = START_EUR, max_loss: float | None = None):
         self.store, self.db = store, store.conn
+        self.start, self.max_loss = start, max_loss
         self.db.executescript(SCHEMA)
         if self.db.execute("SELECT COUNT(*) FROM pf_account").fetchone()[0] == 0:
-            self.db.execute("INSERT INTO pf_account VALUES (1, ?, 0, NULL)", (START_EUR,))
+            self.db.execute("INSERT INTO pf_account VALUES (1, ?, 0, NULL)", (start,))
             self.db.commit()
+
+    def halted(self) -> bool:
+        return self.db.execute("SELECT COUNT(*) FROM pf_halt").fetchone()[0] > 0
 
     def positions(self) -> dict[str, tuple[str, float]]:
         return {s: (v, u) for s, v, u in self.db.execute("SELECT symbol, venue, units FROM pf_positions")}
@@ -159,12 +177,18 @@ class Portfolio:
             cash -= short * backtest.Costs.kraken_short().short_bps_year / 1e4 * hours / (24 * 365)
         self.db.execute("UPDATE pf_account SET cash = ?", (cash,))
         eq = self.equity(prices)
+        weights = p["pesi"]
+        if self.max_loss is not None and not self.halted() and eq + reserve <= self.start - self.max_loss:
+            self.db.execute("INSERT INTO pf_halt VALUES (1, ?, ?)", (ts, eq + reserve))
+        stopped = self.halted()
+        if stopped:
+            weights = {}
         trades = []
-        for s in sorted(set(p["pesi"]) | set(pos)):
+        for s in sorted(set(weights) | set(pos)):
             px = prices.get(s)
             if not px:
                 continue
-            want = p["pesi"].get(s, 0.0) * eq / px
+            want = weights.get(s, 0.0) * eq / px
             have = pos.get(s, (p["sedi"].get(s, ""), 0.0))[1]
             delta = want - have
             if abs(delta * px) < BAND * eq and not (want == 0 and have != 0):
@@ -185,7 +209,7 @@ class Portfolio:
         for k, w in p["corsie"].items():
             self.db.execute("INSERT INTO pf_lanes VALUES (?,?,?)", (ts, k, float(w)))
         self.db.commit()
-        return {"patrimonio": eq, "riserva": reserve, "operazioni": trades, "messi_da_parte": moved}
+        return {"patrimonio": eq, "riserva": reserve, "operazioni": trades, "messi_da_parte": moved, "fermo": stopped}
 
     def _sweep(self, prices: dict, now: datetime, last: str | None) -> float:
         """Una volta al giorno: sopra il capitale iniziale si mette da parte, sotto si attinge alla riserva."""
@@ -193,7 +217,7 @@ class Portfolio:
             return 0.0
         cash, reserve = self.db.execute("SELECT cash, reserve FROM pf_account").fetchone()
         eq = self.equity(prices)
-        move = min(eq - START_EUR, max(cash, 0.0)) if eq > START_EUR else -min(START_EUR - eq, reserve)
+        move = min(eq - self.start, max(cash, 0.0)) if eq > self.start else -min(self.start - eq, reserve)
         if abs(move) < 0.01:
             return 0.0
         self.db.execute("UPDATE pf_account SET cash = cash - ?, reserve = reserve + ?", (move, move))
