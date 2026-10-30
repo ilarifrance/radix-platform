@@ -319,8 +319,12 @@ def main(argv: list[str] | None = None) -> int:
             (settings.data_dir / name).write_text(json.dumps(snapshot.clean(study), default=str, ensure_ascii=False))
             result = {k: v for k, v in study.items() if k != "andamento"}
         elif args.command == "live":
-            from . import live
-            result = live.step(store, settings, prova=args.prova)
+            from . import alerts, live
+            try:
+                result = live.step(store, settings, prova=args.prova)
+            except Exception as e:  # ogni giro fallito arriva sul telefono, non solo nel log
+                alerts.send(f"{'[PROVA]' if args.prova else '[REALE]'} Giro non riuscito: {e}")
+                raise
         elif args.command == "alert-test":
             from . import alerts
             result = {"configurato": alerts.configured(),

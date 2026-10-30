@@ -101,3 +101,17 @@ def test_alert_text_and_missing_config(monkeypatch):
     monkeypatch.setattr(alerts, "env_value", lambda n: None)
     assert alerts.send("x") is False
     assert alerts.order_text("[finto]", "XBTEUR", -0.001, 60000, 0.1).startswith("[finto] Vendo 0.001 XBTEUR")
+
+
+def test_status_summary_on_first_run_and_every_three_hours(tmp_path, monkeypatch):
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    monkeypatch.setattr(live.portfolio, "lane_weights", lambda lane, close, macro: close * 0 + 0.0)
+    st, s = _store(), _settings(tmp_path, mode="live")
+    sent = []
+    live.step(st, s, FakeKraken({"ZEUR": 110.0}), now=datetime(2026, 10, 30, 22, 15, tzinfo=timezone.utc), send=sent.append)
+    assert any("Riepilogo" in m and "Stop a 90.00" in m for m in sent)
+    sent.clear()
+    live.step(st, s, FakeKraken({"ZEUR": 110.0}), now=datetime(2026, 10, 30, 23, 15, tzinfo=timezone.utc), send=sent.append)
+    assert not any("Riepilogo" in m for m in sent)
+    live.step(st, s, FakeKraken({"ZEUR": 110.0}), now=datetime(2026, 10, 31, 0, 15, tzinfo=timezone.utc), send=sent.append)
+    assert any(m.startswith("[REALE] Riepilogo 00:15") for m in sent)

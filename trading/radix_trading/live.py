@@ -35,6 +35,7 @@ MAX_LOSS_EUR = 20.0
 BAND = 0.03             # come il conto finto: non si ritocca sotto il 3% del capitale
 MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 euro le quote piccole sono ~3 euro
 MAX_ORDERS_PER_RUN = 10
+STATUS_EVERY_HOURS = 3   # un riepilogo su Telegram ogni 3 ore (e al primo giro), oltre agli avvisi per ogni ordine
 API = "https://api.kraken.com"
 
 SCHEMA = """
@@ -117,6 +118,17 @@ def targets(store: Store) -> tuple[dict[str, float], dict[str, float]]:
     return {s: float(x) for s, x in w.iloc[-1].items() if x == x}, prices
 
 
+def status_text(tag: str, now: datetime, equity: float, start: float, eur: float,
+                held: dict[str, float], prices: dict[str, float], halted: bool) -> str:
+    pos = [f"{s.removesuffix('EUR').replace('XBT', 'BTC')} {u * prices[s]:.2f} €"
+           for s, u in sorted(held.items()) if u * prices.get(s, 0) >= 0.5]
+    stop = start - MAX_LOSS_EUR
+    margin = equity - stop
+    return (f"{tag} Riepilogo {now:%H:%M} UTC: patrimonio {equity:.2f} € ({equity / start - 1:+.1%} dall'inizio), "
+            f"euro liberi {eur:.2f} €, posizioni: {', '.join(pos) or 'nessuna'}. "
+            + ("Conto FERMO per lo stop." if halted else f"Stop a {stop:.2f} € (margine {margin:.2f} €)."))
+
+
 def step(store: Store, settings: Settings, client: Kraken | None = None, prova: bool = False,
          now: datetime | None = None, send=alerts.send) -> dict:
     if not prova and settings.mode != "live":
@@ -183,8 +195,11 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         units = vol if side == "buy" else -vol
         send(alerts.order_text(tag, s, units, prices[s], 0.0) + ("" if not esito.startswith("errore") else f" — {esito}"))
         orders.append({"simbolo": s, "lato": side, "quantita": vol, "prezzo": prices[s], "esito": esito})
+    first = db.execute("SELECT COUNT(*) FROM live_equity").fetchone()[0] == 0
     if not prova:
         db.execute("INSERT OR REPLACE INTO live_equity VALUES (?, ?)", (ts, equity))
     db.commit()
+    if prova or first or now.hour % STATUS_EVERY_HOURS == 0:
+        send(status_text(tag, now, equity, start, eur, held, prices, halted))
     return {"prova": prova, "patrimonio": round(equity, 2), "inizio": round(start, 2), "euro": round(eur, 2),
             "fermo": halted, "pesi": {s: round(w, 4) for s, w in weights.items() if w}, "ordini": orders}
