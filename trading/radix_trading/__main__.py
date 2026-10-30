@@ -248,6 +248,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "daily":
                 # archivio notizie: qualche centinaio di giorni a sera finche' lo storico e' completo
                 result["raccolta"]["notizie"] = _safe(lambda: events.collect_news(store))
+                # posizioni CFTC: escono il venerdi', si scaricano quando l'ultimo rapporto ha piu' di 7 giorni
+                from . import bigplayers
+                if bigplayers.stale(store):
+                    result["raccolta"]["cftc"] = _safe(lambda: bigplayers.collect(store))
             curves: dict = {}
             result["backtest"] = run_backtests(store, curves)
             day = _safe(lambda: run_intraday(store, curves))

@@ -62,3 +62,15 @@ def test_cot_long_holds_after_signal_monday():
     w = multi.cot_long(close, cot_frame, hold=10)
     on = w.index[w["QQQ"] > 0]
     assert on[0].strftime("%m-%d") == "01-08" and len(on) == 10 and (w["SPY"] == 0).all()
+
+
+def test_signals_index_and_stale():
+    st = Store(":memory:")
+    assert bigplayers.stale(st)
+    st.conn.executescript(bigplayers.SCHEMA)
+    days = pd.date_range("2020-01-07", periods=120, freq="7D")
+    st.conn.executemany("INSERT INTO cot VALUES (?,?,?,?,?)",
+                        [(d.date().isoformat(), "QQQ", 1.0, float(i % 5), 0.0) for i, d in enumerate(days)])
+    sig = bigplayers.signals(st, "QQQ")
+    assert isinstance(sig.index, pd.DatetimeIndex) and sig.index[0].dayofweek == 0
+    assert {"spec_z", "comm_z"} <= set(sig.columns)

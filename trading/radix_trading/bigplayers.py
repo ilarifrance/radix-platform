@@ -53,6 +53,12 @@ def collect(store: Store, now: date | None = None) -> dict:
     return {"righe_per_anno": out, "errori": errors}
 
 
+def stale(store: Store, days: int = 7) -> bool:
+    store.conn.executescript(SCHEMA)
+    last = store.conn.execute("SELECT MAX(day) FROM cot").fetchone()[0]
+    return last is None or (pd.Timestamp.now(tz="UTC") - pd.Timestamp(last, tz="UTC")).days > days
+
+
 def _prices(store: Store) -> dict[str, pd.Series]:
     """Prezzi giornalieri dei mercati coperti dal rapporto (le valute contro il dollaro)."""
     px = {}
@@ -91,7 +97,7 @@ def signals(store: Store, symbol: str = "QQQ") -> pd.DataFrame:
     if not rows:
         return pd.DataFrame(columns=["spec_z", "comm_z"])
     df = pd.DataFrame(rows, columns=["day", "spec", "comm"])
-    df.index = (pd.to_datetime(df.pop("day"), utc=True) + pd.Timedelta(days=6)).normalize()
+    df.index = (pd.DatetimeIndex(pd.to_datetime(df.pop("day"), utc=True)) + pd.Timedelta(days=6)).normalize()
     return pd.DataFrame({"spec_z": _z(df["spec"]), "comm_z": _z(df["comm"])})
 
 
