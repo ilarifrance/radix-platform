@@ -26,6 +26,7 @@ from .store import Store
 START_EUR = 1000.0
 BAND = 0.03
 ALLOCATION_DAYS = 400
+EVENT_LANES = {"cot_nasdaq": 0.20}   # quota del capitale quando la corsia e' attiva
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pf_account (id INTEGER PRIMARY KEY CHECK (id = 1), cash REAL NOT NULL,
@@ -51,6 +52,8 @@ LANES = [
     Lane("trend_brake", "Trend crypto con freno allo scoperto", "crypto", backtest.Costs.kraken_short()),
     Lane("gold_macro", "Oro con segnali macro", "materie_prime", backtest.Costs.ibkr_equities()),
     Lane("risk_switch", "Azioni o obbligazioni secondo il VIX", "etf", backtest.Costs.ibkr_equities()),
+    # aggiunta il 30/10: segnale CFTC sul Nasdaq, regge i controlli ma con pochi casi recenti: si osserva
+    Lane("cot_nasdaq", "Nasdaq quando i grandi operatori lo indicano (CFTC)", "etf", backtest.Costs.ibkr_equities()),
 ]
 
 
@@ -68,7 +71,7 @@ def _closes(store: Store, market: str) -> tuple[pd.DataFrame, str, str]:
     return (df.dropna(how="all").ffill() if len(df) else df), venue, tf
 
 
-def lane_weights(lane: Lane, close: pd.DataFrame, macro: pd.DataFrame) -> pd.DataFrame:
+def lane_weights(lane: Lane, close: pd.DataFrame, macro: pd.DataFrame, cot: pd.DataFrame | None = None) -> pd.DataFrame:
     if lane.key == "crypto_trend":
         return strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=0.25)
     if lane.key == "trend_brake":
@@ -77,18 +80,22 @@ def lane_weights(lane: Lane, close: pd.DataFrame, macro: pd.DataFrame) -> pd.Dat
         return multi.gold_macro(close, macro, trend=100, lookback=60, vol_target=0.10)
     if lane.key == "risk_switch":
         return multi.risk_switch(close, macro, vix_window=252, trend=200)
+    if lane.key == "cot_nasdaq":
+        return multi.cot_long(close, cot, symbol="QQQ", edge=1.5, hold=10)
     raise KeyError(lane.key)
 
 
 def plan(store: Store) -> dict:
     """Pesi totali voluti per simbolo, quote del direttore e ultimi prezzi."""
     macro = multi.load_macro(store)
+    from . import bigplayers
+    cot = bigplayers.signals(store, "QQQ")
     lanes, returns, prices, venues = {}, {}, {}, {}
     for lane in LANES:
         close, venue, tf = _closes(store, lane.market)
         if close.empty or len(close) < 300:
             continue
-        w = lane_weights(lane, close, macro)
+        w = lane_weights(lane, close, macro, cot)
         recent = close.index[-1] - pd.Timedelta(days=ALLOCATION_DAYS)
         res = backtest.run(close[close.index >= recent - pd.Timedelta(days=150)],
                            w[w.index >= recent - pd.Timedelta(days=150)], tf, lane.costs)
@@ -98,6 +105,10 @@ def plan(store: Store) -> dict:
             prices[s], venues[s] = float(close[s].dropna().iloc[-1]), venue
     if not lanes:
         return {"corsie": {}, "pesi": {}, "prezzi": prices, "sedi": venues, "obiettivo": {}}
+    # le corsie "a evento" stanno quasi sempre ferme: fuori dal direttore, quota fissa solo quando attive
+    events = {k: v for k, v in lanes.items() if k in EVENT_LANES}
+    lanes = {k: v for k, v in lanes.items() if k not in EVENT_LANES}
+    returns = {k: v for k, v in returns.items() if k not in EVENT_LANES}
     if len(returns) > 1:
         _, alloc = multi.allocate(returns)
         share = alloc.iloc[-1].fillna(0.0).to_dict()
@@ -105,6 +116,12 @@ def plan(store: Store) -> dict:
             share = {k: 1 / len(lanes) for k in lanes}
     else:
         share = {k: 1.0 for k in lanes}
+    for key, w in events.items():
+        share[key] = 0.0
+        if any(np.isfinite(x) and x for x in w.values()):
+            share = {k: v * (1 - EVENT_LANES[key]) for k, v in share.items()}
+            share[key] = EVENT_LANES[key]
+        lanes[key] = w
     target: dict[str, float] = {}
     for key, w in lanes.items():
         for s, x in w.items():

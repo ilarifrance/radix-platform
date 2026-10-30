@@ -126,7 +126,7 @@ NAMES = {
     "risk_switch": "Azioni o obbligazioni secondo la paura (VIX)", "portafoglio_multi": "Portafoglio di piu' strategie",
     "portafoglio_rischio_costante": "Portafoglio a rischio costante",
     "ibs_reversion": "Rimbalzo dopo chiusura sul minimo", "turn_of_month": "Fine e inizio mese",
-    "tsmom": "Trend su piu' mercati", "pre_fomc": "Rialzo prima della Fed",
+    "tsmom": "Trend su piu' mercati", "crypto_trend_trailing": "Trend crypto con stop che segue il prezzo", "pre_fomc": "Rialzo prima della Fed",
 }
 # Piu' strade insieme (multi.py): scoperto solo con calo probabile, macro, e il portafoglio che le unisce.
 BRAKE_GRID = {"fast": [24 * 10], "slow": [24 * 50, 24 * 100], "vol_target": [0.25, 0.5], "short_size": [0.25, 0.5],
@@ -150,6 +150,8 @@ MULTI_FAMILIES = {"tsmom": (multi.tsmom, {"lookback": [63, 126, 252], "vol_targe
 FOMC_GRID = {"days_before": [1, 2]}
 LEVERAGE_TOP = 8
 LANE_MIN_SHARPE = 0.3
+TRAILING_GRID = {"fast": [24 * 10], "slow": [24 * 100], "vol_target": [0.25], "trail": [0.10, 0.15, 0.25],
+                 "take": [0.0, 0.10, 0.20]}
 # Le corsie del portafoglio: per ognuna si prende la versione migliore trovata dalla ricerca.
 PORTFOLIO_LANES = [("crypto_trend_daily", "crypto"), ("trend_brake", "crypto"),
                    ("gold_macro", "materie_prime"), ("risk_switch", "etf"),
@@ -231,6 +233,8 @@ def candidates(store: Store) -> list[Candidate]:
             out.append(Candidate(fam, "crypto", "1h", fn, grid, crypto_h, costs, 100.0, 0.0))
         out.append(Candidate("trend_brake", "crypto", "1h", multi.trend_brake, BRAKE_GRID, crypto_h,
                              backtest.Costs.kraken_short(), 100.0, 0.0))
+        out.append(Candidate("crypto_trend_trailing", "crypto", "1h", multi.crypto_trend_trailing, TRAILING_GRID,
+                             crypto_h, backtest.Costs.kraken_maker(), 100.0, 0.0))
     return out
 
 

@@ -58,7 +58,7 @@ def test_plan_and_snapshot_on_real_shaped_data(tmp_path):
     for s, v in (("VIXCLS", 18.0), ("DFII10", 1.5), ("DTWEXBGS", 120.0), ("BAMLH0A0HYM2", 3.5)):
         st.upsert_macro(s, pd.Series(v + rng.normal(0, 0.3, len(didx)), index=didx.tz_localize(None)))
     p = portfolio.plan(st)
-    assert set(p["corsie"]) == {"crypto_trend", "trend_brake", "gold_macro", "risk_switch"}
+    assert set(p["corsie"]) == {"crypto_trend", "trend_brake", "gold_macro", "risk_switch", "cot_nasdaq"}
     assert abs(sum(p["corsie"].values()) - 1) < 1e-6
     assert sum(abs(w) for w in p["pesi"].values()) <= 1 + 1e-9
     portfolio.Portfolio(st).step(p=p)
