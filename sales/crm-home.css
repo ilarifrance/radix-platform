@@ -1,0 +1,65 @@
+/* «Suggerimenti per oggi» on the CRM home (dashboard-view.js, rules in crm-home-core.js).
+   A white card: the colours follow the --crm-* tokens of the light theme (sales/crm-light.css)
+   and fall back to the same light values when that file is not loaded. */
+:root{
+ --ch-card:var(--crm-card,#fff);--ch-soft:var(--crm-soft,#f8f7fb);--ch-line:var(--crm-line,#e4e1ec);--ch-line-2:var(--crm-line-2,#cfcadb);
+ --ch-text:var(--crm-text,#1d1a27);--ch-muted:var(--crm-muted,#55516a);--ch-subtle:var(--crm-subtle,#6b6780);
+ --ch-accent:var(--crm-accent,#6d28d9);--ch-accent-soft:var(--crm-accent-soft,#f2ecfe);--ch-accent-line:var(--crm-accent-line,#d9c9fb);--ch-on-accent:var(--crm-on-accent,#fff);
+ --ch-err:var(--crm-err,#b42318);--ch-warn:var(--crm-warn,#a85b06);--ch-info:var(--crm-info,#1d4ed8);--ch-ok:var(--crm-ok,#15803d);--ch-ok-soft:var(--crm-ok-soft,#e9f7ef);
+ --ch-shadow:var(--crm-shadow,0 1px 2px #1d1a270a,0 4px 16px #1d1a270a);
+ --ch-font:var(--crm-font,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif)}
+
+.pv .ch{background:var(--ch-card);color:var(--ch-text);border:1px solid var(--ch-line);border-radius:14px;box-shadow:var(--ch-shadow);padding:16px 18px;min-width:0;font-family:var(--ch-font)}
+.pv .ch-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.pv .ch-head h3{margin:0;font-size:16px;font-weight:700;color:var(--ch-text)}
+.pv .ch-tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--ch-accent-soft);border:1px solid var(--ch-accent-line);color:var(--ch-accent)}
+.pv .ch-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pv .ch-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--ch-line);border-left:3px solid var(--ch-line-2);border-radius:10px;background:var(--ch-soft)}
+.pv .ch-item.u3{border-left-color:var(--ch-err)}
+.pv .ch-item.u2{border-left-color:var(--ch-warn)}
+.pv .ch-item.u1{border-left-color:var(--ch-info)}
+.pv .ch-text{display:grid;gap:2px;min-width:0;flex:1}
+.pv .ch-rule{font-size:11px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--ch-subtle)}
+.pv .ch-text b{font-size:14px;font-weight:600;color:var(--ch-text);overflow-wrap:anywhere}
+.pv .ch-why{font-size:12.5px;color:var(--ch-muted)}
+.pv .ch-value{font-size:12px;font-weight:600;color:var(--ch-text)}
+.pv .ch .ch-go{flex:none;min-height:34px;padding:6px 14px;border-radius:8px;border:1px solid var(--ch-accent);background:var(--ch-card);color:var(--ch-accent);font:600 13px/1.2 var(--ch-font);cursor:pointer;white-space:nowrap}
+.pv .ch .ch-go:hover{background:var(--ch-accent);color:var(--ch-on-accent)}
+.pv .ch .ch-go:focus-visible{outline:2px solid var(--ch-accent);outline-offset:2px}
+.pv .ch .ch-go:disabled{opacity:.6;cursor:not-allowed}
+.pv .ch-ok{display:grid;gap:2px;padding:12px 14px;border-radius:10px;background:var(--ch-ok-soft);border:1px solid var(--ch-line)}
+.pv .ch-ok b{color:var(--ch-ok);font-size:14px}
+.pv .ch-ok small{color:var(--ch-muted);font-size:12.5px}
+.pv .ch-note{margin:10px 0 0;font-size:11.5px;color:var(--ch-subtle)}
+.pv .ch-pulse{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px;font-size:12.5px;color:var(--ch-muted)}
+.pv .ch-chip{padding:2px 9px;border-radius:999px;border:1px solid var(--ch-line);background:var(--ch-soft)}
+.pv .ch-chip b{color:var(--ch-text)}
+.pv .ch-chip.late,.pv .ch-chip.late b{color:var(--ch-err)}
+.pv .ch-last{margin:0 0 10px;font-size:12px;color:var(--ch-subtle);overflow-wrap:anywhere}
+.pv .ch-link{display:inline-block;font-size:12.5px;color:var(--ch-accent)}
+.pv .ch-pulse .ch-link{margin-left:auto}
+.pv .ch>.ch-link{margin-top:8px}
+
+/* Panoramica without the side rail (its blocks are in the list above). */
+.pv.pv-solo{grid-template-columns:minmax(0,1fr)}
+/* «Primi passi» with every step done: one compact row. */
+.pv .pv-onboard.done{padding-top:12px;padding-bottom:12px}
+.pv .pv-onboard.done .pv-head{margin-bottom:0}
+.pv .pv-onboard-toggle{min-height:30px;padding:4px 10px;font-size:12px;background:none;border:1px solid var(--ch-line-2);color:inherit}
+
+/* «Promemoria» (sales.js) repeats the Panoramica list and the Attività view: hidden there.
+   Elsewhere, on a phone, only its summary line and link. */
+html[data-rx-view="dashboard"] #content>aside.reminder,html[data-rx-view="tasks"] #content>aside.reminder{display:none}
+@media (max-width:600px){#content>aside.reminder ul{display:none}#content>aside.reminder p{margin:2px 0}}
+.pv .ch .ch-all{display:none}
+@media (max-width:600px){
+ .pv .ch{padding:14px}
+ .pv .ch-item{align-items:flex-start;gap:8px;padding:9px 10px}
+ .pv .ch .ch-go{min-height:32px;padding:5px 10px;font-size:12px;white-space:normal;max-width:9.5em;text-align:center}
+ .pv .ch-pulse .ch-link{margin-left:0}
+ .pv .ch-list:not(.open) .ch-more{display:none}
+ .pv .ch .ch-all{display:block;width:100%;margin-top:8px;min-height:34px;border-radius:8px;border:1px solid var(--ch-line-2);background:var(--ch-card);color:var(--ch-accent);font:600 13px/1.2 var(--ch-font)}
+ /* Primi passi on a phone: only the steps still to do, without hints. */
+ .pv .pv-onboard-list li.done{display:none}
+ .pv .pv-onboard-list small{display:none}
+}

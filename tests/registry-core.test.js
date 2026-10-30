@@ -78,3 +78,24 @@ test('publication requests name one approved content version and a Buffer channe
  assert.throws(()=>core.publicationRequest({projectId:'radix',contentId:'c-1',revision:1,channelId:'x',mode:'now'}),/Modalità/);
  assert.match(core.SCHEMA.join('\n'),/UNIQUE \(project_id, content_id, revision, service\)/);
 });
+
+test('an approval survives a new revision that changes only the graphics', () => {
+ const editorial = require('../editorial-core.js');
+ const base = { title: 'T', channel: 'LinkedIn', date: '2026-10-24', time: '08:00', strategyRevision: 1 };
+ const item = { ...base, copy: 'Ciao', revision: 4, status: 'approved', history: [
+  { ...base, copy: 'Bozza', revision: 2, status: 'review' }, { ...base, copy: 'Ciao', revision: 3, status: 'approved' }] };
+ assert.deepEqual(editorial.sameWordRevisions(item), [4, 3]);
+ const record = { state: 'approved', fingerprint: core.fingerprint(editorial.approvalPayload({ ...item, revision: 3 })) };
+ const ok = editorial.sameWordRevisions(item).some(revision => core.approvalStatus(record, editorial.approvalPayload({ ...item, revision })) === 'approved');
+ assert.equal(ok, true);
+ const old = { state: 'approved', fingerprint: core.fingerprint(editorial.approvalPayload({ ...item, copy: 'Bozza', revision: 2 })) };
+ assert.equal(editorial.sameWordRevisions(item).some(revision => core.approvalStatus(old, editorial.approvalPayload({ ...item, revision })) === 'approved'), false);
+});
+
+test('an uploaded photo is kept on the content without a Higgsfield request',()=>{
+ const editorial=require('../editorial-core.js');
+ const state={briefApproved:true,strategyRevision:1,contents:[]};
+ const c=editorial.updateContent(state,{id:'p1',title:'Post',channel:'LinkedIn',copy:'Testo',photo:{source:'upload',headline:'Titolo',at:'2026-10-24T10:00:00Z',url:'javascript:x'}});
+ assert.deepEqual(c.photo,{source:'upload',headline:'Titolo',at:'2026-10-24T10:00:00Z'});
+ assert.equal(editorial.updateContent(state,{id:'p2',title:'Post',channel:'LinkedIn',copy:'x',photo:{source:'other'}}).photo,undefined);
+});

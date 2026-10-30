@@ -179,6 +179,22 @@ passo/risultato completo, reset di chat e pipeline.
 - `api/_db.js`, `api/_auth.js` — helper condivisi: connessione al database Postgres e logica di hashing
   password/sessione, usati da tutti gli endpoint sopra.
 - `package.json` — dichiara la dipendenza `@neondatabase/serverless` usata per parlare con il database.
+- `lib/print-studio.js` — **Studio Stampa** (card «Stampa e documenti» di `agency/crea.html`, nessuna chiamata AI):
+  biglietto da visita, flyer A5, flyer/locandina A4, locandine A3 e A2, roll-up 85 × 200 cm (gli ultimi 100 mm in
+  basso entrano nella base: lì solo sfondo), carta intestata A4 e brochure A4 a 3 ante a rullo (anta interna 97 mm,
+  segni di piega), ognuno in 3 layout (Classico, Deciso, Minimal) costruiti dal kit identità, con foto facoltativa.
+  Il **PDF per la tipografia** è «pronto per la tipografia (PDF/X-1a, verifica preflight)»: solo CMYK (palette
+  convertita con la formula semplice del pacchetto logo, valori correggibili a mano per colore; nero K100 per i
+  testi e nero ricco C60 M40 Y40 K100 per le grandi aree), inchiostro totale controllato (massimo 300%), nessuna
+  trasparenza, foto convertite in CMYK alla risoluzione che serve (300 dpi, 150 per il roll-up; sotto soglia il
+  download si blocca), testi convertiti in tracciati (`lib/print-glyphs.js`, contorni di un carattere tipo
+  Helvetica ricavati da Liberation Sans con `tools/print-glyphs/build.js`, licenza SIL OFL in
+  `lib/print-glyphs.LICENSE.txt`), abbondanza 3 mm, TrimBox e BleedBox, segni di taglio, `/OutputIntents`
+  GTS_PDFX con la condizione registrata FOGRA39 «Coated FOGRA39 (ISO 12647-2:2004)» indicata per nome. **Non
+  incorpora un profilo ICC** (non ne distribuiamo uno): prima di stampare la tipografia deve fare il suo
+  preflight. Il pannello «Controllo prestampa» (abbondanza, area sicura, solo CMYK, inchiostro, dpi, font) deve
+  essere tutto verde prima del download; il file viene riletto (`checkPdf`) prima di scaricarlo. Il PDF per il
+  web resta RGB con il testo in Helvetica.
 
 ## Come metterla online (o aggiornarla)
 

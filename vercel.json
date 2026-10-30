@@ -16,12 +16,50 @@
       "destination": "/api/integrations/heygen"
     },
     {
+      "source": "/api/higgsfield",
+      "destination": "/api/integrations/higgsfield"
+    },
+    {
       "source": "/api/openai-image",
       "destination": "/api/integrations/openai-image"
     },
     {
       "source": "/api/send-email",
       "destination": "/api/integrations/send-email"
+    },
+    {
+      "source": "/api/trading",
+      "destination": "/api/integrations/trading"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/meeting.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/integrations/send-queue",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/integrations/ped-stats",
+      "schedule": "0 5 * * *"
     }
   ]
 }
