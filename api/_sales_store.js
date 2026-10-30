@@ -42,8 +42,10 @@ function createStore(rawSql){
  customFields:createCustomFieldsStore(sql),
  workspaces:u=>sql('SELECT w.id,w.name,m.role FROM sales_workspaces w JOIN sales_memberships m ON m.workspace_id=w.id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND '+allowedRoles+' ORDER BY w.name,w.id',[u]),
  read:async(c,u)=>{
+   // Page size: 100 unless the request asked for more (api/_sales.js caps it at 500); a server integer, never user text.
+   const lim=Number.isSafeInteger(c.limit)&&c.limit>=1&&c.limit<=500?c.limit:100;
    const guard='EXISTS (SELECT 1 FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND m.user_id=$2 AND '+allowedRoles+')';
-   if(c.entity==='members')return sql('SELECT m.user_id AS id,u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND '+guard+' ORDER BY m.user_id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   if(c.entity==='members')return sql('SELECT m.user_id AS id,u.name,m.role FROM sales_memberships m JOIN users u ON u.id=m.user_id WHERE m.workspace_id=$1 AND '+guard+' ORDER BY m.user_id LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset]);
    if(c.entity==='customer360'){
      if(!['companies','contacts','opportunities'].includes(c.subject))throw new Error('invalid subject');
      // Root scope is checked inside this statement. Related lists do not depend on client-loaded pages.
@@ -70,23 +72,23 @@ function createStore(rawSql){
    // strpos avoids treating user %, _ or backslashes as LIKE wildcard syntax.
    if(c.search!==undefined){
     if(!['companies','contacts'].includes(c.entity)||typeof c.search!=='string'||c.search.length>200)throw new Error('invalid search');
-    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+vis.and(c.entity)+' AND strpos(lower(t.name),lower($4::text))>0 ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,c.search]);
+    return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+vis.and(c.entity)+' AND strpos(lower(t.name),lower($4::text))>0 ORDER BY t.id LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset,c.search]);
    }
    // Server transaction time; open tasks only in due buckets, before pagination.
    if(c.due!==undefined){
     const predicates={all:'TRUE',overdue:"t.status<> 'done' AND t.due_at<now()",upcoming:"t.status<> 'done' AND t.due_at>=now() AND t.due_at<now()+interval '168 hours'",unscheduled:"t.status<> 'done' AND t.due_at IS NULL"};
     if(c.entity!=='tasks'||!Object.hasOwn(predicates,c.due))throw new Error('invalid due filter');
-    return sql('SELECT t.* FROM sales_tasks t WHERE t.workspace_id=$1 AND '+guard+' AND ('+predicates[c.due]+')'+vis.and('tasks')+' ORDER BY t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+    return sql('SELECT t.* FROM sales_tasks t WHERE t.workspace_id=$1 AND '+guard+' AND ('+predicates[c.due]+')'+vis.and('tasks')+' ORDER BY t.due_at NULLS LAST,t.id LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset]);
    }
    // Explicit text cast prevents SQL DATE driver parsing from shifting a calendar date.
    // Support queue: open first, then by due date.
-   if(c.entity==='tickets')return sql("SELECT t.* FROM sales_tickets t WHERE t.workspace_id=$1 AND "+guard+vis.and('tickets')+" ORDER BY array_position(ARRAY['open','pending','resolved','closed'],t.status),t.due_at NULLS LAST,t.id LIMIT 100 OFFSET $3",[c.workspace,u,c.offset]);
+   if(c.entity==='tickets')return sql("SELECT t.* FROM sales_tickets t WHERE t.workspace_id=$1 AND "+guard+vis.and('tickets')+" ORDER BY array_position(ARRAY['open','pending','resolved','closed'],t.status),t.due_at NULLS LAST,t.id LIMIT "+lim+" OFFSET $3",[c.workspace,u,c.offset]);
    // Reserved rows («__regole__», «__sla__», «__visibilita__», api/_sales_reserved.js) are not contact segments: each is read only on request.
    if(c.entity==='segments')return c.reserved?sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))=$4 ORDER BY t.id LIMIT 1 OFFSET $3',[c.workspace,u,c.offset,c.reserved])
-    :sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))<>ALL($4::text[]) ORDER BY lower(t.name),t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset,reserved.NAMES]);
-   if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+vis.and('opportunities')+' ORDER BY t.id LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+    :sql('SELECT t.* FROM sales_segments t WHERE t.workspace_id=$1 AND '+guard+' AND lower(btrim(t.name))<>ALL($4::text[]) ORDER BY lower(t.name),t.id LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset,reserved.NAMES]);
+   if(c.entity==='opportunities')return sql('SELECT t.*,t.expected_close::text AS expected_close FROM sales_opportunities t WHERE t.workspace_id=$1 AND '+guard+vis.and('opportunities')+' ORDER BY t.id LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset]);
    // Identifier is from a frozen server allowlist; all user values remain parameters.
-   return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+vis.and(c.entity)+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT 100 OFFSET $3',[c.workspace,u,c.offset]);
+   return sql('SELECT t.* FROM sales_'+c.entity+' t WHERE t.workspace_id=$1 AND '+guard+vis.and(c.entity)+' ORDER BY '+(c.entity==='stages'?'t.position,t.id':'t.id')+' LIMIT '+lim+' OFFSET $3',[c.workspace,u,c.offset]);
  },
  memberCommand:async(c,u)=>{
    const messages={'unknown user':[404,'Nessun account RADIX con questa email: crealo prima dall\'amministrazione.'],'already member':[409,'Questa persona è già nel workspace.'],'last owner':[409,'Il workspace deve avere almeno un owner.'],'forbidden':[403,'Solo owner e admin gestiscono i membri; solo un owner assegna owner o admin.']};

@@ -7,7 +7,8 @@ const entities = Object.keys(names).filter(x => x !== 'dashboard');
 const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 // Interaction types as people read them (the stored value stays call/meeting/note/email).
 const INTERACTION_KINDS={note:'Nota',call:'Telefonata',meeting:'Incontro',email:'Email registrata'};
-const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
+const PAGE=500;// rows per list page (api/_sales.js caps at 500); «Carica altri» adds the next page
+const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0,page:PAGE};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
@@ -39,6 +40,7 @@ async function api(entity, options={}) {
  if(options.id)query.set('id',options.id);
  if(options.search!==undefined)query.set('search',options.search);
  if(options.due!==undefined)query.set('due',options.due);
+ if(options.limit)query.set('limit',String(options.limit));
  if(state.workspace && entity!=='workspaces')query.set('workspace',state.workspace);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
  try{
@@ -51,7 +53,7 @@ async function api(entity, options={}) {
 }
 async function load(entity, append=false){
  const generation=state.generation;const offset=append?state.offset[entity]:0;
- try{const data=await api(entity,{offset,...(entity==='tasks'?{due:state.taskDue}:{}),...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
+ try{const data=await api(entity,{offset,limit:PAGE,...(entity==='tasks'?{due:state.taskDue}:{}),...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length>0&&data.rows.length===(Number(data.limit)||100);delete state.errors[entity];}
  catch(e){if(!current(generation))throw e;state.errors[entity]=e.message;if(!append){state.rows[entity]=[];state.more[entity]=false;}throw e;}
 }
 async function reload(){
@@ -210,7 +212,7 @@ function render(){
   if(entity==='dashboard'){
    const stats=rows(entity)[0];if(stats){const metrics=el('div',undefined,'metrics');for(const key of ['companies','contacts','leads','opportunities','tasks','open_amount_cents']){const box=el('div',undefined,'metric');box.append(el('span',names[key] || 'Valore pipeline · valuta workspace'),el('strong',key==='open_amount_cents'?new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(stats[key] || 0)/100):stats[key] ?? '—'));metrics.append(box);}section.append(metrics);}else section.append(el('p','Indicatori server non disponibili.','muted'));
   }else{
-   if(state.more[entity])section.append(el('p','Elenco parziale: sono disponibili altre pagine.','muted'));
+   if(state.more[entity])section.append(el('p','Mostrati i primi '+rows(entity).length+': «Carica altri» qui sotto aggiunge i successivi.','muted'));
    if(entity==='tickets'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label','Assistenza · ticket per stato');
     Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=rows(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
@@ -229,7 +231,7 @@ function render(){
    else rows(entity).forEach(r=>section.append(card(entity,r)));
    window.RadixCrmTools?.section(entity,section);window.RadixCrmImportDeals?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
-   if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
+   if(state.more[entity])section.append(button('Carica altri · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
   root.append(section);
  }
