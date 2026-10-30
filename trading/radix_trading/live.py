@@ -33,7 +33,7 @@ from .store import Store
 CAPITAL_EUR = 100.0
 MAX_LOSS_EUR = 20.0
 BAND = 0.03             # come il conto finto: non si ritocca sotto il 3% del capitale
-MIN_ORDER_EUR = 5.0
+MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 euro le quote piccole sono ~3 euro
 MAX_ORDERS_PER_RUN = 10
 API = "https://api.kraken.com"
 
