@@ -217,6 +217,42 @@ def pre_fomc(close: pd.DataFrame, dates: pd.DatetimeIndex | None = None, days_be
     return w
 
 
+def crypto_trend_trailing(close: pd.DataFrame, fast: int = HOUR * 10, slow: int = HOUR * 100,
+                          vol_target: float = 0.25, trail: float = 0.15, take: float = 0.0,
+                          hour: int = 0) -> pd.DataFrame:
+    """Trend crypto con uscita all'inversione e stop che segue il prezzo (idea di Francesco, 30/10).
+
+    Entrata quando la media veloce supera la lenta; uscita quando il trend si gira oppure quando il
+    prezzo scende di `trail` sotto il massimo dall'entrata. Con `take` > 0 si incassa meta' della
+    posizione al primo +`take` dall'entrata e il resto corre. Dopo uno stop si rientra solo con un
+    nuovo incrocio al rialzo. Decisioni una volta al giorno all'ora `hour` UTC."""
+    on = (close.rolling(fast).mean() > close.rolling(slow).mean()).to_numpy()
+    vol = np.log(close).diff().rolling(HOUR * 30).std() * np.sqrt(HOUR * 365)
+    scale = (vol_target / vol).clip(upper=1.0).fillna(0.0).to_numpy()
+    px = close.to_numpy()
+    rows = np.flatnonzero(close.index.hour == hour)
+    n = close.shape[1]
+    w = np.full(close.shape, np.nan)
+    for j in range(n):
+        held, entry, peak, part, prev_on = False, 0.0, 0.0, 1.0, False
+        for i in rows:
+            p, sig = px[i, j], bool(on[i, j])
+            if not np.isfinite(p):
+                continue
+            if held:
+                peak = max(peak, p)
+                if not sig or p < peak * (1 - trail):
+                    held = False
+                elif take and part == 1.0 and p >= entry * (1 + take):
+                    part = 0.5
+            elif sig and not prev_on:
+                held, entry, peak, part = True, p, p, 1.0
+            prev_on = sig
+            x = part * scale[i, j] / n if held else 0.0
+            w[i, j] = round(x * 4 * n) / (4 * n)
+    return pd.DataFrame(w, index=close.index, columns=close.columns).ffill().fillna(0.0)
+
+
 def with_bars(fn, frame: pd.DataFrame, name: str = "ibs"):
     f = partial(fn, **{name: frame})
     f.__name__ = fn.__name__

@@ -69,3 +69,18 @@ def test_pre_fomc_holds_the_decision_day():
     w = multi.pre_fomc(close, pd.DatetimeIndex(["2024-03-20"]), days_before=1)
     held = w["SPY"].shift(1).fillna(0)
     assert [d.strftime("%m-%d") for d in held.index[held > 0]] == ["03-20"]
+
+
+def test_trailing_stop_exits_and_waits_for_new_cross():
+    idx = pd.date_range("2024-01-01", periods=24 * 60, freq="h", tz="UTC")
+    p = np.r_[np.linspace(100, 100, 24 * 10), np.linspace(100, 200, 24 * 20), np.linspace(200, 150, 24 * 5),
+              np.linspace(150, 210, 24 * 25)]
+    close = pd.DataFrame({"X": p}, index=idx)
+    w = multi.crypto_trend_trailing(close, fast=24, slow=24 * 5, vol_target=10.0, trail=0.15)
+    day = w["X"][w.index.hour == 0]
+    assert day.max() == 1.0
+    # nel calo da 200 a 150 si esce; si rientra solo dopo un nuovo incrocio al rialzo
+    assert day.loc["2024-01-31":"2024-02-06"].eq(0).any()
+    assert day.iloc[-1] == 1.0
+    half = multi.crypto_trend_trailing(close, fast=24, slow=24 * 5, vol_target=10.0, trail=0.5, take=0.2)
+    assert 0.5 in set(half["X"][half.index.hour == 0].round(2))
