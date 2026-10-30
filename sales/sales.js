@@ -7,7 +7,8 @@ const entities = Object.keys(names).filter(x => x !== 'dashboard');
 const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 // Interaction types as people read them (the stored value stays call/meeting/note/email).
 const INTERACTION_KINDS={note:'Nota',call:'Telefonata',meeting:'Incontro',email:'Email registrata'};
-const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0};
+const PAGE=500;// rows per list page (api/_sales.js caps at 500); «Carica altri» adds the next page
+const state = {me:null,workspace:null,workspaces:[],rows:{},more:{},offset:{},errors:{},search:{},taskDue:'all',busy:false,ready:false,generation:0,page:PAGE};
 let editing = null;
 let customer = null;
 const transitionKeys = new Map();
@@ -39,6 +40,7 @@ async function api(entity, options={}) {
  if(options.id)query.set('id',options.id);
  if(options.search!==undefined)query.set('search',options.search);
  if(options.due!==undefined)query.set('due',options.due);
+ if(options.limit)query.set('limit',String(options.limit));
  if(state.workspace && entity!=='workspaces')query.set('workspace',state.workspace);
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
  try{
@@ -51,7 +53,7 @@ async function api(entity, options={}) {
 }
 async function load(entity, append=false){
  const generation=state.generation;const offset=append?state.offset[entity]:0;
- try{const data=await api(entity,{offset,...(entity==='tasks'?{due:state.taskDue}:{}),...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length===100;delete state.errors[entity];}
+ try{const data=await api(entity,{offset,limit:PAGE,...(entity==='tasks'?{due:state.taskDue}:{}),...(state.search[entity]!==undefined?{search:state.search[entity]}:{})});if(!current(generation))return;state.rows[entity]=append?[...rows(entity),...data.rows.filter(r=>!rows(entity).some(old=>old.id===r.id))]:data.rows;state.offset[entity]=offset+data.rows.length;state.more[entity]=data.rows.length>0&&data.rows.length===(Number(data.limit)||100);delete state.errors[entity];}
  catch(e){if(!current(generation))throw e;state.errors[entity]=e.message;if(!append){state.rows[entity]=[];state.more[entity]=false;}throw e;}
 }
 async function reload(){
@@ -156,33 +158,9 @@ function taskDueControl(){
 const stageProbability=row=>rows('stages').find(s=>s.id===row.stage_id)?.probability??null;
 const ROLE_NAMES={owner:'Owner',admin:'Admin',member:'Membro',viewer:'Sola lettura'};
 // Owners/admins manage members; only an owner grants owner/admin (the server enforces the same rules).
-function memberControls(row,readonly){
- const out=[el('p','Ruolo: '+(ROLE_NAMES[row.role]||row.role)+(row.id===state.me?' · tu':''),'muted')];
- const mine=role();if(readonly||!state.ready||!['owner','admin'].includes(mine)||row.id===state.me)return out;
- if(mine!=='owner'&&['owner','admin'].includes(row.role))return out;
- const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
- const control=selectControl('Ruolo di '+title(row),choices,row.role);
- const save=button('Cambia ruolo',()=>{if(control.select.value!==row.role)memberMutate('update',{user_id:row.id,role:control.select.value},'Cambiare il ruolo di «'+title(row)+'» in '+ROLE_NAMES[control.select.value]+'?');});
- const remove=button('Rimuovi dal workspace',()=>memberMutate('remove',{user_id:row.id},'Rimuovere «'+title(row)+'» dal workspace? Le sue trattative e attività vanno prima riassegnate.'),'danger');
- const a=el('div',undefined,'actions');a.append(save,remove);out.push(control.wrap,a);return out;
-}
-function inviteControl(){
- const form=el('form',undefined,'invite');form.setAttribute('aria-label','Aggiungi un membro');
- const email=el('input');email.type='email';email.required=true;email.maxLength=254;email.placeholder='email dell’account RADIX';email.setAttribute('aria-label','Email');
- const mine=role();const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
- const control=selectControl('Ruolo',choices,'member');const submit=el('button','Aggiungi membro','primary');submit.type='submit';
- form.append(email,control.wrap,submit);form.append(el('p','La persona deve avere già un account RADIX: lo crea l’amministrazione. Nessuna email viene inviata.','muted'));
- form.addEventListener('submit',event=>{event.preventDefault();memberMutate('add',{email:email.value.trim(),role:control.select.value},'Aggiungere '+email.value.trim()+' come '+ROLE_NAMES[control.select.value]+'?');});
- return form;
-}
-async function memberMutate(action,data,confirmation){
- if(state.busy||!window.confirm(confirmation))return;
- lock(true);error('');notice('Salvataggio sul server…');
- let ok=false;
- try{await api('members',{body:{workspace:state.workspace,entity:'members',action,data}});ok=true;}
- catch(e){error(e.message);notice('Operazione non completata.');}
- finally{lock(false);}
- if(ok){await refresh(true);notice('Membri aggiornati.');}
+// Members are added, changed and removed in Impostazioni › Workspace e membri (impostazioni.html#membri): the CRM only lists them.
+function memberControls(row){
+ return [el('p','Ruolo: '+(ROLE_NAMES[row.role]||row.role)+(row.id===state.me?' · tu':''),'muted')];
 }
 // In-app reminder: my open tasks that are overdue or due within 24 hours.
 function reminderPanel(){
@@ -202,7 +180,7 @@ function render(){
  for(const [entity,label] of Object.entries(names)){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
   if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
-  if(entity==='members'&&state.ready&&['owner','admin'].includes(role()))section.append(inviteControl());
+  if(entity==='members'&&state.ready&&['owner','admin'].includes(role())){const a=el('a','Aggiungi membri e cambia ruoli in Impostazioni','crm-mb-link');a.href='/impostazioni.html?area=sales#membri';section.append(a)}
   if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
   if(entity==='tasks')section.append(taskDueControl());
   if(state.search[entity])section.append(el('p','Filtro nome attivo: '+state.search[entity]+' · ricerca su tutte le anagrafiche del workspace, prima della paginazione.','muted'));
@@ -210,7 +188,7 @@ function render(){
   if(entity==='dashboard'){
    const stats=rows(entity)[0];if(stats){const metrics=el('div',undefined,'metrics');for(const key of ['companies','contacts','leads','opportunities','tasks','open_amount_cents']){const box=el('div',undefined,'metric');box.append(el('span',names[key] || 'Valore pipeline · valuta workspace'),el('strong',key==='open_amount_cents'?new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(stats[key] || 0)/100):stats[key] ?? '—'));metrics.append(box);}section.append(metrics);}else section.append(el('p','Indicatori server non disponibili.','muted'));
   }else{
-   if(state.more[entity])section.append(el('p','Elenco parziale: sono disponibili altre pagine.','muted'));
+   if(state.more[entity])section.append(el('p','Mostrati i primi '+rows(entity).length+': «Carica altri» qui sotto aggiunge i successivi.','muted'));
    if(entity==='tickets'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label','Assistenza · ticket per stato');
     Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=rows(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
@@ -229,7 +207,7 @@ function render(){
    else rows(entity).forEach(r=>section.append(card(entity,r)));
    window.RadixCrmTools?.section(entity,section);window.RadixCrmImportDeals?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
-   if(state.more[entity])section.append(button('Carica altri 100 · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
+   if(state.more[entity])section.append(button('Carica altri · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
   root.append(section);
  }

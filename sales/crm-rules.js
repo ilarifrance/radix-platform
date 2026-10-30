@@ -36,10 +36,16 @@ function load(fresh){
  shared={ws,promise};return promise;
 }
 R.load=load;
-function panel(){
+/* Two faces of the same rules. mode 'proposals' (Attività › Automazioni): what each rule proposes now, «Applica», the
+   drafts and the «Registro»; the rules themselves are read-only there. mode 'settings' (Impostazioni › CRM): switch
+   rules on or off, add, edit and delete them; no counts, because that page does not load the CRM records. */
+function panel(options){
+ const mode=options&&options.mode==='settings'?'settings':'proposals',settings=mode==='settings';
  const st={row:null,list:[],loaded:false,quotes:[],quoteNote:'',tab:'regole',editing:null,openDrafts:new Set(),drafts:new Map()};
- const box=E('details',undefined,'panel crm-automations crm-rules');box.append(E('summary','Automazioni'));
- const intro=E('p','Le regole propongono attività e bozze email dai dati caricati: nulla parte da solo, confermi tu. Le attività all’ingresso in una fase si impostano anche sulla fase della pipeline.','muted');
+ const box=E('details',undefined,'panel crm-automations crm-rules'+(settings?' is-settings':''));box.append(E('summary',settings?'Regole delle automazioni':'Automazioni'));
+ const intro=settings?E('p','Le regole propongono attività e bozze email nel CRM (Attività › Automazioni): nulla parte da solo, chi lavora nel CRM conferma. Qui le attivi, le disattivi e ne aggiungi di tue; le attività all’ingresso in una fase si impostano sulla fase della pipeline.','muted')
+  :E('p','Le regole propongono attività e bozze email dai dati caricati: nulla parte da solo, confermi tu. Le regole si attivano e si modificano in Impostazioni › CRM.','muted');
+ if(!settings){const a=E('a','Impostazioni › CRM › Regole','crm-rules-settings-link');a.href='/impostazioni.html?area=sales#crm';intro.append(' ',a)}
  const tabs=E('div',undefined,'crm-rules-tabs');tabs.setAttribute('role','tablist');
  const body=E('div',undefined,'crm-rules-body');
  box.append(intro,tabs,body);
@@ -60,35 +66,36 @@ function panel(){
   if(ok){await load(true);a.notice(done||'Regole salvate.');draw()}else{await load(true);draw()}
   return ok;
  }
- function drawTabs(){tabs.replaceChildren();for(const [id,label] of [['regole','Regole'],['registro','Registro']]){const b=B(label,()=>{st.tab=id;st.editing=null;draw()},'crm-rules-tab');b.setAttribute('role','tab');b.setAttribute('aria-selected',String(st.tab===id));tabs.append(b)}}
+ function drawTabs(){tabs.replaceChildren();if(settings)return;for(const [id,label] of [['regole','Proposte'],['registro','Registro']]){const b=B(label,()=>{st.tab=id;st.editing=null;draw()},'crm-rules-tab');b.setAttribute('role','tab');b.setAttribute('aria-selected',String(st.tab===id));tabs.append(b)}}
  function draw(){drawTabs();body.replaceChildren();
   if(st.editing){body.append(editor(st.editing));return}
   if(st.tab==='registro'){body.append(registro());return}
   body.append(rulesList());
  }
  function rulesList(){
-  const wrap=E('div',undefined,'crm-rules-list'),runs=R.evaluate(st.list,data(),opts()),edit=canEdit();
+  // In Impostazioni the records are not loaded: the rules are listed without what they would propose.
+  const wrap=E('div',undefined,'crm-rules-list'),runs=settings?R.effective(st.list).map(rule=>({rule,items:[],skipped:[]})):R.evaluate(st.list,data(),opts()),edit=settings&&canEdit();
   if(st.quoteNote)wrap.append(E('p',st.quoteNote,'notice'));
   if(!st.loaded)wrap.append(E('p','Regole personalizzate non lette: sono attive le sei regole predefinite.','muted'));
   for(const runOne of runs){const rule=runOne.rule,n=runOne.items.length,email=!rule.builtin&&rule.do.type==='email';
    const row=E('div',undefined,'crm-rule'+(rule.on?'':' is-off'));row.dataset.rule=rule.id;
    const head=E('div',undefined,'crm-rule-head');head.append(E('strong',rule.name),E('span',rule.builtin?'predefinita':'personalizzata','crm-rule-kind'));
    const desc=E('span',rule.builtin?rule.description:R.describe(rule,data()),'muted crm-rule-desc');
-   const count=E('span',!rule.on?'Disattivata':n?(email?plural(n,'bozza email','bozze email'):plural(n,'attività da creare','attività da creare')):'Niente da fare','crm-rule-count');
+   const count=E('span',!rule.on?'Disattivata':settings?'Attiva':n?(email?plural(n,'bozza email','bozze email'):plural(n,'attività da creare','attività da creare')):'Niente da fare','crm-rule-count');
    if(runOne.skipped.length)desc.append(' · '+plural(runOne.skipped.length,'record già coperto','record già coperti')+' da un’altra regola.');
    const acts=E('div',undefined,'crm-rule-acts');
-   const toggle=E('input');toggle.type='checkbox';toggle.checked=rule.on;toggle.disabled=!edit||!st.loaded;
-   toggle.addEventListener('change',()=>{if(!window.confirm((toggle.checked?'Attivare':'Disattivare')+' la regola «'+rule.name+'» per tutto il workspace?')){toggle.checked=!toggle.checked;return}save(R.setOn(st.list,rule.id,toggle.checked),'Regola «'+rule.name+'» '+(toggle.checked?'attivata.':'disattivata.'))});
-   const sw=E('label',undefined,'crm-rule-switch');sw.append(toggle,E('span','Attiva'));sw.title=edit?'Attiva o disattiva per tutto il workspace':'Solo owner e admin cambiano le regole';
-   acts.append(sw);
-   if(email){const b=B(st.openDrafts.has(rule.id)?'Chiudi bozze':'Vedi bozze',()=>{st.openDrafts.has(rule.id)?st.openDrafts.delete(rule.id):st.openDrafts.add(rule.id);draw()});b.disabled=!rule.on||!n;acts.append(b)}
+   if(settings){const toggle=E('input');toggle.type='checkbox';toggle.checked=rule.on;toggle.disabled=!edit||!st.loaded;
+    toggle.addEventListener('change',()=>{if(!window.confirm((toggle.checked?'Attivare':'Disattivare')+' la regola «'+rule.name+'» per tutto il workspace?')){toggle.checked=!toggle.checked;return}save(R.setOn(st.list,rule.id,toggle.checked),'Regola «'+rule.name+'» '+(toggle.checked?'attivata.':'disattivata.'))});
+    const sw=E('label',undefined,'crm-rule-switch');sw.append(toggle,E('span','Attiva'));sw.title=edit?'Attiva o disattiva per tutto il workspace':'Solo owner e admin cambiano le regole';
+    acts.append(sw)}
+   else if(email){const b=B(st.openDrafts.has(rule.id)?'Chiudi bozze':'Vedi bozze',()=>{st.openDrafts.has(rule.id)?st.openDrafts.delete(rule.id):st.openDrafts.add(rule.id);draw()});b.disabled=!rule.on||!n;acts.append(b)}
    else{const b=B('Applica',()=>apply(rule.id),'primary');b.disabled=!rule.on||!n;acts.append(b)}
    if(edit&&!rule.builtin&&st.loaded){acts.append(B('Modifica',()=>{st.editing={...rule};draw()}),B('Elimina',()=>{if(window.confirm('Eliminare la regola «'+rule.name+'»? Le attività già create restano.'))save(R.remove(st.list,rule.id),'Regola eliminata.')},'danger'))}
    row.append(head,count,desc,acts);
    if(email&&rule.on&&st.openDrafts.has(rule.id))row.append(drafts(rule,runOne.items));
    wrap.append(row)}
   if(edit&&st.loaded){const add=B('Nuova regola',()=>{st.editing={id:R.newId(st.list),name:'',on:true,when:{type:'deal-stale',days:14},do:{type:'task',kind:'call',title:'',days:1,to:'owner'}};draw()},'primary');const bar=E('div',undefined,'actions crm-rules-add');bar.append(add,E('span','Massimo '+R.MAX_RULES+' regole personalizzate, da un elenco chiuso di eventi e azioni.','muted'));wrap.append(bar)}
-  else if(!edit)wrap.append(E('p','Le regole si configurano da owner e admin del workspace; tu puoi applicarne le proposte.','muted'));
+  else if(settings&&!edit)wrap.append(E('p','Le regole si configurano da owner e admin del workspace; tu puoi applicarne le proposte nel CRM.','muted'));
   return wrap;
  }
  async function apply(id){
@@ -148,6 +155,7 @@ function panel(){
    return {id:r.id,name:name.value.trim(),on:r.on!==false,when:w,do:d}};
   function preview(){const rule=build(),err=R.ruleError(rule);
    if(err){out.textContent=err;out.className='crm-rule-preview is-error';return}
+   if(settings){out.className='crm-rule-preview';out.textContent=R.describe(rule,data())+' Cosa proporrebbe oggi lo vedi nel CRM, Attività › Automazioni.';return}
    const n=R.planCustom(rule,data(),opts()).items.length;out.className='crm-rule-preview';out.textContent=R.describe(rule,data())+' Oggi proporrebbe '+(rule.do.type==='email'?plural(n,'bozza','bozze'):plural(n,'attività','attività'))+'.'}
   when.addEventListener('change',paintWhen);action.addEventListener('change',paintDo);form.addEventListener('input',preview);form.addEventListener('change',preview);
   const acts=E('div',undefined,'actions');
@@ -186,4 +194,5 @@ function panel(){
  return box;
 }
 R.panel=panel;
+R.settingsPanel=()=>panel({mode:'settings'});
 })(typeof globalThis!=='undefined'?globalThis:this);

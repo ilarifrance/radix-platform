@@ -73,7 +73,7 @@ async function sendMail(accessToken,{to,subject,text,unsubscribe},fetchImpl=fetc
 // cannot be ordered: Graph returns the most relevant first. Nothing is stored: the browser shows them and, on a click,
 // saves the chosen one as an interaction of the CRM.
 const FOLDERS=Object.freeze({inbox:'inbox',sent:'sentitems'});
-const SELECT='id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,bodyPreview,webLink,hasAttachments,conversationId';
+const SELECT='id,subject,from,toRecipients,ccRecipients,receivedDateTime,sentDateTime,bodyPreview,webLink,hasAttachments,conversationId,isRead';
 async function graphGet(accessToken,path,fetchImpl,extra){
  let r;try{r=await fetchImpl('https://graph.microsoft.com/v1.0'+path,{headers:{Authorization:'Bearer '+accessToken,...(extra||{})}})}catch{throw new MsError('Microsoft non raggiungibile in questo momento.','EMSNET')}
  const j=await r.json().catch(()=>({}));
@@ -81,7 +81,7 @@ async function graphGet(accessToken,path,fetchImpl,extra){
  return j}
 const person=x=>({name:String(x?.emailAddress?.name||'').slice(0,120),address:String(x?.emailAddress?.address||'').trim().toLowerCase().slice(0,254)});
 function shape(m){return {id:String(m.id||''),subject:String(m.subject||'').slice(0,300),from:person(m.from),to:(m.toRecipients||[]).slice(0,50).map(person),cc:(m.ccRecipients||[]).slice(0,50).map(person),
- at:m.receivedDateTime||m.sentDateTime||null,preview:String(m.bodyPreview||'').slice(0,300),link:/^https:\/\//.test(String(m.webLink||''))?String(m.webLink):null,attachments:!!m.hasAttachments,conversation:String(m.conversationId||'').slice(0,300)}}
+ at:m.receivedDateTime||m.sentDateTime||null,preview:String(m.bodyPreview||'').slice(0,300),link:/^https:\/\//.test(String(m.webLink||''))?String(m.webLink):null,attachments:!!m.hasAttachments,conversation:String(m.conversationId||'').slice(0,300),unread:m.isRead===false}}
 async function listMessages(accessToken,{folder='inbox',search='',skip=0},fetchImpl=fetch){
  const q=new URLSearchParams({$top:'25',$select:SELECT});
  if(search){q.set('$search','"'+search.replace(/["\\]/g,' ')+'"')}else{q.set('$orderby','receivedDateTime desc');if(skip)q.set('$skip',String(skip))}

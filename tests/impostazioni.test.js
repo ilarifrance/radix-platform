@@ -57,12 +57,12 @@ test('password rule: page and server give the same answer',()=>{
  assert.equal(core.passwordProblem({current:'a',password:'abcdefgh',confirm:'abcdefgh'}),'');
 });
 
-test('sections: six, deep-linkable by #hash, aliases and fallback to Profilo',()=>{
- assert.deepEqual(core.IDS,['profilo','membri','caselle','collegamenti','crm','crediti']);
+test('sections: seven, deep-linkable by #hash, aliases and fallback to Profilo',()=>{
+ assert.deepEqual(core.IDS,['profilo','membri','caselle','calendari','collegamenti','crm','crediti']);assert.equal(core.sectionFromHash('#calendars'),'calendari');
  assert.equal(core.sectionFromHash('#caselle'),'caselle');assert.equal(core.sectionFromHash('#crm?x=1'),'crm');assert.equal(core.sectionFromHash('#MEMBRI'),'membri');
  assert.equal(core.sectionFromHash('#members'),'membri');assert.equal(core.sectionFromHash('#mailboxes'),'caselle');assert.equal(core.sectionFromHash('#sla'),'crm');
  assert.equal(core.sectionFromHash(''),'profilo');assert.equal(core.sectionFromHash('#<script>'),'profilo');assert.equal(core.sectionFromHash(undefined),'profilo');
- assert.ok(core.SECTIONS.filter(s=>s.crm).map(s=>s.id).join()==='membri,caselle,crm');
+ assert.ok(core.SECTIONS.filter(s=>s.crm).map(s=>s.id).join()==='membri,caselle,calendari,crm');
 });
 test('collegamenti: every service of /api/integrations/status, booleans only, unknown state when unreadable',()=>{
  const server=require('../api/_integrations-status.js').SERVICES.map(s=>s.id).sort();
@@ -85,11 +85,11 @@ test('wiring: page, sidebars, mounted CRM modules, no inline code, no secrets',(
  const html=read('impostazioni.html');
  assert.ok(!/<script(?![^>]*src=)/.test(html),'no inline script');assert.ok(!/style="/.test(html),'no inline style');
  assert.match(html,/data-shell-page="impostazioni"/);assert.match(html,/Content-Security-Policy/);
- const order=['/shell/radix-shell.js','/lib/radix-workspace-client.js','/shell/settings-core.js','/sales/crm-custom-fields.js','/sales/crm-mailboxes.js','/sales/crm-visibility-core.js','/sales/crm-visibility.js','/sales/crm-sla-core.js','/sales/crm-sla.js','/shell/settings.js'];
+ const order=['/shell/settings-area.js','/shell/radix-shell.js','/lib/radix-workspace-client.js','/shell/settings-core.js','/sales/crm-custom-fields.js','/sales/crm-mailboxes.js','/sales/crm-visibility-core.js','/sales/crm-visibility.js','/sales/crm-sla-core.js','/sales/crm-sla.js','/sales/crm-dates-core.js','/sales/crm-freebusy-core.js','/sales/crm-calendars.js','/sales/crm-score-core.js','/sales/crm-automations-core.js','/sales/crm-rules-core.js','/sales/crm-rules.js','/shell/settings.js'];
  let at=-1;for(const s of order){const i=html.indexOf('src="'+s+'"');assert.ok(i>at,s);at=i}
- for(const css of ['/sales/crm-light.css','/sales/crm-mailboxes.css','/shell/settings.css'])assert.ok(html.includes('href="'+css+'"'),css);
+ for(const css of ['/sales/crm-light.css','/sales/crm-mailboxes.css','/sales/crm-calendars.css','/shell/settings.css'])assert.ok(html.includes('href="'+css+'"'),css);
  assert.match(read('shell/radix-shell.js'),/\{ id: 'impostazioni', text: 'Impostazioni', href: '\/impostazioni\.html'/);
- assert.match(read('sales/sales-nav.js'),/href: '\/impostazioni\.html', text: 'Impostazioni'/);assert.ok(fs.existsSync(path.join(__dirname,'../sales/icons/sliders.svg')));
+ assert.match(read('sales/sales-nav.js'),/href: '\/impostazioni\.html\?area=sales', text: 'Impostazioni'/);assert.ok(fs.existsSync(path.join(__dirname,'../sales/icons/sliders.svg')));
  assert.match(read('sales/crm-visibility.js'),/Object\.assign\(V,\{load,note,section,panel\}\)/);
  assert.match(read('sales/crm-sla.js'),/Object\.assign\(S,\{load,current,mount,section,settingsPanel\}\)/);
  const js=read('shell/settings.js');
@@ -99,4 +99,51 @@ test('wiring: page, sidebars, mounted CRM modules, no inline code, no secrets',(
  assert.ok(!/console\./.test(js)&&!/process\.env|API_KEY|sk-/.test(js+read('shell/settings-core.js')),'no logs, no keys');
  assert.ok(!/\.innerHTML\s*=/.test(js),'text only, no HTML injection');
  assert.match(read('sales/crm-tools.js'),/Gestisci le caselle in Impostazioni/);
+});
+
+test('area: from a Sales page Impostazioni keeps the Sales menu (query, referrer, tab memory); elsewhere the global shell',()=>{
+ const A=require('../shell/settings-area.js'),o='https://radix.test';
+ assert.equal(A.areaOf({search:'?area=sales'}),'sales');
+ assert.equal(A.areaOf({search:'?area=sales',referrer:o+'/control-center-v2.html',origin:o}),'sales','the query wins');
+ assert.equal(A.areaOf({search:'?area=system',referrer:o+'/sales-posta.html',origin:o,stored:'sales'}),'system');
+ for(const p of ['/sales-posta.html','/radix-sales.html','/lead-intelligence.html','/sales-orbit-higgsfield.html'])assert.equal(A.areaOf({referrer:o+p+'#x',origin:o}),'sales',p);
+ assert.equal(A.areaOf({referrer:'https://altro.test/sales-posta.html',origin:o}),'system','another origin does not count');
+ assert.equal(A.areaOf({referrer:o+'/control-center-v2.html',origin:o,stored:'sales'}),'sales','the tab remembers between sections');
+ assert.equal(A.areaOf({referrer:o+'/agency/projects.html',origin:o}),'system');assert.equal(A.areaOf({}),'system');
+ const js=read('shell/settings-area.js');
+ assert.match(js,/setAttribute\('data-rx-shell-off',''\)/);assert.match(js,/nav\.src='\/sales\/sales-nav\.js';side\.after\(nav\)/,'sales-nav.js reads the aside before it');
+ assert.match(js,/regia\.src='\/sales\/regia-loader\.js'/);assert.match(js,/sessionStorage\.setItem\('rx-settings-area',area\)/);
+ assert.match(read('shell/radix-shell.js'),/window\.__radixShell \|\| document\.documentElement\.hasAttribute\('data-rx-shell-off'\)\) return;/);
+ assert.match(read('shell/settings.css'),/body\.st-sales\{display:grid;grid-template-columns:220px minmax\(0,1fr\)/);
+ assert.match(read('sales/crm-tools.js'),/'\/impostazioni\.html\?area=sales#caselle'/);
+ assert.ok(!/console\./.test(js)&&!/innerHTML/.test(js));
+});
+
+test('calendari: the CRM calendar boxes live in Impostazioni; crm-calendars reads the workspace from the host there',()=>{
+ const js=read('shell/settings.js'),cal=read('sales/crm-calendars.js');
+ assert.match(js,/async calendari\(out\)\{\s*await workspaces\(\);if\(needWorkspace\(out\)\)return;/);
+ assert.match(cal,/const wsOf=\(\)=>window\.RadixCrmData\?\.workspace\(\)\|\|window\.RadixSalesApp\?\.state\?\.workspace\|\|null;/);
+ assert.equal(cal.split('window.RadixCrmData?.workspace()').length-1,1,'every lookup goes through wsOf()');
+ assert.match(read('shell/settings.css'),/\.st-cal \.cal-card\{background:transparent/);
+});
+
+test('automazioni: the rules are switched, added and edited in Impostazioni › CRM; the CRM panel only proposes',()=>{
+ const js=read('shell/settings.js'),rules=read('sales/crm-rules.js'),tools=read('sales/crm-tools.js');
+ assert.match(js,/const p=Ru\.settingsPanel\(\);auto\.append\(p,aa\)/);assert.match(js,/\['stages','processes','members','leads'\]\.map\(e=>api\(e,\{limit:500\}\)/,'the editor needs stages, members and lead sources');
+ assert.match(rules,/R\.settingsPanel=\(\)=>panel\(\{mode:'settings'\}\)/);
+ assert.match(rules,/runs=settings\?R\.effective\(st\.list\)\.map\(rule=>\(\{rule,items:\[\],skipped:\[\]\}\)\):R\.evaluate/,'no evaluation without the records');
+ assert.match(rules,/edit=settings&&canEdit\(\)/,'no editing from the CRM panel');assert.match(rules,/if\(settings\)\{const toggle=E\('input'\)/);
+ assert.match(rules,/a\.href='\/impostazioni\.html\?area=sales#crm'/);assert.match(tools,/panel\(\{mode:'proposals'\}\)/);
+ assert.ok(read('impostazioni.html').includes('/sales/crm-rules.css'));
+});
+
+test('membri: added, changed and removed in Impostazioni (owner/admin rules, never your own row); the CRM only lists them',()=>{
+ const js=read('shell/settings.js'),crm=read('sales/sales.js');
+ assert.match(js,/async function mutate\(action,data,question\)\{if\(S\.busy\|\|!window\.confirm\(question\)\)return;/);
+ assert.match(js,/api\('members',\{body:\{workspace:S\.workspace,entity:'members',action,data\}\}\)/);
+ assert.match(js,/const can=manage&&!me&&\(mine==='owner'\|\|!\['owner','admin'\]\.includes\(m\.role\)\)/,'admin never touches owners or admins, nobody their own row');
+ assert.match(js,/roleChoices=Object\.entries\(C\.ROLE_NAMES\)\.filter\(\(\[k\]\)=>mine==='owner'\|\|!\['owner','admin'\]\.includes\(k\)\)/,'only an owner grants owner or admin');
+ assert.match(js,/mutate\('add',\{email:v,role:sel\.value\}/);assert.match(js,/mutate\('update',\{user_id:m\.id,role:sel\.value\}/);assert.match(js,/mutate\('remove',\{user_id:m\.id\}/);
+ assert.match(crm,/a\.href='\/impostazioni\.html\?area=sales#membri'/);assert.ok(!/section\.append\(inviteControl\(\)\)/.test(crm),'no invite form in the CRM');
+ assert.match(crm,/function memberControls\(row\)\{\s*return \[el\('p','Ruolo: '/,'no role controls in the CRM');assert.ok(!/function inviteControl|async function memberMutate/.test(crm),'invite and mutate code gone from the CRM');
 });
