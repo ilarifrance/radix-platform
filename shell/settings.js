@@ -20,6 +20,7 @@ const role=()=>(S.workspaces.find(w=>w.id===S.workspace)||{}).role;
 async function api(entity,options={}){
  const q=new URLSearchParams({entity,offset:String(options.offset||0)});
  if(options.subject)q.set('subject',options.subject);
+ if(options.limit)q.set('limit',String(options.limit));
  if(S.workspace&&entity!=='workspaces')q.set('workspace',S.workspace);
  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),20000);
  try{
@@ -157,9 +158,15 @@ const R={
  async crm(out){
   await workspaces();if(needWorkspace(out))return;
   const manage=C.canManage(role());
-  const auto=card('Automazioni','Le regole che propongono attività e bozze email (trattative ferme, ticket urgenti, preventivi accettati…). Si configurano nel CRM, nel pannello Automazioni della vista Attività, perché mostrano subito cosa farebbero sui dati del workspace.');
-  const aa=E('div',undefined,'st-actions');aa.append(A('Apri Attività › Automazioni','/radix-sales.html#tasks','st-btn st-primary'));auto.append(aa);
-  if(!manage)auto.append(E('p','Le regole le cambiano owner e admin; tu puoi applicarne le proposte.','st-note'));out.append(auto);
+  // «Regole delle automazioni» (sales/crm-rules.js, settings mode): on/off, new, edit, delete. The editor lists the
+  // pipeline stages, the members and the lead sources, so those rows are read here first (the CRM records are not).
+  const Ru=root.RadixCrmRules;
+  const auto=card('Automazioni',Ru&&Ru.settingsPanel?undefined:'Le regole che propongono attività e bozze email nel CRM (trattative ferme, ticket urgenti, preventivi accettati…). Cosa propongono oggi e «Applica» sono in Attività › Automazioni.',Ru&&Ru.settingsPanel?'st-mount':undefined);
+  const aa=E('div',undefined,'st-actions');aa.append(A('Apri Attività › Automazioni','/radix-sales.html#tasks','st-btn'));
+  if(Ru&&Ru.settingsPanel){const p=Ru.settingsPanel();auto.append(p,aa);out.append(auto);
+   try{const got=await Promise.all(['stages','processes','members','leads'].map(e=>api(e,{limit:500}).then(d=>[e,d.rows||[]]).catch(()=>[e,[]])));for(const [e,r] of got)state.rows[e]=r}catch{}
+   p.open=true}
+  else{auto.append(aa);if(!manage)auto.append(E('p','Le regole le cambiano owner e admin; tu puoi applicarne le proposte.','st-note'));out.append(auto)}
   const Sla=root.RadixCrmSla;
   if(Sla&&Sla.settingsPanel){const c=card('Scadenze SLA dell’assistenza','Quanto tempo ha il team per la prima risposta e per la risoluzione dei ticket, per priorità.','st-mount');const p=Sla.settingsPanel();p.open=true;c.append(p);out.append(c)}
   const cf=card('Campi aggiunti','I campi creati con «Aggiungi campo» su una scheda di Aziende o Contatti valgono per tutto il workspace. Si creano dalla scheda di un record, dove scrivi anche il primo valore.');

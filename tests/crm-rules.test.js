@@ -228,7 +228,7 @@ test('page wiring: rules load after the fixed rules, the panel replaces the old 
  const html=fs.readFileSync(__dirname+'/../radix-sales.html','utf8'),at=s=>html.indexOf(s);
  assert.ok(at('src="sales/crm-automations-core.js"')>0&&at('src="sales/crm-automations-core.js"')<at('src="sales/crm-rules-core.js"'));
  assert.ok(at('src="sales/crm-rules-core.js"')<at('src="sales/crm-rules.js"'));assert.ok(at('href="sales/crm-rules.css"')>0);
- assert.match(fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8'),/RadixCrmRules\.panel\(\)/);
+ assert.match(fs.readFileSync(__dirname+'/../sales/crm-tools.js','utf8'),/RadixCrmRules\.panel\(\{mode:'proposals'\}\)/);
  const css=fs.readFileSync(__dirname+'/../sales/crm-rules.css','utf8');
  assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b|rgba?\(/i);assert.deepEqual([...new Set(css.match(/var\(--[a-z0-9-]+/g).map(v=>v.slice(4,10)))],['--crm-']);
  assert.match(fs.readFileSync(__dirname+'/../sales/crm-follow-up.js','utf8'),/opts\.send===false/);
