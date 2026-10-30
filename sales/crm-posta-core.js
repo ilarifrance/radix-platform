@@ -157,6 +157,31 @@ function nextMove(contact,crm,o){
  return {kind:'followup',title:'Tieni vivo il contatto',why:'Nessuna trattativa aperta; l’ultimo contatto è di '+silence+(silence===1?' giorno':' giorni')+' fa.',
   draft:draft('Ci risentiamo?','Ciao '+name+',\n\nriprendo il filo del nostro ultimo scambio'+(coName?' per '+coName:'')+'. Se ha senso, fissiamo una chiamata breve per capire se posso esserti utile ora: dimmi tu quando.')};
 }
-const api={nextMove,lastTouch,participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,amountCents,cleanSubject,opportunityHint,opportunityHints,pipelines,opportunityPlan,MAX};
+
+/* «Riscrivi con l’AI» on the next-move draft: ONE /api/chat call after the user's click and confirmation. The prompt
+   carries only facts the CRM holds (name, role, company, sector), the move and its reason, the mail being answered
+   and the current draft; the answer must be «Oggetto: …» then the text. aiParse rejects an answer that brings in
+   numbers absent from those facts (invented prices, dates, percentages), so the draft can only get better wording. */
+function aiPrompt(mv,contact,crm,o){
+ const opt=o||{},company=(crm&&crm.companies||[]).find(c=>c.id===contact.company_id)||{},mail=opt.mail||{};
+ const facts=['Nome: '+text(contact.name).trim(),contact.role?'Ruolo: '+text(contact.role).trim():'',company.name?'Azienda: '+text(company.name).trim():'',company.industry?'Settore: '+text(company.industry).trim():'',opt.me?'Firma: '+text(opt.me).trim():''].filter(Boolean).join('\n');
+ const excerpt=text(mail.text||mail.preview||'').replace(/\s+/g,' ').trim().slice(0,1500);
+ return 'Riscrivi questa email in italiano per una persona precisa: più naturale, breve e concreta, stesso scopo. Non inventare fatti, numeri, prezzi, date, prodotti o referenze che non siano qui sotto. Niente markdown, niente oggetto nel testo.\n'
+ +'Mossa consigliata: '+text(mv&&mv.title)+' ('+text(mv&&mv.why)+').\n\nFATTI SUL CONTATTO:\n'+facts
+ +(excerpt?'\n\nMAIL A CUI SI RISPONDE (oggetto: '+text(mail.subject).trim()+'):\n'+excerpt:'')
+ +'\n\nBOZZA ATTUALE:\nOggetto: '+text(mv&&mv.draft&&mv.draft.subject)+'\n'+text(mv&&mv.draft&&mv.draft.body)
+ +'\n\nRispondi SOLO così, senza altro: la prima riga «Oggetto: …», poi una riga vuota, poi il testo dell’email.';
+}
+function aiParse(reply,o){
+ const opt=o||{},raw=text(reply).replace(/\r/g,'').trim();if(!raw)return null;
+ const m=/^\s*(?:\*\*)?(?:oggetto|subject)\s*:\s*(.+)$/im.exec(raw);if(!m)return null;
+ const subject=m[1].replace(/\*\*$/,'').trim().slice(0,200),body=raw.slice(m.index+m[0].length).replace(/^\s*\n/,'').trim().slice(0,4000);
+ if(!subject||!body)return null;
+ const allowed=new Set();for(const n of text(opt.source).match(/\d[\d.,:]*/g)||[])allowed.add(n.replace(/[.,:]$/,''));
+ const invented=[...new Set((subject+'\n'+body).match(/\d[\d.,:]*/g)||[])].map(n=>n.replace(/[.,:]$/,'')).filter(n=>!allowed.has(n));
+ if(invented.length)return {error:'L’AI ha aggiunto numeri che non sono nei dati ('+invented.slice(0,5).join(', ')+'): bozza non cambiata, riprova.'};
+ return {subject,body};
+}
+const api={nextMove,lastTouch,aiPrompt,aiParse,participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,amountCents,cleanSubject,opportunityHint,opportunityHints,pipelines,opportunityPlan,MAX};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmPosta=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
