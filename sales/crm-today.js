@@ -25,8 +25,8 @@ function ensureSection(){let s=document.getElementById('today');if(s&&s.parentNo
 async function readTasks(){
  const a=app(),w=a?.state.workspace;if(!w)return null;
  if(tasks&&tasks.workspace===w)return tasks;if(loading&&loading.workspace===w)return loading.promise;
- const p=Promise.all([a.api('tasks',{due:'overdue'}),a.api('tasks',{due:'upcoming'})])
-  .then(([late,next])=>({workspace:w,rows:[...late.rows,...next.rows],partial:late.rows.length===100,error:''}))
+ const p=Promise.all([a.api('tasks',{due:'overdue',limit:500}),a.api('tasks',{due:'upcoming',limit:500})])
+  .then(([late,next])=>({workspace:w,rows:[...late.rows,...next.rows],partial:late.rows.length>0&&late.rows.length===(Number(late.limit)||100),error:''}))
   .catch(e=>({workspace:w,rows:[],partial:false,error:e.message||String(e)}))
   .then(r=>{if(app()?.state.workspace===w){tasks=r;}if(loading?.promise===p)loading=null;return r});
  loading={workspace:w,promise:p};return p;

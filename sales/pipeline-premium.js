@@ -26,14 +26,14 @@ if(typeof document==='undefined')return;
 const $=id=>document.getElementById(id),state={workspace:null,workspaces:[],busy:false,dragId:null,processes:[],processId:'',stages:[],deals:[],generation:0,complete:false};
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n};
 const error=msg=>{const p=$('error');p.hidden=!msg;p.textContent=msg||''};
-async function api(entity,offset=0){
- const p=new URLSearchParams({entity,offset:String(offset)});if(entity!=='workspaces')p.set('workspace',state.workspace);
+async function api(entity,offset=0,limit=0){
+ const p=new URLSearchParams({entity,offset:String(offset)});if(limit)p.set('limit',String(limit));if(entity!=='workspaces')p.set('workspace',state.workspace);
  const r=await fetch('/api/sales?'+p,{credentials:'same-origin',cache:'no-store'});
  if(!r.ok)throw Error(r.status===401?'Sessione non autenticata: effettua il login sullo stesso dominio.':r.status===403?'Non hai accesso a questo workspace.':'Errore API ('+r.status+').');
- const data=await r.json();if(!data||!Array.isArray(data.rows))throw Error('Formato API non valido');return data.rows;
+ const data=await r.json();if(!data||!Array.isArray(data.rows))throw Error('Formato API non valido');const rows=data.rows;rows.limit=Number(data.limit)||100;return rows;
 }
 async function pages(entity,generation){const all=[];let complete=false;
- for(let n=0;n<10;n++){const page=await api(entity,all.length);if(generation!==state.generation)return null;all.push(...page);if(page.length<100){complete=true;break}}
+ for(let n=0;n<10;n++){const page=await api(entity,all.length,500);if(generation!==state.generation)return null;all.push(...page);if(page.length<page.limit){complete=true;break}}
  const seen=new Set();return {rows:all.filter(row=>{if(!row||typeof row.id!=='string'||seen.has(row.id))return false;seen.add(row.id);return true}),complete};}
 function moneyMinor(cents){return Number.isSafeInteger(cents)?new Intl.NumberFormat('it-IT',{maximumFractionDigits:2,minimumFractionDigits:2}).format(cents/100):'Importo non disponibile'}
 function safeDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;const d=new Date(value+'T00:00:00Z');return Number.isNaN(d.valueOf())?null:d}

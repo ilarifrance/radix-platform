@@ -7,6 +7,9 @@
   scendono (i due motori classici dell'oro).
 - `risk_switch` (ETF): azioni USA quando la paura (VIX) e' bassa e il credito non si allarga,
   altrimenti obbligazioni a medio termine. Una sola posizione alla volta: poche commissioni minime.
+- `ibs_reversion` (azioni): compra un indice che ha chiuso nel 10% piu' basso dell'escursione del
+  giorno e lo tiene qualche giorno ("internal bar strength", ritrovato dallo studio sulle candele).
+- `turn_of_month` (azioni): investiti dagli ultimi giorni del mese ai primi del mese dopo.
 - `allocate`: il "direttore" divide il capitale tra le strategie in proporzione inversa al loro
   rischio dell'ultimo anno (solo dati passati, con un minimo e un tetto del 50% per strategia),
   ribilanciando ogni mese.
@@ -103,6 +106,121 @@ def risk_switch(close: pd.DataFrame, macro: pd.DataFrame | None = None, vix_wind
     w[risk_off] = (~on).astype(float)
     keep = pd.Series(np.arange(len(w)) % 5 == 0, index=w.index)
     return w.where(keep, axis=0).ffill().fillna(0.0)
+
+
+BONDS = {"TLT", "IEF", "LQD", "HYG"}
+
+
+def ibs(bars: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Posizione della chiusura nell'escursione del giorno: 0 = sul minimo, 1 = sul massimo."""
+    out = {}
+    for s, b in bars.items():
+        rng = (b["high"] - b["low"]).replace(0, np.nan)
+        out[s] = (b["close"] - b["low"]) / rng
+    return pd.DataFrame(out)
+
+
+IBS_UNIVERSE = ("SPY", "QQQ", "IWM", "EFA", "EEM", "EWJ", "VGK", "XLK", "XLE", "EWI")
+
+
+def ibs_reversion(close: pd.DataFrame, ibs: pd.DataFrame | None = None, entry: float = 0.1, hold: int = 5,
+                  exit_ibs: float = 0.8, trend: int = 0, max_names: int = 5) -> pd.DataFrame:
+    """Entrata alla chiusura del giorno "brutto", uscita dopo `hold` giorni o alla prima chiusura forte.
+    `max_names` posti fissi da 1/`max_names` del capitale: una posizione aperta non viene mai
+    ridimensionata (ogni ritocco paga la commissione minima); a posti pieni i nuovi segnali si saltano.
+    Solo indici azionari principali."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    if ibs is None:
+        return w
+    names = [s for s in close.columns if s in ibs.columns and (s in IBS_UNIVERSE or s.endswith(".MI"))]
+    if not names:
+        return w
+    x = ibs[names].reindex(close.index).to_numpy()
+    sig = x < entry
+    if trend:
+        sig &= (close[names] > close[names].rolling(trend).mean()).to_numpy()
+    left = {}                         # simbolo -> giorni rimasti
+    out = np.zeros((len(close), len(names)))
+    for i in range(len(close)):
+        for j in list(left):
+            if x[i, j] > exit_ibs:
+                del left[j]
+        for j in np.flatnonzero(sig[i]):
+            if j in left:
+                left[j] = hold        # nuovo segnale sullo stesso titolo: si prolunga
+            elif len(left) < max_names:
+                left[j] = hold
+        for j in list(left):
+            out[i, j] = 1.0 / max_names
+            left[j] -= 1
+            if left[j] <= 0:
+                del left[j]
+    w[names] = out
+    return w
+
+
+def turn_of_month(close: pd.DataFrame, before: int = 4, after: int = 3, trend: int = 0,
+                  symbols: tuple = ("SPY",)) -> pd.DataFrame:
+    """Investiti dagli ultimi `before` giorni di borsa del mese ai primi `after` del mese dopo."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    names = [s for s in symbols if s in close.columns] or [c for c in close.columns if c not in BONDS][:1]
+    # giorni lavorativi dal calendario (non dai dati): l'ultimo mese, ancora a meta', non sembra finito
+    day = close.index.tz_localize(None).normalize().values.astype("datetime64[D]")
+    first = close.index.tz_localize(None).to_period("M").start_time.values.astype("datetime64[D]")
+    end = (close.index.tz_localize(None).to_period("M").end_time.normalize().values.astype("datetime64[D]")
+           + np.timedelta64(1, "D"))
+    pos = pd.Series(np.busday_count(first, day), index=close.index)
+    left = pd.Series(np.busday_count(day, end), index=close.index)  # 1 = ultimo giorno lavorativo del mese
+    # decisione a t, posizione da t+1: si entra la sera del giorno before+1 dalla fine
+    on = ((left >= 2) & (left <= before + 1)) | (left == 1) | (pos < after - 1)
+    for s in names:
+        ok = on
+        if trend:
+            ok = on & (close[s] > close[s].rolling(trend).mean())
+        w[s] = ok.astype(float) / len(names)
+    return w
+
+
+def tsmom(close: pd.DataFrame, lookback: int = 252, vol_target: float = 0.10, rebalance: int = 21) -> pd.DataFrame:
+    """Trend su piu' mercati insieme (Moskowitz-Ooi-Pedersen): investiti in cio' che e' salito
+    nell'ultimo periodo, con peso tale che ogni mercato pesi lo stesso rischio. Solo acquisti."""
+    ret = close.pct_change()
+    vol = ret.rolling(60).std() * np.sqrt(252)
+    on = (close / close.shift(lookback) - 1) > 0
+    n = close.notna().sum(axis=1).clip(lower=1)
+    w = (on * (vol_target / vol.clip(lower=0.02))).div(n, axis=0)
+    gross = w.sum(axis=1)
+    w = w.div(gross.where(gross > 1, 1.0), axis=0)
+    keep = pd.Series(np.arange(len(w)) % rebalance == 0, index=w.index)
+    return w.where(keep, axis=0).ffill().fillna(0.0)
+
+
+def pre_fomc(close: pd.DataFrame, dates: pd.DatetimeIndex | None = None, days_before: int = 1,
+             symbols: tuple = ("SPY", "QQQ")) -> pd.DataFrame:
+    """Rialzo prima della Fed (Lucca-Moench 2015): investiti dalla chiusura di `days_before` giorni
+    prima della decisione fino alla chiusura del giorno della decisione."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    names = [s for s in symbols if s in close.columns]
+    if dates is None or not len(dates) or not names:
+        return w
+    day = close.index.tz_localize(None).normalize() if close.index.tz is not None else close.index.normalize()
+    pos = pd.Series(np.arange(len(close)), index=day)
+    on = np.zeros(len(close))
+    for d in pd.DatetimeIndex(dates).tz_localize(None).normalize() if pd.DatetimeIndex(dates).tz is not None \
+            else pd.DatetimeIndex(dates).normalize():
+        i = pos.index.searchsorted(d)
+        if i < len(pos) and pos.index[i] == d:
+            # decisione a t, posizione da t+1: per stare investiti nel giorno i si decide in i-1
+            on[max(0, i - days_before):i] = 1.0
+    for s in names:
+        w[s] = on / len(names)
+    return w
+
+
+def with_bars(fn, frame: pd.DataFrame, name: str = "ibs"):
+    f = partial(fn, **{name: frame})
+    f.__name__ = fn.__name__
+    return f
 
 
 def with_macro(fn, macro: pd.DataFrame):

@@ -241,7 +241,9 @@ function createHandler({getSessionUser,getStore}){
      else if(calendars.ENTITIES.includes(q.entity))c={...calendars.query(q),calendars:true};
      else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
-     else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
+     else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due','limit'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
+     // limit: rows per page, 100 unless asked, at most 500 (the lists load a workspace in a few calls instead of 100 at a time).
+     const limit=q.limit===undefined?100:Number(q.limit);if(Array.isArray(q.limit)||!Number.isSafeInteger(limit)||limit<1||limit>500)fail(400,'Pagina non valida.');
      if(q.search!==undefined && (!['companies','contacts'].includes(q.entity)||typeof q.search!=='string'||q.search.length>200||/[\u0000-\u001f\u007f]/.test(q.search)))fail(400,'Ricerca non valida: massimo 200 caratteri per aziende o contatti.');
      if(q.due!==undefined && (q.entity!=='tasks'||!['all','overdue','upcoming','unscheduled'].includes(q.due)))fail(400,'Filtro scadenza non valido.');
      if(q.entity==='email_clicks'){
@@ -262,7 +264,7 @@ function createHandler({getSessionUser,getStore}){
      else if(q.entity==='export'){if(!['companies','contacts'].includes(q.subject)||q.id!==undefined)fail(400,'Esportazione non valida.');}
      else if(q.entity==='segments'&&q.subject!==undefined){if(!reserved.bySubject(q.subject)||q.id!==undefined||offset!==0)fail(400,'Filtro non consentito.');}
      else if(q.subject!==undefined||(q.id!==undefined&&(!['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)||!uuid(q.id))))fail(400,'Filtro non consentito.');
-     c={workspace:q.workspace,entity:q.entity,offset,...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='export'?{subject:q.subject}:{}),...(q.entity==='segments'&&q.subject!==undefined?{reserved:reserved.bySubject(q.subject)}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};}
+     c={workspace:q.workspace,entity:q.entity,offset,...(q.limit!==undefined?{limit}:{}),...(q.due!==undefined?{due:q.due}:{}),...(q.search!==undefined?{search:q.search.trim()}:{}),...(q.entity==='customer360'?{subject:q.subject,id:q.id}:{}),...(q.entity==='export'?{subject:q.subject}:{}),...(q.entity==='segments'&&q.subject!==undefined?{reserved:reserved.bySubject(q.subject)}:{}),...(['lead_lists','lead_contact_jobs','lead_growth_projects'].includes(q.entity)&&q.id!==undefined?{id:q.id}:{})};}
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
@@ -301,7 +303,7 @@ function createHandler({getSessionUser,getStore}){
    }
    if(c.customFields)return res.status(200).json({rows:await store.customFields.read(c,user.uid)});
    if(c.documents)return res.status(200).json({rows:await store.documents.read(c,user.uid),limit:500,offset:c.offset});
-   return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:100,offset:c.offset});
+   return res.status(200).json({rows:await (c.entity==='lead_lists'?store.leadLists.read(c,user.uid):c.entity==='lead_contact_jobs'?store.leadContactJobs.read(c,user.uid):c.entity==='lead_growth_projects'?store.growthProjects.read(c,user.uid):store.read(c,user.uid)),limit:Number.isSafeInteger(c.limit)&&c.limit>=1&&c.limit<=500?c.limit:100,offset:c.offset});
  }catch(e){
    if(e.code==='22023'&&e.message==='invalid field')return res.status(400).json({error:'Campi non ancora disponibili in questo archivio: serve l’ultima migrazione sales (da approvare). Gli altri campi si salvano lasciando vuoti quelli nuovi.'});
    if(e.code==='23514'&&e.message==='already converted')return res.status(409).json({error:'Questo lead è già stato convertito: ricarica i dati.'});

@@ -135,7 +135,7 @@ test('wiring: Calendario page loads the box, styles and the deep link; no new se
  const html=read('radix-sales.html');
  assert.ok(html.indexOf('sales/crm-calendars.js')>0&&html.indexOf('sales/crm-calendars.js')<html.indexOf('sales/calendar-view.js'));assert.ok(html.includes('href="sales/crm-calendars.css"'));
  const js=read('sales/crm-calendars.js');for(const s of ['Calendario da abbonare','Aggiungi calendario › Da Internet','Sottoscrivi dal web','Altri calendari','Da URL','ogni qualche ora','Copia link',"'calendar_feed'"])assert.ok(js.includes(s),s);
- assert.ok(read('sales/calendar-view.js').includes('RadixCrmCalendars.feedBox()'));
+ assert.ok(read('sales/calendar-view.js').includes("cl.href='/impostazioni.html?area=sales#calendari'"),'the Calendario page points to Impostazioni › Calendari');assert.ok(read('shell/settings.js').includes('feed.append(K.feedBox())'));
  assert.ok(read('api/_sales.js').includes("require('./_sales_calendar_feed')"),'served by /api/sales, no new function');
  assert.ok(!fs.existsSync(path.join(__dirname,'..','api','calendar.js')));
 });

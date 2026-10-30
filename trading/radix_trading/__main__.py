@@ -8,6 +8,9 @@
     python -m radix_trading export > x.json  # la fotografia che riceve il pannello di RADIX
     python -m radix_trading push             # manda la fotografia a RADIX adesso
     python -m radix_trading research         # ricerca larga: tutte le famiglie su tutti i mercati, anno chiuso a chiave
+    python -m radix_trading events --collect # studio degli eventi: notizie e calendario contro i mercati
+    python -m radix_trading weekend          # chiusura del venerdi' e riapertura del lunedi'
+    python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
 """
 
@@ -21,7 +24,7 @@ from dataclasses import replace
 
 import pandas as pd
 
-from . import backtest, data, intraday, paper, portfolio, research, snapshot, strategies, universe, validation
+from . import backtest, candles, data, events, intraday, intraday_events, paper, portfolio, research, snapshot, strategies, universe, validation
 from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
 from .config import Settings
 from .store import Store
@@ -225,9 +228,12 @@ def _safe(fn):
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
-    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research"])
+    p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
+                                          "events", "candles", "weekend"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
+    p.add_argument("--collect", action="store_true", help="solo per events: scarica prima notizie e calendario")
+    p.add_argument("--minuto", action="store_true", help="solo per events: studio al minuto intorno a CPI, lavoro USA e Fed")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -238,6 +244,9 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command in ("backtest", "daily"):
             # Ogni sera: dati lenti e nuovo backtest, che decide quali strategie il paper puo' usare.
             result = {"raccolta": collect(store, "slow")} if args.command == "daily" else {}
+            if args.command == "daily":
+                # archivio notizie: qualche centinaio di giorni a sera finche' lo storico e' completo
+                result["raccolta"]["notizie"] = _safe(lambda: events.collect_news(store))
             curves: dict = {}
             result["backtest"] = run_backtests(store, curves)
             day = _safe(lambda: run_intraday(store, curves))
@@ -251,6 +260,40 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "research":
             result = research.run(store, target_dd=-abs(args.max_dd))
             research.save(settings, result)
+        elif args.command == "events":
+            # Studio degli eventi: notizie (Wikipedia), calendario Fed/CPI/lavoro, shock di mercato.
+            result = {}
+            if args.collect:
+                result["notizie"] = _safe(lambda: events.collect_news(store))
+                result["calendario"] = _safe(lambda: events.collect_calendar(store))
+            study = events.run(store)
+            events.save(settings, study)
+            result["studio"] = {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica",
+                                                          "giorni_di_notizie", "errore")}
+            result["legami"] = (study.get("legami") or [])[:20]
+            if args.minuto:
+                if args.collect:
+                    result["minuto_raccolta"] = _safe(lambda: intraday_events.collect(store))
+                minute = intraday_events.study(store)
+                intraday_events.save(settings, minute)
+                result["minuto"] = {k: minute.get(k) for k in ("prove", "superano_correzione", "reggono_verifica",
+                                                               "eventi", "mercati")}
+                result["minuto_legami"] = (minute.get("legami") or [])[:15]
+        elif args.command == "candles":
+            study = candles.run(store)
+            candles.save(settings, study)
+            result = {k: study.get(k) for k in ("mercati", "errore")}
+            for part in ("figure", "modello"):
+                r = study.get(part) or {}
+                result[part] = {k: r.get(k) for k in ("prove", "superano_correzione", "reggono_verifica")}
+                result[part + "_legami"] = (r.get("legami") or [])[:15]
+        elif args.command == "weekend":
+            from . import weekend
+            study = weekend.study(store)
+            weekend.save(settings, study)
+            result = {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica")}
+            result["legami"] = (study.get("legami") or [])[:15]
+            result["migliori_non_corretti"] = (study.get("migliori_non_corretti") or [])[:5]
         elif args.command == "report":
             result = paper.report(store)
         elif args.command == "export":
