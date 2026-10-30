@@ -158,33 +158,9 @@ function taskDueControl(){
 const stageProbability=row=>rows('stages').find(s=>s.id===row.stage_id)?.probability??null;
 const ROLE_NAMES={owner:'Owner',admin:'Admin',member:'Membro',viewer:'Sola lettura'};
 // Owners/admins manage members; only an owner grants owner/admin (the server enforces the same rules).
-function memberControls(row,readonly){
- const out=[el('p','Ruolo: '+(ROLE_NAMES[row.role]||row.role)+(row.id===state.me?' · tu':''),'muted')];
- const mine=role();if(readonly||!state.ready||!['owner','admin'].includes(mine)||row.id===state.me)return out;
- if(mine!=='owner'&&['owner','admin'].includes(row.role))return out;
- const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
- const control=selectControl('Ruolo di '+title(row),choices,row.role);
- const save=button('Cambia ruolo',()=>{if(control.select.value!==row.role)memberMutate('update',{user_id:row.id,role:control.select.value},'Cambiare il ruolo di «'+title(row)+'» in '+ROLE_NAMES[control.select.value]+'?');});
- const remove=button('Rimuovi dal workspace',()=>memberMutate('remove',{user_id:row.id},'Rimuovere «'+title(row)+'» dal workspace? Le sue trattative e attività vanno prima riassegnate.'),'danger');
- const a=el('div',undefined,'actions');a.append(save,remove);out.push(control.wrap,a);return out;
-}
-function inviteControl(){
- const form=el('form',undefined,'invite');form.setAttribute('aria-label','Aggiungi un membro');
- const email=el('input');email.type='email';email.required=true;email.maxLength=254;email.placeholder='email dell’account RADIX';email.setAttribute('aria-label','Email');
- const mine=role();const choices=Object.entries(ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
- const control=selectControl('Ruolo',choices,'member');const submit=el('button','Aggiungi membro','primary');submit.type='submit';
- form.append(email,control.wrap,submit);form.append(el('p','La persona deve avere già un account RADIX: lo crea l’amministrazione. Nessuna email viene inviata.','muted'));
- form.addEventListener('submit',event=>{event.preventDefault();memberMutate('add',{email:email.value.trim(),role:control.select.value},'Aggiungere '+email.value.trim()+' come '+ROLE_NAMES[control.select.value]+'?');});
- return form;
-}
-async function memberMutate(action,data,confirmation){
- if(state.busy||!window.confirm(confirmation))return;
- lock(true);error('');notice('Salvataggio sul server…');
- let ok=false;
- try{await api('members',{body:{workspace:state.workspace,entity:'members',action,data}});ok=true;}
- catch(e){error(e.message);notice('Operazione non completata.');}
- finally{lock(false);}
- if(ok){await refresh(true);notice('Membri aggiornati.');}
+// Members are added, changed and removed in Impostazioni › Workspace e membri (impostazioni.html#membri): the CRM only lists them.
+function memberControls(row){
+ return [el('p','Ruolo: '+(ROLE_NAMES[row.role]||row.role)+(row.id===state.me?' · tu':''),'muted')];
 }
 // In-app reminder: my open tasks that are overdue or due within 24 hours.
 function reminderPanel(){
@@ -204,7 +180,7 @@ function render(){
  for(const [entity,label] of Object.entries(names)){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
   if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
-  if(entity==='members'&&state.ready&&['owner','admin'].includes(role()))section.append(inviteControl());
+  if(entity==='members'&&state.ready&&['owner','admin'].includes(role())){const a=el('a','Aggiungi membri e cambia ruoli in Impostazioni','crm-mb-link');a.href='/impostazioni.html?area=sales#membri';section.append(a)}
   if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
   if(entity==='tasks')section.append(taskDueControl());
   if(state.search[entity])section.append(el('p','Filtro nome attivo: '+state.search[entity]+' · ricerca su tutte le anagrafiche del workspace, prima della paginazione.','muted'));

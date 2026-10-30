@@ -110,16 +110,35 @@ const R={
   const ws=S.workspaces.find(w=>w.id===S.workspace),mine=role(),manage=C.canManage(mine);
   const head=card(ws.name,'Il tuo ruolo: '+(C.ROLE_NAMES[mine]||mine)+'. '+(manage?'Puoi aggiungere membri, cambiare i ruoli e decidere cosa vedono.':'Solo owner e admin cambiano membri e visibilità.'));
   const list=E('ul',undefined,'st-members');list.append(E('li','Caricamento dei membri…','st-sub'));head.append(list);
-  const acts=E('div',undefined,'st-actions');acts.append(A(manage?'Aggiungi membri e cambia ruoli nel CRM':'Apri i membri nel CRM','/radix-sales.html#members','st-btn'+(manage?' st-primary':'')));head.append(acts);
   out.append(head);
+  // Members are managed here (the CRM lists them read-only): owner and admin add, change roles and remove;
+  // only an owner grants or touches owner and admin; nobody changes their own row. The server enforces the same rules.
+  const roleChoices=Object.entries(C.ROLE_NAMES).filter(([k])=>mine==='owner'||!['owner','admin'].includes(k));
+  const roleSelect=(value,label)=>{const s=E('select');s.setAttribute('aria-label',label);for(const [k,t] of roleChoices){const o=E('option',t);o.value=k;s.append(o)}s.value=value;return s};
+  async function mutate(action,data,question){if(S.busy||!window.confirm(question))return;lock(true);error('');notice('Salvataggio sul server…');
+   try{await api('members',{body:{workspace:S.workspace,entity:'members',action,data}});notice('Membri aggiornati.');await drawMembers()}
+   catch(e){error(e.message);notice('Operazione non completata.')}finally{lock(false)}}
+  if(manage){const form=E('form',undefined,'st-invite');form.setAttribute('aria-label','Aggiungi un membro');
+   const email=E('input');email.type='email';email.required=true;email.maxLength=254;email.placeholder='email dell’account RADIX';email.setAttribute('aria-label','Email');
+   const sel=roleSelect('member','Ruolo');const go=E('button','Aggiungi membro','st-btn st-primary');go.type='submit';
+   form.append(email,sel,go);form.addEventListener('submit',ev=>{ev.preventDefault();const v=email.value.trim();if(!v)return;mutate('add',{email:v,role:sel.value},'Aggiungere '+v+' come '+C.ROLE_NAMES[sel.value]+'?').then(()=>{email.value=''})});
+   head.append(form,E('p','La persona deve avere già un account RADIX: lo crea l’amministrazione. Nessuna email viene inviata.','st-note'))}
+  async function drawMembers(){
+   try{const d=await api('members');list.replaceChildren();
+    for(const m of d.rows){const li=E('li');const me=S.me&&m.id===S.me.id;li.append(E('strong',(m.name||m.email||'Membro')+(me?' · tu':'')),E('span',m.email&&m.name?m.email:'','st-sub'));
+     const can=manage&&!me&&(mine==='owner'||!['owner','admin'].includes(m.role));
+     if(!can){li.append(E('span',C.ROLE_NAMES[m.role]||m.role||'','st-badge'));list.append(li);continue}
+     const sel=roleSelect(m.role,'Ruolo di '+(m.name||m.email||'membro'));const acts=E('span',undefined,'st-member-acts');
+     const change=E('button','Cambia ruolo','st-btn');change.type='button';change.addEventListener('click',()=>{if(sel.value!==m.role)mutate('update',{user_id:m.id,role:sel.value},'Cambiare il ruolo di «'+(m.name||m.email)+'» in '+C.ROLE_NAMES[sel.value]+'?')});
+     const remove=E('button','Rimuovi','st-btn st-danger');remove.type='button';remove.addEventListener('click',()=>mutate('remove',{user_id:m.id},'Rimuovere «'+(m.name||m.email)+'» dal workspace? Le sue trattative e attività vanno prima riassegnate.'));
+     acts.append(sel,change,remove);li.append(acts);list.append(li)}
+    if(!d.rows.length)list.append(E('li','Nessun membro visibile.','st-sub'))}
+   catch(e){list.replaceChildren(E('li','Membri non leggibili: '+e.message,'st-err'))}}
   const V=root.RadixCrmVisibility;
   if(V&&V.panel&&manage){const vis=card('Visibilità dei record',undefined,'st-mount');const p=V.panel();p.open=true;vis.append(p);out.append(vis)}
   else if(V&&V.load){const vis=card('Visibilità dei record');const n=E('p','Lettura dell’impostazione…','st-sub');vis.append(n);out.append(vis);
    V.load().then(r=>{n.textContent=!r||!r.loaded?'Impostazione non leggibile.':r.settings.ownOnly?'Attiva: member e viewer vedono solo i propri record e quelli collegati. La decide un owner o un admin.':'Non attiva: tutti i membri vedono tutti i record del workspace. La decide un owner o un admin.'})}
-  try{const d=await api('members');list.replaceChildren();
-   for(const m of d.rows){const li=E('li');li.append(E('strong',(m.name||m.email||'Membro')+(S.me&&m.id===S.me.id?' · tu':'')),E('span',m.email&&m.name?m.email:'','st-sub'),E('span',C.ROLE_NAMES[m.role]||m.role||'','st-badge'));list.append(li)}
-   if(!d.rows.length)list.append(E('li','Nessun membro visibile.','st-sub'))}
-  catch(e){list.replaceChildren(E('li','Membri non leggibili: '+e.message,'st-err'))}
+  await drawMembers();
  },
  async caselle(out){
   await workspaces();if(needWorkspace(out))return;
