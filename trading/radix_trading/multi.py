@@ -253,6 +253,25 @@ def crypto_trend_trailing(close: pd.DataFrame, fast: int = HOUR * 10, slow: int 
     return pd.DataFrame(w, index=close.index, columns=close.columns).ffill().fillna(0.0)
 
 
+def cot_long(close: pd.DataFrame, cot: pd.DataFrame | None = None, symbol: str = "QQQ", edge: float = 1.5,
+             hold: int = 10) -> pd.DataFrame:
+    """Grandi operatori (studio CFTC del 30/10): compra `symbol` per `hold` giorni quando i fondi sono
+    molto corti o i commerciali molto lunghi rispetto ai 3 anni prima. Si decide alla chiusura del
+    lunedi' dopo il rapporto (`cot` e' gia' indicizzato da quel lunedi')."""
+    w = pd.DataFrame(0.0, index=close.index, columns=close.columns)
+    if cot is None or cot.empty or symbol not in close.columns:
+        return w
+    fire = cot.index[((cot["spec_z"] < -edge) | (cot["comm_z"] > edge)).to_numpy()]
+    day = close.index.normalize()
+    on = np.zeros(len(close))
+    for t in fire:
+        i = day.searchsorted(t)
+        if i < len(day) and (day[i] - t).days <= 3:
+            on[i:i + hold] = 1.0
+    w[symbol] = on
+    return w
+
+
 def with_bars(fn, frame: pd.DataFrame, name: str = "ibs"):
     f = partial(fn, **{name: frame})
     f.__name__ = fn.__name__

@@ -51,3 +51,14 @@ def test_study_finds_planted_contrarian_signal():
     out = bigplayers.study(st, today=pd.Timestamp("2026-10-30", tz="UTC"))
     top = out["legami"][0]
     assert top["mercato"] == "GLD" and top["chi"] == "fondi" and top["modo"] == "contrasta"
+
+
+def test_cot_long_holds_after_signal_monday():
+    from radix_trading import multi
+    idx = pd.bdate_range("2024-01-01", "2024-02-29", tz="UTC")
+    close = pd.DataFrame({"QQQ": 100.0, "SPY": 100.0}, index=idx)
+    cot_frame = pd.DataFrame({"spec_z": [-2.0, 0.0], "comm_z": [0.0, 0.0]},
+                             index=pd.DatetimeIndex(["2024-01-08", "2024-01-15"], tz="UTC"))
+    w = multi.cot_long(close, cot_frame, hold=10)
+    on = w.index[w["QQQ"] > 0]
+    assert on[0].strftime("%m-%d") == "01-08" and len(on) == 10 and (w["SPY"] == 0).all()

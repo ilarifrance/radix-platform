@@ -84,6 +84,17 @@ def _z(x: pd.Series) -> pd.Series:
     return (x - m) / s
 
 
+def signals(store: Store, symbol: str = "QQQ") -> pd.DataFrame:
+    """z-score di fondi e commerciali per `symbol`, indicizzati dal lunedi' in cui si possono usare."""
+    store.conn.executescript(SCHEMA)
+    rows = store.conn.execute("SELECT day, spec_net, comm_net FROM cot WHERE symbol = ? ORDER BY day", (symbol,)).fetchall()
+    if not rows:
+        return pd.DataFrame(columns=["spec_z", "comm_z"])
+    df = pd.DataFrame(rows, columns=["day", "spec", "comm"])
+    df.index = (pd.to_datetime(df.pop("day"), utc=True) + pd.Timedelta(days=6)).normalize()
+    return pd.DataFrame({"spec_z": _z(df["spec"]), "comm_z": _z(df["comm"])})
+
+
 def study(store: Store, today: pd.Timestamp | None = None) -> dict:
     store.conn.executescript(SCHEMA)
     today = today or pd.Timestamp.now(tz="UTC")
