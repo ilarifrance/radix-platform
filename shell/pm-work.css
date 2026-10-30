@@ -211,3 +211,78 @@ html.rx-shell .rx-pm main#workspace>.pm-projectbar{justify-content:flex-start!im
 .rx-pm .pm-ideas-title{margin:22px 0 8px;padding-top:16px;border-top:1px solid var(--rx-border);font-size:15px}
 .rx-pm .pm-tpl-head{margin:12px 0 0;color:var(--rx-muted);font-size:13px}
 @media (max-width:720px){.rx-pm .pm-cal-head{flex-wrap:wrap}.rx-pm .pm-cal-head h3{min-width:0;flex:1;font-size:17px}}
+
+/* ---- «Progetto da brief o meeting» (lib/pm-brief.js) ---- */
+.rx-pm .pm-hero-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.rx-pm #brief-open{border-color:color-mix(in srgb,var(--rx-projects) 60%,var(--rx-border))!important;background:color-mix(in srgb,var(--rx-projects) 14%,transparent)!important}
+.rx-pm dialog.pm-brief{width:min(860px,calc(100vw - 24px));max-height:calc(100vh - 32px);padding:22px 24px;overflow:auto;background:linear-gradient(180deg,#1a0f36,#0d0820);border:1px solid var(--pmw-edge)}
+.rx-pm dialog.pm-brief::backdrop{background:rgba(4,2,12,.72)}
+.rx-pm .pm-brief h2{margin:0;font-size:20px}
+.rx-pm .pm-brief>label,.rx-pm .pm-brief-grid label{display:grid;gap:6px;margin:10px 0;font-size:13px;color:var(--rx-muted)}
+.rx-pm .pm-brief textarea{width:100%;min-height:150px;padding:10px 12px;color:var(--rx-text);line-height:1.5}
+.rx-pm .pm-brief-src{display:inline-flex;gap:4px;padding:4px;margin:6px 0;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-pm .pm-brief-src button{border:0!important;min-height:36px!important;color:var(--rx-muted)}
+.rx-pm .pm-brief-src button[aria-selected=true]{background:color-mix(in srgb,var(--rx-projects) 22%,transparent)!important;color:var(--rx-text)}
+.rx-pm .pm-brief-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.rx-pm .pm-brief-grid input{width:100%;padding:0 10px}
+.rx-pm .pm-brief-mlist{display:grid;gap:6px;max-height:220px;overflow:auto;margin:8px 0}
+.rx-pm .pm-brief-meeting{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface-2);cursor:pointer}
+.rx-pm .pm-brief-meeting:has(input:checked){border-color:var(--rx-projects);background:color-mix(in srgb,var(--rx-projects) 10%,var(--rx-surface-2))}
+.rx-pm .pm-brief-meeting span{display:grid;gap:2px}.rx-pm .pm-brief-meeting small{color:var(--rx-muted)}
+.rx-pm .pm-brief-preview{max-height:140px;overflow:auto;white-space:pre-wrap;margin:0;padding:10px 12px;border-radius:10px;background:rgba(5,3,18,.6);color:var(--rx-muted);font:12.5px/1.5 var(--rx-font)}
+.rx-pm #brief-go{margin-top:6px}
+.rx-pm .pm-brief-out h3{margin:18px 0 6px;font-size:17px}
+.rx-pm .pm-brief-goal{margin:0 0 4px;font-weight:600}
+.rx-pm .pm-brief-split{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.rx-pm .pm-brief-chip{display:inline-flex;gap:6px;align-items:baseline;padding:6px 12px;border-radius:999px;border:1px solid var(--who);background:color-mix(in srgb,var(--who) 14%,transparent);font-size:13px}
+.rx-pm .pm-brief-chip b{font-size:16px}
+.rx-pm .pm-who-me{--who:var(--rx-projects)}.rx-pm .pm-who-agent{--who:#B98CFF}.rx-pm .pm-who-tool{--who:#4FD1C5}.rx-pm .pm-who-person{--who:#F4D35E}
+.rx-pm .pm-brief-phase{margin:12px 0;padding:12px;border:1px solid var(--rx-border);border-radius:14px;background:rgba(5,3,18,.35)}
+.rx-pm .pm-brief-phase h4{margin:0 0 8px;font-size:14px;letter-spacing:.04em}
+.rx-pm .pm-brief-task{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(150px,210px) auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--rx-border)}
+.rx-pm .pm-brief-task:first-of-type{border-top:0}
+.rx-pm .pm-brief-task.off{opacity:.45}
+.rx-pm .pm-brief-task>input[type=checkbox]{margin-top:12px;min-height:0!important;width:18px;height:18px}
+.rx-pm .pm-brief-main{display:grid;gap:4px;min-width:0}.rx-pm .pm-brief-main small{font-size:12px;line-height:1.4}
+.rx-pm .pm-brief-title{width:100%;padding:0 10px}
+.rx-pm .pm-brief-who{width:100%;padding:0 8px}
+.rx-pm .pm-brief-dl{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--rx-muted);white-space:nowrap}
+.rx-pm .pm-brief-days{width:64px;padding:0 6px}
+.rx-pm .pm-brief-questions{margin:12px 0;padding:12px 14px;border-left:3px solid var(--rx-warning);border-radius:10px;background:color-mix(in srgb,var(--rx-warning) 7%,transparent)}
+.rx-pm .pm-brief-questions ul{margin:6px 0 0;padding-left:18px}
+.rx-pm .pm-brief-foot{position:sticky;bottom:-22px;gap:12px;margin:0 -24px -22px;padding:12px 24px 16px;background:#0d0820;border-top:1px solid var(--pmw-edge)}
+.rx-pm .pm-brief [hidden]{display:none!important}
+.rx-pm .pm-brief-meeting>input{flex:0 0 auto;width:18px;height:18px;min-height:0!important;margin:3px 0 0;padding:0}
+.rx-pm .pm-brief-meeting>span{flex:1;min-width:0}
+@media (max-width:720px){
+  .rx-pm .pm-brief-grid{grid-template-columns:1fr}
+  .rx-pm .pm-brief-task{grid-template-columns:auto minmax(0,1fr)}
+  .rx-pm .pm-brief-who,.rx-pm .pm-brief-dl{grid-column:2}
+  .rx-pm .pm-hero-actions{justify-content:stretch}.rx-pm .pm-hero-actions>button{flex:1}
+  .rx-pm .pm-brief-src{display:flex}.rx-pm .pm-brief-src button{flex:1}
+}
+
+/* ---- «Chi lavora al progetto» ---- */
+html:has(#pm-board:not([hidden])) main#workspace>#pm-crew{order:2}
+html.pm-v-mine main#workspace>#pm-crew{display:none!important}
+.rx-pm .pm-crew{margin:4px 0 14px;padding:16px 18px!important;border-radius:18px;border:1px solid var(--pmw-edge)!important;background:var(--pmw-glass)!important;box-shadow:var(--pmw-glow)!important}
+.rx-pm .pm-crew h2{margin:0;font-size:16px}
+.rx-pm .pm-crew-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0 4px}
+.rx-pm .pm-crew-card{display:grid;grid-template-columns:1fr auto;gap:6px 8px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--who) 45%,var(--rx-border));background:color-mix(in srgb,var(--who) 8%,rgba(5,3,18,.5))}
+.rx-pm .pm-crew-card>small{grid-column:1/-1;font-size:12px}
+.rx-pm .pm-crew-num{font:600 18px/1 var(--rx-display);font-variant-numeric:tabular-nums}
+.rx-pm .pm-crew-bar{grid-column:1/-1;height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.rx-pm .pm-crew-bar i{display:block;height:100%;border-radius:inherit;background:var(--who)}
+.rx-pm .pm-crew-names{color:var(--rx-subtle);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm .pm-crew-next{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.rx-pm .pm-crew-next li{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(5,3,18,.4)}
+.rx-pm .pm-crew-next li>span:nth-child(2){flex:1;min-width:0}
+.rx-pm .pm-crew-review .pill{border-color:#B98CFF;color:#D9C2FF}.rx-pm .pm-crew-agent .pill{border-color:#B98CFF}
+.rx-pm .pm-crew-mine .pill{border-color:var(--rx-projects)}.rx-pm .pm-crew-tool .pill{border-color:#4FD1C5}
+.rx-pm .pm-crew-go{min-height:32px!important;padding:4px 12px!important;font-size:13px!important}
+.rx-pm a.pm-crew-go,.rx-pm a.pm-tool-link{display:inline-flex;align-items:center;border:1px solid #4FD1C5;border-radius:10px;color:#9EF0E6;text-decoration:none}
+.rx-pm .pm-tool-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.rx-pm a.pm-tool-link{padding:6px 12px}
+
+.rx-pm .pm-brief-main .pill{justify-self:start}
+.rx-pm .pm-brief-task select.pm-brief-who{border-color:color-mix(in srgb,var(--who) 70%,var(--rx-border))!important;border-left:4px solid var(--who)!important}
