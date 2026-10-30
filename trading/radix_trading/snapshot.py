@@ -120,7 +120,12 @@ def _candles(settings: Settings) -> dict | None:
         x = json.loads(w.read_text())
         out["weekend"] = {k: x.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica")} | {
             "legami": (x.get("legami") or [])[:15]}
-    return out if (r or "weekend" in out) else None
+    g = settings.data_dir / "bigplayers.json"
+    if g.exists():
+        x = json.loads(g.read_text())
+        out["grandi_operatori"] = {k: x.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica",
+                                                          "mercati")} | {"legami": (x.get("legami") or [])[:15]}
+    return out if (r or "weekend" in out or "grandi_operatori" in out) else None
 
 
 def build(store: Store, settings: Settings) -> dict:

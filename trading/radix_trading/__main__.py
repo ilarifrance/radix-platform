@@ -9,6 +9,7 @@
     python -m radix_trading push             # manda la fotografia a RADIX adesso
     python -m radix_trading research         # ricerca larga: tutte le famiglie su tutti i mercati, anno chiuso a chiave
     python -m radix_trading events --collect # studio degli eventi: notizie e calendario contro i mercati
+    python -m radix_trading bigplayers --collect  # posizioni CFTC dei grandi operatori contro i prezzi
     python -m radix_trading weekend          # chiusura del venerdi' e riapertura del lunedi'
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
@@ -229,10 +230,10 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend"])
+                                          "events", "candles", "weekend", "bigplayers"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
-    p.add_argument("--collect", action="store_true", help="solo per events: scarica prima notizie e calendario")
+    p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
     p.add_argument("--minuto", action="store_true", help="solo per events: studio al minuto intorno a CPI, lavoro USA e Fed")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
@@ -287,6 +288,16 @@ def main(argv: list[str] | None = None) -> int:
                 r = study.get(part) or {}
                 result[part] = {k: r.get(k) for k in ("prove", "superano_correzione", "reggono_verifica")}
                 result[part + "_legami"] = (r.get("legami") or [])[:15]
+        elif args.command == "bigplayers":
+            from . import bigplayers
+            result = {}
+            if args.collect:
+                result["raccolta"] = _safe(lambda: bigplayers.collect(store))
+            study = bigplayers.study(store)
+            bigplayers.save(settings, study)
+            result |= {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica", "mercati", "errore")}
+            result["legami"] = (study.get("legami") or [])[:15]
+            result["migliori_non_corretti"] = (study.get("migliori_non_corretti") or [])[:6]
         elif args.command == "weekend":
             from . import weekend
             study = weekend.study(store)
