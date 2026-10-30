@@ -31,7 +31,7 @@ import numpy as np
 import pandas as pd
 
 from . import data, universe
-from .collectors import fred, wikinews
+from .collectors import fomc, fred, wikinews
 from .config import env_value
 from .store import Store
 
@@ -124,7 +124,7 @@ def collect_calendar(store: Store) -> dict:
     out["fed"] = len(rows)
     key = env_value("FRED_API_KEY")
     if key:
-        for kind, release_id in (("cpi", 10), ("lavoro_usa", 50)):
+        for kind, release_id in release_ids(key).items():
             r = fred.get("https://api.stlouisfed.org/fred/release/dates",
                          {"release_id": release_id, "api_key": key, "file_type": "json",
                           "realtime_start": START.isoformat(), "include_release_dates_with_no_data": "false",
@@ -134,8 +134,27 @@ def collect_calendar(store: Store) -> dict:
             out[kind] = len(days)
     else:
         out["cpi"] = out["lavoro_usa"] = "manca FRED_API_KEY (gratuita) in ~/RadixTrading/.env"
+    # Riunioni Fed dal sito ufficiale (le date FRED del comunicato sono quasi tutti i giorni).
+    try:
+        days, info = fomc.fetch(START.year)
+        if len(days) >= 20:
+            store.conn.execute("DELETE FROM calendar WHERE kind = 'fomc'")
+            store.conn.executemany("INSERT OR IGNORE INTO calendar VALUES (?,?)", [(d.isoformat(), "fomc") for d in days])
+        out["fomc"] = {"riunioni": len(days)} | info
+    except Exception as e:
+        out["fomc"] = f"errore: {e}"
     store.conn.commit()
     return out
+
+
+# Uscite con orario fisso (ora di New York): l'ora esatta serve allo studio al minuto.
+RELEASES = {"cpi": ("Consumer Price Index", 10, "08:30"), "lavoro_usa": ("Employment Situation", 50, "08:30"),
+            "fomc": (None, None, "14:00")}  # date dal sito della Fed (collectors/fomc.py)
+
+
+def release_ids(key: str) -> dict[str, int]:
+    """Id FRED delle uscite. CPI e lavoro hanno id noti; la Fed si cerca per nome nell'elenco."""
+    return {k: v[1] for k, v in RELEASES.items() if v[1]}
 
 
 # --- eventi -----------------------------------------------------------------------------------

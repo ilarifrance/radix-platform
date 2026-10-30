@@ -86,7 +86,7 @@ def _research(settings: Settings) -> dict | None:
     if not p.exists():
         return None
     r = json.loads(p.read_text())
-    return {k: r.get(k) for k in ("obiettivo", "combinazioni_totali", "prove", "rispettano_obiettivo", "finaliste")} | \
+    return {k: r.get(k) for k in ("obiettivo", "combinazioni_totali", "prove", "rispettano_obiettivo", "finaliste", "leva")} | \
         {"classifica": (r.get("classifica") or [])[:15], "generato": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 
@@ -97,7 +97,30 @@ def _events(settings: Settings) -> dict | None:
     r = json.loads(p.read_text())
     keep = ("generato", "prove", "superano_correzione", "reggono_verifica", "periodo_scoperta", "periodo_verifica",
             "giorni_di_notizie", "costo_andata_ritorno", "errore")
-    return {k: r.get(k) for k in keep} | {"legami": (r.get("legami") or [])[:25]}
+    out = {k: r.get(k) for k in keep} | {"legami": (r.get("legami") or [])[:25]}
+    m = settings.data_dir / "events_intraday.json"
+    if m.exists():
+        mi = json.loads(m.read_text())
+        out["minuto"] = {k: mi.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica",
+                                                 "eventi", "mercati", "costi")} | {
+            "legami": (mi.get("legami") or [])[:15], "migliori_non_corretti": (mi.get("migliori_non_corretti") or [])[:6]}
+    return out
+
+
+def _candles(settings: Settings) -> dict | None:
+    p = settings.data_dir / "candles.json"
+    r = json.loads(p.read_text()) if p.exists() else {}
+    out = {k: r.get(k) for k in ("generato", "mercati", "costi", "errore")}
+    for part in ("figure", "modello"):
+        x = r.get(part) or {}
+        out[part] = {k: x.get(k) for k in ("prove", "superano_correzione", "reggono_verifica")} | {
+            "legami": (x.get("legami") or [])[:20]}
+    w = settings.data_dir / "weekend.json"
+    if w.exists():
+        x = json.loads(w.read_text())
+        out["weekend"] = {k: x.get(k) for k in ("generato", "prove", "superano_correzione", "reggono_verifica")} | {
+            "legami": (x.get("legami") or [])[:15]}
+    return out if (r or "weekend" in out) else None
 
 
 def build(store: Store, settings: Settings) -> dict:
@@ -123,6 +146,7 @@ def build(store: Store, settings: Settings) -> dict:
         "kill_switch": settings.kill_switch_file.exists(),
         "ricerca": _research(settings),
         "eventi": _events(settings),
+        "candele": _candles(settings),
     }
 
 
