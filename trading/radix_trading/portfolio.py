@@ -26,6 +26,7 @@ from .store import Store
 START_EUR = 1000.0
 BAND = 0.03
 ALLOCATION_DAYS = 400
+EVENT_LANES = {"cot_nasdaq": 0.20}   # quota del capitale quando la corsia e' attiva
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS pf_account (id INTEGER PRIMARY KEY CHECK (id = 1), cash REAL NOT NULL,
@@ -104,6 +105,10 @@ def plan(store: Store) -> dict:
             prices[s], venues[s] = float(close[s].dropna().iloc[-1]), venue
     if not lanes:
         return {"corsie": {}, "pesi": {}, "prezzi": prices, "sedi": venues, "obiettivo": {}}
+    # le corsie "a evento" stanno quasi sempre ferme: fuori dal direttore, quota fissa solo quando attive
+    events = {k: v for k, v in lanes.items() if k in EVENT_LANES}
+    lanes = {k: v for k, v in lanes.items() if k not in EVENT_LANES}
+    returns = {k: v for k, v in returns.items() if k not in EVENT_LANES}
     if len(returns) > 1:
         _, alloc = multi.allocate(returns)
         share = alloc.iloc[-1].fillna(0.0).to_dict()
@@ -111,6 +116,12 @@ def plan(store: Store) -> dict:
             share = {k: 1 / len(lanes) for k in lanes}
     else:
         share = {k: 1.0 for k in lanes}
+    for key, w in events.items():
+        share[key] = 0.0
+        if any(np.isfinite(x) and x for x in w.values()):
+            share = {k: v * (1 - EVENT_LANES[key]) for k, v in share.items()}
+            share[key] = EVENT_LANES[key]
+        lanes[key] = w
     target: dict[str, float] = {}
     for key, w in lanes.items():
         for s, x in w.items():
