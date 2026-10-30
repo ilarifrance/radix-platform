@@ -10,8 +10,8 @@ Si muove solo se:
 (`validate=true`): nessun ordine viene eseguito e non serve la modalita' live.
 
 Il conto Kraken va usato solo per questo: il patrimonio del conto (euro + crypto) e' il patrimonio
-del test. Si investe al massimo CAPITAL_EUR; se il patrimonio scende sotto quello del primo giro meno
-MAX_LOSS_EUR si vende tutto e il conto resta fermo finche' qualcuno non cancella la riga in live_halt.
+del test. Si investe al massimo CAPITAL_EUR (l'eventuale eccedenza resta in euro); se il patrimonio scende sotto
+quello del primo giro meno MAX_LOSS_EUR si vende tutto e il conto resta fermo finche' qualcuno non cancella la riga in live_halt.
 """
 
 from __future__ import annotations
@@ -139,7 +139,7 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     equity = eur + sum(u * prices[s] for s, u in held.items())
     row = db.execute("SELECT start FROM live_account").fetchone()
     if row is None:
-        start = min(equity, CAPITAL_EUR)
+        start = equity  # lo stop guarda il patrimonio vero del conto (es. 110 euro con 10 di margine)
         if not prova:
             db.execute("INSERT INTO live_account VALUES (1, ?, ?)", (start, ts))
     else:

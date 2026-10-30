@@ -70,6 +70,16 @@ def test_stop_sells_everything_and_stays_stopped(tmp_path, monkeypatch):
     assert out["fermo"] and k3.orders == []
 
 
+def test_stop_counts_from_the_real_starting_balance(tmp_path, monkeypatch):
+    # 110 euro sul conto: si investono al massimo 100, lo stop scatta a 90 (−20 veri), non a 80
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    st, s = _store(), _settings(tmp_path, mode="live")
+    out = live.step(st, s, FakeKraken({"ZEUR": 110.0}), send=lambda m: None)
+    assert out["inizio"] == 110.0
+    out = live.step(st, s, FakeKraken({"ZEUR": 89.0}), send=lambda m: None)
+    assert out["fermo"]
+
+
 def test_kill_switch_blocks_orders(tmp_path):
     (tmp_path / "KILL_SWITCH").write_text("stop")
     k = FakeKraken({"ZEUR": 100.0})
