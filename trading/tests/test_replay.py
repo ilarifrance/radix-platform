@@ -75,3 +75,16 @@ def test_min_fee_markets_trade_only_when_the_fee_is_small():
     assert len(pf.step(t0, plan(0.30))["operazioni"]) == 1         # 300 euro: commissione 1,25 = 0,4%
     assert pf.step(t0 + timedelta(hours=1), plan(0.40))["operazioni"] == []   # +100 euro: costerebbe 1,25%
     assert len(pf.step(t0 + timedelta(hours=2), plan(0.0))["operazioni"]) == 1  # l'uscita completa si fa sempre
+
+
+def test_probability_filter_only_removes_entries():
+    st = _store(drift=0.0003)
+    close, _, _ = portfolio._closes(st, "crypto")
+    lane = next(l for l in portfolio.TRIAL_LANES if l.key == "crypto_trend_prob")
+    base = portfolio.lane_weights(portfolio.LANES[0], close, None)
+    w = portfolio.lane_weights(lane, close, None)
+    assert ((w == 0) | (w == base)).all().all()
+    assert w.to_numpy().sum() <= base.to_numpy().sum()
+    out = replay.run(st, "2025-02-01", "2025-04-30", lanes=["crypto_trend_prob"], every_hours=6)
+    assert set(out["quote_medie"]) == {"crypto_trend_prob"}
+    assert "crypto_trend_prob" not in replay.run(st, "2025-04-01", "2025-04-10", every_hours=24)["quote_medie"]

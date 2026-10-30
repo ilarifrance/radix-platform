@@ -59,6 +59,12 @@ LANES = [
 ]
 
 
+# Varianti da provare con `replay --lanes`, non usate dal conto finto.
+TRIAL_LANES = [
+    Lane("crypto_trend_prob", "Trend crypto filtrato dalla probabilita'", "crypto", backtest.Costs.kraken_maker()),
+]
+
+
 def _closes(store: Store, market: str) -> tuple[pd.DataFrame, str, str]:
     """Prezzi di chiusura, sede dei dati e timeframe del mercato."""
     if market == "crypto":
@@ -76,6 +82,8 @@ def _closes(store: Store, market: str) -> tuple[pd.DataFrame, str, str]:
 def lane_weights(lane: Lane, close: pd.DataFrame, macro: pd.DataFrame, cot: pd.DataFrame | None = None) -> pd.DataFrame:
     if lane.key == "crypto_trend":
         return strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=0.25)
+    if lane.key == "crypto_trend_prob":
+        return multi.prob_filter(close, strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=0.25))
     if lane.key == "trend_brake":
         return multi.trend_brake(close, fast=24 * 10, slow=24 * 100, vol_target=0.25, short_size=0.25, exit_on="rebound")
     if lane.key == "gold_macro":

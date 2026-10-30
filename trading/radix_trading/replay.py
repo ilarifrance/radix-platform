@@ -32,8 +32,8 @@ def run(store: Store, start: str, end: str | None = None, capital: float = portf
     t0 = pd.Timestamp(start, tz="UTC")
     t1 = pd.Timestamp(end, tz="UTC") if end else None
     frames, returns, clock = {}, {}, []
-    for lane in portfolio.LANES:
-        if lanes and lane.key not in lanes:
+    for lane in portfolio.LANES + portfolio.TRIAL_LANES:
+        if (lanes and lane.key not in lanes) or (not lanes and lane in portfolio.TRIAL_LANES):
             continue
         close, venue, tf = portfolio._closes(store, lane.market)
         if close.empty or len(close) < 300:
