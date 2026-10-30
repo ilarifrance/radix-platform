@@ -230,7 +230,7 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend", "bigplayers", "replay"])
+                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -242,6 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fee-share", type=float, default=portfolio.MAX_FEE_SHARE,
                    help="solo per replay: commissione minima massima sull'ordine, es. 0.005; 0 = solo banda del 3%%")
     p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
+    p.add_argument("--prova", action="store_true", help="solo per live: Kraken convalida gli ordini senza eseguirli")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -317,6 +318,13 @@ def main(argv: list[str] | None = None) -> int:
             name = "replay.json" if not args.lanes else f"replay-{args.lanes.replace(',', '-')}.json"
             (settings.data_dir / name).write_text(json.dumps(snapshot.clean(study), default=str, ensure_ascii=False))
             result = {k: v for k, v in study.items() if k != "andamento"}
+        elif args.command == "live":
+            from . import live
+            result = live.step(store, settings, prova=args.prova)
+        elif args.command == "alert-test":
+            from . import alerts
+            result = {"configurato": alerts.configured(),
+                      "inviato": alerts.send("RADIX Trading: prova di avviso, tutto ok.")}
         elif args.command == "weekend":
             from . import weekend
             study = weekend.study(store)
@@ -337,6 +345,10 @@ def main(argv: list[str] | None = None) -> int:
             result["paper"] = engine.step()
             # Portafoglio simulato con piu' strade insieme (soldi finti).
             result["portafoglio"] = _safe(lambda: portfolio.Portfolio(store).step())
+            if isinstance(result["portafoglio"], dict):
+                from . import alerts
+                for t in result["portafoglio"].get("operazioni", []):
+                    alerts.send(alerts.order_text("[finto]", t["simbolo"], t["quantita"], t["prezzo"], t["commissione"]))
             if args.command == "hourly":
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
     finally:

@@ -63,6 +63,21 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 - `probability.py` — meta-modello: regressione logistica walk-forward che stima la probabilita' che un'operazione superi i costi; misurato con il Brier score (0,25 = nessuna capacita').
 - `paper.py` — paper trading interno: conto simulato da 1.000 euro con prezzi veri; ogni ora segnale → probabilita' (soglia 55%) → risk manager → esecuzione simulata, con ogni decisione registrata e motivata. `report` ne fa il riepilogo.
 
+## Test da 100 euro veri (spento)
+
+Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`).
+- Al massimo 100 euro investiti, niente leva, solo ordini a mercato.
+- Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
+- Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
+
+Passi, tutti di Francesco:
+1. Su Kraken crea una chiave API con i soli permessi "Query Funds" e "Create & Modify Orders", senza prelievi.
+2. Scrivi `KRAKEN_API_KEY` e `KRAKEN_API_SECRET` in `~/RadixTrading/.env`. Per gli avvisi aggiungi `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+3. Prova senza rischi:
+   - `python -m radix_trading alert-test`;
+   - `python -m radix_trading live --prova`: Kraken convalida gli ordini senza eseguirli.
+4. Per accendere il conto vero servono `RADIX_TRADING_MODE=live` e `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`, più un giro orario di `live`.
+
 ## Kill switch
 
 Creare il file `~/RadixTrading/data/KILL_SWITCH` (es. `touch ~/RadixTrading/data/KILL_SWITCH`) blocca ogni
