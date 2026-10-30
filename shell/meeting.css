@@ -184,3 +184,4 @@ body.mt-root{--mt-accent:var(--rx-projects,#65B8FF);--mt-core:var(--rx-core,#00E
 
 .mt-install{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px}
 .mt-go:has(#mt-go[hidden]){display:none}
+.mt-root a.mt-brief{text-decoration:none;margin:0 0 10px}
