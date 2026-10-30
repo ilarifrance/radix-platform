@@ -15,6 +15,8 @@
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const FB=()=>window.RadixFreeBusy;
+// The workspace: the CRM page's select (crm-data.js) or, in Impostazioni, the host's state (shell/settings.js).
+const wsOf=()=>window.RadixCrmData?.workspace()||window.RadixSalesApp?.state?.workspace||null;
 const pad=x=>String(x).padStart(2,'0');
 const get=async(params)=>{
  const r=await fetch('/api/sales?'+new URLSearchParams(params),{credentials:'same-origin',cache:'no-store'});
@@ -60,10 +62,10 @@ function fillFeed(box){
  steps.append(o,g);box.append(steps);
  box.append(E('p','Google rilegge i calendari abbonati ogni qualche ora (non subito); Outlook di solito entro un’ora. Il link è personale: chi lo possiede vede i tuoi appuntamenti, non condividerlo.','cal-feed-warn'));
 }
-function render(box){const ws=window.RadixCrmData?.workspace();if(!ws){box.replaceChildren(E('h3','Calendario da abbonare'),E('p','Scegli un workspace.','cal-empty'));return}
+function render(box){const ws=wsOf();if(!ws){box.replaceChildren(E('h3','Calendario da abbonare'),E('p','Scegli un workspace.','cal-empty'));return}
  fillFeed(box);if(feed.ws!==ws||(!feed.url&&!feed.error&&!feed.pending))loadFeed(ws).then(()=>{if(box.isConnected)fillFeed(box)});}
 let feedEl=null;
-function feedBox(){const ws=window.RadixCrmData?.workspace();if(feedEl&&ws&&feedEl.dataset.ws===ws&&feed.ws===ws&&(feed.url||feed.pending))return feedEl;const box=E('section',undefined,'cal-card cal-feed');if(ws)box.dataset.ws=ws;feedEl=box;render(box);return box}
+function feedBox(){const ws=wsOf();if(feedEl&&ws&&feedEl.dataset.ws===ws&&feed.ws===ws&&(feed.url||feed.pending))return feedEl;const box=E('section',undefined,'cal-card cal-feed');if(ws)box.dataset.ws=ws;feedEl=box;render(box);return box}
 
 /* ---------- Deep link from a feed event: ?ws=…&contatto=… opens the contact's Customer360 ---------- */
 (function deepLink(){
@@ -146,7 +148,7 @@ function fillSources(box){
 // The same element across renders of the Calendario page, so a half-typed link or an open form survives a redraw.
 let srcEl=null;
 function sourcesBox(){
- const ws=window.RadixCrmData?.workspace();if(srcEl&&ws&&srcEl.dataset.ws===ws&&src.ws===ws)return srcEl;
+ const ws=wsOf();if(srcEl&&ws&&srcEl.dataset.ws===ws&&src.ws===ws)return srcEl;
  const box=E('section',undefined,'cal-card cal-src');if(ws)box.dataset.ws=ws;srcEl=box;
  if(!ws){box.append(E('h3','Calendari esterni'),E('p','Scegli un workspace.','cal-empty'));return box}
  if(src.ws!==ws)resetSources(ws);fillSources(box);
@@ -159,7 +161,7 @@ const BUSY_TTL=5*60e3;
 const isoZ=ms=>new Date(ms).toISOString().replace(/\.\d{3}Z$/,'Z');
 // Rows for [from,to) if already read (else null); starts the read once and announces it with «radix-calendars-changed».
 function ensureBusy(from,to){
- const ws=window.RadixCrmData?.workspace();if(!ws)return null;if(src.ws!==ws)resetSources(ws);
+ const ws=wsOf();if(!ws)return null;if(src.ws!==ws)resetSources(ws);
  const key=from+'|'+to,hit=src.busy.get(key);if(hit&&Date.now()-hit.at<BUSY_TTL)return hit.rows;
  if(!src.busyPending.has(key))src.busyPending.set(key,get({entity:'calendar_busy',workspace:ws,from:isoZ(from),to:isoZ(to)})
   .then(d=>{if(src.ws!==ws)return [];src.busy.set(key,{at:Date.now(),rows:d.rows||[]});src.busyError='';return d.rows||[]})
@@ -214,7 +216,7 @@ function slotPicker({onPick}){
  (async()=>{
   // The window starts on a 5-minute grid, so the pickers drawn again by the record page (every tab switch and
   // every render of Customer360) reuse the busy time already read instead of asking the server each time.
-  const from=Math.floor(Date.now()/BUSY_TTL)*BUSY_TTL,to=from+14*864e5,ws=window.RadixCrmData?.workspace();
+  const from=Math.floor(Date.now()/BUSY_TTL)*BUSY_TTL,to=from+14*864e5,ws=wsOf();
   const [ext,data]=await Promise.all([ws?busyFor(from,to):Promise.resolve([]),Promise.resolve(window.RadixCrmData?.load()).catch(()=>null)]);
   if(ws&&!src.rows)await loadSources(ws).catch(()=>{});
   const me=window.RadixSalesApp?.state?.me;busy=ext||[];crm=data&&FB()?FB().crmBusy(data,{me:Number.isInteger(me)&&me>0?me:null,from,to}):[];

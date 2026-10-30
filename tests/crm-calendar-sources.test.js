@@ -184,7 +184,7 @@ test('wiring: scripts, Calendario box, busy blocks, «Slot liberi» in «Registr
  const js=read('sales/crm-calendars.js');
  for(const s of ['Calendari esterni','Calendari condivisi','Pubblica un calendario','link ICS','Indirizzo segreto in formato iCal','Integra calendario','link salvato','Mostra i titoli','Slot liberi','Orario di lavoro',"'calendar_busy'","'calendar_sources'"])assert.ok(js.includes(s),s);
  assert.ok(!/\.url\b(?!_)/.test(js.replace(/url\.value|url\.placeholder|url:url\.value|feed\.url/g,'')),'the page never reads a saved link back');
- const view=read('sales/calendar-view.js');assert.ok(view.includes("busy:['Occupato','gray']"));assert.ok(view.includes('RadixCrmCalendars.sourcesBox()'));assert.ok(view.includes("'radix-calendars-changed'"));
+ const view=read('sales/calendar-view.js');assert.ok(view.includes("busy:['Occupato','gray']"));assert.ok(!view.includes('RadixCrmCalendars.sourcesBox()')&&read('shell/settings.js').includes('src.append(K.sourcesBox())'),'the links are managed in Impostazioni › Calendari');assert.ok(view.includes("'radix-calendars-changed'"));
  assert.ok(read('sales/crm-sheet.js').includes('RadixCrmCalendars.slotPicker({onPick:v=>{when.value=v;fcb.checked=true}})'));
  const mig=read('migrations/sales/018_crm_calendar_sources.sql');
  for(const s of ['CREATE TABLE IF NOT EXISTS sales_calendar_sources','user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE','url_ciphertext text NOT NULL',"provider IN ('outlook','google')",'show_details boolean NOT NULL DEFAULT false',"status IN ('pending','ok','error')",'last_fetched_at timestamptz','BEGIN;','COMMIT;'])assert.ok(mig.includes(s),s);

@@ -112,6 +112,27 @@ test('replies to campaigns: a received mail from a contact the queue wrote to, w
  require('../lib/radix-i18n-en.js');assert.equal(globalThis.RadixI18nEn['↩ Risposta a una campagna'],'↩ Reply to a campaign');
 });
 
+test('keyboard: ↑ ↓ j k Home End move between the mails from the list and from the open mail; typing in a field is left alone',()=>{
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8');
+ assert.match(ui,/\$\('pm-items'\)\.addEventListener\('keydown',onKeys\);\$\('pm-read'\)\.addEventListener\('keydown',onKeys\)/);
+ assert.match(ui,/\['ArrowDown','ArrowUp','Home','End','j','k'\]\.includes\(e\.key\)&&step\(e\.key\)\)e\.preventDefault\(\)/);
+ assert.match(ui,/tag==='INPUT'\|\|tag==='TEXTAREA'\|\|tag==='SELECT'/);
+ assert.match(ui,/openMessage\(m\);const b=listButtons\(\)\[n\];if\(b\)\{b\.focus\(\{preventScroll:true\}\);b\.scrollIntoView\(\{block:'nearest'\}\)\}/,'the newly opened row keeps the focus after the list is redrawn');
+ assert.match(ui,/href:'\/impostazioni\.html\?area=sales#caselle'/,'the reconnect link keeps the Sales menu');
+});
+
+test('look: avatars with initials, unread rows (Graph isRead), sender card with headers on click, quoted part greyed, phone layout',()=>{
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8'),css=fs.readFileSync(__dirname+'/../sales/crm-posta.css','utf8'),html=fs.readFileSync(__dirname+'/../sales-posta.html','utf8'),ms=fs.readFileSync(__dirname+'/../api/_ms_oauth.js','utf8');
+ assert.match(ms,/conversationId,isRead'/);assert.match(ms,/unread:m\.isRead===false\}/);
+ assert.match(ui,/const initials=p=>/);assert.match(ui,/if\(m\.unread\)b\.classList\.add\('unread'\)/);assert.match(ui,/b\.append\(avatar\(sent\?\(m\.to\|\|\[\]\)\[0\]:m\.from\),top,/);
+ assert.match(ui,/const head=E\('header',undefined,'pm-head'\)/);assert.match(ui,/toLine\.onclick=\(\)=>\{const o=!meta\.classList\.contains\('open'\)/);
+ assert.match(ui,/quoting\?'pm-quote':undefined/);assert.match(ui,/if\(!document\.activeElement\|\|!document\.activeElement\.closest\('#pm-items'\)\)host\.focus/,'↑ ↓ keep the focus on the list');
+ for(const s of ['.pm-av{','.pm-item.unread .pm-av::after','.pm-sender{display:grid','.pm-body p.pm-quote','.pm-head{padding:20px 24px 14px;border-bottom','@media(max-width:900px)'])assert.ok(css.includes(s),s);
+ assert.match(html,/class="pm-empty"><span class="pm-empty-ic"/);assert.match(html,/id="pm-reload" class="pm-icon"/);
+ for(const f of ['search.svg','refresh.svg','mail.svg'])assert.ok(fs.existsSync(__dirname+'/../sales/icons/'+f),f);
+ const en=fs.readFileSync(__dirname+'/../lib/radix-i18n-en.js','utf8');for(const k of ['Solo contatti del CRM','per muoverti tra le mail','✓ Collegata al CRM'])assert.ok(en.includes('"'+k+'":'),k);
+});
+
 test('suggested opportunities: proposal words or amounts, one per conversation, known or new counterpart, never over an open deal',()=>{
  assert.equal(P.amountCents('offerta da € 12.500'),1250000);assert.equal(P.amountCents('12.500,00 euro'),1250000);assert.equal(P.amountCents('1200€'),120000);assert.equal(P.amountCents('12,5 €'),1250);assert.equal(P.amountCents('£ 1,200.50'),120050);assert.equal(P.amountCents('ordine n. 1234'),null);
  assert.equal(P.cleanSubject('Re: Fwd: R: offerta forni'),'offerta forni');
