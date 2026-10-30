@@ -115,6 +115,48 @@ function opportunityPlan(h,pipe){
  const opportunity={title:h.title,process_id:pipe.process_id,stage_id:pipe.stage_id};if(h.amount!==null&&h.amount!==undefined)opportunity.amount_cents=h.amount;
  return {contact,opportunity,companyId:h.companyId||null};
 }
-const api={participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,amountCents,cleanSubject,opportunityHint,opportunityHints,pipelines,opportunityPlan,MAX};
+/* «Prossima mossa»: which mail to send to this contact now, from the CRM state (no AI). Fixed rules, in order:
+   a received mail is answered first; a won deal gets after-sales; a proposal / negotiation stage gets a chase after
+   SILENCE_PROPOSAL days; an early stage gets a follow-up after SILENCE_FOLLOWUP days; no deal and nothing recorded
+   gets a first contact; a lost deal gets a reactivation after 60 days; otherwise «wait». Each move carries a draft
+   (subject, body) with the names filled in; nothing is sent from here. */
+const DAY=864e5,SILENCE_PROPOSAL=5,SILENCE_FOLLOWUP=7,REACTIVATE=60;
+const PROPOSAL_STAGE=/propost|preventiv|offert|negozia|trattativ|quot|proposal|negotiat/i,WON_STAGE=/vint|client|chius[oa] vint|won/i,LOST_STAGE=/pers|lost/i;
+const first=n=>text(n).trim().split(/\s+/)[0]||'';
+function lastTouch(contact,interactions){let last=null;for(const i of interactions||[]){if(i.contact_id!==contact.id)continue;const t=Date.parse(i.occurred_at||i.created_at||'');if(!Number.isNaN(t)&&(last===null||t>last))last=t}return last}
+function nextMove(contact,crm,o){
+ if(!contact)return null;const now=(o&&o.now)||Date.now(),me=text(o&&o.me).trim();
+ const company=(crm.companies||[]).find(c=>c.id===contact.company_id),coName=company?text(company.name):'',name=first(contact.name)||'buongiorno';
+ const stageOf=op=>(crm.stages||[]).find(s=>s.id===op.stage_id)||{};
+ const opps=(crm.opportunities||[]).filter(op=>op.contact_id===contact.id||(!op.contact_id&&contact.company_id&&op.company_id===contact.company_id));
+ const open=opps.filter(op=>op.outcome==null||op.outcome==='open'),won=opps.filter(op=>op.outcome==='won'||WON_STAGE.test(text(stageOf(op).title))),lost=opps.filter(op=>op.outcome==='lost'||LOST_STAGE.test(text(stageOf(op).title)));
+ const last=lastTouch(contact,crm.interactions),silence=last===null?null:Math.floor((now-last)/DAY);
+ const sign=me?'\n\n'+me:'';
+ const draft=(subject,body)=>({subject,body:body+sign});
+ const mail=o&&o.mail,received=mail&&o.direction==='received';
+ if(received){const s=text(mail.subject).replace(/^\s*(?:re|r|fwd?|fw)\s*:\s*/i,'');
+  return {kind:'reply',title:'Rispondi a questa mail',why:'Ti ha scritto '+(contact.name||contact.email)+(open.length?' con una trattativa aperta («'+text(open[0].title)+'»)':'')+': una risposta entro oggi vale più di qualsiasi follow-up.',
+   draft:draft('Re: '+s,'Ciao '+name+',\n\ngrazie per la tua mail. '+(open.length?'Procedo come dici e ti aggiorno su «'+text(open[0].title)+'» entro domani.':'Ti rispondo nel dettaglio entro domani; intanto, se preferisci, sentiamoci al telefono: dimmi tu quando.'))}}
+ if(won.length&&!open.length){const op=won[0];
+  return {kind:'aftersales',title:'Post-vendita',why:'«'+text(op.title)+'» è chiusa come vinta: una mail di avvio e un appuntamento di verifica tengono il cliente vicino.',
+   draft:draft('Partiamo insieme: '+text(op.title),'Ciao '+name+',\n\ngrazie ancora per la fiducia su «'+text(op.title)+'». Ti propongo una breve chiamata per fissare i primi passi e le date; fammi sapere due orari che ti vanno bene questa settimana.')}}
+ if(open.length){const op=open.slice().sort((a,b)=>(stageOf(b).position||0)-(stageOf(a).position||0))[0],st=stageOf(op),title=text(op.title);
+  if(PROPOSAL_STAGE.test(text(st.title))){
+   if(silence===null||silence>=SILENCE_PROPOSAL)return {kind:'chase',title:'Sollecita la proposta',why:'«'+title+'» è in fase «'+text(st.title)+'»'+(silence===null?' e non risulta nessun contatto registrato':' e sono passati '+silence+' giorni dall’ultimo contatto')+'.',
+    draft:draft('Un riscontro su «'+title+'»','Ciao '+name+',\n\nhai avuto modo di guardare la proposta su «'+title+'»? Se ci sono punti da chiarire o adattare, dimmelo pure: possiamo vederci dieci minuti al telefono quando preferisci.')};
+   return {kind:'wait',title:'Aspetta',why:'«'+title+'» è in fase «'+text(st.title)+'» e l’ultimo contatto è di '+silence+(silence===1?' giorno':' giorni')+' fa: un sollecito ora sarebbe prematuro.',draft:null}}
+  if(silence===null||silence>=SILENCE_FOLLOWUP)return {kind:'followup',title:'Follow-up',why:'«'+title+'» è aperta in fase «'+(text(st.title)||'iniziale')+'»'+(silence===null?' senza contatti registrati':' e sono passati '+silence+' giorni dall’ultimo contatto')+'.',
+   draft:draft('Proseguiamo su «'+title+'»?','Ciao '+name+',\n\nriprendo il filo su «'+title+'»'+(coName?' per '+coName:'')+'. Ti va di fissare una chiamata di 20 minuti per capire tempi e prossimi passi? Dimmi due orari che ti vanno bene.')};
+  return {kind:'wait',title:'Aspetta',why:'«'+title+'» è aperta e l’ultimo contatto è di '+silence+(silence===1?' giorno':' giorni')+' fa.',draft:null}}
+ if(lost.length&&(silence===null||silence>=REACTIVATE)){const op=lost[0];
+  return {kind:'reactivate',title:'Riattiva il contatto',why:'«'+text(op.title)+'» era stata persa'+(silence===null?'':' e sono passati '+silence+' giorni dall’ultimo contatto')+': un messaggio senza pressione riapre la porta.',
+   draft:draft('Come procede'+(coName?' in '+coName:'')+'?','Ciao '+name+',\n\nè passato un po’ di tempo da quando ci eravamo sentiti su «'+text(op.title)+'». Se nel frattempo le esigenze sono cambiate, mi fa piacere riparlarne senza impegno: dimmi tu se e quando.')}}
+ if(lost.length)return {kind:'wait',title:'Aspetta',why:'L’ultima trattativa era stata persa '+(silence===null?'':silence+' giorni fa')+': riprova dopo '+REACTIVATE+' giorni.',draft:null};
+ if(last===null)return {kind:'intro',title:'Primo contatto',why:'Nessuna trattativa e nessun contatto registrato con '+(contact.name||contact.email)+(coName?' ('+coName+')':'')+'.',
+  draft:draft('Un confronto di 15 minuti'+(coName?' per '+coName:''),'Ciao '+name+',\n\nmi occupo di aiutare aziende come '+(coName||'la tua')+' a seguire clienti e trattative con meno sforzo. Ti va un confronto di 15 minuti per capire se può esserti utile? Dimmi due orari che ti vanno bene, senza impegno.')};
+ return {kind:'followup',title:'Tieni vivo il contatto',why:'Nessuna trattativa aperta; l’ultimo contatto è di '+silence+(silence===1?' giorno':' giorni')+' fa.',
+  draft:draft('Ci risentiamo?','Ciao '+name+',\n\nriprendo il filo del nostro ultimo scambio'+(coName?' per '+coName:'')+'. Se ha senso, fissiamo una chiamata breve per capire se posso esserti utile ora: dimmi tu quando.')};
+}
+const api={nextMove,lastTouch,participants,companyByDomain,matches,direction,title,body,interaction,linked,opportunitiesFor,contactFrom,campaignReply,campaignReplies,amountCents,cleanSubject,opportunityHint,opportunityHints,pipelines,opportunityPlan,MAX};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixCrmPosta=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

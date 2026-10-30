@@ -160,3 +160,30 @@ test('suggested opportunities: proposal words or amounts, one per conversation, 
  assert.ok(fs.readFileSync(__dirname+'/../sales/crm-posta.css','utf8').includes('.pm-opp{'));
  require('../lib/radix-i18n-en.js');assert.equal(globalThis.RadixI18nEn['Crea opportunità'],'Create opportunity');
 });
+
+test('next move: reply first, after-sales on won, chase a proposal after 5 silent days, follow-up after 7, first contact, reactivate a lost deal after 60, wait otherwise',()=>{
+ const now=Date.parse('2026-10-30T09:00:00Z'),d=n=>new Date(now-n*864e5).toISOString();
+ const stages=[{id:'s1',title:'Nuovo lead',position:1},{id:'s2',title:'Proposta inviata',position:3},{id:'s9',title:'Vinto',position:9},{id:'s0',title:'Perso',position:10}];
+ const c={id:'c1',name:'Mario Rossi',email:'mario@cliente.it',company_id:'co1'},crm0={companies:[{id:'co1',name:'Cliente Srl'}],stages,opportunities:[],interactions:[]};
+ const mv=(crm,o)=>P.nextMove(c,{...crm0,...crm},{now,me:'Francesco',...o});
+ assert.equal(mv({},{mail:{subject:'Re: offerta'},direction:'received'}).kind,'reply');assert.match(mv({},{mail:{subject:'Re: offerta'},direction:'received'}).draft.subject,/^Re: offerta$/);
+ assert.equal(mv({opportunities:[{id:'o1',title:'Forni',contact_id:'c1',stage_id:'s9',outcome:'won'}]}).kind,'aftersales');
+ const prop={id:'o2',title:'Linea 3',contact_id:'c1',stage_id:'s2',outcome:'open'};
+ assert.equal(mv({opportunities:[prop],interactions:[{contact_id:'c1',kind:'call',occurred_at:d(6)}]}).kind,'chase');
+ assert.equal(mv({opportunities:[prop],interactions:[{contact_id:'c1',kind:'call',occurred_at:d(2)}]}).kind,'wait');
+ assert.equal(mv({opportunities:[prop]}).kind,'chase','nothing recorded counts as silence');
+ const early={id:'o3',title:'Linea 4',contact_id:'c1',stage_id:'s1',outcome:'open'};
+ assert.equal(mv({opportunities:[early],interactions:[{contact_id:'c1',kind:'note',occurred_at:d(8)}]}).kind,'followup');
+ assert.equal(mv({opportunities:[early],interactions:[{contact_id:'c1',kind:'note',occurred_at:d(3)}]}).kind,'wait');
+ const intro=mv({});assert.equal(intro.kind,'intro');assert.match(intro.draft.body,/^Ciao Mario,/);assert.match(intro.draft.body,/Cliente Srl/);assert.match(intro.draft.body,/\n\nFrancesco$/,'signature');
+ const lost={id:'o4',title:'Vecchia',contact_id:'c1',stage_id:'s0',outcome:'lost'};
+ assert.equal(mv({opportunities:[lost],interactions:[{contact_id:'c1',kind:'call',occurred_at:d(61)}]}).kind,'reactivate');
+ assert.equal(mv({opportunities:[lost],interactions:[{contact_id:'c1',kind:'call',occurred_at:d(10)}]}).kind,'wait');
+ assert.equal(mv({interactions:[{contact_id:'c1',kind:'call',occurred_at:d(30)}]}).kind,'followup');
+ assert.equal(mv({interactions:[{contact_id:'other',kind:'call',occurred_at:d(1)}]}).kind,'intro','other contacts’ interactions do not count');
+ assert.equal(P.nextMove(null,crm0,{now}),null);
+ const ui=fs.readFileSync(__dirname+'/../sales/crm-posta.js','utf8');
+ assert.match(ui,/if\(known\.length&&P\.nextMove\)head\.append\(moveCard\(m,known\[0\]\)\)/);
+ assert.match(ui,/interactions:S\.crm\.all\|\|S\.crm\.interactions/,'silence counts every interaction kind');
+ assert.match(ui,/window\.confirm\('Registrare l’email «'/,'«Segna come inviata» asks first');assert.ok(!/send-email/.test(ui),'nothing is sent from Posta');
+});
