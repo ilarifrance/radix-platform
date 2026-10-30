@@ -230,3 +230,8 @@ test('CRM: «Chiama da RADIX» link from a contact or company, back in the clien
  const js=fs.readFileSync('lib/meeting-page.js','utf8'),html=fs.readFileSync('meeting.html','utf8'),crmJs=fs.readFileSync('sales/crm-record.js','utf8');
  assert.match(html,/id="mt-crm"/);assert.match(js,/'x-radix-sales':'1'/);assert.match(crmJs,/core\.meetingCall\(/);
 });
+
+test('after saving, «Scomponi nel Project Manager» opens the PM brief on this meeting',()=>{
+ const js=fs.readFileSync('lib/meeting-page.js','utf8');
+ assert.match(js,/'\/radix-pm-concept\.html\?brief=meeting&from='\+encodeURIComponent\(m\.saved\.projectId\)\+'&meeting='\+encodeURIComponent\(m\.id\)/);
+});
