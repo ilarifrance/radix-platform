@@ -93,9 +93,12 @@ def test_research_builds_the_portfolio(monkeypatch):
     monkeypatch.setattr(research, "HOURLY_FAMILIES", {})
     monkeypatch.setattr(research, "DAILY_FAMILIES", {})
     monkeypatch.setattr(research, "CAPITAL_SCENARIOS", [])
+    monkeypatch.setattr(research, "BAR_FAMILIES", {})
+    monkeypatch.setattr(research, "LANE_MIN_SHARPE", -10.0)
     out = research.run(st, target_cagr=-1.0, target_dd=-1.0)
+    assert out["leva"] and {"margine", "cfd"} <= set(out["leva"][0])
     fams = {r["famiglia"] for r in out["classifica"]}
-    assert {"gold_macro", "risk_switch", "portafoglio_multi"} <= fams
+    assert {"gold_macro", "risk_switch", "portafoglio_multi", "portafoglio_rischio_costante"} <= fams
     port = next(r for r in out["classifica"] if r["famiglia"] == "portafoglio_multi")
     assert port["parametri_ultimi"]["corsie"] == ["gold_macro@materie_prime", "risk_switch@etf"]
 

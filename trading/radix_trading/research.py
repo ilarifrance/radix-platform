@@ -20,13 +20,13 @@ from itertools import product
 import numpy as np
 import pandas as pd
 
-from . import backtest, data, multi, strategies, universe, validation
+from . import backtest, data, leverage, multi, strategies, universe, validation
 from .store import Store
 
 LOCKBOX_DAYS = 365
 FINALISTS = 5
 TARGET_CAGR = 0.10        # almeno il 10% l'anno...
-TARGET_MAX_DD = -0.15     # ...con una perdita massima non oltre il 15%
+TARGET_MAX_DD = -0.20     # ...con una perdita massima non oltre il 20% (scelta di Francesco, 29/10/2026)
 TAX = {"crypto": 0.33, "default": 0.26}   # stima: plusvalenze crypto dal 2026, altri strumenti
 
 
@@ -124,6 +124,9 @@ NAMES = {
     "crash_guard": "Compra e tieni con protezione",
     "trend_brake": "Trend crypto con freno allo scoperto", "gold_macro": "Oro con segnali macro",
     "risk_switch": "Azioni o obbligazioni secondo la paura (VIX)", "portafoglio_multi": "Portafoglio di piu' strategie",
+    "portafoglio_rischio_costante": "Portafoglio a rischio costante",
+    "ibs_reversion": "Rimbalzo dopo chiusura sul minimo", "turn_of_month": "Fine e inizio mese",
+    "tsmom": "Trend su piu' mercati", "pre_fomc": "Rialzo prima della Fed",
 }
 # Piu' strade insieme (multi.py): scoperto solo con calo probabile, macro, e il portafoglio che le unisce.
 BRAKE_GRID = {"fast": [24 * 10], "slow": [24 * 50, 24 * 100], "vol_target": [0.25, 0.5], "short_size": [0.25, 0.5],
@@ -133,9 +136,24 @@ MACRO_FAMILIES = {
                                                        "vol_target": [0.0, 0.10, 0.15]}),
     "etf": ("risk_switch", multi.risk_switch, {"vix_window": [126, 252], "trend": [100, 200]}),
 }
+# Effetti di candela e di calendario sulle azioni (studio candele del 29/10/2026, letteratura).
+BAR_FAMILIES = {
+    "ibs_reversion": (multi.ibs_reversion, {"entry": [0.1, 0.2], "hold": [1, 3, 5], "exit_ibs": [0.8, 1.1],
+                                            "trend": [0, 200], "max_names": [3, 5]}),
+    "turn_of_month": (multi.turn_of_month, {"before": [2, 4], "after": [2, 3], "trend": [0, 200]}),
+}
+BAR_MARKETS = ("etf", "italia")
+# Trend su piu' mercati insieme (pochi ETF ben diversi: la commissione minima pesa per ognuno).
+MULTI_ASSET = {"etf": ["SPY", "EFA", "EEM", "TLT", "IEF", "HYG", "VNQ"], "materie_prime": ["GLD", "DBC", "USO"]}
+MULTI_FAMILIES = {"tsmom": (multi.tsmom, {"lookback": [63, 126, 252], "vol_target": [0.10, 0.15, 0.25],
+                                          "rebalance": [5, 21]})}
+FOMC_GRID = {"days_before": [1, 2]}
+LEVERAGE_TOP = 8
+LANE_MIN_SHARPE = 0.3
 # Le corsie del portafoglio: per ognuna si prende la versione migliore trovata dalla ricerca.
 PORTFOLIO_LANES = [("crypto_trend_daily", "crypto"), ("trend_brake", "crypto"),
-                   ("gold_macro", "materie_prime"), ("risk_switch", "etf")]
+                   ("gold_macro", "materie_prime"), ("risk_switch", "etf"),
+                   ("ibs_reversion", "etf"), ("turn_of_month", "etf"), ("tsmom", "multi_asset")]
 
 
 @dataclass
@@ -177,9 +195,29 @@ def candidates(store: Store) -> list[Candidate]:
         if m in MACRO_FAMILIES:
             name, fn, grid = MACRO_FAMILIES[m]
             fams[name] = (multi.with_macro(fn, macro), grid)
+        if m in BAR_MARKETS:
+            bars = {s: store.load_bars(mk["venue"], s, "1d") for s in close.columns}
+            frame = multi.ibs({s: b for s, b in bars.items() if len(b)}).reindex(close.index)
+            for name, (fn, grid) in BAR_FAMILIES.items():
+                fams[name] = (multi.with_bars(fn, frame) if name == "ibs_reversion" else fn, grid)
+        if m == "etf":
+            fomc = _fomc_dates(store)
+            if len(fomc):
+                fams["pre_fomc"] = (multi.with_bars(multi.pre_fomc, fomc, "dates"), FOMC_GRID)
         for fam, (fn, grid) in fams.items():
             for cap in capitals:
                 out.append(Candidate(fam, m, "1d", fn, grid, close, costs, cap, mk["min_trade"]))
+    cols = {}
+    for m, syms in MULTI_ASSET.items():
+        mk = universe.MARKETS[m]
+        for sym in syms:
+            c = data.load_close(store, mk, sym)
+            if len(c):
+                cols[sym] = c
+    if len(cols) >= 4:
+        close = pd.DataFrame(cols).dropna(how="all").ffill()
+        for fam, (fn, grid) in MULTI_FAMILIES.items():
+            out.append(Candidate(fam, "multi_asset", "1d", fn, grid, close, backtest.Costs.ibkr_equities(), 1000.0, 0.05))
     crypto_d = _daily_crypto(store)
     if not crypto_d.empty:
         for fam, (fn, grid) in DAILY_FAMILIES.items():
@@ -193,6 +231,41 @@ def candidates(store: Store) -> list[Candidate]:
             out.append(Candidate(fam, "crypto", "1h", fn, grid, crypto_h, costs, 100.0, 0.0))
         out.append(Candidate("trend_brake", "crypto", "1h", multi.trend_brake, BRAKE_GRID, crypto_h,
                              backtest.Costs.kraken_short(), 100.0, 0.0))
+    return out
+
+
+def _fomc_dates(store: Store) -> pd.DatetimeIndex:
+    """Giorni delle decisioni Fed: tutti i comunicati FOMC (con la chiave FRED), altrimenti i cambi di tasso."""
+    try:
+        rows = store.conn.execute("SELECT day, kind FROM calendar WHERE kind IN ('fomc', 'fed')").fetchall()
+    except Exception:
+        return pd.DatetimeIndex([])
+    fomc = [d for d, k in rows if k == "fomc"]
+    days = fomc if len(fomc) >= 20 else [d for d, _ in rows]
+    return pd.DatetimeIndex(sorted(set(pd.to_datetime(days))))
+
+
+def _leverage(rows: list[dict], target_dd: float) -> list[dict]:
+    """Le strategie migliori (e il portafoglio) con la leva: margine IBKR e CFD."""
+    ok = [r for r in rows if "_returns" in r and "ricerca" in r and "annuo" in r["ricerca"]]
+    ok.sort(key=lambda r: r["dsr"], reverse=True)
+    pick = ok[:LEVERAGE_TOP] + [r for r in ok[LEVERAGE_TOP:] if r["famiglia"].startswith("portafoglio")]
+    out = []
+    for r in pick:
+        cut = r["_returns"].index[-1] - pd.Timedelta(days=LOCKBOX_DAYS)
+        search = r["_returns"][r["_returns"].index <= cut]
+        last = r["_returns"][r["_returns"].index > cut]
+        item = {"famiglia": r["famiglia"], "nome": r.get("nome"), "mercato": r["mercato"], "timeframe": r["timeframe"]}
+        for kind in leverage.FINANCING:
+            t = leverage.table(search, r["timeframe"], r["mercato"], kind, target_dd)
+            best = t["leva_migliore_entro_limite"]
+            if best and len(last) > 30:
+                x, closed = leverage.levered(last, best, r["timeframe"], r["mercato"], kind)
+                m = backtest.metrics(x, r["timeframe"])
+                t["ultimo_anno_con_leva"] = {"annuo": m.get("cagr"), "max_drawdown": m.get("max_drawdown"),
+                                             "chiusura_forzata": closed}
+            item[kind] = t
+        out.append(item)
     return out
 
 
@@ -242,6 +315,9 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
     port = _portfolio(rows, lockbox_days, total_trials)
     if port:
         rows.append(port)
+        vt = _vol_managed(port, lockbox_days, total_trials)
+        if vt:
+            rows.append(vt)
     ok = [r for r in rows if "ricerca" in r and "annuo" in r["ricerca"]]
     ok.sort(key=lambda r: r["dsr"], reverse=True)
     meets = [r for r in ok if r["ricerca"]["annuo"] >= target_cagr and r["ricerca"]["max_drawdown"] >= target_dd]
@@ -250,10 +326,12 @@ def run(store: Store, lockbox_days: int = LOCKBOX_DAYS, finalists: int = FINALIS
         lk = _summary(r["_lock"], r["timeframe"], r["mercato"])
         r["anno_chiuso"] = lk
         r["supera_anno_chiuso"] = bool(lk.get("annuo", -1) >= target_cagr and lk.get("max_drawdown", -1) >= target_dd)
+    lev = _leverage(rows, target_dd)
     for r in rows:
         r.pop("_lock", None)
         r.pop("_returns", None)
     return {
+        "leva": lev,
         "obiettivo": {"annuo": target_cagr, "max_drawdown": target_dd, "anno_chiuso_giorni": lockbox_days},
         "combinazioni_totali": total_trials,
         "prove": len(rows),
@@ -271,7 +349,10 @@ def _portfolio(rows: list[dict], lockbox_days: int, total_trials: int) -> dict |
         cands = [r for r in rows if r.get("famiglia") == fam and r.get("mercato") == market and "_returns" in r]
         if cands:
             best = max(cands, key=lambda r: r["dsr"])
-            picked[f"{fam}@{market}"] = best
+            # solo corsie che hanno reso qualcosa per il rischio preso negli anni di ricerca:
+            # le corsie deboli diluiscono le buone (prova del 29/10: da 4 a 7 corsie, DSR da 0,36 a 0,02)
+            if best["ricerca"].get("sharpe", 0) >= LANE_MIN_SHARPE:
+                picked[f"{fam}@{market}"] = best
     if len(picked) < 2:
         return None
     r, _ = multi.allocate({k: v["_returns"] for k, v in picked.items()})
@@ -285,6 +366,30 @@ def _portfolio(rows: list[dict], lockbox_days: int, total_trials: int) -> dict |
             "timeframe": "1d", "capitale": 1000.0, "combinazioni": 0, "ricerca": _summary(search, "1d", "multi"),
             "dsr": validation.deflated_sharpe(search, total_trials),
             "parametri_ultimi": {"corsie": sorted(picked)}, "_lock": lock, "_returns": r}
+
+
+PORTFOLIO_VOL_TARGET = 0.08
+PORTFOLIO_MAX_SCALE = 1.5
+
+
+def _vol_managed(port: dict, lockbox_days: int, total_trials: int) -> dict | None:
+    """Portafoglio a rischio costante (Moreira-Muir 2017): esposizione = obiettivo / volatilita' dei
+    60 giorni prima, tra 0 e 1,5 volte; sopra 1 si paga il margine (4% l'anno sulla parte in prestito)."""
+    r = port["_returns"]
+    vol = r.rolling(60).std().shift(1) * np.sqrt(365)
+    scale = (PORTFOLIO_VOL_TARGET / vol).clip(upper=PORTFOLIO_MAX_SCALE).fillna(0.0)
+    x = scale * r - (scale - 1).clip(lower=0) * 0.04 / 365
+    x = x.iloc[60:]
+    cut = x.index[-1] - pd.Timedelta(days=lockbox_days)
+    search, lock = x[x.index <= cut], x[x.index > cut]
+    if len(search) < 30:
+        return None
+    return {"famiglia": "portafoglio_rischio_costante", "nome": NAMES["portafoglio_rischio_costante"], "mercato": "multi",
+            "timeframe": "1d", "capitale": 1000.0, "combinazioni": 0, "ricerca": _summary(search, "1d", "multi"),
+            "dsr": validation.deflated_sharpe(search, total_trials),
+            "parametri_ultimi": port["parametri_ultimi"] | {"rischio_annuo": PORTFOLIO_VOL_TARGET,
+                                                            "esposizione_max": PORTFOLIO_MAX_SCALE},
+            "_lock": lock, "_returns": x}
 
 
 def save(settings, result: dict) -> None:
