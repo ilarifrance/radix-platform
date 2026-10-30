@@ -187,3 +187,18 @@ test('next move: reply first, after-sales on won, chase a proposal after 5 silen
  assert.match(ui,/interactions:S\.crm\.all\|\|S\.crm\.interactions/,'silence counts every interaction kind');
  assert.match(ui,/window\.confirm\('Registrare l’email «'/,'«Segna come inviata» asks first');assert.ok(!/send-email/.test(ui),'nothing is sent from Posta');
 });
+
+test('next move AI: prompt carries only CRM facts and the current draft; parse wants «Oggetto:» first and refuses invented numbers',()=>{
+ const contact={id:'c1',name:'Marta Bianchi',role:'CFO',company_id:'co1'},crm={companies:[{id:'co1',name:'Alfa Srl',industry:'Logistica'}]};
+ const mv={title:'Rispondi a questa mail',why:'ti ha scritto lei',draft:{subject:'Re: Preventivo',body:'Ciao Marta,\n\ngrazie della mail.'}};
+ const prompt=P.aiPrompt(mv,contact,crm,{mail:{subject:'Preventivo',text:'Buongiorno, potete mandarmi il preventivo entro il 15?'},me:'Francesco'});
+ assert.match(prompt,/Nome: Marta Bianchi\nRuolo: CFO\nAzienda: Alfa Srl\nSettore: Logistica\nFirma: Francesco/);
+ assert.match(prompt,/MAIL A CUI SI RISPONDE \(oggetto: Preventivo\)/);assert.match(prompt,/BOZZA ATTUALE:\nOggetto: Re: Preventivo\nCiao Marta/);assert.match(prompt,/Non inventare fatti, numeri/);
+ assert.deepEqual(P.aiParse('Oggetto: Re: Preventivo entro il 15\n\nCiao Marta,\n\nte lo mando entro il 15.\nFrancesco',{source:prompt}),{subject:'Re: Preventivo entro il 15',body:'Ciao Marta,\n\nte lo mando entro il 15.\nFrancesco'});
+ assert.match(P.aiParse('Oggetto: Sconto 20%\n\nTi offro il 20% di sconto.',{source:prompt}).error,/numeri che non sono nei dati \(20\)/);
+ assert.equal(P.aiParse('Ciao Marta, ecco il testo senza oggetto',{source:prompt}),null);assert.equal(P.aiParse('',{source:prompt}),null);
+ const ui=fs.readFileSync(require('node:path').join(__dirname,'..','sales','crm-posta.js'),'utf8');
+ assert.match(ui,/window\.confirm\('Chiedere all’AI di riscrivere questa bozza per '/,'the AI call asks first and names the cost');
+ assert.match(ui,/role:'crm-copilot',crmScope:\{workspace:S\.workspace\}/);assert.match(ui,/P\.aiParse\(d\.reply,\{source:prompt\}\)/);
+ assert.ok((ui.match(/fetch\('\/api\/chat'/g)||[]).length===1,'exactly one AI call site in Posta');
+});

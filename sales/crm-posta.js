@@ -159,13 +159,23 @@ function moveCard(m,contact){
  const open=E('button','Apri la bozza','pm-btn');open.type='button';const pane=E('div',undefined,'pm-move-draft');pane.hidden=true;
  const subj=E('input');subj.value=mv.draft.subject;subj.maxLength=200;subj.setAttribute('aria-label','Oggetto');const body=E('textarea');body.rows=7;body.value=mv.draft.body;body.setAttribute('aria-label','Testo');
  const note=E('p','Bozza da regole fisse, non dall’AI: adattala e inviala dal tuo programma di posta. RADIX non invia nulla da qui.','pm-muted');
+ // «Riscrivi con l’AI»: one AI call, only after a click and a confirmation that names the cost; the draft fields are replaced, nothing is sent.
+ const ai=E('button','✨ Riscrivi con l’AI','pm-btn');ai.type='button';ai.title='Una chiamata AI, dopo conferma';
+ ai.onclick=async()=>{if(S.busy||!P.aiPrompt)return;if(!window.confirm('Chiedere all’AI di riscrivere questa bozza per '+(contact.name||contact.email)+'?\nUna chiamata AI, consuma crediti API. Usa solo i dati del CRM e la mail: niente fatti inventati. Nulla viene inviato.'))return;
+  S.busy=true;ai.disabled=true;const was=ai.textContent;ai.textContent='L’AI sta scrivendo…';
+  try{const current={...mv,draft:{subject:subj.value,body:body.value}};const prompt=P.aiPrompt(current,contact,S.crm,{mail:m,me:S.meName||''});
+   const r=await fetch('/api/chat',{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({role:'crm-copilot',crmScope:{workspace:S.workspace},messages:[{role:'user',content:prompt}]})});
+   const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'AI non disponibile ('+r.status+').');
+   const got=P.aiParse(d.reply,{source:prompt});if(!got)throw new Error('Risposta dell’AI non leggibile: riprova.');if(got.error)throw new Error(got.error);
+   subj.value=got.subject;body.value=got.body;note.textContent='Testo riscritto dall’AI dai dati del CRM: rileggilo, poi copialo nel tuo programma di posta. RADIX non invia nulla da qui.';status('Bozza riscritta dall’AI.')}
+  catch(e){status('Bozza non cambiata: '+e.message,true)}finally{S.busy=false;ai.disabled=false;ai.textContent=was}};
  const copy=E('button','Copia','pm-btn');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText('Oggetto: '+subj.value+'\n\n'+body.value);copy.textContent='Copiata ✓';setTimeout(()=>{copy.textContent='Copia'},1500)}catch{copy.textContent='Copia non riuscita'}};
  const mark=E('button','Segna come inviata','pm-btn');mark.type='button';
  mark.onclick=async()=>{if(S.busy)return;if(!window.confirm('Registrare l’email «'+subj.value+'» come inviata da te a '+(contact.name||contact.email)+' (fuori da RADIX)?\nEntra nella cronologia del contatto come email inviata.'))return;
   S.busy=true;mark.disabled=true;
   try{const row=await post('interactions',{kind:'email',title:'Email: '+subj.value.slice(0,180),body:body.value.slice(0,4000),contact_id:contact.id,company_id:contact.company_id||null,occurred_at:new Date().toISOString().slice(0,19)+'Z'});S.crm.interactions.push(row);status('Email registrata nella cronologia di '+(contact.name||contact.email)+'.');drawRead()}
   catch(e){status('Non registrata: '+e.message,true);mark.disabled=false}finally{S.busy=false}};
- const acts=E('div',undefined,'pm-move-acts');acts.append(copy,mark);
+ const acts=E('div',undefined,'pm-move-acts');acts.append(ai,copy,mark);
  pane.append(E('label','Oggetto'),subj,E('label','Testo'),body,note,acts);
  open.onclick=()=>{pane.hidden=!pane.hidden;open.textContent=pane.hidden?'Apri la bozza':'Chiudi la bozza'};
  box.append(open,pane);return box}
