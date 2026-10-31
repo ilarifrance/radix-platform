@@ -76,8 +76,15 @@ def chiusure_crypto(store: Store, symbols: list[str] | None = None) -> pd.DataFr
         s = data.load_close(store, universe.FAST, sym)
         if not s.empty:
             cols[sym] = s[~s.index.duplicated()]
-    close = pd.DataFrame(cols).sort_index()
-    return close.ffill(limit=6)   # buchi orari brevi
+    return _griglia_oraria(pd.DataFrame(cols))
+
+
+def _griglia_oraria(close: pd.DataFrame) -> pd.DataFrame:
+    """Un'osservazione per ogni ora di orologio, come le barre Kraken che legge il conto vero: le medie contano
+    ore, non barre. I buchi brevi (fino a 6 ore) si riempiono con l'ultimo prezzo, quelli lunghi restano vuoti."""
+    if close.empty:
+        return close
+    return close.sort_index().resample("1h").last().ffill(limit=6)
 
 
 def chiusure_crypto_csv(cartella) -> pd.DataFrame:
@@ -96,7 +103,7 @@ def chiusure_crypto_csv(cartella) -> pd.DataFrame:
             ts = pd.to_datetime(t, utc=True)
         serie = pd.Series(pd.to_numeric(df[ccol], errors="coerce").to_numpy(), index=ts).dropna().sort_index()
         cols[f.stem.upper()] = serie[~serie.index.duplicated()]
-    return pd.DataFrame(cols).sort_index().ffill(limit=6)
+    return _griglia_oraria(pd.DataFrame(cols))
 
 
 def per_anno(equity: pd.Series) -> dict[int, float]:
