@@ -92,3 +92,14 @@ def test_replay_summarises_each_rule():
     g = out["regole"]["geopolitica_oro"]
     assert g["operazioni"] == 1 and g["risultato"] > 0 and out["totale"]["operazioni"] == 1
     assert out["regole"]["panico_spx"]["operazioni"] == 0
+
+
+def test_crypto_bars_merge_binance_history():
+    st = Store(":memory:")
+    hours = pd.date_range("2026-01-01", periods=48, freq="h", tz="UTC")
+    hist = pd.DataFrame({"open": 100.0, "high": 101.0, "low": 99.0, "close": 100.5, "volume": 1.0}, index=hours)
+    st.upsert_bars("binance", "XBTEUR", "1h", hist)
+    live = pd.DataFrame({"open": 200.0, "high": 201.0, "low": 199.0, "close": 200.5, "volume": 1.0}, index=hours[24:])
+    st.upsert_bars("kraken", "XBTEUR", "1h", live)   # Kraken copre solo il secondo giorno e vince dove si sovrappone
+    bars = oss.load_bars(st, "Bitcoin")
+    assert len(bars) == 2 and bars["high"].iloc[0] == 101.0 and bars["low"].iloc[1] == 199.0 and bars["close"].iloc[1] == 200.5

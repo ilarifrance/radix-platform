@@ -71,6 +71,9 @@ def load_bars(store: Store, market_name: str) -> pd.DataFrame:
     if market == "crypto":
         tier = universe.FAST
         df = store.load_bars(tier["venue"], sym, tier["timeframe"])
+        hist = store.load_bars(tier["history_venue"], sym, tier["timeframe"])   # storico lungo Binance, dove Kraken manca
+        if not hist.empty:
+            df = pd.concat([hist[~hist.index.isin(df.index)], df]).sort_index()
         if not df.empty:
             df = df.resample("D").agg({"open": "first", "high": "max", "low": "min", "close": "last"}).dropna()
     else:
