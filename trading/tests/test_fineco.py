@@ -32,7 +32,7 @@ def test_first_trading_day_skips_weekends_and_holidays():
 
 
 def test_monthly_plan_buys_the_etfs_above_their_12_month_price(monkeypatch):
-    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    monkeypatch.setattr(fineco, "env_value", _env({"FINECO_RULE": "trend"}))
     st, sent = Store(":memory:"), []
     sunday = datetime(2026, 11, 1, 9, 0, tzinfo=timezone.utc)
     assert fineco.maybe_alert(st, sunday, send=sent.append, fetch=_fetch) is None     # non ancora il primo giorno di borsa
@@ -67,6 +67,13 @@ def test_monthly_plan_buys_the_etfs_above_their_12_month_price(monkeypatch):
     out3 = fineco.maybe_alert(st, datetime(2026, 12, 31, 15, 0, tzinfo=timezone.utc), send=sent.append,
                               fetch=lambda s: down[s], force=True)
     assert out3["mese"] == "2027-01" and out3["giorno"] == "2027-01-04" and "Piano di gennaio 2027" in sent[2]
+
+
+def test_default_rule_is_buy_and_hold(monkeypatch):
+    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    assert fineco.rule() == "tieni"
+    monkeypatch.setattr(fineco, "env_value", _env({"FINECO_RULE": "boh"}))
+    assert fineco.rule() == "tieni"                      # valore sconosciuto: resta il default
 
 
 def test_capital_from_env(monkeypatch):
@@ -123,7 +130,7 @@ def test_buy_and_hold_rule_buys_all_five_and_rebalances_in_january(monkeypatch):
 
 
 def test_hourly_watch_alerts_once_per_event_and_summarises_at_close(monkeypatch):
-    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    monkeypatch.setattr(fineco, "env_value", _env({"FINECO_RULE": "trend"}))
     st, sent = Store(":memory:"), []
     out = fineco.maybe_alert(st, datetime(2026, 12, 1, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: FAKE[s])
     plan = {r["symbol"]: r["price"] for r in out["piano"]}

@@ -102,7 +102,8 @@ dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa d
 Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
 Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra o si esce solo con due mesi di fila
 dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
-scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; la scelta e' di Francesco.
+scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; Francesco ha scelto `tieni`
+la sera del 31/10/2026, ed e' il default senza variabile.
 `python -m radix_trading fineco --ora` manda il piano subito.
 Controllo orario (dal 31/10/2026, `fineco.watch` nel giro `hourly`): a mercato aperto legge i prezzi dei cinque ETF e
 avvisa su Telegram solo se succede qualcosa di rilevante (un ETF oltre il 3% in giornata, il paniere in portafoglio

@@ -3,8 +3,16 @@ from datetime import datetime, timedelta, timezone
 import numpy as np
 import pandas as pd
 
+import pytest
+
 from radix_trading import fineco, mercato
 from radix_trading.store import Store
+
+
+@pytest.fixture(autouse=True)
+def _trend_rule(monkeypatch):
+    """La sentinella si prova con la regola trend; il test sul «compra e tieni» la cambia da solo."""
+    monkeypatch.setattr(fineco, "env_value", lambda n: "trend" if n == "FINECO_RULE" else None)
 
 
 def _daily(p0, yearly, start="2000-01-03", end="2026-10-29", seed=0, vol=0.18):

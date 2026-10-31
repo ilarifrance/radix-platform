@@ -42,7 +42,9 @@ CAPITAL_DEFAULT = 3000.0
 # Confronto del 31/10/2026 (confronto.py) sul 2016-2026: trend +9,6% l'anno e perdita massima -18,7%;
 # conferma +10,8% e -20,5%; tieni +12,2% e -18,6% con un terzo degli ordini. Decide Francesco.
 RULES = ("trend", "conferma", "tieni")
-RULE_DEFAULT = "trend"
+# 31/10/2026 21:29 Francesco («ok su quello che proponi») sulla scheda A/B/C: compra e tieni, ribilancio a gennaio.
+# FINECO_RULE in .env la cambia senza toccare il codice.
+RULE_DEFAULT = "tieni"
 RULE_NAMES = {"trend": "trend a 12 mesi", "conferma": "trend a 12 mesi con conferma su due mesi",
               "tieni": "compra e tieni, ribilancio a gennaio"}
 REBALANCE_MIN_EUR = 150.0   # sotto, il ribilancio non vale la commissione minima
