@@ -74,6 +74,13 @@ Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`
   Se il conto ha gia' attivo «Kraken Rewards» (Kraken alloca da solo, le monete restano nel saldo spot), quelle
   monete rendono gia' e non si toccano: niente Allocate, niente sblocco prima di vendere; il riepilogo le conta
   comunque in «In staking».
+- Sentinella di mercato (`mercato.py`, nel giro `hourly`, chiesta da Francesco il 31/10/2026): nelle ore di Wall Street
+  guarda S&P 500, Nasdaq 100, mondo ex USA, oro, Treasury, petrolio (quotazioni Yahoo), VIX e decennale USA; Bitcoin ed
+  Ethereum sulle 24 ore anche nel fine settimana. Quando una soglia scatta (es. Nasdaq ±2,5%, VIX +20%, BTC ±5%) manda
+  un avviso con valutazione: notizie del giorno in archivio, cosa ha reso il mercato dopo giornate simili (5 e 20
+  giorni), ogni ETF Fineco rispetto al livello di 12 mesi, il conto crypto, e il verdetto (mai un acquisto su una
+  notizia da sola: lo studio eventi non ha trovato vantaggi che reggano la verifica). Un avviso per mercato al giorno.
+  Prova a mano: `python -m radix_trading mercato --prova --quando 2026-10-30T21:17Z` stampa il testo senza mandarlo.
 - Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
 - Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
 
