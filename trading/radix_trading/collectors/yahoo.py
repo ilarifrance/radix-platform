@@ -35,9 +35,16 @@ def parse_chart(payload: dict) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="last")]
 
 
-def fetch_daily(symbol: str, period: str = "max") -> pd.DataFrame:
-    """L'ultima barra (la giornata in corso) viene scartata finche' il mercato e' aperto."""
-    params = {"range": period, "interval": "1d", "events": "div,splits"}
+def fetch_daily(symbol: str, period: str = "max", since: str | None = None) -> pd.DataFrame:
+    """L'ultima barra (la giornata in corso) viene scartata finche' il mercato e' aperto.
+    Con `since` (es. "2005-01-01") si chiedono date esplicite: per alcuni ETF europei `range=max`
+    risponde con barre mensili invece che giornaliere."""
+    params = {"interval": "1d", "events": "div,splits"}
+    if since:
+        params["period1"] = int(pd.Timestamp(since, tz="UTC").timestamp())
+        params["period2"] = int(pd.Timestamp.now(tz="UTC").timestamp())
+    else:
+        params["range"] = period
     last: Exception | None = None
     for host in HOSTS:
         try:

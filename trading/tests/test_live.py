@@ -15,11 +15,41 @@ PAIRS = {"XBTEUR": ("XXBT", 0.00005, 8), "ETHEUR": ("XETH", 0.002, 8)}
 QUOTES = {"XBTEUR": (111000.0, 111100.0), "ETHEUR": (4450.0, 4451.0)}   # (bid, ask) vicini ai prezzi dello store
 
 
+STRATEGIES = [  # come li racconta Earn/Strategies: ETH 2% instant, BTC 0,1% (sotto la soglia)
+    {"id": "ES-ETH", "asset": "ETH", "lock_type": {"type": "instant"}, "apr_estimate": {"low": "2.0", "high": "2.5"},
+     "user_min_allocation": "0.001", "can_allocate": True},
+    {"id": "ES-BTC", "asset": "BTC", "lock_type": {"type": "instant"}, "apr_estimate": {"low": "0.1", "high": "0.1"},
+     "user_min_allocation": "0.01", "can_allocate": True},
+]
+
+
 class FakeKraken:
-    def __init__(self, balance, quotes=None, open_orders=None):
+    def __init__(self, balance, quotes=None, open_orders=None, allocated=None, earn_error=None):
         self.bal, self.orders, self.limits, self.canceled = balance, [], [], []
         self.quotes = quotes or {}            # senza quotazioni il conto va a mercato (come prima del 31/10)
         self.open = open_orders or {}         # txid -> stato dell'ordine come lo racconta Kraken
+        self.allocated = dict(allocated or {})  # strategia -> quantita' in staking
+        self.earn_error, self.earn_calls = earn_error, []
+
+    def private(self, method, data=None):   # solo le chiamate Earn passano da qui nei test
+        data = data or {}
+        if self.earn_error:
+            raise RuntimeError(self.earn_error)
+        self.earn_calls.append((method, data))
+        if method == "Earn/Strategies":
+            return {"items": STRATEGIES}
+        if method == "Earn/Allocations":
+            return {"items": [{"strategy_id": k, "amount_allocated": {"total": {"native": str(v)}}}
+                              for k, v in self.allocated.items()]}
+        if method == "Earn/Allocate":
+            self.allocated[data["strategy_id"]] = self.allocated.get(data["strategy_id"], 0.0) + float(data["amount"])
+            return True
+        if method == "Earn/Deallocate":
+            self.allocated[data["strategy_id"]] -= float(data["amount"])
+            return True
+        if method.endswith("Status"):
+            return {"pending": False}
+        raise AssertionError(method)
 
     def pairs(self, symbols):
         return {s: {"name": s, "base": PAIRS[s][0], "ordermin": PAIRS[s][1], "lot_decimals": PAIRS[s][2],
@@ -207,3 +237,49 @@ def test_market_orders_when_asked_or_without_quotes(tmp_path, monkeypatch):
     k2 = FakeKraken({"ZEUR": 110.0})   # Kraken non risponde con le quotazioni: si va a mercato
     live.step(_store(), _settings(tmp_path, mode="live"), k2, send=lambda m: None)
     assert k2.limits == [] and len(k2.orders) == 2
+
+
+def test_staking_allocates_free_coins_and_unstakes_before_selling(tmp_path, monkeypatch):
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    _fixed_weights(monkeypatch)
+    st, s = _store(), _settings(tmp_path, mode="live")
+    t0 = datetime(2026, 11, 1, 0, 15, tzinfo=timezone.utc)
+    # ETH gia' a bersaglio (circa 30 euro) e libero: va in staking; BTC si compra con un ordine limite
+    k, sent = FakeKraken({"ZEUR": 80.0, "XETH": 0.0067}, quotes=QUOTES), []
+    live.step(st, s, k, now=t0, send=sent.append)
+    assert [o[0] for o in k.limits] == ["XBTEUR"]
+    allocs = [(m, d) for m, d in k.earn_calls if m == "Earn/Allocate"]
+    assert allocs == [("Earn/Allocate", {"amount": "0.00670000", "strategy_id": "ES-ETH"})]   # mai BTC (0,1%)
+    assert any("Metto in staking 0.0067 ETH" in m and "2.00% l'anno" in m for m in sent)
+    # tre ore dopo ETH e' in staking (XETH.F): niente ordini, niente nuove allocazioni, il riepilogo lo dice
+    sent.clear()
+    btc = k.limits[0][2]   # l'ordine limite su BTC si e' eseguito nel frattempo
+    k1 = FakeKraken({"ZEUR": 80.0 - btc * 111000, "XXBT": btc, "XETH.F": 0.0067}, quotes=QUOTES, allocated={"ES-ETH": 0.0067})
+    live.step(st, s, k1, now=t0 + timedelta(hours=3), send=sent.append)
+    assert k1.limits == [] and not [m for m, _ in k1.earn_calls if m == "Earn/Allocate"]
+    assert any("Riepilogo" in m and "In staking: 29." in m for m in sent)
+    # la regola esce da ETH: le monete sono in staking (XETH.F), prima si sbloccano poi si vende in limite
+    _fixed_weights(monkeypatch, w=0.0)
+    sent.clear()
+    k2 = FakeKraken({"ZEUR": 80.0, "XETH": 0.0, "XETH.F": 0.0067}, quotes=QUOTES, allocated={"ES-ETH": 0.0067})
+    out = live.step(st, s, k2, now=t0 + timedelta(hours=24), send=sent.append)
+    deallocs = [d for m, d in k2.earn_calls if m == "Earn/Deallocate"]
+    assert deallocs == [{"amount": "0.00670000", "strategy_id": "ES-ETH"}]
+    assert k2.limits == [("ETHEUR", "sell", 0.0067, QUOTES["ETHEUR"][1], False)] and k2.orders == []
+    assert out["patrimonio"] > 100 and not any("In staking" in m for m in sent)   # dopo lo sblocco niente in staking
+    assert not [m for m, _ in k2.earn_calls if m == "Earn/Allocate"]
+
+
+def test_staking_off_without_permission_or_when_disabled(tmp_path, monkeypatch):
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    _fixed_weights(monkeypatch)
+    st, s = _store(), _settings(tmp_path, mode="live")
+    t0 = datetime(2026, 11, 1, 0, 15, tzinfo=timezone.utc)
+    k, sent = FakeKraken({"ZEUR": 80.0, "XETH": 0.0067}, quotes=QUOTES, earn_error="EGeneral:Permission denied"), []
+    live.step(st, s, k, now=t0, send=sent.append)
+    assert [o[0] for o in k.limits] == ["XBTEUR"]            # si compra comunque
+    assert sum("Staking non disponibile" in m for m in sent) == 1
+    monkeypatch.setenv("RADIX_TRADING_EARN", "no")
+    k2 = FakeKraken({"ZEUR": 80.0, "XETH": 0.0067}, quotes=QUOTES)
+    live.step(st, s, k2, now=t0 + timedelta(hours=1), send=lambda m: None)
+    assert k2.earn_calls == []

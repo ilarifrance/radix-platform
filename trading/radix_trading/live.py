@@ -9,6 +9,10 @@ Si muove solo se:
 `--prova` (dry run) usa le stesse chiavi ma chiede a Kraken solo di convalidare gli ordini
 (`validate=true`): nessun ordine viene eseguito e non serve la modalita' live.
 
+Staking (decisione di Francesco del 31/10/2026): le monete in portafoglio vanno nelle strategie Earn «instant»
+di Kraken (sblocco immediato, vedi earn.py); prima di una vendita si sbloccano. Serve il permesso «Earn Funds»
+sulla chiave; senza, il conto avvisa e va avanti senza staking. `RADIX_TRADING_EARN=no` lo spegne.
+
 Ordini (decisione di Francesco del 31/10/2026): gli acquisti e le vendite della regola partono come ordini
 limite «post only» al miglior prezzo del momento (compro al bid, vendo all'ask), cosi' si paga la commissione
 da maker invece di quella da taker piu' lo spread. Un ordine resta in coda al massimo LIMIT_HOURS ore: se non si
@@ -32,7 +36,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from . import alerts, portfolio, universe
+from . import alerts, earn, portfolio, universe
 from .config import Settings, env_value
 from .store import Store
 
@@ -41,7 +45,7 @@ MAX_LOSS_EUR = 20.0
 BAND = 0.03             # come il conto finto: non si ritocca sotto il 3% del capitale
 MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 euro le quote piccole sono ~3 euro
 MAX_ORDERS_PER_RUN = 10
-TAKER_FEE = 0.004        # commissione Kraken Pro sugli ordini a mercato con volumi piccoli (stima per gli avvisi)
+TAKER_FEE = 0.008        # commissione Kraken Pro da taker al livello base: lo 0,80% pagato davvero il 30/10/2026
 STATUS_EVERY_HOURS = 3   # un riepilogo su Telegram ogni 3 ore (e al primo giro), oltre agli avvisi per ogni ordine
 LIMIT_HOURS = 6          # un ordine limite resta in coda al massimo 6 ore, poi la parte mancante va a mercato
 API = "https://api.kraken.com"
@@ -139,6 +143,11 @@ def client_from_env() -> Kraken:
     return Kraken(key, secret)
 
 
+def _total(bal: dict[str, float], base: str) -> float:
+    """Saldo di una moneta: libero piu' le quote in staking (Kraken le mostra come SOL.F, SOL.B, SOL.M...)."""
+    return sum(v for k, v in bal.items() if k == base or k.startswith(base + "."))
+
+
 def _floor(x: float, decimals: int) -> float:
     f = 10 ** decimals
     return math.floor(abs(x) * f) / f
@@ -161,7 +170,7 @@ def _coin(symbol: str) -> str:
 
 def status_text(tag: str, now: datetime, equity: float, start: float, eur: float,
                 held: dict[str, float], prices: dict[str, float], halted: bool,
-                pending: dict[str, dict] | None = None) -> str:
+                pending: dict[str, dict] | None = None, staked_eur: float = 0.0) -> str:
     pos = [f"{_coin(s)} {u * prices[s]:.2f} €" for s, u in sorted(held.items()) if u * prices.get(s, 0) >= 0.5]
     queue = [f"{'compro' if o['side'] == 'buy' else 'vendo'} {_coin(s)} {o['rest'] * o['price']:.2f} €"
              for s, o in sorted((pending or {}).items())]
@@ -171,6 +180,7 @@ def status_text(tag: str, now: datetime, equity: float, start: float, eur: float
             f"({equity / start - 1:+.1%}) dall'inizio, commissioni comprese. Euro liberi {eur:.2f} €, "
             f"posizioni: {', '.join(pos) or 'nessuna'}. "
             + (f"In coda: {', '.join(queue)}. " if queue else "")
+            + (f"In staking: {staked_eur:.2f} €. " if staked_eur >= 0.5 else "")
             + ("Conto FERMO per lo stop." if halted else f"Stop a {stop:.2f} € (distanza dallo stop {margin:.2f} €)."))
 
 
@@ -257,8 +267,19 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     symbols = [s for s in universe.FAST["symbols"] if s in prices]
     info = client.pairs(symbols)
     bal = client.balance()
-    held = {s: bal.get(info[s]["base"], 0.0) for s in symbols if s in info}
+    held = {s: _total(bal, info[s]["base"]) for s in symbols if s in info}   # libere + in staking
+    free = {s: bal.get(info[s]["base"], 0.0) for s in symbols if s in info}
     eur = bal.get("ZEUR", 0.0)
+    earn_on = not prova and (env_value("RADIX_TRADING_EARN") or "si") != "no"
+    strats, staked = {}, {}
+    if earn_on:
+        try:
+            strats = earn.strategies(client)
+            staked = earn.allocations(client)
+        except Exception as e:  # senza permessi o con Earn giu' si va avanti senza staking
+            earn_on = False
+            if now.hour % STATUS_EVERY_HOURS == 0:
+                send(f"{tag} Staking non disponibile ({e}): compro e vendo come sempre, senza staking.")
     equity = eur + sum(u * prices[s] for s, u in held.items())
     row = db.execute("SELECT start FROM live_account").fetchone()
     if row is None:
@@ -300,6 +321,22 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
             vol = min(vol, _floor(cash * 0.99 / prices[s], info[s]["lot_decimals"]))
             if vol < info[s]["ordermin"] or vol * prices[s] < MIN_ORDER_EUR:
                 continue
+        if side == "sell" and vol > free[s] + 1e-12:
+            strat = strats.get(earn.asset_of(info[s]["base"]))
+            locked = staked.get(strat["id"], 0.0) if strat else 0.0
+            need = min(vol - free[s], locked)
+            if earn_on and strat and need > 0:
+                try:
+                    if earn.deallocate(client, strat["id"], need):
+                        free[s] += need
+                        staked[strat["id"]] = locked - need
+                except Exception as e:
+                    send(f"{tag} Non riesco a sbloccare {need:.6g} {s} dallo staking ({e}).")
+            if vol > free[s] + 1e-12:   # vendo intanto quel che e' libero; il resto al prossimo giro
+                vol = _floor(free[s], info[s]["lot_decimals"])
+                if vol < info[s]["ordermin"] or vol * prices[s] < MIN_ORDER_EUR:
+                    send(f"{tag} {s}: niente da vendere finche' lo staking non si sblocca.")
+                    continue
         quote = quotes.get(s)
         limit = bool(limit_mode and not halted and s not in fallback and quote)
         price = (quote[0] if side == "buy" else quote[1]) if limit else prices[s]
@@ -326,11 +363,28 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         send(text + ("" if not esito.startswith("errore") else f" — {esito}"))
         orders.append({"simbolo": s, "lato": side, "quantita": vol, "prezzo": price,
                        "tipo": "limite" if limit else "mercato", "esito": esito})
+    if earn_on and not halted:
+        selling = {s for s, side, _ in plan if side == "sell"} | {s for s, o in pending.items() if o["side"] == "sell"}
+        failed = None
+        for s in symbols:
+            strat = strats.get(earn.asset_of(info[s]["base"])) if s in info else None
+            amount = free.get(s, 0.0)
+            if not strat or s in selling or weights.get(s, 0.0) <= 0 or amount < strat["min"] or amount * prices[s] < earn.MIN_EUR:
+                continue
+            try:
+                earn.allocate(client, strat["id"], amount)
+                send(f"{tag} Metto in staking {amount:.6g} {_coin(s)} (circa {amount * prices[s]:.2f} €, {strat['apr']:.2f}% l'anno, sblocco immediato).")
+            except Exception as e:  # tipicamente manca il permesso «Earn Funds»: un avviso ogni 3 ore, non uno per moneta
+                failed = e
+                break
+        if failed is not None and now.hour % STATUS_EVERY_HOURS == 0:
+            send(f"{tag} Staking non riuscito ({failed}). Se dice «Permission denied», alla chiave Kraken manca «Earn Funds».")
     first = db.execute("SELECT COUNT(*) FROM live_equity").fetchone()[0] == 0
     if not prova:
         db.execute("INSERT OR REPLACE INTO live_equity VALUES (?, ?)", (ts, equity))
     db.commit()
     if prova or first or now.hour % STATUS_EVERY_HOURS == 0:
-        send(status_text(tag, now, equity, start, eur, held, prices, halted, pending))
+        staked_eur = sum((held[s] - free[s]) * prices[s] for s in held)
+        send(status_text(tag, now, equity, start, eur, held, prices, halted, pending, staked_eur))
     return {"prova": prova, "patrimonio": round(equity, 2), "inizio": round(start, 2), "euro": round(eur, 2),
             "fermo": halted, "pesi": {s: round(w, 4) for s, w in weights.items() if w}, "ordini": orders}

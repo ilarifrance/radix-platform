@@ -230,7 +230,7 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test"])
+                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -243,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="solo per replay: commissione minima massima sull'ordine, es. 0.005; 0 = solo banda del 3%%")
     p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
     p.add_argument("--prova", action="store_true", help="solo per live: Kraken convalida gli ordini senza eseguirli")
+    p.add_argument("--ora", action="store_true", help="solo per fineco: manda il piano del mese adesso, anche se gia' mandato")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     args = p.parse_args(argv)
     settings = Settings()
@@ -325,6 +326,9 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as e:  # ogni giro fallito arriva sul telefono, non solo nel log
                 alerts.send(f"{'[PROVA]' if args.prova else '[REALE]'} Giro non riuscito: {e}")
                 raise
+        elif args.command == "fineco":
+            from . import fineco
+            result = fineco.maybe_alert(store, cap=args.capital, force=args.ora) or {"mese": "gia' mandato o non ancora il primo giorno di borsa"}
         elif args.command == "alert-test":
             from . import alerts
             result = {"configurato": alerts.configured(),
@@ -354,6 +358,9 @@ def main(argv: list[str] | None = None) -> int:
                 for t in result["portafoglio"].get("operazioni", []):
                     alerts.send(alerts.order_text("[finto]", t["simbolo"], t["quantita"], t["prezzo"], t["commissione"]))
             if args.command == "hourly":
+                from . import fineco
+                # Corsia ETF su Fineco: il piano del mese su Telegram, il primo giorno di borsa (esecuzione a mano).
+                result["etf_fineco"] = _safe(lambda: fineco.maybe_alert(store))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
     finally:
         store.close()

@@ -69,6 +69,8 @@ Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`
 - Al massimo 100 euro investiti, niente leva. Gli ordini della regola partono come limite «post only» al miglior
   prezzo del momento (commissione da maker); se dopo 6 ore non si sono eseguiti, la parte mancante va a mercato.
   Le vendite dello stop sono sempre a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
+- Le monete in portafoglio vanno in staking flessibile su Kraken Earn (`earn.py`, solo strategie «instant», sblocco
+  immediato prima di vendere). Serve il permesso «Earn Funds» sulla chiave; `RADIX_TRADING_EARN=no` lo spegne.
 - Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
 - Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
 
@@ -81,6 +83,14 @@ Passi, tutti di Francesco:
    - `python -m radix_trading alert-test`;
    - `python -m radix_trading live --prova`: Kraken convalida gli ordini senza eseguirli.
 4. Per accendere il conto vero servono `RADIX_TRADING_MODE=live` e `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`, più un giro orario di `live`.
+
+## Corsia ETF su Fineco (esecuzione a mano)
+
+`fineco.py`: cinque ETF UCITS (S&P 500, Nasdaq 100, oro, Treasury 20+, Europa), un quinto del capitale ciascuno,
+dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa del mese, dalle 8 italiane, il giro
+`hourly` manda su Telegram il piano («compra N quote di…», «vendi tutto…») e Francesco esegue dall'app Fineco.
+Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
+`python -m radix_trading fineco --ora` manda il piano subito.
 
 ## Kill switch
 
