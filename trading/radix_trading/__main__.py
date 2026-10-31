@@ -230,7 +230,8 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco"])
+                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
+                                          "osservatorio"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -270,6 +271,9 @@ def main(argv: list[str] | None = None) -> int:
                 result["backtest"]["intraday_momentum"] = {"strategia": "intraday_momentum", "mercato": "crypto", "errore": day}
             snapshot.save_backtest(settings, result["backtest"], curves)
             if args.command == "daily":
+                from . import osservatorio
+                # Osservatorio «leva 20 su segnali concreti»: operazioni simulate, avvisi Telegram, nessun euro vero.
+                result["osservatorio"] = _safe(lambda: osservatorio.step(store))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
         elif args.command == "research":
             result = research.run(store, target_dd=-abs(args.max_dd))
@@ -326,6 +330,12 @@ def main(argv: list[str] | None = None) -> int:
             except Exception as e:  # ogni giro fallito arriva sul telefono, non solo nel log
                 alerts.send(f"{'[PROVA]' if args.prova else '[REALE]'} Giro non riuscito: {e}")
                 raise
+        elif args.command == "osservatorio":
+            from . import osservatorio
+            # senza --from: un giro come nel daily; con --from: le stesse regole sul passato
+            result = osservatorio.replay(store, args.since) if args.since else osservatorio.step(store)
+            if args.since:
+                (settings.data_dir / "osservatorio.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
         elif args.command == "fineco":
             from . import fineco
             result = fineco.maybe_alert(store, cap=args.capital, force=args.ora) or {"mese": "gia' mandato o non ancora il primo giorno di borsa"}

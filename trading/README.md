@@ -92,6 +92,15 @@ dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa d
 Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
 `python -m radix_trading fineco --ora` manda il piano subito.
 
+## Osservatorio «leva 20 su segnali concreti» (solo simulazione)
+
+`osservatorio.py`: cinque regole scritte prima e non piu' toccate (shock geopolitico → oro, panico → S&P 500, giorno Fed
+→ S&P 500 nel verso della giornata, shock petrolio → petrolio, picco di notizie su Trump → Bitcoin corto). Quando una
+scatta, il giro `daily` registra un'operazione simulata con margine 200 €, leva massima ESMA, spread, finanziamento
+notturno dei CFD e chiusura forzata a meta' del margine, e avvisa su Telegram con il prefisso `[SIMULATO leva]`; il
+venerdi' manda il riepilogo. `python -m radix_trading osservatorio --from 2015-01-01` rifa' le stesse regole sul passato.
+Nessun euro vero: serve a decidere, dopo 4-8 settimane, se un conto a leva ha senso.
+
 ## Kill switch
 
 Creare il file `~/RadixTrading/data/KILL_SWITCH` (es. `touch ~/RadixTrading/data/KILL_SWITCH`) blocca ogni
