@@ -90,6 +90,9 @@ Passi, tutti di Francesco:
 dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa del mese, dalle 8 italiane, il giro
 `hourly` manda su Telegram il piano («compra N quote di…», «vendi tutto…») e Francesco esegue dall'app Fineco.
 Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
+Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra o si esce solo con due mesi di fila
+dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
+scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; la scelta e' di Francesco.
 `python -m radix_trading fineco --ora` manda il piano subito.
 
 ## Osservatorio «leva 20 su segnali concreti» (solo simulazione)

@@ -35,6 +35,17 @@ WEIGHT = 1.0 / len(ETFS)
 LOOKBACK_DAYS = 365
 SINCE = "2005-01-01"
 CAPITAL_DEFAULT = 3000.0
+# Regola della corsia, `FINECO_RULE` in .env (o il valore qui sotto):
+#   trend     dentro se il prezzo e' sopra quello di 12 mesi prima, altrimenti liquidi (regola originale);
+#   conferma  come trend, ma si entra o si esce solo se il segnale e' uguale per due mesi di fila (meno falsi segnali);
+#   tieni     sempre dentro tutti e cinque, a gennaio si riporta ognuno a un quinto (comprare e tenere).
+# Confronto del 31/10/2026 (confronto.py) sul 2016-2026: trend +9,6% l'anno e perdita massima -18,7%;
+# conferma +10,8% e -20,5%; tieni +12,2% e -18,6% con un terzo degli ordini. Decide Francesco.
+RULES = ("trend", "conferma", "tieni")
+RULE_DEFAULT = "trend"
+RULE_NAMES = {"trend": "trend a 12 mesi", "conferma": "trend a 12 mesi con conferma su due mesi",
+              "tieni": "compra e tieni, ribilancio a gennaio"}
+REBALANCE_MIN_EUR = 150.0   # sotto, il ribilancio non vale la commissione minima
 ALERT_HOUR_UTC = 7       # alle 8 italiane, un'ora prima dell'apertura di Borsa Italiana
 HOLIDAYS = {(1, 1), (5, 1), (8, 15), (12, 24), (12, 25), (12, 26), (12, 31)}   # chiusure fisse di Borsa Italiana
 MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
@@ -60,6 +71,11 @@ def capital() -> float:
         return float(env_value("FINECO_CAPITAL_EUR") or CAPITAL_DEFAULT)
     except ValueError:
         return CAPITAL_DEFAULT
+
+
+def rule() -> str:
+    r = (env_value("FINECO_RULE") or RULE_DEFAULT).strip().lower()
+    return r if r in RULES else RULE_DEFAULT
 
 
 def fetch_daily(symbol: str) -> pd.DataFrame:
@@ -94,34 +110,69 @@ def signal(close: pd.Series) -> dict | None:
             "date": last_ts.date()}
 
 
-def plan(store: Store, closes: dict[str, pd.Series], month: str, cap: float) -> list[dict]:
+def signal_prev(close: pd.Series) -> dict | None:
+    """Lo stesso segnale com'era alla decisione del mese prima (chiusure fino alla fine del mese precedente)."""
+    if close.empty:
+        return None
+    cut = close.index[-1].normalize().replace(day=1)
+    return signal(close[close.index < cut])
+
+
+def plan(store: Store, closes: dict[str, pd.Series], month: str, cap: float, regola: str | None = None) -> list[dict]:
+    regola = regola or rule()
     db = store.conn
     db.executescript(SCHEMA)
     prev_row = db.execute("SELECT month FROM etf_targets WHERE month < ? ORDER BY month DESC LIMIT 1", (month,)).fetchone()
     prev = dict(db.execute("SELECT symbol, shares FROM etf_targets WHERE month = ?", (prev_row[0],)).fetchall()) if prev_row else {}
     out = []
     for sym, name in ETFS.items():
-        sig = signal(closes.get(sym, pd.Series(dtype=float)))
+        close = closes.get(sym, pd.Series(dtype=float))
+        sig = signal(close)
         held = int(prev.get(sym, 0))
         if sig is None:
-            out.append({"symbol": sym, "name": name, "action": "dati mancanti", "shares": held, "price": None, "in": None})
+            out.append({"symbol": sym, "name": name, "action": "dati mancanti", "shares": held, "held": held, "price": None,
+                        "in": None, "regola": regola})
             continue
-        if sig["in"] and held == 0:
+        if regola == "tieni":
+            voglio = True
+        elif regola == "conferma":
+            before = signal_prev(close)
+            voglio = sig["in"] if before is None or before["in"] == sig["in"] else held > 0
+        else:
+            voglio = sig["in"]
+        if voglio and held == 0:
             shares = int(cap * WEIGHT // sig["price"])
             action = "COMPRA" if shares > 0 else "quota sotto il prezzo di una quota"
-        elif sig["in"]:
+        elif voglio:
             shares, action = held, "tieni"
         elif held > 0:
             shares, action = 0, "VENDI tutto"
         else:
             shares, action = 0, "resta liquido"
-        out.append({"symbol": sym, "name": name, "action": action, "shares": shares, "held": held, **sig})
+        out.append({"symbol": sym, "name": name, "action": action, "shares": shares, "held": held, "regola": regola, **sig})
+    if regola == "tieni" and month.endswith("-01"):
+        _rebalance(out)
     return out
+
+
+def _rebalance(rows: list[dict]) -> None:
+    """A gennaio ogni ETF gia' in portafoglio torna a un quinto del valore complessivo, se lo scarto vale la commissione."""
+    held_rows = [r for r in rows if r.get("price") and r["held"] > 0 and r["action"] == "tieni"]
+    if len(held_rows) < 2:
+        return
+    total = sum(r["held"] * r["price"] for r in rows if r.get("price") and r["held"] > 0)
+    target = total / len(ETFS)
+    for r in held_rows:
+        shares = int(target // r["price"])
+        delta = shares - r["held"]
+        if abs(delta) * r["price"] >= REBALANCE_MIN_EUR:
+            r.update({"action": "RIBILANCIA", "shares": shares, "delta": delta})
 
 
 def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
     y, m = month.split("-")
-    lines = [f"[ETF Fineco] Piano di {MONTHS[int(m) - 1]} {y}, capitale di riferimento {cap:,.0f} €. "
+    regola = next((r.get("regola") for r in rows if r.get("regola")), RULE_DEFAULT)
+    lines = [f"[ETF Fineco] Piano di {MONTHS[int(m) - 1]} {y}, capitale di riferimento {cap:,.0f} €, regola: {RULE_NAMES[regola]}. "
              f"Da eseguire {WEEKDAYS[day.weekday()]} {day:%d/%m} all'apertura di Borsa Italiana:"]
     invested = 0.0
     for r in rows:
@@ -132,14 +183,23 @@ def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
         trend = "sopra" if r["in"] else "sotto"
         value = r["shares"] * r["price"]
         invested += value
+        why = (f"prezzo {trend} quello di 12 mesi fa ({r['ref']:.2f})" if regola != "tieni"
+               else f"si tiene sempre; trend a 12 mesi {trend}, solo informativo")
+        if regola == "conferma" and r["action"] in ("COMPRA", "VENDI tutto"):
+            why += ", per il secondo mese di fila"
         if r["action"] == "COMPRA":
-            lines.append(f"• COMPRA {r['shares']} quote {code} ({r['name']}) a circa {r['price']:.2f} € ≈ {value:,.0f} €: "
-                         f"prezzo {trend} quello di 12 mesi fa ({r['ref']:.2f}).")
+            lines.append(f"• COMPRA {r['shares']} quote {code} ({r['name']}) a circa {r['price']:.2f} € ≈ {value:,.0f} €: {why}.")
         elif r["action"] == "VENDI tutto":
-            lines.append(f"• VENDI tutte le {r['held']} quote {code} ({r['name']}): prezzo {r['price']:.2f} € {trend} "
-                         f"quello di 12 mesi fa ({r['ref']:.2f}).")
+            lines.append(f"• VENDI tutte le {r['held']} quote {code} ({r['name']}): prezzo {r['price']:.2f} €, {why}.")
+        elif r["action"] == "RIBILANCIA":
+            verb = "COMPRA" if r["delta"] > 0 else "VENDI"
+            lines.append(f"• RIBILANCIA {code} ({r['name']}): {verb} {abs(r['delta'])} quote a circa {r['price']:.2f} € "
+                         f"→ {r['shares']} quote ≈ {value:,.0f} €, per tornare a un quinto del paniere.")
         elif r["action"] == "tieni":
-            lines.append(f"• Tieni {r['shares']} quote {code} ({r['name']}) ≈ {value:,.0f} €, trend ancora {trend}.")
+            lines.append(f"• Tieni {r['shares']} quote {code} ({r['name']}) ≈ {value:,.0f} €, {why}.")
+        elif regola == "conferma" and r["in"] != (r["held"] > 0):
+            lines.append(f"• {code} ({r['name']}): niente per ora, segnale cambiato da un mese solo (prezzo {trend} quello "
+                         f"di 12 mesi fa); si decide il mese prossimo se conferma.")
         else:
             lines.append(f"• {code} ({r['name']}): niente, prezzo {trend} quello di 12 mesi fa; la quota resta liquida.")
     dates = [r["date"] for r in rows if r.get("price") is not None]
@@ -167,7 +227,8 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
             return None
     cap = cap or capital()
     closes = collect(store, fetch)
-    rows = plan(store, closes, month, cap)
+    regola = rule()
+    rows = plan(store, closes, month, cap, regola)
     if all(r["price"] is None for r in rows):   # Yahoo giu' e archivio vuoto: niente avviso, si riprova al giro dopo
         return {"mese": month, "giorno": day.isoformat(), "errore": "dati mancanti per tutti gli ETF, riprovo al prossimo giro"}
     text = alert_text(month, rows, cap, day)
@@ -176,4 +237,4 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
     db.executemany("INSERT OR REPLACE INTO etf_targets VALUES (?, ?, ?, ?)",
                    [(month, r["symbol"], r["shares"], r["price"] or 0.0) for r in rows])
     db.commit()
-    return {"mese": month, "giorno": day.isoformat(), "capitale": cap, "inviato": sent, "piano": rows, "testo": text}
+    return {"mese": month, "giorno": day.isoformat(), "capitale": cap, "regola": regola, "inviato": sent, "piano": rows, "testo": text}

@@ -74,3 +74,49 @@ def test_capital_from_env(monkeypatch):
     assert fineco.capital() == 4500.0
     monkeypatch.setattr(fineco, "env_value", lambda n: "boh")
     assert fineco.capital() == 3000.0
+
+
+def _env(values):
+    return lambda n: values.get(n)
+
+
+def test_confirmation_rule_waits_a_second_month_before_selling(monkeypatch):
+    # XNAS sale fino a 15 giorni fa, poi perde il 20%: oggi e' sotto il prezzo di 12 mesi fa, a fine mese scorso era sopra.
+    flip = FAKE["XNAS.MI"].copy()
+    flip.iloc[-15:, :4] *= 0.8
+    prices = {**FAKE, "XNAS.MI": flip}
+    when = datetime(2026, 11, 2, 7, 10, tzinfo=timezone.utc)
+    for regola, atteso in (("trend", "VENDI tutto"), ("conferma", "tieni")):
+        monkeypatch.setattr(fineco, "env_value", _env({"FINECO_RULE": regola}))
+        st, sent = Store(":memory:"), []
+        st.conn.executescript(fineco.SCHEMA)
+        st.conn.execute("INSERT INTO etf_targets VALUES ('2026-10', 'XNAS.MI', 9, 40.0)")   # gia' in portafoglio
+        out = fineco.maybe_alert(st, when, send=sent.append, fetch=lambda s: prices[s])
+        by = {r["symbol"]: r for r in out["piano"]}
+        assert out["regola"] == regola and by["XNAS.MI"]["action"] == atteso, (regola, by["XNAS.MI"])
+        assert by["IS04.DE"]["action"] == "resta liquido"          # sotto da sempre: nessuna conferma da aspettare
+    assert "regola: trend a 12 mesi con conferma su due mesi" in sent[0]
+    assert "Tieni 9 quote XNAS" in sent[0] and "segnale cambiato da un mese solo" not in sent[0]
+
+
+def test_buy_and_hold_rule_buys_all_five_and_rebalances_in_january(monkeypatch):
+    monkeypatch.setattr(fineco, "env_value", _env({"FINECO_RULE": "tieni"}))
+    st, sent = Store(":memory:"), []
+    out = fineco.maybe_alert(st, datetime(2026, 12, 1, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: FAKE[s])
+    by = {r["symbol"]: r for r in out["piano"]}
+    assert all(r["action"] == "COMPRA" for r in out["piano"])                   # anche IS04, che il trend terrebbe fuori
+    assert by["IS04.DE"]["shares"] == int(600 // by["IS04.DE"]["price"])
+    assert "regola: compra e tieni, ribilancio a gennaio" in sent[0] and "solo informativo" in sent[0]
+    # gennaio: VUAA e' salito del 40% e XNAS sceso del 40% -> si vende un po' di VUAA e si compra XNAS
+    jan = {s: p.copy() for s, p in FAKE.items()}
+    jan["VUAA.MI"].iloc[:, :4] *= 1.4
+    jan["XNAS.MI"].iloc[:, :4] *= 0.6
+    out2 = fineco.maybe_alert(st, datetime(2027, 1, 4, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: jan[s])
+    by2 = {r["symbol"]: r for r in out2["piano"]}
+    assert by2["VUAA.MI"]["action"] == "RIBILANCIA" and by2["VUAA.MI"]["delta"] < 0
+    assert by2["XNAS.MI"]["action"] == "RIBILANCIA" and by2["XNAS.MI"]["delta"] > 0
+    assert by2["4GLD.DE"]["action"] == "tieni"                                    # scarto sotto i 150 euro
+    assert "RIBILANCIA VUAA" in sent[1] and "VENDI" in sent[1] and "RIBILANCIA XNAS" in sent[1]
+    # febbraio: niente ribilancio, si tiene tutto
+    out3 = fineco.maybe_alert(st, datetime(2027, 2, 1, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: jan[s])
+    assert all(r["action"] == "tieni" for r in out3["piano"])
