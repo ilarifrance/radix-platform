@@ -35,6 +35,7 @@ MAX_LOSS_EUR = 20.0
 BAND = 0.03             # come il conto finto: non si ritocca sotto il 3% del capitale
 MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 euro le quote piccole sono ~3 euro
 MAX_ORDERS_PER_RUN = 10
+TAKER_FEE = 0.004        # commissione Kraken Pro sugli ordini a mercato con volumi piccoli (stima per gli avvisi)
 STATUS_EVERY_HOURS = 3   # un riepilogo su Telegram ogni 3 ore (e al primo giro), oltre agli avvisi per ogni ordine
 API = "https://api.kraken.com"
 
@@ -193,7 +194,7 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         cash += (-1 if side == "buy" else 1) * vol * prices[s]
         db.execute("INSERT INTO live_orders VALUES (?,?,?,?,?,?,?,?)", (ts, s, side, vol, prices[s], txid, int(prova), esito))
         units = vol if side == "buy" else -vol
-        send(alerts.order_text(tag, s, units, prices[s], 0.0) + ("" if not esito.startswith("errore") else f" — {esito}"))
+        send(alerts.order_text(tag, s, units, prices[s], TAKER_FEE * vol * prices[s]) + ("" if not esito.startswith("errore") else f" — {esito}"))
         orders.append({"simbolo": s, "lato": side, "quantita": vol, "prezzo": prices[s], "esito": esito})
     first = db.execute("SELECT COUNT(*) FROM live_equity").fetchone()[0] == 0
     if not prova:
