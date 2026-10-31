@@ -292,8 +292,10 @@ def watch(store: Store, now: datetime | None = None, send=alerts.send, quote=yah
             continue
         saved = store.load_bars(VENUE, sym, "1d")
         sig = signal(saved["close"].dropna()) if not saved.empty else None
+        # Prima dell'apertura Yahoo da' ancora la chiusura di ieri: niente variazione «di oggi» da segnalare.
+        fresh = q.get("time") is None or pd.Timestamp(q["time"]).date() == day
         rows.append({"symbol": sym, "code": sym.split(".")[0], "name": name, **q,
-                     "day": (q["price"] / q["prev_close"] - 1) if q.get("prev_close") else None,
+                     "day": (q["price"] / q["prev_close"] - 1) if fresh and q.get("prev_close") else None,
                      "ref": sig["ref"] if sig else None, "was_in": sig["in"] if sig else None,
                      "held": held.get(sym, {}).get("shares", 0), "plan_price": held.get(sym, {}).get("price")})
     out = {"ora": now.strftime("%H:%M"), "avvisi": [], "errori": errori}
@@ -310,7 +312,7 @@ def watch(store: Store, now: datetime | None = None, send=alerts.send, quote=yah
                 if _once(db, f"giorno:{r['symbol']}:{day}", f"{tag}: {r['code']} ({r['name']}) {verso} il {abs(r['day']) * 100:.1f}% oggi "
                          f"({r['prev_close']:.2f} → {r['price']:.2f} €). {pos} La regola decide a fine mese: nessun ordine previsto.", now, send):
                     out["avvisi"].append(f"giorno:{r['code']}")
-            if r["held"] and r["plan_price"]:
+            if r["held"] and r["plan_price"] and r["day"] is not None:
                 loss = r["price"] / r["plan_price"] - 1
                 for lvl in ENTRY_LEVELS:
                     if loss <= lvl and _once(db, f"ingresso:{r['symbol']}:{int(lvl * 100)}",
@@ -318,7 +320,7 @@ def watch(store: Store, now: datetime | None = None, send=alerts.send, quote=yah
                                              f"({r['plan_price']:.2f} → {r['price']:.2f} €), {r['held']} quote ≈ {r['held'] * r['price']:,.0f} €. "
                                              f"Avviso informativo: la regola rivede la posizione il primo giorno del mese.", now, send):
                         out["avvisi"].append(f"ingresso:{r['code']}:{int(lvl * 100)}")
-            if r["ref"] and r["was_in"] is not None and (r["price"] > r["ref"]) != r["was_in"]:
+            if r["day"] is not None and r["ref"] and r["was_in"] is not None and (r["price"] > r["ref"]) != r["was_in"]:
                 lato = "sopra" if r["price"] > r["ref"] else "sotto"
                 effetto = ("se resta così a fine mese la regola lo vende" if r["held"] and lato == "sotto"
                            else "se resta così a fine mese la regola lo compra" if not r["held"] and lato == "sopra" else "nessun effetto sulla posizione")

@@ -154,6 +154,11 @@ def test_hourly_watch_alerts_once_per_event_and_summarises_at_close(monkeypatch)
     res2 = fineco.watch(st, when.replace(hour=17, minute=5), send=sent.append, quote=quote)
     assert res2["avvisi"] == ["riepilogo"] and sent[-1].startswith("[ETF Fineco] Chiusura del 02/12:") and "↓12m" in sent[-1]
     assert fineco.watch(st, when.replace(hour=18), send=sent.append, quote=quote)["avvisi"] == []
+    # prima dell'apertura Yahoo da' ancora la chiusura del giorno prima: nessun avviso
+    st3 = Store(":memory:")
+    fineco.maybe_alert(st3, datetime(2026, 12, 1, 8, 0, tzinfo=timezone.utc), send=lambda t: None, fetch=lambda s: FAKE[s])
+    stale = lambda sym: {"price": plan[sym] * moves[sym], "prev_close": plan[sym], "time": when - pd.Timedelta(days=1)}
+    assert fineco.watch(st3, when.replace(hour=7, minute=17), send=sent.append, quote=stale)["avvisi"] == []
     # Yahoo giu' per tutti: un solo avviso di dati mancanti
     boom = lambda s: (_ for _ in ()).throw(RuntimeError("429"))
     assert fineco.watch(st, when.replace(hour=14), send=sent.append, quote=boom)["avvisi"] == ["dati"]
