@@ -88,3 +88,33 @@ def test_run_end_to_end_with_fake_data(tmp_path):
     assert "combinazione" in res and "50/50" in res["combinazione"]["pesi"]
     assert "A0 pulito taker" in res["testo"] and "B2_tre_bh_ribilancio" in res["testo"]
     assert not any(k.startswith("_") for k in res["crypto"]["A0"]["pulito"]["taker"])
+
+
+def test_window_without_data_reports_an_error_instead_of_crashing():
+    close = pd.DataFrame({"XBTEUR": _hourly("2023-01-01", "2024-06-30", 20000, 0.5, 5),
+                          "ETHEUR": _hourly("2023-01-01", "2024-06-30", 1500, 0.5, 6)})
+    res = confronto.crypto(Store(":memory:"), close)
+    assert "errore" in res["A0"]["pulito"]["taker"] and "--crypto-csv" in res["A0"]["pulito"]["taker"]["errore"]
+    assert "rendimento_annuo" in res["A0"]["intero"]["taker"]      # la finestra intera ha dati dal 2023
+    assert confronto.per_anno(pd.Series(dtype=float)) == {}
+    assert "nessun dato" in confronto.testo({"quando": "x", "costi": "c", "crypto": res,
+                                             "etf": {"panieri": {}, "risultati": {}}})
+
+
+def test_csv_history_reads_iso_and_millisecond_timestamps(tmp_path):
+    idx = pd.date_range("2019-01-01", periods=48, freq="h", tz="UTC")
+    pd.DataFrame({"ts": idx.strftime("%Y-%m-%dT%H:%M:%SZ"), "close": np.arange(48) + 100.0}).to_csv(tmp_path / "XBTEUR.csv", index=False)
+    pd.DataFrame({"open_time": (idx.asi8 // 10**6), "open": 1.0, "high": 1.0, "low": 1.0, "close": np.arange(48) + 5.0,
+                  "volume": 1.0}).to_csv(tmp_path / "etheur.csv", index=False)
+    close = confronto.chiusure_crypto_csv(tmp_path)
+    assert set(close.columns) == {"ETHEUR", "XBTEUR"}
+    assert close.index.tz is not None and close.index[0] == idx[0] and close.index[-1] == idx[-1]
+    assert close["XBTEUR"].iloc[-1] == 147.0 and close["ETHEUR"].iloc[0] == 5.0
+
+
+def test_one_exchange_closed_does_not_collapse_the_etf_equity():
+    close = pd.DataFrame({"MILANO": _daily("2019-01-01", "2023-12-29", 100.0, 0.10)["close"],
+                          "XETRA": _daily("2019-01-01", "2023-12-29", 100.0, 0.10)["close"]})
+    close.loc[close.index[500], "MILANO"] = np.nan          # Milano chiusa, Xetra aperta
+    res = confronto.simula_etf(close, "bh", capitale=3000.0)
+    assert res["perdita_massima"] > -0.05

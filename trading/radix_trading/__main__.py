@@ -247,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--prova", action="store_true", help="solo per live: Kraken convalida gli ordini senza eseguirli")
     p.add_argument("--ora", action="store_true", help="solo per fineco: manda il piano del mese adesso, anche se gia' mandato")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
+    p.add_argument("--crypto-csv", default=None,
+                   help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
     args = p.parse_args(argv)
     settings = Settings()
     store = Store(settings.db_path)
@@ -340,7 +342,8 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "confronto":
             from . import confronto
             # Ricerca sola: pochi modelli a confronto sugli stessi dati e costi, quote intere, tasse stimate.
-            result = confronto.run(store, capitale_etf=args.capital or confronto.CAPITALE_ETF)
+            close_crypto = confronto.chiusure_crypto_csv(args.crypto_csv) if args.crypto_csv else None
+            result = confronto.run(store, capitale_etf=args.capital or confronto.CAPITALE_ETF, close_crypto=close_crypto)
             (settings.data_dir / "confronto.json").write_text(json.dumps(result, default=str, ensure_ascii=False, indent=1))
             (settings.data_dir / "confronto.md").write_text(result["testo"])
         elif args.command == "fineco":

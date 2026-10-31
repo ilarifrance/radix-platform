@@ -23,6 +23,7 @@ from __future__ import annotations
 import math
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -79,7 +80,29 @@ def chiusure_crypto(store: Store, symbols: list[str] | None = None) -> pd.DataFr
     return close.ffill(limit=6)   # buchi orari brevi
 
 
+def chiusure_crypto_csv(cartella) -> pd.DataFrame:
+    """Storico orario lungo da file `SIMBOLO.csv` (es. XBTEUR.csv) con una colonna tempo e una `close`:
+    il tempo in ISO o in secondi/millisecondi Unix. Serve perche' l'archivio del Mac parte dall'ottobre 2022."""
+    cols = {}
+    for f in sorted(Path(cartella).glob("*.csv")):
+        df = pd.read_csv(f)
+        low = {c.lower(): c for c in df.columns}
+        tcol = next((low[k] for k in ("ts", "time", "timestamp", "open_time", "date", "datetime") if k in low), df.columns[0])
+        ccol = low.get("close", df.columns[-1])
+        t = df[tcol]
+        if pd.api.types.is_numeric_dtype(t):
+            ts = pd.to_datetime(t, utc=True, unit="ms" if t.abs().max() > 1e11 else "s")
+        else:
+            ts = pd.to_datetime(t, utc=True)
+        serie = pd.Series(pd.to_numeric(df[ccol], errors="coerce").to_numpy(), index=ts).dropna().sort_index()
+        cols[f.stem.upper()] = serie[~serie.index.duplicated()]
+    return pd.DataFrame(cols).sort_index().ffill(limit=6)
+
+
 def per_anno(equity: pd.Series) -> dict[int, float]:
+    equity = equity.dropna()
+    if equity.empty:
+        return {}
     last = equity.groupby(equity.index.year).last()
     prev = last.shift(1)
     prev.iloc[0] = 1.0
@@ -119,6 +142,10 @@ def _finestra(close: pd.DataFrame, w: pd.DataFrame, start: str, end: str | None,
     lo = pd.Timestamp(start, tz="UTC")
     hi = pd.Timestamp(end, tz="UTC") + pd.Timedelta(days=1) if end else None
     c = close.loc[lo:hi].dropna(axis=1, how="all")
+    if len(c) < 24 * 30:
+        primo = str(close.dropna(how="all").index[0].date()) if not close.dropna(how="all").empty else "mai"
+        return {"errore": f"nessun dato orario nella finestra {start} → {end or 'oggi'} (archivio dal {primo}): "
+                          f"servono le barre Binance lunghe, vedi --crypto-csv"}
     ww = w.loc[lo:hi][c.columns]
     res = backtest.run(c, ww, "1h", costs, capital_eur=capitale)
     m = res.metrics
@@ -142,6 +169,7 @@ def crypto(store: Store, close: pd.DataFrame | None = None) -> dict:
     if close.empty:
         return out
     taker, maker = backtest.Costs.kraken(), backtest.Costs.kraken_maker()
+    out["archivio_dal"] = str(close.dropna(how="all").index[0].date()) if not close.dropna(how="all").empty else None
     w0 = regola_live(close)
     for nome, (start, end) in (("pulito", PULITO), ("intero", INTERO)):
         out["A0"][nome] = {"taker": _finestra(close, w0, start, end, taker),
@@ -213,7 +241,8 @@ def simula_etf(close: pd.DataFrame, regola: str, capitale: float = CAPITALE_ETF,
     """Quote intere, un N-esimo del patrimonio per attivo all'ingresso, niente ribilancio (salvo `ribilancio`
     a gennaio), commissione e spread su ogni ordine, tassa sulla plusvalenza alla vendita. Decisione sulla
     chiusura di fine mese, esecuzione alla chiusura del primo giorno di borsa del mese dopo."""
-    close = close.dropna(how="all").sort_index()
+    # Un giorno in cui Milano e' chiusa e Xetra aperta (o viceversa) non e' una perdita: si porta avanti l'ultimo prezzo.
+    close = close.dropna(how="all").sort_index().ffill()
     mensili = close.resample("ME").last()
     sig = segnali(mensili, regola).dropna(how="all")
     if sig.empty:
@@ -325,8 +354,9 @@ def etf(store: Store, fetch=None, capitale: float = CAPITALE_ETF, pausa: float =
     for nome, tickers in PANIERI.items():
         close, usati = chiusure_etf(store, tickers, fetch, pausa)
         chiusure[nome] = close
-        out["panieri"][nome] = {"richiesti": tickers, "usati": usati,
-                                "dal": str(close.index[0].date()) if not close.empty else None}
+        primi = {tk: str(close[tk].first_valid_index().date()) for tk in close.columns if close[tk].first_valid_index() is not None}
+        out["panieri"][nome] = {"richiesti": tickers, "usati": usati, "primi_dati": primi,
+                                "dal": max(primi.values()) if primi else None}   # da quando ci sono tutti
     prove = [
         ("B0_operativo_trend12", "operativo", "trend12", False),
         ("B0_prova_trend12", "prova", "trend12", False),
@@ -411,19 +441,27 @@ def _pct(x, segno: str = "+") -> str:
 def testo(r: dict) -> str:
     righe = [f"Confronto del {r['quando']} — {r['costi']}", ""]
     righe.append("CRYPTO (100 €, Binance orario)")
+    if r["crypto"].get("archivio_dal"):
+        righe.append(f"- archivio crypto dal {r['crypto']['archivio_dal']}")
     for key, blocco in r["crypto"].get("A0", {}).items():
         for tipo, f in blocco.items():
+            if "errore" in f:
+                righe.append(f"- A0 {key} {tipo}: {f['errore']}")
+                continue
             righe.append(f"- A0 {key} {tipo}: {_pct(f['rendimento_annuo'])} l'anno, perdita massima {_pct(f['perdita_massima'])}, "
                          f"Sharpe {f['sharpe']:.2f}, netto tasse {_pct(f['netto_tasse_annuo'])}, giro d'affari {f['giro_affari_anno']:.1f}x, "
                          f"costi {_pct(f['costi_anno'], '')} l'anno, stop −20% toccato da {_pct(f['quota_stop_20'], '')} delle partenze "
                          f"({f['inizio']} → {f['fine']})")
     for key, blocco in r["crypto"].get("A1", {}).items():
         for finestra, f in blocco.items():
+            if "errore" in f:
+                righe.append(f"- A1 BTC+ETH {key} {finestra}: {f['errore']}")
+                continue
             righe.append(f"- A1 BTC+ETH {key} {finestra}: {_pct(f['rendimento_annuo'])} l'anno, perdita massima {_pct(f['perdita_massima'])}, "
                          f"Sharpe {f['sharpe']:.2f}, netto tasse {_pct(f['netto_tasse_annuo'])}, stop −20% toccato da {_pct(f['quota_stop_20'], '')} delle partenze")
     righe += ["", f"ETF ({r['etf'].get('capitale', CAPITALE_ETF):,.0f} €, quote intere, prezzi Yahoo aggiustati)"]
     for nome, p in r["etf"]["panieri"].items():
-        righe.append(f"- paniere {nome}: {p['usati']} dal {p['dal']}")
+        righe.append(f"- paniere {nome}: {', '.join(p['usati'].values())}; tutti disponibili dal {p['dal']} (primi dati: {p['primi_dati']})")
     for key, f in r["etf"]["risultati"].items():
         if "errore" in f:
             righe.append(f"- {key}: {f['errore']}")
