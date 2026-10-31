@@ -381,6 +381,8 @@ def main(argv: list[str] | None = None) -> int:
                 from . import fineco
                 # Corsia ETF su Fineco: il piano del mese su Telegram, il primo giorno di borsa (esecuzione a mano).
                 result["etf_fineco"] = _safe(lambda: fineco.maybe_alert(store))
+                # Controllo orario a mercato aperto: avvisi solo sugli eventi, riepilogo alle 18 italiane.
+                result["etf_controllo"] = _safe(lambda: fineco.watch(store))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
     finally:
         store.close()

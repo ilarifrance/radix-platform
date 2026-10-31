@@ -94,6 +94,11 @@ Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra 
 dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
 scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; la scelta e' di Francesco.
 `python -m radix_trading fineco --ora` manda il piano subito.
+Controllo orario (dal 31/10/2026, `fineco.watch` nel giro `hourly`): a mercato aperto legge i prezzi dei cinque ETF e
+avvisa su Telegram solo se succede qualcosa di rilevante (un ETF oltre il 3% in giornata, il paniere in portafoglio
+sotto del 2%, perdita dal prezzo del piano oltre 8/12/16%, prezzo che attraversa il livello di 12 mesi fa, VIX +25%);
+alle 18 italiane un riepilogo della giornata. Un avviso per evento al giorno. Gli avvisi informano: la regola decide
+il primo giorno del mese e gli ordini li mette Francesco.
 
 ## Osservatorio «leva 20 su segnali concreti» (solo simulazione)
 

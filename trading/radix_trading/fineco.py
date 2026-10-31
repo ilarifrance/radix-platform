@@ -56,7 +56,16 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS etf_alerts (month TEXT PRIMARY KEY, ts TEXT NOT NULL, text TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS etf_targets (month TEXT NOT NULL, symbol TEXT NOT NULL, shares INTEGER NOT NULL,
     price REAL NOT NULL, PRIMARY KEY (month, symbol));
+CREATE TABLE IF NOT EXISTS etf_events (key TEXT PRIMARY KEY, ts TEXT NOT NULL, text TEXT NOT NULL);
 """
+
+# Controllo orario (chiesto da Francesco il 31/10/2026): avvisi solo sugli eventi, un riepilogo a fine giornata.
+WATCH_HOURS_UTC = range(7, 17)      # Milano e Xetra: 9:00-17:30 italiane, con ora legale e solare
+SUMMARY_HOUR_UTC = 17
+DAY_MOVE = 0.03                     # un ETF che fa +-3% in un giorno
+BASKET_MOVE = 0.02                  # il paniere in portafoglio che perde il 2% in un giorno
+ENTRY_LEVELS = (-0.08, -0.12, -0.16)   # perdita dal prezzo del piano d'ingresso, un avviso per livello
+VIX_JUMP = 0.25                     # VIX +25% in un giorno (serie FRED, con un giorno di ritardo)
 
 
 def first_trading_day(year: int, month: int) -> date:
@@ -238,3 +247,114 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
                    [(month, r["symbol"], r["shares"], r["price"] or 0.0) for r in rows])
     db.commit()
     return {"mese": month, "giorno": day.isoformat(), "capitale": cap, "regola": regola, "inviato": sent, "piano": rows, "testo": text}
+
+
+# --- controllo orario -------------------------------------------------------------------------------
+
+def _held(db) -> dict[str, dict]:
+    row = db.execute("SELECT month FROM etf_targets ORDER BY month DESC LIMIT 1").fetchone()
+    if not row:
+        return {}
+    return {sym: {"shares": int(sh), "price": float(pr)} for sym, sh, pr in
+            db.execute("SELECT symbol, shares, price FROM etf_targets WHERE month = ? AND shares > 0", (row[0],)).fetchall()}
+
+
+def _once(db, key: str, text: str, now: datetime, send) -> bool:
+    """Manda `text` una volta sola per `key` (che include il giorno); torna True se e' partito ora."""
+    if db.execute("SELECT 1 FROM etf_events WHERE key = ?", (key,)).fetchone():
+        return False
+    db.execute("INSERT INTO etf_events VALUES (?, ?, ?)", (key, now.strftime("%Y-%m-%dT%H:%M:%SZ"), text))
+    db.commit()
+    send(text)
+    return True
+
+
+def watch(store: Store, now: datetime | None = None, send=alerts.send, quote=yahoo.fetch_quote) -> dict:
+    """Ogni ora, a mercato aperto: prezzi dei cinque ETF, avviso su Telegram solo se succede qualcosa di rilevante
+    (giornata oltre il 3%, paniere -2%, perdita dall'ingresso oltre 8/12/16%, prezzo che attraversa il livello di
+    12 mesi fa, VIX +25%); alle 18 italiane un riepilogo della giornata. Gli avvisi informano: la regola decide
+    a fine mese e gli ordini li mette Francesco."""
+    now = now or datetime.now(timezone.utc)
+    db = store.conn
+    db.executescript(SCHEMA)
+    day = now.date()
+    if now.weekday() >= 5 or (day.month, day.day) in HOLIDAYS:
+        return {"mercato": "chiuso"}
+    if now.hour not in WATCH_HOURS_UTC and now.hour < SUMMARY_HOUR_UTC:
+        return {"mercato": "non ancora aperto"}
+    held = _held(db)
+    rows, errori = [], {}
+    for sym, name in ETFS.items():
+        try:
+            q = quote(sym)
+        except Exception as e:
+            errori[sym] = str(e)
+            continue
+        saved = store.load_bars(VENUE, sym, "1d")
+        sig = signal(saved["close"].dropna()) if not saved.empty else None
+        rows.append({"symbol": sym, "code": sym.split(".")[0], "name": name, **q,
+                     "day": (q["price"] / q["prev_close"] - 1) if q.get("prev_close") else None,
+                     "ref": sig["ref"] if sig else None, "was_in": sig["in"] if sig else None,
+                     "held": held.get(sym, {}).get("shares", 0), "plan_price": held.get(sym, {}).get("price")})
+    out = {"ora": now.strftime("%H:%M"), "avvisi": [], "errori": errori}
+    if not rows:
+        if errori:
+            out["avvisi"] += [k for k in ["dati"] if _once(db, f"dati:{day}", f"[ETF Fineco] Controllo orario: Yahoo non risponde per nessun ETF ({now:%H:%M} UTC). Riprovo tra un'ora.", now, send)]
+        return out
+    tag = f"[ETF Fineco] Evento delle {now:%H:%M} UTC"
+    if now.hour in WATCH_HOURS_UTC:
+        for r in rows:
+            if r["day"] is not None and abs(r["day"]) >= DAY_MOVE:
+                verso = "perde" if r["day"] < 0 else "guadagna"
+                pos = f"In portafoglio {r['held']} quote ≈ {r['held'] * r['price']:,.0f} €." if r["held"] else "Non in portafoglio."
+                if _once(db, f"giorno:{r['symbol']}:{day}", f"{tag}: {r['code']} ({r['name']}) {verso} il {abs(r['day']) * 100:.1f}% oggi "
+                         f"({r['prev_close']:.2f} → {r['price']:.2f} €). {pos} La regola decide a fine mese: nessun ordine previsto.", now, send):
+                    out["avvisi"].append(f"giorno:{r['code']}")
+            if r["held"] and r["plan_price"]:
+                loss = r["price"] / r["plan_price"] - 1
+                for lvl in ENTRY_LEVELS:
+                    if loss <= lvl and _once(db, f"ingresso:{r['symbol']}:{int(lvl * 100)}",
+                                             f"{tag}: {r['code']} ({r['name']}) è il {abs(loss) * 100:.1f}% sotto il prezzo del piano "
+                                             f"({r['plan_price']:.2f} → {r['price']:.2f} €), {r['held']} quote ≈ {r['held'] * r['price']:,.0f} €. "
+                                             f"Avviso informativo: la regola rivede la posizione il primo giorno del mese.", now, send):
+                        out["avvisi"].append(f"ingresso:{r['code']}:{int(lvl * 100)}")
+            if r["ref"] and r["was_in"] is not None and (r["price"] > r["ref"]) != r["was_in"]:
+                lato = "sopra" if r["price"] > r["ref"] else "sotto"
+                effetto = ("se resta così a fine mese la regola lo vende" if r["held"] and lato == "sotto"
+                           else "se resta così a fine mese la regola lo compra" if not r["held"] and lato == "sopra" else "nessun effetto sulla posizione")
+                if _once(db, f"soglia:{r['symbol']}:{day}", f"{tag}: {r['code']} ({r['name']}) è passato {lato} il prezzo di 12 mesi fa "
+                         f"({r['ref']:.2f}; ora {r['price']:.2f} €): {effetto}.", now, send):
+                    out["avvisi"].append(f"soglia:{r['code']}")
+        inport = [r for r in rows if r["held"] and r["day"] is not None]
+        if inport:
+            v_now = sum(r["held"] * r["price"] for r in inport)
+            v_prev = sum(r["held"] * r["prev_close"] for r in inport)
+            move = v_now / v_prev - 1
+            if move <= -BASKET_MOVE and _once(db, f"paniere:{day}", f"{tag}: il paniere ETF in portafoglio perde il {abs(move) * 100:.1f}% oggi "
+                                               f"({v_prev:,.0f} → {v_now:,.0f} €). La regola decide a fine mese; se vuoi agire, ordini limite.", now, send):
+                out["avvisi"].append("paniere")
+        try:
+            vix = store.load_macro("VIXCLS").dropna()
+            if len(vix) >= 2 and vix.iloc[-1] / vix.iloc[-2] - 1 >= VIX_JUMP:
+                when = vix.index[-1]
+                if _once(db, f"vix:{when:%Y-%m-%d}", f"{tag}: giornata di paura sui mercati, VIX da {vix.iloc[-2]:.0f} a {vix.iloc[-1]:.0f} "
+                         f"({when:%d/%m}). Nei nostri studi vendere in questi giorni ha reso meno che restare: la regola non cambia.", now, send):
+                    out["avvisi"].append("vix")
+        except Exception:
+            pass
+    if now.hour >= SUMMARY_HOUR_UTC:
+        parts = []
+        for r in rows:
+            d = f"{r['day'] * 100:+.1f}%" if r["day"] is not None else "n.d."
+            lato = "" if r["ref"] is None else (" ↑12m" if r["price"] > r["ref"] else " ↓12m")
+            parts.append(f"{r['code']} {d}{lato}" + (f" ({r['held']} q.)" if r["held"] else ""))
+        inport = [r for r in rows if r["held"] and r["day"] is not None]
+        tot = ""
+        if inport:
+            v_now = sum(r["held"] * r["price"] for r in inport)
+            v_prev = sum(r["held"] * r["prev_close"] for r in inport)
+            tot = f" Paniere in portafoglio {v_now / v_prev - 1:+.1%} oggi, ≈ {v_now:,.0f} €."
+        testo = f"[ETF Fineco] Chiusura del {day:%d/%m}: " + ", ".join(parts) + "." + tot + " ↑12m/↓12m = sopra o sotto il prezzo di 12 mesi fa."
+        if _once(db, f"riepilogo:{day}", testo, now, send):
+            out["avvisi"].append("riepilogo")
+    return out

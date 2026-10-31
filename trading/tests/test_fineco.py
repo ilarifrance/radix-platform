@@ -120,3 +120,41 @@ def test_buy_and_hold_rule_buys_all_five_and_rebalances_in_january(monkeypatch):
     # febbraio: niente ribilancio, si tiene tutto
     out3 = fineco.maybe_alert(st, datetime(2027, 2, 1, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: jan[s])
     assert all(r["action"] == "tieni" for r in out3["piano"])
+
+
+def test_hourly_watch_alerts_once_per_event_and_summarises_at_close(monkeypatch):
+    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    st, sent = Store(":memory:"), []
+    out = fineco.maybe_alert(st, datetime(2026, 12, 1, 8, 0, tzinfo=timezone.utc), send=sent.append, fetch=lambda s: FAKE[s])
+    plan = {r["symbol"]: r["price"] for r in out["piano"]}
+    del sent[:]
+    when = datetime(2026, 12, 2, 10, 0, tzinfo=timezone.utc)
+    moves = {"VUAA.MI": 0.96, "XNAS.MI": 0.91, "4GLD.DE": 0.85, "IS04.DE": 1.0, "IMEU.MI": 1.001}
+
+    def quote(sym):
+        return {"price": plan[sym] * moves[sym], "prev_close": plan[sym], "time": when}
+
+    assert fineco.watch(st, datetime(2026, 12, 5, 10, 0, tzinfo=timezone.utc), send=sent.append, quote=quote) == {"mercato": "chiuso"}
+    assert fineco.watch(st, datetime(2026, 12, 2, 6, 0, tzinfo=timezone.utc), send=sent.append, quote=quote)["mercato"] == "non ancora aperto"
+    res = fineco.watch(st, when, send=sent.append, quote=quote)
+    assert "giorno:VUAA" in res["avvisi"] and "giorno:XNAS" in res["avvisi"] and "ingresso:XNAS:-8" in res["avvisi"]
+    assert "soglia:4GLD" in res["avvisi"] and "paniere" in res["avvisi"]           # 4GLD sotto il livello di 12 mesi fa
+    assert "ingresso:VUAA:-8" not in res["avvisi"] and "riepilogo" not in res["avvisi"]
+    testo = " ".join(sent)
+    assert "XNAS (Nasdaq 100 (Xtrackers)) perde il 9.0% oggi" in testo and "sotto il prezzo del piano" in testo
+    assert "se resta così a fine mese la regola lo vende" in testo and "il paniere ETF in portafoglio perde il" in testo
+    n = len(sent)
+    assert fineco.watch(st, when.replace(hour=11), send=sent.append, quote=quote)["avvisi"] == []   # stessa giornata: niente doppioni
+    assert len(sent) == n
+    # VIX +33% (serie FRED gia' in archivio): un avviso solo
+    st.upsert_macro("VIXCLS", pd.Series([15.0, 20.0], index=pd.to_datetime(["2026-12-01", "2026-12-02"], utc=True)))
+    assert fineco.watch(st, when.replace(hour=12), send=sent.append, quote=quote)["avvisi"] == ["vix"]
+    assert fineco.watch(st, when.replace(hour=13), send=sent.append, quote=quote)["avvisi"] == []
+    # alle 18 italiane il riepilogo, una volta sola
+    res2 = fineco.watch(st, when.replace(hour=17, minute=5), send=sent.append, quote=quote)
+    assert res2["avvisi"] == ["riepilogo"] and sent[-1].startswith("[ETF Fineco] Chiusura del 02/12:") and "↓12m" in sent[-1]
+    assert fineco.watch(st, when.replace(hour=18), send=sent.append, quote=quote)["avvisi"] == []
+    # Yahoo giu' per tutti: un solo avviso di dati mancanti
+    boom = lambda s: (_ for _ in ()).throw(RuntimeError("429"))
+    assert fineco.watch(st, when.replace(hour=14), send=sent.append, quote=boom)["avvisi"] == ["dati"]
+    assert fineco.watch(st, when.replace(hour=15), send=sent.append, quote=boom)["avvisi"] == []
