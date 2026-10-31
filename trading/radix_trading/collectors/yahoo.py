@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .http import BROWSER_UA, get
+from .http import get
+
+# Yahoo risponde 429 sia allo user-agent di requests sia a uno da browser completo; quello nudo passa
+# (verificato dal Mac il 31/10/2026).
+YAHOO_UA = "Mozilla/5.0"
 
 # query1 risponde spesso 429 dal bordo della rete; query2 di solito no. Si prova in ordine.
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
@@ -35,13 +39,20 @@ def parse_chart(payload: dict) -> pd.DataFrame:
     return df[~df.index.duplicated(keep="last")]
 
 
-def fetch_daily(symbol: str, period: str = "max") -> pd.DataFrame:
-    """L'ultima barra (la giornata in corso) viene scartata finche' il mercato e' aperto."""
-    params = {"range": period, "interval": "1d", "events": "div,splits"}
+def fetch_daily(symbol: str, period: str = "max", since: str | None = None) -> pd.DataFrame:
+    """L'ultima barra (la giornata in corso) viene scartata finche' il mercato e' aperto.
+    Con `since` (es. "2005-01-01") si chiedono date esplicite: per alcuni ETF europei `range=max`
+    risponde con barre mensili invece che giornaliere."""
+    params = {"interval": "1d", "events": "div,splits"}
+    if since:
+        params["period1"] = int(pd.Timestamp(since, tz="UTC").timestamp())
+        params["period2"] = int(pd.Timestamp.now(tz="UTC").timestamp())
+    else:
+        params["range"] = period
     last: Exception | None = None
     for host in HOSTS:
         try:
-            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=BROWSER_UA, rate_limit_wait=10)
+            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=YAHOO_UA, rate_limit_wait=10)
             break
         except RuntimeError as e:
             last = e
@@ -50,3 +61,32 @@ def fetch_daily(symbol: str, period: str = "max") -> pd.DataFrame:
     df = parse_chart(r.json())
     today = pd.Timestamp.now(tz="UTC").normalize()
     return df[df.index < today]
+
+
+def fetch_quote(symbol: str) -> dict:
+    """Ultimo prezzo (Milano e Xetra arrivano con 15 minuti di ritardo) e chiusura del giorno prima, non aggiustati."""
+    params = {"interval": "1d", "range": "5d"}
+    last: Exception | None = None
+    for host in HOSTS:
+        try:
+            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=YAHOO_UA, rate_limit_wait=10)
+            break
+        except RuntimeError as e:
+            last = e
+    else:
+        raise RuntimeError(f"Yahoo non raggiungibile per {symbol}: {last}")
+    chart = r.json().get("chart", {})
+    if chart.get("error") or not chart.get("result"):
+        raise RuntimeError(f"Yahoo: {chart.get('error')}")
+    res = chart["result"][0]
+    meta = res.get("meta", {})
+    closes = pd.Series(res["indicators"]["quote"][0]["close"],
+                       index=pd.to_datetime(res["timestamp"], unit="s", utc=True)).dropna() if res.get("timestamp") else pd.Series(dtype=float)
+    when = pd.to_datetime(meta["regularMarketTime"], unit="s", utc=True) if meta.get("regularMarketTime") else (
+        closes.index[-1] if not closes.empty else pd.Timestamp.now(tz="UTC"))
+    price = meta.get("regularMarketPrice") or (float(closes.iloc[-1]) if not closes.empty else None)
+    before = closes[closes.index.normalize() < when.normalize()]
+    prev_close = float(before.iloc[-1]) if not before.empty else meta.get("chartPreviousClose")
+    if price is None:
+        raise RuntimeError(f"Yahoo: nessun prezzo per {symbol}")
+    return {"price": float(price), "prev_close": float(prev_close) if prev_close else None, "time": when}

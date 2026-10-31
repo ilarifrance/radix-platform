@@ -29,8 +29,9 @@ class Costs:
 
     @classmethod
     def kraken(cls) -> "Costs":
-        # Kraken Pro, livello base: circa 0,25% maker / 0,40% taker. Usiamo il taker, prudente.
-        return cls(fee_bps=40.0, slippage_bps=5.0, min_fee_eur=0.0)
+        # Kraken Pro, livello base (sotto 10.000 $ al mese): 0,40% maker / 0,80% taker, verificato sugli
+        # ordini veri del 30/10/2026. Qui il taker (ordini a mercato).
+        return cls(fee_bps=80.0, slippage_bps=5.0, min_fee_eur=0.0)
 
     @classmethod
     def ibkr_equities(cls) -> "Costs":
@@ -39,9 +40,9 @@ class Costs:
 
     @classmethod
     def kraken_maker(cls) -> "Costs":
-        # Ordini limite che aspettano nel book: circa 0,25%. Realistico solo per chi decide di rado
-        # (una volta al giorno) e puo' aspettare qualche minuto che l'ordine venga eseguito.
-        return cls(fee_bps=25.0, slippage_bps=5.0, min_fee_eur=0.0)
+        # Ordini limite che aspettano nel book: 0,40% al livello base. Realistico solo per chi decide di rado
+        # (una volta al giorno) e puo' aspettare qualche ora che l'ordine venga eseguito (il conto vero fa cosi').
+        return cls(fee_bps=40.0, slippage_bps=5.0, min_fee_eur=0.0)
 
     @classmethod
     def ibkr_italia(cls) -> "Costs":
@@ -58,8 +59,8 @@ class Costs:
     @classmethod
     def kraken_short(cls) -> "Costs":
         # Acquisti come `kraken_maker`; lo scoperto con i perpetui Kraken Futures. Commissioni
-        # tenute prudenti (0,25% su tutto) e funding stimato al 10% l'anno sulla parte short.
-        return cls(fee_bps=25.0, slippage_bps=5.0, min_fee_eur=0.0, allow_short=True, short_bps_year=1000.0)
+        # tenute prudenti (0,40% su tutto) e funding stimato al 10% l'anno sulla parte short.
+        return cls(fee_bps=40.0, slippage_bps=5.0, min_fee_eur=0.0, allow_short=True, short_bps_year=1000.0)
 
     @classmethod
     def named(cls, name: str) -> "Costs":

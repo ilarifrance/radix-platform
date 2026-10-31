@@ -63,6 +63,62 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 - `probability.py` — meta-modello: regressione logistica walk-forward che stima la probabilita' che un'operazione superi i costi; misurato con il Brier score (0,25 = nessuna capacita').
 - `paper.py` — paper trading interno: conto simulato da 1.000 euro con prezzi veri; ogni ora segnale → probabilita' (soglia 55%) → risk manager → esecuzione simulata, con ogni decisione registrata e motivata. `report` ne fa il riepilogo.
 
+## Test da 100 euro veri (spento)
+
+Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`).
+- Al massimo 100 euro investiti, niente leva. Gli ordini della regola partono come limite «post only» al miglior
+  prezzo del momento (commissione da maker); se dopo 6 ore non si sono eseguiti, la parte mancante va a mercato.
+  Le vendite dello stop sono sempre a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
+- Le monete in portafoglio vanno in staking flessibile su Kraken Earn (`earn.py`, solo strategie «instant», sblocco
+  immediato prima di vendere). Serve il permesso «Earn Funds» sulla chiave; `RADIX_TRADING_EARN=no` lo spegne.
+  Se il conto ha gia' attivo «Kraken Rewards» (Kraken alloca da solo, le monete restano nel saldo spot), quelle
+  monete rendono gia' e non si toccano: niente Allocate, niente sblocco prima di vendere; il riepilogo le conta
+  comunque in «In staking».
+- Sentinella di mercato (`mercato.py`, nel giro `hourly`, chiesta da Francesco il 31/10/2026): nelle ore di Wall Street
+  guarda S&P 500, Nasdaq 100, mondo ex USA, oro, Treasury, petrolio (quotazioni Yahoo), VIX e decennale USA; Bitcoin ed
+  Ethereum sulle 24 ore anche nel fine settimana. Quando una soglia scatta (es. Nasdaq ±2,5%, VIX +20%, BTC ±5%) manda
+  un avviso con valutazione: notizie del giorno in archivio, cosa ha reso il mercato dopo giornate simili (5 e 20
+  giorni), ogni ETF Fineco rispetto al livello di 12 mesi, il conto crypto, e il verdetto (mai un acquisto su una
+  notizia da sola: lo studio eventi non ha trovato vantaggi che reggano la verifica). Un avviso per mercato al giorno.
+  Prova a mano: `python -m radix_trading mercato --prova --quando 2026-10-30T21:17Z` stampa il testo senza mandarlo.
+- Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
+- Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
+
+Passi, tutti di Francesco:
+1. Su Kraken crea una chiave API con i soli permessi "Query Funds", "Query Open Orders & Trades",
+   "Query Closed Orders & Trades", "Create & Modify Orders" e "Cancel/Close Orders", senza prelievi
+   (gli ultimi tre servono a seguire e annullare gli ordini limite).
+2. Scrivi `KRAKEN_API_KEY` e `KRAKEN_API_SECRET` in `~/RadixTrading/.env`. Per gli avvisi aggiungi `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+3. Prova senza rischi:
+   - `python -m radix_trading alert-test`;
+   - `python -m radix_trading live --prova`: Kraken convalida gli ordini senza eseguirli.
+4. Per accendere il conto vero servono `RADIX_TRADING_MODE=live` e `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`, più un giro orario di `live`.
+
+## Corsia ETF su Fineco (esecuzione a mano)
+
+`fineco.py`: cinque ETF UCITS (S&P 500, Nasdaq 100, oro, Treasury 20+, Europa), un quinto del capitale ciascuno,
+dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa del mese, dalle 8 italiane, il giro
+`hourly` manda su Telegram il piano («compra N quote di…», «vendi tutto…») e Francesco esegue dall'app Fineco.
+Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
+Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra o si esce solo con due mesi di fila
+dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
+scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; la scelta e' di Francesco.
+`python -m radix_trading fineco --ora` manda il piano subito.
+Controllo orario (dal 31/10/2026, `fineco.watch` nel giro `hourly`): a mercato aperto legge i prezzi dei cinque ETF e
+avvisa su Telegram solo se succede qualcosa di rilevante (un ETF oltre il 3% in giornata, il paniere in portafoglio
+sotto del 2%, perdita dal prezzo del piano oltre 8/12/16%, prezzo che attraversa il livello di 12 mesi fa, VIX +25%);
+alle 18 italiane un riepilogo della giornata. Un avviso per evento al giorno. Gli avvisi informano: la regola decide
+il primo giorno del mese e gli ordini li mette Francesco.
+
+## Osservatorio «leva 20 su segnali concreti» (solo simulazione)
+
+`osservatorio.py`: cinque regole scritte prima e non piu' toccate (shock geopolitico → oro, panico → S&P 500, giorno Fed
+→ S&P 500 nel verso della giornata, shock petrolio → petrolio, picco di notizie su Trump → Bitcoin corto). Quando una
+scatta, il giro `daily` registra un'operazione simulata con margine 200 €, leva massima ESMA, spread, finanziamento
+notturno dei CFD e chiusura forzata a meta' del margine, e avvisa su Telegram con il prefisso `[SIMULATO leva]`; il
+venerdi' manda il riepilogo. `python -m radix_trading osservatorio --from 2015-01-01` rifa' le stesse regole sul passato.
+Nessun euro vero: serve a decidere, dopo 4-8 settimane, se un conto a leva ha senso.
+
 ## Kill switch
 
 Creare il file `~/RadixTrading/data/KILL_SWITCH` (es. `touch ~/RadixTrading/data/KILL_SWITCH`) blocca ogni
