@@ -40,6 +40,8 @@ def _store(btc_move=-0.06, now=None):
     st.conn.execute("INSERT INTO live_equity VALUES ('2026-10-30T21:15:05Z', 109.84)")
     st.upsert_news([{"url": "u1", "ts": "2026-10-30T20:40:00Z", "title": "Intel plunges 29% as Nasdaq suffers worst sell-off since June",
                      "source": "x", "language": "en", "country": "US", "query": "q", "sentiment": 0.0},
+                    {"url": "u4", "ts": "2026-10-30T19:00:00Z", "title": "Amazon earnings: AWS grows but capex worries investors",
+                     "source": "x", "language": "en", "country": "US", "query": "q", "sentiment": 0.0},
                     {"url": "u2", "ts": "2026-10-30T18:00:00Z", "title": "Local bakery wins award", "source": "x",
                      "language": "en", "country": "US", "query": "q", "sentiment": 0.0},
                     {"url": "u3", "ts": "2026-10-28T08:00:00Z", "title": "Nasdaq hits record", "source": "x",
@@ -79,7 +81,8 @@ def test_friday_sell_off_gives_one_message_with_evaluation_and_no_duplicates():
     t = sent[0]
     assert t.startswith("[Mercati] Evento delle 21:17 UTC: Nasdaq 100 (QQQ) perde il 3.5% oggi (715.34 → 690.49 $).")
     assert "Anche: oro (GLD) perde il 3.5%" in t and "Contorno: S&P 500 -1.8%" in t and "VIX +13.4%" in t
-    assert "Notizie: Intel plunges 29%" in t and "bakery" not in t and "record" not in t   # solo temi di mercato, solo recenti
+    assert "Notizie: 30/10: Intel plunges 29%" in t and "| 30/10: Amazon earnings" in t   # con la data, prima le piu' recenti
+    assert "bakery" not in t and "record" not in t                             # niente fuori tema, niente di tre giorni prima
     assert "Storia: dal 2000, dopo" in t and "giorni di borsa seguenti" in t
     assert "Regole: ETF VUAA +" in t and "4GLD +" in t and "IS04 -" in t and "XNAS +" in t and "(10 q.)" in t
     assert "Conto crypto 109.84 €, stop a 90 €" in t

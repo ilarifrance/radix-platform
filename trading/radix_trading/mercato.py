@@ -47,6 +47,9 @@ MIN_CASES = 10
 MIN_HISTORY = 500
 NEWS_HOURS = 36
 NEWS_THEMES = ("borse", "big_tech", "petrolio", "fed_tassi", "medio_oriente", "crisi_banche", "dazi", "guerra", "cina")
+# Parole in piu' rispetto ai temi dello studio eventi (che non si toccano): trimestrali, chip, tassi di mercato.
+NEWS_EXTRA = re.compile(r"\bIntel\b|\bAMD\b|semiconductor|chipmaker|chip ?stocks?|\bearnings\b|Wall Street|bond yields?|Treasur(?:y|ies)|"
+                        r"\bbitcoin\b|\bcrypto|\bgold\b|oil prices?|\bBrent\b|\bECB\b|European Central Bank|\bLagarde\b|\bBCE\b", re.I)
 TAG = "[Mercati]"
 SCHEMA = "CREATE TABLE IF NOT EXISTS market_events (key TEXT PRIMARY KEY, ts TEXT NOT NULL, text TEXT NOT NULL);"
 
@@ -104,24 +107,26 @@ def crypto_closes(store: Store, sym: str) -> pd.Series:
 
 
 def notizie(store: Store, now: datetime, limit: int = 3) -> list[str]:
-    """Titoli delle ultime 36 ore (GDELT, raccolti ogni ora) e voci di Wikipedia di ieri e oggi sui temi di mercato."""
+    """Titoli delle ultime 36 ore (GDELT, raccolti ogni ora) e voci di Wikipedia di ieri e oggi sui temi di mercato,
+    ognuno con la sua data (l'archivio di Wikipedia puo' essere indietro di un giorno: la data lo dice)."""
     from .events import _THEMES   # espressioni dei temi, gia' compilate
-    pats = [_THEMES[t] for t in NEWS_THEMES if t in _THEMES]
-    titles: list[str] = []
+    pats = [_THEMES[t] for t in NEWS_THEMES if t in _THEMES] + [NEWS_EXTRA]
+    titles: list[tuple[str, str]] = []   # (giorno ISO, titolo)
     try:
         news = store.load_news((now - timedelta(hours=NEWS_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ"))
         if not news.empty and "title" in news:
-            titles += [str(t) for t in reversed(list(news["title"].dropna()))]   # prima le piu' recenti
+            rows = news.dropna(subset=["title"]).sort_values("ts", ascending=False)   # prima le piu' recenti
+            titles += [(str(ts)[:10], str(t)) for ts, t in zip(rows["ts"], rows["title"])]
     except Exception:
         pass
     try:
-        rows = store.conn.execute("SELECT text FROM news_items WHERE day >= ? ORDER BY day DESC",
+        rows = store.conn.execute("SELECT day, text FROM news_items WHERE day >= ? ORDER BY day DESC",
                                   ((now - timedelta(days=1)).date().isoformat(),)).fetchall()
-        titles += [str(r[0]) for r in rows]
+        titles += [(str(d), str(t)) for d, t in rows]
     except Exception:   # tabella non ancora creata
         pass
     out, seen = [], set()
-    for t in titles:
+    for day, t in titles:
         t = re.sub(r"\s+", " ", t).strip()
         if not t or not any(p.search(t) for p in pats):
             continue
@@ -129,7 +134,8 @@ def notizie(store: Store, now: datetime, limit: int = 3) -> list[str]:
         if key in seen:
             continue
         seen.add(key)
-        out.append(t if len(t) <= 110 else t[:107].rstrip() + "…")
+        when = f"{day[8:10]}/{day[5:7]}: " if len(day) >= 10 else ""
+        out.append(when + (t if len(t) <= 110 else t[:107].rstrip() + "…"))
         if len(out) >= limit:
             break
     return out
