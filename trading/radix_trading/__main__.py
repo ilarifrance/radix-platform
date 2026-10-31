@@ -13,6 +13,7 @@
     python -m radix_trading weekend          # chiusura del venerdi' e riapertura del lunedi'
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
+    python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
 """
 
 from __future__ import annotations
@@ -231,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
-                                          "osservatorio"])
+                                          "osservatorio", "confronto"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -336,6 +337,12 @@ def main(argv: list[str] | None = None) -> int:
             result = osservatorio.replay(store, args.since) if args.since else osservatorio.step(store)
             if args.since:
                 (settings.data_dir / "osservatorio.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
+        elif args.command == "confronto":
+            from . import confronto
+            # Ricerca sola: pochi modelli a confronto sugli stessi dati e costi, quote intere, tasse stimate.
+            result = confronto.run(store, capitale_etf=args.capital or confronto.CAPITALE_ETF)
+            (settings.data_dir / "confronto.json").write_text(json.dumps(result, default=str, ensure_ascii=False, indent=1))
+            (settings.data_dir / "confronto.md").write_text(result["testo"])
         elif args.command == "fineco":
             from . import fineco
             result = fineco.maybe_alert(store, cap=args.capital, force=args.ora) or {"mese": "gia' mandato o non ancora il primo giorno di borsa"}
