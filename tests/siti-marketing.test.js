@@ -39,3 +39,17 @@ test('collegamenti e copy: legali, hub, niente nomi vietati, niente promesse non
  assert.strictEqual((html.match(/class="sx-split( reverse)?"/g)||[]).length,3);
  for(const id of['kit','come-funziona','servizi','prezzi','faq','parliamone'])assert.ok(html.includes(`id="${id}"`),id);
 });
+
+test('pagine dei kit: una per kit, collegate dalla home, prezzo «da definire», modulo spento',()=>{
+ for(const [f,key] of [['identita.html','identita'],['social.html','social'],['sito-seo.html','sito-seo']]){
+  const k=fs.readFileSync(path.join(root,'siti/marketing',f),'utf8');
+  assert.ok(html.includes(`href="/siti/marketing/${f}"`),'home → '+f);
+  assert.match(k,/<body class="sx" data-prodotto="marketing">/);
+  for(const id of['ricevi','ordine','prezzo','faq','parliamone'])assert.ok(k.includes(`id="${id}"`),f+' '+id);
+  assert.ok(k.includes(`class="tbd" data-price="${key}">da definire<`),f+' prezzo');
+  assert.ok(!/\d+\s?€/.test(k),f+' nessun prezzo numerico');
+  assert.match(k,/data-site-form data-token=""/);
+  assert.strictEqual((k.match(/<ol class="sx-steps five">/g)||[]).length,1);
+  assert.ok((k.match(/<li><b>/g)||[]).length>=10,f+' almeno 5 passi e 5 consegne');
+ }
+});
