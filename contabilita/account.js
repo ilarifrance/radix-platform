@@ -10,7 +10,7 @@ if(size&&P){const want=new URLSearchParams(location.search).get('pacchetto');
  size.replaceChildren(...P.SIZE_KEYS.map(k=>new Option(P.SIZES[k].label+', '+eur(P.priceOf(k))+' al mese + IVA',k)));if(P.SIZES[want])size.value=want;
  const help=()=>{const l=P.limitsOf(size.value);$('ctSizeHelp').textContent='Fino a '+l.invoices+' fatture al mese, '+l.bank_accounts+(l.bank_accounts>1?' conti bancari, ':' conto bancario, ')+l.copilot_questions+' domande al copilota, '+l.users+' utenti.';};
  size.addEventListener('change',help);help();}
-function msg(text,kind){const m=$('ctMsg');m.hidden=!text;m.textContent=text||'';m.className='ct-alert '+(kind||'error');if(text)m.focus&&m.scrollIntoView({block:'nearest'});}
+function msg(text,kind){const m=$('ctMsg');m.hidden=!text;m.textContent=text||'';m.className='sx-alert'+(kind==='info'?' info':'');if(text)m.focus&&m.scrollIntoView({block:'nearest'});}
 async function post(action,data){
  const r=await fetch('/api/accounting',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Accounting':'1'},body:JSON.stringify({action,data})});
  let j={};try{j=await r.json();}catch{}if(!r.ok)throw new Error(j.error||'Servizio non disponibile, riprova tra poco.');return j;

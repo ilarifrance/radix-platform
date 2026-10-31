@@ -6,30 +6,32 @@
 <meta name="color-scheme" content="dark">
 <title>Nuova password · RADIX Contabilità</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="/contabilita/fonts/fonts.css">
-<link rel="stylesheet" href="/contabilita/contabilita.css">
+<link rel="stylesheet" href="/siti/comune/fonts/fonts.css">
+<link rel="stylesheet" href="/siti/comune/sito.css">
+<script src="/siti/comune/sito.js" defer></script>
 <script src="/lib/accounting/pricing.js" defer></script>
 <script src="/contabilita/account.js" defer></script>
 </head>
-<body class="ct">
-<header class="ct-top">
- <a class="ct-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="ct-word">RADIX</span><span class="ct-area">Contabilità</span></a>
- <nav class="ct-nav" aria-label="Sezioni"><a href="/contabilita/#incluso">Cosa è incluso</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
- <a class="ct-btn ghost small" href="/contabilita/iscrizione.html">Iscriviti</a>
+<body class="sx" data-prodotto="contabilita">
+<header class="sx-top">
+ <a class="sx-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="sx-word">RADIX</span><span class="sx-area">Contabilità</span></a>
+ <button class="sx-menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+ <nav id="nav" class="sx-nav" aria-label="Sezioni"><a href="/contabilita/#come-funziona">Come funziona</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
+ <a class="sx-btn ghost small" href="/contabilita/iscrizione.html">Iscriviti</a>
 </header>
-<main id="main" class="ct-form-page">
- <section class="ct-form-wrap narrow">
-  <p class="ct-eyebrow">Area clienti</p>
-  <h1 class="ct-form-title">Scegli una nuova password</h1>
-  <p class="ct-muted">Dopo il salvataggio entri direttamente nella tua contabilità.</p>
-  <p class="ct-alert" id="ctMsg" role="status" hidden></p>
-  <form id="ctReset" class="ct-form" novalidate>
+<main id="main" class="sx-form-page">
+ <section class="sx-form-wrap narrow">
+  <p class="sx-eyebrow">Area clienti</p>
+  <h1 class="sx-form-title">Scegli una nuova password</h1>
+  <p class="sx-muted">Dopo il salvataggio entri direttamente nella tua contabilità.</p>
+  <p class="sx-alert" id="ctMsg" role="status" hidden></p>
+  <form id="ctReset" class="sx-form" novalidate>
    <label>Nuova password<input name="password" type="password" required minlength="10" maxlength="200" autocomplete="new-password" aria-describedby="pwHelp"><small id="pwHelp">Almeno 10 caratteri.</small></label>
    <label>Ripeti la password<input name="password2" type="password" required minlength="10" maxlength="200" autocomplete="new-password"></label>
-   <button class="ct-btn" type="submit">Salva la password</button>
+   <button class="sx-btn" type="submit">Salva la password</button>
   </form>
  </section>
 </main>
-<footer class="ct-foot"><span class="ct-word">RADIX</span><span><a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a></span></footer>
+<footer class="sx-foot"><span class="sx-word">RADIX</span><span>© 2026 RADIX Innovation Studio · <a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a> · <a href="/siti/legali/cookie.html">Cookie</a> · <a href="/siti/">Tutti i prodotti</a></span></footer>
 </body>
 </html>
