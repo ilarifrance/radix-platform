@@ -125,9 +125,10 @@ def status_text(tag: str, now: datetime, equity: float, start: float, eur: float
            for s, u in sorted(held.items()) if u * prices.get(s, 0) >= 0.5]
     stop = start - MAX_LOSS_EUR
     margin = equity - stop
-    return (f"{tag} Riepilogo {now:%H:%M} UTC: patrimonio {equity:.2f} € ({equity / start - 1:+.1%} dall'inizio), "
-            f"euro liberi {eur:.2f} €, posizioni: {', '.join(pos) or 'nessuna'}. "
-            + ("Conto FERMO per lo stop." if halted else f"Stop a {stop:.2f} € (margine {margin:.2f} €)."))
+    return (f"{tag} Riepilogo {now:%H:%M} UTC: patrimonio {equity:.2f} €, guadagno/perdita {equity - start:+.2f} € "
+            f"({equity / start - 1:+.1%}) dall'inizio, commissioni comprese. Euro liberi {eur:.2f} €, "
+            f"posizioni: {', '.join(pos) or 'nessuna'}. "
+            + ("Conto FERMO per lo stop." if halted else f"Stop a {stop:.2f} € (distanza dallo stop {margin:.2f} €)."))
 
 
 def step(store: Store, settings: Settings, client: Kraken | None = None, prova: bool = False,
