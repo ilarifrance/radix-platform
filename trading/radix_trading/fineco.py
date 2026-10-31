@@ -49,6 +49,7 @@ RULE_NAMES = {"trend": "trend a 12 mesi", "conferma": "trend a 12 mesi con confe
               "tieni": "compra e tieni, ribilancio a gennaio"}
 REBALANCE_MIN_EUR = 150.0   # sotto, il ribilancio non vale la commissione minima
 ALERT_HOUR_UTC = 7       # alle 8 italiane, un'ora prima dell'apertura di Borsa Italiana
+ALERT_GRACE_DAYS = 2     # se Yahoo e' giu' il primo giorno si riprova nei due giorni dopo; oltre, il piano del mese non si manda piu'
 HOLIDAYS = {(1, 1), (5, 1), (8, 15), (12, 24), (12, 25), (12, 26), (12, 31)}   # chiusure fisse di Borsa Italiana
 MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
           "ottobre", "novembre", "dicembre"]
@@ -221,20 +222,24 @@ def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
 
 
 def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fetch=fetch_daily,
-                cap: float | None = None, force: bool = False) -> dict | None:
-    """Manda il piano del mese una volta sola, dal primo giorno di borsa del mese alle 8 italiane in poi."""
+                cap: float | None = None, force: bool = False, prova: bool = False) -> dict | None:
+    """Manda il piano del mese una volta sola, il primo giorno di borsa del mese dalle 8 italiane (con due giorni di
+    tolleranza se i dati mancano). Fuori da quella finestra non si manda: un programma installato a meta' mese non deve
+    spedire un piano vecchio (successo il 31/10/2026). Con `prova` compone il testo senza mandarlo ne' registrarlo."""
     now = now or datetime.now(timezone.utc)
     year, mon = now.year, now.month
-    if force and now.date() > first_trading_day(year, mon):   # a mano a fine mese: e' il piano del mese prossimo
+    if (force or prova) and now.date() > first_trading_day(year, mon):   # a mano a fine mese: e' il piano del mese prossimo
         year, mon = (year + 1, 1) if mon == 12 else (year, mon + 1)
     month = f"{year}-{mon:02d}"
     day = first_trading_day(year, mon)
     db = store.conn
     db.executescript(SCHEMA)
-    if not force:
+    if not (force or prova):
         if db.execute("SELECT 1 FROM etf_alerts WHERE month = ?", (month,)).fetchone():
             return None
         if now.date() < day or (now.date() == day and now.hour < ALERT_HOUR_UTC):
+            return None
+        if (now.date() - day).days > ALERT_GRACE_DAYS:
             return None
     cap = cap or capital()
     closes = collect(store, fetch)
@@ -243,6 +248,9 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
     if all(r["price"] is None for r in rows):   # Yahoo giu' e archivio vuoto: niente avviso, si riprova al giro dopo
         return {"mese": month, "giorno": day.isoformat(), "errore": "dati mancanti per tutti gli ETF, riprovo al prossimo giro"}
     text = alert_text(month, rows, cap, day)
+    if prova:
+        return {"mese": month, "giorno": day.isoformat(), "capitale": cap, "regola": regola, "inviato": False, "prova": True,
+                "piano": rows, "testo": text}
     sent = send(text)
     db.execute("INSERT OR REPLACE INTO etf_alerts VALUES (?, ?, ?)", (month, now.strftime("%Y-%m-%dT%H:%M:%SZ"), text))
     db.executemany("INSERT OR REPLACE INTO etf_targets VALUES (?, ?, ?, ?)",

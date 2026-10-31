@@ -104,7 +104,12 @@ Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra 
 dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
 scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; Francesco ha scelto `tieni`
 la sera del 31/10/2026, ed e' il default senza variabile.
-`python -m radix_trading fineco --ora` manda il piano subito.
+`python -m radix_trading fineco --ora` manda il piano subito; `fineco --prova` lo stampa senza mandarlo ne' registrarlo.
+Il piano automatico parte solo il primo giorno di borsa del mese (piu' due giorni di tolleranza): un programma installato
+a meta' mese non spedisce un piano vecchio (il 31/10/2026 era successo).
+- Ricerca «compra sul ribasso» (`ribasso.py`, comando `ribasso`): riserva di cassa 10-30% e acquisti il giorno dopo un
+  -2/3/4% del Nasdaq, con o senza rivendita dopo 20 giorni, contro il piano fisso compra e tieni; panieri di prova,
+  operativo e ETF USA dal 2005. Scrive ribasso.md e ribasso.json nella cartella dati.
 Controllo orario (dal 31/10/2026, `fineco.watch` nel giro `hourly`): a mercato aperto legge i prezzi dei cinque ETF e
 avvisa su Telegram solo se succede qualcosa di rilevante (un ETF oltre il 3% in giornata, il paniere in portafoglio
 sotto del 2%, perdita dal prezzo del piano oltre 8/12/16%, prezzo che attraversa il livello di 12 mesi fa, VIX +25%);

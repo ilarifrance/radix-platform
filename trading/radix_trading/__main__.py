@@ -232,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
-                                          "osservatorio", "confronto", "mercato"])
+                                          "osservatorio", "confronto", "mercato", "ribasso"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -244,7 +244,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--fee-share", type=float, default=portfolio.MAX_FEE_SHARE,
                    help="solo per replay: commissione minima massima sull'ordine, es. 0.005; 0 = solo banda del 3%%")
     p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
-    p.add_argument("--prova", action="store_true", help="solo per live: Kraken convalida gli ordini senza eseguirli")
+    p.add_argument("--prova", action="store_true", help="live: Kraken convalida gli ordini senza eseguirli; fineco/mercato: stampa senza mandare")
     p.add_argument("--ora", action="store_true", help="solo per fineco: manda il piano del mese adesso, anche se gia' mandato")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     p.add_argument("--crypto-csv", default=None,
@@ -348,6 +348,13 @@ def main(argv: list[str] | None = None) -> int:
             result = confronto.run(store, capitale_etf=args.capital or confronto.CAPITALE_ETF, close_crypto=close_crypto)
             (settings.data_dir / "confronto.json").write_text(json.dumps(result, default=str, ensure_ascii=False, indent=1))
             (settings.data_dir / "confronto.md").write_text(result["testo"])
+        elif args.command == "ribasso":
+            from . import ribasso
+            # Ricerca sola: riserva di cassa e acquisti dopo le giornate brutte contro il piano fisso (compra e tieni).
+            result = ribasso.run(store, capitale=args.capital or ribasso.CAPITALE)
+            (settings.data_dir / "ribasso.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False, indent=1))
+            (settings.data_dir / "ribasso.md").write_text(result["testo"])
+            print(result["testo"], file=sys.stderr)
         elif args.command == "mercato":
             from . import mercato
             # Un giro della sentinella adesso (o all'ora di --quando); con --prova si stampa il testo senza mandarlo.
@@ -358,7 +365,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(result["testo"], file=sys.stderr)
         elif args.command == "fineco":
             from . import fineco
-            result = fineco.maybe_alert(store, cap=args.capital, force=args.ora) or {"mese": "gia' mandato o non ancora il primo giorno di borsa"}
+            # --ora manda subito il piano (del mese prossimo se quello corrente e' passato); --prova lo stampa e basta.
+            result = fineco.maybe_alert(store, cap=args.capital, force=args.ora and not args.prova, prova=args.prova) \
+                or {"mese": "gia' mandato, non ancora il primo giorno di borsa, o primo giorno passato da piu' di due giorni"}
+            if args.prova and result.get("testo"):
+                print(result["testo"], file=sys.stderr)
         elif args.command == "alert-test":
             from . import alerts
             result = {"configurato": alerts.configured(),

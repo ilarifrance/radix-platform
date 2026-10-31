@@ -69,6 +69,23 @@ def test_monthly_plan_buys_the_etfs_above_their_12_month_price(monkeypatch):
     assert out3["mese"] == "2027-01" and out3["giorno"] == "2027-01-04" and "Piano di gennaio 2027" in sent[2]
 
 
+def test_plan_is_not_sent_after_the_grace_days_and_preview_records_nothing(monkeypatch):
+    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    st, sent = Store(":memory:"), []
+    # programma installato il 31/10: il piano di ottobre (primo giorno di borsa 1/10) NON si manda piu'
+    late = datetime(2026, 10, 31, 11, 17, tzinfo=timezone.utc)
+    assert fineco.maybe_alert(st, late, send=sent.append, fetch=_fetch) is None and sent == []
+    assert st.conn.execute("SELECT COUNT(*) FROM etf_targets").fetchone()[0] == 0
+    # anteprima del piano di novembre: testo si', Telegram e archivio no
+    out = fineco.maybe_alert(st, late, send=sent.append, fetch=lambda s: FAKE[s], prova=True)
+    assert out["mese"] == "2026-11" and out["prova"] and sent == [] and "Piano di novembre 2026" in out["testo"]
+    assert st.conn.execute("SELECT COUNT(*) FROM etf_targets").fetchone()[0] == 0
+    assert sum(r["action"] == "COMPRA" for r in out["piano"]) == 5          # compra e tieni: tutti e cinque, nessuno gia' in mano
+    # entro due giorni dal primo giorno di borsa si manda ancora (Yahoo poteva essere giu')
+    assert fineco.maybe_alert(st, datetime(2026, 11, 4, 9, 0, tzinfo=timezone.utc), send=sent.append, fetch=_fetch)["mese"] == "2026-11"
+    assert fineco.maybe_alert(Store(":memory:"), datetime(2026, 11, 5, 9, 0, tzinfo=timezone.utc), send=sent.append, fetch=_fetch) is None
+
+
 def test_default_rule_is_buy_and_hold(monkeypatch):
     monkeypatch.setattr(fineco, "env_value", lambda n: None)
     assert fineco.rule() == "tieni"
