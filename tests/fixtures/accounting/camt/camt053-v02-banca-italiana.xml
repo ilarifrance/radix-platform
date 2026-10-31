@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Estratto conto giornaliero esportato da home banking (dati fittizi) -->
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:camt.053.001.02" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <BkToCstmrStmt>
+    <GrpHdr>
+      <MsgId>ESTR20261016000123</MsgId>
+      <CreDtTm>2026-10-17T06:12:44</CreDtTm>
+    </GrpHdr>
+    <Stmt>
+      <Id>STMT-2026-10-16-0001</Id>
+      <ElctrncSeqNb>201</ElctrncSeqNb>
+      <CreDtTm>2026-10-17T06:12:44</CreDtTm>
+      <FrToDt><FrDtTm>2026-10-16T00:00:00</FrDtTm><ToDtTm>2026-10-16T23:59:59</ToDtTm></FrToDt>
+      <Acct>
+        <Id><IBAN>IT60X0542811101000000123456</IBAN></Id>
+        <Ccy>EUR</Ccy>
+        <Ownr><Nm>RADIX STUDIO SRL</Nm></Ownr>
+        <Svcr><FinInstnId><BIC>BPMOIT22XXX</BIC></FinInstnId></Svcr>
+      </Acct>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>OPBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">10000.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2026-10-15</Dt></Dt>
+      </Bal>
+      <Bal>
+        <Tp><CdOrPrtry><Cd>CLBD</Cd></CdOrPrtry></Tp>
+        <Amt Ccy="EUR">10363.38</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Dt><Dt>2026-10-16</Dt></Dt>
+      </Bal>
+      <TxsSummry>
+        <TtlNtries><NbOfNtries>5</NbOfNtries></TtlNtries>
+      </TxsSummry>
+      <Ntry>
+        <NtryRef>1</NtryRef>
+        <Amt Ccy="EUR">2440.00</Amt>
+        <CdtDbtInd>CRDT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-16</Dt></BookgDt>
+        <ValDt><Dt>2026-10-16</Dt></ValDt>
+        <AcctSvcrRef>0542A1610260001</AcctSvcrRef>
+        <BkTxCd>
+          <Domn><Cd>PMNT</Cd><Fmly><Cd>RCDT</Cd><SubFmlyCd>ESCT</SubFmlyCd></Fmly></Domn>
+          <Prtry><Cd>48</Cd><Issr>ABI</Issr></Prtry>
+        </BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><EndToEndId>E2E-FT-2026-12</EndToEndId></Refs>
+            <AmtDtls><TxAmt><Amt Ccy="EUR">2440.00</Amt></TxAmt></AmtDtls>
+            <RltdPties>
+              <Dbtr><Nm>Rossi &amp; Bianchi S.n.c.</Nm></Dbtr>
+              <DbtrAcct><Id><IBAN>IT02A0306909606100000063321</IBAN></Id></DbtrAcct>
+              <Cdtr><Nm>RADIX STUDIO SRL</Nm></Cdtr>
+            </RltdPties>
+            <RmtInf><Ustrd>Saldo fattura 12/2026</Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>BONIFICO SEPA A VOSTRO FAVORE</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <NtryRef>2</NtryRef>
+        <Amt Ccy="EUR">1200.00</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-16</Dt></BookgDt>
+        <ValDt><Dt>2026-10-16</Dt></ValDt>
+        <AcctSvcrRef>0542A1610260002</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>ICDT</Cd><SubFmlyCd>ESCT</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <Refs><EndToEndId>RADIX-PAG-0457</EndToEndId></Refs>
+            <RltdPties>
+              <Dbtr><Nm>RADIX STUDIO SRL</Nm></Dbtr>
+              <Cdtr><Nm>Tipografia Verdi S.r.l.</Nm></Cdtr>
+              <CdtrAcct><Id><IBAN>IT40S0542811101000000654321</IBAN></Id></CdtrAcct>
+            </RltdPties>
+            <RmtInf><Ustrd>Pagamento fattura n. 88 del 30/09/2026</Ustrd></RmtInf>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>BONIFICO SEPA DISPOSTO</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">3.50</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-16</Dt></BookgDt>
+        <ValDt><Dt>2026-10-16</Dt></ValDt>
+        <AcctSvcrRef>0542A1610260003</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>ACMT</Cd><Fmly><Cd>MDOP</Cd><SubFmlyCd>CHRG</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <AddtlNtryInf>COMMISSIONI SU BONIFICO DISPOSTO</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">845.32</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-16</Dt></BookgDt>
+        <ValDt><Dt>2026-10-16</Dt></ValDt>
+        <AcctSvcrRef>0542A1610260004</AcctSvcrRef>
+        <BkTxCd><Prtry><Cd>F24</Cd><Issr>ABI</Issr></Prtry></BkTxCd>
+        <NtryDtls>
+          <TxDtls>
+            <AddtlTxInf>Protocollo telematico 26101612345678901</AddtlTxInf>
+          </TxDtls>
+        </NtryDtls>
+        <AddtlNtryInf>PAGAMENTO DELEGA F24 - AGENZIA DELLE ENTRATE</AddtlNtryInf>
+      </Ntry>
+      <Ntry>
+        <Amt Ccy="EUR">27.80</Amt>
+        <CdtDbtInd>DBIT</CdtDbtInd>
+        <Sts>BOOK</Sts>
+        <BookgDt><Dt>2026-10-16</Dt></BookgDt>
+        <ValDt><Dt>2026-10-15</Dt></ValDt>
+        <AcctSvcrRef>0542A1610260005</AcctSvcrRef>
+        <BkTxCd><Domn><Cd>PMNT</Cd><Fmly><Cd>CCRD</Cd><SubFmlyCd>POSD</SubFmlyCd></Fmly></Domn></BkTxCd>
+        <AddtlNtryInf><![CDATA[PAGAMENTO POS   15/10 12:41 CARTA *4321 BAR <CENTRALE> MILANO]]></AddtlNtryInf>
+      </Ntry>
+    </Stmt>
+  </BkToCstmrStmt>
+</Document>

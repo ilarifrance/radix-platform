@@ -27,7 +27,8 @@ test('workbench scripts parse and require authentication and per-call approval',
 });
 test('both vertical pages link to shared catalog and JS with no cloned backend',()=>{
  for(const area of ['legal','accounting','commercial']){
-  const html=fs.readFileSync(area+'/index.html','utf8');
+  // Accounting's home is the bookkeeping app; its AI studio lives in accounting/studio.html.
+  const html=fs.readFileSync(area+(area==='accounting'?'/studio.html':'/index.html'),'utf8');
   assert.ok(html.includes('data-area="'+area+'"'));
   assert.ok(html.includes('../verticals/studio.js'));
   assert.ok(html.includes('/lib/radix-agent-runtime.js')&&html.includes('/lib/radix-workspace-client.js'));

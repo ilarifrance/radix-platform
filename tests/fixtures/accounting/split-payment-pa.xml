@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:FatturaElettronica xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" versione="FPA12">
+<FatturaElettronicaHeader>
+<DatiTrasmissione><IdTrasmittente><IdPaese>IT</IdPaese><IdCodice>09876543210</IdCodice></IdTrasmittente><ProgressivoInvio>PA001</ProgressivoInvio><FormatoTrasmissione>FPA12</FormatoTrasmissione><CodiceDestinatario>UF1234</CodiceDestinatario></DatiTrasmissione>
+<CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>09876543210</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>Radix Studio S.r.l.</Denominazione></Anagrafica><RegimeFiscale>RF01</RegimeFiscale></DatiAnagrafici><Sede><Indirizzo>Corso Vittorio Emanuele II</Indirizzo><NumeroCivico>5/B</NumeroCivico><CAP>10121</CAP><Comune>Torino</Comune><Provincia>TO</Provincia><Nazione>IT</Nazione></Sede></CedentePrestatore>
+<CessionarioCommittente><DatiAnagrafici><CodiceFiscale>00514490010</CodiceFiscale><Anagrafica><Denominazione>Comune di Torino</Denominazione></Anagrafica></DatiAnagrafici><Sede><Indirizzo>Piazza Palazzo di Citt&#224;</Indirizzo><NumeroCivico>1</NumeroCivico><CAP>10122</CAP><Comune>Torino</Comune><Provincia>TO</Provincia><Nazione>IT</Nazione></Sede></CessionarioCommittente>
+</FatturaElettronicaHeader>
+<FatturaElettronicaBody>
+<DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Divisa>EUR</Divisa><Data>2026-10-01</Data><Numero>PA-3/2026</Numero><ImportoTotaleDocumento>2440.00</ImportoTotaleDocumento><Causale>Campagna di comunicazione istituzionale</Causale></DatiGeneraliDocumento>
+<DatiOrdineAcquisto><IdDocumento>DET-2026-118</IdDocumento><CodiceCIG>Z1A2B3C4D5</CodiceCIG></DatiOrdineAcquisto></DatiGenerali>
+<DatiBeniServizi>
+<DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Progettazione campagna</Descrizione><Quantita>1.00</Quantita><PrezzoUnitario>2000.00</PrezzoUnitario><PrezzoTotale>2000.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>
+<DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>2000.00</ImponibileImporto><Imposta>440.00</Imposta><EsigibilitaIVA>S</EsigibilitaIVA><RiferimentoNormativo>Scissione dei pagamenti art. 17-ter DPR 633/72</RiferimentoNormativo></DatiRiepilogo>
+</DatiBeniServizi>
+<DatiPagamento><CondizioniPagamento>TP02</CondizioniPagamento><DettaglioPagamento><ModalitaPagamento>MP05</ModalitaPagamento><DataScadenzaPagamento>2026-10-31</DataScadenzaPagamento><ImportoPagamento>2000.00</ImportoPagamento><IBAN>IT60X0542811101000000654321</IBAN></DettaglioPagamento></DatiPagamento>
+</FatturaElettronicaBody>
+</p:FatturaElettronica>
