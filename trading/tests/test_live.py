@@ -15,12 +15,15 @@ PAIRS = {"XBTEUR": ("XXBT", 0.00005, 8), "ETHEUR": ("XETH", 0.002, 8)}
 QUOTES = {"XBTEUR": (111000.0, 111100.0), "ETHEUR": (4450.0, 4451.0)}   # (bid, ask) vicini ai prezzi dello store
 
 
-STRATEGIES = [  # come li racconta Earn/Strategies: ETH 2% instant, BTC 0,1% (sotto la soglia)
+STRATEGIES = [  # come li racconta Earn/Strategies: ETH 2% instant, BTC 0,1% (sotto la soglia), ETH «flex» di Kraken Rewards
     {"id": "ES-ETH", "asset": "ETH", "lock_type": {"type": "instant"}, "apr_estimate": {"low": "2.0", "high": "2.5"},
      "user_min_allocation": "0.001", "can_allocate": True},
     {"id": "ES-BTC", "asset": "BTC", "lock_type": {"type": "instant"}, "apr_estimate": {"low": "0.1", "high": "0.1"},
      "user_min_allocation": "0.01", "can_allocate": True},
+    {"id": "ES-ETH-REWARDS", "asset": "ETH", "lock_type": {"type": "flex"}, "apr_estimate": {"low": "1.2", "high": "1.2"},
+     "user_min_allocation": "0", "can_allocate": False, "can_deallocate": False},
 ]
+ASSET_OF = {s["id"]: s["asset"] for s in STRATEGIES}
 
 
 class FakeKraken:
@@ -39,7 +42,7 @@ class FakeKraken:
         if method == "Earn/Strategies":
             return {"items": STRATEGIES}
         if method == "Earn/Allocations":
-            return {"items": [{"strategy_id": k, "amount_allocated": {"total": {"native": str(v)}}}
+            return {"items": [{"strategy_id": k, "native_asset": ASSET_OF[k], "amount_allocated": {"total": {"native": str(v)}}}
                               for k, v in self.allocated.items()]}
         if method == "Earn/Allocate":
             self.allocated[data["strategy_id"]] = self.allocated.get(data["strategy_id"], 0.0) + float(data["amount"])
@@ -250,6 +253,7 @@ def test_staking_allocates_free_coins_and_unstakes_before_selling(tmp_path, monk
     assert [o[0] for o in k.limits] == ["XBTEUR"]
     allocs = [(m, d) for m, d in k.earn_calls if m == "Earn/Allocate"]
     assert allocs == [("Earn/Allocate", {"amount": "0.00670000", "strategy_id": "ES-ETH"})]   # mai BTC (0,1%)
+    assert ("Earn/Strategies", {"lock_type[]": "instant"}) in k.earn_calls   # «lock_type» secco: Invalid arguments
     assert any("Metto in staking 0.0067 ETH" in m and "2.00% l'anno" in m for m in sent)
     # tre ore dopo ETH e' in staking (XETH.F): niente ordini, niente nuove allocazioni, il riepilogo lo dice
     sent.clear()
@@ -268,6 +272,28 @@ def test_staking_allocates_free_coins_and_unstakes_before_selling(tmp_path, monk
     assert k2.limits == [("ETHEUR", "sell", 0.0067, QUOTES["ETHEUR"][1], False)] and k2.orders == []
     assert out["patrimonio"] > 100 and not any("In staking" in m for m in sent)   # dopo lo sblocco niente in staking
     assert not [m for m, _ in k2.earn_calls if m == "Earn/Allocate"]
+
+
+def test_coins_already_earning_with_kraken_rewards_are_left_alone_and_sold_from_spot(tmp_path, monkeypatch):
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    _fixed_weights(monkeypatch)
+    st, s = _store(), _settings(tmp_path, mode="live")
+    t0 = datetime(2026, 11, 1, 0, 15, tzinfo=timezone.utc)
+    # ETH a bersaglio, nel saldo spot, ma Kraken Rewards l'ha gia' allocato da solo (strategia «flex», non nostra)
+    k, sent = FakeKraken({"ZEUR": 80.0, "XETH": 0.0067}, quotes=QUOTES, allocated={"ES-ETH-REWARDS": 0.0067}), []
+    live.step(st, s, k, now=t0, send=sent.append)
+    assert [o[0] for o in k.limits] == ["XBTEUR"]                       # BTC si compra come sempre
+    assert not [m for m, _ in k.earn_calls if m in ("Earn/Allocate", "Earn/Deallocate")]   # ETH rende gia': non si tocca
+    assert not any("Metto in staking" in m or "Staking non" in m for m in sent)
+    assert any("Riepilogo" in m and "In staking: 29." in m for m in sent)   # ma il riepilogo lo conta
+    # la regola esce da ETH: si vende dal saldo spot, senza sbloccare nulla
+    _fixed_weights(monkeypatch, w=0.0)
+    sent.clear()
+    k2 = FakeKraken({"ZEUR": 80.0, "XETH": 0.0067}, quotes=QUOTES, allocated={"ES-ETH-REWARDS": 0.0067})
+    live.step(st, s, k2, now=t0 + timedelta(hours=24), send=sent.append)
+    assert not [m for m, _ in k2.earn_calls if m in ("Earn/Allocate", "Earn/Deallocate")]
+    assert k2.limits == [("ETHEUR", "sell", 0.0067, QUOTES["ETHEUR"][1], False)] and k2.orders == []
+    assert not any("Metto in staking" in m or "sbloccare" in m or "Staking non" in m for m in sent)
 
 
 def test_staking_off_without_permission_or_when_disabled(tmp_path, monkeypatch):

@@ -71,6 +71,9 @@ Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`
   Le vendite dello stop sono sempre a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
 - Le monete in portafoglio vanno in staking flessibile su Kraken Earn (`earn.py`, solo strategie «instant», sblocco
   immediato prima di vendere). Serve il permesso «Earn Funds» sulla chiave; `RADIX_TRADING_EARN=no` lo spegne.
+  Se il conto ha gia' attivo «Kraken Rewards» (Kraken alloca da solo, le monete restano nel saldo spot), quelle
+  monete rendono gia' e non si toccano: niente Allocate, niente sblocco prima di vendere; il riepilogo le conta
+  comunque in «In staking».
 - Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
 - Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
 

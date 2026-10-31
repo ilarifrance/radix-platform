@@ -6,6 +6,9 @@ mai quelle bloccate, cosi' una vendita della regola o dello stop non aspetta gio
 
 Serve il permesso «Earn Funds» sulla chiave API (Allocate/Deallocate); leggere strategie e allocazioni
 basta «Query Funds». Senza permesso il conto continua a comprare e vendere come prima e avvisa.
+Se il conto ha gia' attivo «Kraken Rewards» (strategie «flex»: Kraken le alloca da solo, le monete restano
+nel saldo spot e si vendono subito), quelle monete rendono gia' e qui non si toccano: niente Allocate,
+niente Deallocate prima di vendere.
 Le API sono asincrone: dopo Allocate/Deallocate si interroga AllocateStatus/DeallocateStatus finche'
 `pending` e' falso.
 """
@@ -30,7 +33,7 @@ def strategies(client) -> dict[str, dict]:
     out: dict[str, dict] = {}
     cursor = None
     for _ in range(10):
-        data = {"lock_type": "instant"}
+        data = {"lock_type[]": "instant"}   # Kraken vuole una lista: «lock_type» secco risponde EGeneral:Invalid arguments
         if cursor:
             data["cursor"] = cursor
         res = client.private("Earn/Strategies", data)
@@ -47,14 +50,31 @@ def strategies(client) -> dict[str, dict]:
     return out
 
 
-def allocations(client) -> dict[str, float]:
-    """Quantita' allocata per strategia (unita' della moneta)."""
+def allocations(client) -> dict[str, dict]:
+    """Per strategia la quantita' allocata e la moneta: {strategy_id: {"amount": unita', "asset": "SOL"}}."""
     res = client.private("Earn/Allocations", {"hide_zero_allocations": "true"})
     out = {}
     for it in res.get("items", []):
         amount = (((it.get("amount_allocated") or {}).get("total") or {}).get("native"))
-        if amount is not None:
-            out[it["strategy_id"]] = float(amount)
+        if amount is not None and float(amount) > 0:
+            out[it["strategy_id"]] = {"amount": float(amount), "asset": it.get("native_asset") or ""}
+    return out
+
+
+def staked(allocs: dict[str, dict]) -> dict[str, float]:
+    """Quantita' per strategia, qualunque sia la moneta."""
+    return {sid: a["amount"] for sid, a in allocs.items()}
+
+
+def altrove(allocs: dict[str, dict], strats: dict[str, dict]) -> dict[str, float]:
+    """Monete che rendono gia' su strategie non gestite da qui (es. «Kraken Rewards»): {asset: unita'}.
+
+    Non vanno allocate di nuovo e non servono Deallocate per venderle."""
+    mine = {v["id"] for v in strats.values()}
+    out: dict[str, float] = {}
+    for sid, a in allocs.items():
+        if sid not in mine and a["asset"]:
+            out[a["asset"]] = out.get(a["asset"], 0.0) + a["amount"]
     return out
 
 

@@ -271,11 +271,13 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     free = {s: bal.get(info[s]["base"], 0.0) for s in symbols if s in info}
     eur = bal.get("ZEUR", 0.0)
     earn_on = not prova and (env_value("RADIX_TRADING_EARN") or "si") != "no"
-    strats, staked = {}, {}
+    strats, staked, altrove = {}, {}, {}
     if earn_on:
         try:
             strats = earn.strategies(client)
-            staked = earn.allocations(client)
+            allocs = earn.allocations(client)
+            staked = earn.staked(allocs)            # nelle strategie «instant» scelte qui: si sbloccano prima di vendere
+            altrove = earn.altrove(allocs, strats)  # gia' in rendita con Kraken Rewards: libere nel saldo, non si toccano
         except Exception as e:  # senza permessi o con Earn giu' si va avanti senza staking
             earn_on = False
             if now.hour % STATUS_EVERY_HOURS == 0:
@@ -367,9 +369,12 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         selling = {s for s, side, _ in plan if side == "sell"} | {s for s, o in pending.items() if o["side"] == "sell"}
         failed = None
         for s in symbols:
-            strat = strats.get(earn.asset_of(info[s]["base"])) if s in info else None
+            asset = earn.asset_of(info[s]["base"]) if s in info else None
+            strat = strats.get(asset) if asset else None
             amount = free.get(s, 0.0)
             if not strat or s in selling or weights.get(s, 0.0) <= 0 or amount < strat["min"] or amount * prices[s] < earn.MIN_EUR:
+                continue
+            if altrove.get(asset, 0.0) > 0:          # rende gia' (Kraken Rewards): allocarla altrove non serve
                 continue
             try:
                 earn.allocate(client, strat["id"], amount)
@@ -385,6 +390,7 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     db.commit()
     if prova or first or now.hour % STATUS_EVERY_HOURS == 0:
         staked_eur = sum((held[s] - free[s]) * prices[s] for s in held)
+        staked_eur += sum(min(altrove.get(earn.asset_of(info[s]["base"]), 0.0), free[s]) * prices[s] for s in held)
         send(status_text(tag, now, equity, start, eur, held, prices, halted, pending, staked_eur))
     return {"prova": prova, "patrimonio": round(equity, 2), "inizio": round(start, 2), "euro": round(eur, 2),
             "fermo": halted, "pesi": {s: round(w, 4) for s, w in weights.items() if w}, "ordini": orders}
