@@ -47,7 +47,13 @@ def test_monthly_plan_buys_the_etfs_above_their_12_month_price(monkeypatch):
     text = sent[0]
     assert text.startswith("[ETF Fineco] Piano di novembre 2026, capitale di riferimento 3,000 €")
     assert "COMPRA 4 quote VUAA" in text and "IS04.DE (Treasury USA 20+ anni (iShares, Xetra)): niente" in text
-    assert "Da eseguire 02/11" in text
+    assert "Da eseguire lunedi' 02/11" in text and "Prezzi di chiusura del 30/10" in text
+    # Yahoo giu' e archivio vuoto: nessun messaggio, si riprova al giro dopo
+    st2, sent2 = Store(":memory:"), []
+    out0 = fineco.maybe_alert(st2, datetime(2026, 11, 2, 7, 10, tzinfo=timezone.utc), send=sent2.append,
+                              fetch=lambda s: (_ for _ in ()).throw(RuntimeError("429")))
+    assert "errore" in out0 and sent2 == []
+    assert "piano" in fineco.maybe_alert(st2, datetime(2026, 11, 2, 8, 10, tzinfo=timezone.utc), send=sent2.append, fetch=_fetch) and len(sent2) == 1
     # lo stesso mese non si rimanda; il mese dopo si tiene quel che c'e' e si vende cio' che scende
     assert fineco.maybe_alert(st, datetime(2026, 11, 20, 9, 0, tzinfo=timezone.utc), send=sent.append, fetch=_fetch) is None
     down = {s: (_bars(p.iloc[0]["close"], DOWN) if s == "XNAS.MI" else p) for s, p in FAKE.items()}

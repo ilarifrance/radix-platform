@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .http import BROWSER_UA, get
+from .http import get
+
+# Yahoo risponde 429 sia allo user-agent di requests sia a uno da browser completo; quello nudo passa
+# (verificato dal Mac il 31/10/2026).
+YAHOO_UA = "Mozilla/5.0"
 
 # query1 risponde spesso 429 dal bordo della rete; query2 di solito no. Si prova in ordine.
 HOSTS = ("https://query2.finance.yahoo.com", "https://query1.finance.yahoo.com")
@@ -48,7 +52,7 @@ def fetch_daily(symbol: str, period: str = "max", since: str | None = None) -> p
     last: Exception | None = None
     for host in HOSTS:
         try:
-            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=BROWSER_UA, rate_limit_wait=10)
+            r = get(host + PATH.format(symbol=symbol), params, retries=2, user_agent=YAHOO_UA, rate_limit_wait=10)
             break
         except RuntimeError as e:
             last = e

@@ -39,6 +39,7 @@ ALERT_HOUR_UTC = 7       # alle 8 italiane, un'ora prima dell'apertura di Borsa 
 HOLIDAYS = {(1, 1), (5, 1), (8, 15), (12, 24), (12, 25), (12, 26), (12, 31)}   # chiusure fisse di Borsa Italiana
 MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
           "ottobre", "novembre", "dicembre"]
+WEEKDAYS = ["lunedi'", "martedi'", "mercoledi'", "giovedi'", "venerdi'", "sabato", "domenica"]
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS etf_alerts (month TEXT PRIMARY KEY, ts TEXT NOT NULL, text TEXT NOT NULL);
@@ -121,7 +122,7 @@ def plan(store: Store, closes: dict[str, pd.Series], month: str, cap: float) -> 
 def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
     y, m = month.split("-")
     lines = [f"[ETF Fineco] Piano di {MONTHS[int(m) - 1]} {y}, capitale di riferimento {cap:,.0f} €. "
-             f"Da eseguire {day:%d/%m} all'apertura di Borsa Italiana:"]
+             f"Da eseguire {WEEKDAYS[day.weekday()]} {day:%d/%m} all'apertura di Borsa Italiana:"]
     invested = 0.0
     for r in rows:
         code = r["symbol"].removesuffix(".MI")
@@ -141,9 +142,10 @@ def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
             lines.append(f"• Tieni {r['shares']} quote {code} ({r['name']}) ≈ {value:,.0f} €, trend ancora {trend}.")
         else:
             lines.append(f"• {code} ({r['name']}): niente, prezzo {trend} quello di 12 mesi fa; la quota resta liquida.")
+    dates = [r["date"] for r in rows if r.get("price") is not None]
     lines.append(f"Investito dopo gli ordini ≈ {invested:,.0f} €, liquidita' ≈ {max(cap - invested, 0):,.0f} €. "
-                 f"Prezzi di chiusura del {rows[0].get('date', day):%d/%m}. Ordini limite vicino all'ultimo prezzo, "
-                 f"mai a mercato in apertura.")
+                 + (f"Prezzi di chiusura del {max(dates):%d/%m}. " if dates else "")
+                 + "Ordini limite vicino all'ultimo prezzo, mai a mercato in apertura.")
     return "\n".join(lines)
 
 
@@ -166,6 +168,8 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
     cap = cap or capital()
     closes = collect(store, fetch)
     rows = plan(store, closes, month, cap)
+    if all(r["price"] is None for r in rows):   # Yahoo giu' e archivio vuoto: niente avviso, si riprova al giro dopo
+        return {"mese": month, "giorno": day.isoformat(), "errore": "dati mancanti per tutti gli ETF, riprovo al prossimo giro"}
     text = alert_text(month, rows, cap, day)
     sent = send(text)
     db.execute("INSERT OR REPLACE INTO etf_alerts VALUES (?, ?, ?)", (month, now.strftime("%Y-%m-%dT%H:%M:%SZ"), text))
