@@ -97,6 +97,7 @@ html.rx-shell .rx-work #me,html.rx-shell .rx-work #logout{display:none}
 .rx-work .st.running::before{animation:wk-pulse 1.2s ease-in-out infinite}
 .rx-work .st.stale{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 40%,transparent);background:color-mix(in srgb,var(--rx-warning) 10%,transparent)}
 .rx-work .st.error{color:var(--rx-error);border-color:color-mix(in srgb,var(--rx-error) 40%,transparent);background:color-mix(in srgb,var(--rx-error) 8%,transparent)}
+.rx-work .node-error{margin:8px 0 0;color:var(--rx-error);font-size:13px;line-height:1.45}
 .rx-work .st.pending{color:var(--rx-subtle)}
 @keyframes wk-pulse{50%{opacity:.25}}
 @media (prefers-reduced-motion:reduce){.rx-work .st.running::before{animation:none}}

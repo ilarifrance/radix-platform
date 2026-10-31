@@ -10,7 +10,7 @@ const content=document.getElementById('content'),wsSelect=document.getElementByI
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const initials=t=>String(t||'').trim().split(/\s+/).filter(w=>/^[\p{L}\p{N}]/u.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
-const day=v=>{if(!v)return'';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'}):''};
+const day=v=>{if(!v)return'';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'}):''};
 const ago=v=>{const d=new Date(v);if(!Number.isFinite(d.getTime()))return'';const n=Math.round((Date.now()-d)/864e5);return n<=0?'oggi':n===1?'ieri':n+' g fa'};
 const KIND={email:'Email',call:'Call',meeting:'Meeting',note:'Nota',linkedin:'LinkedIn'};
 const state={selected:null};
@@ -56,7 +56,7 @@ function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail
   const txt=E('div');if(f.opps.length)txt.append(E('span','Trattativa aperta','cx-chip'));txt.append(E('h2',c.name),E('p',f.company?.name||'Azienda non collegata','cx-sub'));
   const sc=scoreOf(d,c);if(sc){const r=E('p',undefined,'cx-score-line');r.append(badge(sc),E('span',window.RadixCrmScore.explain(sc)));txt.append(r)}
   const tags=E('div',undefined,'cx-tags');tags.append(E('span',f.opps.length+' opportunità'),E('span',f.open.length+' attività aperte'),E('span',f.inter.length+' interazioni'));txt.append(tags);id.append(txt);top.append(id);
-  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=b.textContent.trim();if(!/^(Customer360|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
+  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b).trim();if(!/^(Customer360|Messaggio LinkedIn|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
   const grid=E('div',undefined,'cx-grid');
   const act=E('section',undefined,'cx-panel');act.append(E('h3','Attività recenti'));const ul=E('ul',undefined,'cx-timeline');
   if(!f.inter.length)ul.append(E('li','Nessuna interazione registrata.','cx-empty'));for(const i of f.inter.slice(0,4)){const li=E('li');li.append(E('b',(KIND[i.kind]||i.kind||'Interazione')+' · '+i.title),E('small',day(i.occurred_at)));ul.append(li)}act.append(ul);
@@ -69,7 +69,7 @@ function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail
 let busy=false;
 async function render(){const section=document.getElementById('contacts');if(!section||!section.classList.contains('rx-view')){document.documentElement.classList.remove('cx-on');return}
   const d=await load();if(!d||!section.isConnected)return;
-  const cards=[...section.querySelectorAll(':scope>article.card')].map(card=>{const name=card.querySelector('h3')?.textContent.trim();const comp=(card.querySelector('p.muted')?.textContent||'').replace(/^Azienda:\s*/,'').trim();
+  const cards=[...section.querySelectorAll(':scope>article.card')].map(card=>{const name=card.querySelector('h3')?.textContent.trim();const comp=((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(card.querySelector('p.muted'))||'').replace(/^Azienda:\s*/,'').trim();
     const contact=d.contacts.find(c=>c.name===name&&(!comp||d.companies.find(x=>x.id===c.company_id)?.name===comp))||d.contacts.find(c=>c.name===name);return contact?{contact,card}:null}).filter(Boolean);
   if(window.RadixCrmScore)cards.sort((a,b)=>scoreOf(d,b.contact).total-scoreOf(d,a.contact).total);
   busy=true;section.querySelector(':scope>.cx')?.remove();
@@ -81,7 +81,8 @@ async function render(){const section=document.getElementById('contacts');if(!se
   document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false;if(!section.isConnected)later()})}
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
-new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&n.classList?.contains('cx'))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+// Changes inside the list view (crm-list.js, class lv) are not ours to redraw.
+new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||(!r.target.closest?.('.lv')&&![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&(n.classList?.contains('cx')||n.classList?.contains('lv'))))))later()}).observe(content,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
 wsSelect.addEventListener('change',()=>{state.selected=null});
 addEventListener('hashchange',later);later();
 })();

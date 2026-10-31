@@ -19,6 +19,28 @@ async function ask({system,messages}){
  return {text:r.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim()};
 }
 // Sign-up, client accounts and the Stripe subscription: api/_accounting_billing.js (STRIPE_SECRET_KEY and
-// STRIPE_WEBHOOK_SECRET; the Stripe webhook is /api/accounting-stripe).
+// STRIPE_WEBHOOK_SECRET). The Stripe webhook keeps its address /api/accounting-stripe, rewritten in vercel.json to
+// /api/accounting?stripe=webhook so it does not take a Vercel function of its own (12 at most).
 const billing=require('./_accounting_billing');
-module.exports=createHandler({getSessionUser,getClientUser:billing.getClientUser,billing,getStore:()=>createStore(require('./_db').sql()),ask});
+const getStore=()=>createStore(require('./_db').sql());
+const handler=createHandler({getSessionUser,getClientUser:billing.getClientUser,billing,getStore,ask});
+// The signature of a Stripe event is computed on the exact bytes Stripe sent, so body parsing is off for the whole
+// function and the JSON of every other request is read here.
+async function readJson(req){
+ const chunks=[];let n=0;for await(const c of req){n+=c.length;if(n>4000000){const e=new Error('Richiesta troppo grande.');e.status=413;throw e;}chunks.push(Buffer.from(c));}
+ return chunks.length?Buffer.concat(chunks).toString('utf8'):undefined;
+}
+async function stripeWebhook(req,res){
+ res.setHeader('Cache-Control','no-store');
+ try{return res.status(200).json(await billing.webhook(getStore(),req,res));}
+ catch(e){if(!e.status)console.error('accounting stripe webhook',e);res.status(e.status||500).json({error:e.status?e.message:'Errore interno.'});}
+}
+module.exports=async function(req,res){
+ if(req.query&&req.query.stripe==='webhook')return stripeWebhook(req,res);
+ if(req.method!=='GET'&&req.method!=='HEAD'&&req.body===undefined){
+  try{req.body=await readJson(req);}catch(e){res.setHeader('Cache-Control','no-store');return res.status(e.status||400).json({error:e.status?e.message:'Richiesta non leggibile.'});}
+ }
+ return handler(req,res);
+};
+module.exports.config={api:{bodyParser:false}};
+module.exports.stripeWebhook=stripeWebhook;

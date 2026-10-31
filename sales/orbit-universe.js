@@ -1,7 +1,7 @@
 'use strict';
 /* Sales Orbit «Il tuo universo commerciale» (sales-orbit-mockup-pianeti.png): the RADIX core with the five CRM areas
    in orbit, the four KPI tiles with their bars, the list view and the Copilota rail. Everything is counted from the rows
-   crm-data.js loads (first 100 per entity: a full page is shown as «100+»). Nothing is estimated:
+   crm-data.js loads (every page, 5.000 per entity at most; the planets show the server counts). Nothing is estimated:
    - Opportunità attive: outcome «open» when the CRM records it, otherwise a stage not named vinto/perso/won/lost.
    - Attività in scadenza: open tasks due within 7 days, overdue included.
    - Copertura clienti: companies with at least one interaction in the last 90 days, over all companies.
@@ -20,8 +20,10 @@ const CLOSED=/vint|won|pers|lost/i;
 /* outcome (open/won/lost) when the CRM has it, otherwise the stage name */
 const isOpen=(o,stages)=>o.outcome?o.outcome==='open':!CLOSED.test((stages.get(o.stage_id)||{}).title||'');
 const t0=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
-const day=v=>{const d=new Date(v);return Number.isFinite(+d)?d:null};
-const total=(rows,partial)=>rows.length>=100&&partial?'100+':it(rows.length);
+// No date (null or empty) is not 1/1/1970: an undated task is neither overdue nor due.
+const day=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(+d)?d:null};
+// A server count when crm-data.js has it; otherwise the rows read (with «+» only when the entity hit the 5.000 cap).
+const total=(rows,partial,n)=>Number.isInteger(n)?it(n):rows.capped&&partial?it(rows.length)+'+':it(rows.length);
 
 /* ---- greeting and date ---- */
 const now=new Date(),h=now.getHours();
@@ -94,9 +96,9 @@ function when(t){const x=day(t.due_at),today=t0();if(x<today)return 'Scaduta '+x
 function planet(k,line){const p=stage.querySelector(`.so-planet[data-k="${k}"] small`);if(p)p.textContent=line}
 function listView(m){list.replaceChildren();const head=H('div','so-list-head');head.append(H('h2','','Il CRM in lista'),H('p','so-muted','Le cinque aree e le opportunità attive, come nell’universo.'));list.append(head);
   const g=H('div','so-list-grid');
-  [['companies','Aziende',total(m.d.companies,m.d.partial),m.covered+' con interazioni negli ultimi 90 giorni','/radix-sales.html#companies'],
-   ['contacts','Contatti',total(m.d.contacts,m.d.partial),m.actions.length+' senza interazioni da più di 21 giorni','/radix-sales.html#contacts'],
-   ['opportunities','Opportunità attive',it(m.active.length),total(m.opps,m.d.partial)+' registrate · '+m.risk.length+' a rischio','/sales-pipeline-premium.html'],
+  [['companies','Aziende',total(m.d.companies,m.d.partial,m.d.counts?.companies),m.covered+' con interazioni negli ultimi 90 giorni','/radix-sales.html#companies'],
+   ['contacts','Contatti',total(m.d.contacts,m.d.partial,m.d.counts?.contacts),m.actions.length+' senza interazioni da più di 21 giorni','/radix-sales.html#contacts'],
+   ['opportunities','Opportunità attive',it(m.active.length),total(m.opps,m.d.partial,m.d.counts?.opportunities)+' registrate · '+m.risk.length+' a rischio','/sales-pipeline-premium.html'],
    ['tasks','Attività in scadenza',it(m.due.length),it(m.open.length)+' aperte · '+m.overdue.length+' scadute','/radix-sales.html#tasks'],
    ['interactions','Interazioni quest’anno',it(m.year.length),total(m.inter,m.d.partial)+' registrate in tutto','/radix-sales.html#interactions']]
    .forEach(([k,label,n,sub,href])=>{const a=H('a','so-list-card');a.dataset.k=k;a.href=href;a.append(H('i'),H('b','',label),H('strong','',n),H('small','',sub));g.append(a)});list.append(g);
@@ -107,13 +109,13 @@ function listView(m){list.replaceChildren();const head=H('div','so-list-head');h
   tbl.append(tb);const wrap=H('div','so-table-wrap');wrap.append(tbl);list.append(wrap)}
 
 function render(d){if(!d)return;const m=model(d),P=d.partial;
-  planet('companies',total(d.companies,P)+' totali');planet('contacts',total(d.contacts,P)+' totali');planet('opportunities',it(m.active.length)+' attive');
+  planet('companies',total(d.companies,P,d.counts?.companies)+' totali');planet('contacts',total(d.contacts,P,d.counts?.contacts)+' totali');planet('opportunities',it(m.active.length)+' attive');
   planet('tasks',it(m.due.length)+' in scadenza');planet('interactions',it(m.year.length)+' quest’anno');
   $('so-callout-a').textContent=m.companies.size?m.covered+' aziende su '+m.companies.size+' con interazioni negli ultimi 90 giorni.':'Nessuna azienda nel workspace.';
-  $('so-callout-b').textContent=P?'Prime 100 righe per area: alcuni totali sono parziali.':'Dati, relazioni e opportunità del workspace, letti ora.';
+  $('so-callout-b').textContent=P?'Oltre 5.000 righe in qualche area: alcune cifre sono calcolate sulle prime 5.000.':'Dati, relazioni e opportunità del workspace, letti ora.';
   const value=m.active.reduce((s,o)=>s+num(o.amount_cents),0);
-  kpi('active',it(m.active.length),'su '+total(m.opps,P)+' registrate',byMonth(m.active,'expected_close',()=>1),'Opportunità attive per mese di chiusura prevista, prossimi 6 mesi');
-  kpi('value',m.active.length?eur(value):'—','valuta non indicata',byMonth(m.active,'expected_close',o=>num(o.amount_cents)),'Valore per mese di chiusura prevista, prossimi 6 mesi');
+  kpi('active',it(m.active.length),'su '+total(m.opps,P,d.counts?.opportunities)+' registrate',byMonth(m.active,'expected_close',()=>1),'Opportunità attive per mese di chiusura prevista, prossimi 6 mesi');
+  kpi('value',m.active.length?eur(value):'—','pipeline attiva',byMonth(m.active,'expected_close',o=>num(o.amount_cents)),'Valore per mese di chiusura prevista, prossimi 6 mesi');
   kpi('due',it(m.due.length),m.overdue.length?m.overdue.length+' già scadute':'nei prossimi 7 giorni',weeks(m.open),'Attività aperte per settimana di scadenza: scadute, questa settimana e le 4 successive');
   kpi('coverage',m.companies.size?Math.round(m.covered/m.companies.size*100)+'%':'—','sentite negli ultimi 90 giorni',byMonth(m.inter,'occurred_at',()=>1,true),'Interazioni registrate per mese, ultimi 6 mesi');
   fill('priorities','so-prio-n',m.prio.map(t=>row('/radix-sales.html#tasks','task',t.title||'Attività',m.who(t)||(m.opps.find(o=>o.id===t.opportunity_id)||{}).title||'Attività CRM',when(t))),'Nessuna attività in scadenza oggi.');
@@ -136,8 +138,8 @@ function geo(){const r=stage.querySelector('.so-core').getBoundingClientRect(),c
 function frame(t){ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,Ht);const g=geo(),{cx,cy,R}=g;
   for(const[x,y,r,f]of stars){ctx.globalAlpha=.35+.5*Math.abs(Math.sin(t*.0006+f*9));ctx.fillStyle=f>.85?'#ffe2a8':'#bfffee';ctx.fillRect(x,y,r,r)}ctx.globalAlpha=1;
   /* the planet horizon at the bottom left, as in the photo */
-  const hx=W*.1,hy=Ht*1.62,hr=Ht*.95,hz=ctx.createRadialGradient(hx-hr*.2,hy-hr*.4,hr*.2,hx,hy,hr);hz.addColorStop(0,'#0a3a44');hz.addColorStop(.7,'#05212b');hz.addColorStop(1,'#031820');
-  ctx.fillStyle=hz;ctx.beginPath();ctx.arc(hx,hy,hr,0,Math.PI*2);ctx.fill();ctx.save();ctx.lineWidth=1.6;ctx.strokeStyle='rgba(140,255,235,.55)';ctx.shadowColor='rgba(80,255,220,.9)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(hx,hy,hr,-Math.PI*.95,-Math.PI*.12);ctx.stroke();ctx.restore();
+  /* only its glowing rim: the hero behind is green fading to white (orbit-light.css), a filled disc would show the canvas edge */
+  const hx=W*.1,hy=Ht*1.62,hr=Ht*.95;ctx.save();ctx.lineWidth=1.6;ctx.strokeStyle='rgba(140,255,235,.55)';ctx.shadowColor='rgba(80,255,220,.9)';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(hx,hy,hr,-Math.PI*.95,-Math.PI*.12);ctx.stroke();ctx.restore();
   const G=window.RadixGlobe,rot=.35+t*.00006;if(G)G.orbits(ctx,g,t,false);
   const cr=cv.getBoundingClientRect();
   for(const p of stage.querySelectorAll('.so-planet i')){const r=p.getBoundingClientRect();if(!r.width)continue;const x=r.left+r.width/2-cr.left,y=r.top+r.height/2-cr.top,dx=x-cx,dy=y-cy,d=Math.hypot(dx,dy)||1;

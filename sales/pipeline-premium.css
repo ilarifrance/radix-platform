@@ -4,3 +4,38 @@
 @media(min-width:1001px) and (max-width:1599px){.layout{grid-template-columns:minmax(0,1fr)}.advisor{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}.advisor h2{grid-column:1/-1;margin:0}.advisor .advice,.advisor .selection{margin:0}}
 /* Drag & drop between stages (pipeline-premium.js) */
 .deal[draggable=true]{cursor:grab}.deal.dragging{opacity:.5}.stage.drop-target{outline:2px dashed var(--teal);outline-offset:-2px}
+
+/* «+ Nuova opportunità» (header and each stage) and its dialog. */
+.heading-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.cta{cursor:pointer;font-weight:600}
+.cta-secondary{padding:12px;border-radius:10px;border:1px solid var(--border);color:var(--muted)}
+.stage-add{display:block;width:calc(100% - 18px);margin:9px 9px 0;padding:7px;border:1px dashed var(--border);background:transparent;color:var(--teal);border-radius:9px;cursor:pointer;font-size:12px}
+.stage-add:hover,.stage-add:focus-visible{border-style:solid;border-color:var(--teal)}
+.quick-deal{width:min(520px,calc(100vw - 32px));border:1px solid var(--border);border-radius:14px;padding:0;background:var(--card);color:var(--ink);box-shadow:0 18px 50px #0005}
+.quick-deal::backdrop{background:#0a0a1466}
+.quick-deal form{display:grid;gap:10px;padding:20px}
+.quick-deal h2{margin:0 0 4px;font-size:19px}
+.quick-deal label{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.quick-deal input,.quick-deal select{width:100%;color:var(--ink);background:var(--card);border:1px solid var(--border)}
+.quick-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.quick-hint{font-size:11px;color:var(--teal);margin-top:-5px;min-height:0}
+.quick-hint:empty{display:none}
+.quick-error{margin:0;padding:9px 11px;border-radius:9px;background:#b4231814;color:#b42318;font-size:13px}
+.quick-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+.quick-actions button:not(.cta){cursor:pointer}
+@media (max-width:520px){.quick-row{grid-template-columns:1fr}.quick-actions{flex-direction:column-reverse}.quick-actions button{width:100%}}
+/* «Personalizza pipeline» dialog (reuses .quick-deal). */
+.setup{width:min(600px,calc(100vw - 32px))}
+.setup-intro{margin:-4px 0 4px;color:var(--muted);font-size:13px}
+.setup-pick{display:flex;gap:10px;align-items:end}.setup-pick label{flex:1}.setup-pick button{cursor:pointer;white-space:nowrap}
+.setup-head{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 118px 0 28px;margin-top:4px}
+.setup-cols{list-style:none;margin:0;padding:0;display:grid;gap:7px;max-height:44vh;overflow:auto}
+.setup-col{display:grid;grid-template-columns:20px minmax(0,1fr) 64px 34px 34px 34px;gap:6px;align-items:center}
+.setup-num{font-size:12px;color:var(--muted);text-align:right}
+.setup-col input{padding:8px}
+.setup-tool{padding:6px 0;cursor:pointer;text-align:center}.setup-tool:disabled{opacity:.35;cursor:default}
+.setup-add{justify-self:start;cursor:pointer;border-style:dashed}
+.setup-gap{flex:1}
+.setup-delete{cursor:pointer}.setup-delete:disabled{opacity:.45;cursor:default}
+.process-field{display:inline-flex;align-items:center;gap:8px}.process-field[hidden]{display:none}
+@media (max-width:520px){.setup-head{padding-right:112px}.setup-col{grid-template-columns:16px minmax(0,1fr) 52px 32px 32px 32px;gap:4px}.setup-pick{flex-direction:column;align-items:stretch}.setup-gap{display:none}}

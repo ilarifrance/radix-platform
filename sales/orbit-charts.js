@@ -10,7 +10,7 @@ const H=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!=nul
 const num=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const eur=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(c/100);
 const MON=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-const COLORS=['#36edbd','#54cbda','#4a8dff','#a27bff','#f5b544','#ff7a9a','#8fe36b'];
+const COLORS=['#0f9f7a','#0e7490','#2563eb','#7c3aed','#d97706','#e11d48','#4d7c0f'];
 
 // Six months from the current one, keyed yyyy-mm.
 function months(){const d=new Date(),out=[];d.setDate(1);for(let i=0;i<6;i++){out.push({k:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:MON[d.getMonth()]});d.setMonth(d.getMonth()+1)}return out}
@@ -23,7 +23,7 @@ function trendPanel(series){
   if(!total){p.append(H('p','so-empty','Nessuna opportunità attiva con chiusura prevista nei prossimi 6 mesi.'));return p}
   const W=520,Hh=200,L=46,R=14,T=16,B=26,max=Math.max(...series.map(x=>x.v))*1.15,step=(W-L-R)/(series.length-1),Y=v=>T+(Hh-T-B)*(1-v/max);
   const svg=S('svg',{class:'so-trend',viewBox:`0 0 ${W} ${Hh}`,role:'img','aria-label':'Valore delle opportunità attive per mese di chiusura prevista'});
-  const defs=S('defs',{}),g=S('linearGradient',{id:'soArea',x1:0,y1:0,x2:0,y2:1});g.append(S('stop',{offset:0,'stop-color':'#36edbd','stop-opacity':.35}),S('stop',{offset:1,'stop-color':'#36edbd','stop-opacity':0}));defs.append(g);svg.append(defs);
+  const defs=S('defs',{}),g=S('linearGradient',{id:'soArea',x1:0,y1:0,x2:0,y2:1});g.append(S('stop',{offset:0,'stop-color':'#14a37f','stop-opacity':.35}),S('stop',{offset:1,'stop-color':'#14a37f','stop-opacity':0}));defs.append(g);svg.append(defs);
   [0,.25,.5,.75,1].forEach(f=>{const y=Y(max/1.15*f);svg.append(S('line',{class:'so-grid',x1:L,x2:W-R,y1:y,y2:y}));const t=S('text',{class:'so-axis',x:L-8,y:y+4,'text-anchor':'end'});t.textContent=f?eurShort(max/1.15*f):'0';svg.append(t)});
   const pts=series.map((x,i)=>[L+step*i,Y(x.v)]),line=pts.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ');
   svg.append(S('path',{class:'so-area',d:line+` L${pts[pts.length-1][0]} ${Hh-B} L${L} ${Hh-B} Z`}),S('path',{class:'so-line',d:line}));
@@ -39,10 +39,10 @@ function donutPanel(d){
   const stages=(d.stages||[]).slice().sort((a,b)=>num(a.position)-num(b.position)),opps=d.opportunities||[];
   if(!opps.length){p.append(H('p','so-empty','Nessuna opportunità nel workspace.'));return p}
   const closed=o=>o.outcome==='won'||o.outcome==='lost',live=opps.filter(o=>!closed(o));
-  const rows=stages.map((s,i)=>{const o=live.filter(x=>x.stage_id===s.id);return {label:s.title||'Fase '+(i+1),n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c:/pers|lost/i.test(s.title||'')?'#ff6b7a':/vint|won/i.test(s.title||'')?'#8fe36b':COLORS[i%COLORS.length]}});
+  const rows=stages.map((s,i)=>{const o=live.filter(x=>x.stage_id===s.id);return {label:s.title||'Fase '+(i+1),n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c:/pers|lost/i.test(s.title||'')?'#dc2626':/vint|won/i.test(s.title||'')?'#16a34a':COLORS[i%COLORS.length]}});
   /* outcome won/lost, when recorded, goes to Vinte / Perse whatever the stage */
-  [['won','Vinte','#8fe36b'],['lost','Perse','#ff6b7a']].forEach(([k,label,c])=>{const o=opps.filter(x=>x.outcome===k);if(o.length)rows.push({label,n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c})});
-  const other=live.filter(x=>!stages.some(s=>s.id===x.stage_id));if(other.length)rows.push({label:'Senza fase',n:other.length,v:other.reduce((a,x)=>a+num(x.amount_cents),0),c:'#5b7a70'});
+  [['won','Vinte','#16a34a'],['lost','Perse','#dc2626']].forEach(([k,label,c])=>{const o=opps.filter(x=>x.outcome===k);if(o.length)rows.push({label,n:o.length,v:o.reduce((a,x)=>a+num(x.amount_cents),0),c})});
+  const other=live.filter(x=>!stages.some(s=>s.id===x.stage_id));if(other.length)rows.push({label:'Senza fase',n:other.length,v:other.reduce((a,x)=>a+num(x.amount_cents),0),c:'#94a3b8'});
   const wrap=H('div','so-donut-wrap'),R=58,C=2*Math.PI*R,svg=S('svg',{class:'so-donut',viewBox:'0 0 160 160',role:'img','aria-label':'Opportunità per fase'});
   svg.append(S('circle',{cx:80,cy:80,r:R,class:'so-donut-track'}));
   let off=0;rows.filter(r=>r.n).forEach(r=>{const len=C*r.n/opps.length;const c=S('circle',{cx:80,cy:80,r:R,stroke:r.c,class:'so-donut-seg','stroke-dasharray':`${Math.max(0,len-2)} ${C}`,'stroke-dashoffset':-off,transform:'rotate(-90 80 80)'});const t=S('title',{});t.textContent=r.label+': '+r.n;c.append(t);svg.append(c);off+=len});

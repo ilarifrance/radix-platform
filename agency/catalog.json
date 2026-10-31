@@ -23,7 +23,7 @@
   "divisions": [
     {
       "id": "strategy",
-      "label": "Strategia & Brand",
+      "label": "Strategia e brand",
       "description": "Posizionamento, analisi di mercato, obiettivi e direzione creativa.",
       "accent": "blue",
       "agentIds": [
@@ -37,15 +37,15 @@
         "Strategia revisionata"
       ],
       "deliverables": [
-        "Brand strategy",
-        "Buyer personas",
+        "Strategia di brand",
+        "Clienti tipo (buyer persona)",
         "Piano marketing"
       ]
     },
     {
       "id": "campaigns",
-      "label": "Campaign Control",
-      "description": "Un’unica regia per coordinare canali, budget e deliverable.",
+      "label": "Regia delle campagne",
+      "description": "Un’unica regia per coordinare canali, budget e materiali da consegnare.",
       "accent": "emerald",
       "agentIds": [
         "marketing-orchestrator",
@@ -58,14 +58,14 @@
         "Esecuzione controllata"
       ],
       "deliverables": [
-        "Roadmap campagne",
+        "Calendario delle campagne",
         "Dipendenze",
         "Piano budget"
       ]
     },
     {
       "id": "ped",
-      "label": "PED & Social",
+      "label": "Piano editoriale e social",
       "description": "Calendario editoriale, contenuti, revisioni e approvazioni puntuali.",
       "accent": "emerald",
       "agentIds": [
@@ -87,8 +87,8 @@
     },
     {
       "id": "creative",
-      "label": "Creative Studio",
-      "description": "Brand kit, asset grafici e varianti coerenti con l’identità.",
+      "label": "Studio creativo",
+      "description": "Kit identità, grafiche e varianti coerenti con l’identità.",
       "accent": "violet",
       "agentIds": [
         "art-director",
@@ -98,18 +98,18 @@
       "stages": [
         "Brief creativo",
         "Produzione varianti",
-        "Revisione asset"
+        "Revisione dei materiali"
       ],
       "deliverables": [
-        "Brand kit",
-        "Creatività adv",
+        "Kit identità",
+        "Creatività per gli annunci",
         "Caroselli e brochure"
       ]
     },
     {
       "id": "web",
-      "label": "Web Studio",
-      "description": "Siti, landing page ed e-commerce: dalla struttura alla preview.",
+      "label": "Siti web",
+      "description": "Siti, landing page ed e-commerce: dalla struttura all’anteprima.",
       "accent": "blue",
       "agentIds": [
         "web-developer",
@@ -119,8 +119,8 @@
       ],
       "stages": [
         "Architettura sito",
-        "Preview e QA",
-        "Release autorizzata"
+        "Anteprima e controlli",
+        "Pubblicazione autorizzata"
       ],
       "deliverables": [
         "Sitemap",
@@ -130,8 +130,8 @@
     },
     {
       "id": "seo-geo",
-      "label": "SEO & GEO",
-      "description": "Audit, contenuti e reperibilità su ricerca tradizionale e AI.",
+      "label": "SEO e GEO",
+      "description": "Analisi, contenuti e reperibilità su ricerca tradizionale e AI.",
       "accent": "cyan",
       "agentIds": [
         "seo-geo",
@@ -139,19 +139,19 @@
         "web-developer"
       ],
       "stages": [
-        "Audit con evidenze",
-        "Correzioni in preview",
+        "Analisi con prove",
+        "Correzioni in anteprima",
         "Misurazione risultati"
       ],
       "deliverables": [
-        "Audit tecnico",
-        "Topic map",
+        "Analisi tecnica",
+        "Mappa degli argomenti",
         "Dati strutturati"
       ]
     },
     {
       "id": "paid",
-      "label": "Paid Media / PPC",
+      "label": "Pubblicità a pagamento",
       "description": "Pianificazione pubblicitaria con limiti di spesa e autorizzazioni.",
       "accent": "amber",
       "agentIds": [
@@ -173,7 +173,7 @@
     },
     {
       "id": "email",
-      "label": "Email & Newsletter",
+      "label": "Email e newsletter",
       "description": "Newsletter, segmenti e automazioni con controllo dei consensi.",
       "accent": "violet",
       "agentIds": [
@@ -184,19 +184,19 @@
       ],
       "stages": [
         "Audience e consensi",
-        "Template e test",
+        "Modelli e prove",
         "Invio autorizzato"
       ],
       "deliverables": [
         "Newsletter",
-        "Sequenze nurture",
-        "Template email"
+        "Sequenze di email automatiche",
+        "Modelli email"
       ]
     },
     {
       "id": "video",
-      "label": "Video Studio",
-      "description": "Script, storyboard, asset, render e versioni multicanale.",
+      "label": "Studio video",
+      "description": "Copioni, storyboard, materiali, montaggi e versioni per ogni canale.",
       "accent": "violet",
       "agentIds": [
         "video-producer",
@@ -205,7 +205,7 @@
         "copywriter"
       ],
       "stages": [
-        "Script e storyboard",
+        "Copione e storyboard",
         "Produzione controllata",
         "Revisione ed export"
       ],
@@ -217,7 +217,7 @@
     },
     {
       "id": "analytics",
-      "label": "Analytics & CRO",
+      "label": "Analisi e conversioni",
       "description": "Misurazione verificata, funnel, esperimenti e apprendimento.",
       "accent": "cyan",
       "agentIds": [
@@ -231,14 +231,14 @@
         "Proposte di ottimizzazione"
       ],
       "deliverables": [
-        "Report multicanale",
+        "Report di tutti i canali",
         "Analisi funnel",
-        "Esperimenti CRO"
+        "Test per aumentare le conversioni"
       ]
     },
     {
       "id": "assets",
-      "label": "Asset & Knowledge",
+      "label": "Materiali e conoscenze",
       "description": "Documenti, fonti, creatività e linee guida riutilizzabili.",
       "accent": "blue",
       "agentIds": [
@@ -247,18 +247,18 @@
       ],
       "stages": [
         "Catalogazione",
-        "Versioning",
+        "Gestione delle versioni",
         "Riutilizzo autorizzato"
       ],
       "deliverables": [
-        "Brand memory",
-        "Libreria asset",
+        "Memoria del brand",
+        "Libreria dei materiali",
         "Fonti e documenti"
       ]
     },
     {
       "id": "approvals",
-      "label": "Approvals & Releases",
+      "label": "Approvazioni e pubblicazioni",
       "description": "Decisioni umane, revisioni immutabili e tracciabilità.",
       "accent": "amber",
       "agentIds": [
@@ -267,17 +267,17 @@
       "stages": [
         "Richiesta su revisione",
         "Decisione autorizzata",
-        "Audit e release"
+        "Verifica e pubblicazione"
       ],
       "deliverables": [
         "Coda revisioni",
         "Storico decisioni",
-        "Release checklist"
+        "Controlli prima della pubblicazione"
       ]
     },
     {
       "id": "team",
-      "label": "Agent Network",
+      "label": "Rete degli agenti",
       "description": "Assegnazioni degli agenti RADIX già presenti, senza duplicazioni.",
       "accent": "emerald",
       "agentIds": [
@@ -299,7 +299,7 @@
       "stages": [
         "Assegna ruoli",
         "Verifica permessi",
-        "Traccia workflow reali"
+        "Segui i flussi di lavoro reali"
       ],
       "deliverables": [
         "Mappa ruoli",

@@ -90,3 +90,23 @@ test('agency flow phases follow plan tasks, PED contents and publications',()=>{
  assert.equal(at('publishing').state,'waiting');
  ph=journey({}).phases;assert.ok(ph.every(p=>p.state==='todo'));
 });
+
+test('agency project: the brief saved by new-project counts before a PED exists',()=>{
+ const w={brief:{name:'Personal branding',goal:'Clienti consulenza',audience:'PMI'},tasks:[{id:'step-1',status:'proposed'}]};
+ let j=journey({'agency-workspace':w});
+ assert.equal(step(j,'brief').state,'done');assert.equal(j.phases.find(p=>p.id==='brief').state,'done');
+ assert.equal(j.next,'tasks');
+ j=journey({'agency-workspace':{brief:{name:'x'},tasks:[]}});
+ assert.equal(step(j,'brief').state,'todo');
+});
+
+test('each phase says who moves it (AI or you) and where; now() picks what waits for a person first',()=>{
+ const {who,now}=require('../lib/project-journey.js');
+ assert.deepEqual(who('review','waiting'),{actor:'you',action:'Rivedi le anteprime e approva i post',where:'ped'});
+ assert.equal(who('production','todo').actor,'ai');assert.equal(who('production','active').actor,'ai');
+ assert.equal(who('brief','done').actor,'done');assert.deepEqual(who('nope','todo'),{});
+ let ph=journey({}).phases;assert.ok(ph.every(p=>p.actor&&p.action&&p.where));
+ assert.equal(now(ph).id,'brief');
+ assert.equal(now([{id:'a',state:'done'},{id:'b',state:'active'},{id:'c',state:'waiting'}]).id,'c');
+ assert.equal(now([{id:'a',state:'done'}]),null);
+});

@@ -128,7 +128,9 @@ test('public pages: sign-up and sign-in post to the accounting API',()=>{
  assert.doesNotMatch(app,/radix-shell/);assert.match(team,/radix-shell\.js/);
  const tabs=h=>[...h.matchAll(/data-tab="([^"]+)"/g)].map(m=>m[1]),scripts=h=>[...h.matchAll(/<script src="([^"]+)"/g)].map(m=>m[1]).filter(x=>!/shell/.test(x));
  assert.deepEqual(tabs(app),tabs(team));assert.deepEqual(scripts(app),scripts(team));
- assert.equal(require('../api/accounting-stripe.js').config.api.bodyParser,false);
+ // The webhook shares the accounting function (raw body for the signature) through a rewrite.
+ assert.equal(require('../api/accounting.js').config.api.bodyParser,false);
+ assert.ok(require('../vercel.json').rewrites.some(r=>r.source==='/api/accounting-stripe'&&r.destination==='/api/accounting?stripe=webhook'));
 });
 
 test('password reset: one-hour link by email, valid once, no account enumeration',async()=>{

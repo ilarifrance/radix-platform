@@ -17,7 +17,7 @@ test('approval completes the task, a later edit reopens it with the new date',()
  const r=v.syncFromPed(pm,s,{contents:[C('c1',{status:'approved'})]});const t=s.tasks[0];
  assert.deepEqual(r.completed,[t.id]);assert.equal(t.status,'Completato');
  const r2=v.syncFromPed(pm,s,{contents:[C('c1',{status:'draft',revision:2,date:'2026-11-20',title:'Nuovo'})]});
- assert.deepEqual(r2.updated,[t.id]);assert.equal(t.status,'Da fare');assert.equal(t.due,'2026-11-19');assert.equal(t.title,'Instagram · Nuovo');assert.equal(t.pedRevision,2);
+ assert.deepEqual(r2.updated,[t.id]);assert.equal(t.status,'In corso','reopened for rework; the edit keeps the status');assert.equal(t.due,'2026-11-19');assert.equal(t.title,'Instagram · Nuovo');assert.equal(t.pedRevision,2);
 });
 
 test('sync links survive validateState so later syncs find the same task',()=>{

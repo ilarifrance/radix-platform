@@ -22,5 +22,15 @@ test('a campaign prepares one personalised email per contact with consent and a 
 test('the CRM page loads campaigns before the tools and sends one email at a time with confirm',()=>{
  const html=fs.readFileSync(__dirname+'/../radix-sales.html','utf8');assert.ok(html.indexOf('crm-campaigns.js')<html.indexOf('crm-tools.js'));
  const src=fs.readFileSync(__dirname+'/../sales/crm-campaigns.js','utf8');
- assert.match(src,/window\.confirm\('Inviare ora a '/);assert.match(src,/confirm:true/);assert.doesNotMatch(src,/for\s*\([^)]*emails[^)]*\)\s*\{?\s*await fetch/);
+ assert.match(src,/window\.confirm\('Inviare ora a '/);assert.match(src,/sender\(\)\.send\(\{to:e\.to/);assert.doesNotMatch(src,/for\s*\([^)]*emails[^)]*\)\s*\{?\s*await (fetch|sender)/);
+ const direct=fs.readFileSync(__dirname+'/../sales/crm-send-direct.js','utf8');assert.match(direct,/confirm:true/);assert.ok(html.indexOf('crm-send-direct.js')<html.indexOf('crm-campaigns.js'));
+});
+
+test('bulkQueue sends only unsent emails, at most 200 per round',()=>{
+  const {bulkQueue,BULK_MAX}=require('../sales/crm-campaigns.js');
+  const emails=Array.from({length:250},(_,i)=>({to:'p'+i+'@x.it'}));
+  const a=bulkQueue(emails,new Set());assert.equal(BULK_MAX,200);assert.equal(a.now.length,200);assert.equal(a.later,50);assert.equal(a.now[0].to,'p0@x.it');
+  const b=bulkQueue(emails,new Set(a.now.map(e=>e.to)));assert.equal(b.now.length,50);assert.equal(b.later,0);assert.equal(b.now[0].to,'p200@x.it');
+  assert.equal(bulkQueue(emails,emails.map(e=>e.to)).now.length,0);
+  assert.equal(bulkQueue(emails,[],3).now.length,3);
 });

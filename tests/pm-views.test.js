@@ -57,7 +57,7 @@ test('cost-only edits keep status and approval; other edits still revoke it',()=
  pm.update(s,t.id,{actual:''});assert.equal('actual' in t,false);assert.equal(t.approved,true);
  assert.throws(()=>pm.update(s,t.id,{estimate:'-5'}),/Costo previsto/);
  assert.deepEqual(pm.validateState(JSON.parse(JSON.stringify(s))).tasks[0].estimate,800);
- pm.update(s,t.id,{title:'B'});assert.equal(t.approved,false);assert.equal(t.status,'Da fare');
+ pm.update(s,t.id,{title:'B'});assert.equal(t.approved,false);assert.equal(t.status,'In revisione','an edit revokes the approval but keeps the status');
 });
 
 test('phases group the timeline by sub-project with progress and dependency links',()=>{
@@ -117,4 +117,66 @@ test('completion date is stamped, cleared on reopen, and drives the weekly portf
  const at=Date.parse('2026-10-15T10:00:00Z'),plan=t=>({projects:state.projects,tasks:t,nextId:9});
  const p=v.portfolio([{id:'a',name:'A',createdAt:'2026-10-14T09:00:00Z',state:plan([T('x',{status:'Completato',completedAt:'2026-10-13T09:00:00Z'}),T('y')])},{id:'b',name:'B',createdAt:'2026-09-01T09:00:00Z',state:plan([T('z',{status:'Completato',completedAt:'2026-09-20T09:00:00Z'}),T('w')])}],at);
  assert.equal(p.doneWeek,1);assert.equal(p.newWeek,1);
+});
+
+test('statusReport: weekly progress text from the plan, with budget, late and upcoming work',()=>{
+ const views=require('../lib/pm-views.js');
+ const P={id:'p1',name:'Campagna',budget:1000,subprojects:[{id:'s1',name:'Generale'},{id:'s2',name:'Contenuti PED'}]};
+ const T=[{title:'A',owner:'Anna',due:'2026-10-10',status:'Completato',completedAt:'2026-10-15T10:00:00Z',subproject:'s1',actual:200},
+  {title:'Vecchia',due:'2026-09-01',status:'Completato',completedAt:'2026-09-02T10:00:00Z',subproject:'s1'},
+  {title:'B',owner:'Bruno',due:'2026-10-12',status:'In corso',subproject:'s1'},
+  {title:'C',due:'2026-10-20',status:'In revisione',approvalRequired:true,subproject:'s2'},
+  {title:'D',due:'2026-10-25',status:'Da fare',milestone:true,subproject:'s2'},{title:'Lontana',due:'2026-12-25',status:'Da fare',subproject:'s1'}];
+ const r=views.statusReport(T,P,Date.parse('2026-10-17T09:00:00Z'),{note:'Ok dal cliente sul brief.'});
+ assert.deepEqual(r.counts,{done:1,active:1,late:1,next:1,approvals:1});
+ assert.match(r.text,/^Report di avanzamento · Campagna\nSettimana dal 11 ott al 17 ott/);
+ assert.match(r.text,/attività completate: 2 di 6/);assert.match(r.text,/Puntualità sulle scadenze passate: 67%/);
+ assert.match(r.text,/prossima milestone: D \(25 ott\)/);assert.match(r.text,/Budget: speso 200\s€ di 1000\s€ \(20%\)/);
+ assert.match(r.text,/In ritardo \(1\)\n• B · Bruno · 12 ott · Generale/);assert.match(r.text,/• D · 25 ott · milestone · Contenuti PED/);
+ assert.doesNotMatch(r.text,/Vecchia|Lontana/);assert.match(r.text,/Note\nOk dal cliente sul brief\.\n$/);
+ const empty=views.statusReport([],{name:'X',subprojects:[{id:'s1',name:'Generale'}]},Date.parse('2026-10-17T09:00:00Z')).text;
+ assert.match(empty,/nessuna scadenza ancora passata/);assert.match(empty,/il piano è in linea/);assert.doesNotMatch(empty,/Budget|\n\n\n/);
+});
+
+test('readyAgentWork: open tasks with completed dependencies, one entry per agent without a result',()=>{
+ const t=(id,o)=>Object.assign({id,title:id,status:'Da fare',dependencies:[],assignedAgents:[],agentWork:[],due:'2026-11-0'+id.length},o);
+ const all=[t('a',{status:'Completato',assignedAgents:['copywriter']}),t('bb',{dependencies:['a'],assignedAgents:['copywriter','seo']}),t('ccc',{dependencies:['bb'],assignedAgents:['copywriter']}),
+  t('dddd',{status:'In corso',assignedAgents:['seo'],agentWork:[{agent:'seo'}]}),t('eeeee',{status:'In revisione',assignedAgents:['seo']}),t('ffffff',{assignedAgents:['analyst']})];
+ assert.deepEqual(v.readyAgentWork(all,all).map(x=>x.id+':'+x.agent),['bb:copywriter','bb:seo','ffffff:analyst']);
+ assert.deepEqual(v.readyAgentWork([all[2]],all),[],'a dependency outside the list still blocks');
+});
+
+test('level pushes overflow to the first week with room for everyone on the task',()=>{
+ const mon=Date.parse('2026-10-19T09:00:00Z');// Monday
+ const t=(id,due,extra={})=>({id,title:id,owner:'Anna',status:'Da fare',start:'',due,dependencies:[],assignedAgents:[],...extra});
+ const tasks=[t('a','2026-10-20'),t('b','2026-10-21'),t('c','2026-10-22',{start:'2026-10-19'}),t('d','2026-10-23'),
+  t('e','2026-10-27'),t('f','2026-10-28'),t('g','2026-10-29'),
+  t('ped','2026-10-23',{pedContentId:'x'}),t('base','2026-10-22'),t('next','2026-11-20',{dependencies:['base']}),t('done','2026-10-22',{status:'Completato'})];
+ const moves=v.level(tasks,mon,6,3);
+ // week 1: a,b,c,d,ped,base = 6 → ped and base stay, d c b move (latest first). Week 2 has e,f,g = 3 (full): week 3.
+ assert.deepEqual(moves.map(m=>m.id+':'+m.due),['d:2026-11-06','c:2026-11-05','b:2026-11-04']);
+ assert.equal(moves[1].start,'2026-11-02');assert.equal(moves[0].owner,'Anna');
+ const after=tasks.map(x=>{const m=moves.find(y=>y.id===x.id);return m?{...x,due:m.due}:x});
+ assert.equal(v.level(after,mon,6,3).length,0);
+ assert.deepEqual(v.level(tasks,mon,6,10),[]);
+});
+
+test('origin tells automatic tasks apart from manual ones',()=>{
+ assert.equal(v.origin(T('a',{agencyTaskId:'x',status:'Completato'})).label,'Approvato in Agency');
+ assert.equal(v.origin(T('b',{agencyTaskId:'x'})).label,'Incarico Agency');
+ assert.equal(v.origin(T('c',{pedContentId:'p1'})).kind,'ped');
+ assert.equal(v.origin(T('d')),null);
+});
+
+test('gantt marks the critical path and the margin of the other open activities',()=>{
+  const v=require('../lib/pm-views.js');const now=Date.parse('2026-10-18T10:00:00Z');
+  const tasks=[
+    {id:'a',title:'A',status:'Da fare',start:'2026-10-19',due:'2026-10-21'},
+    {id:'b',title:'B',status:'Da fare',start:'2026-10-22',due:'2026-10-30',dependencies:['a']},
+    {id:'c',title:'C',status:'Da fare',start:'2026-10-19',due:'2026-10-23'},
+    {id:'d',title:'D',status:'Completato',start:'2026-10-01',due:'2026-10-05'}];
+  const rows=Object.fromEntries(v.gantt(tasks,now).rows.map(r=>[r.id,r]));
+  assert.equal(rows.a.critical,true);assert.equal(rows.b.critical,true);
+  assert.equal(rows.c.critical,false);assert.equal(rows.c.slack,7);
+  assert.equal(rows.d.critical,undefined);
 });

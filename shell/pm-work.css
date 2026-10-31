@@ -1,0 +1,288 @@
+/* Project Management · work views (lib/pm-work-ui.js): «Le mie attività», quick add, editable list, calendar,
+   comments, priority, health and status updates. Same look as the approved Panoramica (purple glass panels,
+   PM accent), applied to every tab; the task detail is a side drawer on every tab. Layout only. */
+html.rx-shell body.rx-pm{--pmw-glass:linear-gradient(160deg,rgba(40,18,78,.78),rgba(14,8,34,.9));--pmw-edge:rgba(190,120,255,.45);--pmw-glow:0 0 0 1px rgba(255,255,255,.03) inset,0 0 24px rgba(170,90,255,.18),0 20px 44px rgba(0,0,0,.4);
+  --p-urgent:#FF5C7A;--p-high:#FF9B4A;--p-mid:#F4D35E;--p-low:#8EA9C0;--h-ok:var(--rx-success);--h-risk:var(--rx-warning);--h-off:var(--rx-error)}
+
+/* ---- page order on every tab: hero, quick add, project bar, tabs, content, portfolio ---- */
+html:has(#pm-board:not([hidden])) main#workspace>.pm-quick{order:2}
+html:has(#pm-board:not([hidden])) main#workspace>.row:has(#project-nav){order:2}
+html:has(#pm-board:not([hidden])) main#workspace>#portfolio{order:6}
+#pm-board.pm-board-off{display:none!important}
+html:not(.pm-v-board):has(#pm-board:not([hidden])) main#workspace>#portfolio{margin-top:22px}
+html.pm-v-mine main#workspace>#stats,html.pm-v-calendar main#workspace>#stats,html.pm-v-list main#workspace>#stats{display:none!important}
+html.pm-v-gantt main#workspace>#stats,html.pm-v-workload main#workspace>#stats,html.pm-v-trend main#workspace>#stats,html.pm-v-kanban main#workspace>#stats{display:grid!important;order:5;margin-bottom:14px}
+.rx-pm .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.rx-pm .hero h1{margin:4px 0 2px}
+.rx-pm .hero p{margin:0}
+
+/* content panel: glass card on the tabs that are not the Panoramica */
+html:not(.pm-v-board):has(#pm-board:not([hidden])) .layout>section.panel{padding:18px 20px!important;border-radius:18px;border:1px solid var(--pmw-edge)!important;background:var(--pmw-glass)!important;box-shadow:var(--pmw-glow)!important}
+html.pm-v-list .layout>section.panel>.filters,html.pm-v-kanban .layout>section.panel>.filters,html.pm-v-calendar .layout>section.panel>.filters,html.pm-v-gantt .layout>section.panel>.filters{display:grid!important;grid-template-columns:minmax(200px,2fr) repeat(3,minmax(140px,1fr)) auto auto;gap:10px;align-items:end;margin:0 0 14px}
+html.pm-v-list .layout>section.panel>.row{display:none!important}
+.rx-pm .filters label.check{align-self:center;white-space:nowrap}
+@media (max-width:1000px){html.rx-shell .rx-pm .layout>section.panel>.filters{grid-template-columns:1fr 1fr!important}}
+@media (max-width:560px){html.rx-shell .rx-pm .layout>section.panel>.filters{grid-template-columns:1fr!important}}
+
+/* ---- detail drawer on every tab ---- */
+html:has(#pm-board:not([hidden])):not(.pm-detail-open) .layout>#detail{display:none!important}
+html.pm-detail-open:has(#pm-board:not([hidden])) .layout>#detail{position:fixed;top:0;right:0;bottom:0;width:min(560px,100vw);z-index:60;overflow:auto;margin:0!important;padding:24px 24px 48px!important;border-radius:0;border:0;border-left:1px solid var(--pmw-edge);background:linear-gradient(180deg,#1a0f36,#0d0820)!important;box-shadow:-24px 0 60px rgba(0,0,0,.6)}
+html.pm-detail-open:has(#pm-board:not([hidden])) .pm-detail-close{display:grid;place-items:center;position:fixed;top:14px;right:16px;z-index:61;width:34px;height:34px;padding:0;border-radius:50%;font-size:20px;line-height:1;background:#2a1650;border:1px solid rgba(190,120,255,.6);color:#f3eaff}
+
+/* ---- quick add ---- */
+.rx-pm .pm-quick{margin:14px 0 12px;padding:12px 14px 10px;border-radius:16px;border:1px solid color-mix(in srgb,var(--rx-projects) 45%,transparent);background:linear-gradient(120deg,color-mix(in srgb,var(--rx-projects) 12%,rgba(20,10,44,.9)),rgba(20,10,44,.85));box-shadow:0 0 24px color-mix(in srgb,var(--rx-projects) 18%,transparent)}
+.rx-pm .pm-quick-label{display:block;margin:0 0 6px;font:600 11px/1 var(--rx-font);letter-spacing:.14em;text-transform:uppercase;color:var(--rx-projects)}
+.rx-pm .pm-quick-row{display:flex;gap:10px}
+.rx-pm .pm-quick-row input{flex:1;min-height:46px!important;font-size:15px;background:rgba(5,3,18,.6)!important;border-color:color-mix(in srgb,var(--rx-projects) 35%,var(--rx-border))!important}
+.rx-pm .pm-quick-row input:focus{border-color:var(--rx-projects)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--rx-projects) 25%,transparent)}
+.rx-pm .pm-quick-row button{min-height:46px!important;padding:0 20px!important}
+.rx-pm .pm-quick-preview{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:28px;margin-top:8px;font-size:12.5px}
+.rx-pm .pm-chip{display:inline-flex;gap:4px;align-items:center;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--rx-text)}
+.rx-pm .pm-chip b{font-weight:600;color:var(--rx-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.rx-pm .pm-chip.soft{opacity:.65;border-style:dashed}
+.rx-pm .pm-chip.p-urgent{border-color:var(--p-urgent);color:var(--p-urgent)}.rx-pm .pm-chip.p-high{border-color:var(--p-high);color:var(--p-high)}.rx-pm .pm-chip.p-mid{border-color:var(--p-mid);color:var(--p-mid)}.rx-pm .pm-chip.p-low{border-color:var(--p-low);color:var(--p-low)}
+.rx-pm .warn-text{color:var(--rx-warning)}
+
+/* ---- project bar: health ---- */
+.rx-pm .pm-health-box{display:grid;gap:4px;align-self:center}
+.rx-pm .pm-health-box small{font-size:11.5px}
+.rx-pm .pm-health{display:inline-flex;align-items:center;gap:6px;width:max-content;padding:4px 12px;border-radius:999px;font:600 12.5px/1.2 var(--rx-font);border:1px solid currentColor;background:color-mix(in srgb,currentColor 12%,transparent)}
+.rx-pm .pm-health[data-health="In linea"]{color:var(--h-ok)}.rx-pm .pm-health[data-health="A rischio"]{color:var(--h-risk)}.rx-pm .pm-health[data-health="Fuori strada"]{color:var(--h-off)}
+.rx-pm .pm-projects .pm-health{margin-top:8px;font-size:11px;padding:2px 9px}
+
+/* ---- tabs ---- */
+.rx-pm .pm-tabs{flex-wrap:wrap;max-width:100%}
+.rx-pm .pm-tabs button[data-view="mine"]{color:var(--rx-text)}
+.rx-pm .pm-tabs button[aria-selected=true]{box-shadow:0 0 16px color-mix(in srgb,var(--rx-projects) 35%,transparent)}
+
+/* ---- «Le mie attività» ---- */
+.rx-pm .pm-mine{display:block}
+.rx-pm .pm-mine-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.rx-pm .pm-mine-head h3{margin:0;font-size:22px}
+.rx-pm .pm-seg{display:inline-flex;padding:3px;border-radius:11px;border:1px solid var(--rx-border);background:rgba(0,0,0,.25)}
+.rx-pm .pm-seg button{min-height:34px!important;border:0!important;border-radius:8px!important;padding:4px 14px!important;color:var(--rx-muted)!important}
+.rx-pm .pm-seg button.on{background:color-mix(in srgb,var(--rx-projects) 22%,transparent)!important;color:var(--rx-text)!important}
+.rx-pm .pm-mine-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 18px}
+.rx-pm .pm-mine-kpi{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.rx-pm .pm-mine-kpi strong{display:block;font:600 28px/1.1 var(--rx-display);font-variant-numeric:tabular-nums}
+.rx-pm .pm-mine-kpi span{color:var(--rx-muted);font-size:12px}
+.rx-pm .pm-mine-kpi.late{border-color:color-mix(in srgb,var(--rx-error) 55%,transparent);background:color-mix(in srgb,var(--rx-error) 9%,transparent)}
+.rx-pm .pm-mine-kpi.late strong{color:var(--rx-error)}
+.rx-pm .pm-mine-group{margin:0 0 18px}
+.rx-pm .pm-mine-group h4{margin:0 0 8px;font:600 12px/1 var(--rx-font);letter-spacing:.12em;text-transform:uppercase;color:var(--rx-muted)}
+.rx-pm .pm-mine-group[data-group=late] h4{color:var(--rx-error)}
+.rx-pm .pm-mine-group[data-group=today] h4{color:var(--rx-projects)}
+.rx-pm .pm-mine-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.rx-pm .pm-mine-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);transition:border-color .15s,background .15s}
+.rx-pm .pm-mine-row:hover{border-color:color-mix(in srgb,var(--rx-projects) 45%,transparent);background:rgba(255,255,255,.06)}
+.rx-pm .pm-mine-row.late{border-left:3px solid var(--rx-error)}
+.rx-pm .pm-mine-row input[type=checkbox],.rx-pm .pm-table input[type=checkbox]{appearance:none;width:22px;height:22px;min-height:0!important;margin:0;padding:0!important;border-radius:50%!important;border:1.5px solid var(--rx-border-strong)!important;background:transparent!important;cursor:pointer;display:grid;place-items:center}
+.rx-pm .pm-mine-row input[type=checkbox]:hover,.rx-pm .pm-table input[type=checkbox]:hover{border-color:var(--rx-success)!important}
+.rx-pm .pm-mine-row input[type=checkbox]:checked,.rx-pm .pm-table input[type=checkbox]:checked{background:var(--rx-success)!important;border-color:var(--rx-success)!important}
+.rx-pm .pm-mine-row input[type=checkbox]:checked::after,.rx-pm .pm-table input[type=checkbox]:checked::after{content:"✓";color:#03201A;font:700 13px/1 var(--rx-font)}
+.rx-pm button.pm-mine-title{display:grid;gap:2px;min-height:0!important;padding:2px 0!important;border:0!important;background:none!important;text-align:left;min-width:0}
+.rx-pm button.pm-mine-title strong{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm button.pm-mine-title small{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm .pm-mine-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.rx-pm .pm-when{font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--rx-muted);min-width:96px;text-align:right}
+.rx-pm .pm-when.late{color:var(--rx-error);font-weight:600}.rx-pm .pm-when.today{color:var(--rx-projects);font-weight:600}
+.rx-pm .pm-mine-empty{padding:28px;border-radius:14px;border:1px dashed var(--rx-border-strong);text-align:center}
+.rx-pm .pm-mentions{margin:0 0 18px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--rx-agency) 45%,transparent);background:color-mix(in srgb,var(--rx-agency) 8%,transparent)}
+.rx-pm .pm-mentions h4{margin:0 0 6px;font-size:13px;color:var(--rx-agency)}
+.rx-pm button.pm-mention{display:block;width:100%;min-height:0!important;padding:6px 0!important;border:0!important;background:none!important;text-align:left;font-size:13px}
+.rx-pm button.pm-mention q{color:var(--rx-muted)}
+html.pm-v-mine .layout>section.panel>.row,html.pm-v-mine .layout>section.panel>.filters{display:none!important}
+
+/* ---- pills: priority and status ---- */
+.rx-pm .pill.pm-prio{font-weight:600;border-color:currentColor!important;background:color-mix(in srgb,currentColor 12%,transparent)!important}
+.rx-pm .pm-prio.p-urgent{color:var(--p-urgent)!important}.rx-pm .pm-prio.p-high{color:var(--p-high)!important}.rx-pm .pm-prio.p-mid{color:var(--p-mid)!important}.rx-pm .pm-prio.p-low{color:var(--p-low)!important}
+.rx-pm .pill.pm-st[data-status="In corso"]{color:var(--pm-doing);border-color:currentColor}.rx-pm .pill.pm-st[data-status="In revisione"]{color:var(--pm-review);border-color:currentColor}
+
+/* ---- editable list ---- */
+.rx-pm .pm-table-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:0 0 10px}
+.rx-pm .pm-table-bar label{display:flex;align-items:center;gap:8px}
+.rx-pm .pm-table-bar select{width:auto;min-height:34px!important;padding:4px 10px}
+.rx-pm .pm-table-wrap{overflow-x:auto;border-radius:14px;border:1px solid rgba(255,255,255,.08)}
+.rx-pm table.pm-table{width:100%;border-collapse:collapse;min-width:820px;font-size:13.5px}
+.rx-pm .pm-table thead th{position:sticky;top:0;z-index:1;padding:0 8px;text-align:left;background:rgba(14,8,34,.96);border-bottom:1px solid rgba(255,255,255,.1)}
+.rx-pm .pm-table th:first-child,.rx-pm .pm-table td:first-child{width:44px;padding-left:14px}
+.rx-pm button.pm-sort{min-height:40px!important;padding:0!important;border:0!important;background:none!important;color:var(--rx-muted)!important;font:600 11.5px/1 var(--rx-font)!important;letter-spacing:.08em;text-transform:uppercase}
+.rx-pm .pm-table th[aria-sort=ascending] .pm-sort,.rx-pm .pm-table th[aria-sort=descending] .pm-sort{color:var(--rx-projects)!important}
+.rx-pm .pm-group-row th{padding:12px 14px 6px;text-align:left;background:color-mix(in srgb,var(--rx-accent) 7%,transparent);font-size:13px}
+.rx-pm .pm-group-row strong{font-family:var(--rx-display);font-size:14.5px;margin-right:6px}
+.rx-pm .pm-add-here{float:right;min-height:26px!important;padding:2px 8px!important;border:0!important;color:var(--rx-projects)!important;font-size:12px!important}
+.rx-pm .pm-trow td{padding:4px 8px;border-top:1px solid rgba(255,255,255,.05);vertical-align:middle}
+.rx-pm .pm-trow:hover td{background:rgba(255,255,255,.035)}
+.rx-pm .pm-trow.on td{background:color-mix(in srgb,var(--rx-projects) 10%,transparent)}
+.rx-pm .pm-trow.late td:nth-child(4) .pm-cell{color:var(--rx-error);border-color:color-mix(in srgb,var(--rx-error) 50%,transparent)!important}
+.rx-pm .pm-trow.done .pm-tlink span{text-decoration:line-through;color:var(--rx-muted)}
+.rx-pm .pm-tcell-title{min-width:260px}
+.rx-pm button.pm-tlink{min-height:30px!important;padding:2px 0!important;border:0!important;background:none!important;text-align:left;font-weight:600}
+.rx-pm button.pm-tlink:hover span{color:var(--rx-projects)}
+.rx-pm .pm-tmeta{display:flex;gap:10px;font-size:11.5px;color:var(--rx-muted)}
+.rx-pm .pm-cell{min-height:32px!important;padding:3px 8px!important;font-size:13px;border-color:transparent!important;background:transparent!important}
+.rx-pm .pm-cell:hover:not(:disabled),.rx-pm .pm-cell:focus{border-color:var(--rx-border-strong)!important;background:var(--rx-surface-2)!important}
+.rx-pm input.pm-cell[type=date]{width:150px;color-scheme:dark}
+.rx-pm select.pm-prio-sel{width:112px}.rx-pm select.pm-st-sel{width:136px}
+.rx-pm select.pm-prio-sel[data-p=Urgente]{color:var(--p-urgent)}.rx-pm select.pm-prio-sel[data-p=Alta]{color:var(--p-high)}.rx-pm select.pm-prio-sel[data-p=Media]{color:var(--p-mid)}.rx-pm select.pm-prio-sel[data-p=Bassa]{color:var(--p-low)}
+.rx-pm select.pm-st-sel[data-status="In corso"]{color:var(--pm-doing)}.rx-pm select.pm-st-sel[data-status="In revisione"]{color:var(--pm-review)}.rx-pm select.pm-st-sel[data-status=Completato]{color:var(--pm-done)}
+.rx-pm .pm-table option{background:#140b2c;color:var(--rx-text)}
+
+/* ---- calendar ---- */
+.rx-pm .pm-cal-head{display:flex;align-items:center;gap:8px;margin:0 0 12px}
+.rx-pm .pm-cal-head h3{margin:0 8px;min-width:190px;font-size:20px}
+.rx-pm .pm-cal-head button{min-height:34px!important;padding:4px 12px!important}
+.rx-pm .pm-cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.rx-pm .pm-cal-dow{padding:4px 8px;font:600 11px/1 var(--rx-font);letter-spacing:.1em;text-transform:uppercase;color:var(--rx-muted)}
+.rx-pm .pm-cal-day{min-height:112px;padding:6px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:4px;min-width:0}
+.rx-pm .pm-cal-day.we{background:rgba(255,255,255,.02)}
+.rx-pm .pm-cal-day.out{opacity:.45}
+.rx-pm .pm-cal-day.today{border-color:var(--rx-projects);box-shadow:inset 0 0 0 1px var(--rx-projects)}
+.rx-pm .pm-cal-day.drop{border-color:var(--rx-success);background:color-mix(in srgb,var(--rx-success) 10%,transparent)}
+.rx-pm button.pm-cal-num{align-self:flex-start;min-height:24px!important;min-width:24px;padding:0 6px!important;border:0!important;border-radius:7px!important;background:none!important;color:var(--rx-muted)!important;font:600 12px/1 var(--rx-font)!important}
+.rx-pm .pm-cal-day.today .pm-cal-num{background:var(--rx-projects)!important;color:#051a2c!important}
+.rx-pm button.pm-cal-num:hover{color:var(--rx-text)!important;background:rgba(255,255,255,.08)!important}
+.rx-pm button.pm-cal-task{display:block;width:100%;min-height:0!important;padding:3px 7px!important;border-radius:6px!important;border:0!important;border-left:3px solid var(--pm-todo)!important;background:rgba(155,123,255,.16)!important;font-size:11.5px!important;line-height:1.3;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab}
+.rx-pm button.pm-cal-task.p-urgent{border-left-color:var(--p-urgent)!important}.rx-pm button.pm-cal-task.p-high{border-left-color:var(--p-high)!important}
+.rx-pm button.pm-cal-task.late{background:color-mix(in srgb,var(--rx-error) 18%,transparent)!important;color:#ffd6dc!important}
+.rx-pm button.pm-cal-task.done{opacity:.55;text-decoration:line-through;cursor:default;border-left-color:var(--pm-done)!important}
+@media (max-width:760px){.rx-pm .pm-cal{gap:2px}.rx-pm .pm-cal-day{min-height:64px;padding:3px}.rx-pm button.pm-cal-task{font-size:0!important;height:6px;padding:0!important;border-left-width:0!important;background:var(--pm-todo)!important}.rx-pm button.pm-cal-task.late{background:var(--rx-error)!important}.rx-pm .pm-cal-dow{font-size:9px;padding:2px}}
+
+/* ---- detail drawer extras ---- */
+.rx-pm .pm-detail-quick{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:14px 0 4px}
+.rx-pm .pm-detail-quick label{display:grid;gap:4px}
+.rx-pm .pm-detail-quick select{width:150px}
+.rx-pm .pm-rec-note{font-size:12.5px}
+.rx-pm .pm-ai-break{margin:14px 0}
+.rx-pm button.pm-ai-btn{border-color:color-mix(in srgb,var(--rx-agency) 60%,transparent)!important;color:var(--rx-agency)!important;background:color-mix(in srgb,var(--rx-agency) 10%,transparent)!important}
+.rx-pm .pm-ai-proposals{display:grid;gap:6px;padding:12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--rx-agency) 45%,transparent);background:color-mix(in srgb,var(--rx-agency) 7%,transparent)}
+.rx-pm .pm-ai-proposals label{color:var(--rx-text);font-size:13.5px}
+.rx-pm .pm-ai-proposals button{justify-self:start}
+.rx-pm .pm-comments{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+.rx-pm .pm-comments li{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)}
+.rx-pm .pm-comments li.muted{background:none;border-style:dashed}
+.rx-pm .pm-comment-head{display:flex;gap:6px;align-items:baseline}
+.rx-pm .pm-comment-head button{margin-left:auto;min-height:24px!important;padding:0 6px!important;border:0!important;font-size:12px!important;color:var(--rx-muted)!important}
+.rx-pm .pm-comments p{margin:4px 0 0;white-space:pre-wrap}
+.rx-pm mark.pm-at{background:color-mix(in srgb,var(--rx-agency) 22%,transparent);color:#e7d8ff;border-radius:4px;padding:0 3px}
+.rx-pm .pm-comment-form{display:grid;gap:8px}
+.rx-pm .pm-comment-form button{justify-self:end}
+
+/* ---- status update dialog and templates ---- */
+.rx-pm #report-dialog{width:min(720px,94vw)}
+.rx-pm #report-dialog label{display:grid;gap:6px;margin:10px 0}
+.rx-pm #update-health{width:220px}
+.rx-pm .pm-updates{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.rx-pm .pm-updates summary{cursor:pointer;display:flex;gap:6px;align-items:center}
+.rx-pm .pm-updates pre{white-space:pre-wrap;font:13px/1.5 var(--rx-font);color:var(--rx-muted);margin:8px 0 0}
+.rx-pm #project-dialog{width:min(640px,94vw)}
+.rx-pm #project-dialog form label{display:grid;gap:6px;margin:10px 0}
+.rx-pm .pm-tpl-preview ol{margin:4px 0 0;padding-left:20px;color:var(--rx-muted);font-size:13px;columns:2}
+
+/* ---- phones ---- */
+@media (max-width:720px){
+  .rx-pm .hero{flex-direction:column;align-items:stretch}
+  .rx-pm .pm-quick-row{flex-direction:column}
+  .rx-pm .pm-mine-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rx-pm .pm-mine-row{grid-template-columns:auto minmax(0,1fr)}
+  .rx-pm .pm-mine-meta{grid-column:2;justify-content:flex-start}
+  .rx-pm .pm-when{min-width:0;text-align:left}
+  .rx-pm .pm-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .rx-pm .pm-tabs button{flex:0 0 auto}
+  .rx-pm .pm-tpl-preview ol{columns:1}
+}
+
+/* project bar: never wider than the page, actions wrap under the project select */
+html.rx-shell .rx-pm main#workspace>.pm-projectbar{display:flex!important;flex-wrap:wrap!important;width:100%;max-width:100%;row-gap:10px;align-items:flex-end}
+html.rx-shell .rx-pm .pm-projectbar>button{flex:0 0 auto;min-height:38px!important}
+
+html.rx-shell .rx-pm .pm-projectbar>.pm-health-box{margin-right:8px}
+html:not(.pm-v-board):has(#pm-board:not([hidden])) .layout>section.panel{width:100%;box-sizing:border-box}
+html.rx-shell .rx-pm .pm-projectbar>.pm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto;justify-content:flex-end}
+html.rx-shell .rx-pm .pm-actions>button{min-height:38px!important;padding:6px 12px!important;font-size:13px!important}
+@media (max-width:720px){html.rx-shell .rx-pm .pm-projectbar>.pm-actions{margin-left:0;justify-content:flex-start}}
+html.rx-shell .rx-pm main#workspace>.pm-projectbar{justify-content:flex-start!important;column-gap:16px}
+.rx-pm .pm-tpl-select{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.rx-pm .pm-tpl-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin:6px 0 10px}
+.rx-pm button.pm-tpl-card{display:grid;gap:4px;align-content:start;min-height:96px!important;padding:12px!important;text-align:left;border-radius:12px!important;border:1px solid var(--rx-border)!important;background:rgba(255,255,255,.03)!important}
+.rx-pm button.pm-tpl-card small{font-size:12px;line-height:1.35}
+.rx-pm button.pm-tpl-card.on{border-color:var(--rx-projects)!important;background:color-mix(in srgb,var(--rx-projects) 12%,transparent)!important;box-shadow:0 0 0 1px var(--rx-projects) inset}
+.rx-pm .pm-tpl-count{font-size:11px;color:var(--rx-projects)}
+.rx-pm .pm-ideas-title{margin:22px 0 8px;padding-top:16px;border-top:1px solid var(--rx-border);font-size:15px}
+.rx-pm .pm-tpl-head{margin:12px 0 0;color:var(--rx-muted);font-size:13px}
+@media (max-width:720px){.rx-pm .pm-cal-head{flex-wrap:wrap}.rx-pm .pm-cal-head h3{min-width:0;flex:1;font-size:17px}}
+
+/* ---- «Progetto da brief o meeting» (lib/pm-brief.js) ---- */
+.rx-pm .pm-hero-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.rx-pm #brief-open{border-color:color-mix(in srgb,var(--rx-projects) 60%,var(--rx-border))!important;background:color-mix(in srgb,var(--rx-projects) 14%,transparent)!important}
+.rx-pm dialog.pm-brief{width:min(860px,calc(100vw - 24px));max-height:calc(100vh - 32px);padding:22px 24px;overflow:auto;background:linear-gradient(180deg,#1a0f36,#0d0820);border:1px solid var(--pmw-edge)}
+.rx-pm dialog.pm-brief::backdrop{background:rgba(4,2,12,.72)}
+.rx-pm .pm-brief h2{margin:0;font-size:20px}
+.rx-pm .pm-brief>label,.rx-pm .pm-brief-grid label{display:grid;gap:6px;margin:10px 0;font-size:13px;color:var(--rx-muted)}
+.rx-pm .pm-brief textarea{width:100%;min-height:150px;padding:10px 12px;color:var(--rx-text);line-height:1.5}
+.rx-pm .pm-brief-src{display:inline-flex;gap:4px;padding:4px;margin:6px 0;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface)}
+.rx-pm .pm-brief-src button{border:0!important;min-height:36px!important;color:var(--rx-muted)}
+.rx-pm .pm-brief-src button[aria-selected=true]{background:color-mix(in srgb,var(--rx-projects) 22%,transparent)!important;color:var(--rx-text)}
+.rx-pm .pm-brief-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px}
+.rx-pm .pm-brief-grid input{width:100%;padding:0 10px}
+.rx-pm .pm-brief-mlist{display:grid;gap:6px;max-height:220px;overflow:auto;margin:8px 0}
+.rx-pm .pm-brief-meeting{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--rx-border);border-radius:12px;background:var(--rx-surface-2);cursor:pointer}
+.rx-pm .pm-brief-meeting:has(input:checked){border-color:var(--rx-projects);background:color-mix(in srgb,var(--rx-projects) 10%,var(--rx-surface-2))}
+.rx-pm .pm-brief-meeting span{display:grid;gap:2px}.rx-pm .pm-brief-meeting small{color:var(--rx-muted)}
+.rx-pm .pm-brief-preview{max-height:140px;overflow:auto;white-space:pre-wrap;margin:0;padding:10px 12px;border-radius:10px;background:rgba(5,3,18,.6);color:var(--rx-muted);font:12.5px/1.5 var(--rx-font)}
+.rx-pm #brief-go{margin-top:6px}
+.rx-pm .pm-brief-out h3{margin:18px 0 6px;font-size:17px}
+.rx-pm .pm-brief-goal{margin:0 0 4px;font-weight:600}
+.rx-pm .pm-brief-split{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.rx-pm .pm-brief-chip{display:inline-flex;gap:6px;align-items:baseline;padding:6px 12px;border-radius:999px;border:1px solid var(--who);background:color-mix(in srgb,var(--who) 14%,transparent);font-size:13px}
+.rx-pm .pm-brief-chip b{font-size:16px}
+.rx-pm .pm-who-me{--who:var(--rx-projects)}.rx-pm .pm-who-agent{--who:#B98CFF}.rx-pm .pm-who-tool{--who:#4FD1C5}.rx-pm .pm-who-person{--who:#F4D35E}
+.rx-pm .pm-brief-phase{margin:12px 0;padding:12px;border:1px solid var(--rx-border);border-radius:14px;background:rgba(5,3,18,.35)}
+.rx-pm .pm-brief-phase h4{margin:0 0 8px;font-size:14px;letter-spacing:.04em}
+.rx-pm .pm-brief-task{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(150px,210px) auto;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--rx-border)}
+.rx-pm .pm-brief-task:first-of-type{border-top:0}
+.rx-pm .pm-brief-task.off{opacity:.45}
+.rx-pm .pm-brief-task>input[type=checkbox]{margin-top:12px;min-height:0!important;width:18px;height:18px}
+.rx-pm .pm-brief-main{display:grid;gap:4px;min-width:0}.rx-pm .pm-brief-main small{font-size:12px;line-height:1.4}
+.rx-pm .pm-brief-title{width:100%;padding:0 10px}
+.rx-pm .pm-brief-who{width:100%;padding:0 8px}
+.rx-pm .pm-brief-dl{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--rx-muted);white-space:nowrap}
+.rx-pm .pm-brief-days{width:64px;padding:0 6px}
+.rx-pm .pm-brief-questions{margin:12px 0;padding:12px 14px;border-left:3px solid var(--rx-warning);border-radius:10px;background:color-mix(in srgb,var(--rx-warning) 7%,transparent)}
+.rx-pm .pm-brief-questions ul{margin:6px 0 0;padding-left:18px}
+.rx-pm .pm-brief-foot{position:sticky;bottom:-22px;gap:12px;margin:0 -24px -22px;padding:12px 24px 16px;background:#0d0820;border-top:1px solid var(--pmw-edge)}
+.rx-pm .pm-brief [hidden]{display:none!important}
+.rx-pm .pm-brief-meeting>input{flex:0 0 auto;width:18px;height:18px;min-height:0!important;margin:3px 0 0;padding:0}
+.rx-pm .pm-brief-meeting>span{flex:1;min-width:0}
+@media (max-width:720px){
+  .rx-pm .pm-brief-grid{grid-template-columns:1fr}
+  .rx-pm .pm-brief-task{grid-template-columns:auto minmax(0,1fr)}
+  .rx-pm .pm-brief-who,.rx-pm .pm-brief-dl{grid-column:2}
+  .rx-pm .pm-hero-actions{justify-content:stretch}.rx-pm .pm-hero-actions>button{flex:1}
+  .rx-pm .pm-brief-src{display:flex}.rx-pm .pm-brief-src button{flex:1}
+}
+
+/* ---- «Chi lavora al progetto» ---- */
+html:has(#pm-board:not([hidden])) main#workspace>#pm-crew{order:2}
+html.pm-v-mine main#workspace>#pm-crew{display:none!important}
+.rx-pm .pm-crew{margin:4px 0 14px;padding:16px 18px!important;border-radius:18px;border:1px solid var(--pmw-edge)!important;background:var(--pmw-glass)!important;box-shadow:var(--pmw-glow)!important}
+.rx-pm .pm-crew h2{margin:0;font-size:16px}
+.rx-pm .pm-crew-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0 4px}
+.rx-pm .pm-crew-card{display:grid;grid-template-columns:1fr auto;gap:6px 8px;padding:12px 14px;border-radius:14px;border:1px solid color-mix(in srgb,var(--who) 45%,var(--rx-border));background:color-mix(in srgb,var(--who) 8%,rgba(5,3,18,.5))}
+.rx-pm .pm-crew-card>small{grid-column:1/-1;font-size:12px}
+.rx-pm .pm-crew-num{font:600 18px/1 var(--rx-display);font-variant-numeric:tabular-nums}
+.rx-pm .pm-crew-bar{grid-column:1/-1;height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.rx-pm .pm-crew-bar i{display:block;height:100%;border-radius:inherit;background:var(--who)}
+.rx-pm .pm-crew-names{color:var(--rx-subtle);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rx-pm .pm-crew-next{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.rx-pm .pm-crew-next li{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:rgba(5,3,18,.4)}
+.rx-pm .pm-crew-next li>span:nth-child(2){flex:1;min-width:0}
+.rx-pm .pm-crew-review .pill{border-color:#B98CFF;color:#D9C2FF}.rx-pm .pm-crew-agent .pill{border-color:#B98CFF}
+.rx-pm .pm-crew-mine .pill{border-color:var(--rx-projects)}.rx-pm .pm-crew-tool .pill{border-color:#4FD1C5}
+.rx-pm .pm-crew-go{min-height:32px!important;padding:4px 12px!important;font-size:13px!important}
+.rx-pm a.pm-crew-go,.rx-pm a.pm-tool-link{display:inline-flex;align-items:center;border:1px solid #4FD1C5;border-radius:10px;color:#9EF0E6;text-decoration:none}
+.rx-pm .pm-tool-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.rx-pm a.pm-tool-link{padding:6px 12px}
+
+.rx-pm .pm-brief-main .pill{justify-self:start}
+.rx-pm .pm-brief-task select.pm-brief-who{border-color:color-mix(in srgb,var(--who) 70%,var(--rx-border))!important;border-left:4px solid var(--who)!important}

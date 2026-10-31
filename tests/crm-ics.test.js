@@ -19,7 +19,7 @@ test('builds a valid VCALENDAR with escaping, all-day closings and CRLF',()=>{
  const f=ics.build(data,{now,base:'https://x.test/radix-sales.html'});assert.equal(f.count,4);
  const t=f.text;assert.ok(t.startsWith('BEGIN:VCALENDAR\r\nVERSION:2.0\r\n'));assert.ok(t.endsWith('END:VCALENDAR\r\n'));
  assert.ok(!/[^\r]\n/.test(t),'only CRLF line breaks');
- assert.match(t,/SUMMARY:Chiama\; poi scrivi\r\n/);assert.match(t,/DESCRIPTION:Acme\\, S\.p\.A\.\\nriga1\\nriga2/);
+ assert.ok(t.includes('SUMMARY:Chiama\\; poi scrivi\r\n'),'semicolon escaped as \\;');assert.match(t,/DESCRIPTION:Acme\\, S\.p\.A\.\\nriga1\\nriga2/);
  assert.match(t,/UID:task-t1@radix-crm\r\nDTSTAMP:20261017T080000Z\r\nDTSTART:20261018T090000Z\r\nDTEND:20261018T100000Z/);
  assert.match(t,/DTSTART;VALUE=DATE:20261031\r\nDTEND;VALUE=DATE:20261101/);
  assert.match(t,/URL:https:\/\/x\.test\/radix-sales\.html#opportunities/);

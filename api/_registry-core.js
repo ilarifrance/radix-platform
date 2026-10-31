@@ -9,7 +9,7 @@ const PROJECT_STATUSES=Object.freeze(['draft','active','paused','done','archived
 // One JSON document per project and module. PED and PM get their own tables in F3/F4;
 // until then their whole state lives here, shared by the team and versioned.
 // 'agents' holds the project's conversations with the v3.7 agents (agents.html).
-const MODULES=Object.freeze(['agency-workspace','agency-operations','editorial','pm','agents']);
+const MODULES=Object.freeze(['agency-workspace','agency-operations','editorial','pm','agents','meetings']);
 const SUBJECT_TYPES=Object.freeze(['strategy','ped-plan','content','agency-task','pm-task']);
 const DECISIONS=Object.freeze({approve:'approved',revise:'needs_revision',reject:'rejected'});
 const MAX_DOCUMENT_BYTES=1500000;
@@ -46,7 +46,7 @@ const SCHEMA=Object.freeze([
 `CREATE INDEX IF NOT EXISTS rx_projects_client_idx ON rx_projects(client_id, updated_at DESC)`,
 `CREATE TABLE IF NOT EXISTS rx_documents (
  project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
- module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents')),
+ module text NOT NULL CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents','meetings')),
  data jsonb NOT NULL CHECK (jsonb_typeof(data) = 'object' AND octet_length(data::text) <= 1500000),
  revision integer NOT NULL DEFAULT 1 CHECK (revision > 0),
  updated_by integer REFERENCES users(id),
@@ -55,7 +55,7 @@ const SCHEMA=Object.freeze([
 )`,
 // Databases created before the 'agents' module: widen the module check in place.
 `ALTER TABLE rx_documents DROP CONSTRAINT IF EXISTS rx_documents_module_check`,
-`ALTER TABLE rx_documents ADD CONSTRAINT rx_documents_module_check CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents'))`,
+`ALTER TABLE rx_documents ADD CONSTRAINT rx_documents_module_check CHECK (module IN ('agency-workspace','agency-operations','editorial','pm','agents','meetings'))`,
 `CREATE TABLE IF NOT EXISTS rx_approvals (
  id uuid PRIMARY KEY,
  project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
@@ -105,7 +105,35 @@ const SCHEMA=Object.freeze([
  updated_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE (project_id, content_id, revision, service)
 )`,
-`CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC)`
+`CREATE INDEX IF NOT EXISTS rx_publications_project_idx ON rx_publications(project_id, updated_at DESC)`,
+// Images of a PED content (slides, post image), stored so publishing services can fetch them from a signed link.
+`CREATE TABLE IF NOT EXISTS rx_media (
+ id text PRIMARY KEY CHECK (id ~ '^[0-9a-f-]{36}$'),
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ slot integer NOT NULL CHECK (slot BETWEEN 0 AND 19),
+ mime text NOT NULL CHECK (mime IN ('image/png','image/jpeg')),
+ data_b64 text NOT NULL CHECK (length(data_b64) <= 4000000),
+ created_by integer REFERENCES users(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, slot)
+)`,
+// One reading a day of the numbers of a published post (from Buffer): the time series behind «Risultati».
+`CREATE TABLE IF NOT EXISTS rx_post_stats (
+ id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+ project_id text NOT NULL REFERENCES rx_projects(id) ON DELETE CASCADE,
+ content_id text NOT NULL CHECK (length(content_id) BETWEEN 1 AND 120),
+ service text NOT NULL CHECK (service IN ('buffer')),
+ post_id text NOT NULL CHECK (length(post_id) BETWEEN 1 AND 64),
+ day date NOT NULL,
+ published_at timestamptz,
+ link text CHECK (link IS NULL OR length(link) <= 500),
+ metrics jsonb NOT NULL CHECK (jsonb_typeof(metrics) = 'object'),
+ engagement_rate numeric,
+ fetched_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (project_id, content_id, post_id, day)
+)`,
+`CREATE INDEX IF NOT EXISTS rx_post_stats_project_idx ON rx_post_stats(project_id, content_id, fetched_at)`
 ]);
 
 class InputError extends Error{}

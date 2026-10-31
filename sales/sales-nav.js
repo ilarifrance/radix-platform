@@ -8,13 +8,22 @@
     { label: 'Sales', items: [
       { href: '/sales-orbit-higgsfield.html', text: 'Sales Orbit', ic: 'globe' },
       { href: CRM + '#dashboard', text: 'Panoramica', ic: 'home' },
+      { href: CRM + '#today', text: 'Oggi', ic: 'clock' },
       { href: '/sales-pipeline-premium.html', text: 'Pipeline', ic: 'flow' },
       { href: CRM + '#companies', text: 'Aziende', ic: 'building' },
       { href: CRM + '#contacts', text: 'Contatti', ic: 'person' },
       { href: CRM + '#tasks', text: 'Attività', ic: 'check' },
       { href: CRM + '#tickets', text: 'Assistenza', ic: 'chat' },
       { href: CRM + '#calendar', text: 'Calendario', ic: 'cal' },
-      { href: CRM + '#analytics', text: 'Analisi', ic: 'chart' }
+      { href: '/sales-posta.html', text: 'Posta', ic: 'mail' },
+      { href: CRM + '#analytics', text: 'Analisi', ic: 'chart' },
+      { href: CRM + '#report', text: 'Report', ic: 'steps' }
+   
+    ] },
+    { label: 'Vendite', items: [
+      { href: '/sales-vendite.html#quotes', text: 'Preventivi', ic: 'steps' },
+      { href: '/sales-vendite.html#invoices', text: 'Fatture', ic: 'check' },
+      { href: '/sales-vendite.html#products', text: 'Prodotti e listini', ic: 'building' }
     ] },
     { label: 'Acquisizione', items: [
       { href: '/lead-intelligence.html', text: 'Lead Intelligence', ic: 'magnet' },
@@ -29,6 +38,10 @@
       { href: CRM + '#members', text: 'Membri', ic: 'team' },
       { href: CRM + '#processes', text: 'Processi', ic: 'flow' },
       { href: CRM + '#stages', text: 'Fasi', ic: 'steps' }
+    ] },
+    // Password, membri, caselle email, collegamenti, regole CRM: one page for every setting (impostazioni.html).
+    { label: 'Sistema', items: [
+      { href: '/impostazioni.html?area=sales', text: 'Impostazioni', ic: 'sliders' }
     ] }
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };

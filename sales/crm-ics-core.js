@@ -5,7 +5,7 @@
    UIDs are stable per record, so importing again updates events instead of duplicating them. */
 (function(root){
 const DAY=864e5;
-const esc=s=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+const esc=s=>String(s==null?'':s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
 const utc=d=>new Date(d).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
 const ymd=s=>String(s).slice(0,10).replace(/-/g,'');
 const nextDay=s=>new Date(Date.parse(String(s).slice(0,10)+'T00:00:00Z')+DAY).toISOString().slice(0,10);
