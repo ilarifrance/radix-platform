@@ -31,3 +31,10 @@ def send(text: str, post=requests.post) -> bool:
 def order_text(prefix: str, symbol: str, units: float, price: float, fee: float) -> str:
     side = "Compro" if units > 0 else "Vendo"
     return f"{prefix} {side} {abs(units):.6g} {symbol} a {price:,.2f} € (circa {abs(units) * price:,.2f} €, commissione {fee:.2f} €)"
+
+
+def limit_order_text(prefix: str, symbol: str, units: float, price: float, hours: int) -> str:
+    side = "Compro" if units > 0 else "Vendo"
+    return (f"{prefix} {side} {abs(units):.6g} {symbol} con ordine limite a {price:,.2f} € "
+            f"(circa {abs(units) * price:,.2f} €): resta in coda al massimo {hours} ore con commissione da maker, "
+            f"poi la parte mancante va a mercato.")

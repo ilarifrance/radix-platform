@@ -66,12 +66,16 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 ## Test da 100 euro veri (spento)
 
 Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`).
-- Al massimo 100 euro investiti, niente leva, solo ordini a mercato.
+- Al massimo 100 euro investiti, niente leva. Gli ordini della regola partono come limite «post only» al miglior
+  prezzo del momento (commissione da maker); se dopo 6 ore non si sono eseguiti, la parte mancante va a mercato.
+  Le vendite dello stop sono sempre a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
 - Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
 - Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
 
 Passi, tutti di Francesco:
-1. Su Kraken crea una chiave API con i soli permessi "Query Funds" e "Create & Modify Orders", senza prelievi.
+1. Su Kraken crea una chiave API con i soli permessi "Query Funds", "Query Open Orders & Trades",
+   "Query Closed Orders & Trades", "Create & Modify Orders" e "Cancel/Close Orders", senza prelievi
+   (gli ultimi tre servono a seguire e annullare gli ordini limite).
 2. Scrivi `KRAKEN_API_KEY` e `KRAKEN_API_SECRET` in `~/RadixTrading/.env`. Per gli avvisi aggiungi `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
 3. Prova senza rischi:
    - `python -m radix_trading alert-test`;
