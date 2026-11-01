@@ -172,3 +172,4 @@ body.sx[data-prodotto=radix]{--accent:#00EAB5}
 .sx-split+.sx-split{margin-top:56px}
 .sx-amount .tbd{font-size:26px;font-weight:600;color:var(--muted)}
 .sx-steps.five{grid-template-columns:repeat(5,1fr)}
+.sx-sites .sx-tag{align-self:flex-start}
