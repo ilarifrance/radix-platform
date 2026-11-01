@@ -80,9 +80,17 @@ function rail(d,all){const r=E('aside',undefined,'cal-rail');const t=E('section'
   r.append(s);return r}
 
 let busy=false;
+// Something went wrong while drawing: the section says so instead of staying empty, and the next change draws again.
+function showError(sec,e){sec.querySelector(':scope>.cal')?.remove();sec.querySelector(':scope>.cal-error')?.remove();const p=E('p','Il calendario non si è potuto disegnare: '+(e&&e.message?e.message:'errore inatteso')+'. Ricarica la pagina o cambia vista.','notice cal-error');p.setAttribute('role','alert');sec.append(p)}
 async function render(){ensureNav();if((location.hash||'')!=='#calendar'){document.getElementById('calendar')?.remove();return}
   const sec=ensureSection();content.querySelectorAll(':scope>section.rx-view').forEach(s=>{if(s!==sec)s.classList.remove('rx-view')});sec.classList.add('rx-view');document.documentElement.classList.add('rx-has-view');
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;busy=true;sec.querySelector(':scope>.cal')?.remove();
+  // While the CRM rows load the section is not blank: a line says so (removed by the first drawing).
+  if(!sec.querySelector(':scope>.cal')&&!sec.querySelector(':scope>.cal-loading')){const w=E('p','Caricamento degli impegni…','muted cal-loading');w.setAttribute('aria-live','polite');sec.append(w)}
+  let d=null;try{d=await window.RadixCrmData?.load()}catch(e){if(sec.isConnected)showError(sec,e);return}
+  if(!d||!sec.isConnected)return;busy=true;
+  try{draw(sec,d)}catch(e){busy=false;showError(sec,e);return}
+  requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
+function draw(sec,d){sec.querySelector(':scope>.cal-loading')?.remove();sec.querySelector(':scope>.cal-error')?.remove();sec.querySelector(':scope>.cal')?.remove();
   const all=events(d);const root=E('div',undefined,'cal');const left=E('div',undefined,'cal-left');left.append(mini(),filters(d));
   const main=E('section',undefined,'cal-card cal-main');const bar=E('div',undefined,'cal-bar');const step=state.mode==='month'?null:state.mode==='day'?1:7;
   const prev=E('button','‹');prev.type='button';prev.setAttribute('aria-label','Precedente');prev.onclick=()=>{const c=state.cursor;state.cursor=step?new Date(+c-step*DAY):new Date(c.getFullYear(),c.getMonth()-1,1);render()};
@@ -93,8 +101,7 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   bar.append(prev,today,next,E('h3',title),modes);main.append(bar,state.mode==='month'?month(all):grid(all));
   const legend=E('div',undefined,'cal-legend');for(const [name,tone] of Object.values(TYPES))legend.append(E('span',name,'dot '+tone));main.append(legend);
   root.append(left,main,rail(d,all));sec.append(root);
-  const body=sec.querySelector('.cal-body');if(body&&state.mode!=='month'&&!sec.dataset.scrolled){sec.dataset.scrolled='1'}
-  requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
+  const body=sec.querySelector('.cal-body');if(body&&state.mode!=='month'&&!sec.dataset.scrolled){sec.dataset.scrolled='1'}}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});
