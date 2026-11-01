@@ -86,6 +86,39 @@ def test_plan_is_not_sent_after_the_grace_days_and_preview_records_nothing(monke
     assert fineco.maybe_alert(Store(":memory:"), datetime(2026, 11, 5, 9, 0, tzinfo=timezone.utc), send=sent.append, fetch=_fetch) is None
 
 
+def test_pause_file_stops_the_monthly_plan_and_resume_sends_the_current_month(monkeypatch, tmp_path):
+    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    monkeypatch.setattr(fineco, "pause_file", lambda store: tmp_path / "FINECO_PAUSA")
+    st, sent = Store(":memory:"), []
+    fetch = lambda s: FAKE[s]
+    monday = datetime(2026, 11, 2, 7, 21, tzinfo=timezone.utc)
+    # 1/11 Francesco: «su Fineco forse conviene aspettare» → pausa; lunedi' il piano non parte e non si registra nulla
+    fineco.pause(st, True, datetime(2026, 11, 1, 10, 50, tzinfo=timezone.utc))
+    assert fineco.paused(st) and "Francesco" in (tmp_path / "FINECO_PAUSA").read_text()
+    out = fineco.maybe_alert(st, monday, send=sent.append, fetch=fetch)
+    assert out["pausa"] and out["inviato"] is False and sent == []
+    assert st.conn.execute("SELECT COUNT(*) FROM etf_alerts").fetchone()[0] == 0
+    assert st.conn.execute("SELECT COUNT(*) FROM etf_targets").fetchone()[0] == 0
+    # l'anteprima lo dice chiaramente, e il piano resta quello (cinque COMPRA)
+    prova = fineco.maybe_alert(st, monday, send=sent.append, fetch=fetch, prova=True)
+    assert prova["pausa"] and prova["testo"].startswith("[IN PAUSA") and sum(r["action"] == "COMPRA" for r in prova["piano"]) == 5
+    # anche martedi' (giorno di tolleranza) resta fermo
+    assert fineco.maybe_alert(st, datetime(2026, 11, 3, 9, 0, tzinfo=timezone.utc), send=sent.append, fetch=fetch)["pausa"]
+    # ripresa giovedi' 12/11 alle 10 UTC: il piano e' di novembre, da eseguire oggi stesso, e si registra
+    fineco.pause(st, False)
+    assert not fineco.paused(st)
+    out = fineco.maybe_alert(st, datetime(2026, 11, 12, 10, 0, tzinfo=timezone.utc), send=sent.append, fetch=fetch,
+                             force=True, mese="2026-11")
+    assert out["mese"] == "2026-11" and out["giorno"] == "2026-11-12" and len(sent) == 1
+    assert "Piano di novembre 2026" in sent[0] and "giovedi' 12/11" in sent[0]
+    assert st.conn.execute("SELECT COUNT(*) FROM etf_targets WHERE month = '2026-11'").fetchone()[0] == 5
+    # ripresa a borsa chiusa (venerdi' 13/11 alle 16:30 UTC): si esegue lunedi' 16/11
+    fineco.pause(st, False)
+    late = fineco.maybe_alert(Store(":memory:"), datetime(2026, 11, 13, 16, 30, tzinfo=timezone.utc), send=sent.append,
+                              fetch=fetch, force=True, mese="2026-11")
+    assert late["giorno"] == "2026-11-16" and "lunedi' 16/11" in sent[-1]
+
+
 def test_default_rule_is_buy_and_hold(monkeypatch):
     monkeypatch.setattr(fineco, "env_value", lambda n: None)
     assert fineco.rule() == "tieni"

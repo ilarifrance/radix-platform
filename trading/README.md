@@ -107,6 +107,10 @@ la sera del 31/10/2026, ed e' il default senza variabile.
 `python -m radix_trading fineco --ora` manda il piano subito; `fineco --prova` lo stampa senza mandarlo ne' registrarlo.
 Il piano automatico parte solo il primo giorno di borsa del mese (piu' due giorni di tolleranza): un programma installato
 a meta' mese non spedisce un piano vecchio (il 31/10/2026 era successo).
+Pausa (1/11/2026, Francesco: «su Fineco forse conviene aspettare un attimo»): `fineco --pausa` crea il file `FINECO_PAUSA`
+nella cartella dati e il piano mensile non parte finche' esiste (il controllo orario dei prezzi e la sentinella continuano,
+e la sentinella lo dice nel verdetto); `fineco --riprendi` toglie il file e manda subito il piano del mese in corso, da
+eseguire il prossimo giorno di borsa; `fineco --prova` in pausa stampa il piano con l'avviso «IN PAUSA».
 - Ricerca «compra sul ribasso» (`ribasso.py`, comando `ribasso`): riserva di cassa 10-30% e acquisti il giorno dopo un
   -2/3/4% del Nasdaq, con o senza rivendita dopo 20 giorni, contro il piano fisso compra e tieni; panieri di prova,
   operativo e ETF USA dal 2005. Scrive ribasso.md e ribasso.json nella cartella dati.

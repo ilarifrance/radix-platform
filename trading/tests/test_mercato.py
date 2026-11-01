@@ -132,3 +132,12 @@ def test_hold_rule_changes_the_verdict(monkeypatch):
     st, sent = _store(btc_move=0.0, now=now), []
     mercato.watch(st, now, send=sent.append, quote=_quote_at(now), pausa=0)
     assert "compra e tieni" in sent[0] and "Attenzione" not in sent[0]
+
+
+def test_paused_etf_plan_is_named_in_the_verdict(monkeypatch, tmp_path):
+    monkeypatch.setattr(fineco, "pause_file", lambda store: tmp_path / "FINECO_PAUSA")
+    st, sent = _store(), []
+    fineco.pause(st, True)
+    now = datetime(2026, 10, 30, 21, 17, tzinfo=timezone.utc)
+    mercato.watch(st, now, send=sent.append, quote=_quote_at(now), pausa=0)
+    assert "in pausa" in sent[0] and "ribilancia solo a gennaio" not in sent[0]

@@ -163,7 +163,7 @@ def regole(store: Store) -> dict:
             crypto = {"ts": row[0], "equity": float(row[1]), "stop": (float(start[0]) - MAX_LOSS_EUR) if start else None}
     except Exception:   # conto vero mai partito su questa macchina
         pass
-    return {"etf": etf, "crypto": crypto, "regola_etf": fineco.rule()}
+    return {"etf": etf, "crypto": crypto, "regola_etf": fineco.rule(), "pausa_etf": fineco.paused(store)}
 
 
 def valutazione(store: Store, primary: dict, studio: dict | None, now: datetime) -> list[str]:
@@ -194,7 +194,10 @@ def valutazione(store: Store, primary: dict, studio: dict | None, now: datetime)
     etf_txt = ("ETF " + ", ".join(parts) + " rispetto al prezzo di 12 mesi fa (↑ dentro, ↓ fuori). ") if parts else ""
     lines.append("Regole: " + etf_txt + crypto_txt)
     verdict = []
-    if reg["regola_etf"] == "tieni":
+    if reg["pausa_etf"]:
+        verdict.append("Piano ETF Fineco in pausa su richiesta di Francesco: nessun acquisto previsto finche' non riparte "
+                       "(`fineco --riprendi`).")
+    elif reg["regola_etf"] == "tieni":
         verdict.append("Nessuna azione: con «compra e tieni» si ribilancia solo a gennaio.")
     elif near:
         for e in near:

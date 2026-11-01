@@ -12,7 +12,8 @@ Capitale di riferimento: `FINECO_CAPITAL_EUR` in ~/RadixTrading/.env (3.000 euro
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 import pandas as pd
 
@@ -50,6 +51,10 @@ RULE_NAMES = {"trend": "trend a 12 mesi", "conferma": "trend a 12 mesi con confe
 REBALANCE_MIN_EUR = 150.0   # sotto, il ribilancio non vale la commissione minima
 ALERT_HOUR_UTC = 7       # alle 8 italiane, un'ora prima dell'apertura di Borsa Italiana
 ALERT_GRACE_DAYS = 2     # se Yahoo e' giu' il primo giorno si riprova nei due giorni dopo; oltre, il piano del mese non si manda piu'
+PAUSE_FILE = "FINECO_PAUSA"   # nella cartella dati: finche' esiste il piano mensile non parte (1/11/2026, Francesco: «su Fineco
+                              # forse conviene aspettare»); `fineco --pausa` lo crea, `fineco --riprendi` lo toglie e manda il piano
+                              # del mese in corso. Il controllo orario dei prezzi continua.
+RESUME_HOUR_UTC = 15          # ripresa dopo le 16 italiane: il piano e' per il giorno di borsa successivo
 HOLIDAYS = {(1, 1), (5, 1), (8, 15), (12, 24), (12, 25), (12, 26), (12, 31)}   # chiusure fisse di Borsa Italiana
 MONTHS = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre",
           "ottobre", "novembre", "dicembre"]
@@ -76,6 +81,33 @@ def first_trading_day(year: int, month: int) -> date:
     while d.weekday() >= 5 or (d.month, d.day) in HOLIDAYS:
         d = d.replace(day=d.day + 1)
     return d
+
+
+def next_trading_day(d: date) -> date:
+    """Il primo giorno di borsa da `d` in avanti (compreso)."""
+    while d.weekday() >= 5 or (d.month, d.day) in HOLIDAYS:
+        d += timedelta(days=1)
+    return d
+
+
+def pause_file(store: Store) -> Path:
+    return Path(store.path).parent / PAUSE_FILE
+
+
+def paused(store: Store) -> bool:
+    return pause_file(store).exists()
+
+
+def pause(store: Store, on: bool, now: datetime | None = None) -> Path:
+    """Mette in pausa (o riprende) il piano mensile: un file nella cartella dati, come il kill switch del conto vero."""
+    p = pause_file(store)
+    if on:
+        now = now or datetime.now(timezone.utc)
+        p.write_text(f"Piano ETF Fineco in pausa dal {now:%d/%m/%Y %H:%M} UTC su richiesta di Francesco. "
+                     f"`python -m radix_trading fineco --riprendi` toglie la pausa e manda il piano del mese in corso.\n")
+    elif p.exists():
+        p.unlink()
+    return p
 
 
 def capital() -> float:
@@ -222,25 +254,35 @@ def alert_text(month: str, rows: list[dict], cap: float, day: date) -> str:
 
 
 def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fetch=fetch_daily,
-                cap: float | None = None, force: bool = False, prova: bool = False) -> dict | None:
+                cap: float | None = None, force: bool = False, prova: bool = False, mese: str | None = None) -> dict | None:
     """Manda il piano del mese una volta sola, il primo giorno di borsa del mese dalle 8 italiane (con due giorni di
     tolleranza se i dati mancano). Fuori da quella finestra non si manda: un programma installato a meta' mese non deve
-    spedire un piano vecchio (successo il 31/10/2026). Con `prova` compone il testo senza mandarlo ne' registrarlo."""
+    spedire un piano vecchio (successo il 31/10/2026). Con `prova` compone il testo senza mandarlo ne' registrarlo.
+    Con il file di pausa il piano non parte (la prova lo dice nel testo). `mese` ("2026-11") blocca il mese, per la
+    ripresa a meta' mese: il piano e' per il primo giorno di borsa utile, non per il primo del mese."""
     now = now or datetime.now(timezone.utc)
     year, mon = now.year, now.month
-    if (force or prova) and now.date() > first_trading_day(year, mon):   # a mano a fine mese: e' il piano del mese prossimo
+    if mese:
+        year, mon = int(mese[:4]), int(mese[5:7])
+    elif (force or prova) and now.date() > first_trading_day(year, mon):   # a mano a fine mese: e' il piano del mese prossimo
         year, mon = (year + 1, 1) if mon == 12 else (year, mon + 1)
     month = f"{year}-{mon:02d}"
-    day = first_trading_day(year, mon)
+    first = first_trading_day(year, mon)
     db = store.conn
     db.executescript(SCHEMA)
+    in_pausa = paused(store)
     if not (force or prova):
         if db.execute("SELECT 1 FROM etf_alerts WHERE month = ?", (month,)).fetchone():
             return None
-        if now.date() < day or (now.date() == day and now.hour < ALERT_HOUR_UTC):
+        if now.date() < first or (now.date() == first and now.hour < ALERT_HOUR_UTC):
             return None
-        if (now.date() - day).days > ALERT_GRACE_DAYS:
+        if (now.date() - first).days > ALERT_GRACE_DAYS:
             return None
+        if in_pausa:
+            return {"mese": month, "pausa": True, "inviato": False, "nota": "piano fermo: esiste il file FINECO_PAUSA"}
+    day = first
+    if now.date() > first:   # giorno di tolleranza o ripresa a meta' mese: si esegue il prossimo giorno di borsa (oggi se aperta)
+        day = next_trading_day(now.date() if now.hour < RESUME_HOUR_UTC else now.date() + timedelta(days=1))
     cap = cap or capital()
     closes = collect(store, fetch)
     regola = rule()
@@ -249,8 +291,10 @@ def maybe_alert(store: Store, now: datetime | None = None, send=alerts.send, fet
         return {"mese": month, "giorno": day.isoformat(), "errore": "dati mancanti per tutti gli ETF, riprovo al prossimo giro"}
     text = alert_text(month, rows, cap, day)
     if prova:
+        if in_pausa:
+            text = "[IN PAUSA: questo piano non parte finche' c'e' il file FINECO_PAUSA]\n" + text
         return {"mese": month, "giorno": day.isoformat(), "capitale": cap, "regola": regola, "inviato": False, "prova": True,
-                "piano": rows, "testo": text}
+                "pausa": in_pausa, "piano": rows, "testo": text}
     sent = send(text)
     db.execute("INSERT OR REPLACE INTO etf_alerts VALUES (?, ?, ?)", (month, now.strftime("%Y-%m-%dT%H:%M:%SZ"), text))
     db.executemany("INSERT OR REPLACE INTO etf_targets VALUES (?, ?, ?, ?)",

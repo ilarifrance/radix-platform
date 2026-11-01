@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 import time
 from dataclasses import replace
 
@@ -246,6 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
     p.add_argument("--prova", action="store_true", help="live: Kraken convalida gli ordini senza eseguirli; fineco/mercato: stampa senza mandare")
     p.add_argument("--ora", action="store_true", help="solo per fineco: manda il piano del mese adesso, anche se gia' mandato")
+    p.add_argument("--pausa", action="store_true", help="solo per fineco: ferma il piano mensile (file FINECO_PAUSA nella cartella dati)")
+    p.add_argument("--riprendi", action="store_true",
+                   help="solo per fineco: toglie la pausa e manda subito il piano del mese in corso")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     p.add_argument("--crypto-csv", default=None,
                    help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
@@ -365,9 +369,18 @@ def main(argv: list[str] | None = None) -> int:
                 print(result["testo"], file=sys.stderr)
         elif args.command == "fineco":
             from . import fineco
-            # --ora manda subito il piano (del mese prossimo se quello corrente e' passato); --prova lo stampa e basta.
-            result = fineco.maybe_alert(store, cap=args.capital, force=args.ora and not args.prova, prova=args.prova) \
-                or {"mese": "gia' mandato, non ancora il primo giorno di borsa, o primo giorno passato da piu' di due giorni"}
+            # --pausa ferma il piano mensile; --riprendi lo riattiva e manda il piano del mese in corso (da eseguire il prossimo
+            # giorno di borsa); --ora manda subito il piano (del mese prossimo se quello corrente e' passato); --prova lo stampa.
+            if args.pausa:
+                result = {"pausa": str(fineco.pause(store, True)),
+                          "nota": "piano mensile fermo finche' il file esiste; il controllo orario dei prezzi continua"}
+            elif args.riprendi:
+                fineco.pause(store, False)
+                oggi = datetime.now(timezone.utc)
+                result = fineco.maybe_alert(store, cap=args.capital, force=True, mese=f"{oggi:%Y-%m}")
+            else:
+                result = fineco.maybe_alert(store, cap=args.capital, force=args.ora and not args.prova, prova=args.prova) \
+                    or {"mese": "gia' mandato, non ancora il primo giorno di borsa, primo giorno passato da piu' di due giorni"}
             if args.prova and result.get("testo"):
                 print(result["testo"], file=sys.stderr)
         elif args.command == "alert-test":
