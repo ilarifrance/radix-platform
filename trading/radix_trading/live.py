@@ -21,7 +21,8 @@ a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
 
 Il conto Kraken va usato solo per questo: il patrimonio del conto (euro + crypto) e' il patrimonio
 del test. Si investe al massimo CAPITAL_EUR (l'eventuale eccedenza resta in euro); se il patrimonio scende sotto
-quello del primo giro meno MAX_LOSS_EUR si vende tutto e il conto resta fermo finche' qualcuno non cancella la riga in live_halt.
+quello del primo giro meno MAX_LOSS_EUR (o RADIX_TRADING_MAX_LOSS_EUR) si vende tutto e il conto resta fermo finche' qualcuno
+non cancella la riga in live_halt. La regola e' quella di portfolio.lane_weights: RADIX_TRADING_VOL_TARGET la rende piu' o meno aggressiva.
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ from .config import Settings, env_value
 from .store import Store
 
 CAPITAL_EUR = 100.0
-MAX_LOSS_EUR = 20.0
+MAX_LOSS_EUR = 20.0      # stop del test: RADIX_TRADING_MAX_LOSS_EUR lo cambia (es. 60 → con 110 di partenza si vende tutto a 50)
 BAND = 0.03             # come il conto finto: non si ritocca sotto il 3% del capitale
 MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 euro le quote piccole sono ~3 euro
 MAX_ORDERS_PER_RUN = 10
@@ -168,20 +169,45 @@ def _coin(symbol: str) -> str:
     return symbol.removesuffix("EUR").replace("XBT", "BTC")
 
 
+def max_loss_eur() -> float:
+    """Perdita in euro dal patrimonio del primo giro oltre la quale si vende tutto e il conto si ferma.
+
+    20 euro di partenza (Francesco, 30/10/2026: «stop a −20 €»). Con una regola piu' aggressiva
+    (portfolio.vol_target sopra 0,25) lo stop va alzato insieme, altrimenti scatta alla prima discesa normale:
+    `RADIX_TRADING_MAX_LOSS_EUR=60` in ~/RadixTrading/.env porta lo stop a 50 euro con 110 di partenza."""
+    raw = env_value("RADIX_TRADING_MAX_LOSS_EUR")
+    if not raw:
+        return MAX_LOSS_EUR
+    try:
+        value = float(raw.replace(",", "."))
+    except ValueError:
+        raise ValueError(f"RADIX_TRADING_MAX_LOSS_EUR non e' un numero: {raw!r}") from None
+    if value <= 0:
+        raise ValueError(f"RADIX_TRADING_MAX_LOSS_EUR={value}: deve essere positivo")
+    return value
+
+
+def rule_text() -> str:
+    """La regola in vigore, per il riepilogo: si vede su Telegram quando cambia."""
+    vt = portfolio.vol_target()
+    return f"Regola: trend crypto con volatilita' obiettivo {vt:.2f}" + ("" if vt == portfolio.VOL_TARGET else " (alzata)") + "."
+
+
 def status_text(tag: str, now: datetime, equity: float, start: float, eur: float,
                 held: dict[str, float], prices: dict[str, float], halted: bool,
                 pending: dict[str, dict] | None = None, staked_eur: float = 0.0) -> str:
     pos = [f"{_coin(s)} {u * prices[s]:.2f} €" for s, u in sorted(held.items()) if u * prices.get(s, 0) >= 0.5]
     queue = [f"{'compro' if o['side'] == 'buy' else 'vendo'} {_coin(s)} {o['rest'] * o['price']:.2f} €"
              for s, o in sorted((pending or {}).items())]
-    stop = start - MAX_LOSS_EUR
+    stop = start - max_loss_eur()
     margin = equity - stop
     return (f"{tag} Riepilogo {now:%H:%M} UTC: patrimonio {equity:.2f} €, guadagno/perdita {equity - start:+.2f} € "
             f"({equity / start - 1:+.1%}) dall'inizio, commissioni comprese. Euro liberi {eur:.2f} €, "
             f"posizioni: {', '.join(pos) or 'nessuna'}. "
             + (f"In coda: {', '.join(queue)}. " if queue else "")
             + (f"In staking: {staked_eur:.2f} €. " if staked_eur >= 0.5 else "")
-            + ("Conto FERMO per lo stop." if halted else f"Stop a {stop:.2f} € (distanza dallo stop {margin:.2f} €)."))
+            + ("Conto FERMO per lo stop. " if halted else f"Stop a {stop:.2f} € (distanza dallo stop {margin:.2f} €). ")
+            + rule_text())
 
 
 def _open_orders(db, client: Kraken, now: datetime, tag: str, send) -> tuple[dict[str, dict], set[str], float]:
@@ -291,11 +317,12 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     else:
         start = row[0]
     halted = db.execute("SELECT ts FROM live_halt").fetchone() is not None
-    if not halted and equity <= start - MAX_LOSS_EUR:
+    stop = start - max_loss_eur()
+    if not halted and equity <= stop:
         halted = True
         if not prova:
             db.execute("INSERT INTO live_halt VALUES (1, ?, ?)", (ts, equity))
-        send(f"{tag} Stop: patrimonio {equity:.2f} € sotto {start - MAX_LOSS_EUR:.2f} €. Vendo tutto e mi fermo.")
+        send(f"{tag} Stop: patrimonio {equity:.2f} € sotto {stop:.2f} €. Vendo tutto e mi fermo.")
     pending, fallback, reserved = ({}, set(), 0.0) if prova else _open_orders(db, client, now, tag, send)
     if halted and pending and not prova:
         _cancel_pending(db, client, pending, "per lo stop")   # gli acquisti in coda non servono piu'

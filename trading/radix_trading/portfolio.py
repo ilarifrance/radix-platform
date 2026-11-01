@@ -21,9 +21,12 @@ import numpy as np
 import pandas as pd
 
 from . import backtest, data, multi, strategies, universe
+from .config import env_value
 from .store import Store
 
 START_EUR = 1000.0
+VOL_TARGET = 0.25        # obiettivo di volatilita' annua della regola crypto_trend; RADIX_TRADING_VOL_TARGET lo cambia
+VOL_TARGET_RANGE = (0.05, 2.0)
 BAND = 0.03
 MAX_FEE_SHARE = 0.005  # con la commissione minima fissa si opera solo se costa al massimo lo 0,5% dell'ordine
 ALLOCATION_DAYS = 400
@@ -79,11 +82,34 @@ def _closes(store: Store, market: str) -> tuple[pd.DataFrame, str, str]:
     return (df.dropna(how="all").ffill() if len(df) else df), venue, tf
 
 
+def vol_target() -> float:
+    """Obiettivo di volatilita' della regola crypto_trend, per il conto vero e per quello finto.
+
+    Con 0,25 (valore di partenza) la regola investe in media il 13% del capitale. Il 1/11/2026 Francesco ha
+    accettato perdite fino al 50-60% in cambio di un rendimento piu' alto: alzare questo valore mette piu'
+    capitale nel trend, con i soldi del conto e senza prestito. Misurato 2018-2026 con costi Kraken:
+    0,25 → +11%/anno, perdita massima -25%; 0,50 → +22% e -42%; 0,75 → +29% e -54%; 1,00 → +36% e -57%.
+    Gli anni negativi restano gli stessi (2018, 2022, 2025, 2026), solo piu' profondi. Si imposta in
+    ~/RadixTrading/.env con `RADIX_TRADING_VOL_TARGET=0.75`; insieme va alzato lo stop (live.max_loss_eur).
+    """
+    raw = env_value("RADIX_TRADING_VOL_TARGET")
+    if not raw:
+        return VOL_TARGET
+    try:
+        value = float(raw.replace(",", "."))
+    except ValueError:
+        raise ValueError(f"RADIX_TRADING_VOL_TARGET non e' un numero: {raw!r}") from None
+    lo, hi = VOL_TARGET_RANGE
+    if not lo <= value <= hi:
+        raise ValueError(f"RADIX_TRADING_VOL_TARGET={value} fuori dall'intervallo {lo}-{hi}")
+    return value
+
+
 def lane_weights(lane: Lane, close: pd.DataFrame, macro: pd.DataFrame, cot: pd.DataFrame | None = None) -> pd.DataFrame:
     if lane.key == "crypto_trend":
-        return strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=0.25)
+        return strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=vol_target())
     if lane.key == "crypto_trend_prob":
-        return multi.prob_filter(close, strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=0.25))
+        return multi.prob_filter(close, strategies.crypto_trend_daily(close, fast=24 * 10, slow=24 * 100, vol_target=vol_target()))
     if lane.key == "trend_brake":
         return multi.trend_brake(close, fast=24 * 10, slow=24 * 100, vol_target=0.25, short_size=0.25, exit_on="rebound")
     if lane.key == "gold_macro":

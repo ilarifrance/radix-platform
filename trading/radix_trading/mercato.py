@@ -159,8 +159,8 @@ def regole(store: Store) -> dict:
         row = db.execute("SELECT ts, equity FROM live_equity ORDER BY ts DESC LIMIT 1").fetchone()
         start = db.execute("SELECT start FROM live_account").fetchone()
         if row:
-            from .live import MAX_LOSS_EUR
-            crypto = {"ts": row[0], "equity": float(row[1]), "stop": (float(start[0]) - MAX_LOSS_EUR) if start else None}
+            from .live import max_loss_eur
+            crypto = {"ts": row[0], "equity": float(row[1]), "stop": (float(start[0]) - max_loss_eur()) if start else None}
     except Exception:   # conto vero mai partito su questa macchina
         pass
     return {"etf": etf, "crypto": crypto, "regola_etf": fineco.rule(), "pausa_etf": fineco.paused(store)}

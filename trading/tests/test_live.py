@@ -136,6 +136,31 @@ def test_stop_counts_from_the_real_starting_balance(tmp_path, monkeypatch):
     assert out["fermo"]
 
 
+def test_stop_and_rule_follow_the_env_values_chosen_by_francesco(tmp_path, monkeypatch):
+    # 1/11/2026: perdita accettata fino al 50-60% → RADIX_TRADING_MAX_LOSS_EUR=60 porta lo stop da 90 a 50 euro
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    monkeypatch.setenv("RADIX_TRADING_MAX_LOSS_EUR", "60")
+    monkeypatch.setenv("RADIX_TRADING_VOL_TARGET", "0,75")
+    seen = []
+    monkeypatch.setattr(live.portfolio.strategies, "crypto_trend_daily",
+                        lambda close, **kw: seen.append(kw["vol_target"]) or close * 0 + 0.3)
+    st, s = _store(), _settings(tmp_path, mode="live")
+    sent = []
+    live.step(st, s, FakeKraken({"ZEUR": 110.0}), now=datetime(2026, 11, 2, 0, 15, tzinfo=timezone.utc), send=sent.append)
+    assert seen == [0.75]
+    assert any("Stop a 50.00" in m and "volatilita' obiettivo 0.75 (alzata)" in m for m in sent)
+    out = live.step(st, s, FakeKraken({"ZEUR": 89.0}), send=lambda m: None)
+    assert not out["fermo"]                      # con lo stop di prima (90) si sarebbe fermato
+    out = live.step(st, s, FakeKraken({"ZEUR": 49.0}), send=lambda m: None)
+    assert out["fermo"]
+    monkeypatch.setenv("RADIX_TRADING_MAX_LOSS_EUR", "zero")
+    with pytest.raises(ValueError):
+        live.max_loss_eur()
+    monkeypatch.setenv("RADIX_TRADING_MAX_LOSS_EUR", "-5")
+    with pytest.raises(ValueError):
+        live.max_loss_eur()
+
+
 def test_kill_switch_blocks_orders(tmp_path):
     (tmp_path / "KILL_SWITCH").write_text("stop")
     k = FakeKraken({"ZEUR": 100.0})

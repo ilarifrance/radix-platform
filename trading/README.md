@@ -82,6 +82,14 @@ Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`
   notizia da sola: lo studio eventi non ha trovato vantaggi che reggano la verifica). Un avviso per mercato al giorno.
   Prova a mano: `python -m radix_trading mercato --prova --quando 2026-10-30T21:17Z` stampa il testo senza mandarlo.
 - Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
+- Quanto investire lo decide l'obiettivo di volatilita' della regola (`portfolio.vol_target`, 0,25 di partenza: in media
+  il 13% del capitale). Il 1/11/2026 Francesco ha accettato perdite fino al 50-60% in cambio di un rendimento piu' alto;
+  misurato 2018-2026 con costi Kraken: 0,25 → +11%/anno e perdita massima −25%; 0,50 → +22% e −42%; 0,75 → +29% e −54%;
+  1,00 → +36% e −57%. Gli anni negativi restano gli stessi (2018, 2022, 2025, 2026), solo piu' profondi, e negli anni
+  mai visti 2024-26 la differenza e' +7-8% contro +4%. Si cambia in `~/RadixTrading/.env` con due righe insieme, senza
+  toccare il codice: `RADIX_TRADING_VOL_TARGET=0.75` e `RADIX_TRADING_MAX_LOSS_EUR=60` (stop a 50 euro con 110 di
+  partenza; con lo stop di 20 euro una regola piu' aggressiva si fermerebbe alla prima discesa normale). Il riepilogo
+  su Telegram dice la regola in vigore. Lo stesso valore vale per il conto finto e per `replay`.
 - Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
 
 Passi, tutti di Francesco:
