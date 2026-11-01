@@ -9,3 +9,7 @@ test('the calendar says it is loading, reports a drawing error and draws again a
  assert.ok(view.includes("'notice cal-error'")&&view.includes("p.setAttribute('role','alert')"),'the error line is announced');
  assert.ok(/function draw\(sec,d\)\{sec\.querySelector\(':scope>\.cal-loading'\)\?\.remove\(\);sec\.querySelector\(':scope>\.cal-error'\)\?\.remove\(\)/.test(view),'a drawing clears the loading and error lines');
 });
+test('an empty calendar says where its events come from',()=>{
+ assert.ok(view.includes("if(!all.length){const why=E('p',undefined,'cal-empty cal-why')"),'the hint appears only with no event at all');
+ assert.ok(view.includes("a.href='/impostazioni.html?area=sales#calendari'"),'it points to the external calendars settings');
+});
