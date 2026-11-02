@@ -90,6 +90,8 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   if(!sec.querySelector(':scope>.cal')&&!sec.querySelector(':scope>.cal-loading')){const w=E('p','Caricamento degli impegni…','muted cal-loading');w.setAttribute('aria-live','polite');sec.append(w)}
   let d=null;try{d=await window.RadixCrmData?.load()}catch(e){if(sec.isConnected)showError(sec,e);return}
   if(!sec.isConnected)return;
+  // No workspace yet (sales.js is still filling the selector): keep the loading line, the next change draws.
+  if(!d&&!window.RadixCrmData?.workspace?.())return;
   if(!d){const why=window.RadixCrmData?.lastError;showError(sec,{message:'i dati del CRM non sono disponibili'+(why?' · '+why:'')},'Premi «Aggiorna» in alto o ricarica la pagina; se succede di nuovo, manda questo messaggio a chi gestisce RADIX.');return}
   busy=true;
   try{draw(sec,d)}catch(e){busy=false;showError(sec,e);return}

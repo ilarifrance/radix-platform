@@ -28,3 +28,8 @@ test('crm-data: a failed read names the entity and the HTTP status in lastError,
   const cal = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
   assert.match(cal, /window\.RadixCrmData\?\.lastError/);
 });
+
+test('calendar-view: before sales.js sets the workspace, the loading line stays (no error flash at boot)', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
+  assert.match(src, /if\(!d&&!window\.RadixCrmData\?\.workspace\?\.\(\)\)return;/);
+});
