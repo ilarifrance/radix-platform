@@ -77,9 +77,11 @@ function selectionPanel(row){const target=$('selection');target.replaceChildren(
 function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}b.append(E('small','Apri dettagli ↗'));
  if(canWrite()&&isOpen(row)&&moveTargets(row,state.stages).length){b.draggable=true;b.title='Trascina su un’altra fase per spostarla';b.addEventListener('dragstart',e=>{state.dragId=row.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.id);b.classList.add('dragging')});b.addEventListener('dragend',()=>{state.dragId=null;b.classList.remove('dragging');clearTargets()})}
  b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');selectionPanel(row)};return b}
+// The header «Dipartimento» (crm-division.js): the deals of the companies and contacts of that department only.
+const visible=()=>window.RadixCrmDivision&&quick.rows?window.RadixCrmDivision.rows('opportunities',state.deals,quick.rows):state.deals;
 function render(){
  const board=$('board');board.replaceChildren();const term=$('filter').value.toLocaleLowerCase('it');
- const filtered=state.deals.filter(d=>isOpen(d)&&(!state.processId||d.process_id===state.processId)&&(d.title||'').toLocaleLowerCase('it').includes(term));
+ const filtered=visible().filter(d=>isOpen(d)&&(!state.processId||d.process_id===state.processId)&&(d.title||'').toLocaleLowerCase('it').includes(term));
  const visibleStages=state.stages.filter(stage=>!state.processId||stage.process_id===state.processId);
  for(const stage of visibleStages){const group=stageGroup(stage);const matching=filtered.filter(d=>d.stage_id===stage.id);const head=E('h2',stage.title||'Fase');head.append(E('small',matching.length+' opportunità aperte'));group.append(head);if(canWrite()){const add=E('button','+ Aggiungi','stage-add');add.type='button';add.title='Nuova opportunità in «'+(stage.title||'Fase')+'»';add.onclick=()=>openQuick(stage.id);group.append(add)}const list=E('div',undefined,'deals');matching.forEach(d=>list.append(dealCard(d)));if(!matching.length)list.append(E('small','Nessuna opportunità in questa fase.'));group.append(list);board.append(group)}
  const unassigned=filtered.filter(d=>!visibleStages.some(s=>s.id===d.stage_id));if(unassigned.length){const group=E('div',undefined,'stage');group.append(E('h2','Fase non disponibile'));const list=E('div',undefined,'deals');unassigned.forEach(d=>list.append(dealCard(d)));group.append(list);board.append(group)}
@@ -88,7 +90,7 @@ function render(){
  const ro=$('read-only');if(ro)ro.textContent=canWrite()?'Trascina una card su un’altra fase (o usa «Sposta in…» nei dettagli) · conferma richiesta':'Modalità lettura · modifiche dal CRM';
 }
 function metrics(){
- const scoped=state.deals.filter(d=>!state.processId||d.process_id===state.processId),shown=scoped.filter(isOpen),oc=outcomeCounts(scoped);
+ const scoped=visible().filter(d=>!state.processId||d.process_id===state.processId),shown=scoped.filter(isOpen),oc=outcomeCounts(scoped);
  $('count').textContent=String(shown.length);const amounts=shown.filter(d=>Number.isSafeInteger(cents(d.amount_cents)));$('amount').textContent='€ '+moneyMinor(amounts.reduce((s,d)=>s+cents(d.amount_cents),0));$('amount-note').textContent=amounts.length+' trattative aperte';
  $('weighted').textContent='€ '+moneyMinor(weighted(shown,state.stages));
  const today=localDay();$('overdue').textContent=String(shown.filter(d=>typeof d.expected_close==='string'&&d.expected_close<today).length);
@@ -106,7 +108,9 @@ async function load(){const generation=++state.generation;error('');$('status').
  const ids=new Set(pipelines.map(p=>p.id));state.stages=stages.rows.filter(s=>ids.has(s.process_id)).sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0));state.deals=deals.rows;state.complete=processes.complete&&stages.complete&&deals.complete;
  metrics();
  $('status').textContent=state.complete?'Dati aggiornati dal server.':'Dati CRM autorizzati · almeno una risorsa ha altre pagine non caricate';
- render()
+ render();
+ // Aziende and contatti (the same read as «+ Nuova opportunità») feed the header «Dipartimento» and its filter.
+ if(window.RadixCrmDivision)quickLoad().then(r=>{if(!r||generation!==state.generation)return;window.RadixCrmDivision.source(r);metrics();render()}).catch(()=>{})
 }catch(e){if(generation===state.generation){error(e.message);$('status').textContent='Impossibile caricare la pipeline.';idle('Pipeline non disponibile: premi Aggiorna per riprovare.');}}}
 // «+ Nuova opportunità»: title, company, contact, amount, close date and stage in one dialog. A company or contact
 // typed with a new name is created first (crm-quick-core.js decides), then the opportunity; no second confirmation.
@@ -213,5 +217,5 @@ function idle(msg){$('board').replaceChildren(E('div',msg,'empty'))}
 // The workspace last chosen in the CRM (radix.workspace, see sales.js), so every Sales page opens the same one.
 const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
 async function init(){try{const rows=await api('workspaces');state.workspaces=rows;const sel=$('workspace');sel.replaceChildren();if(!rows.length){sel.append(E('option','Nessun workspace autorizzato'));$('status').textContent='Nessun workspace disponibile';idle('Nessun workspace CRM disponibile per questo account.');return}rows.forEach(w=>{const opt=E('option',w.name||w.id);opt.value=w.id;sel.append(opt)});sel.disabled=false;{const kept=wsMemo.get();if([...sel.options].some(o=>o.value===kept))sel.value=kept}state.workspace=sel.value;wsMemo.set(state.workspace);await load()}catch(e){error(e.message);$('status').textContent='Accesso non disponibile.';idle('Accesso al CRM non disponibile.')}}
-$('workspace').onchange=()=>{state.workspace=$('workspace').value;quick.rows=null;wsMemo.set(state.workspace);transitionKeys.clear();load()};$('reload').onclick=load;$('filter').oninput=render;$('process').onchange=()=>{state.processId=$('process').value;state.allChosen=!state.processId;metrics();render()};init();
+$('workspace').onchange=()=>{state.workspace=$('workspace').value;quick.rows=null;wsMemo.set(state.workspace);transitionKeys.clear();load()};$('reload').onclick=load;document.addEventListener('radix-division',()=>{metrics();render()});$('filter').oninput=render;$('process').onchange=()=>{state.processId=$('process').value;state.allChosen=!state.processId;metrics();render()};init();
 })(typeof window!=='undefined'?window:globalThis);

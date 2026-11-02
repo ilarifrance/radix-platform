@@ -41,7 +41,9 @@
     ] },
     // Password, membri, caselle email, collegamenti, regole CRM: one page for every setting (impostazioni.html).
     { label: 'Sistema', items: [
-      { href: '/impostazioni.html?area=sales', text: 'Impostazioni', ic: 'sliders' }
+      { href: '/impostazioni.html?area=sales', text: 'Impostazioni', ic: 'sliders' },
+      // The CRM guide, a page outside the app: opens in a new tab.
+      { href: 'https://claude.ai/artifact/LiTrxo5b2apoCBfp2hKX7s', text: 'Aiuto · Guida al CRM', ic: 'bulb', external: true }
     ] }
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };
@@ -57,6 +59,7 @@
     var a = existing || document.createElement('a');
     // On the CRM page its own sections stay plain hash links, as sales.js renders them.
     if (!existing) a.setAttribute('href', onCrm && item.href.indexOf(CRM + '#') === 0 ? item.href.slice(CRM.length) : item.href);
+    if (item.external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
     a.className = 'sx-link';
     a.style.setProperty('--sx-ic', 'url(/sales/icons/' + item.ic + '.svg)');
     if (!existing) { var s = document.createElement('span'); s.textContent = item.text; a.append(s); }

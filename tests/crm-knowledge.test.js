@@ -111,7 +111,7 @@ test('page wiring: assets at the end of their groups, hooks in reply block and t
  assert.ok(fs.readFileSync('sales/crm-tools.js','utf8').includes("entity==='tickets'&&window.RadixCrmKnowledge"));
  const ui=fs.readFileSync('sales/crm-knowledge.js','utf8'),core=fs.readFileSync('sales/crm-knowledge-core.js','utf8');
  for(const src of [ui,core])assert.doesNotMatch(src,/fetch\(|\/api\/chat|XMLHttpRequest/);
- assert.match(ui,/regola fissa, non AI/);assert.match(ui,/Inserisci nella risposta/);
+ assert.doesNotMatch(ui,/non AI/,'no build notes in the panel');assert.match(ui,/Inserisci nella risposta/);
  const uses=(ui.match(/localStorage\.\w+/g)||[]).length;assert.equal(uses,2);
  assert.match(ui,/try\{const raw=localStorage\.getItem/);assert.match(ui,/try\{localStorage\.setItem/);
  const css=fs.readFileSync('sales/crm-knowledge.css','utf8');

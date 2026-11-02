@@ -265,5 +265,5 @@ test('home: custom rules add their proposals under their name, and a disabled on
 test('page: one shared read of the rules row for the home and the Automazioni panel',()=>{
  const ui=fs.readFileSync(__dirname+'/../sales/crm-rules.js','utf8'),dash=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
  assert.equal((ui.match(/subject:'rules'/g)||[]).length,1);assert.match(ui,/R\.load=load/);assert.match(ui,/await R\.load\(fresh\)/);
- assert.match(dash,/RadixCrmRules\.load\(\)/);assert.match(dash,/regole del workspace, non AI/);assert.match(dash,/it\.ruleName\|\|/);assert.doesNotMatch(dash,/subject:'rules'/);
+ assert.match(dash,/RadixCrmRules\.load\(\)/);assert.match(dash,/rules:rules\.list/);assert.match(dash,/it\.ruleName\|\|/);assert.doesNotMatch(dash,/subject:'rules'/);
 });

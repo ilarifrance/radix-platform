@@ -99,6 +99,6 @@ test('page wiring: core loaded before the view, token-only colours, sections and
  const css=fs.readFileSync('sales/crm-analisi.css','utf8').replace(/\/\*[\s\S]*?\*\//g,'');
  assert.doesNotMatch(css,/#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i,'colours come only from --crm-* tokens');
  const js=fs.readFileSync('sales/analytics-view.js','utf8');
- for(const t of ["section('Pipeline'","section('Risultati'","section('Attività'","section('Previsioni'",'Regola fissa, non AI','Questo mese','Personalizzato','simPanel(all)','predict(all','Chiusure attese','Previsione dallo storico'])assert.ok(js.includes(t),t);
+ for(const t of ["section('Pipeline'","section('Risultati'","section('Attività'","section('Previsioni'",'Questo mese','Personalizzato','simPanel(all)','predict(all','Chiusure attese','Previsione dallo storico'])assert.ok(js.includes(t),t);
  assert.doesNotMatch(js,/#[0-9a-f]{6}\b/i,'no hex colours in the view');
 });
