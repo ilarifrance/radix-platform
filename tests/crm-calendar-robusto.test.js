@@ -13,3 +13,10 @@ test('an empty calendar says where its events come from',()=>{
  assert.ok(view.includes("if(!all.length){const why=E('p',undefined,'cal-empty cal-why')"),'the hint appears only with no event at all');
  assert.ok(view.includes("a.href='/impostazioni.html?area=sales#calendari'"),'it points to the external calendars settings');
 });
+
+test('calendar-view: a null CRM load and a broken external calendar are both visible, never a blank section', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
+  assert.match(src, /if\(!d\)\{showError\(sec,\{message:'i dati del CRM non sono disponibili'\}/, 'null load → message');
+  assert.match(src, /try\{return C\.busyEvents\(a,b\)\|\|\[\]\}catch\(e\)\{externalError=/, 'external() never throws');
+  assert.match(src, /cal-external-error/, 'external failure line in the drawing');
+});
