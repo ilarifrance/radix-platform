@@ -81,9 +81,11 @@ class FakeKraken:
         return {"count": 1}
 
 
-def _store(up=True):
+def _store(up=True, end=None):
+    # barre orarie che finiscono adesso (o a `end`): il giro vero controlla che i dati raccolti non siano vecchi
     st = Store(":memory:")
-    idx = pd.date_range("2025-01-01", periods=24 * 200, freq="h", tz="UTC")
+    end = end or pd.Timestamp.now(tz="UTC").floor("h")
+    idx = pd.date_range(end=end, periods=24 * 200, freq="h", tz="UTC")
     rng = np.random.default_rng(1)
     for s, p0 in (("XBTEUR", 50000.0), ("ETHEUR", 2000.0)):
         trend = np.linspace(0, 0.8 if up else -0.8, len(idx))
@@ -159,6 +161,36 @@ def test_stop_and_rule_follow_the_env_values_chosen_by_francesco(tmp_path, monke
     monkeypatch.setenv("RADIX_TRADING_MAX_LOSS_EUR", "-5")
     with pytest.raises(ValueError):
         live.max_loss_eur()
+
+
+def test_equity_and_stop_use_live_quotes_not_collected_prices(tmp_path, monkeypatch):
+    # 2/11/2026: con la raccolta ferma il patrimonio restava uguale per ore. Ora conta il prezzo di adesso.
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    st, s = _store(), _settings(tmp_path, mode="live")
+    k = FakeKraken({"ZEUR": 20.0, "XXBT": 0.001}, quotes={"XBTEUR": (100000.0, 100000.0), "ETHEUR": (4000.0, 4000.0)})
+    out = live.step(st, s, k, send=lambda m: None)
+    assert out["patrimonio"] == 120.0           # 20 + 0.001 × 100.000, non il prezzo raccolto (~111.000)
+    k2 = FakeKraken({"ZEUR": 20.0, "XXBT": 0.001}, quotes={"XBTEUR": (30000.0, 30000.0), "ETHEUR": (4000.0, 4000.0)})
+    out = live.step(st, s, k2, send=lambda m: None)
+    assert out["fermo"] and out["patrimonio"] == 50.0 and k2.orders == [("XBTEUR", "sell", 0.001, False)]
+
+
+def test_stale_collected_data_blocks_buys_but_not_the_stop(tmp_path, monkeypatch):
+    monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
+    _fixed_weights(monkeypatch)
+    old = pd.Timestamp.now(tz="UTC").floor("h") - pd.Timedelta(hours=10)
+    st, s = _store(end=old), _settings(tmp_path, mode="live")
+    sent = []
+    now = old.to_pydatetime() + timedelta(hours=10, minutes=15)
+    while now.hour % live.STATUS_EVERY_HOURS:                       # un'ora di riepilogo, dati vecchi di 10-12 ore
+        now += timedelta(hours=1)
+    k = FakeKraken({"ZEUR": 110.0}, quotes=QUOTES)
+    out = live.step(st, s, k, now=now, send=sent.append)
+    assert out["ordini"] == [] and k.limits == [] and out["dati_vecchi_ore"] >= 9
+    assert any("Dati di mercato vecchi" in m for m in sent)
+    k2 = FakeKraken({"ZEUR": 20.0, "XXBT": 0.0004}, quotes=QUOTES)
+    out = live.step(st, s, k2, now=now, send=lambda m: None)
+    assert out["fermo"] and k2.orders == [("XBTEUR", "sell", 0.0004, False)]   # lo stop vende anche con dati vecchi
 
 
 def test_kill_switch_blocks_orders(tmp_path):

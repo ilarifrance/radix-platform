@@ -33,7 +33,7 @@ import hmac
 import math
 import time
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -48,6 +48,7 @@ MIN_ORDER_EUR = 1.0      # i minimi veri li decide Kraken (ordermin); con 100 eu
 MAX_ORDERS_PER_RUN = 10
 TAKER_FEE = 0.008        # commissione Kraken Pro da taker al livello base: lo 0,80% pagato davvero il 30/10/2026
 STATUS_EVERY_HOURS = 3   # un riepilogo su Telegram ogni 3 ore (e al primo giro), oltre agli avvisi per ogni ordine
+STALE_HOURS = 6          # dati raccolti piu' vecchi di cosi' (raccolta ferma, Mac in stop): niente acquisti, solo vendite e stop
 LIMIT_HOURS = 6          # un ordine limite resta in coda al massimo 6 ore, poi la parte mancante va a mercato
 API = "https://api.kraken.com"
 
@@ -154,15 +155,25 @@ def _floor(x: float, decimals: int) -> float:
     return math.floor(abs(x) * f) / f
 
 
-def targets(store: Store) -> tuple[dict[str, float], dict[str, float]]:
-    """Pesi di crypto_trend all'ultima ora e ultimi prezzi, dagli stessi dati del conto finto."""
+def targets(store: Store) -> tuple[dict[str, float], dict[str, float], datetime]:
+    """Pesi di crypto_trend all'ultima ora, ultimi prezzi raccolti e ora dell'ultima barra, dagli stessi dati del conto finto.
+
+    I prezzi raccolti servono solo come riserva: nel giro vero patrimonio e stop usano i prezzi di adesso da Kraken
+    (2/11/2026: con la raccolta ferma per ore, il patrimonio restava identico e lo stop guardava prezzi vecchi)."""
     lane = next(l for l in portfolio.LANES if l.key == "crypto_trend")
     close, _, _ = portfolio._closes(store, "crypto")
     if close.empty or len(close) < 300:
         raise RuntimeError("Dati crypto insufficienti per decidere")
     w = portfolio.lane_weights(lane, close, None)
     prices = {s: float(close[s].dropna().iloc[-1]) for s in close.columns if close[s].notna().any()}
-    return {s: float(x) for s, x in w.iloc[-1].items() if x == x}, prices
+    last = close.index[-1].to_pydatetime()
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    return {s: float(x) for s, x in w.iloc[-1].items() if x == x}, prices, last
+
+
+def data_age_hours(last_bar: datetime, now: datetime) -> float:
+    return (now - last_bar).total_seconds() / 3600
 
 
 def _coin(symbol: str) -> str:
@@ -289,9 +300,17 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         return {"fermo": "kill switch", "ordini": []}
     client = client or client_from_env()
     limit_mode = (env_value("RADIX_TRADING_ORDERS") or "limit") != "market"
-    weights, prices = targets(store)
+    weights, prices, last_bar = targets(store)
     symbols = [s for s in universe.FAST["symbols"] if s in prices]
     info = client.pairs(symbols)
+    try:
+        quotes = client.ticker(info)   # prezzi di adesso: patrimonio e stop non dipendono dalla raccolta oraria
+    except Exception as e:
+        quotes = {}
+        send(f"{tag} Prezzi di adesso non disponibili ({e}): uso gli ultimi raccolti.")
+    prices = prices | {s: (b + a) / 2 for s, (b, a) in quotes.items() if b > 0 and a > 0}
+    age = data_age_hours(last_bar, now)
+    stale = age > STALE_HOURS
     bal = client.balance()
     held = {s: _total(bal, info[s]["base"]) for s in symbols if s in info}   # libere + in staking
     free = {s: bal.get(info[s]["base"], 0.0) for s in symbols if s in info}
@@ -326,7 +345,10 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
     pending, fallback, reserved = ({}, set(), 0.0) if prova else _open_orders(db, client, now, tag, send)
     if halted and pending and not prova:
         _cancel_pending(db, client, pending, "per lo stop")   # gli acquisti in coda non servono piu'
-    quotes = client.ticker(info) if limit_mode and not halted else {}
+    if not (limit_mode and not halted):
+        quotes = {}
+    if stale and now.hour % STATUS_EVERY_HOURS == 0:
+        send(f"{tag} Dati di mercato vecchi di {age:.0f} ore (raccolta ferma?): niente acquisti, solo vendite e stop.")
     base = min(equity, CAPITAL_EUR)
     plan = []
     for s in symbols:
@@ -341,6 +363,8 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         if vol < info[s]["ordermin"] or vol * prices[s] < MIN_ORDER_EUR:
             continue
         if not exit_all and vol * prices[s] < BAND * base:
+            continue
+        if stale and delta > 0:   # pesi decisi su dati vecchi: non si compra; vendite e stop passano sempre
             continue
         plan.append((s, "buy" if delta > 0 else "sell", vol))
     plan.sort(key=lambda o: o[1] != "sell")   # prima le vendite: liberano euro e riducono il rischio
@@ -420,4 +444,5 @@ def step(store: Store, settings: Settings, client: Kraken | None = None, prova: 
         staked_eur += sum(min(altrove.get(earn.asset_of(info[s]["base"]), 0.0), free[s]) * prices[s] for s in held)
         send(status_text(tag, now, equity, start, eur, held, prices, halted, pending, staked_eur))
     return {"prova": prova, "patrimonio": round(equity, 2), "inizio": round(start, 2), "euro": round(eur, 2),
-            "fermo": halted, "pesi": {s: round(w, 4) for s, w in weights.items() if w}, "ordini": orders}
+            "fermo": halted, "pesi": {s: round(w, 4) for s, w in weights.items() if w}, "ordini": orders,
+            "dati_vecchi_ore": round(age, 1) if stale else 0}
