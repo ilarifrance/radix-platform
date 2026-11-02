@@ -4,9 +4,11 @@
    links back to Sales Orbit. It does not read or change CRM data. */
 (()=>{
 const nav=document.getElementById('navigation'),content=document.getElementById('content');if(!nav||!content)return;
+// «Solo CRM» (sales-nav.js): no link out to Sales Orbit.
+const solo=location.pathname==='/crm'||(()=>{try{return localStorage.getItem('radix.crm-solo')==='1'}catch{return false}})();
 const initials=t=>String(t||'').trim().split(/\s+/).filter(w=>/^[\p{L}\p{N}]/u.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join('');
 function decorate(){
-  if(!nav.querySelector('a[href*="sales-orbit"]')){const a=document.createElement('a');a.href='/sales-orbit-higgsfield.html';a.textContent='Sales Orbit';nav.prepend(a)}
+  if(!solo&&!nav.querySelector('a[href*="sales-orbit"]')){const a=document.createElement('a');a.href='/sales-orbit-higgsfield.html';a.textContent='Sales Orbit';nav.prepend(a)}
   const hash=location.hash||'#dashboard';for(const a of nav.querySelectorAll('a'))a.getAttribute('href')===hash?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current');
   /* show only the section the sidebar points to; unknown hashes keep the full page */
   const view=content.querySelector(':scope>section'+(/^#[a-z0-9-]+$/i.test(hash)?hash:'#dashboard'));

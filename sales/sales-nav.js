@@ -47,11 +47,22 @@
     ] }
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };
-  var onCrm = /\/radix-sales\.html$/.test(location.pathname);
+  // «Solo CRM» (a colleague who only works in the CRM): opening /crm remembers it in this browser; the menu then has no
+  // Command Center, Sales Orbit, Vendite or Acquisizione, and an «Esci» entry. ?completo=1 on any Sales page turns it off.
+  var SOLO_KEY = 'radix.crm-solo', solo = location.pathname === '/crm';
+  try {
+    if (location.pathname === '/crm') localStorage.setItem(SOLO_KEY, '1');
+    else if (/[?&]completo=1/.test(location.search)) localStorage.removeItem(SOLO_KEY);
+    solo = localStorage.getItem(SOLO_KEY) === '1';
+  } catch (e) { /* storage blocked: /crm alone stays reduced */ }
+  var SOLO_HIDE = { 'Vendite': 1, 'Acquisizione': 1 };
+  var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
+  var path = location.pathname === '/crm' ? '/radix-sales.html' : location.pathname;
+  var onCrm = /\/radix-sales\.html$/.test(path);
 
   function isCurrent(href) {
     var u = new URL(href, location.href);
-    if (u.pathname !== location.pathname) return false;
+    if (u.pathname !== path) return false;
     if (!onCrm) return true;
     return u.hash === (location.hash || '#dashboard');
   }
@@ -60,6 +71,12 @@
     // On the CRM page its own sections stay plain hash links, as sales.js renders them.
     if (!existing) a.setAttribute('href', onCrm && item.href.indexOf(CRM + '#') === 0 ? item.href.slice(CRM.length) : item.href);
     if (item.external) { a.target = '_blank'; a.rel = 'noopener noreferrer'; }
+    if (item.logout) {
+      a.addEventListener('click', function (e) {
+        e.preventDefault();
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(function () {}).then(function () { location.href = '/crm'; });
+      });
+    }
     a.className = 'sx-link';
     a.style.setProperty('--sx-ic', 'url(/sales/icons/' + item.ic + '.svg)');
     if (!existing) { var s = document.createElement('span'); s.textContent = item.text; a.append(s); }
@@ -78,13 +95,16 @@
   }
   function build(nav, reuse) {
     var frag = document.createDocumentFragment();
-    frag.append(link(HOME));
+    if (!solo) frag.append(link(HOME));
     GROUPS.forEach(function (g) {
+      if (solo && SOLO_HIDE[g.label]) return;
+      var items = g.items.filter(function (it) { return !(solo && it.href === '/sales-orbit-higgsfield.html'); });
+      if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';
       var head = document.createElement(g.fold ? 'summary' : 'p');
       head.className = 'sx-label'; head.textContent = g.label; box.append(head);
-      g.items.forEach(function (it) { box.append(link(it, reuse && reuse(it))); });
+      items.forEach(function (it) { box.append(link(it, reuse && reuse(it))); });
       frag.append(box);
     });
     nav.append(frag);
@@ -110,7 +130,7 @@
         : 'Le pagine Sales mostrano solo i dati del workspace commerciale a cui appartieni, e oggi il tuo account non ne ha nessuno. Chiedi a un amministratore di aggiungerti: da quel momento qui trovi aziende, contatti, opportunità e attività.';
       txt.append(h, p);
       var act = document.createElement('div'); act.className = 'sx-access-actions';
-      var home = document.createElement('a'); home.href = '/control-center-v2.html'; home.textContent = 'Torna al Command Center';
+      var home = document.createElement('a'); home.href = solo ? '/crm' : '/control-center-v2.html'; home.textContent = solo ? 'Vai all’accesso' : 'Torna al Command Center';
       act.append(home);
       if (!d.login && navigator.clipboard) {
         var copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copia la richiesta di accesso';
@@ -138,7 +158,7 @@
     if (side.parentElement) side.parentElement.classList.add('sx-app');
     side.textContent = '';
     var brand = document.createElement('a');
-    brand.className = 'sx-brand'; brand.href = '/sales-orbit-higgsfield.html';
+    brand.className = 'sx-brand'; brand.href = solo ? '/crm' : '/sales-orbit-higgsfield.html';
     brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
     var nav = document.createElement('nav');
     nav.className = 'sx-nav'; nav.setAttribute('aria-label', 'Menu Sales');
@@ -177,7 +197,7 @@
     for (var i = 1; i < links.length; i++) links[i].remove();
     crmNav.classList.add('sx-nav');
     if (!crmNav.querySelector(':scope > .sx-brand')) {
-      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = '/sales-orbit-higgsfield.html';
+      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = solo ? '/crm' : '/sales-orbit-higgsfield.html';
       brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
       crmNav.prepend(brand);
     }
