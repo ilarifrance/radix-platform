@@ -33,3 +33,12 @@ test('calendar-view: before sales.js sets the workspace, the loading line stays 
   const src = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
   assert.match(src, /if\(!d&&!window\.RadixCrmData\?\.workspace\?\.\(\)\)return;/);
 });
+
+test('Panoramica and Analisi: a failed CRM read shows the notice with the reason instead of an empty section', () => {
+  for (const f of ['dashboard-view.js', 'analytics-view.js']) {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'sales', f), 'utf8');
+    assert.match(src, /function dataError\(sec\)\{/, f + ': helper');
+    assert.match(src, /if\(!d\)\{if\(window\.RadixCrmData\?\.workspace\?\.\(\)\)dataError\(/, f + ': null load with a workspace → notice');
+    assert.match(src, /'notice crm-data-error'/, f + ': notice class');
+  }
+});
