@@ -48,14 +48,13 @@
   ];
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };
   // «Solo CRM» (a colleague who only works in the CRM): opening /crm remembers it in this browser; the menu then has no
-  // Command Center, Sales Orbit, Vendite or Acquisizione, and an «Esci» entry. ?completo=1 on any Sales page turns it off.
+  // Command Center (the rest of the menu stays), and an «Esci» entry. ?completo=1 on any Sales page turns it off.
   var SOLO_KEY = 'radix.crm-solo', solo = location.pathname === '/crm';
   try {
     if (location.pathname === '/crm') localStorage.setItem(SOLO_KEY, '1');
     else if (/[?&]completo=1/.test(location.search)) localStorage.removeItem(SOLO_KEY);
     solo = localStorage.getItem(SOLO_KEY) === '1';
   } catch (e) { /* storage blocked: /crm alone stays reduced */ }
-  var SOLO_HIDE = { 'Vendite': 1, 'Acquisizione': 1 };
   var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
   var path = location.pathname === '/crm' ? '/radix-sales.html' : location.pathname;
   var onCrm = /\/radix-sales\.html$/.test(path);
@@ -97,8 +96,7 @@
     var frag = document.createDocumentFragment();
     if (!solo) frag.append(link(HOME));
     GROUPS.forEach(function (g) {
-      if (solo && SOLO_HIDE[g.label]) return;
-      var items = g.items.filter(function (it) { return !(solo && it.href === '/sales-orbit-higgsfield.html'); });
+      var items = g.items.slice();
       if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';

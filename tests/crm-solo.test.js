@@ -17,11 +17,10 @@ test('sign-in script: only on /crm, asks /api/auth/me, posts /api/auth/login, ne
   assert.match(s,/\/api\/auth\/me/);assert.match(s,/\/api\/auth\/login/);
   assert.doesNotMatch(s,/localStorage|sessionStorage/);
 });
-test('menu: solo mode hides Command Center, Sales Orbit, Vendite, Acquisizione and adds Esci',()=>{
+test('menu: solo mode hides only Command Center and adds Esci',()=>{
   const s=read('sales/sales-nav.js');
   assert.match(s,/if \(!solo\) frag\.append\(link\(HOME\)\)/);
-  assert.match(s,/SOLO_HIDE = \{ 'Vendite': 1, 'Acquisizione': 1 \}/);
-  assert.match(s,/it\.href === '\/sales-orbit-higgsfield\.html'/);
+  assert.doesNotMatch(s,/SOLO_HIDE/);
   assert.match(s,/\/api\/auth\/logout/);
   assert.match(s,/completo=1/);
   // the logout link must not be a hash link: sales.js regrouping would take it for one of its own sections
