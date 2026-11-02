@@ -28,7 +28,9 @@ function collect(d){const out=[],company=id=>d.companies.find(c=>c.id===id)?.nam
   return out.sort((a,b)=>a.start-b.start)}
 // Busy time of the person's own Outlook / Google links (crm-calendars.js), for the 6 weeks of the month grid around the cursor.
 function busyRange(){const first=new Date(state.cursor.getFullYear(),state.cursor.getMonth(),1),s=monday(first);return [+s,+s+42*DAY+3600e3]}
-function external(){const C=window.RadixCrmCalendars;if(!C)return [];const me=String(window.RadixSalesApp?.state?.me??'');if(state.owner&&state.owner!==me)return [];const [a,b]=busyRange();return C.busyEvents(a,b)}
+let externalError='';
+// A broken Outlook / Google link never blanks the CRM calendar: its blocks are skipped and the drawing says so.
+function external(){externalError='';const C=window.RadixCrmCalendars;if(!C)return [];const me=String(window.RadixSalesApp?.state?.me??'');if(state.owner&&state.owner!==me)return [];const [a,b]=busyRange();try{return C.busyEvents(a,b)||[]}catch(e){externalError=e&&e.message?e.message:'errore inatteso';return []}}
 function events(d){return [...collect(d),...external()].sort((a,b)=>a.start-b.start).filter(e=>!state.off.has(e.type)&&(e.type==='busy'||!state.owner||e.owner===state.owner))}
 window.RadixCrmCalendar={events:collect,TYPES};
 
@@ -80,9 +82,19 @@ function rail(d,all){const r=E('aside',undefined,'cal-rail');const t=E('section'
   r.append(s);return r}
 
 let busy=false;
+// Something went wrong while drawing: the section says so instead of staying empty, and the next change draws again.
+function showError(sec,e,hint){sec.querySelector(':scope>.cal')?.remove();sec.querySelector(':scope>.cal-loading')?.remove();sec.querySelector(':scope>.cal-error')?.remove();const p=E('p','Il calendario non si è potuto disegnare: '+(e&&e.message?e.message:'errore inatteso')+'. '+(hint||'Ricarica la pagina o cambia vista.'),'notice cal-error');p.setAttribute('role','alert');sec.append(p)}
 async function render(){ensureNav();if((location.hash||'')!=='#calendar'){document.getElementById('calendar')?.remove();return}
   const sec=ensureSection();content.querySelectorAll(':scope>section.rx-view').forEach(s=>{if(s!==sec)s.classList.remove('rx-view')});sec.classList.add('rx-view');document.documentElement.classList.add('rx-has-view');
-  const d=await window.RadixCrmData?.load();if(!d||!sec.isConnected)return;busy=true;sec.querySelector(':scope>.cal')?.remove();
+  // While the CRM rows load the section is not blank: a line says so (removed by the first drawing).
+  if(!sec.querySelector(':scope>.cal')&&!sec.querySelector(':scope>.cal-loading')){const w=E('p','Caricamento degli impegni…','muted cal-loading');w.setAttribute('aria-live','polite');sec.append(w)}
+  let d=null;try{d=await window.RadixCrmData?.load()}catch(e){if(sec.isConnected)showError(sec,e);return}
+  if(!sec.isConnected)return;
+  if(!d){const why=window.RadixCrmData?.lastError;showError(sec,{message:'i dati del CRM non sono disponibili'+(why?' · '+why:'')},'Premi «Aggiorna» in alto o ricarica la pagina; se succede di nuovo, manda questo messaggio a chi gestisce RADIX.');return}
+  busy=true;
+  try{draw(sec,d)}catch(e){busy=false;showError(sec,e);return}
+  requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
+function draw(sec,d){sec.querySelector(':scope>.cal-loading')?.remove();sec.querySelector(':scope>.cal-error')?.remove();sec.querySelector(':scope>.cal')?.remove();
   const all=events(d);const root=E('div',undefined,'cal');const left=E('div',undefined,'cal-left');left.append(mini(),filters(d));
   const main=E('section',undefined,'cal-card cal-main');const bar=E('div',undefined,'cal-bar');const step=state.mode==='month'?null:state.mode==='day'?1:7;
   const prev=E('button','‹');prev.type='button';prev.setAttribute('aria-label','Precedente');prev.onclick=()=>{const c=state.cursor;state.cursor=step?new Date(+c-step*DAY):new Date(c.getFullYear(),c.getMonth()-1,1);render()};
@@ -91,10 +103,12 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   const mon=monday(state.cursor),sun=new Date(+mon+6*DAY);const title=state.mode==='month'?MN[state.cursor.getMonth()]+' '+state.cursor.getFullYear():state.mode==='day'?state.cursor.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):mon.getDate()+(mon.getMonth()!==sun.getMonth()?' '+MN[mon.getMonth()].toLowerCase():'')+' – '+sun.getDate()+' '+MN[sun.getMonth()].toLowerCase()+' '+sun.getFullYear();
   const modes=E('div',undefined,'cal-modes');for(const [k,l] of [['day','Giorno'],['week','Settimana'],['month','Mese']]){const b=E('button',l);b.type='button';b.setAttribute('aria-pressed',String(state.mode===k));b.onclick=()=>{state.mode=k;render()};modes.append(b)}
   bar.append(prev,today,next,E('h3',title),modes);main.append(bar,state.mode==='month'?month(all):grid(all));
+  // No event at all (not just none in view): say where events come from, so an empty grid is not read as a fault.
+  if(!all.length){const why=E('p',undefined,'cal-empty cal-why');why.append(document.createTextNode('Nessun impegno da mostrare. Qui compaiono le attività del CRM con una scadenza, le interazioni con data e le chiusure previste delle opportunità; i calendari Outlook o Google collegati in '));const a=E('a','Impostazioni › Calendari');a.href='/impostazioni.html?area=sales#calendari';why.append(a,document.createTextNode(' si vedono come blocchi «Occupato».'));main.append(why)}
   const legend=E('div',undefined,'cal-legend');for(const [name,tone] of Object.values(TYPES))legend.append(E('span',name,'dot '+tone));main.append(legend);
+  if(externalError){const w=E('p','I calendari esterni collegati non si sono potuti leggere ('+externalError+'): qui vedi solo gli impegni del CRM. Controlla i link in Impostazioni › Calendari.','notice cal-external-error');w.setAttribute('role','status');main.append(w)}
   root.append(left,main,rail(d,all));sec.append(root);
-  const body=sec.querySelector('.cal-body');if(body&&state.mode!=='month'&&!sec.dataset.scrolled){sec.dataset.scrolled='1'}
-  requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
+  const body=sec.querySelector('.cal-body');if(body&&state.mode!=='month'&&!sec.dataset.scrolled){sec.dataset.scrolled='1'}}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});
