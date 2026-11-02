@@ -16,7 +16,15 @@ test('an empty calendar says where its events come from',()=>{
 
 test('calendar-view: a null CRM load and a broken external calendar are both visible, never a blank section', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
-  assert.match(src, /if\(!d\)\{showError\(sec,\{message:'i dati del CRM non sono disponibili'\}/, 'null load → message');
+  assert.match(src, /if\(!d\)\{const why=window\.RadixCrmData\?\.lastError;showError\(sec,\{message:'i dati del CRM non sono disponibili'/, 'null load → message');
   assert.match(src, /try\{return C\.busyEvents\(a,b\)\|\|\[\]\}catch\(e\)\{externalError=/, 'external() never throws');
   assert.match(src, /cal-external-error/, 'external failure line in the drawing');
+});
+
+test('crm-data: a failed read names the entity and the HTTP status in lastError, shown by the calendar', () => {
+  const data = fs.readFileSync(path.join(__dirname, '..', 'sales', 'crm-data.js'), 'utf8');
+  assert.match(data, /throw Error\(LABEL\[entity\]\+' \('\+\(e&&e\.message\|\|'rete'\)\+'\)'\)/);
+  assert.match(data, /get lastError\(\)\{return lastError\}/);
+  const cal = fs.readFileSync(path.join(__dirname, '..', 'sales', 'calendar-view.js'), 'utf8');
+  assert.match(cal, /window\.RadixCrmData\?\.lastError/);
 });

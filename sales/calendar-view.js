@@ -90,7 +90,7 @@ async function render(){ensureNav();if((location.hash||'')!=='#calendar'){docume
   if(!sec.querySelector(':scope>.cal')&&!sec.querySelector(':scope>.cal-loading')){const w=E('p','Caricamento degli impegni…','muted cal-loading');w.setAttribute('aria-live','polite');sec.append(w)}
   let d=null;try{d=await window.RadixCrmData?.load()}catch(e){if(sec.isConnected)showError(sec,e);return}
   if(!sec.isConnected)return;
-  if(!d){showError(sec,{message:'i dati del CRM non sono disponibili'},'Premi «Aggiorna» in alto o ricarica la pagina.');return}
+  if(!d){const why=window.RadixCrmData?.lastError;showError(sec,{message:'i dati del CRM non sono disponibili'+(why?' · '+why:'')},'Premi «Aggiorna» in alto o ricarica la pagina; se succede di nuovo, manda questo messaggio a chi gestisce RADIX.');return}
   busy=true;
   try{draw(sec,d)}catch(e){busy=false;showError(sec,e);return}
   requestAnimationFrame(()=>{busy=false;if(!sec.isConnected)later()})}
