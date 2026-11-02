@@ -220,3 +220,12 @@ def test_hourly_watch_alerts_once_per_event_and_summarises_at_close(monkeypatch)
     boom = lambda s: (_ for _ in ()).throw(RuntimeError("429"))
     assert fineco.watch(st, when.replace(hour=14), send=sent.append, quote=boom)["avvisi"] == ["dati"]
     assert fineco.watch(st, when.replace(hour=15), send=sent.append, quote=boom)["avvisi"] == []
+
+
+def test_pause_can_also_come_from_the_environment_on_a_server(tmp_path, monkeypatch):
+    monkeypatch.setattr(fineco, "pause_file", lambda store: tmp_path / "FINECO_PAUSA")
+    monkeypatch.setattr(fineco, "env_value", lambda n: None)
+    assert not fineco.paused(None)
+    monkeypatch.setattr(fineco, "env_value", lambda n: "si" if n == "FINECO_PAUSA" else None)
+    assert fineco.paused(None)
+

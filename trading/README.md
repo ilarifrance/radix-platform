@@ -102,6 +102,25 @@ Passi, tutti di Francesco:
    - `python -m radix_trading live --prova`: Kraken convalida gli ordini senza eseguirli.
 4. Per accendere il conto vero servono `RADIX_TRADING_MODE=live` e `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`, più un giro orario di `live`.
 
+## Server sempre acceso (Railway)
+
+Il 2/11/2026 il Mac ha perso la rete per ore (il Wi-Fi dell'ufficio filtra gli exchange, l'hotspot si stacca): in quelle
+ore il conto vero non opera e lo stop non e' sorvegliato. `python -m radix_trading serve` (`serve.py`) e' un solo
+processo sempre acceso che fa girare i lavori agli orari del Mac, ciascuno in un processo a parte con un tempo
+massimo: `hourly` al minuto 5 di ogni ora, `live` al minuto 15 (solo con `RADIX_TRADING_MODE=live`), `daily` alle
+22:30 UTC. Un turno saltato si recupera al giro dopo; un riavvio non rifa' il `daily` della sera prima.
+
+`Dockerfile` e `railway.json` (cartella `trading`) sono pronti per Railway (piano Hobby, circa 5 €/mese):
+1. Nuovo progetto Railway dal repository GitHub, cartella radice `trading`, un volume montato su `/data`.
+2. Variabili nel pannello Railway (mai in chat): `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`, `TELEGRAM_BOT_TOKEN`,
+   `TELEGRAM_CHAT_ID`, `RADIX_TRADING_MODE=live`, `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`,
+   `RADIX_TRADING_VOL_TARGET=0.75`, `RADIX_TRADING_MAX_LOSS_EUR=60`, `FINECO_PAUSA=si` finche' il piano ETF resta fermo
+   (sul server non c'e' un terminale: la pausa si toglie cancellando la variabile), `TIINGO_API_KEY` se c'e'.
+3. Prima spegnere i lavori sul Mac (`bash scripts/install_mac.sh --live-off` e `--uninstall`), cosi' non operano in due.
+4. Il database riparte vuoto sul volume: il primo giro `live` registra il patrimonio di partenza e lo stop si calcola da
+   li' (es. 109 − 60 = 49 €); la storia degli ordini resta sul Mac.
+5. Spegnere il conto vero dal pannello: `RADIX_TRADING_MODE=research` (il giro `live` viene saltato).
+
 ## Corsia ETF su Fineco (esecuzione a mano)
 
 `fineco.py`: cinque ETF UCITS (S&P 500, Nasdaq 100, oro, Treasury 20+, Europa), un quinto del capitale ciascuno,

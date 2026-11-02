@@ -233,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
-                                          "osservatorio", "confronto", "mercato", "ribasso"])
+                                          "osservatorio", "confronto", "mercato", "ribasso", "serve"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -257,6 +257,11 @@ def main(argv: list[str] | None = None) -> int:
                    help="solo per mercato: ora da simulare, es. 2026-10-30T21:17Z (con --prova il testo si stampa e basta)")
     args = p.parse_args(argv)
     settings = Settings()
+    if args.command == "serve":
+        from . import serve
+        # Server sempre acceso: fa girare hourly / live / daily ai loro orari, ciascuno in un processo a parte.
+        serve.loop(settings)
+        return 0
     store = Store(settings.db_path)
     try:
         if args.command == "collect":

@@ -95,7 +95,8 @@ def pause_file(store: Store) -> Path:
 
 
 def paused(store: Store) -> bool:
-    return pause_file(store).exists()
+    """Piano mensile fermo: file FINECO_PAUSA nella cartella dati, oppure FINECO_PAUSA=si nell'ambiente (server)."""
+    return pause_file(store).exists() or (env_value("FINECO_PAUSA") or "").strip().lower() in ("si", "sì", "1", "true")
 
 
 def pause(store: Store, on: bool, now: datetime | None = None) -> Path:
