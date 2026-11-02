@@ -122,6 +122,29 @@ function getSessionUser(req) {
   return verifySessionToken(token);
 }
 
+// ---------- platform access level ----------
+// users.access: 'full' (default) or 'crm' (the account may only use the CRM/sales APIs). The level travels in the
+// session token as `acc` ('crm' only); a token without it is a full account, so sessions issued before this existed keep working.
+
+function accessOf(user) {
+  return user && user.acc === 'crm' ? 'crm' : 'full';
+}
+
+// Returns the signed-in user, or null after answering 401 (no session) / 403 (CRM-only account).
+// `user` may be passed when the handler already resolved the session (keeps injected test sessions working).
+function requireFull(req, res, user) {
+  const u = user === undefined ? getSessionUser(req) : user;
+  if (!u) {
+    res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
+    return null;
+  }
+  if (accessOf(u) === 'crm') {
+    res.status(403).json({ error: 'Questo account può usare solo il CRM.' });
+    return null;
+  }
+  return u;
+}
+
 // ---------- admin secret ----------
 
 function isAdminRequest(req) {
@@ -143,5 +166,7 @@ module.exports = {
   buildSessionCookie,
   buildClearCookie,
   getSessionUser,
+  accessOf,
+  requireFull,
   isAdminRequest,
 };

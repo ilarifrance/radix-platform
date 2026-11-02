@@ -3,7 +3,7 @@
 // Shared team registry: every signed-in RADIX user sees the same clients and projects.
 // Writes use optimistic revisions (409 when someone else saved first) and leave an activity entry.
 const {sql}=require('./_db');
-const {getSessionUser}=require('./_auth');
+const {getSessionUser,requireFull}=require('./_auth');
 const core=require('./_registry-core');
 const memory=require('./_agency-memory-store');
 const editorial=require('../editorial-core.js');
@@ -415,6 +415,7 @@ module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  const user=getSessionUser(req);
  if(!user||!user.uid)return send(res,401,{error:'Accesso RADIX richiesto'});
+ if(!requireFull(req,res,user))return;
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{

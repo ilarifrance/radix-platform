@@ -88,7 +88,9 @@ function parseBody(body) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!auth.getSessionUser(req)) return res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
+  const user = auth.getSessionUser(req);
+  if (!user) return res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
+  if (!auth.requireFull(req, res, user)) return;
   const key = credentials(process.env);
   if (!key) return res.status(503).json({ error: 'HIGGSFIELD_API_KEY non configurata su Vercel.' });
   try {

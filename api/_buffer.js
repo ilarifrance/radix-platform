@@ -21,7 +21,7 @@
 //   POST { action:'create', channelId, text }       -> { postId, dueAt }
 //   POST { action:'stats', postIds:[…] }             -> { items:[{postId, channel, publishedAt, link, metrics, engagementRate}], errors:[{postId, error}] }
 
-const { getSessionUser } = require('./_auth');
+const { getSessionUser, requireFull } = require('./_auth');
 const pedResults = require('../lib/ped-results.js');
 
 const BUFFER_BASE = 'https://api.buffer.com';
@@ -160,6 +160,7 @@ module.exports = async (req, res) => {
     res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
     return;
   }
+  if (!requireFull(req, res, user)) return;
 
   const apiKey = process.env.BUFFER_ACCESS_TOKEN;
   if (!apiKey) {

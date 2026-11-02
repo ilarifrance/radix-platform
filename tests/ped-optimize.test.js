@@ -85,7 +85,7 @@ test('cron: CRON_SECRET bearer required, Buffer key required',async()=>{
 // The registry handler with its database and session stubbed: what reaches Buffer when a scheduled post changed.
 function handlerWith(db,env){
  const keep={};for(const m of ['../api/_db.js','../api/_auth.js'])keep[m]=require.cache[require.resolve(m)];
- require.cache[require.resolve('../api/_db.js')]={exports:{sql:()=>db}};require.cache[require.resolve('../api/_auth.js')]={exports:{getSessionUser:()=>({uid:7})}};
+ require.cache[require.resolve('../api/_db.js')]={exports:{sql:()=>db}};require.cache[require.resolve('../api/_auth.js')]={exports:{getSessionUser:()=>({uid:7}),requireFull:(q,r,u)=>u}};
  delete require.cache[require.resolve('../api/_registry-handler.js')];const h=require('../api/_registry-handler.js');
  for(const [m,v] of Object.entries(keep)){if(v)require.cache[require.resolve(m)]=v;else delete require.cache[require.resolve(m)]}
  delete require.cache[require.resolve('../api/_registry-handler.js')];

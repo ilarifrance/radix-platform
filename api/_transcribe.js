@@ -6,7 +6,7 @@
 // (default gpt-4o-transcribe), with whisper-1 as fallback when the key cannot use it.
 // GET answers only whether the key is configured.
 "use strict";
-const { getSessionUser } = require("./_auth");
+const { getSessionUser, requireFull } = require("./_auth");
 
 const DEFAULT_MODEL = "gpt-4o-transcribe";
 const FALLBACK_MODEL = "whisper-1";
@@ -70,6 +70,7 @@ async function call(apiKey, plan, model, fetchImpl) {
 async function handler(req, res, deps) {
   const user = getSessionUser(req);
   if (!user) return res.status(401).json({ error: "Sessione mancante o scaduta. Rifai il login." });
+  if (!requireFull(req, res, user)) return;
   const env = (deps && deps.env) || process.env;
   if (req.method === "GET") return res.status(200).json({ configured: !!env.OPENAI_API_KEY, model: env.OPENAI_TRANSCRIBE_MODEL || DEFAULT_MODEL });
   if (req.method !== "POST") return res.status(405).json({ error: "Usa POST o GET (per lo stato)" });

@@ -103,6 +103,12 @@
         <input id="userName" type="text" placeholder="Nome e cognome" autocomplete="off" />
         <label for="userPassword">Password</label>
         <input id="userPassword" type="text" placeholder="Almeno 8 caratteri" autocomplete="off" />
+        <label for="userAccess">Accesso</label>
+        <select id="userAccess">
+          <option value="">Invariato (nuovo account: completo)</option>
+          <option value="full">Completo (tutta la piattaforma)</option>
+          <option value="crm">Solo CRM</option>
+        </select>
         <button id="createUserBtn" type="button">Crea / aggiorna account</button>
         <div id="createUserMsg" class="msg-box"></div>
       </div>
@@ -112,7 +118,7 @@
         <button id="refreshUsersBtn" type="button" class="ghost" style="margin-top:0;">Aggiorna elenco</button>
         <div id="usersMsg" class="msg-box"></div>
         <table id="usersTable" style="display:none;">
-          <thead><tr><th>Email</th><th>Nome</th><th>Creato il</th></tr></thead>
+          <thead><tr><th>Email</th><th>Nome</th><th>Accesso</th><th>Creato il</th></tr></thead>
           <tbody id="usersTbody"></tbody>
         </table>
       </div>
@@ -182,7 +188,7 @@
     users.forEach(function (u) {
       var tr = document.createElement("tr");
       var created = u.created_at ? new Date(u.created_at).toLocaleString("it-IT") : "—";
-      tr.innerHTML = "<td>" + escapeHtml(u.email) + "</td><td>" + escapeHtml(u.name) + "</td><td>" + escapeHtml(created) + "</td>";
+      tr.innerHTML = "<td>" + escapeHtml(u.email) + "</td><td>" + escapeHtml(u.name) + "</td><td>" + (u.access === "crm" ? "Solo CRM" : "Completo") + "</td><td>" + escapeHtml(created) + "</td>";
       tbody.appendChild(tr);
     });
   }
@@ -236,6 +242,7 @@
     var email = document.getElementById("userEmail").value.trim();
     var name = document.getElementById("userName").value.trim();
     var password = document.getElementById("userPassword").value;
+    var access = document.getElementById("userAccess").value;
 
     if (!email || !name || !password) { showMsg(msg, "Compila email, nome e password.", false); return; }
 
@@ -244,7 +251,7 @@
       var res = await adminFetch("/api/admin/users", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: email, name: name, password: password }),
+        body: JSON.stringify(access ? { email: email, name: name, password: password, access: access } : { email: email, name: name, password: password }),
       });
       var data = await res.json();
       if (!res.ok) { showMsg(msg, data.error || "Errore imprevisto", false); return; }

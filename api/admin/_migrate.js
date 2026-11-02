@@ -34,6 +34,9 @@ module.exports = async (req, res) => {
       )
     `;
 
+    // Platform access level (migrations/core/002_users_access.sql): 'full' or 'crm' (CRM-only account).
+    await client`ALTER TABLE users ADD COLUMN IF NOT EXISTS access text NOT NULL DEFAULT 'full' CHECK (access IN ('full','crm'))`;
+
     // Single shared row (id fixed to 1): the whole team sees one common history/pipeline state,
     // not a private copy per user. Real accounts give author attribution, not private silos.
     await client`

@@ -5,7 +5,7 @@
 // sees (shared visibility), with accounts providing author attribution on top of it — not private
 // per-user state. See README for the "last write wins" concurrency note this implies.
 const { sql } = require('./_db');
-const { getSessionUser } = require('./_auth');
+const { getSessionUser, requireFull } = require('./_auth');
 
 module.exports = async (req, res) => {
   const isDashboard = req.method === 'GET' && req.query && req.query.view === 'dashboard';
@@ -15,6 +15,7 @@ module.exports = async (req, res) => {
     res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
     return;
   }
+  if (!requireFull(req, res, user)) return;
 
   if (isDashboard) {
     try {
