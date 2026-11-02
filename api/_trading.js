@@ -92,6 +92,7 @@ function createHandler({getSql=()=>require('./_db').sql(),getSessionUser=req=>re
    }
    let user;try{user=getSessionUser(req)}catch{user=null}
    if(!user||!Number.isInteger(user.uid))throw failure(401,'Accedi a RADIX per vedere questa pagina.');
+   if(!require('./_auth').requireFull(req,res,user))return;
    const s=store(getSql());
    if(req.method==='GET'){
     const row=await s.latest(user.uid);

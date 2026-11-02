@@ -1691,7 +1691,11 @@ function findCliches(text) {
 // per-person accounts. Every request must carry a valid session cookie (set by /api/auth/login);
 // req.user is populated with { uid, email, name } for anything downstream that wants to know who's
 // asking (e.g. author attribution on saved state).
-const { getSessionUser } = require("./_auth");
+const { getSessionUser, accessOf } = require("./_auth");
+
+// A CRM-only account (users.access = "crm") may call only the roles the CRM pages use: the CRM copilot, the two
+// commercial writers of the AI email/sequence ideas, and the Guide / Regia panel shown on every CRM page.
+const CRM_ONLY_ROLES = new Set(["crm-copilot", "comm-email-outreach", "comm-crm-manager", "radix-guide", "radix-director"]);
 
 function isAuthorized(req) {
   const user = getSessionUser(req);
@@ -1866,6 +1870,11 @@ module.exports = async (req, res) => {
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
   const agentKey = own(AGENTS, role) ? role : own(AGENT_ALIASES, role) && own(AGENTS, AGENT_ALIASES[role]) ? AGENT_ALIASES[role] : "strategist";
   const agent = AGENTS[agentKey];
+  const crmOnly = accessOf(req.user) === "crm";
+  if (crmOnly && !CRM_ONLY_ROLES.has(agentKey)) {
+    res.status(403).json({ error: "Questo account può usare solo il CRM." });
+    return;
+  }
   // Regia: messages, area context and the one optional image checked before anything else (a 400 when not valid).
   const director = directorInput(body, agentKey === "radix-director");
   if (director && director.error) {
@@ -1876,7 +1885,7 @@ module.exports = async (req, res) => {
   let system = systemPromptFor(agent, brand, project);
   // Team memory: confirmed decisions, preferences and outcomes for this project and client,
   // read on the server so every agent works from the same memory.
-  const memoryBlock = await teamMemoryBlock(memoryScope);
+  const memoryBlock = crmOnly ? "" : await teamMemoryBlock(memoryScope);
   if (memoryBlock) system += memoryBlock;
   if (director) system += director.contextBlock;
   // CRM copilot: a snapshot of the workspace, read on the server only for its members.

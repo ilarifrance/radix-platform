@@ -366,6 +366,7 @@ async function handle(req,res,deps){
  res.setHeader('Cache-Control','no-store');
  const user=require('./_auth').getSessionUser(req);
  if(!user||!user.uid)return res.status(401).json({error:'Accesso RADIX richiesto'});
+ if(!require('./_auth').requireFull(req,res,user))return;
  const env=deps.env||process.env;
  if(req.method==='GET')return res.status(200).json({pagespeed:String(env.PAGESPEED_API_KEY||'').trim()!=='',limits:{maxPages:LIMITS.maxPages,maxBytes:LIMITS.maxBytes,timeoutMs:LIMITS.timeoutMs,concurrency:LIMITS.concurrency}});
  if(req.method!=='POST')return res.status(405).json({error:'Metodo non consentito'});

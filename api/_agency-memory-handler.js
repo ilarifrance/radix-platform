@@ -2,7 +2,7 @@
 // Memory is shared by the whole team, like the registry: each item records who wrote it and
 // who confirmed it. Only confirmed items are handed to agents as context.
 const {sql}=require('./_db');
-const {getSessionUser}=require('./_auth');
+const {getSessionUser,requireFull}=require('./_auth');
 const core=require('./_agency-memory-core');
 const store=require('./_agency-memory-store');
 const send=(res,code,data)=>res.status(code).json(data);
@@ -14,6 +14,7 @@ function safeContext(query){const projectId=core.clean(query.projectId,80),clien
 module.exports=async(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  const user=getSessionUser(req);if(!user||!user.uid)return send(res,401,{error:'Accesso RADIX richiesto'});
+ if(!requireFull(req,res,user))return;
  const uid=Number(user.uid);
  if(!['GET','POST','PATCH','DELETE'].includes(req.method))return send(res,405,{error:'Metodo non consentito'});
  try{

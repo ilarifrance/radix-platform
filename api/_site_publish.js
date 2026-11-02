@@ -177,6 +177,7 @@ async function handle(req,res,deps){
  res.setHeader('Cache-Control','no-store');
  const user=require('./_auth').getSessionUser(req);
  if(!user||!user.uid)return res.status(401).json({error:'Accesso RADIX richiesto'});
+ if(!require('./_auth').requireFull(req,res,user))return;
  if(req.method!=='GET'&&req.method!=='POST')return res.status(405).json({error:'Metodo non consentito'});
  const env=deps.env||process.env,configured=String(env.VERCEL_SITES_TOKEN||'').trim()!=='';
  try{

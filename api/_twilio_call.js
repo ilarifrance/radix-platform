@@ -15,7 +15,7 @@
 // POST {action:'start', to, me, confirm:true}     → {sid}
 // POST {action:'transcribe', sid, confirm:true}   → {text, seconds, model}
 "use strict";
-const { getSessionUser } = require("./_auth");
+const { getSessionUser, requireFull } = require("./_auth");
 const transcriber = require("./_transcribe");
 
 const API = "https://api.twilio.com/2010-04-01/Accounts/";
@@ -180,6 +180,7 @@ async function handler(req, res, deps) {
   }
   const user = getSessionUser(req);
   if (!user) return res.status(401).json({ error: "Sessione mancante o scaduta. Rifai il login." });
+  if (!requireFull(req, res, user)) return;
   const cfg = config(env);
   try {
     if (req.method === "GET" && !q.sid) return res.status(200).json({ configured: cfg.configured, number: cfg.configured ? cfg.number : "" });

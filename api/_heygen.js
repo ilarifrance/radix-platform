@@ -17,7 +17,7 @@
 //   POST { action:'generate', script, avatarId, voiceId } -> { videoId }
 //   GET  ?action=status&videoId=...   -> { status, videoUrl, thumbnailUrl, error }
 
-const { getSessionUser } = require('./_auth');
+const { getSessionUser, requireFull } = require('./_auth');
 const studio = require('../lib/avatar-studio');
 
 const UPLOAD_URL = 'https://upload.heygen.com/v1/asset';
@@ -88,6 +88,7 @@ module.exports = async (req, res) => {
     res.status(401).json({ error: 'Sessione mancante o scaduta. Rifai il login.' });
     return;
   }
+  if (!requireFull(req, res, user)) return;
 
   const apiKey = process.env.HEYGEN_API_KEY;
   if (!apiKey) {

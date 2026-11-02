@@ -62,7 +62,7 @@ test('me: authenticated and unauthenticated', async () => {
   const handler = loadHandler({ session: { uid: 1, email: 'a@b.test', name: 'A' } });
   const reply = res();
   await handler({ method: 'GET', query: { action: 'me' } }, reply);
-  assert.deepEqual(reply.data, { user: { id: 1, email: 'a@b.test', name: 'A' } });
+  assert.deepEqual(reply.data, { user: { id: 1, email: 'a@b.test', name: 'A', access: 'full' } });
   const denied = res();
   await loadHandler()({ method: 'GET', query: { action: 'me' } }, denied);
   assert.equal(denied.code, 401);

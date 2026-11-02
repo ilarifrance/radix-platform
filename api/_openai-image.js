@@ -9,7 +9,7 @@
 // dall'abbonamento ChatGPT Plus (che non dà accesso automatico alle API). Va abilitato il billing su
 // platform.openai.com perché la chiamata funzioni.
 
-const { getSessionUser } = require("./_auth");
+const { getSessionUser, requireFull } = require("./_auth");
 
 function isAuthorized(req) {
   const user = getSessionUser(req);
@@ -61,6 +61,7 @@ module.exports = async (req, res) => {
     res.status(401).json({ error: "Sessione mancante o scaduta. Rifai il login." });
     return;
   }
+  if (!requireFull(req, res, req.user)) return;
 
   // Stesso pattern del pill di stato di /api/chat e /api/heygen: conferma solo se la chiave è
   // configurata, senza spendere una generazione vera ad ogni caricamento pagina.
