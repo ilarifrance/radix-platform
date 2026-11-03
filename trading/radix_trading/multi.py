@@ -325,3 +325,30 @@ def allocate(returns: dict[str, pd.Series], window: int = 365, rebalance: int = 
     keep = pd.Series(np.arange(len(w)) % rebalance == 0, index=w.index)
     w = w.where(keep, axis=0).ffill().fillna(0.0)
     return (w * df).sum(axis=1), w
+
+
+def prob_filter(close: pd.DataFrame, w: pd.DataFrame, threshold: float = 0.55, horizon: int = 10,
+                cost: float = 0.006, train: int = 365, step: int = 30) -> pd.DataFrame:
+    """Filtro del meta-modello sopra una strategia di trend: si entra solo se la probabilita'
+    (fuori campione, su barre giornaliere) che i prossimi `horizon` giorni rendano piu' dei costi
+    e' almeno `threshold`; una volta dentro si resta finche' la strategia non esce da sola."""
+    from . import probability
+    out = w.copy() * 0.0
+    for s in close.columns:
+        daily = close[s].dropna().resample("D").last().dropna()
+        sig = (w[s] > 0).astype(float).resample("D").last().reindex(daily.index).fillna(0.0)
+        f = probability.features(daily, sig, bars_per_day=1)
+        y = probability.labels(daily, horizon, cost)
+        p = probability.walk_forward_proba(f, y, train, step, horizon)
+        p = p.shift(1, freq="D").reindex(close.index, method="ffill")  # nota solo il giorno dopo
+        inside, col = False, w[s].to_numpy()
+        ok = (p >= threshold).to_numpy()
+        res = np.zeros(len(col))
+        for i, x in enumerate(col):
+            if x <= 0:
+                inside = False
+            elif inside or ok[i]:
+                inside = True
+                res[i] = x
+        out[s] = res
+    return out
