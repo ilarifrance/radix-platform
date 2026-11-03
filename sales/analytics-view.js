@@ -119,7 +119,7 @@ const dayIt=s=>s?new Date(s+'T12:00:00Z').toLocaleDateString('it-IT',{day:'numer
 const int=n=>Number(n||0).toLocaleString('it-IT');
 // Stage colours in an order whose neighbours stay apart for colour-blind readers (checked with the dataviz validator).
 const STAGE_TONES=[1,4,2,5,3].map(i=>'var(--crm-chart-'+i+')');
-const take=(t,cls)=>{const p=E('p',undefined,'an-take'+(cls?' '+cls:''));p.append(E('span',t),E('small','Regola fissa, non AI'));return p};
+const take=(t,cls)=>{const p=E('p',undefined,'an-take'+(cls?' '+cls:''));p.append(E('span',t));return p};
 
 /* period: one selector for every panel; the choice survives re-renders and, when allowed, reloads */
 const PKEY='radix.crm.analisi.period';
@@ -244,7 +244,7 @@ function build(d,redraw){const C=A(),range=currentRange(),a=C.analyze(d,range,Da
   const lines=[k.open.count?`Pipeline aperta del periodo: ${eur(k.open.total||0)} su ${k.open.count} trattative.`:'Nessuna trattativa aperta con chiusura prevista nel periodo.',
     k.weighted.value!=null?`Valore ponderato: ${eur(k.weighted.value)}${k.weighted.withoutProb?` (${k.weighted.withoutProb} senza probabilità escluse)`:''}.`:'',
     T.results(a,eur),T.stages(a,eur),T.tasks(a),avg==null?'':avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
-  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Regole fisse, non AI: frasi calcolate dai dati del CRM. La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
+  for(const l of lines)rail.append(E('p',l));rail.append(E('p','La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   main.append(rail);if(d.partial)main.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return wrap}
 

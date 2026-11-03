@@ -86,8 +86,9 @@ function mount(section,kind){
   // A selection handed over from Aziende («Seleziona i loro contatti») shows every contact.
   if(st[kind].pending){st[kind].selected=new Set(st[kind].pending);st[kind].pending=null;p.view='all';viewSel.value='all';st[kind].query='';search.value=''}
   st[kind].selected=L().prune(st[kind].selected,all.map(r=>r.id));
-  drawDivisions(all);
-  return {all,shown:L().apply(kind,all,{view:p.view,division:p.division,query:st[kind].query,sort:p.sort},now),now,d}}
+  // The header «Dipartimento» (crm-division.js) takes over the list's own picker while it is set; back on «Tutti» the local one returns.
+  const global=window.RadixCrmDivision?.current()||'';drawDivisions(all);if(global){divSel.hidden=true;divSel.dataset.key=''}
+  return {all,shown:L().apply(kind,all,{view:p.view,division:global||p.division,query:st[kind].query,sort:p.sort},now),now,d}}
 
  function cell(kind,col,r,now){const td=E('td');td.dataset.col=col.id;
   const link=(label,href,ext)=>{const a=E('a',label);a.href=href;if(ext){a.target='_blank';a.rel='noopener noreferrer'}return a};

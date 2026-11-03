@@ -124,7 +124,7 @@ test('wiring: core after automations, css at the end of the styles, view uses th
  assert.ok(at('href="sales/crm-home.css"')<at('<script'),'stylesheet in the head before the scripts');
  assert.equal(html.match(/crm-home-core\.js/g).length,1);assert.equal(html.match(/crm-home\.css/g).length,1);
  const v=fs.readFileSync(__dirname+'/../sales/dashboard-view.js','utf8');
- assert.match(v,/Suggerimenti per oggi/);assert.match(v,/regole fisse, non AI/);assert.match(v,/Tutto in ordine/);
+ assert.match(v,/Suggerimenti per oggi/);assert.doesNotMatch(v,/non AI/,'no build notes next to the title');assert.match(v,/Tutto in ordine/);
  const block=v.slice(v.indexOf('function assistant'),v.indexOf('let busy=false'));
  assert.doesNotMatch(block,/\.api\(|mutate|fetch\(/,'the block never writes');
  const css=fs.readFileSync(__dirname+'/../sales/crm-home.css','utf8');
