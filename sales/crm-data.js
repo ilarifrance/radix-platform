@@ -20,20 +20,23 @@ async function page(entity,w,offset,limit){const q=new URLSearchParams({entity,o
 async function read(entity,w){const all=[];let capped=false;for(let n=0;n<PAGES;n++){let d;try{d=await page(entity,w,all.length,PAGE)}catch(e){throw Error(LABEL[entity]+' ('+(e&&e.message||'rete')+')')}const size=Number(d.limit)||100;all.push(...d.rows);if(d.rows.length<size)break;if(n===PAGES-1)capped=true}all.capped=capped;return all}
 // Server counts (companies, contacts, leads, opportunities, tasks) of the whole workspace, null when unreadable.
 async function counts(w){try{const d=await page('dashboard',w,0);const r=d.rows&&d.rows[0];if(!r)return null;const out={};for(const k of ['companies','contacts','leads','opportunities','tasks'])if(r[k]!=null&&Number.isFinite(Number(r[k])))out[k]=Number(r[k]);return out}catch{return null}}
+// The header «Dipartimento» (crm-division.js): every view gets the filtered copy; the cache below stays whole,
+// so changing the department never fetches again.
+const filtered=d=>d&&window.RadixCrmDivision?window.RadixCrmDivision.apply(d):d;
 function load(){const w=workspace();if(!w)return Promise.resolve(null);
-  if(w===ws&&data)return Promise.resolve(data);if(w===ws&&pending)return pending;
-  return start(w,0)}
+  if(w===ws&&data)return Promise.resolve(filtered(data));if(w===ws&&pending)return pending.then(filtered);
+  return start(w,0).then(filtered)}
 // One read of the workspace. A reset() while the rows are in flight (sales.js reloading, the call sheet
 // completing its pages, a save) used to resolve every waiting view with null and leave it blank: now the
 // read starts again on the current workspace (at most RETRIES times), or joins the read already restarted.
 const RETRIES=3;let pendingGen=0;
 function start(w,tries){ws=w;data=null;lastError='';const g=++gen;pendingGen=g;
-  const p=Promise.all([...ENT.map(e=>read(e,w)),counts(w)]).then(res=>{if(g!==gen)return stale(g,tries);const rows=res.slice(0,ENT.length);data=Object.fromEntries(ENT.map((e,i)=>[e,rows[i]]));data.partial=rows.some(r=>r.capped);data.counts=res[ENT.length];return data}).catch(e=>{if(g!==gen)return stale(g,tries);lastError=e&&e.message?e.message:'errore inatteso';return null}).finally(()=>{if(pendingGen===g)pending=null});
+  const p=Promise.all([...ENT.map(e=>read(e,w)),counts(w)]).then(res=>{if(g!==gen)return stale(g,tries);const rows=res.slice(0,ENT.length);data=Object.fromEntries(ENT.map((e,i)=>[e,rows[i]]));data.partial=rows.some(r=>r.capped);data.counts=res[ENT.length];try{document.dispatchEvent(new CustomEvent('radix-crm-data',{detail:data}))}catch{}return data}).catch(e=>{if(g!==gen)return stale(g,tries);lastError=e&&e.message?e.message:'errore inatteso';return null}).finally(()=>{if(pendingGen===g)pending=null});
   pending=p;return p}
 // The read of generation g ended after a reset(): join the read that replaced it, or start one more.
 function stale(g,tries){if(pending&&pendingGen!==g)return pending;const w=workspace();if(!w)return null;if(w===ws&&data)return data;if(tries>=RETRIES){lastError='dati cambiati durante la lettura';return null}return start(w,tries+1)}
 function reset(){data=null;ws=null;gen++}
 document.getElementById('workspace')?.addEventListener('change',reset);
 document.getElementById('refresh')?.addEventListener('click',reset);
-window.RadixCrmData={load,reset,workspace,get lastError(){return lastError}};
+window.RadixCrmData={load,reset,workspace,raw:()=>workspace()===ws?data:null,get lastError(){return lastError}};
 })();

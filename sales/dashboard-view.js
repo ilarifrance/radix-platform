@@ -106,7 +106,7 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
 function assistant(d,rules){const H=window.RadixCrmHome,app=window.RadixSalesApp;if(!H)return null;
   const res=H.suggestions(d,{now:Date.now(),me:app?.state.me||null,tickets:app?.rows('tickets'),sla:window.RadixCrmSla?.current(),...(rules&&rules.loaded?{rules:rules.list,quotes:rules.quotes}:{})});
   const p=E('section',undefined,'ch');p.setAttribute('aria-labelledby','ch-title');
-  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t,E('span',rules&&rules.loaded&&window.RadixCrmRules?.effective(rules.list).some(r=>!r.builtin&&r.on)?'regole del workspace, non AI':'regole fisse, non AI','ch-tag'));p.append(h);
+  const h=E('div',undefined,'ch-head');const t=E('h3','Suggerimenti per oggi');t.id='ch-title';h.append(t);p.append(h);
   // Team summary (was «Focus di oggi»): counts of all open tasks and the last interaction.
   const s=H.pulse(d,{now:Date.now()});const sum=E('p',undefined,'ch-pulse');
   for(const [n,label,cls] of [[s.overdue,s.overdue===1?'scaduta':'scadute',s.overdue?'late':''],[s.today,'oggi',''],[s.open,s.open===1?'aperta':'aperte',''],[s.done+' di '+s.total,'completate','']]){const c=E('span',undefined,'ch-chip'+(cls?' '+cls:''));c.append(E('b',n),document.createTextNode(' '+label));sum.append(c)}

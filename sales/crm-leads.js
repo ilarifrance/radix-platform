@@ -11,7 +11,8 @@ const app=()=>window.RadixSalesApp;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const btn=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const state={tab:'aperti'};
-const rows=e=>app()?.rows(e)||[];
+// Leads follow the header «Dipartimento» (crm-division.js); the lookups (aziende, membri) stay whole.
+const rows=e=>{const r=app()?.rows(e)||[];return e==='leads'&&window.RadixCrmDivision?window.RadixCrmDivision.rows(e,r,app().state.rows):r};
 const byId=(e,id)=>id?rows(e).find(r=>r.id===id):null;
 const nameOf=(e,id)=>{const r=byId(e,id);return r?(r.name||r.title||''):''};
 const memberName=id=>id==null?'':rows('members').find(m=>String(m.id)===String(id))?.name||'';
