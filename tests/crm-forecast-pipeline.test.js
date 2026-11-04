@@ -41,7 +41,9 @@ test('pipeline moves stay within the deal process and skip the current stage',()
 });
 test('pipeline posts the idempotent transition and marks drop targets',()=>{
  const src=fs.readFileSync('sales/pipeline-premium.js','utf8'),css=fs.readFileSync('sales/pipeline-premium.css','utf8');
- for(const t of ["action:'transition'","entity:'opportunities'","'x-radix-sales':'1'","credentials:'same-origin'",'crypto.randomUUID()','drop-target','draggable=true','Sposta in…','r.status===409'])assert.ok(src.includes(t),t);
+ const flow=fs.readFileSync('sales/crm-deal-flow.js','utf8');
+ for(const t of ['drop-target','draggable=true','Sposta in…','RadixDealFlow.moveDeal'])assert.ok(src.includes(t),t);
+ for(const t of ["'transition'","'opportunities'","'x-radix-sales':'1'","credentials:'same-origin'",'crypto.randomUUID()','e.status===409'])assert.ok(flow.includes(t),t);
  assert.ok(css.includes('.drop-target'));
  const an=fs.readFileSync('sales/analytics-view.js','utf8');for(const t of ["panel('Previsione'",'Pipeline aperta','Tasso di vittoria','Nessuna trattativa chiusa'])assert.ok(an.includes(t),t);
 });
