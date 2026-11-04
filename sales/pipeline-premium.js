@@ -43,24 +43,14 @@ const transitionKeys=new Map();
 function transitionKey(row,stage){const f=[state.workspace,row.id,row.version,stage.id].join(':');if(!transitionKeys.has(f))transitionKeys.set(f,crypto.randomUUID());return transitionKeys.get(f)}
 const dragged=()=>state.dragId?state.deals.find(d=>d.id===state.dragId&&isOpen(d)):null;
 const clearTargets=()=>document.querySelectorAll('.drop-target').forEach(n=>n.classList.remove('drop-target'));
+// Il cambio fase passa dal dialogo di sales/crm-deal-flow.js: «hai svolto attività?», prossimi passi, ricontatto.
+const flowCtx=(row,stage)=>({workspace:state.workspace,deal:row,stage,stages:state.stages,canWrite:canWrite(),assignee:null,say:error,
+ onDone:async msg=>{await load();if(msg)$('status').textContent=msg}});
 async function move(row,stage){
  if(state.busy||!row||!stage||stage.id===row.stage_id||!isOpen(row))return;
  if(!canWrite()){error('Il tuo ruolo in questo workspace è di sola lettura: non puoi spostare opportunità.');return}
- if(!globalThis.crypto?.randomUUID){error('Spostamento non disponibile: apri la pagina in HTTPS.');return}
- if(!window.confirm(moveConfirmation(row,stage)))return;
- const generation=state.generation,key=transitionKey(row,stage);state.busy=true;error('');$('status').textContent='Spostamento in corso...';
- let failure=null,conflict=false;
- try{const r=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:state.workspace,entity:'opportunities',action:'transition',data:{id:row.id,version:row.version,stage_id:stage.id,key}})});
-  let data={};try{data=await r.json()}catch{data={}}
-  const p=r.ok?nextProbability(row,state.stages,stage):null,moved=data.rows?.[0];
-  if(p!=null&&moved&&moved.version!=null){try{await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:state.workspace,entity:'opportunities',action:'update',data:{id:row.id,version:moved.version,probability:p}})})}catch{}}
-  if(!r.ok){const msg=typeof data.error==='string'?data.error:data.error?.message;conflict=r.status===409;
-   failure=r.status===401?'Sessione non autenticata: effettua il login sullo stesso dominio.':r.status===403?'Non hai i permessi per spostare opportunità in questo workspace.':conflict?'Conflitto: l’opportunità è stata modificata nel frattempo. Pipeline ricaricata: verifica e riprova.':(msg||'Spostamento non riuscito ('+r.status+').')}
- }catch{failure='Errore di rete durante lo spostamento: premi Aggiorna e verifica prima di ripetere.'}
- finally{state.busy=false}
- if(generation!==state.generation)return;
- if(!failure||conflict)await load();
- if(failure){error(failure);if(!conflict)$('status').textContent='Spostamento non completato.'}
+ if(!window.RadixDealFlow){error('Dialogo del cambio fase non caricato: ricarica la pagina.');return}
+ error('');state.busy=true;try{await window.RadixDealFlow.moveDeal(flowCtx(row,stage))}finally{state.busy=false}
 }
 function stageGroup(stage){const group=E('div',undefined,'stage');group.dataset.stageId=stage.id;
  group.addEventListener('dragover',e=>{const d=dragged();if(!d||!moveTargets(d,[stage]).length)return;e.preventDefault();e.dataTransfer.dropEffect='move';group.classList.add('drop-target')});
@@ -74,9 +64,9 @@ function selectionPanel(row){const target=$('selection');target.replaceChildren(
   go.onclick=()=>{const stage=state.stages.find(s=>s.id===sel.value);if(stage)move(row,stage)};wrap.append(label,' ',sel,' ',go);target.append(wrap)}
  else if(!canWrite())target.append(E('p','Ruolo in sola lettura: lo spostamento di fase non è disponibile.'));
  const a=E('a','Apri nel CRM operativo ↗');a.href='/radix-sales.html#opportunities';target.append(a)}
-function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}b.append(E('small','Apri dettagli ↗'));
+function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}b.append(E('small','Vedi dettagli'));
  if(canWrite()&&isOpen(row)&&moveTargets(row,state.stages).length){b.draggable=true;b.title='Trascina su un’altra fase per spostarla';b.addEventListener('dragstart',e=>{state.dragId=row.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.id);b.classList.add('dragging')});b.addEventListener('dragend',()=>{state.dragId=null;b.classList.remove('dragging');clearTargets()})}
- b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');selectionPanel(row)};return b}
+ b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');if(window.RadixDealFlow)window.RadixDealFlow.openDetail({...flowCtx(row,null),onDone:async msg=>{await load();if(msg)$('status').textContent=msg}});else selectionPanel(row)};return b}
 // The header «Dipartimento» (crm-division.js): the deals of the companies and contacts of that department only.
 const visible=()=>window.RadixCrmDivision&&quick.rows?window.RadixCrmDivision.rows('opportunities',state.deals,quick.rows):state.deals;
 function render(){
