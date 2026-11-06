@@ -72,7 +72,7 @@ function globe(canvas,W,H,cx,cy,R){const ctx=canvas.getContext&&canvas.getContex
  requestAnimationFrame(frame)}
 // ---- login
 function login(){clear(main);const w=h('div','if-login'),art=h('div','if-login-art'),pic=h('div','if-login-pic');pic.appendChild(window.IFmods.art());art.appendChild(pic);
- const tx=h('div','if-login-tx');tx.appendChild(h('div','if-eyebrow','Interfood · Operations Centre'));tx.appendChild(h('h1','','One place for customers, machines and service.'));
+ const tx=h('div','if-login-tx'),lg=h('img','if-logo-lg');lg.src='/interfood/logo.svg';lg.alt='Interfood';tx.appendChild(lg);tx.appendChild(h('div','if-eyebrow','Your Partner in Food Production · Operations Centre'));tx.appendChild(h('h1','','One place for customers, machines and service.'));
  tx.appendChild(h('p','if-lead','Sign in to see your tools. Managers see everything; each team sees the tool they work in.'));art.appendChild(tx);w.appendChild(art);
  const card=h('div','if-login-card');card.appendChild(h('h2','','Sign in'));
  const f=h('form','if-form'),em=h('input'),pw=h('input'),err=h('p','if-err');em.type='email';em.value=D.users[0].email;em.placeholder='name@interfood.example';em.autocomplete='off';em.setAttribute('aria-label','Email');pw.type='password';pw.value='demo';pw.placeholder='Password';pw.autocomplete='off';pw.setAttribute('aria-label','Password');

@@ -213,3 +213,5 @@ tr.done td{opacity:.5}
 
 .if-top{gap:12px}.if-rail{flex-wrap:nowrap}.if-rail button{padding:6px 9px;white-space:nowrap}.if-demo{white-space:nowrap}.sv-map svg{max-width:300px}
 @media(max-width:860px){.if-rail{flex-wrap:nowrap;overflow-x:auto}}
+
+.if-logo{height:32px;width:auto;display:block}.if-logo-lg{height:56px;width:auto;display:block;margin-bottom:22px}.if-wm-s{margin-left:0}
