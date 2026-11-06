@@ -102,11 +102,13 @@ function tileInfo(id){
  if(id==='dashboard')return mini(D.stages.map(g=>D.deals.filter(d=>d.stage===g).length));
  return null}
 function hub(){const u=st.user,list=priorities(),f=figures();
- const hero=h('section','if-hero'),ht=h('div','if-hero-t'),pic=h('div','if-hero-pic');
- ht.appendChild(h('div','if-eyebrow','Command Centre'));ht.appendChild(h('h1','','Welcome back, '+u.name.split(' ')[0]));
- ht.appendChild(h('p','if-lead',list.length?list.length+' items need your attention across '+areas().length+' '+(areas().length===1?'tool':'tools')+'. Start with the first one, or ask the assistant.':'Nothing needs your attention right now.'));
- const chips=h('div','if-chips');areas().forEach(n=>chips.appendChild(pill(n.label,n.state)));ht.appendChild(chips);hero.appendChild(ht);
- pic.appendChild(window.IFmods.art([[f.openTickets+' open tickets',20,22,f.highTickets?'warn':'ok'],[f.serviceDue+' machines need service',190,26,'warn'],['Pipeline '+gbp(f.pipeline),'r',62,'ok']]));hero.appendChild(pic);main.appendChild(hero);
+ const hero=h('section','if-hero cmp'),ht=h('div','if-hero-t'),fl=h('div','if-fleet');
+ ht.appendChild(h('div','if-eyebrow',new Date(TODAY+'T12:00:00Z').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',timeZone:'UTC'})));ht.appendChild(h('h1','','Welcome back, '+u.name.split(' ')[0]));
+ ht.appendChild(h('p','if-lead',list.length?list.length+' items need your attention across '+areas().length+' '+(areas().length===1?'tool':'tools')+'. The first ones are below.':'Nothing needs your attention right now.'));
+ const qa=h('div','if-tools');if(can('service'))qa.appendChild(btn('+ Work order','',()=>go('service')));if(can('crm'))qa.appendChild(btn('Log a call','ghost',()=>go('crm')));if(can('assets'))qa.appendChild(btn('Machines','ghost',()=>go('assets')));ht.appendChild(qa);hero.appendChild(ht);
+ if(can('assets')){const hd=h('div','if-fleet-h');hd.appendChild(h('b','','Machines in the field'));const lg=h('span','if-fleet-lg');[['ok','Running'],['warn','Needs attention'],['bad','Fault']].forEach(x=>{const i=h('i','fl-dot '+x[0]);lg.appendChild(i);lg.appendChild(document.createTextNode(x[1]+'  '))});hd.appendChild(lg);fl.appendChild(hd);
+  const grid=h('div','if-fleet-g');D.machines.forEach(m=>{const c=m.status==='Running'?'ok':m.status==='Fault reported'?'bad':'warn',t=h('button','fl-t '+c);t.type='button';t.title=m.model+' · '+cust(m.customer)+' · '+m.status;t.setAttribute('aria-label',t.title);t.appendChild(h('i','fl-dot '+c));t.appendChild(h('b','',m.id.replace('M-','')));t.appendChild(h('small','',m.model.split(' ').slice(0,2).join(' ')));t.addEventListener('click',()=>go('assets','sel='+m.id));grid.appendChild(t)});fl.appendChild(grid);hero.appendChild(fl)}
+ main.appendChild(hero);
  const k=h('div','if-kpis'),K=[];
  if(can('crm'))K.push([gbp(f.pipeline),'Open pipeline · '+f.deals+' deals','crm']);
  if(can('crm'))K.push([gbp(f.orders),'Orders won, awaiting delivery','crm']);
