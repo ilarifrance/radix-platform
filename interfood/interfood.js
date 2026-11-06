@@ -128,10 +128,11 @@ function hub(){const u=st.user,list=priorities(),f=figures();
  tools.appendChild(tg);main.appendChild(tools)}
 // ---- CRM (a simple part of Sales Orbit: orbit home, pipeline, companies, contacts, activities)
 const CRMTABS=[['orbit','Orbit'],['today','Today'],['pipeline','Pipeline'],['companies','Companies'],['contacts','Contacts'],['activities','Activities'],['calendar','Calendar'],['mail','Mail'],['campaigns','Campaigns'],['analysis','Analysis']];
-const cx=()=>window.IFmods.crmx();
+const cx=()=>window.IFmods.crmx(),c2=()=>window.IFmods.crm2();
 function crm(root){
+ const qa=h('div','if-tools cx-qa');[['+ Opportunity',()=>c2().newDeal()],['+ Company',()=>c2().newCompany()],['+ Contact',()=>c2().newContact()],['+ Task',()=>c2().newTask()]].forEach(x=>qa.appendChild(btn(x[0],'small',x[1])));root.appendChild(qa);
  const tabs=h('div','if-tools');CRMTABS.forEach(t=>tabs.appendChild(btn(t[1],st.crmTab===t[0]?'':'ghost',()=>{st.crmTab=t[0];st.sel=null;draw('crm')})));root.appendChild(tabs);
- ({orbit:crmOrbit,pipeline:crmPipeline,companies:crmCompanies,contacts:crmContacts,activities:crmActivities,today:r=>cx().today(r),calendar:r=>cx().calendar(r),mail:r=>cx().mail(r),campaigns:r=>cx().campaigns(r),analysis:r=>cx().analysis(r)})[st.crmTab](root)}
+ ({orbit:crmOrbit,pipeline:r=>c2().pipeline(r),companies:r=>c2().companies(r),contacts:r=>c2().contacts(r),activities:r=>c2().activities(r),today:r=>cx().today(r),calendar:r=>cx().calendar(r),mail:r=>cx().mail(r),campaigns:r=>cx().campaigns(r),analysis:r=>cx().analysis(r)})[st.crmTab](root)}
 function crmOrbit(root){const f=figures(),home=h('div','if-crmhome'),asd=h('div','if-asst');window.IFmods.assistant(asd,{scope:'crm',sub:'Type what happened. I log it and set the follow-up.',placeholder:'Called Fiona Marsh, send the quote Monday…'});home.appendChild(asd);const wrap=h('div','if-orbit'),cv=h('canvas','if-orbit-cv');cv.setAttribute('aria-hidden','true');wrap.appendChild(cv);
  const svg=s('svg',{class:'if-orbit-svg',viewBox:'0 0 900 470',role:'group','aria-label':'Sales Orbit'});
  const open=D.activities.filter(a=>!a.done).length,P=[['companies','Companies',D.customers.length,'accounts',130,95],['contacts','Contacts',D.contacts.length,'people',770,95],['pipeline','Pipeline',f.deals,'open deals',130,320],['activities','Activities',open,'to do',770,320]];
@@ -142,42 +143,6 @@ function crmOrbit(root){const f=figures(),home=h('div','if-crmhome'),asd=h('div'
  svg.appendChild(s('text',{class:'if-pl-l',x:450,y:452},'Interfood Sales'));wrap.appendChild(svg);home.appendChild(wrap);root.appendChild(home);globe(cv,900,470,450,225,88);
  const k=h('div','if-kpis');[[gbp(f.pipeline),'Open pipeline'],[gbp(f.orders),'Orders won'],[String(f.deals),'Open deals'],[String(open),'Activities to do']].forEach(x=>{const d=h('div','if-kpi');d.appendChild(h('b','',x[0]));d.appendChild(h('span','',x[1]));k.appendChild(d)});root.appendChild(k);
  root.appendChild(h('p','if-lead','The live product adds forecasting, email, campaigns and the AI copilot on the same records. Lead intelligence is a separate module and is not part of this view.'))}
-function crmPipeline(root){
- const split=h('div','if-split'),left=h('div'),side=h('aside','if-side');
- const board=h('div','if-board');
- D.stages.forEach(sg=>{const col=h('div','if-col'),list=D.deals.filter(d=>d.stage===sg),h3=h('h3','',sg);h3.appendChild(h('span','',gbp(list.reduce((a,d)=>a+d.value,0))));col.appendChild(h3);
-  list.forEach(d=>{const b=h('button','if-deal');b.type='button';b.appendChild(h('b','',d.title));b.appendChild(h('small','',cust(d.customer)));b.appendChild(h('small','',gbp(d.value)+' · '+d.owner));b.addEventListener('click',()=>{st.sel=d.id;dealSide(side,d,()=>crmRefresh())});col.appendChild(b)});board.appendChild(col)})
- left.appendChild(board);split.appendChild(left);split.appendChild(side);root.appendChild(split);
- const cur=D.deals.find(d=>d.id===st.sel);cur?dealSide(side,cur,()=>crmRefresh()):side.appendChild(h('p','if-lead','Select a deal to see its detail here.'))}
-function crmRefresh(){const keep=st.sel;draw('crm');st.sel=keep;const side=document.querySelector('.if-side'),d=D.deals.find(x=>x.id===keep);if(d&&side){clear(side);dealSide(side,d,()=>crmRefresh())}}
-function dealSide(side,d,after){clear(side);side.appendChild(h('h2','',d.title));
- const dl=h('dl');[['Customer',cust(d.customer)],['Stage',d.stage],['Value',gbp(d.value)],['Owner',d.owner],['Next step',d.next],['Due',fmt(d.due)]].forEach(r=>{dl.appendChild(h('dt','',r[0]));dl.appendChild(h('dd','',r[1]))});side.appendChild(dl);
- const i=D.stages.indexOf(d.stage),b=h('button','if-btn',i<D.stages.length-1?'Move to '+D.stages[i+1]:'Order won');b.type='button';b.disabled=i>=D.stages.length-1;
- b.addEventListener('click',()=>cx().move(side,d,after));
- const w=h('div','if-tools');w.appendChild(b);w.appendChild(btn('Next move (AI demo)','ghost',()=>{const p=h('p','if-lead',cx().nextMove(d));side.appendChild(p)}));side.appendChild(w);
- side.appendChild(h('p','if-lead','Moving a deal asks what you did and suggests the next reminders.'))}
-function crmCompanies(root){
- const split=h('div','if-split'),left=h('div'),side=h('aside','if-side'),table=h('table','if-table'),tr=h('tr'),th=h('thead'),tb=h('tbody');
- ['Company','City','Open deals','Machines','Open tickets'].forEach(c=>tr.appendChild(h('th','',c)));th.appendChild(tr);table.appendChild(th);table.appendChild(tb);
- const one=c=>{clear(side);side.appendChild(h('h2','',c.name));side.appendChild(h('p','if-lead',c.city));
-  const sec=(t,rows)=>{side.appendChild(h('h3','',t));const ul=h('ul','if-time');rows.forEach(x=>ul.appendChild(h('li','',x)));if(!rows.length)ul.appendChild(h('li','','None'));side.appendChild(ul)};
-  sec('Contacts',D.contacts.filter(p=>p.customer===c.id).map(p=>p.name+' · '+p.role));
-  sec('Open deals',D.deals.filter(d=>d.customer===c.id&&d.stage!=='Order').map(d=>d.title+' · '+gbp(d.value)+' · '+d.stage));
-  sec('Recent notes',(st.notes||[]).filter(n=>n.customer===c.id).map(n=>n.text+' · '+n.by));
-  sec('Machines',D.machines.filter(m=>m.customer===c.id).map(m=>m.model+' · '+m.status));
-  sec('Service',D.tickets.filter(t=>t.customer===c.id&&t.status!=='Resolved').map(t=>t.id+' · '+t.issue))};
- D.customers.forEach(c=>{const r=h('tr','row');r.tabIndex=0;r.appendChild(h('td','',c.name));r.appendChild(h('td','',c.city));
-  r.appendChild(h('td','',String(D.deals.filter(d=>d.customer===c.id&&d.stage!=='Order').length)));r.appendChild(h('td','',String(D.machines.filter(m=>m.customer===c.id).length)));r.appendChild(h('td','',String(D.tickets.filter(t=>t.customer===c.id&&t.status!=='Resolved').length)));
-  r.addEventListener('click',()=>one(c));r.addEventListener('keydown',e=>{if(e.key==='Enter')one(c)});tb.appendChild(r)});
- left.appendChild(table);split.appendChild(left);split.appendChild(side);root.appendChild(split);side.appendChild(h('p','if-lead','Select a company for its full picture: people, deals, machines and service in one place.'))}
-function crmContacts(root){const q=h('input');q.type='search';q.placeholder='Search name, company or role';q.setAttribute('aria-label','Search contacts');const tools=h('div','if-tools');tools.appendChild(q);root.appendChild(tools);
- const table=h('table','if-table'),tr=h('tr'),th=h('thead'),tb=h('tbody');['Name','Company','Role','Email','Last contact'].forEach(c=>tr.appendChild(h('th','',c)));th.appendChild(tr);table.appendChild(th);table.appendChild(tb);root.appendChild(table);
- function list(){clear(tb);const t=q.value.toLowerCase();D.contacts.filter(p=>!t||(p.name+' '+cust(p.customer)+' '+p.role).toLowerCase().includes(t)).forEach(p=>{const r=h('tr');[p.name,cust(p.customer),p.role,p.email,fmt(p.last)].forEach(x=>r.appendChild(h('td','',x)));tb.appendChild(r)})}
- q.addEventListener('input',list);list()}
-function crmActivities(root){const table=h('table','if-table'),tr=h('tr'),th=h('thead'),tb=h('tbody');['Activity','Deal','Owner','Due',''].forEach(c=>tr.appendChild(h('th','',c)));th.appendChild(tr);table.appendChild(th);table.appendChild(tb);
- D.activities.slice().sort((a,b)=>a.due<b.due?-1:1).forEach(a=>{const r=h('tr'),dl=D.deals.find(d=>d.id===a.deal);r.appendChild(h('td','',a.type+' · '+a.text));r.appendChild(h('td','',dl?cust(dl.customer):''));r.appendChild(h('td','',a.owner));
-  const td=h('td','',fmt(a.due)+' ');if(!a.done&&days(a.due)<0)td.appendChild(pill('Overdue','High'));r.appendChild(td);const bt=h('td');bt.appendChild(btn(a.done?'Done':'Mark done',a.done?'ghost small':'small',()=>{a.done=true;toast('Marked done. Orbit and the Command Centre now reflect it.');draw('crm')}));r.appendChild(bt);if(a.done)r.className='done';tb.appendChild(r)});
- root.appendChild(table)}
 // ---- assets
 function assets(root){
  const grp=(label,list)=>{const r=h('div','lb-grp');if(label)r.appendChild(h('span','lb-gl',label));list.forEach(t=>r.appendChild(btn(t[1],st.tab===t[0]?'':'ghost',()=>{st.tab=t[0];st.sel=null;draw('assets')})));root.appendChild(r)};

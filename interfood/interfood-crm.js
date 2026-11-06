@@ -63,10 +63,10 @@ function analysis(root){
  wrap.appendChild(a);wrap.appendChild(b);root.appendChild(wrap)}
 return {today:today,calendar:calendar,mail:mail,campaigns:campaigns,analysis:analysis,
  // deal move: ask what was done, suggest the next reminders, then move and log
- move:function(side,d,after){clear(side);const nx=D.stages[D.stages.indexOf(d.stage)+1];side.appendChild(h('h2','','Move to '+nx));side.appendChild(h('p','if-lead',d.title+' · '+cust(d.customer)));
+ move:function(side,d,after,to){clear(side);const nx=to||D.stages[D.stages.indexOf(d.stage)+1];side.appendChild(h('h2','','Move to '+nx));side.appendChild(h('p','if-lead',d.title+' · '+cust(d.customer)));
   const sel=h('select');sel.setAttribute('aria-label','What did you do');['Called the customer','Met on site','Sent an email','Sent the quote','Nothing yet'].forEach(x=>sel.appendChild(h('option','',x)));side.appendChild(h('label','','What did you do?'));side.appendChild(sel);
   const note=h('textarea','cx-ta');note.rows=3;note.setAttribute('aria-label','Note');note.placeholder='Short note (optional)';side.appendChild(note);
-  const sug={Trial:['Collect the trial results'],Quote:['Send the quote','Call to check the quote arrived'],Negotiation:['Agree the delivery date'],Order:['Book the installation']}[nx]||['Follow up'];
+  const sug={'Site visit':['Send the visit notes'],Trial:['Collect the trial results'],Quote:['Send the quote','Call to check the quote arrived'],Negotiation:['Agree the delivery date'],Order:['Book the installation']}[nx]||['Follow up'];
   side.appendChild(h('h3','','Suggested reminders'));const boxes=[];sug.forEach(x=>{const l=h('label','sv-chk'),i=h('input');i.type='checkbox';i.checked=true;l.appendChild(i);l.appendChild(h('span','',x));side.appendChild(l);boxes.push([i,x])});
   const w=h('div','if-tools');w.appendChild(btn('Confirm move','',()=>{d.stage=nx;st.notes=st.notes||[];if(note.value.trim())st.notes.unshift({customer:d.customer,text:sel.value+': '+note.value.trim(),by:st.user.name});
    boxes.forEach(b=>{if(b[0].checked)D.activities.push({id:'a'+(D.activities.length+1),type:'Task',text:b[1]+' · '+d.title,deal:d.id,owner:d.owner,due:'2026-11-12',done:false})});
