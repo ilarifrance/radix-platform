@@ -125,10 +125,11 @@ function hub(){const u=st.user,list=priorities(),f=figures();
  areas().forEach(n=>{const b=h('button','if-tile '+n.state);b.type='button';b.appendChild(h('h3','',n.label));b.appendChild(h('small','',n.sub));b.appendChild(h('div','if-tile-m',nodeMetric(n.id)));const m=tileInfo(n.id);if(m)b.appendChild(m);b.appendChild(h('span','if-open','Open →'));b.addEventListener('click',()=>go(n.id));tg.appendChild(b)});
  tools.appendChild(tg);main.appendChild(tools)}
 // ---- CRM (a simple part of Sales Orbit: orbit home, pipeline, companies, contacts, activities)
-const CRMTABS=[['orbit','Orbit'],['pipeline','Pipeline'],['companies','Companies'],['contacts','Contacts'],['activities','Activities']];
+const CRMTABS=[['orbit','Orbit'],['today','Today'],['pipeline','Pipeline'],['companies','Companies'],['contacts','Contacts'],['activities','Activities'],['calendar','Calendar'],['mail','Mail'],['campaigns','Campaigns'],['analysis','Analysis']];
+const cx=()=>window.IFmods.crmx();
 function crm(root){
  const tabs=h('div','if-tools');CRMTABS.forEach(t=>tabs.appendChild(btn(t[1],st.crmTab===t[0]?'':'ghost',()=>{st.crmTab=t[0];st.sel=null;draw('crm')})));root.appendChild(tabs);
- ({orbit:crmOrbit,pipeline:crmPipeline,companies:crmCompanies,contacts:crmContacts,activities:crmActivities})[st.crmTab](root)}
+ ({orbit:crmOrbit,pipeline:crmPipeline,companies:crmCompanies,contacts:crmContacts,activities:crmActivities,today:r=>cx().today(r),calendar:r=>cx().calendar(r),mail:r=>cx().mail(r),campaigns:r=>cx().campaigns(r),analysis:r=>cx().analysis(r)})[st.crmTab](root)}
 function crmOrbit(root){const f=figures(),home=h('div','if-crmhome'),asd=h('div','if-asst');window.IFmods.assistant(asd,{scope:'crm',sub:'Type what happened. I log it and set the follow-up.',placeholder:'Called Fiona Marsh, send the quote Monday…'});home.appendChild(asd);const wrap=h('div','if-orbit'),cv=h('canvas','if-orbit-cv');cv.setAttribute('aria-hidden','true');wrap.appendChild(cv);
  const svg=s('svg',{class:'if-orbit-svg',viewBox:'0 0 900 470',role:'group','aria-label':'Sales Orbit'});
  const open=D.activities.filter(a=>!a.done).length,P=[['companies','Companies',D.customers.length,'accounts',130,95],['contacts','Contacts',D.contacts.length,'people',770,95],['pipeline','Pipeline',f.deals,'open deals',130,320],['activities','Activities',open,'to do',770,320]];
@@ -150,9 +151,9 @@ function crmRefresh(){const keep=st.sel;draw('crm');st.sel=keep;const side=docum
 function dealSide(side,d,after){clear(side);side.appendChild(h('h2','',d.title));
  const dl=h('dl');[['Customer',cust(d.customer)],['Stage',d.stage],['Value',gbp(d.value)],['Owner',d.owner],['Next step',d.next],['Due',fmt(d.due)]].forEach(r=>{dl.appendChild(h('dt','',r[0]));dl.appendChild(h('dd','',r[1]))});side.appendChild(dl);
  const i=D.stages.indexOf(d.stage),b=h('button','if-btn',i<D.stages.length-1?'Move to '+D.stages[i+1]:'Order won');b.type='button';b.disabled=i>=D.stages.length-1;
- b.addEventListener('click',()=>{d.stage=D.stages[i+1];toast('Moved to '+d.stage+'. The Command Centre and pipeline totals now include this change.');after()});
- const w=h('div','if-tools');w.appendChild(b);side.appendChild(w);
- side.appendChild(h('p','if-lead','In the live product a move also asks what you did and suggests the next reminders. This preview only moves the card.'))}
+ b.addEventListener('click',()=>cx().move(side,d,after));
+ const w=h('div','if-tools');w.appendChild(b);w.appendChild(btn('Next move (AI demo)','ghost',()=>{const p=h('p','if-lead',cx().nextMove(d));side.appendChild(p)}));side.appendChild(w);
+ side.appendChild(h('p','if-lead','Moving a deal asks what you did and suggests the next reminders.'))}
 function crmCompanies(root){
  const split=h('div','if-split'),left=h('div'),side=h('aside','if-side'),table=h('table','if-table'),tr=h('tr'),th=h('thead'),tb=h('tbody');
  ['Company','City','Open deals','Machines','Open tickets'].forEach(c=>tr.appendChild(h('th','',c)));th.appendChild(tr);table.appendChild(th);table.appendChild(tb);

@@ -108,7 +108,19 @@ const archive=[
  {id:'k2',kind:'Voice note',title:'Greenacre line layout, site visit',text:'Gareth says the new filling line must fit behind the existing wrapper; 600 mm clearance on the left, forklift route cannot move.',tags:['Greenacre','install'],machine:'',shared:false,date:'2026-11-03',by:'Sara Jennings'},
  {id:'k3',kind:'Note',title:'Mixer MX-500 gearbox noise',text:'Noise rises above 60 percent speed. Oil level low and metal in the drain plug: likely bearing. Order bearing kit before the visit.',tags:['MX-500','gearbox'],machine:'M-1008',shared:true,date:'2026-11-02',by:'Jack Morrison'}
 ];
-const core={technicians,geo,parts,checklist,archive,customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
+const mails=[
+ {id:'m1',from:'Rachel Dunn',customer:'c1',deal:'D-01',subject:'Re: Second tray sealer line, revised quote',date:'2026-11-06',unread:true,body:'Thanks for the update. Finance are happy with the structure, but could you split installation and training into separate lines? We would also like to confirm the delivery window before we sign.'},
+ {id:'m2',from:'Fiona Marsh',customer:'c2',deal:'D-02',subject:'Delivery date for the filling line',date:'2026-11-05',unread:true,body:'Our shutdown starts on 15 December. Can the line be delivered and installed before that? If not we need to plan for January.'},
+ {id:'m3',from:'Gareth Pugh',customer:'c3',deal:'',subject:'Trial slot next week?',date:'2026-11-04',unread:false,body:'We would like to see the slicer running on our own product. Do you have a trial slot in the week of 16 November?'},
+ {id:'m4',from:'Nina Patel',customer:'c4',deal:'D-03',subject:'Flow wrapper trial results',date:'2026-11-03',unread:false,body:'Here are the trial results. Seal integrity looked good at 80 packs a minute. We are waiting for our quality manager to sign off.'}
+];
+const sequences=[
+ {id:'s1',name:'After a site visit',steps:['Day 0 · Thank-you email with the visit notes','Day 3 · Layout sketch and reference customer','Day 7 · Call to book the trial'],enrolled:6,replies:3,sent:14},
+ {id:'s2',name:'Quote follow-up',steps:['Day 2 · Quote received?','Day 6 · Questions on the financing options','Day 12 · Call from the account manager'],enrolled:4,replies:1,sent:9},
+ {id:'s3',name:'Warranty ending, service plan offer',steps:['60 days before · Service plan overview','30 days before · Offer with a fixed annual price','Day of expiry · Last reminder'],enrolled:5,replies:2,sent:8}
+];
+const stageProb={'Enquiry':.1,'Site visit':.25,'Trial':.5,'Quote':.6,'Negotiation':.8,'Order':1};
+const core={mails,sequences,stageProb,technicians,geo,parts,checklist,archive,customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
 if(typeof module==='object'&&module.exports)module.exports=core;
 root.InterfoodDemo=core;
 })(typeof globalThis!=='undefined'?globalThis:this);
