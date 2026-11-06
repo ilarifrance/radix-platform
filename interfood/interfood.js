@@ -25,6 +25,7 @@ const accessText=u=>u.access.length>=7?'All areas':u.access.map(a=>D.nodes.find(
 const can=id=>!!(st.user&&st.user.access.indexOf(id)>=0);
 const areas=()=>D.nodes.filter(n=>can(n.id));
 try{const sid=sessionStorage.getItem('if-demo-user');if(sid)st.user=D.users.find(u=>u.id===sid)||null}catch(e){}
+window.IF={D:D,h:h,s:s,pill:pill,toast:toast,clear:clear,btn:btn,gbp:gbp,fmt:fmt,days:days,cust:cust,mach:mach,st:st,can:can,plural:plural,TODAY:TODAY,draw:id=>draw(id),go:go,figures:()=>figures(),priorities:()=>priorities()};
 // live figures computed from the demo state, so every area agrees with the others
 function figures(){
  const open=D.deals.filter(d=>d.stage!=='Order');
@@ -59,7 +60,7 @@ function draw(id){drawRail(id);clear(main);window.scrollTo(0,0);if(!id)return hu
  const n=D.nodes.find(x=>x.id===id);
  if(areas().length>1)main.appendChild(btn('← Command Centre','ghost if-back',()=>go('')));
  const hd=h('div','if-head');hd.appendChild(h('h1','',n.label));const p=h('p','if-lead',n.sub+' ');p.appendChild(pill(n.stateText,n.state));hd.appendChild(p);main.appendChild(hd);
- ({crm,assets,service,dashboard,marketing,erp:connector.bind(null,'erp'),hr:connector.bind(null,'hr')})[id](main)}
+ ({crm,assets,service:r=>window.IFmods.service(r),dashboard,marketing,erp:connector.bind(null,'erp'),hr:connector.bind(null,'hr')})[id](main)}
 function denied(id){drawRail('');clear(main);const n=D.nodes.find(x=>x.id===id),b=h('div','if-denied');
  b.appendChild(h('div','if-lock','🔒'));b.appendChild(h('h1','','No access to '+n.label));
  b.appendChild(h('p','if-lead','Your role ('+st.user.role+') opens '+accessText(st.user)+'. Ask an administrator if you need '+n.label+'.'));
@@ -70,7 +71,7 @@ function globe(canvas,W,H,cx,cy,R){const ctx=canvas.getContext&&canvas.getContex
  function frame(now){if(!canvas.isConnected)return;ctx.clearRect(0,0,W,H);const t=now-t0;G.orbits(ctx,g,t,false);G.draw(ctx,g,.6+t*.00006);G.orbits(ctx,g,t,true);if(!still)requestAnimationFrame(frame)}
  requestAnimationFrame(frame)}
 // ---- login
-function login(){clear(main);const w=h('div','if-login'),art=h('div','if-login-art'),cv=h('canvas','if-login-cv');cv.setAttribute('aria-hidden','true');art.appendChild(cv);
+function login(){clear(main);const w=h('div','if-login'),art=h('div','if-login-art'),pic=h('div','if-login-pic');pic.appendChild(window.IFmods.art());art.appendChild(pic);
  const tx=h('div','if-login-tx');tx.appendChild(h('div','if-eyebrow','Interfood · Operations Centre'));tx.appendChild(h('h1','','One place for customers, machines and service.'));
  tx.appendChild(h('p','if-lead','Sign in to see your tools. Managers see everything; each team sees the tool they work in.'));art.appendChild(tx);w.appendChild(art);
  const card=h('div','if-login-card');card.appendChild(h('h2','','Sign in'));
@@ -80,7 +81,7 @@ function login(){clear(main);const w=h('div','if-login'),art=h('div','if-login-a
  card.appendChild(f);card.appendChild(h('div','if-or','or open a demo account'));
  const lst=h('div','if-accts');D.users.forEach(u=>{const b=h('button','if-acct');b.type='button';b.appendChild(h('span','if-av',u.name.split(' ').map(x=>x[0]).join('')));const t=h('span','if-who-t');t.appendChild(h('b','',u.name));t.appendChild(h('small','',u.role+' · '+accessText(u)));b.appendChild(t);b.addEventListener('click',()=>signIn(u));lst.appendChild(b)});
  card.appendChild(lst);card.appendChild(h('p','if-fine','Demo only: fictional people and data. The live product uses each person\'s own RADIX login and permissions.'));w.appendChild(card);main.appendChild(w);
- globe(cv,640,640,320,330,120)}
+}
 // ---- Command Centre
 function priorities(){const out=[];
  D.tickets.filter(t=>t.status!=='Resolved'&&t.priority==='High').forEach(t=>out.push({area:'service',lvl:3,title:t.id+' · '+t.issue,sub:cust(t.customer)+' · '+(mach(t.machine)||{}).model+' · high priority',to:['service','sel='+t.id]}));
@@ -101,10 +102,11 @@ function tileInfo(id){
  if(id==='dashboard')return mini(D.stages.map(g=>D.deals.filter(d=>d.stage===g).length));
  return null}
 function hub(){const u=st.user,list=priorities(),f=figures();
- const hero=h('section','if-hero'),ht=h('div','if-hero-t'),cv=h('canvas','if-hero-cv');cv.setAttribute('aria-hidden','true');
+ const hero=h('section','if-hero'),ht=h('div','if-hero-t'),pic=h('div','if-hero-pic');
  ht.appendChild(h('div','if-eyebrow','Command Centre'));ht.appendChild(h('h1','','Welcome back, '+u.name.split(' ')[0]));
- ht.appendChild(h('p','if-lead',list.length?list.length+' items need your attention across '+areas().length+' tools. Start with the first one.':'Nothing needs your attention right now.'));
- const chips=h('div','if-chips');areas().forEach(n=>chips.appendChild(pill(n.label,n.state)));ht.appendChild(chips);hero.appendChild(ht);hero.appendChild(cv);main.appendChild(hero);globe(cv,520,300,360,150,84);
+ ht.appendChild(h('p','if-lead',list.length?list.length+' items need your attention across '+areas().length+' '+(areas().length===1?'tool':'tools')+'. Start with the first one, or ask the assistant.':'Nothing needs your attention right now.'));
+ const chips=h('div','if-chips');areas().forEach(n=>chips.appendChild(pill(n.label,n.state)));ht.appendChild(chips);hero.appendChild(ht);
+ pic.appendChild(window.IFmods.art([[f.openTickets+' open tickets',20,22,f.highTickets?'warn':'ok'],[f.serviceDue+' machines need service',190,26,'warn'],['Pipeline '+gbp(f.pipeline),'r',62,'ok']]));hero.appendChild(pic);main.appendChild(hero);
  const k=h('div','if-kpis'),K=[];
  if(can('crm'))K.push([gbp(f.pipeline),'Open pipeline · '+f.deals+' deals','crm']);
  if(can('crm'))K.push([gbp(f.orders),'Orders won, awaiting delivery','crm']);
@@ -118,22 +120,23 @@ function hub(){const u=st.user,list=priorities(),f=figures();
  list.slice(0,8).forEach(p=>{const li=h('li','lvl'+p.lvl),b=h('button','if-prio-b');b.type='button';const t=h('span','if-prio-t');t.appendChild(h('b','',p.title));t.appendChild(h('small','',p.sub));
   b.appendChild(h('span','if-dot'));b.appendChild(t);b.appendChild(pill(D.nodes.find(n=>n.id===p.area).label,'tag'));b.addEventListener('click',()=>go(p.to[0],p.to[1]));li.appendChild(b);ol.appendChild(li)});
  if(!list.length)ol.appendChild(h('li','if-empty','All clear.'));pan.appendChild(ol);grid.appendChild(pan);
+ const asst=h('div','if-asst');window.IFmods.assistant(asst,{scope:'cc'});grid.appendChild(asst);main.appendChild(grid);
  tools.appendChild(h('h2','if-tools-h','Your tools'));const tg=h('div','if-tiles');
  areas().forEach(n=>{const b=h('button','if-tile '+n.state);b.type='button';b.appendChild(h('h3','',n.label));b.appendChild(h('small','',n.sub));b.appendChild(h('div','if-tile-m',nodeMetric(n.id)));const m=tileInfo(n.id);if(m)b.appendChild(m);b.appendChild(h('span','if-open','Open →'));b.addEventListener('click',()=>go(n.id));tg.appendChild(b)});
- tools.appendChild(tg);grid.appendChild(tools);main.appendChild(grid)}
+ tools.appendChild(tg);main.appendChild(tools)}
 // ---- CRM (a simple part of Sales Orbit: orbit home, pipeline, companies, contacts, activities)
 const CRMTABS=[['orbit','Orbit'],['pipeline','Pipeline'],['companies','Companies'],['contacts','Contacts'],['activities','Activities']];
 function crm(root){
  const tabs=h('div','if-tools');CRMTABS.forEach(t=>tabs.appendChild(btn(t[1],st.crmTab===t[0]?'':'ghost',()=>{st.crmTab=t[0];st.sel=null;draw('crm')})));root.appendChild(tabs);
  ({orbit:crmOrbit,pipeline:crmPipeline,companies:crmCompanies,contacts:crmContacts,activities:crmActivities})[st.crmTab](root)}
-function crmOrbit(root){const f=figures(),wrap=h('div','if-orbit'),cv=h('canvas','if-orbit-cv');cv.setAttribute('aria-hidden','true');wrap.appendChild(cv);
+function crmOrbit(root){const f=figures(),home=h('div','if-crmhome'),asd=h('div','if-asst');window.IFmods.assistant(asd,{scope:'crm',sub:'Type what happened. I log it and set the follow-up.',placeholder:'Called Fiona Marsh, send the quote Monday…'});home.appendChild(asd);const wrap=h('div','if-orbit'),cv=h('canvas','if-orbit-cv');cv.setAttribute('aria-hidden','true');wrap.appendChild(cv);
  const svg=s('svg',{class:'if-orbit-svg',viewBox:'0 0 900 470',role:'group','aria-label':'Sales Orbit'});
  const open=D.activities.filter(a=>!a.done).length,P=[['companies','Companies',D.customers.length,'accounts',130,95],['contacts','Contacts',D.contacts.length,'people',770,95],['pipeline','Pipeline',f.deals,'open deals',130,320],['activities','Activities',open,'to do',770,320]];
  P.forEach(p=>{const dx=p[4]-450,dy=p[5]-225,L=Math.hypot(dx,dy),a=190/L,b=62/L;svg.appendChild(s('line',{class:'if-line live',x1:450+dx*a,y1:225+dy*a,x2:p[4]-dx*b,y2:p[5]-dy*b}))});
  P.forEach(p=>{const g=s('g',{class:'if-planet',tabindex:'0',role:'button','aria-label':p[1]+', '+p[2]+' '+p[3]});g.appendChild(s('circle',{class:'if-planet-ring',cx:p[4],cy:p[5],r:62}));g.appendChild(s('circle',{class:'if-planet-c',cx:p[4],cy:p[5],r:52}));
   g.appendChild(s('text',{class:'if-pl-n',x:p[4],y:p[5]+4},String(p[2])));g.appendChild(s('text',{class:'if-pl-s',x:p[4],y:p[5]+22},p[3]));g.appendChild(s('text',{class:'if-pl-l',x:p[4],y:p[5]+88},p[1]));
   const go2=()=>{st.crmTab=p[0];st.sel=null;draw('crm')};g.addEventListener('click',go2);g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go2()}});svg.appendChild(g)});
- svg.appendChild(s('text',{class:'if-pl-l',x:450,y:452},'Interfood Sales'));wrap.appendChild(svg);root.appendChild(wrap);globe(cv,900,470,450,225,88);
+ svg.appendChild(s('text',{class:'if-pl-l',x:450,y:452},'Interfood Sales'));wrap.appendChild(svg);home.appendChild(wrap);root.appendChild(home);globe(cv,900,470,450,225,88);
  const k=h('div','if-kpis');[[gbp(f.pipeline),'Open pipeline'],[gbp(f.orders),'Orders won'],[String(f.deals),'Open deals'],[String(open),'Activities to do']].forEach(x=>{const d=h('div','if-kpi');d.appendChild(h('b','',x[0]));d.appendChild(h('span','',x[1]));k.appendChild(d)});root.appendChild(k);
  root.appendChild(h('p','if-lead','The live product adds forecasting, email, campaigns and the AI copilot on the same records. Lead intelligence is a separate module and is not part of this view.'))}
 function crmPipeline(root){
@@ -157,6 +160,7 @@ function crmCompanies(root){
   const sec=(t,rows)=>{side.appendChild(h('h3','',t));const ul=h('ul','if-time');rows.forEach(x=>ul.appendChild(h('li','',x)));if(!rows.length)ul.appendChild(h('li','','None'));side.appendChild(ul)};
   sec('Contacts',D.contacts.filter(p=>p.customer===c.id).map(p=>p.name+' · '+p.role));
   sec('Open deals',D.deals.filter(d=>d.customer===c.id&&d.stage!=='Order').map(d=>d.title+' · '+gbp(d.value)+' · '+d.stage));
+  sec('Recent notes',(st.notes||[]).filter(n=>n.customer===c.id).map(n=>n.text+' · '+n.by));
   sec('Machines',D.machines.filter(m=>m.customer===c.id).map(m=>m.model+' · '+m.status));
   sec('Service',D.tickets.filter(t=>t.customer===c.id&&t.status!=='Resolved').map(t=>t.id+' · '+t.issue))};
  D.customers.forEach(c=>{const r=h('tr','row');r.tabIndex=0;r.appendChild(h('td','',c.name));r.appendChild(h('td','',c.city));
@@ -205,17 +209,6 @@ function installs(root){
  rows.forEach((r,i)=>{const y=40+i*rowH;svg.appendChild(s('text',{class:'g-t',x:10,y:y+16},r.title));svg.appendChild(s('text',{class:'g-m',x:10,y:y+32},cust(r.customer)+' · '+r.engineer));
   r.phases.forEach((p,pi)=>{const a=x(p.start),b=x(p.end);svg.appendChild(s('rect',{class:'g-bar'+(p.done?' done':''),x:a,y:y+22,width:Math.max(6,b-a),height:14,rx:5}));svg.appendChild(s('text',{class:'g-t',x:a>W-130?b:a,y:[y+16,y+52,y+70][pi%3],'text-anchor':a>W-130?'end':'start'},p.name))})});
  root.appendChild(svg);root.appendChild(h('p','if-lead','Green = done. The amber line is today. In the live product each installation is a project with phases, engineers and capacity.'))}
-// ---- service
-function service(root){
- root.appendChild(h('div','if-note','Proxedo is being implemented by Interfood. RADIX can run alongside it (tickets exchanged between the two) or take over service entirely. This is a decision to make together; the view below is RADIX service.'));
- const opens={},split=h('div','if-split'),left=h('div'),side=h('aside','if-side'),table=h('table','if-table'),thead=h('thead'),tr=h('tr');
- ['Ticket','Customer','Machine','Priority','Status'].forEach(c=>tr.appendChild(h('th','',c)));thead.appendChild(tr);table.appendChild(thead);const tb=h('tbody');
- D.tickets.forEach(t=>{const r=h('tr','row');r.tabIndex=0;const m=mach(t.machine);r.appendChild(h('td','',t.id+' · '+t.issue));r.appendChild(h('td','',cust(t.customer)));r.appendChild(h('td','',m?m.model:''));
-  let td=h('td');td.appendChild(pill(t.priority));r.appendChild(td);td=h('td');td.appendChild(pill(t.status,t.status.split(' ')[0]));r.appendChild(td);
-  const open=()=>{clear(side);side.appendChild(h('h2','',t.id));const dl=h('dl');[['Issue',t.issue],['Customer',cust(t.customer)],['Machine',m?m.model+' ('+m.id+')':''],['Opened',fmt(t.opened)],['Status',t.status]].forEach(q=>{dl.appendChild(h('dt','',q[0]));dl.appendChild(h('dd','',q[1]))});side.appendChild(dl);
-   const b=h('button','if-btn',t.status==='Resolved'?'Resolved':'Mark resolved');b.type='button';b.disabled=t.status==='Resolved';b.addEventListener('click',()=>{t.status='Resolved';toast('Ticket '+t.id+' resolved.');draw('service')});const w=h('div','if-tools');w.appendChild(b);side.appendChild(w)};
-  opens[t.id]=open;r.addEventListener('click',open);r.addEventListener('keydown',e=>{if(e.key==='Enter')open()});tb.appendChild(r)});
- table.appendChild(tb);left.appendChild(table);side.appendChild(h('p','if-lead','Select a ticket to see the machine and customer it belongs to.'));split.appendChild(left);split.appendChild(side);root.appendChild(split);if(st.sel&&opens[st.sel])opens[st.sel]()}
 // ---- dashboard
 function dashboard(root){const f=figures(),k=h('div','if-kpis');
  [[gbp(f.pipeline),'Open pipeline ('+f.deals+' deals)'],[gbp(f.orders),'Orders won, awaiting delivery'],[f.machines,'Machines in the field'],[f.serviceDue,'Machines needing attention'],[f.openTickets,'Open service tickets'],[f.installs,'Installations in progress']].forEach(x=>{const d=h('div','if-kpi');d.appendChild(h('b','',String(x[0])));d.appendChild(h('span','',x[1]));k.appendChild(d)});root.appendChild(k);

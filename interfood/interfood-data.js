@@ -44,12 +44,12 @@ const installs=[
  {id:'I-03',title:'Trial unit TS-300',customer:'c5',engineer:'Jack Morrison',phases:[{name:'Delivery',start:'2026-11-17',end:'2026-11-19',done:false},{name:'Install',start:'2026-11-20',end:'2026-11-24',done:false},{name:'Commissioning',start:'2026-11-25',end:'2026-11-27',done:false}]}
 ];
 const tickets=[
- {id:'T-2041',customer:'c3',machine:'M-1007',issue:'Seal temperature alarm',priority:'High',status:'Open',opened:'2026-11-05'},
- {id:'T-2040',customer:'c2',machine:'M-1002',issue:'Planned service due',priority:'Normal',status:'Scheduled',opened:'2026-11-03'},
- {id:'T-2038',customer:'c6',machine:'M-1008',issue:'Gearbox noise',priority:'High',status:'In progress',opened:'2026-11-02'},
- {id:'T-2037',customer:'c4',machine:'M-1003',issue:'Spare film cutter blade',priority:'Low',status:'Waiting for parts',opened:'2026-10-30'},
- {id:'T-2033',customer:'c8',machine:'M-1005',issue:'Warranty-ending inspection',priority:'Normal',status:'Scheduled',opened:'2026-10-28'},
- {id:'T-2029',customer:'c1',machine:'M-1001',issue:'Operator training request',priority:'Low',status:'Resolved',opened:'2026-10-20'}
+ {id:'T-2041',customer:'c3',machine:'M-1007',issue:'Seal temperature alarm',priority:'High',status:'Open',opened:'2026-11-05',tech:null,day:null,start:null,dur:3},
+ {id:'T-2040',customer:'c2',machine:'M-1002',issue:'Planned service due',priority:'Normal',status:'Scheduled',opened:'2026-11-03',tech:'Sara Jennings',day:'2026-11-06',start:13,dur:3},
+ {id:'T-2038',customer:'c6',machine:'M-1008',issue:'Gearbox noise',priority:'High',status:'In progress',opened:'2026-11-02',tech:'Jack Morrison',day:'2026-11-06',start:9,dur:4},
+ {id:'T-2037',customer:'c4',machine:'M-1003',issue:'Spare film cutter blade',priority:'Low',status:'Waiting for parts',opened:'2026-10-30',tech:null,day:null,start:null,dur:2},
+ {id:'T-2033',customer:'c8',machine:'M-1005',issue:'Warranty-ending inspection',priority:'Normal',status:'Scheduled',opened:'2026-10-28',tech:'Jack Morrison',day:'2026-11-09',start:9,dur:3},
+ {id:'T-2029',customer:'c1',machine:'M-1001',issue:'Operator training request',priority:'Low',status:'Resolved',opened:'2026-10-20',tech:'Sara Jennings',day:'2026-11-04',start:10,dur:2}
 ];
 const nodes=[
  {id:'crm',label:'CRM',sub:'Sales pipeline',state:'live',stateText:'Live in RADIX'},
@@ -63,7 +63,7 @@ const nodes=[
 const leadSources=[{source:'Trade shows',leads:46,qualified:14},{source:'Website enquiries',leads:31,qualified:9},{source:'Referrals',leads:12,qualified:8},{source:'Email campaigns',leads:58,qualified:6},{source:'Existing customers (upgrades)',leads:19,qualified:11}];
 const erpPreview=[{item:'Sales order SO-10482',customer:'c2',amount:132000,status:'Open'},{item:'Invoice SI-90113',customer:'c1',amount:48000,status:'Paid'},{item:'Sales order SO-10479',customer:'c3',amount:18200,status:'Open'},{item:'Invoice SI-90098',customer:'c6',amount:21750,status:'Overdue'}];
 const users=[
- {id:'u1',name:'Olivia Grant',role:'Managing director',access:['crm','assets','service','dashboard','marketing','erp','hr']},
+ {id:'u1',name:'Jono Atherton',role:'Operations',access:['crm','assets','service','dashboard','marketing','erp','hr']},
  {id:'u2',name:'Amelia Hart',role:'Sales manager',access:['crm']},
  {id:'u3',name:'Jack Morrison',role:'Service engineer',access:['assets','service']},
  {id:'u4',name:'Sara Jennings',role:'Installation lead',access:['assets']},
@@ -93,7 +93,22 @@ const activities=[
  {id:'a7',type:'Call',text:'Collect trial results for the flow wrapper',deal:'D-03',owner:'Priya Shah',due:'2026-11-05',done:false},
  {id:'a8',type:'Visit',text:'Site survey report for the packing line',deal:'D-08',owner:'Priya Shah',due:'2026-11-25',done:false}
 ];
-const core={customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
+
+const technicians=[
+ {id:'t1',name:'Jack Morrison',base:'Shrewsbury',status:'Working',lat:52.71,lon:-2.75},
+ {id:'t2',name:'Sara Jennings',base:'Leeds',status:'Driving',lat:53.8,lon:-1.55},
+ {id:'t3',name:'Ewan Price',base:'Bristol',status:'Available',lat:51.45,lon:-2.58},
+ {id:'t4',name:'Lauren Ahmed',base:'Belfast',status:'Available',lat:54.6,lon:-5.93}
+];
+const geo={c1:[53.8,-1.55],c2:[53.57,-0.08],c3:[52.71,-2.75],c4:[50.82,-0.14],c5:[54.6,-5.93],c6:[52.92,-1.48],c7:[51.9,-8.47],c8:[53.65,-1.78]};
+const parts=[{id:'P-310',name:'Seal bar heater 300 mm',price:86},{id:'P-322',name:'Film cutter blade',price:34},{id:'P-415',name:'Gearbox oil, 5 l',price:42},{id:'P-518',name:'Temperature sensor PT100',price:58},{id:'P-640',name:'Conveyor belt, 1.2 m',price:215}];
+const checklist=['Safety lock-out checked','Fault reproduced / cause found','Repair or adjustment done','Machine tested under load','Operator briefed'];
+const archive=[
+ {id:'k1',kind:'Chat answer',title:'Seal temperature alarm: first checks',text:'Check the PT100 sensor reading against a handheld probe, then the heater element resistance. If the sensor drifts more than 3 C replace it before touching the controller. Typical cause on TS-300 units after 12 months: contaminated seal bar.',tags:['TS-300','sealing'],machine:'M-1007',shared:true,date:'2026-11-05',by:'Jack Morrison'},
+ {id:'k2',kind:'Voice note',title:'Greenacre line layout, site visit',text:'Gareth says the new filling line must fit behind the existing wrapper; 600 mm clearance on the left, forklift route cannot move.',tags:['Greenacre','install'],machine:'',shared:false,date:'2026-11-03',by:'Sara Jennings'},
+ {id:'k3',kind:'Note',title:'Mixer MX-500 gearbox noise',text:'Noise rises above 60 percent speed. Oil level low and metal in the drain plug: likely bearing. Order bearing kit before the visit.',tags:['MX-500','gearbox'],machine:'M-1008',shared:true,date:'2026-11-02',by:'Jack Morrison'}
+];
+const core={technicians,geo,parts,checklist,archive,customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
 if(typeof module==='object'&&module.exports)module.exports=core;
 root.InterfoodDemo=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

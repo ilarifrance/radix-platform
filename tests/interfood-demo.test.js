@@ -4,8 +4,9 @@ const D=require('../interfood/interfood-data.js');
 test('page obeys the strict CSP',()=>{
  assert.match(html,/script-src 'self'; style-src 'self'/);assert.match(html,/noindex/);
  assert.ok(!/<style|style=|<script(?![^>]*src=)/.test(html));
- assert.ok(!/\.style\b|innerHTML|setAttribute\(['"]style/.test(js));
- assert.ok(!/https?:\/\/(?!www\.w3\.org)/.test(css+js));
+ const all=['interfood','interfood-art','interfood-assist','interfood-service'].map(n=>fs.readFileSync('interfood/'+n+'.js','utf8')).join('\n');
+ assert.ok(!/\.style\b|innerHTML|setAttribute\(['"]style|eval\(/.test(all));
+ assert.ok(!/https?:\/\/(?!www\.w3\.org)/.test(css+all));
 });
 test('demo data is consistent',()=>{
  const ids=new Set(D.customers.map(c=>c.id));
@@ -25,3 +26,10 @@ test('roles, contacts and activities are consistent',()=>{
  assert.ok(D.users.some(u=>u.access.length===1),'one user sees a single tool');
 });
 test('page loads the shared globe painter from self',()=>{assert.match(html,/src="\/sales\/orbit-globe\.js"/)});
+test('work orders and technicians line up',()=>{
+ const names=new Set(D.technicians.map(x=>x.name));
+ D.tickets.filter(x=>x.tech).forEach(x=>{assert.ok(names.has(x.tech),x.id);assert.ok(x.start>=8&&x.start+x.dur<=18,x.id)});
+ D.tickets.filter(x=>!x.tech).forEach(x=>assert.ok(x.status!=='Scheduled',x.id));
+ Object.keys(D.geo).forEach(id=>assert.ok(D.customers.some(c=>c.id===id)));
+ ['interfood-art','interfood-assist','interfood-service'].forEach(n=>assert.ok(html.includes('/interfood/'+n+'.js'),n));
+});
