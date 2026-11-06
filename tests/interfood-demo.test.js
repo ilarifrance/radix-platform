@@ -4,7 +4,7 @@ const D=require('../interfood/interfood-data.js');
 test('page obeys the strict CSP',()=>{
  assert.match(html,/script-src 'self'; style-src 'self'/);assert.match(html,/noindex/);
  assert.ok(!/<style|style=|<script(?![^>]*src=)/.test(html));
- const all=['interfood','interfood-art','interfood-assist','interfood-service','interfood-crm'].map(n=>fs.readFileSync('interfood/'+n+'.js','utf8')).join('\n');
+ const all=['interfood','interfood-art','interfood-assist','interfood-service','interfood-crm','interfood-library','interfood-assets'].map(n=>fs.readFileSync('interfood/'+n+'.js','utf8')).join('\n');
  assert.ok(!/\.style\b|innerHTML|setAttribute\(['"]style|eval\(/.test(all));
  assert.ok(!/https?:\/\/(?!www\.w3\.org)/.test(css+all));
 });
@@ -31,5 +31,5 @@ test('work orders and technicians line up',()=>{
  D.tickets.filter(x=>x.tech).forEach(x=>{assert.ok(names.has(x.tech),x.id);assert.ok(x.start>=8&&x.start+x.dur<=18,x.id)});
  D.tickets.filter(x=>!x.tech).forEach(x=>assert.ok(x.status!=='Scheduled',x.id));
  Object.keys(D.geo).forEach(id=>assert.ok(D.customers.some(c=>c.id===id)));
- ['interfood-art','interfood-assist','interfood-service','interfood-crm'].forEach(n=>assert.ok(html.includes('/interfood/'+n+'.js'),n));
+ ['interfood-art','interfood-assist','interfood-service','interfood-crm','interfood-library','interfood-assets'].forEach(n=>assert.ok(html.includes('/interfood/'+n+'.js'),n));
 });

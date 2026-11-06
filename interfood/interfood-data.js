@@ -53,10 +53,10 @@ const tickets=[
 ];
 const nodes=[
  {id:'crm',label:'CRM',sub:'Sales pipeline',state:'live',stateText:'Live in RADIX'},
- {id:'assets',label:'Asset database',sub:'Sold machines & installations',state:'live',stateText:'Live in RADIX'},
+ {id:'assets',label:'Asset database',sub:'Machine archive and installations',state:'live',stateText:'Live in RADIX'},
  {id:'service',label:'Service platform',sub:'Tickets and maintenance (Proxedo being implemented)',state:'live',stateText:'Live in RADIX'},
  {id:'dashboard',label:'Management dashboard',sub:'KPIs',state:'live',stateText:'Live in RADIX'},
- {id:'marketing',label:'Marketing database',sub:'Leads and campaigns',state:'demo',stateText:'Demo data'},
+ {id:'marketing',label:'Marketing database',sub:'Supplier archive and marketing management',state:'demo',stateText:'Demo data'},
  {id:'erp',label:'ERP',sub:'Microsoft Business Central',state:'connect',stateText:'To connect'},
  {id:'hr',label:'HR',sub:'Sage HR',state:'connect',stateText:'To connect'}
 ];
@@ -120,7 +120,73 @@ const sequences=[
  {id:'s3',name:'Warranty ending, service plan offer',steps:['60 days before · Service plan overview','30 days before · Offer with a fixed annual price','Day of expiry · Last reminder'],enrolled:5,replies:2,sent:8}
 ];
 const stageProb={'Enquiry':.1,'Site visit':.25,'Trial':.5,'Quote':.6,'Negotiation':.8,'Order':1};
-const core={mails,sequences,stageProb,technicians,geo,parts,checklist,archive,customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
+const suppliers=[
+ {id:'s1',name:'Norvik Packaging Systems',country:'Denmark',range:'Tray sealers, lidding',contact:'Mette Holm',since:2016},
+ {id:'s2',name:'Calder & Voss',country:'Germany',range:'Filling lines, depositors',contact:'Jan Brandt',since:2014},
+ {id:'s3',name:'Aurelia Inspection',country:'Italy',range:'Checkweighers, metal detectors',contact:'Marco Bellini',since:2018},
+ {id:'s4',name:'Brannock Bakery Technology',country:'Netherlands',range:'Dough dividers, mixers',contact:'Eva de Wit',since:2019},
+ {id:'s5',name:'Halden Flowpack',country:'Sweden',range:'Flow wrappers',contact:'Olof Berg',since:2017},
+ {id:'s6',name:'Tessera Components',country:'United Kingdom',range:'Spare parts, wear parts',contact:'Chloe Barnes',since:2015}
+];
+const library=[
+ {id:'l1',kind:'Price list',sup:'s1',title:'Tray sealer price list 2026',date:'2026-01-15',fmt:'XLSX',mb:0.4,status:'Current'},
+ {id:'l2',kind:'Price list',sup:'s2',title:'Filling lines and depositors 2026',date:'2026-02-01',fmt:'PDF',mb:1.2,status:'Current'},
+ {id:'l3',kind:'Price list',sup:'s3',title:'Inspection equipment price list',date:'2025-03-10',fmt:'PDF',mb:0.8,status:'Outdated'},
+ {id:'l4',kind:'Price list',sup:'s4',title:'Dough line equipment 2026',date:'2026-03-20',fmt:'XLSX',mb:0.5,status:'Current'},
+ {id:'l5',kind:'Price list',sup:'s5',title:'Flow wrapper range 2026',date:'2026-01-30',fmt:'PDF',mb:0.9,status:'Current'},
+ {id:'l6',kind:'Price list',sup:'s6',title:'Spare parts price list Q4 2026',date:'2026-10-01',fmt:'XLSX',mb:2.1,status:'Current'},
+ {id:'l7',kind:'Catalogue',sup:'s1',title:'Tray sealing solutions',date:'2026-04-02',fmt:'PDF',mb:18,status:'Current'},
+ {id:'l8',kind:'Catalogue',sup:'s2',title:'Filling and depositing catalogue',date:'2025-11-12',fmt:'PDF',mb:24,status:'Current'},
+ {id:'l9',kind:'Catalogue',sup:'s3',title:'Checkweighing and detection',date:'2026-05-18',fmt:'PDF',mb:12,status:'Current'},
+ {id:'l10',kind:'Catalogue',sup:'s5',title:'Flow wrapping for food',date:'2026-06-09',fmt:'PDF',mb:15,status:'Current'},
+ {id:'l11',kind:'Certificate',sup:'s1',title:'Food contact materials declaration TS-300',date:'2025-12-01',exp:'2026-12-01',fmt:'PDF',mb:0.3,status:'Expiring'},
+ {id:'l12',kind:'Certificate',sup:'s2',title:'CE declaration FL-400',date:'2024-11-20',exp:'2026-11-20',fmt:'PDF',mb:0.2,status:'Expiring'},
+ {id:'l13',kind:'Certificate',sup:'s3',title:'IP69K and hygiene design MD-60',date:'2025-06-02',exp:'2027-06-02',fmt:'PDF',mb:0.4,status:'Current'},
+ {id:'l14',kind:'Certificate',sup:'s5',title:'ATEX statement FW-250',date:'2025-01-14',exp:'2026-10-30',fmt:'PDF',mb:0.2,status:'Expired'},
+ {id:'l15',kind:'Certificate',sup:'s4',title:'UKCA conformity DD-120',date:'2025-09-09',exp:'2028-09-09',fmt:'PDF',mb:0.3,status:'Current'},
+ {id:'l16',kind:'Manual',sup:'s2',title:'FL-400 operator and cleaning manual',date:'2026-02-14',fmt:'PDF',mb:9,status:'Current'},
+ {id:'l17',kind:'Manual',sup:'s4',title:'DD-120 maintenance manual',date:'2025-08-22',fmt:'PDF',mb:7,status:'Current'}
+];
+const videos=[
+ {id:'v1',title:'TS-300 changeover in 4 minutes',origin:'Supplier',sup:'s1',len:'3:42',status:'Current',views:412},
+ {id:'v2',title:'FL-400 filling accuracy test',origin:'Supplier',sup:'s2',len:'2:15',status:'Current',views:268},
+ {id:'v3',title:'Metal detector hygiene walk-through',origin:'Supplier',sup:'s3',len:'4:10',status:'Current',views:190},
+ {id:'v4',title:'Interfood service team: a day on site',origin:'Interfood',sup:'',len:'1:48',status:'Published',views:1340},
+ {id:'v5',title:'Customer story: Pennine Pies and the DD-120',origin:'Interfood',sup:'',len:'2:30',status:'Published',views:905},
+ {id:'v6',title:'How our trial lines work',origin:'Interfood',sup:'',len:'1:20',status:'In editing',views:0}
+];
+const partsCatalog=[
+ {id:'P-310',name:'Seal bar heater 300 mm',sup:'s1',fits:'Tray sealer TS-300',price:86,stock:6,lead:'In stock'},
+ {id:'P-322',name:'Film cutter blade',sup:'s1',fits:'Tray sealer TS-300',price:34,stock:14,lead:'In stock'},
+ {id:'P-401',name:'Filling nozzle 12 mm',sup:'s2',fits:'Filling line FL-400',price:58,stock:3,lead:'In stock'},
+ {id:'P-415',name:'Piston seal kit',sup:'s2',fits:'Filling line FL-400',price:42,stock:0,lead:'5 working days'},
+ {id:'P-520',name:'Load cell 5 kg',sup:'s3',fits:'Checkweigher CW-80',price:210,stock:2,lead:'In stock'},
+ {id:'P-533',name:'Detector search head',sup:'s3',fits:'Metal detector MD-60',price:640,stock:1,lead:'In stock'},
+ {id:'P-610',name:'Dough divider knife set',sup:'s4',fits:'Dough divider DD-120',price:175,stock:4,lead:'In stock'},
+ {id:'P-640',name:'Mixer gearbox bearing kit',sup:'s4',fits:'Mixer MX-500',price:132,stock:0,lead:'8 working days'},
+ {id:'P-710',name:'Sealing jaw',sup:'s5',fits:'Flow wrapper FW-250',price:96,stock:5,lead:'In stock'},
+ {id:'P-722',name:'Film unwind brake',sup:'s5',fits:'Flow wrapper FW-250',price:74,stock:2,lead:'In stock'}
+];
+const social=[
+ {id:'so1',ch:'LinkedIn',title:'New filling line installed at Harbour Foods',date:'2026-11-09',status:'Scheduled',reach:0},
+ {id:'so2',ch:'YouTube',title:'Interfood service team: a day on site',date:'2026-10-28',status:'Published',reach:1340},
+ {id:'so3',ch:'LinkedIn',title:'Why uptime beats list price',date:'2026-11-12',status:'Approved',reach:0},
+ {id:'so4',ch:'Instagram',title:'Behind the scenes at the trial line',date:'2026-11-14',status:'Draft',reach:0},
+ {id:'so5',ch:'LinkedIn',title:'Customer story: Pennine Pies',date:'2026-10-21',status:'Published',reach:5230},
+ {id:'so6',ch:'Facebook',title:'Meet our engineers',date:'2026-11-16',status:'Draft',reach:0},
+ {id:'so7',ch:'LinkedIn',title:'Trade show invitation, spring 2027',date:'2026-11-20',status:'Draft',reach:0},
+ {id:'so8',ch:'Instagram',title:'Seal check in 30 seconds',date:'2026-10-30',status:'Published',reach:1860}
+];
+const website=[
+ {id:'w1',page:'Tray sealer TS-300 product page',type:'Product page',status:'Live',date:'2026-09-02',owner:'Hannah Cole'},
+ {id:'w2',page:'Meat and poultry application page',type:'Application',status:'Needs update',date:'2026-04-18',owner:'Hannah Cole'},
+ {id:'w3',page:'News: new filling line at Harbour Foods',type:'News',status:'Scheduled',date:'2026-11-10',owner:'Hannah Cole'},
+ {id:'w4',page:'Case study: Pennine Pies',type:'Case study',status:'Live',date:'2026-10-21',owner:'Hannah Cole'},
+ {id:'w5',page:'Service contract landing page',type:'Landing page',status:'Draft',date:'2026-11-18',owner:'Jono Atherton'},
+ {id:'w6',page:'Spare parts request form',type:'Form',status:'Live',date:'2026-06-11',owner:'Hannah Cole'},
+ {id:'w7',page:'Dough divider DD-120 product page',type:'Product page',status:'Needs update',date:'2026-02-05',owner:'Hannah Cole'}
+];
+const core={suppliers,library,videos,partsCatalog,social,website,mails,sequences,stageProb,technicians,geo,parts,checklist,archive,customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
 if(typeof module==='object'&&module.exports)module.exports=core;
 root.InterfoodDemo=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

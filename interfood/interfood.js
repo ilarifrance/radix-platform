@@ -180,8 +180,10 @@ function crmActivities(root){const table=h('table','if-table'),tr=h('tr'),th=h('
  root.appendChild(table)}
 // ---- assets
 function assets(root){
- const tabs=h('div','if-tools');[['machines','Machines'],['installs','Installations']].forEach(t=>{const b=h('button','if-btn '+(st.tab===t[0]?'':'ghost'),t[1]);b.type='button';b.addEventListener('click',()=>{st.tab=t[0];st.sel=null;draw('assets')});tabs.appendChild(b)});root.appendChild(tabs);
- st.tab==='installs'?installs(root):machines(root)}
+ const grp=(label,list)=>{const r=h('div','lb-grp');if(label)r.appendChild(h('span','lb-gl',label));list.forEach(t=>r.appendChild(btn(t[1],st.tab===t[0]?'':'ghost',()=>{st.tab=t[0];st.sel=null;draw('assets')})));root.appendChild(r)};
+ if(!['machines','installs','archive','parts'].includes(st.tab))st.tab='machines';
+ grp('Archive',[['archive','Machine files'],['parts','Spare parts']]);grp('Management',[['machines','Machines'],['installs','Installations']]);
+ st.tab==='installs'?installs(root):st.tab==='archive'?window.IFmods.assetx().archive(root):st.tab==='parts'?window.IFmods.assetx().parts(root):machines(root)}
 function machines(root){
  const tools=h('div','if-tools'),q=h('input');q.type='search';q.placeholder='Search model, serial or customer';q.value=st.q;q.setAttribute('aria-label','Search machines');
  const sel=h('select');sel.setAttribute('aria-label','Filter by status');[''].concat([...new Set(D.machines.map(m=>m.status))]).forEach(v=>{const o=h('option','',v||'All statuses');o.value=v;sel.appendChild(o)});sel.value=st.status;
@@ -220,9 +222,7 @@ function dashboard(root){const f=figures(),k=h('div','if-kpis');
  vals.forEach((v,i)=>{const y=16+i*40;svg.appendChild(s('text',{class:'b-t',x:12,y:y+18},v.g));svg.appendChild(s('rect',{class:'b-bar',x:130,y:y,width:Math.max(2,v.v/max*620),height:26,rx:6}));svg.appendChild(s('text',{class:'b-v',x:138+v.v/max*620,y:y+18},gbp(v.v)))});
  root.appendChild(svg);root.appendChild(h('p','if-lead','Every figure is computed from the other areas: move a deal in CRM or book a service on a machine, then come back here.'))}
 // ---- marketing
-function marketing(root){root.appendChild(h('div','if-note','Demo data. In the live product this reads from RADIX Lead Intelligence and campaigns.'));
- const table=h('table','if-table'),tr=h('tr');['Source','Leads','Qualified','Rate'].forEach(c=>tr.appendChild(h('th','',c)));const th=h('thead');th.appendChild(tr);table.appendChild(th);const tb=h('tbody');
- D.leadSources.forEach(x=>{const r=h('tr');[x.source,x.leads,x.qualified,Math.round(x.qualified/x.leads*100)+'%'].forEach(v=>r.appendChild(h('td','',String(v))));tb.appendChild(r)});table.appendChild(tb);root.appendChild(table)}
+function marketing(root){window.IFmods.library(root)}
 // ---- connectors (not connected)
 const INFO={erp:{what:['Customers, items and the sales orders, invoices and payments behind each deal','Phase 1: read only. Phase 2: an approved quote becomes a sales order, with confirmation'],need:['An app registered by Interfood IT in Microsoft Entra (no passwords shared)','The Business Central environment and company to read from'],prev:true},
  hr:{what:['Engineers, roles and availability feeding installation and service planning'],need:['Which Sage HR edition they use','Whether Sage HR offers API access for this (not yet checked)'],prev:false}};
