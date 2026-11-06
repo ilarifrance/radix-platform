@@ -62,7 +62,38 @@ const nodes=[
 ];
 const leadSources=[{source:'Trade shows',leads:46,qualified:14},{source:'Website enquiries',leads:31,qualified:9},{source:'Referrals',leads:12,qualified:8},{source:'Email campaigns',leads:58,qualified:6},{source:'Existing customers (upgrades)',leads:19,qualified:11}];
 const erpPreview=[{item:'Sales order SO-10482',customer:'c2',amount:132000,status:'Open'},{item:'Invoice SI-90113',customer:'c1',amount:48000,status:'Paid'},{item:'Sales order SO-10479',customer:'c3',amount:18200,status:'Open'},{item:'Invoice SI-90098',customer:'c6',amount:21750,status:'Overdue'}];
-const core={customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview};
+const users=[
+ {id:'u1',name:'Olivia Grant',role:'Managing director',access:['crm','assets','service','dashboard','marketing','erp','hr']},
+ {id:'u2',name:'Amelia Hart',role:'Sales manager',access:['crm']},
+ {id:'u3',name:'Jack Morrison',role:'Service engineer',access:['assets','service']},
+ {id:'u4',name:'Sara Jennings',role:'Installation lead',access:['assets']},
+ {id:'u5',name:'Hannah Cole',role:'Marketing manager',access:['marketing']}
+];
+const contacts=[
+ {id:'p1',customer:'c1',name:'Rachel Dunn',role:'Operations director',email:'rachel.dunn@northfield.example',last:'2026-11-03'},
+ {id:'p2',customer:'c1',name:'Mark Teale',role:'Maintenance lead',email:'mark.teale@northfield.example',last:'2026-10-21'},
+ {id:'p3',customer:'c2',name:'Fiona Marsh',role:'Plant manager',email:'fiona.marsh@harbour.example',last:'2026-11-04'},
+ {id:'p4',customer:'c2',name:'Peter Collins',role:'Purchasing',email:'peter.collins@harbour.example',last:'2026-10-29'},
+ {id:'p5',customer:'c3',name:'Gareth Pugh',role:'Production manager',email:'gareth.pugh@greenacre.example',last:'2026-11-05'},
+ {id:'p6',customer:'c4',name:'Nina Patel',role:'Engineering manager',email:'nina.patel@ashdown.example',last:'2026-10-27'},
+ {id:'p7',customer:'c5',name:'Liam Doherty',role:'Technical director',email:'liam.doherty@castlerock.example',last:'2026-11-02'},
+ {id:'p8',customer:'c5',name:'Aoife Quinn',role:'Quality manager',email:'aoife.quinn@castlerock.example',last:'2026-10-18'},
+ {id:'p9',customer:'c6',name:'Steve Booth',role:'Factory manager',email:'steve.booth@millbrook.example',last:'2026-11-01'},
+ {id:'p10',customer:'c7',name:'Ciara Murphy',role:'Managing director',email:'ciara.murphy@dunmore.example',last:'2026-10-30'},
+ {id:'p11',customer:'c8',name:'Jo Whitaker',role:'Owner',email:'jo.whitaker@pennine.example',last:'2026-11-04'},
+ {id:'p12',customer:'c8',name:'Dan Hirst',role:'Head baker',email:'dan.hirst@pennine.example',last:'2026-10-12'}
+];
+const activities=[
+ {id:'a1',type:'Call',text:'Qualification call about the new dough line',deal:'D-05',owner:'Amelia Hart',due:'2026-11-09',done:false},
+ {id:'a2',type:'Email',text:'Send revised quote for the second tray sealer line',deal:'D-01',owner:'Priya Shah',due:'2026-11-10',done:false},
+ {id:'a3',type:'Meeting',text:'Agree delivery date for the filling line upgrade',deal:'D-02',owner:'Tom Ellis',due:'2026-11-12',done:false},
+ {id:'a4',type:'Call',text:'Confirm spare parts pricing',deal:'D-09',owner:'Amelia Hart',due:'2026-11-11',done:false},
+ {id:'a5',type:'Visit',text:'Site visit for the two-line metal detector',deal:'D-04',owner:'Tom Ellis',due:'2026-11-18',done:false},
+ {id:'a6',type:'Email',text:'Follow up on the mixer quote',deal:'D-06',owner:'Amelia Hart',due:'2026-11-16',done:false},
+ {id:'a7',type:'Call',text:'Collect trial results for the flow wrapper',deal:'D-03',owner:'Priya Shah',due:'2026-11-05',done:false},
+ {id:'a8',type:'Visit',text:'Site survey report for the packing line',deal:'D-08',owner:'Priya Shah',due:'2026-11-25',done:false}
+];
+const core={customers,machines,stages,deals,installs,tickets,nodes,leadSources,erpPreview,users,contacts,activities};
 if(typeof module==='object'&&module.exports)module.exports=core;
 root.InterfoodDemo=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

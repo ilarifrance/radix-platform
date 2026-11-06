@@ -16,3 +16,12 @@ test('demo data is consistent',()=>{
  const mids=new Set(D.machines.map(m=>m.id));D.tickets.forEach(t=>assert.ok(mids.has(t.machine)));
  D.deals.forEach(d=>assert.ok(D.stages.includes(d.stage),d.id));
 });
+test('roles, contacts and activities are consistent',()=>{
+ const ids=new Set(D.customers.map(c=>c.id)),areas=new Set(D.nodes.map(n=>n.id)),deals=new Set(D.deals.map(d=>d.id));
+ D.contacts.forEach(p=>assert.ok(ids.has(p.customer),p.id));
+ D.activities.forEach(a=>assert.ok(deals.has(a.deal),a.id));
+ D.users.forEach(u=>u.access.forEach(a=>assert.ok(areas.has(a),u.name+' '+a)));
+ assert.ok(D.users.some(u=>u.access.length===D.nodes.length),'one user sees everything');
+ assert.ok(D.users.some(u=>u.access.length===1),'one user sees a single tool');
+});
+test('page loads the shared globe painter from self',()=>{assert.match(html,/src="\/sales\/orbit-globe\.js"/)});
