@@ -1,0 +1,69 @@
+/* Calendari (sales/crm-calendars.js): «Calendario da abbonare» in the Calendario page. Light CRM tokens (crm-light.css). */
+.cal-feed{display:grid;gap:10px}
+.cal-feed>h3{margin:0}
+.cal-feed .cal-empty{margin:0;line-height:1.45}
+.cal-feed-row{display:flex;gap:8px;align-items:stretch;min-width:0}
+.cal-feed-row input{flex:1;min-width:0;min-height:40px;padding:0 10px;font:13px/1.2 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--crm-text,#e6f6f2);background:var(--crm-head,#0b2730);border:1px solid var(--crm-line-2,#2f8a80);border-radius:10px;text-overflow:ellipsis}
+.cal-feed-show{flex:none;min-height:40px;padding:0 12px;border:1px solid var(--crm-line-2,#2f8a80);border-radius:10px;background:transparent;color:var(--crm-text,#e6f6f2);font-size:13px;cursor:pointer;white-space:nowrap}
+.cal-feed-copy{flex:none;min-height:40px;padding:0 14px;border:0;border-radius:10px;background:var(--crm-accent,#3fe8bd);color:var(--crm-on-accent,#04241c);font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+.cal-feed-show:focus-visible,.cal-feed-copy:focus-visible,.cal-feed-row input:focus-visible{outline:2px solid var(--crm-accent,#3fe8bd);outline-offset:2px}
+.cal-feed-note{margin:0;min-height:1em;font-size:12px;color:var(--crm-accent,#3fe8bd)}
+.cal-feed-note:empty{display:none}
+.cal-feed-steps{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cal-feed-steps section{padding:10px 12px;border:1px solid var(--crm-line,#1f5a5c);border-radius:10px;min-width:0}
+.cal-feed-steps h4{margin:0 0 6px;font-size:13px;font-weight:600}
+.cal-feed-steps ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.5;color:var(--crm-muted,#9fbdc0)}
+.cal-feed-warn{margin:0;font-size:12px;line-height:1.45;color:var(--crm-muted,#9fbdc0)}
+.cal-feed-err{margin:0;font-size:13px;color:var(--crm-err,#ff6b6b)}
+/* The rail is a column above 1500px; below it is a row of cards, where the feed takes the whole row. */
+@media(min-width:1501px){.cal-feed-steps{grid-template-columns:1fr}}
+@media(max-width:1500px){.cal-rail .cal-feed{grid-column:1/-1}}
+@media(max-width:600px){.cal-feed-steps{grid-template-columns:1fr}.cal-feed-row{flex-wrap:wrap}.cal-feed-row input{flex-basis:100%}.cal-feed-show,.cal-feed-copy{flex:1;min-height:44px}}
+
+/* «Calendari esterni»: the person's own Outlook / Google links, working hours. */
+.gray{--c:#8a94a6}
+.cal-src{display:grid;gap:10px}
+.cal-src>h3{margin:0}
+.cal-src .cal-empty{margin:0;line-height:1.45}
+.cal-src-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cal-src-list li{padding:10px 12px;border:1px solid var(--crm-line,#1f5a5c);border-radius:10px;display:grid;gap:4px;min-width:0}
+.cal-src-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.cal-src-head b{font-size:14px}
+.cal-src-host{font-size:12px;color:var(--crm-muted,#9fbdc0);overflow-wrap:anywhere}
+.cal-src-ok{margin:0;font-size:12px;color:var(--crm-muted,#9fbdc0)}
+.cal-src-err{margin:0;font-size:12.5px;line-height:1.4;color:var(--crm-err,#ff6b6b)}
+.cal-src-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
+.cal-src-actions .cal-check{margin:0!important;font-size:13px}
+.cal-src-actions .cal-link{min-height:32px;font-size:13px;cursor:pointer}
+.cal-src-del{color:var(--crm-err,#ff6b6b)!important}
+.cal-src-add,.cal-src-hours{border:1px solid var(--crm-line,#1f5a5c);border-radius:10px;padding:0 12px}
+.cal-src-add summary,.cal-src-hours summary{cursor:pointer;min-height:40px;display:flex;align-items:center;font-size:13px;font-weight:600;color:var(--crm-accent,#3fe8bd)}
+.cal-src-add[open],.cal-src-hours[open]{padding-bottom:12px}
+.cal-src-add form{display:grid;gap:10px}
+.cal-src-add label,.cal-src-hrow label{display:grid;gap:4px;font-size:13px;margin:0}
+.cal-src-add input[type=url],.cal-src-add input:not([type]),.cal-src-add select,.cal-src-hrow input,.cal-src-hrow select{min-height:40px;width:100%;box-sizing:border-box;min-width:0}
+.cal-src-add .cal-check{display:flex!important;margin:0!important}
+.cal-src-add .cal-feed-copy{justify-self:start;min-width:120px}
+.cal-src-steps{margin:0;padding-left:18px;font-size:12.5px;line-height:1.5;color:var(--crm-muted,#9fbdc0)}
+.cal-src-hrow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:8px}
+.cal-src-hours .cal-check{margin:4px 0!important;font-size:13px}
+@media(max-width:1500px){.cal-rail .cal-src{grid-column:1/-1}}
+@media(max-width:600px){.cal-src-hrow{grid-template-columns:1fr 1fr}.cal-src-add .cal-feed-copy{justify-self:stretch;min-height:44px}}
+
+/* «Slot liberi» in «Registra chiamata» (crm-sheet.js). */
+.cs-slots{margin:0 0 10px;padding:10px 12px;border:1px solid var(--crm-line,#1f5a5c);border-radius:10px;display:grid;gap:8px}
+.cs-slots-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
+.cs-slots-len{display:flex;border:1px solid var(--crm-line-2,#2f8a80);border-radius:8px;padding:2px}
+.cs-slots-len button{min-height:28px;padding:0 10px;border:0;background:transparent;border-radius:6px;font-size:12px;color:var(--crm-text,#e6f6f2);cursor:pointer}
+.cs-slots-len button[aria-pressed=true]{background:var(--crm-accent-soft,#13514c);color:var(--crm-accent,#3fe8bd);font-weight:600}
+.cs-slots-list{display:flex;flex-wrap:wrap;gap:6px}
+.cs-slots-list button{min-height:34px;padding:0 10px;border:1px solid var(--crm-line-2,#2f8a80);border-radius:999px;background:var(--crm-card,#0a2129);color:var(--crm-text,#e6f6f2);font-size:12.5px;cursor:pointer;white-space:nowrap}
+.cs-slots-list button:hover{background:var(--crm-hover,#0c3138)}
+.cs-slots-list button[aria-pressed=true]{background:var(--crm-accent,#3fe8bd);border-color:var(--crm-accent,#3fe8bd);color:var(--crm-on-accent,#04241c)}
+.cs-slots-wait{font-size:12.5px;color:var(--crm-muted,#9fbdc0)}
+.cs-slots-note{margin:0;font-size:12px;line-height:1.4;color:var(--crm-muted,#9fbdc0)}
+/* Editor «Modifica / Crea» (sales.js): data in ora italiana a tutta riga, «Slot liberi» sotto il campo. */
+#editor .editor-when{grid-column:1/-1;display:grid;gap:6px}
+#editor .editor-when small{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+#editor .editor-date-clear{min-height:32px;padding:2px 10px;font-size:12.5px}
+#editor .editor-slots{margin:4px 0 0}

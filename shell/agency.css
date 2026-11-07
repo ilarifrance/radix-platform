@@ -1,0 +1,213 @@
+/* Marketing Agency visual layer, light direction «B chiaro professionale» (22/10): white cards on the light grey page,
+   soft lines, dark text, one indigo accent, the same neutrals as the white CRM (sales/crm-light.css). One palette for
+   every Agency page; layout and logic stay in each page. The shell (menu, top bar) is set in agency/marketing-nav.css. */
+html.rx-shell body.rx-agency{
+  --bg:#f4f4f8;--side:#fff;--surface:#fff;--panel:#fff;--panel2:#fff;--raised:#fff;
+  --line:#e4e1ec;--edge:#e4e1ec;--stroke:#e4e1ec;--border:#e4e1ec;
+  --text:#1d1a27;--ink:#1d1a27;--muted:#55516a;
+  --violet:#4f46e5;--v:#4f46e5;--accent:#4f46e5;--cyan:#0e7490;--c:#0e7490;--blue:#1d4ed8;
+  margin:0;background:#f4f4f8;color:#1d1a27;font-family:var(--rx-font)}
+.rx-agency h1,.rx-agency h2{font-family:var(--rx-display)}
+/* Readability floor: no visible text below 12px (DESIGN.md §3) */
+.rx-agency .eyebrow,.rx-agency .tag,.rx-agency .chip,.rx-agency .status,.rx-agency .gate,.rx-agency .profile,.rx-agency .planet-label,
+.rx-agency .division-card .number,.rx-agency .division-card p,.rx-agency .meta-tag,.rx-agency .timeline-item span,.rx-agency .agent-copy b,
+.rx-agency .agent-copy small,.rx-agency .agent-row .role,.rx-agency .spotlight p,.rx-agency small{font-size:12px}
+/* Shared controls */
+.rx-agency :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-agency input,.rx-agency select,.rx-agency textarea{min-height:40px;border-radius:10px}
+/* The page-local "RADIX / Agency" brand and profile chips duplicate the shell */
+.rx-agency .top-actions .profile{display:none}
+@media (max-width:767px){
+  .rx-agency main,.rx-agency .main{padding-left:12px!important;padding-right:12px!important;min-width:0}
+  .rx-agency .rx-pagetop .searchbox{flex:1;min-width:0}
+  .rx-agency .rx-pagetop .top-actions{display:none}
+  .rx-agency .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+  .rx-agency .stats>*{padding:12px 14px}
+}
+/* Grid pages: keep content at the top (a few pages used margin:auto, which centered it vertically) */
+.rx-agency .shell>main,.rx-agency .shell>.main{align-self:start;margin-top:0;margin-bottom:0}
+/* live registry counts on division cards (lib/agency-divisions.js) */
+.rx-agency small.live{display:inline-flex;align-items:center;gap:6px;margin-top:8px;color:var(--rx-muted)}
+.rx-agency small.live::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--rx-success)}
+/* Memoria del team (agency/memory.html, PR #14): cards carry who wrote/confirmed and whether they reach the agents */
+.rx-agency [data-card]{--m:var(--rx-agency);border-left:3px solid var(--m)!important;border-radius:12px}
+.rx-agency [data-card]:has(.tag.ok){--m:var(--rx-success)}
+.rx-agency [data-card]:has(.tag.warn){--m:var(--rx-warning)}
+.rx-agency [data-card]:has(.tag:not(.ok):not(.warn)){--m:var(--rx-subtle);border-left-style:dashed!important}
+.rx-agency [data-card]>small:first-child{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--rx-muted)}
+.rx-agency [data-card] strong{display:block;margin:4px 0 2px;font:600 15px/1.35 var(--rx-display)}
+.rx-agency [data-card] button{min-height:32px;padding:5px 12px;font-size:12.5px}
+.rx-agency .tag{display:inline-flex;align-items:center;gap:6px;padding:2px 10px;border-radius:999px;font-size:12px;border:1px solid var(--rx-border);color:var(--rx-muted);background:transparent}
+.rx-agency .tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.rx-agency .tag.ok{color:var(--rx-success);border-color:color-mix(in srgb,var(--rx-success) 40%,transparent);background:color-mix(in srgb,var(--rx-success) 8%,transparent)}
+.rx-agency .tag.warn{color:var(--rx-warning);border-color:color-mix(in srgb,var(--rx-warning) 40%,transparent);background:color-mix(in srgb,var(--rx-warning) 8%,transparent)}
+.rx-agency #counts{color:var(--rx-muted);font-size:13px}
+.rx-agency form.edit{display:grid;gap:10px}
+.rx-agency form.edit label{display:grid;gap:4px;font-size:12px;color:var(--rx-muted)}
+.rx-agency #context{background:var(--rx-bg);border:1px solid var(--rx-border);border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.6;white-space:pre-wrap;color:var(--rx-muted)}
+
+/* Pruning: explanations that repeat what the interface already says */
+.rx-agency .warning,
+.rx-agency .notice,
+.rx-agency .preview-note,
+.rx-agency section.panel:has(>h2+p.note):not(:has(button,input,a)),
+.rx-agency main>p.hint:first-child,
+.rx-agency p.hint[style*="margin-top:28px"]{display:none!important}
+
+/* Project library: one primary way into a project, secondary actions quieter */
+.rx-agency #projects .card{position:relative;gap:8px;padding:20px 20px 16px;transition:border-color .15s,transform .15s}
+.rx-agency #projects .card:hover{border-color:color-mix(in srgb,var(--rx-accent) 55%,transparent);transform:translateY(-1px)}
+.rx-agency #projects .card h2{font:600 19px/1.25 var(--rx-display)}
+.rx-agency #projects .card>p{color:var(--rx-muted);font-size:14px}
+.rx-agency #projects .card>small{font-size:12px;color:var(--rx-subtle)}
+.rx-agency #projects .card>small+small{margin-top:-6px}
+.rx-agency #projects .actions{gap:6px;flex-wrap:nowrap;padding-top:12px;margin-top:auto;border-top:1px solid var(--rx-border);align-items:center}
+.rx-agency #projects .actions a{background:transparent;border:1px solid var(--rx-border-strong);color:var(--rx-text);padding:7px 11px;font-size:13px;border-radius:8px}
+.rx-agency #projects .actions a:first-child{background:var(--rx-accent);border-color:var(--rx-accent);color:#fff;font-weight:600}
+.rx-agency #projects .actions a:hover{border-color:var(--rx-accent)}
+.rx-agency #projects .actions button{background:transparent;border:0;color:var(--rx-subtle);padding:7px 8px;font-size:12px;min-height:0}
+.rx-agency #projects .actions button[data-action=export]{margin-left:auto}
+.rx-agency #projects .actions button:hover{color:var(--rx-text)}
+.rx-agency #projects .actions button[data-action=delete]:hover{color:var(--rx-error)}
+
+/* Nuovo progetto: shorter intro, channels as toggles, plan column follows the form */
+.rx-agency .main>h1+p:has(+.cols){display:none}
+.rx-agency #channels{display:flex;flex-wrap:wrap;gap:8px}
+.rx-agency #channels label{display:inline-flex;align-items:center;gap:8px;min-height:0!important;height:auto;padding:7px 14px!important;margin:0;line-height:1.2;border:1px solid var(--rx-border-strong);border-radius:999px;background:transparent;font-size:13px;color:var(--rx-muted);cursor:pointer}
+.rx-agency #channels label:hover{border-color:var(--rx-accent);color:var(--rx-text)}
+.rx-agency #channels label:has(input:checked){background:color-mix(in srgb,var(--rx-accent) 18%,transparent);border-color:var(--rx-accent);color:var(--rx-text)}
+.rx-agency #channels input{accent-color:var(--rx-accent);margin:0;width:15px;height:15px!important;min-height:0!important;padding:0}
+.rx-agency input[type=file]{padding:8px;border-style:dashed!important;background:transparent!important;color:var(--rx-muted)}
+.rx-agency input[type=file]::file-selector-button{margin-right:12px;padding:6px 12px;border:1px solid var(--rx-border-strong);border-radius:8px;background:var(--rx-surface-2);color:var(--rx-text);font:inherit;cursor:pointer}
+@media (min-width:1100px){.rx-agency .cols>section.panel:nth-child(2){position:sticky;top:calc(var(--rx-topbar) + 16px);align-self:start}}
+/* Incarichi: a project without tasks gets a clear first step */
+.rx-agency #setup.setup{display:grid;justify-items:start;gap:14px;padding:28px;border:1px dashed var(--rx-border-strong);border-radius:14px;background:color-mix(in srgb,var(--rx-accent) 6%,transparent);color:var(--rx-muted);font-size:14px;line-height:1.5}
+.rx-agency #setup.setup :is(p,div){margin:0;max-width:56ch}
+.rx-agency #setup #createTasks{background:var(--rx-accent);border-color:var(--rx-accent);color:#fff;font-weight:600;padding:10px 16px;border-radius:10px}
+.rx-agency #setup #setupBrief{color:var(--rx-text);text-decoration:none;border:1px solid var(--rx-border-strong);padding:9px 14px;border-radius:10px}
+.rx-agency #setup #setupBrief:hover{border-color:var(--rx-accent)}
+.rx-agency #setup:has(#createTasks) #setupBrief{border-color:transparent;padding-left:0;color:var(--rx-muted)}
+
+/* Work phases bar on the project workspace (UX flows 2.4), rendered by the shell from journey.phases */
+.rx-phases{position:relative;display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:6px;margin:14px 0 18px;padding:14px 12px 12px;list-style:none;
+  border:1px solid #cfd5e2;border-radius:14px;background:#fff}
+.rx-phases::before{content:"";position:absolute;left:calc(100%/18 + 6px);right:calc(100%/18 + 6px);top:27px;height:2px;border-radius:1px;
+  background:linear-gradient(90deg,#7d60cf var(--done,0%),#fff 0)}
+.rx-phases li{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;text-align:center}
+.rx-phases i{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid #2e4087;background:#fff;
+  font:600 11px/1 var(--rx-font);font-style:normal;color:#5668a6;position:relative}
+.rx-phases b{font:600 12px/1.25 var(--rx-font);color:#1e2131;overflow:hidden;text-overflow:ellipsis;max-width:100%;white-space:nowrap}
+.rx-phases em{font:600 10px/1 var(--rx-font);font-style:normal;color:#5668a6}
+.rx-phases small{font:11px/1.3 var(--rx-font);color:#5668a6;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:100%}
+.rx-phases li[data-state=done] i{background:#7d60cf;border-color:#8568d9;color:#0b0820;font-size:0}
+.rx-phases li[data-state=done] i::before{content:"";width:10px;height:6px;border:solid currentColor;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+.rx-phases li[data-state=active] i{border-color:#0093ad;color:#007692;box-shadow:0 0 0 4px rgba(0,147,173,.3),0 0 18px rgba(0,132,157,.122)}
+.rx-phases li[data-state=active] b{color:#1d1a27}
+.rx-phases li[data-state=active] small{color:#007692}
+.rx-phases li[data-state=waiting] i{border-color:#ad7300;color:#9b5c00;box-shadow:0 0 0 4px rgba(173,115,0,.3)}
+.rx-phases li[data-state=waiting] small{color:#9b5c00}
+.rx-phases li[data-state=todo] b{color:#383d4e}
+@media (max-width:900px){
+  .rx-phases{display:flex;overflow-x:auto;scrollbar-width:none;gap:0;padding:12px 8px}
+  .rx-phases::before{display:none}
+  .rx-phases li{flex:0 0 96px}
+}
+
+/* ---- Overview fidelity (agenzia-mockup.png), with shell/agency-layer.js ---- */
+/* hero: dotted earth with a blue-violet rim instead of the striped sphere */
+html.ag-has-globe .rx-agency .planet-wrap .planet{background:radial-gradient(circle at 34% 30%,rgba(60,90,200,.16),#fff 62%,#f4f4f8 100%)!important;box-shadow:0 0 0 1px rgba(104,121,202,.35),0 0 40px rgba(101,78,243,.193),inset -18px -10px 40px rgba(146,50,227,.122),inset 10px 8px 30px rgba(0,125,176,.088)!important;overflow:hidden}
+html.ag-has-globe .rx-agency .planet-wrap .planet::before,html.ag-has-globe .rx-agency .planet-wrap .planet::after{display:none!important}
+.rx-agency .ag-globe{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}
+/* divisions: outline icon on top, number beside it, two-line description; the work line stays but quieter */
+.rx-agency .division-card{min-height:148px!important;padding:16px 15px!important;border-radius:12px!important;border-color:#d0d6e4!important;background:linear-gradient(160deg,#fff,#fff)!important}
+.rx-agency .division-card .symbol{font-size:26px!important;height:30px!important}
+.rx-agency .division-card .number{left:56px;right:auto!important;top:24px!important;color:#6462a6}
+.rx-agency .division-card strong{font-size:14px!important;min-height:0!important;margin:12px 0 6px!important}
+.rx-agency .division-card p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#3e4253!important}
+.rx-agency .division-card .live{margin-top:auto!important;padding-top:8px;font-size:10.5px!important;color:#55516a!important}
+.rx-agency .division-card .live::before{display:none}
+.rx-agency .division-card.ag-custom{justify-content:flex-start;gap:6px;border-color:#c7cbfb!important;background:#fbfbff!important;box-shadow:none}
+.rx-agency .division-card.ag-custom .ag-plus{display:grid;place-items:center;width:42px;height:42px;border-radius:50%;border:1.5px solid #4f46e5;color:#4f46e5;font:300 28px/1 Inter,system-ui,sans-serif;box-shadow:none}
+.rx-agency .division-card.ag-custom b{margin-top:10px;font-size:14px;color:#1d1a27}
+.rx-agency .division-card.ag-custom small{color:#55516a;font-size:11px;line-height:1.45}
+/* workflow: filled numbered dots joined by a line */
+.rx-agency .timeline{position:relative}
+.rx-agency .timeline-item{position:relative}
+.rx-agency .timeline-item:not(:last-child)::after{content:"";position:absolute;left:14px;top:32px;bottom:-12px;width:2px;background:linear-gradient(#4fd8ff,#7a57ea);opacity:.55}
+.rx-agency .timeline-item .count{background:#4f46e5!important;border:2px solid #fff!important;color:#fff!important;font-weight:700;box-shadow:0 0 0 1px #c7cbfb}
+.rx-agency .timeline-item:nth-child(n+4) .count{background:radial-gradient(circle at 35% 30%,#7d65bc,#6a4dff 55%,#e7ecff)!important;border-color:rgba(135,112,191,.7)!important}
+/* agents: division under the name, deliverable tags, compact open link */
+.rx-agency .agent-row{gap:12px}
+.rx-agency .agent-copy small{color:#5c66a5}
+.rx-agency .ag-tags{display:flex;gap:6px;margin-left:auto;min-width:0}
+.rx-agency .ag-tags i{font-style:normal;font-size:10.5px;line-height:1;padding:5px 8px;border-radius:6px;border:1px solid #cbd0de;background:rgba(230,238,255,.9);color:#282b3b;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis}
+.rx-agency .agent-row .role{flex:none}
+@media (max-width:1280px){.rx-agency .ag-tags i:nth-child(2){display:none}}
+@media (max-width:720px){.rx-agency .ag-tags{display:none}}
+html.ag-has-globe .rx-agency .planet-wrap{height:190px;-webkit-mask-image:linear-gradient(#000 72%,transparent);mask-image:linear-gradient(#000 72%,transparent)}
+.rx-agency .agent-copy{flex:1 1 auto;min-width:120px}
+.rx-agency .agent-copy b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rx-agency .agent-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.rx-agency .ag-tags{flex:0 1 auto}
+.rx-agency .ag-tags i:nth-child(2){display:none}
+@media (min-width:1700px){.rx-agency .ag-tags i:nth-child(2){display:inline-block}}
+/* agent rows: availability dot */
+.rx-agency .agent-row .ag-dot{flex:none;width:7px;height:7px;border-radius:50%;background:#2fe38b;box-shadow:0 0 8px rgba(0,143,61,.245);margin-left:auto}
+.rx-agency .agent-row .ag-dot+.ag-tags{margin-left:0}
+/* featured division: arrows, number, deliverables */
+.rx-agency .ag-arrows{display:flex;gap:6px;margin-left:auto}
+.rx-agency .ag-arrows button{width:30px;height:28px;border-radius:8px;border:1px solid #cbd0de;background:#fff;color:#282b3b;font:400 18px/1 Inter,system-ui,sans-serif;cursor:pointer}
+.rx-agency .ag-arrows button:hover{border-color:#7564f7;color:#1d1a27}
+.rx-agency .ag-arrows button:focus-visible{outline:2px solid #714dce;outline-offset:2px}
+.rx-agency .spotlight-top{position:relative}
+.rx-agency .spotlight .ag-num{position:absolute;top:2px;right:0;color:#6462a6;font-size:12px}
+.rx-agency .spotlight-icon{color:var(--accent,#3261d8)}
+.rx-agency .ag-spot-tags{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 14px}
+.rx-agency .ag-spot-tags i{font-style:normal;font-size:11px;line-height:1;padding:5px 9px;border-radius:6px;border:1px solid #2d3980;background:rgba(228,237,255,.9);color:#5d66a5}
+/* Task recenti: one line per task with a status pill */
+.rx-agency #recentTasks{display:grid;gap:0}
+.rx-agency #recentTasks .ag-task{margin:0!important;min-height:0!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:center;padding:9px 4px;border:0;border-bottom:1px solid rgba(59,71,144,.35);border-radius:0;background:none;text-decoration:none}
+.rx-agency #recentTasks .ag-task:hover{background:rgba(80,90,200,.068)}
+.rx-agency .ag-task-title{color:#181928;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-agency .ag-task-meta{grid-row:2;color:#5d66a5;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rx-agency .ag-pill{grid-column:2;grid-row:1/span 2;padding:4px 9px;border-radius:999px;font-size:10.5px;line-height:1;white-space:nowrap;border:1px solid;--p:#5d66a5;color:var(--p);border-color:color-mix(in srgb,var(--p) 45%,transparent);background:color-mix(in srgb,var(--p) 14%,transparent)}
+.rx-agency .ag-pill.run{--p:#006cc7}.rx-agency .ag-pill.review{--p:#9c5b00}.rx-agency .ag-pill.done{--p:#00802d}.rx-agency .ag-pill.warn{--p:#af4900}.rx-agency .ag-pill.err{--p:#c12443}
+
+/* ---------- Aggiungi incarico (project workspace) and Assegna incarico (division page) ---------- */
+.rx-agency details.add-task{border:1px dashed var(--rx-border);border-radius:12px;background:color-mix(in srgb,var(--rx-surface,#fff) 70%,transparent);padding:0;margin-top:4px}
+.rx-agency details.add-task[open]{border-style:solid;border-color:color-mix(in srgb,var(--rx-agency,#8665e0) 45%,var(--rx-border))}
+.rx-agency details.add-task>summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:600;color:var(--rx-text,#13141c);border-radius:12px}
+.rx-agency details.add-task>summary::-webkit-details-marker{display:none}
+.rx-agency details.add-task>summary:hover{background:color-mix(in srgb,var(--rx-agency,#805ed9) 10%,transparent)}
+.rx-agency details.add-task[open]>summary{border-bottom:1px solid var(--rx-border);border-radius:12px 12px 0 0}
+.rx-agency details.add-task>label,.rx-agency details.add-task>fieldset,.rx-agency details.add-task>p,.rx-agency details.add-task>button{margin:12px 14px 0}
+.rx-agency details.add-task>label{display:grid;gap:5px;font-size:12px;color:var(--rx-muted)}
+.rx-agency details.add-task select,.rx-agency details.add-task textarea{width:100%;font-size:13.5px;color:var(--rx-text,#13141c);background:#fff;border:1px solid #c3c8d6;padding:8px 10px}
+.rx-agency details.add-task textarea{min-height:96px}
+.rx-agency details.add-task>fieldset{border:1px solid var(--rx-border);border-radius:10px;padding:8px 12px 10px;display:grid;gap:2px;max-height:200px;overflow:auto}
+.rx-agency details.add-task>fieldset legend{padding:0 6px;font-size:12px;color:var(--rx-muted)}
+.rx-agency details.add-task>fieldset label{display:flex;align-items:center;gap:8px;font-size:13px;line-height:1.35;color:var(--rx-text,#201e2e);padding:4px 0;cursor:pointer;min-width:0}
+.rx-agency details.add-task>fieldset input[type=checkbox]{flex:none;width:16px;height:16px;min-height:0;margin:0;accent-color:var(--rx-agency,#734cce)}
+.rx-agency details.add-task>button{display:block;margin-bottom:14px}
+.rx-agency details.add-task>p.muted{margin-bottom:14px;font-size:13px}
+.rx-agency form.assign{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin-top:12px;padding:12px 14px;border:1px dashed var(--rx-border);border-radius:12px}
+.rx-agency form.assign label{display:grid;gap:5px;flex:1 1 260px;font-size:12.5px;color:var(--rx-muted)}
+.rx-agency form.assign select{width:100%;font-size:13.5px;color:var(--rx-text,#13141c);background:#fff;border:1px solid var(--rx-border);padding:8px 10px}
+.rx-agency form.assign button.action{flex:none;cursor:pointer}
+/* Who moves each phase (AI or you) and the «Adesso» card above the phases. */
+.rx-phase-who{font:700 9px/1 var(--rx-font);letter-spacing:.06em;text-transform:uppercase;padding:3px 6px;border-radius:999px;border:1px solid #2e4087;color:#5668a6}
+.rx-phase-who[data-actor=ai]{border-color:#b8c9c2;color:#077b60}
+.rx-phase-who[data-actor=you]{border-color:#a47804;color:#87660c}
+.rx-now{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:14px 0 -4px;padding:12px 14px;border-radius:12px;border:1px solid #b8c9c2;background:#fff;color:#181c2b;font:14px/1.4 var(--rx-font)}
+.rx-now[data-actor=you]{border-color:#a47804;background:#fbf9f7}
+.rx-now>b{font-weight:700;color:#077b60}.rx-now[data-actor=you]>b{color:#87660c}
+.rx-now span{flex:1 1 260px}
+.rx-now-go{color:#081d17;border:1px solid currentColor;border-radius:9px;padding:6px 11px;text-decoration:none;white-space:nowrap}
+/* Marketing on the phone: every tap target at least 40px tall (WCAG 2.5.8 with room to spare). */
+@media (max-width:640px){html.rx-shell body.rx-agency button.rx-logout{min-height:40px;padding:0 12px}}
+/* Guida «?»: white on the indigo accent (6.3:1). */
+body.rx-agency button.rx-guide-fab{color:#fff;background:#4f46e5}
+/* Projects on the phone: the card actions wrap instead of widening the page */
+@media (max-width:640px){.rx-agency #projects .actions{flex-wrap:wrap}.rx-agency #projects .actions button[data-action=export]{margin-left:0}.rx-agency #projects .card{min-width:0}.rx-agency #projects .actions :is(a,button){min-height:44px;display:inline-flex;align-items:center}}
+/* Agency overview on the phone: the small links and chips become 44px targets */
+@media (max-width:640px){.rx-agency :is(.section-head a.small-link,.agent-row a.role,.ag-arrows button,.empty-task a,.spotlight a){min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:center}}

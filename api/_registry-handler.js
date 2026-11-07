@@ -7,6 +7,8 @@ const {getSessionUser}=require('./_auth');
 const core=require('./_registry-core');
 const memory=require('./_agency-memory-store');
 const editorial=require('../editorial-core.js');
+const pv=require('../lib/ped-views.js');
+const projectJourney=require('../lib/project-journey.js');
 const send=(res,code,data)=>res.status(code).json(data);
 function bodyOf(req){if(typeof req.body==='string')return JSON.parse(req.body||'{}');return req.body||{}}
 const revisionOf=v=>{const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw new core.InputError('Versione richiesta');return n};
@@ -58,6 +60,17 @@ async function clients(req,res,db,uid){
  return send(res,405,{error:'Metodo non consentito'});
 }
 
+const JOURNEY_LIMIT=40,JOURNEY_MODULES=['editorial','agency-workspace','pm','agents'];
+async function journeys(db,ids){
+ const out={};if(!ids.length)return out;
+ const docs=await db`SELECT project_id,module,data FROM rx_documents WHERE project_id = ANY(${ids}) AND module = ANY(${JOURNEY_MODULES})`;
+ const by={};for(const d of docs)(by[d.project_id]=by[d.project_id]||{})[d.module]=d.data;
+ // Publications are optional: the table only exists once the registry migration has run.
+ let pubs=[];try{pubs=await db`SELECT project_id,content_id,status FROM rx_publications WHERE project_id = ANY(${ids})`}catch(e){pubs=[]}
+ const pubsBy={};for(const r of pubs)(pubsBy[r.project_id]=pubsBy[r.project_id]||[]).push(r);
+ for(const id of ids)out[id]=projectJourney.journey(by[id]||{},{publications:pubsBy[id]||[]});
+ return out;
+}
 async function projects(req,res,db,uid){
  if(req.method==='GET'){
   const q=req.query||{};
@@ -66,12 +79,19 @@ async function projects(req,res,db,uid){
    const rows=await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id WHERE p.id=$1`,[q.id]);
    if(!rows.length)return send(res,404,{error:'Progetto non trovato'});
    const docs=await db`SELECT module,revision,updated_at FROM rx_documents WHERE project_id=${q.id} ORDER BY module`;
-   return send(res,200,{item:{...rows[0],documents:docs}});
+   const item={...rows[0],documents:docs};
+   if(q.journey==='1')item.journey=(await journeys(db,[q.id]))[q.id];
+   return send(res,200,{item});
   }
   if(q.clientId&&!core.validClientId(q.clientId))throw new core.InputError('Cliente non valido');
   const rows=q.clientId
    ?await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id WHERE p.client_id=$1 ORDER BY p.updated_at DESC LIMIT 500`,[q.clientId])
    :await db(`SELECT ${PROJECT_COLS} FROM rx_projects p LEFT JOIN rx_clients c ON c.id=p.client_id ORDER BY p.updated_at DESC LIMIT 500`);
+  // ?journey=1 adds each step's state for the most recently updated projects (documents are read in full).
+  if(q.journey==='1'){
+   const ids=rows.slice(0,JOURNEY_LIMIT).map(r=>r.id),map=await journeys(db,ids);
+   return send(res,200,{items:rows.map(r=>map[r.id]?{...r,journey:map[r.id]}:r)});
+  }
   return send(res,200,{items:rows});
  }
  const data=bodyOf(req);
@@ -192,14 +212,16 @@ async function publications(req,res,db,uid,deps){
   return send(res,200,{items:rows});
  }
  if(req.method!=='POST')return send(res,405,{error:'Metodo non consentito'});
+ if(bodyOf(req).action==='withdraw')return withdrawPublication(req,res,db,uid,deps);
  const r=core.publicationRequest(bodyOf(req));
  const docs=await db`SELECT data FROM rx_documents WHERE project_id=${r.projectId} AND module='editorial'`;
  const plan=docs.length?docs[0].data:null,item=plan&&Array.isArray(plan.contents)?plan.contents.find(x=>x&&x.id===r.contentId):null;
  if(!item)return send(res,404,{error:'Contenuto non trovato nel PED del team: ricarica la pagina'});
  if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
  if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
+ {const holes=pv.placeholders(String(item.copy)+'\n'+String(item.script||''));if(holes.length)return send(res,400,{error:'Il testo ha un segnaposto da completare: «'+holes[0]+'». Completalo, approvalo di nuovo e poi invialo.'})}
  const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
- if(core.approvalStatus(approved[0],editorial.approvalPayload(item))!=='approved')return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
+ if(!editorial.sameWordRevisions(item).some(revision=>core.approvalStatus(approved[0],editorial.approvalPayload({...item,revision}))==='approved'))return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
  // The page asks with a 5-minute margin; the server accepts down to 2 minutes so a slow click still goes through.
  const plan2=editorial.publishSchedule(plan,item,Date.now()-3*60*1000);
  if(r.mode==='scheduled'&&plan2.mode!=='scheduled')return send(res,409,{error:plan2.reason==='past'?'L’orario previsto è già passato: aggiorna data e ora o usa il prossimo slot libero':'Data e orario mancanti: usa il prossimo slot libero',stale:true});
@@ -222,12 +244,63 @@ async function publications(req,res,db,uid,deps){
  const id=claim[0].id,key=process.env.BUFFER_ACCESS_TOKEN;
  const failed=async(code,message)=>{const rows=await db`UPDATE rx_publications SET status='failed',error=${core.clean(message,500)},updated_at=now() WHERE id=${id} RETURNING *`;return send(res,code,{error:message,item:rows[0]})};
  if(!key)return failed(503,'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN');
+ // An older version of this content still waiting on Buffer (moved time, new opening…) is removed there first, so
+ // only the new version goes out. If Buffer does not confirm, nothing new is sent.
+ const waiting=await db`SELECT id,revision,post_id FROM rx_publications WHERE project_id=${r.projectId} AND content_id=${r.contentId} AND service='buffer'
+  AND revision<>${r.revision} AND status='queued' AND post_id IS NOT NULL AND due_at > now()`;
+ for(const old of waiting){
+  try{await deps.deletePost(key,String(old.post_id))}
+  catch(e){return failed(502,'La versione '+old.revision+' è ancora programmata su Buffer e non riesco a toglierla ('+core.clean(e&&e.message,200)+'): eliminala da Buffer e riprova')}
+  await db`DELETE FROM rx_publications WHERE id=${old.id}`;
+  await log(db,uid,r.projectId,'publication.replaced',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,from:old.revision,to:r.revision,postId:String(old.post_id)});
+ }
  let post;
- try{post=await deps.createPost(key,{channelId:r.channelId,text:String(item.copy),dueAt:scheduledAt})}
+ const base='https://'+String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
+ // Video posts (a YouTube video or a LinkedIn clip) go out with the generated video, copied to Blob first.
+ if(pv.mediaKind(item)==='video'){
+  const url=item.video&&item.video.url;if(!url)return failed(400,'Genera prima il video con l’avatar: il post video parte con il video allegato');
+  if(!process.env.BLOB_READ_WRITE_TOKEN||!deps.copyVideo)return failed(503,'Archivio video non collegato: manca BLOB_READ_WRITE_TOKEN');
+  let video;try{video=await deps.copyVideo(process.env.BLOB_READ_WRITE_TOKEN,{name:String(r.contentId).toLowerCase().replace(/[^a-z0-9-]/g,'').slice(0,60)||'video',url})}
+  catch(e){return failed(502,'Video non preparato per Buffer: '+core.clean(e&&e.message,300))}
+  // YouTube wants a title and a category, and a short description instead of the whole spoken script.
+  const yt=/youtube/i.test(String(item.channel||'')+' '+String(r.channelName||''))?pv.youtubeMeta(item):null;
+  const ig=/instagram/i.test(String(item.channel||'')+' '+String(r.channelName||''))?{type:'reel',isAiGenerated:true}:null;
+  try{post=await deps.createPost(key,{channelId:r.channelId,text:pv.plainSocial(yt?yt.description:String(item.copy),item.channel),dueAt:scheduledAt,video,youtube:yt,instagram:ig})}
+  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il video: '+core.clean(e&&e.message,300))}
+ }else{
+ let images=(await db`SELECT id FROM rx_media WHERE project_id=${r.projectId} AND content_id=${r.contentId} ORDER BY slot LIMIT 10`.catch(()=>[])).map(x=>x.id);
+ // With a public Blob store, Buffer gets public copies (Preview protection would block the signed RADIX url).
+ const blobToken=process.env.BLOB_READ_WRITE_TOKEN;
+ if(blobToken&&images.length&&deps.putBlob){
+  try{const rows=await db`SELECT id,mime,data_b64 FROM rx_media WHERE id = ANY(${images})`;const byId=new Map(rows.map(x=>[x.id,x]));
+   images=await Promise.all(images.map(mid=>{const m=byId.get(mid);return deps.putBlob(blobToken,{name:mid,mime:m.mime,data:Buffer.from(m.data_b64,'base64')})}))}
+  catch(e){return failed(502,'Immagini non caricate su Vercel Blob: '+core.clean(e&&e.message,300))}
+ }else images=images.map(mid=>base+mediaUrl(mid));
+ const ig=/instagram/i.test(String(item.channel||'')+' '+String(r.channelName||''))?{type:'post'}:null;
+ try{post=await deps.createPost(key,{channelId:r.channelId,text:pv.plainSocial(String(item.copy),item.channel),dueAt:scheduledAt,images,instagram:ig})}
  catch(e){return failed(e&&e.status===422?422:502,'Buffer non ha accettato il post: '+core.clean(e&&e.message,300))}
+ }
  const rows=await db`UPDATE rx_publications SET status='queued',post_id=${String(post.postId)},due_at=${post.dueAt||scheduledAt},error='',updated_at=now() WHERE id=${id} RETURNING *`;
  await log(db,uid,r.projectId,'publication.queued',(item.channel+' · '+item.title).slice(0,160),{contentId:r.contentId,revision:r.revision,mode:r.mode,scheduledAt,postId:String(post.postId)});
  return send(res,201,{ok:true,item:rows[0]});
+}
+
+// A content changed after it was scheduled (new time, new opening…) is taken off Buffer until its new version is
+// approved and scheduled again, so the old version never goes out. Only posts still waiting (due time ahead).
+async function withdrawPublication(req,res,db,uid,deps){
+ const b=bodyOf(req),projectId=core.clean(b.projectId,80),contentId=core.clean(b.contentId,120);
+ if(!core.validProjectId(projectId)||!contentId)throw new core.InputError('Contenuto non valido');
+ const rows=await db`SELECT id,revision,post_id,channel_name FROM rx_publications WHERE project_id=${projectId} AND content_id=${contentId} AND service='buffer' AND status='queued' AND post_id IS NOT NULL AND due_at > now()`;
+ if(!rows.length)return send(res,200,{ok:true,withdrawn:0});
+ const key=process.env.BUFFER_ACCESS_TOKEN;if(!key)return send(res,503,{error:'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN'});
+ let n=0;
+ for(const row of rows){
+  try{await deps.deletePost(key,String(row.post_id))}
+  catch(e){return send(res,502,{error:'Non riesco a togliere il post da Buffer ('+core.clean(e&&e.message,200)+'): eliminalo da Buffer a mano',withdrawn:n})}
+  await db`DELETE FROM rx_publications WHERE id=${row.id}`;n++;
+  await log(db,uid,projectId,'publication.withdrawn',String(row.channel_name||'Buffer').slice(0,160),{contentId,revision:row.revision,postId:String(row.post_id)});
+ }
+ return send(res,200,{ok:true,withdrawn:n});
 }
 
 async function activity(req,res,db){
@@ -268,6 +341,12 @@ async function importData(req,res,db,uid){
    const id=String(raw&&raw.id||'').toLowerCase();
    if(!core.validProjectId(id)){result.skipped++;continue}
    const p=core.project({...raw,clientId:raw.clientId||null});
+   // A v3.7 profile named like a project already in the registry is not a second project: its voice and
+   // positioning join that project's profile (once), so the list never shows the same name twice.
+   if(data.source==='command-center'){
+    const same=await db`SELECT id FROM rx_projects WHERE lower(name)=lower(${p.name}) AND id<>${id} LIMIT 1`;
+    if(same.length){await db`UPDATE rx_projects SET profile=profile||jsonb_build_object('v37',${JSON.stringify(p.profile)}::jsonb) WHERE id=${same[0].id} AND NOT (profile ? 'v37')`;result.skipped++;continue}
+   }
    if(p.clientId){const c=await db`SELECT 1 FROM rx_clients WHERE id=${p.clientId}`;if(!c.length)p.clientId=null}
    const rows=await db`INSERT INTO rx_projects(id,client_id,name,kind,status,summary,profile,created_by,updated_by)
     VALUES(${id},${p.clientId},${p.name},${p.kind},${p.status},${p.summary},${JSON.stringify(p.profile)}::jsonb,${uid},${uid}) ON CONFLICT (id) DO NOTHING RETURNING id`;
@@ -285,16 +364,61 @@ async function importData(req,res,db,uid){
  return send(res,200,{ok:true,...result});
 }
 
-const ROUTES={clients,projects,documents,approvals,activity,publications,import:importData};
+// Images of PED contents. POST stores one image (data URL, PNG or JPEG, at most ~3 MB) in a slot of a content and
+// returns its signed public link; DELETE removes the slots from `from` on. The link is what Buffer fetches.
+const crypto=require('crypto');
+const MEDIA_MAX=4000000;
+function mediaSig(id){const secret=process.env.JWT_SECRET;if(!secret)throw new Error('JWT_SECRET mancante');return crypto.createHmac('sha256',crypto.createHash('sha256').update('rx-media:'+secret).digest()).update(String(id)).digest('hex').slice(0,32)}
+const mediaUrl=id=>'/api/workspace?resource=file&id='+encodeURIComponent(id)+'&s='+mediaSig(id);
+async function media(req,res,db,uid){
+ const q=req.query||{},data=req.method==='POST'?bodyOf(req):q;
+ const projectId=core.clean(data.projectId,80),contentId=core.clean(data.contentId,120);
+ if(!core.validProjectId(projectId)||!contentId)throw new core.InputError('Progetto o contenuto non valido');
+ if(req.method==='GET'){const rows=await db`SELECT id,slot,mime,created_at FROM rx_media WHERE project_id=${projectId} AND content_id=${contentId} ORDER BY slot`;return send(res,200,{items:rows.map(r=>({...r,url:mediaUrl(r.id)}))})}
+ if(req.method==='DELETE'){const from=Math.max(0,Math.min(20,Number(q.from)||0));await db`DELETE FROM rx_media WHERE project_id=${projectId} AND content_id=${contentId} AND slot>=${from}`;return send(res,200,{ok:true})}
+ if(req.method!=='POST')return send(res,405,{error:'Metodo non consentito'});
+ const slot=Number(data.slot),m=/^data:(image\/(?:png|jpeg));base64,([A-Za-z0-9+/=]+)$/.exec(String(data.dataUrl||''));
+ if(!Number.isInteger(slot)||slot<0||slot>19)throw new core.InputError('Posizione immagine non valida');
+ if(!m||m[2].length>MEDIA_MAX)throw new core.InputError('Immagine non valida o troppo grande');
+ const id=crypto.randomUUID();
+ await db`INSERT INTO rx_media(id,project_id,content_id,slot,mime,data_b64,created_by) VALUES(${id},${projectId},${contentId},${slot},${m[1]},${m[2]},${uid})
+  ON CONFLICT (project_id,content_id,slot) DO UPDATE SET id=EXCLUDED.id,mime=EXCLUDED.mime,data_b64=EXCLUDED.data_b64,created_by=EXCLUDED.created_by,created_at=now()`;
+ return send(res,201,{ok:true,id,url:mediaUrl(id)});
+}
+// Public, signed: lets Buffer (or a browser) fetch one stored image without a RADIX session.
+async function publicFile(req,res,db){
+ const q=req.query||{},id=String(q.id||'');
+ if(!/^[0-9a-f-]{36}$/.test(id)||String(q.s||'')!==mediaSig(id))return send(res,404,{error:'File non trovato'});
+ const rows=await db`SELECT mime,data_b64 FROM rx_media WHERE id=${id}`;if(!rows.length)return send(res,404,{error:'File non trovato'});
+ res.setHeader('Content-Type',rows[0].mime);res.setHeader('Cache-Control','public, max-age=31536000, immutable');
+ return res.status(200).send(Buffer.from(rows[0].data_b64,'base64'));
+}
+
+// Numbers of the published posts over time (rx_post_stats). GET lists the readings; POST reads Buffer now for this
+// project (the page does it when its newest reading is older than a day) and then lists them.
+async function poststats(req,res,db,uid,deps){
+ const projectId=core.clean(req.method==='GET'?(req.query||{}).projectId:bodyOf(req).projectId,80);
+ if(!core.validProjectId(projectId))throw new core.InputError('Progetto non valido');
+ const stats=require('./_ped_stats');let read=null;
+ if(req.method==='POST'){
+  const key=process.env.BUFFER_ACCESS_TOKEN;if(!key)return send(res,503,{error:'Buffer non è collegato in questo ambiente: manca BUFFER_ACCESS_TOKEN'});
+  try{read=await stats.collect(db,{apiKey:key,postStats:deps.postStats,projectId})}
+  catch(e){return send(res,502,{error:'Numeri da Buffer non disponibili: '+core.clean(e&&e.message,300)})}
+ }else if(req.method!=='GET')return send(res,405,{error:'Metodo non consentito'});
+ return send(res,200,{items:await stats.readings(db,projectId),...(read?{read}:{})});
+}
+
+const ROUTES={clients,projects,documents,approvals,activity,publications,media,poststats,import:importData};
 
 module.exports=async(req,res)=>{
+ if(String((req.query||{}).resource||'')==='file'&&req.method==='GET'){try{return await publicFile(req,res,sql())}catch(e){return send(res,503,{error:'File non disponibile'})}}
  res.setHeader('Cache-Control','no-store');
  const user=getSessionUser(req);
  if(!user||!user.uid)return send(res,401,{error:'Accesso RADIX richiesto'});
  const route=ROUTES[String((req.query||{}).resource||'')];
  if(!route)return send(res,404,{error:'Risorsa non trovata'});
  try{
-  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost});
+  return await route(req,res,sql(),Number(user.uid),{createPost:require('./_buffer').createPost,deletePost:require('./_buffer').deletePost,postStats:require('./_buffer').postStats,putBlob:require('./_blob').putPublic,copyVideo:require('./_blob').copyVideo});
  }catch(e){
   if(e instanceof SyntaxError)return send(res,400,{error:'JSON non valido'});
   if(e instanceof core.InputError)return send(res,400,{error:e.message});

@@ -1,0 +1,98 @@
+/* List views for Contatti and Aziende (sales/crm-list.js), in the CRM light theme (--crm-* tokens of
+   crm-light.css). «Tabella» hides the cards and the contact workspace of contacts-view.js; «Schede»
+   shows them again. The table scrolls sideways inside its box, never the page; the default columns
+   and these paddings keep Contatti and Aziende inside a 1280px screen without that scroll. */
+html[data-lv-contacts="table"] #contacts>article.card,html[data-lv-contacts="table"] #contacts>.cx,
+html[data-lv-companies="table"] #companies>article.card{display:none!important}
+.lv [hidden]{display:none!important}
+.lv{margin:14px 0;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:12px;box-shadow:var(--crm-shadow);color:var(--crm-text);font-family:var(--crm-font);min-width:0;max-width:100%}
+.lv-head{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;justify-content:space-between;padding:16px 18px 12px}
+.lv-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lv-object{font-size:12px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;color:var(--crm-subtle)}
+select.lv-view{align-self:flex-start;appearance:auto;font:600 20px/1.25 var(--crm-font);color:var(--crm-text);background:transparent;border:1px solid transparent;border-radius:8px;padding:2px 4px;margin:0 0 0 -5px;max-width:100%;min-height:0;width:auto}
+select.lv-view:hover{border-color:var(--crm-line)}
+select.lv-division{max-width:220px}
+select.lv-view:focus-visible{outline:2px solid var(--crm-accent);outline-offset:1px}
+.lv-meta{margin:0;font-size:13px;color:var(--crm-muted)}
+.lv-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lv-search{display:block;margin:0}
+.lv-search input{width:240px;max-width:100%;min-height:36px;padding:6px 12px;border:1px solid var(--crm-line-2);border-radius:8px;background:var(--crm-card);color:var(--crm-text);font:14px var(--crm-font)}
+.lv-search input:focus-visible{outline:2px solid var(--crm-accent);outline-offset:0;border-color:var(--crm-accent)}
+.lv-cols{position:relative}
+.lv-cols>summary{list-style:none;cursor:pointer;min-height:36px;display:flex;align-items:center;padding:6px 12px;border:1px solid var(--crm-line-2);border-radius:8px;font-size:14px;color:var(--crm-text);background:var(--crm-card)}
+.lv-cols>summary::-webkit-details-marker{display:none}
+.lv-cols>summary::after{content:"▾";margin-left:6px;color:var(--crm-subtle)}
+.lv-cols[open]>summary{border-color:var(--crm-accent);color:var(--crm-accent)}
+.lv-cols-list{position:absolute;right:0;top:calc(100% + 4px);z-index:5;display:grid;gap:2px;min-width:210px;padding:8px;background:var(--crm-card);border:1px solid var(--crm-line);border-radius:10px;box-shadow:0 8px 24px var(--crm-shadow-c)}
+.lv-check{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:6px;font-size:14px;color:var(--crm-text);margin:0}
+.lv-check:hover{background:var(--crm-soft)}
+.lv-mode{display:inline-flex;border:1px solid var(--crm-line-2);border-radius:8px;overflow:hidden}
+.lv-mode button{min-height:36px;padding:6px 12px;border:0;border-radius:0;background:var(--crm-card);color:var(--crm-muted);font:500 14px var(--crm-font);box-shadow:none}
+.lv-mode button+button{border-left:1px solid var(--crm-line-2)}
+.lv-mode button[aria-pressed="true"]{background:var(--crm-accent-soft);color:var(--crm-accent);font-weight:600}
+.lv-bulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 18px 12px;padding:8px 12px;border:1px solid var(--crm-accent-line);border-radius:10px;background:var(--crm-accent-soft)}
+.lv-bulk strong{margin-right:auto;font-size:14px;color:var(--crm-accent)}
+.lv-bulk button{min-height:32px;padding:4px 12px;font-size:13px}
+.lv-campaign{margin:0 18px 12px}
+.lv-scroll{overflow-x:auto;max-width:100%;border-top:1px solid var(--crm-line);-webkit-overflow-scrolling:touch}
+.lv-scroll:focus-visible{outline:2px solid var(--crm-accent);outline-offset:-2px}
+.lv-table{width:100%;min-width:760px;border-collapse:collapse;font-size:14px;background:var(--crm-card)}
+.lv-table th{position:sticky;top:0;background:var(--crm-head);color:var(--crm-muted);font-weight:600;font-size:13px;text-align:left;border-bottom:1px solid var(--crm-line-2);padding:0;white-space:nowrap}
+.lv-table th+th:not(.lv-cb):not(.lv-actions){border-left:1px solid var(--crm-line)}
+.lv-table td{padding:8px 10px;border-bottom:1px solid var(--crm-line);vertical-align:middle;color:var(--crm-text);white-space:nowrap}
+/* Long values are cut with «…» (full text in the title), as in a Salesforce list. */
+.lv-table td>a,.lv-table td>span:not(.cx-score):not(.lv-pill),.lv-table td>.lv-name,.lv-table td>.lv-link{display:inline-block;max-width:160px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;white-space:nowrap}
+.lv-table td[data-col="name"]>.lv-name{max-width:180px}
+.lv-table tbody tr:hover{background:var(--crm-hover)}
+.lv-table tbody tr.on{background:var(--crm-accent-soft)}
+.lv-table .num{text-align:right}
+.lv-table th.num .lv-sort{justify-content:flex-end}
+.lv-sort{display:flex;align-items:center;gap:6px;width:100%;min-height:38px;padding:8px 10px;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;box-shadow:none}
+.lv-sort:hover{background:var(--crm-hover);color:var(--crm-text)}
+.lv-sort:focus-visible{outline:2px solid var(--crm-accent);outline-offset:-2px}
+.lv-arrow{font-size:10px;color:var(--crm-subtle)}
+th[aria-sort] .lv-arrow{color:var(--crm-accent)}
+th[aria-sort]{color:var(--crm-text)}
+.lv-n{width:36px;text-align:right;color:var(--crm-subtle)!important;font-size:12px}
+th.lv-n{padding:0 6px}
+.lv-cb{width:34px;text-align:center}
+th.lv-cb{padding:0 8px}
+.lv-cb input,.lv-check input{width:16px;height:16px;min-height:0;min-width:0;padding:0;margin:0;vertical-align:middle;accent-color:var(--crm-accent)}
+.lv-name,.lv-link{border:0;background:none;padding:0;min-height:0;font:inherit;color:var(--crm-link);text-align:left;cursor:pointer;box-shadow:none;border-radius:2px}
+.lv-name{font-weight:600}
+.lv-table td.lv-has-li>.lv-name{max-width:152px}
+.lv-li{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;min-height:0;min-width:0;margin-left:6px;padding:0;border:1px solid var(--crm-link);border-radius:4px;background:var(--crm-card);color:var(--crm-link);font:700 12px/1 var(--crm-font);letter-spacing:-.02em;vertical-align:middle;cursor:pointer;box-shadow:none}
+.lv-li:hover{background:var(--crm-link);color:var(--crm-card)}
+.lv-li:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+.lv-name:hover,.lv-link:hover{text-decoration:underline}
+.lv-table a{color:var(--crm-link);text-decoration:none}
+.lv-table a:hover{text-decoration:underline}
+.lv-empty{color:var(--crm-subtle)}
+.lv-sub{display:block;font-size:12px;color:var(--crm-muted)}
+.lv-pill{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.lv-pill.ok{color:var(--crm-ok);background:var(--crm-ok-soft)}
+.lv-pill.no{color:var(--crm-muted);background:var(--crm-soft);box-shadow:inset 0 0 0 1px var(--crm-line)}
+.lv-table .cx-score{display:inline-flex;align-items:baseline;gap:4px;padding:2px 8px;border-radius:999px;font-size:12px}
+.lv-actions{white-space:nowrap;text-align:right;width:1%}
+.lv-mini{min-height:28px;padding:2px 8px;font-size:12px;margin-left:4px}
+.lv-none{margin:0;padding:24px 18px;color:var(--crm-muted);text-align:center}
+.lv-note{margin:0;padding:10px 18px 14px;font-size:12px}
+.lv-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media(max-width:600px){
+ .lv-head{padding:14px 12px 10px}
+ .lv-tools{width:100%}
+ .lv-search{flex:1 1 100%}
+ .lv-search input{width:100%}
+ .lv-cols-list{right:auto;left:0}
+ .lv-bulk{margin:0 12px 10px}
+ .lv-campaign{margin:0 12px 10px}
+ .lv-note{padding:10px 12px 12px}
+ select.lv-view{font-size:18px}
+}
+.lv-mass{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 18px 12px;padding:10px 12px;border:1px solid var(--crm-accent-line);border-radius:10px;background:var(--crm-card)}
+.lv-mass strong{font-size:14px;color:var(--crm-accent)}
+.lv-mass select,.lv-mass input{min-height:32px;max-width:100%}
+.lv-mass button{min-height:32px;padding:4px 12px;font-size:13px}
+.lv-mass-out{flex-basis:100%;margin:0;font-size:13px;color:var(--crm-muted)}
+/* Modifica/Elimina stay in view when the table is wider than the card (the column sticks to the right edge). */
+.lv-table th.lv-actions,.lv-table td.lv-actions{position:sticky;right:0;z-index:1;background:var(--crm-card);box-shadow:-10px 0 10px -10px var(--crm-shadow-c,rgba(0,0,0,.18))}

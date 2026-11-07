@@ -1,0 +1,44 @@
+/* Assistenza: knowledge base and quick replies (sales/crm-knowledge.js). White panels in the CRM light theme:
+   colours come from the --crm-* tokens of sales/crm-light.css when it is loaded, otherwise from the light
+   fallbacks below, so the panels read the same on the current dark page.
+   Controls carry #tickets so they win over the board rules of sales-parity.css (.column .card .actions button). */
+:root{
+ --kb-bg:var(--crm-card,#fff);--kb-soft:var(--crm-soft,#f8f7fb);--kb-line:var(--crm-line,#e4e1ec);--kb-line-2:var(--crm-line-2,#cfcadb);
+ --kb-text:var(--crm-text,#1d1a27);--kb-muted:var(--crm-muted,#55516a);
+ --kb-accent:var(--crm-accent,#6d28d9);--kb-accent-soft:var(--crm-accent-soft,#f2ecfe);--kb-accent-line:var(--crm-accent-line,#d9c9fb);--kb-on-accent:var(--crm-on-accent,#fff);
+ --kb-warn:var(--crm-warn,#a85b06);--kb-warn-soft:var(--crm-warn-soft,#fdf3e3);--kb-err:var(--crm-err,#b42318);
+ --kb-shadow:var(--crm-shadow,0 1px 2px #1d1a270a,0 4px 16px #1d1a270a)}
+
+.crm-kb,.crm-kb-assist{color:var(--kb-text);background:var(--kb-bg);border:1px solid var(--kb-line);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.crm-kb{margin:0 0 16px;padding:12px 14px;box-shadow:var(--kb-shadow)}
+.crm-kb>summary{cursor:pointer;font-weight:650;color:var(--kb-accent)}
+.crm-kb-assist{display:grid;gap:10px;margin:10px 0;padding:10px}
+.crm-kb-block{margin-top:12px;padding-top:10px;border-top:1px solid var(--kb-line)}
+.crm-kb-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.crm-kb h3,.crm-kb h4{margin:0;font-size:14px;color:var(--kb-text)}
+.crm-kb-sub{display:grid;gap:6px;min-width:0}
+.crm-kb-badge{display:inline-block;margin-left:4px;padding:1px 8px;border:1px solid var(--kb-accent-line);border-radius:999px;background:var(--kb-accent-soft);color:var(--kb-accent);font-size:11px;font-weight:600;vertical-align:1px}
+.crm-kb-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.crm-kb-item,.crm-kb-hit{padding:8px 10px;border:1px solid var(--kb-line);border-radius:10px;background:var(--kb-soft)}
+.crm-kb-item>strong,.crm-kb-hit>strong{display:block;font-size:13px}
+.crm-kb p{margin:4px 0}
+.crm-kb-assist p,.crm-kb-assist li{font-size:13px;margin:0}
+.crm-kb-text{color:var(--kb-text);font-size:13px;white-space:pre-wrap}
+.crm-kb-why{color:var(--kb-muted);font-size:12px!important}
+.crm-kb-muted,.crm-kb-assist .crm-kb-muted{color:var(--kb-muted);font-size:13px}
+.crm-kb-warn{color:var(--kb-err);background:var(--kb-warn-soft);border-radius:8px;padding:6px 10px;font-size:13px}
+.crm-kb-tags{display:flex;flex-wrap:wrap;gap:4px}
+.crm-kb-tag{padding:0 8px;border-radius:999px;background:var(--kb-accent-soft);color:var(--kb-accent);font-size:11px}
+.crm-kb-form{display:grid;gap:4px;margin:8px 0;padding:10px;border:1px dashed var(--kb-line-2);border-radius:10px;background:var(--kb-bg)}
+#tickets .crm-kb label,#tickets .crm-kb-assist label{display:grid;gap:4px;margin:4px 0;font-size:13px;color:var(--kb-text)}
+#tickets .crm-kb input,#tickets .crm-kb select,#tickets .crm-kb textarea,#tickets .crm-kb-assist input,#tickets .crm-kb-assist select{width:100%;min-width:0;min-height:38px;padding:7px 10px;border:1px solid var(--kb-line-2);border-radius:8px;background:var(--kb-bg);color:var(--kb-text)}
+#tickets .crm-kb textarea{min-height:110px}
+#tickets .crm-kb input:focus,#tickets .crm-kb select:focus,#tickets .crm-kb textarea:focus,#tickets .crm-kb-assist input:focus,#tickets .crm-kb-assist select:focus{border-color:var(--kb-accent)}
+#tickets .crm-kb :focus-visible,#tickets .crm-kb-assist :focus-visible{outline:2px solid var(--kb-accent);outline-offset:2px}
+#tickets .crm-kb button,#tickets .crm-kb-assist button{min-height:34px;padding:5px 12px;font-size:13px;white-space:normal;text-align:left;border:1px solid var(--kb-line-2);border-radius:8px;background:var(--kb-bg);color:var(--kb-text);box-shadow:none}
+#tickets .crm-kb button:hover,#tickets .crm-kb-assist button:hover{border-color:var(--kb-accent);background:var(--kb-accent-soft)}
+#tickets .crm-kb button.primary,#tickets .crm-kb-assist button.crm-kb-insert{background:var(--kb-accent);border-color:var(--kb-accent);color:var(--kb-on-accent)}
+#tickets .crm-kb button.primary:hover,#tickets .crm-kb-assist button.crm-kb-insert:hover{background:var(--kb-accent);filter:brightness(1.08)}
+#tickets .crm-kb button.danger{color:var(--kb-err);background:transparent}
+#tickets .crm-kb-hit>button{margin-top:6px}
+.crm-kb .actions,.crm-kb-assist .actions{margin-top:6px;gap:6px}

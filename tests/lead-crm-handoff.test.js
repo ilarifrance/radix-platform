@@ -15,5 +15,6 @@ test('new CRM contact fields conform to current CRM allowlist',()=>{
  const {fields}=require('../api/_sales');
  for(const f of ['name','company_id'])assert.ok(fields.contacts.includes(f));
  for(const f of ['title','company_id','contact_id'])assert.ok(fields.leads.includes(f));
- assert.ok(!fields.contacts.includes('email'));
+ // Phase A (2026-10-16): contact records carry email, phone and role.
+ for(const f of ['email','phone','role'])assert.ok(fields.contacts.includes(f));
 });

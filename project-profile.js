@@ -3,6 +3,8 @@
 (function(){
 'use strict';
 const ws=window.RadixWorkspace,rt=window.RadixAgents,$=id=>document.getElementById(id);
+// The one RADIX confirmation (lib/radix-confirm.js); the browser confirm only if that script is missing.
+const askConfirm=o=>window.RadixConfirm?window.RadixConfirm.ask(o):Promise.resolve(!!window.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')));
 const FIELDS=['audience','positioning','voice','channels','visual','links','notes'];
 const LABELS={kind:'Tipo',summary:'Sintesi',audience:'Pubblico',positioning:'Posizionamento',voice:'Tone of voice',channels:'Canali',visual:'Identità visiva',links:'Link',notes:'Note'};
 let projects=[],project=null,dirty=false;
@@ -31,8 +33,8 @@ $('form').onsubmit=async e=>{e.preventDefault();if(!$('form').reportValidity())r
  try{const saved=await ws.projects.update(project.id,project.revision,{name:d.name,summary:d.summary,profile:d.profile});project={...project,...saved};fill();say('Profilo salvato: dal prossimo compito ogni agente riceve questi dati.')}
  catch(err){if(err instanceof ws.ConflictError){$('reload').hidden=false;say('Un collega ha modificato il profilo nel frattempo. Le tue modifiche sono ancora nel modulo: ricarica la versione del team e riapplicale.')}else say('Profilo non salvato: '+err.message)}
  finally{$('save').disabled=false}};
-$('reload').onclick=()=>{if(!dirty||confirm('Scartare le modifiche non salvate e caricare la versione del team?'))open(project.id).catch(e=>say(e.message))};
-$('project').onchange=()=>{if(dirty&&!confirm('Lasciare le modifiche non salvate?')){$('project').value=project.id;return}open($('project').value).catch(e=>say(e.message))};
+$('reload').onclick=async()=>{if(!dirty||await askConfirm({title:'Scartare le modifiche non salvate?',message:'Si carica la versione del team: le tue modifiche nel modulo vanno perse.',ok:'Scarta e ricarica',cancel:'Tieni le modifiche',tone:'danger'}))open(project.id).catch(e=>say(e.message))};
+$('project').onchange=async()=>{const next=$('project').value;if(dirty&&!await askConfirm({title:'Lasciare le modifiche non salvate?',message:'Cambiando progetto, le modifiche a questo profilo vanno perse.',ok:'Cambia progetto',cancel:'Resta qui',tone:'danger'})){$('project').value=project.id;return}$('project').value=next;open($('project').value).catch(e=>say(e.message))};
 window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue=''}});
 (async()=>{
  try{const user=await ws.ready();if(!user){say('');const p=node('p','Accedi a RADIX dal Command Center per modificare il profilo. ');const a=node('a','Vai al Command Center');a.href='/control-center-v2.html';p.append(a);$('status').replaceWith(p);return}

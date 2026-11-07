@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Impostazioni · Importa in RADIX</title><link rel="stylesheet" href="popup.css"></head>
+<body class="page">
+<header><div class="logo">R</div><div><h1>Impostazioni · Importa in RADIX</h1><small>Collegamento al tuo workspace</small></div></header>
+
+<section class="soft"><span class="dot" id="link-dot"></span><span id="link-text">Controllo collegamento…</span></section>
+
+<section>
+ <h2>1 · Collega l’estensione</h2>
+ <p class="muted">In RADIX apri <b>Lead Intelligence</b>, scegli il workspace nell’Archivio e premi <b>Collega estensione Chrome</b>. Copia il codice e incollalo qui. Il codice vale 14 giorni e permette solo di importare nuovi contatti in quel workspace.</p>
+ <label for="link-code">Codice di collegamento</label>
+ <textarea id="link-code" placeholder="radix-link:…"></textarea>
+ <div class="row"><button id="link-save" class="primary" type="button">Collega</button><button id="link-check" type="button">Verifica collegamento</button><button id="link-remove" type="button">Scollega</button></div>
+ <p id="link-message" class="status small"></p>
+</section>
+
+<section>
+ <h2>2 · Indirizzo RADIX</h2>
+ <p class="muted">Di norma non serve cambiarlo: <code>https://radix-platform.vercel.app</code>. Per una Preview incolla l’indirizzo https della Preview (Chrome chiederà il permesso di contattarlo). Il codice di collegamento imposta già l’indirizzo giusto.</p>
+ <label for="base-url">Indirizzo</label>
+ <input id="base-url" type="url" spellcheck="false">
+ <div class="row"><button id="base-save" type="button">Salva indirizzo</button><button id="base-reset" type="button">Torna a produzione</button></div>
+ <p id="base-message" class="status small"></p>
+</section>
+
+<section>
+ <h2>Cosa fa e cosa non fa</h2>
+ <ul class="muted">
+  <li>Legge solo nome, ruolo, azienda, località e link profilo <b>visibili</b> nella ricerca o lista lead aperta.</li>
+  <li>Scorre la pagina e preme «Avanti» con pause di alcuni secondi; si ferma a login, verifiche o CAPTCHA.</li>
+  <li>Non legge i cookie, non usa API nascoste di LinkedIn, non apre i singoli profili, non indovina email.</li>
+  <li>L’automazione di LinkedIn può violare i suoi termini d’uso e portare a limitazioni dell’account. Usala solo dove consentito e con una base giuridica per trattare dati personali.</li>
+ </ul>
+</section>
+<script src="src/lead-contact-batches.js"></script><script src="src/core.js"></script><script src="src/settings.js"></script><script src="options.js"></script>
+</body>
+</html>
