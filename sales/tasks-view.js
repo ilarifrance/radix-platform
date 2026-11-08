@@ -56,7 +56,7 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
   const a=E('a','Visualizza calendario completo','tv-foot');a.href='/radix-sales.html#calendar';p.append(a);return p}
 
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
-  p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente. Regola fissa, non AI.','tv-note'));
+  p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente.','tv-note'));
   const last=c=>d.interactions.filter(i=>i.contact_id===c.id).map(i=>i.occurred_at).sort().at(-1)||'';
   const rows=d.contacts.filter(c=>d.opportunities.some(o=>o.contact_id===c.id&&isOpen(o))&&!d.tasks.some(t=>t.contact_id===c.id&&t.status!=='done')).sort((a,b)=>last(a).localeCompare(last(b))).slice(0,3);
   if(!rows.length)p.append(E('p','Nessun contatto da richiamare: ogni trattativa ha un’attività aperta.','tv-empty'));

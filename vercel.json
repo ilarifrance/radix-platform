@@ -12,6 +12,10 @@
       "destination": "/api/accounting?stripe=webhook"
     },
     {
+      "source": "/crm",
+      "destination": "/radix-sales.html"
+    },
+    {
       "source": "/api/buffer",
       "destination": "/api/integrations/buffer"
     },

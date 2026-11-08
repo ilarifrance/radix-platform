@@ -79,11 +79,12 @@ async function refresh(memberships=true){
  }catch(e){state.ready=false;state.rows={};$('content').replaceChildren();error(e.message);notice('Caricamento non riuscito.');}
  finally{lock(false);$('workspace').disabled=!state.workspaces.length;}
 }
-function renderWorkspace(){const select=$('workspace');select.replaceChildren();if(!state.workspaces.length){const o=el('option','Nessuna appartenenza');o.value='';select.append(o);}state.workspaces.forEach(w=>{const o=el('option',w.name+' · '+w.role);o.value=w.id;select.append(o);});select.value=state.workspace || '';select.disabled=state.busy || !state.workspaces.length;if(state.busy)select.dataset.preDisabled=String(!state.workspaces.length);$('membership').textContent='Ruolo: '+(role() || 'non disponibile')+' · '+(role()==='viewer'?'Sola lettura.':'Le modifiche richiedono conferma e vengono salvate sul server.');}
+function renderWorkspace(){const select=$('workspace');select.replaceChildren();if(!state.workspaces.length){const o=el('option','Nessuna appartenenza');o.value='';select.append(o);}state.workspaces.forEach(w=>{const o=el('option',w.name+' · '+w.role);o.value=w.id;select.append(o);});select.value=state.workspace || '';select.disabled=state.busy || !state.workspaces.length;if(state.busy)select.dataset.preDisabled=String(!state.workspaces.length);const m=$('membership');m.textContent='Ruolo: '+(role() || 'non disponibile')+(role()==='viewer'?' · Sola lettura.':'');m.hidden=!!state.workspaces.length&&role()!=='viewer';}
 function selectControl(labelText, choices, value){const wrap=el('div');const label=el('label',labelText);const select=el('select');choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;select.append(o);});select.value=value == null ? '' : String(value);label.append(select);wrap.append(label);return {wrap,select};}
 function relation(entity,id){return rows(entity).find(r=>r.id===id)?title(rows(entity).find(r=>r.id===id)):id?'Riferimento non caricato':'Non assegnato';}
 function card(entity,row,readonly=false){
- const c=el('article',undefined,'card');c.append(el('h3',title(row)));
+ const c=el('article',undefined,'card');const h3=el('h3',title(row));c.append(h3);
+ if(entity==='opportunities'&&!readonly&&window.RadixDealFlow){const open=()=>window.RadixDealFlow.openDetail({workspace:state.workspace,deal:row,stages:rows('stages'),canWrite:writable('opportunities'),assignee:state.me||null,say:error,onDone:async m=>{await reload();if(m)notice(m)}});h3.classList.add('deal-open');h3.tabIndex=0;h3.setAttribute('role','button');h3.title='Apri il dettaglio';h3.addEventListener('click',open);h3.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}});}
  if(entity==='contacts'&&row.role)c.append(el('p',row.role,'muted'));
  if(row.company_id)c.append(el('p','Azienda: '+relation('companies',row.company_id),'muted'));
  if(['contacts','companies'].includes(entity)){const reach=[row.email,row.phone,entity==='companies'?row.city:null].filter(Boolean).join(' · ');if(reach)c.append(el('p',reach,'muted'));if(entity==='companies'&&row.website)c.append(el('p',row.website,'muted'));if(entity==='contacts')c.append(el('p',row.marketing_consent?'Consenso marketing registrato'+(row.consent_at?' il '+row.consent_at.slice(0,10):''):'Nessun consenso marketing','muted'));}
@@ -99,7 +100,7 @@ function card(entity,row,readonly=false){
   const options=[['', 'Seleziona fase'],...stageRows.map(s=>[s.id,s.title])];
   if(row.stage_id && !stageRows.some(s=>s.id===row.stage_id))options.push([row.stage_id,'Fase corrente non caricata']);
   const control=selectControl('Fase di '+title(row),options,row.stage_id);control.select.disabled=!writable(entity);
-  const move=button('Conferma cambio fase',async()=>{const stage=stageRows.find(s=>s.id===control.select.value);if(!stage || stage.id===row.stage_id)return;if(entity==='tasks'){await mutate(entity,'update',{id:row.id,version:row.version,process_id:row.process_id,stage_id:stage.id},'Confermare il cambio fase?');return;}if(!globalThis.crypto?.randomUUID){error('Cambio fase non disponibile: apri la pagina in HTTPS.');return;}await mutate(entity,'transition',{id:row.id,version:row.version,stage_id:stage.id,key:transitionKey(row,stage)},'Spostare «'+title(row)+'» in «'+stage.title+'»?'+(stage.task_title?' Verrà creata l’attività «'+stage.task_title+'».':''));});move.disabled=!writable(entity);c.append(control.wrap,move);
+  const move=button('Conferma cambio fase',async()=>{const stage=stageRows.find(s=>s.id===control.select.value);if(!stage || stage.id===row.stage_id)return;if(entity==='opportunities'&&window.RadixDealFlow){if(state.busy)return;lock(true);try{await window.RadixDealFlow.moveDeal({workspace:state.workspace,deal:row,stage,stages:stageRows,canWrite:writable(entity),assignee:state.me||null,say:error,onDone:async m=>{await reload();if(m)notice(m)}})}finally{lock(false)}return;}if(entity==='tasks'){await mutate(entity,'update',{id:row.id,version:row.version,process_id:row.process_id,stage_id:stage.id},'Confermare il cambio fase?');return;}if(!globalThis.crypto?.randomUUID){error('Cambio fase non disponibile: apri la pagina in HTTPS.');return;}await mutate(entity,'transition',{id:row.id,version:row.version,stage_id:stage.id,key:transitionKey(row,stage)},'Spostare «'+title(row)+'» in «'+stage.title+'»?'+(stage.task_title?' Verrà creata l’attività «'+stage.task_title+'».':''));});move.disabled=!writable(entity);c.append(control.wrap,move);
  }
  if(entity==='tasks' && !readonly){
   const control=selectControl('Stato di '+title(row),[['todo','Da svolgere'],['doing','In corso'],['done','Completata']],row.status);control.select.disabled=!writable(entity);
@@ -175,6 +176,8 @@ function reminderPanel(){
 }
 function render(){
  const root=$('content');root.replaceChildren();if(!state.workspace)return;
+ // The lists follow the header «Dipartimento» (sales/crm-division.js); state.rows and the lookups of the cards stay whole.
+ const shown=entity=>window.RadixCrmDivision?window.RadixCrmDivision.rows(entity,rows(entity),state.rows):rows(entity);
  if(customer)root.append(customerPanel());
  const reminder=reminderPanel();if(reminder)root.append(reminder);
  for(const [entity,label] of Object.entries(names)){
@@ -191,7 +194,7 @@ function render(){
    if(state.more[entity])section.append(el('p','Mostrati i primi '+rows(entity).length+': «Carica altri» qui sotto aggiunge i successivi.','muted'));
    if(entity==='tickets'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label','Assistenza · ticket per stato');
-    Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=rows(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
+    Object.entries(ticketStatus).forEach(([status,name])=>{const col=el('div',undefined,'column');const items=shown(entity).filter(r=>r.status===status);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun ticket.','muted'));board.append(col);});section.append(board);
    }else if(entity==='opportunities' || entity==='tasks'){
     const board=el('div',undefined,'board');board.setAttribute('aria-label',label+' · vista kanban');
     const kind=entity==='tasks'?'task':'opportunity';
@@ -202,11 +205,12 @@ function render(){
     groups.forEach(g=>{const m=g.matches;g.matches=r=>open(r)&&m(r);});
     groups.push({name:'Fase non assegnata / non caricata',matches:r=>open(r)&&!configured.some(g=>g.matches(r)) && !(entity==='tasks' && !r.process_id && !r.stage_id)});
     if(entity==='opportunities')groups.push({name:'Vinte',matches:r=>r.outcome==='won'},{name:'Perse',matches:r=>r.outcome==='lost'});
-    groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=rows(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
+    groups.forEach(({name,matches})=>{const col=el('div',undefined,'column');const items=shown(entity).filter(matches);col.append(el('h3',name+' — '+items.length));items.forEach(r=>col.append(card(entity,r)));if(!items.length)col.append(el('p','Nessun record caricato.','muted'));board.append(col);});section.append(board);
    }else if(entity==='leads'&&window.RadixCrmLeads?.section(section)){/* lead view: sales/crm-leads.js */}
-   else rows(entity).forEach(r=>section.append(card(entity,r)));
+   else shown(entity).forEach(r=>section.append(card(entity,r)));
    window.RadixCrmTools?.section(entity,section);window.RadixCrmImportDeals?.section(entity,section);
    if(!rows(entity).length)section.append(el('p',state.errors[entity]?'Dati non disponibili: riprova la ricerca o premi Aggiorna.':state.search[entity]?'Nessun risultato per la ricerca.':'Nessun record caricato. Nessun dato dimostrativo.','muted'));
+   else if(!shown(entity).length)section.append(el('p','Nessun record in questo dipartimento.','muted'));
    if(state.more[entity])section.append(button('Carica altri · '+label,async()=>{if(state.busy)return;lock(true);error('');notice('Caricamento pagina…');try{await load(entity,true);render();notice('Pagina caricata.');}catch(e){error(e.message);}finally{lock(false);}}));
   }
   root.append(section);

@@ -119,7 +119,7 @@ const dayIt=s=>s?new Date(s+'T12:00:00Z').toLocaleDateString('it-IT',{day:'numer
 const int=n=>Number(n||0).toLocaleString('it-IT');
 // Stage colours in an order whose neighbours stay apart for colour-blind readers (checked with the dataviz validator).
 const STAGE_TONES=[1,4,2,5,3].map(i=>'var(--crm-chart-'+i+')');
-const take=(t,cls)=>{const p=E('p',undefined,'an-take'+(cls?' '+cls:''));p.append(E('span',t),E('small','Regola fissa, non AI'));return p};
+const take=(t,cls)=>{const p=E('p',undefined,'an-take'+(cls?' '+cls:''));p.append(E('span',t));return p};
 
 /* period: one selector for every panel; the choice survives re-renders and, when allowed, reloads */
 const PKEY='radix.crm.analisi.period';
@@ -244,7 +244,7 @@ function build(d,redraw){const C=A(),range=currentRange(),a=C.analyze(d,range,Da
   const lines=[k.open.count?`Pipeline aperta del periodo: ${eur(k.open.total||0)} su ${k.open.count} trattative.`:'Nessuna trattativa aperta con chiusura prevista nel periodo.',
     k.weighted.value!=null?`Valore ponderato: ${eur(k.weighted.value)}${k.weighted.withoutProb?` (${k.weighted.withoutProb} senza probabilità escluse)`:''}.`:'',
     T.results(a,eur),T.stages(a,eur),T.tasks(a),avg==null?'':avg<80?`Completezza dati al ${avg}%: completare i campi rende queste analisi più affidabili.`:`Completezza dati buona (${avg}%).`].filter(Boolean);
-  for(const l of lines)rail.append(E('p',l));rail.append(E('p','Regole fisse, non AI: frasi calcolate dai dati del CRM. La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
+  for(const l of lines)rail.append(E('p',l));rail.append(E('p','La previsione somma valore × probabilità salvata; la previsione dallo storico usa un modello statistico semplice sulle trattative chiuse.','an-note'));
   const ask=E('a','Chiedi al Copilota commerciale in Sales Orbit →','an-ask');ask.href='/sales-orbit-higgsfield.html';rail.append(ask);
   main.append(rail);if(d.partial)main.append(E('p','Calcolato sui primi 100 record per tipo.','an-note'));return wrap}
 
@@ -282,7 +282,9 @@ async function emailPanel(main){const api=window.RadixSalesApp?.api;if(!api||!ma
   p.append(E('p','Le aperture delle email non vengono tracciate.','an-note'));const go=E('a','Apri le campagne →','an-link');go.href='#contacts';p.append(go);main.append(p)}
 
 let busy=false;
-async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!d||!s.isConnected)return;busy=true;const draw=focus=>{if(!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d,draw));emailPanel(s.querySelector(':scope>.an .an-sec-att'));if(focus)s.querySelector(':scope>.an '+focus)?.focus();requestAnimationFrame(()=>{busy=false})};s.querySelector(':scope>.an')?.remove();s.append(build(d,draw));emailPanel(s.querySelector(':scope>.an .an-sec-att'));requestAnimationFrame(()=>{busy=false;if(!s.isConnected)later()})}
+// The shared loader failed with a workspace set: say so (and why) instead of leaving the section empty.
+function dataError(sec){sec.querySelector(':scope>.crm-data-error')?.remove();const why=window.RadixCrmData?.lastError;const p=E('p','I dati del CRM non sono disponibili'+(why?' · '+why:'')+'. Premi «Aggiorna» in alto o ricarica la pagina.','notice crm-data-error');p.setAttribute('role','alert');sec.append(p)}
+async function render(){const s=ensure();if(!s)return;const d=await window.RadixCrmData?.load();if(!s.isConnected)return;if(!d){if(window.RadixCrmData?.workspace?.())dataError(s);return}s.querySelector(':scope>.crm-data-error')?.remove();busy=true;const draw=focus=>{if(!s.isConnected)return;busy=true;s.querySelector(':scope>.an')?.remove();s.append(build(d,draw));emailPanel(s.querySelector(':scope>.an .an-sec-att'));if(focus)s.querySelector(':scope>.an '+focus)?.focus();requestAnimationFrame(()=>{busy=false})};s.querySelector(':scope>.an')?.remove();s.append(build(d,draw));emailPanel(s.querySelector(':scope>.an .an-sec-att'));requestAnimationFrame(()=>{busy=false;if(!s.isConnected)later()})}
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
 new MutationObserver(m=>{if(m.some(r=>(r.type==='attributes'&&r.target.parentElement===content)||![...r.addedNodes,...r.removedNodes].every(n=>n.nodeType===1&&/\b(pv|cx|tv|cal|an)\b/.test(n.className||''))))later()}).observe(content,{childList:true});
 new MutationObserver(later).observe(nav,{childList:true});addEventListener('hashchange',later);later();

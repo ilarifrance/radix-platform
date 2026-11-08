@@ -103,7 +103,7 @@ function attach(box,area,ticket,loadContact){
   if(res.words.length)li.append(E('p','Parole in comune: '+res.words.join(', '),'crm-kb-why'));
   li.append(B('Inserisci nella risposta',()=>put(res.article.text,'articolo «'+res.article.title+'»'),'crm-kb-insert'));return li};
  // Suggestions
- const sug=E('section',undefined,'crm-kb-sub');const sugHead=E('h4','Articoli suggeriti ');sugHead.append(E('span','regola fissa, non AI','crm-kb-badge'));
+ const sug=E('section',undefined,'crm-kb-sub');const sugHead=E('h4','Articoli suggeriti');
  const sugList=E('ul',undefined,'crm-kb-list');sug.append(sugHead,sugList);
  // Search
  const find=E('section',undefined,'crm-kb-sub');const fl=E('label','Cerca nella knowledge base');const q=E('input');q.type='search';q.placeholder='es. password, fattura';q.maxLength=120;fl.append(q);

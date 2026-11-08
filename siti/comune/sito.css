@@ -167,3 +167,9 @@ body.sx[data-prodotto=radix]{--accent:#00EAB5}
 .sx-sites .sx-card .sx-btn{align-self:flex-start;margin-top:auto}
 .sx-tag{display:inline-block;padding:3px 10px;border-radius:999px;border:1px solid var(--border-strong);font-size:12px;color:var(--muted)}
 @media (max-width:767px){.sx-sites{grid-template-columns:1fr}}
+
+/* Sito Sales Orbit */
+.sx-split+.sx-split{margin-top:56px}
+.sx-amount .tbd{font-size:26px;font-weight:600;color:var(--muted)}
+.sx-steps.five{grid-template-columns:repeat(5,1fr)}
+.sx-sites .sx-tag{align-self:flex-start}

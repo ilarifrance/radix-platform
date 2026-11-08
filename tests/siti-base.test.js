@@ -50,3 +50,11 @@ test('la pagina dei prodotti ha il modulo spento finché manca il token e i link
  assert.ok(html.includes('/siti/legali/privacy.html'));
  assert.ok(!/J\.?A\.?R\.?V\.?I\.?S/i.test(html));
 });
+
+test('sito RADIX completo: hero con schermata, perché, Command Center, Project Manager',()=>{
+ const html=read('siti/index.html');
+ for(const id of ['prodotti','perche','command-center','come-funziona','parliamone'])assert.ok(html.includes(`id="${id}"`),id);
+ for(const img of ['/siti/img/command-center.jpg','/siti/img/project-manager.jpg']){assert.ok(html.includes(img),img);assert.ok(fs.existsSync(path.join(root,img.slice(1))),img+' esiste')}
+ assert.strictEqual((html.match(/fetchpriority="high"/g)||[]).length,1);
+ assert.ok(!/\d+\s?€/.test(html.replace(/39 € al mese \+ IVA/,'')),'nessun prezzo oltre Contabilità');
+});

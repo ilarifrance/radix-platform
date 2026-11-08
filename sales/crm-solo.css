@@ -1,0 +1,12 @@
+/* «Solo CRM» sign-in page (sales/crm-solo.js): a full-screen card over the CRM until the person is signed in. */
+.solo-gate{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:20px;background:var(--crm-bg,#f4f6f8);color:var(--crm-ink,#14202b);font:15px/1.5 system-ui,sans-serif}
+.solo-card{box-sizing:border-box;width:min(400px,100%);display:grid;gap:12px;padding:30px 28px;border:1px solid var(--crm-line,#d9e0e7);border-radius:16px;background:var(--crm-card,#fff);box-shadow:0 12px 40px #14202b1f}
+.solo-brand{font-weight:850;letter-spacing:.22em;font-size:14px;color:var(--crm-accent,#0b7a63)}
+.solo-card h1{margin:0;font-size:28px;line-height:1.15;letter-spacing:-.02em}
+.solo-lead{margin:0 0 6px;color:var(--crm-muted,#5b6b7a)}
+.solo-card label{display:grid;gap:5px;font-size:13px;font-weight:600;margin:0}
+.solo-card input{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--crm-line,#c4cdd6);border-radius:9px;background:#fff;color:inherit;font:inherit}
+.solo-card input:focus-visible,.solo-go:focus-visible{outline:3px solid var(--crm-accent,#0b7a63);outline-offset:2px}
+.solo-err{margin:0;padding:10px 12px;border-left:3px solid #c0392b;background:#fdecea;color:#7a1f16;font-size:14px}
+.solo-go{min-height:46px;margin-top:4px;border:0;border-radius:10px;background:var(--crm-accent,#0b7a63);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.solo-go:disabled{opacity:.65;cursor:progress}
