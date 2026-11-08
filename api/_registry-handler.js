@@ -219,6 +219,8 @@ async function publications(req,res,db,uid,deps){
  if(!item)return send(res,404,{error:'Contenuto non trovato nel PED del team: ricarica la pagina'});
  if(item.status!=='approved'||item.revision!==r.revision)return send(res,409,{error:'Il contenuto è cambiato o non è più approvato: ricarica la pagina',stale:true});
  if(!String(item.copy||'').trim())return send(res,400,{error:'Il contenuto approvato non ha testo da pubblicare'});
+ // Buffer would post a LinkedIn newsletter edition as a plain feed post: editions are scheduled in LinkedIn's editor.
+ if(pv.mediaKind(item)==='newsletter')return send(res,400,{error:'La newsletter LinkedIn si programma nell’editor di LinkedIn: Buffer non pubblica le newsletter'});
  {const holes=pv.placeholders(String(item.copy)+'\n'+String(item.script||''));if(holes.length)return send(res,400,{error:'Il testo ha un segnaposto da completare: «'+holes[0]+'». Completalo, approvalo di nuovo e poi invialo.'})}
  const approved=await db`SELECT * FROM rx_approvals WHERE project_id=${r.projectId} AND subject_type='content' AND subject_id=${r.contentId} AND state='approved' ORDER BY decided_at DESC LIMIT 1`;
  if(!editorial.sameWordRevisions(item).some(revision=>core.approvalStatus(approved[0],editorial.approvalPayload({...item,revision}))==='approved'))return send(res,409,{error:'Questa versione non ha un’approvazione valida registrata sul server: approvala di nuovo',stale:true});
