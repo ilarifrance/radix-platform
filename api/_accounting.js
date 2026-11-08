@@ -15,6 +15,7 @@ const assets=require('../lib/accounting/assets');
 const copilot=require('../lib/accounting/copilot');
 const pricing=require('../lib/accounting/pricing');
 const feeInvoice=require('../lib/accounting/fee-invoice');
+const fic=require('./_accounting_fic');
 
 class AccError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(s,m)=>{throw new AccError(s,m);};
@@ -83,6 +84,32 @@ async function askCopilot(deps,snap,d){
  if(r.refused)return {answer:'Su questa domanda non posso aiutarti: prova a riformularla parlando dei conti dell\'azienda.',refused:true};
  if(!r.text)fail(503,COPILOT_UNAVAILABLE);
  return {answer:r.text.slice(0,6000)};
+}
+// Errors of the Fatture in Cloud client become API errors with their own status and Italian message.
+async function ficCall(f){try{return await f();}catch(e){if(e instanceof fic.FicError)fail(e.status,e.message);throw e;}}
+// One FatturaPA file (dropped on the page or read from a connected source) becomes documents to review.
+async function importXml(store,c,u,xml,fileName,source){
+ if(typeof xml!=='string'||!xml.length||xml.length>2500000)fail(400,'File XML mancante o troppo grande.');
+ let parsed;try{parsed=fatturapa.parse(xml);}catch(e){fail(400,e.message);}
+ const company=await store.json('SELECT to_jsonb(c) AS v FROM (SELECT id,vat,tax_code FROM acc_companies c WHERE id=$1 AND EXISTS(SELECT 1 FROM acc_memberships m WHERE m.company_id=c.id AND m.user_id=$2 AND m.role=ANY($3::text[]))) c',[c,u,WRITE]);
+ if(!company)fail(403,'Permessi insufficienti.');
+ const direction=posting.directionFor(parsed,{vat:company.vat,taxCode:company.tax_code});
+ if(!direction)fail(400,'La fattura non riporta la partita IVA o il codice fiscale di questa azienda: controlla l\'anagrafica o il file.');
+ const party=direction==='purchase'?parsed.supplier:parsed.customer,key=posting.counterpartKey(party);
+ const accounts=await accountsOf(store,c),learned=key?await store.json('SELECT jsonb_object_agg(counterpart_key,account) AS v FROM acc_learned WHERE company_id=$1 AND counterpart_key=$2',[c,key]):null;
+ const out=[],queries=[role(c,u,WRITE)];
+ parsed.documents.forEach((doc,i)=>{
+  if(!doc.number||!doc.date)fail(400,'Fattura senza numero o data.');
+  const p=posting.propose(doc,party,{direction,accounts,learned:learned||{}}),id=randomUUID();
+  const one={...parsed,documents:[doc]};
+  out.push({id,number:doc.number,date:doc.date,direction,counterpart:party&&party.name,total_cents:doc.total_cents??doc.computed_total_cents,confidence:p.confidence});
+  queries.push(q('INSERT INTO acc_documents(company_id,id,direction,doc_type,number,date,counterpart_name,counterpart_vat,counterpart_key,total_cents,parsed,proposal,file_name,sha256,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15) ON CONFLICT DO NOTHING',
+   [c,id,direction,doc.type,String(doc.number).slice(0,40),doc.date,party&&party.name||null,party&&(party.vat||party.taxCode)||null,key,doc.total_cents??doc.computed_total_cents,JSON.stringify(one),JSON.stringify(p),text(fileName,200),sha(xml+'#'+i),u]));
+ });
+ queries.push(audit(c,u,'document.import',null,{file:fileName||null,documents:out.length,...(source?{source}:{})}));
+ await store.tx(queries);
+ const ids=await store.json('SELECT coalesce(jsonb_agg(id),\'[]\') AS v FROM acc_documents WHERE company_id=$1 AND id=ANY($2::uuid[])',[c,out.map(o=>o.id)]);
+ return {documents:out.map(o=>({...o,duplicate:!ids.includes(o.id)})),warnings:parsed.warnings};
 }
 async function command(store,u,body,deps){
  if(!obj(body)||Object.keys(body).some(k=>!['company','action','data'].includes(k))||typeof body.action!=='string'||!obj(body.data))fail(400,'Comando non valido.');
@@ -199,28 +226,45 @@ async function command(store,u,body,deps){
   await store.tx([role(c,u,WRITE),q("SELECT acc_assert(NOT EXISTS(SELECT 1 FROM acc_entries WHERE company_id=$1 AND reverses=$2 AND coalesce(source->>'type','')<>'accrual_reversal'),'Registrazione già stornata.','23505')",[c,d.id]),...ins.queries,audit(c,u,action,ins.id,{reverses:d.id})]);
   return {id:ins.id};
  }
- case 'document.import':{
-  const xml=d.xml;if(typeof xml!=='string'||!xml.length||xml.length>2500000)fail(400,'File XML mancante o troppo grande.');
-  let parsed;try{parsed=fatturapa.parse(xml);}catch(e){fail(400,e.message);}
-  const company=await store.json('SELECT to_jsonb(c) AS v FROM (SELECT id,vat,tax_code FROM acc_companies c WHERE id=$1 AND EXISTS(SELECT 1 FROM acc_memberships m WHERE m.company_id=c.id AND m.user_id=$2 AND m.role=ANY($3::text[]))) c',[c,u,WRITE]);
-  if(!company)fail(403,'Permessi insufficienti.');
-  const direction=posting.directionFor(parsed,{vat:company.vat,taxCode:company.tax_code});
-  if(!direction)fail(400,'La fattura non riporta la partita IVA o il codice fiscale di questa azienda: controlla l\'anagrafica o il file.');
-  const party=direction==='purchase'?parsed.supplier:parsed.customer,key=posting.counterpartKey(party);
-  const accounts=await accountsOf(store,c),learned=key?await store.json('SELECT jsonb_object_agg(counterpart_key,account) AS v FROM acc_learned WHERE company_id=$1 AND counterpart_key=$2',[c,key]):null;
-  const out=[],queries=[role(c,u,WRITE)];
-  parsed.documents.forEach((doc,i)=>{
-   if(!doc.number||!doc.date)fail(400,'Fattura senza numero o data.');
-   const p=posting.propose(doc,party,{direction,accounts,learned:learned||{}}),id=randomUUID();
-   const one={...parsed,documents:[doc]};
-   out.push({id,number:doc.number,date:doc.date,direction,counterpart:party&&party.name,total_cents:doc.total_cents??doc.computed_total_cents,confidence:p.confidence});
-   queries.push(q('INSERT INTO acc_documents(company_id,id,direction,doc_type,number,date,counterpart_name,counterpart_vat,counterpart_key,total_cents,parsed,proposal,file_name,sha256,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb,$12::jsonb,$13,$14,$15) ON CONFLICT DO NOTHING',
-    [c,id,direction,doc.type,String(doc.number).slice(0,40),doc.date,party&&party.name||null,party&&(party.vat||party.taxCode)||null,key,doc.total_cents??doc.computed_total_cents,JSON.stringify(one),JSON.stringify(p),text(d.file_name,200),sha(xml+'#'+i),u]));
-  });
-  queries.push(audit(c,u,action,null,{file:d.file_name||null,documents:out.length}));
-  await store.tx(queries);
-  const ids=await store.json('SELECT coalesce(jsonb_agg(id),\'[]\') AS v FROM acc_documents WHERE company_id=$1 AND id=ANY($2::uuid[])',[c,out.map(o=>o.id)]);
-  return {documents:out.map(o=>({...o,duplicate:!ids.includes(o.id)})),warnings:parsed.warnings};
+ case 'document.import':return importXml(store,c,u,d.xml,d.file_name);
+ // Fatture in Cloud: connect with a token generated by the company owner, then read new e-invoices on demand.
+ case 'fic.connect':{
+  const token=await ficCall(()=>fic.cleanToken(d.token)),from=d.sync_from===undefined?today().slice(0,4)+'-01-01':date(d.sync_from);
+  await store.tx([role(c,u,MANAGE)]);
+  const company=await store.json('SELECT to_jsonb(c) AS v FROM (SELECT vat,tax_code FROM acc_companies c WHERE id=$1) c',[c]);
+  const list=await ficCall(()=>fic.companies(deps.fetchImpl||fetch,token));
+  const digits=v=>String(v||'').replace(/^[A-Z]{2}/,'');
+  const match=d.fic_company_id!==undefined?list.find(x=>x.id===d.fic_company_id):list.length===1?list[0]:list.find(x=>company&&company.vat&&digits(x.vat)===digits(company.vat));
+  if(!match)return {connected:false,companies:list.map(x=>({id:x.id,name:x.name,vat:x.vat}))};
+  const secret=await ficCall(()=>fic.seal(token,c,process.env));
+  await store.tx([role(c,u,MANAGE),
+   q("INSERT INTO acc_connections(company_id,provider,secret,external_id,external_name,sync_from,created_by) VALUES($1,'fattureincloud',$2,$3,$4,$5,$6) ON CONFLICT(company_id,provider) DO UPDATE SET secret=EXCLUDED.secret,external_id=EXCLUDED.external_id,external_name=EXCLUDED.external_name,sync_from=EXCLUDED.sync_from,created_by=EXCLUDED.created_by,created_at=now()",[c,secret,String(match.id),text(match.name,200),from,u]),
+   audit(c,u,action,null,{fic_company:match.id,name:match.name,sync_from:from})]);
+  return {connected:true,name:match.name,sync_from:from};
+ }
+ case 'fic.disconnect':{
+  await store.tx([role(c,u,MANAGE),q("DELETE FROM acc_connections WHERE company_id=$1 AND provider='fattureincloud'",[c]),audit(c,u,action)]);
+  return {connected:false};
+ }
+ case 'fic.sync':{
+  await store.tx([role(c,u,WRITE)]);
+  const conn=await store.json("SELECT to_jsonb(t) AS v FROM acc_connections t WHERE company_id=$1 AND provider='fattureincloud'",[c]);
+  if(!conn)fail(404,'Fatture in Cloud non è collegato a questa azienda.');
+  const token=await ficCall(()=>fic.open(conn.secret,c,process.env));
+  const seen=new Set(await store.json("SELECT coalesce(jsonb_agg(item_key),'[]') AS v FROM acc_connection_items WHERE company_id=$1 AND provider='fattureincloud'",[c]));
+  const from=typeof conn.sync_from==='string'?conn.sync_from.slice(0,10):new Date(conn.sync_from).toISOString().slice(0,10);
+  const got=await ficCall(()=>fic.collect({fetchImpl:deps.fetchImpl||fetch,token,fic:conn.external_id,from,seen}));
+  const r={imported:0,duplicates:0,no_xml:got.skipped.length,errors:[],more:got.more},items=got.skipped.map(x=>[x.key,'no_xml']);
+  for(const f of got.files){
+   try{const out=await importXml(store,c,u,f.xml,f.name,'fattureincloud');const dup=out.documents.every(x=>x.duplicate);dup?r.duplicates++:r.imported++;items.push([f.key,dup?'duplicate':'imported']);}
+   catch(e){if(!(e instanceof AccError))throw e;r.errors.push(f.name+': '+e.message);items.push([f.key,'error']);}
+  }
+  r.errors=r.errors.slice(0,10);
+  await store.tx([role(c,u,WRITE),
+   q("INSERT INTO acc_connection_items(company_id,provider,item_key,outcome) SELECT $1,'fattureincloud',x->>0,x->>1 FROM jsonb_array_elements($2::jsonb) x ON CONFLICT DO NOTHING",[c,JSON.stringify(items)]),
+   q("UPDATE acc_connections SET last_sync_at=now(),last_result=$2::jsonb WHERE company_id=$1 AND provider='fattureincloud'",[c,JSON.stringify(r)]),
+   audit(c,u,action,null,{imported:r.imported,duplicates:r.duplicates,no_xml:r.no_xml,errors:r.errors.length})]);
+  return r;
  }
  case 'document.confirm':{
   if(!uuid(d.id))fail(400,'Documento non valido.');const v=int(d.version,1,2147483646,'Versione non valida.');
@@ -339,6 +383,9 @@ async function bundle(store,c,u,year){
   'audit',${agg("SELECT a.at,a.action,a.detail,u.name AS actor FROM acc_audit a LEFT JOIN users u ON u.id=a.actor_id WHERE a.company_id=$1 ORDER BY a.id DESC LIMIT 50")}
  ) AS v FROM acc_memberships m WHERE m.company_id=$1 AND m.user_id=$4`,[c,to,year,u]);
  if(!v)fail(403,'Non hai accesso a questa azienda.');
+ // Connected sources (migration 005), never with their token; an older database without the table has none.
+ try{v.connections=await store.json("SELECT coalesce(jsonb_agg(jsonb_build_object('provider',provider,'external_name',external_name,'sync_from',sync_from,'last_sync_at',last_sync_at,'last_result',last_result,'imported',(SELECT count(*) FROM acc_connection_items i WHERE i.company_id=t.company_id AND i.provider=t.provider AND i.outcome='imported'))),'[]') AS v FROM acc_connections t WHERE company_id=$1",[c]);}
+ catch(e){if(e.code!=='42P01')throw e;v.connections=[];}
  return v;
 }
 
@@ -380,7 +427,7 @@ function createHandler({getSessionUser,getStore,ask,billing,getClientUser,fetchI
     if(!billing.ACTIVE.includes(acct.status))fail(402,'Abbonamento non attivo: completa il pagamento per usare la contabilità.');
     if(req.method==='POST'&&obj(body)&&(CLIENT_BLOCKED.includes(body.action)||(body.action==='company.update'&&obj(body.data)&&(Object.hasOwn(body.data,'plan')||Object.hasOwn(body.data,'size')))))fail(403,'Questa azione non è disponibile per il tuo account.');
    }else if(req.method==='GET'&&(req.query||{}).resource==='account')return res.status(200).json({kind:'team'});
-   if(req.method==='POST')return res.status(200).json(await command(store,user.uid,body,{ask}));
+   if(req.method==='POST')return res.status(200).json(await command(store,user.uid,body,{ask,fetchImpl}));
    const qy=req.query||{};if(Object.keys(qy).some(k=>!['resource','company','year','id'].includes(k)))fail(400,'Parametro non consentito.');
    // Invoices of the monthly fee, for the company's members: the list, and each one as a FatturaPA file.
    if(qy.resource==='fee_invoices'){if(!uuid(qy.company))fail(400,'Azienda non valida.');

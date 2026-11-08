@@ -43,6 +43,12 @@ async function run(action,data,ok){
  catch(e){flash(e.message||'Operazione non riuscita.','error');return null;}
  finally{S.busy=false;document.body.style.cursor='';}
 }
+// Reads new e-invoices from Fatture in Cloud, in batches, until there are no more (or an error stops it).
+async function ficSync(){
+ let tot={imported:0,duplicates:0,no_xml:0},r;
+ for(let i=0;i<10;i++){r=await run('fic.sync',{});if(!r)return;tot.imported+=r.imported;tot.duplicates+=r.duplicates;tot.no_xml+=r.no_xml;if(!r.more)break;}
+ flash(tot.imported?tot.imported+' fatture lette da Fatture in Cloud: le trovi in Fatture, da registrare.':'Nessuna fattura nuova in Fatture in Cloud.'+(tot.no_xml?' '+tot.no_xml+' documenti senza file XML non sono stati importati.':''));
+}
 async function reload(){
  S.ui.fees=undefined;
  S.data=await S.store.bundle(S.year);
@@ -148,7 +154,8 @@ function fatture(d,c){
  const rows=list.map(x=>'<tr class="click'+(S.ui.doc===x.id?' sel':'')+'" data-act="opendoc" data-id="'+esc(x.id)+'"><td>'+dateIt(x.date)+'</td><td>'+esc(x.number)+'</td><td>'+(x.direction==='purchase'?'Acquisto':'Vendita')+(['TD04','TD08'].includes(x.doc_type)?' · nota di credito':'')+'</td><td>'+esc(x.counterpart_name||'')+'</td><td class="num">'+eur(x.total_cents)+'</td><td>'+(x.status==='to_review'?'<span class="acc-chip '+(x.proposal&&x.proposal.confidence==='alta'?'ok':x.proposal&&x.proposal.confidence==='bassa'?'err':'warn')+'">proposta '+esc(x.proposal?x.proposal.confidence:'')+'</span>':x.status==='registered'?'<span class="acc-chip ok">registrata</span>':'<span class="acc-chip">ignorata</span>')+'</td></tr>').join('');
  const table=list.length?'<div class="acc-tablewrap"><table><thead><tr><th>Data</th><th>Numero</th><th>Tipo</th><th>Controparte</th><th class="num">Totale</th><th>Stato</th></tr></thead><tbody>'+rows+'</tbody></table></div>':empty(f==='to_review'?'Nessuna fattura da registrare. Carica i file XML dal cassetto fiscale o dal tuo programma di fatturazione.':'Nessuna fattura in questo elenco.');
  const doc=d.documents.find(x=>x.id===S.ui.doc&&x.status==='to_review');
- return '<div class="acc-grid rev"><div>'+panel('Importa fatture',drop)+panel('Fatture',table,seg)+'</div><div>'+(doc?review(doc):panel('Proposta di registrazione',empty('Seleziona una fattura da registrare per vedere la scrittura proposta.')))+'</div></div>';
+ const fic=(d.connections||[]).some(x=>x.provider==='fattureincloud')?'<div class="acc-actions"><button class="acc-btn ghost" type="button" data-act="ficsync"'+dis(canWrite())+'>Leggi da Fatture in Cloud</button></div>':'';
+ return '<div class="acc-grid rev"><div>'+panel('Importa fatture',drop+fic)+panel('Fatture',table,seg)+'</div><div>'+(doc?review(doc):panel('Proposta di registrazione',empty('Seleziona una fattura da registrare per vedere la scrittura proposta.')))+'</div></div>';
 }
 function review(doc){
  const inv=doc.parsed&&doc.parsed.documents[0],party=doc.direction==='purchase'?doc.parsed.supplier:doc.parsed.customer;
@@ -341,6 +348,18 @@ function feeInvoices(){
    (f.seller_ready?'<a class="acc-btn small ghost" href="/api/accounting?resource=fee_invoice_xml&id='+encodeURIComponent(x.id)+'" download>Scarica XML</a>':'')+'</td></tr>').join('')+'</tbody></table></div>'+
   (f.seller_ready?'':'<p class="acc-subtle">Le fatture sono registrate; il file XML sarà scaricabile appena attivato l\'invio allo SDI.</p>');
 }
+// Fatture in Cloud: the owner pastes a read-only token generated there; RADIX then reads new e-invoices on request.
+function ficPanel(d){
+ const c=(d.connections||[]).find(x=>x.provider==='fattureincloud'),r=c&&c.last_result,pick=S.ui.ficPick;
+ if(c)return '<p><span class="acc-chip ok">collegato</span> '+esc(c.external_name||'')+' · fatture dal '+dateIt(String(c.sync_from).slice(0,10))+' · '+(+c.imported||0)+' importate</p>'+
+  (c.last_sync_at?'<p class="acc-subtle">Ultima lettura: '+esc(new Date(c.last_sync_at).toLocaleString('it-IT'))+(r?' · '+r.imported+' nuove, '+r.duplicates+' già presenti'+(r.no_xml?', '+r.no_xml+' senza file XML':'')+(r.errors&&r.errors.length?', '+r.errors.length+' non importate':''):'')+'</p>'+(r&&r.errors&&r.errors.length?'<ul class="acc-reasons">'+r.errors.map(e=>'<li>'+esc(e)+'</li>').join('')+'</ul>':''):'')+
+  '<div class="acc-actions"><button class="acc-btn" type="button" data-act="ficsync"'+dis(canWrite())+'>Leggi le nuove fatture</button><button class="acc-btn ghost" type="button" data-act="ficoff"'+dis(canManage())+'>Scollega</button></div>';
+ return '<p class="acc-muted">Collega Fatture in Cloud: RADIX legge da lì le fatture elettroniche emesse e ricevute, senza modificare niente.</p>'+
+  '<ol class="acc-reasons"><li>In Fatture in Cloud apri <b>Impostazioni › Sviluppatore</b>, crea una nuova app privata e copia il suo Client ID.</li><li>Apri <b>Impostazioni › Applicazioni collegate</b>, «Collega una nuova applicazione», incolla il Client ID e scegli l\'azienda.</li><li>Abilita in sola lettura fatture emesse, note di credito e documenti ricevuti, poi copia il token qui sotto.</li></ol>'+
+  (pick?'<label>Azienda in Fatture in Cloud<select id="ficCo">'+pick.map(x=>'<option value="'+x.id+'">'+esc(x.name+(x.vat?' · '+x.vat:''))+'</option>').join('')+'</select></label>':'')+
+  '<div class="acc-row"><label>Token di Fatture in Cloud<input id="ficToken" type="password" autocomplete="off" maxlength="4000"></label><label style="flex:0 0 180px">Fatture dal<input id="ficFrom" type="date" value="'+S.year+'-01-01"></label></div>'+
+  '<div class="acc-actions"><button class="acc-btn" type="button" data-act="ficon"'+dis(canManage())+'>Collega</button></div><p class="acc-subtle">Il token resta cifrato sul server e non viene più mostrato. Puoi revocarlo in ogni momento da Fatture in Cloud.</p>';
+}
 function impostazioni(d){
  const co=d.company;
  const f=(id,label,val,extra)=>'<label>'+label+'<input id="'+id+'" value="'+esc(val||'')+'"'+(extra||'')+'></label>';
@@ -361,10 +380,11 @@ function impostazioni(d){
  panel('Persone con accesso',(members?'<div class="acc-tablewrap"><table><thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th></th></tr></thead><tbody>'+members+'</tbody></table></div>':'')+
   '<div class="acc-row" style="margin-top:12px"><label>Email dell\'account RADIX<input id="mEmail" type="email" maxlength="254" placeholder="nome@azienda.it"></label>'+sel('mRole','Ruolo','accountant',[['accountant','Commercialista'],['member','Collaboratore'],['viewer','Sola lettura'],['admin','Amministratore']])+'<button class="acc-btn ghost" type="button" data-act="addmember"'+dis(['owner','admin'].includes(co.role)&&!S.demo&&!S.client)+'>Aggiungi</button></div><p class="acc-subtle">Il commercialista vede tutto, chiude le liquidazioni e blocca i periodi; il collaboratore registra; la sola lettura consulta.</p>')+'</div>'+
  panel('Piano dei conti','<details><summary class="acc-muted">'+d.accounts.length+' conti · aggiungi o rinomina</summary><div class="acc-row" style="margin:12px 0">'+f('aCode','Codice (es. 61.12)','',' maxlength="8"')+f('aName','Nome','',' maxlength="120"')+sel('aKind','Tipo','C',Object.entries(COA.KINDS))+sel('aGroup','Gruppo','servizi',groups)+'<button class="acc-btn ghost" type="button" data-act="saveaccount"'+dis(canManage())+'>Salva conto</button></div><div class="acc-tablewrap"><table><thead><tr><th>Codice</th><th>Nome</th><th>Tipo</th><th>Gruppo</th><th></th></tr></thead><tbody>'+accRows+'</tbody></table></div></details>')+
+ (S.demo||!S.live||S.client?'':panel('Fatture in Cloud',ficPanel(d)))+
  (S.demo||!S.live?'':panel('Fatture del servizio',feeInvoices()))+
  panel('Attività recenti',d.audit.length?'<ul class="acc-reasons">'+d.audit.slice(0,20).map(a=>'<li>'+esc(new Date(a.at).toLocaleString('it-IT'))+' · '+esc(a.actor||'')+' · '+esc(AUDIT[a.action]||a.action)+'</li>').join('')+'</ul>':empty('Nessuna attività.'));
 }
-const AUDIT={'signup':'ha attivato il servizio','company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto'};
+const AUDIT={'signup':'ha attivato il servizio','company.create':'ha creato l\'azienda','company.update':'ha aggiornato l\'anagrafica','member.add':'ha aggiunto una persona','member.remove':'ha rimosso una persona','account.save':'ha salvato un conto','entry.save':'ha salvato una registrazione','entry.post':'ha confermato una registrazione','entry.delete':'ha eliminato una bozza','entry.reverse':'ha stornato una registrazione','document.import':'ha importato fatture','document.confirm':'ha registrato una fattura','document.ignore':'ha ignorato una fattura','bank.import':'ha importato l\'estratto conto','bank.confirm':'ha riconciliato un movimento','bank.ignore':'ha ignorato un movimento','budget.save':'ha salvato il budget','vat.close':'ha chiuso una liquidazione IVA','closing.depreciation':'ha registrato gli ammortamenti','closing.accrual':'ha registrato un rateo o risconto','fic.connect':'ha collegato Fatture in Cloud','fic.disconnect':'ha scollegato Fatture in Cloud','fic.sync':'ha letto le fatture da Fatture in Cloud'};
 
 // ---------- onboarding ----------
 function onboarding(reason){
@@ -410,6 +430,12 @@ document.addEventListener('click',async ev=>{
  else if(a==='dimension'){S.ui.dimension=v;render();}
  else if(a==='savebudget'){const rows=[];for(const inp of document.querySelectorAll('[data-budget]')){const c=cents(inp.value.trim());if(Number.isNaN(c)){flash('Importo non leggibile: '+inp.value,'error');return;}if(!c)continue;const k=inp.dataset.budget,sign=k==='ricavi'?1:-1,tot=Math.abs(c),base=Math.trunc(tot/12);for(let m=1;m<=12;m++)rows.push({key:k,month:m,amount_cents:sign*(base+(m===12?tot-base*12:0))});}
   await run('budget.save',{year:S.year,rows},'Budget '+S.year+' salvato.');}
+ else if(a==='ficon'){const token=$('ficToken').value.trim();if(!token){flash('Incolla il token di Fatture in Cloud.','error');return;}
+  const r=await run('fic.connect',{token,sync_from:$('ficFrom').value||undefined,...($('ficCo')?{fic_company_id:+$('ficCo').value}:{})});
+  if(r&&!r.connected){S.ui.ficPick=r.companies;render();if($('ficToken'))$('ficToken').value=token;flash(r.companies.length?'Il token vede più aziende: scegli quella giusta e premi di nuovo Collega.':'Il token non vede nessuna azienda.',r.companies.length?'ok':'error');}
+  else if(r){S.ui.ficPick=null;flash('Fatture in Cloud collegato: '+r.name+'. Ora leggo le fatture.');await ficSync();}}
+ else if(a==='ficsync')await ficSync();
+ else if(a==='ficoff'){if(confirm('Scollegare Fatture in Cloud? Le fatture già importate restano.'))await run('fic.disconnect',{},'Fatture in Cloud scollegato.');}
  else if(a==='savecompany'){const co=d.company;await run('company.update',{version:co.version,name:$('coName').value,vat:$('coVat').value||null,tax_code:$('coCf').value||null,legal_form:$('coForm').value,regime:$('coRegime').value,vat_periodicity:$('coPer').value,address:$('coAddr').value||null,zip:$('coZip').value||null,city:$('coCity').value||null,province:$('coProv').value||null,sdi_code:$('coSdi').value||null,pec:$('coPec').value||null,...($('coPlan')?{plan:$('coPlan').value}:{}),...($('coSize')?{size:$('coSize').value}:{})},'Anagrafica aggiornata.');}
  else if(a==='savelock'){const co=d.company;await run('company.update',{version:co.version,lock_date:$('coLock').value||null},'Blocco del periodo aggiornato.');}
  else if(a==='addmember'){await run('member.add',{email:$('mEmail').value,role:$('mRole').value},'Persona aggiunta.');}
