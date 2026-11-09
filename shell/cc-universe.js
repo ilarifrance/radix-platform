@@ -74,7 +74,7 @@
   //  agents ↔ crm      sales/crm-copilot.js (role crm-copilot) and sales/crm-email-ideas.js call /api/chat.
   //  agents ↔ lead     sales/lead-newsletter.js asks the comm-email-outreach agent via /api/chat.
   //  agents ↔ pm       radix-pm-concept.html loads lib/radix-agent-runtime.js (agents assigned to tasks do the work).
-  //  agents ↔ studio   commercial/, legal/ and accounting/index.html load lib/radix-agent-runtime.js.
+  //  agents ↔ studio   commercial/, legal/ and accounting/studio.html (the agents beside the bookkeeping app) load lib/radix-agent-runtime.js.
   var SERVICE_LINKS = [
     ['lead', 'crm', 'Porta nel CRM'],
     ['marketing', 'crm', 'Newsletter del PED → campagna CRM'],

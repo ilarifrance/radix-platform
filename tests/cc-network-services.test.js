@@ -41,7 +41,7 @@ test('direct links join existing services, once each, and each is documented wit
  assert.ok(fs.readFileSync('radix-pm-concept.html','utf8').includes('views.syncFromPed('));
  assert.ok(fs.readFileSync('sales/lead-newsletter.js','utf8').includes("role:'comm-email-outreach'"));
  assert.ok(fs.readFileSync('sales/crm-copilot.js','utf8').includes("/api/chat"));
- for(const f of ['radix-pm-concept.html','project-editorial.html','commercial/index.html','legal/index.html','accounting/index.html'])assert.ok(fs.readFileSync(f,'utf8').includes('radix-agent-runtime.js'),f);
+ for(const f of ['radix-pm-concept.html','project-editorial.html','commercial/index.html','legal/index.html','accounting/studio.html'])assert.ok(fs.readFileSync(f,'utf8').includes('radix-agent-runtime.js'),f);
 });
 
 test('services are real links with Italian names, a panel of sub-pages and the services they exchange data with',()=>{
