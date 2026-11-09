@@ -1,0 +1,29 @@
+/* Studio (Legal, Accounting) visual layer: shared RADIX tokens with the Studio accent (DESIGN.md §2). Layout and logic stay in verticals/studio.*. */
+html.rx-shell body.rx-studio{
+  --bg:var(--rx-bg);--surface:var(--rx-surface);--surface2:var(--rx-surface-2);--stroke:var(--rx-border);--text:var(--rx-text);--muted:var(--rx-muted);--accent:var(--rx-studio);
+  background:radial-gradient(ellipse at 80% -10%,color-mix(in srgb,var(--rx-studio) 10%,transparent),transparent 50%),var(--rx-bg);font-family:var(--rx-font)}
+.rx-studio h1,.rx-studio h2{font-family:var(--rx-display)}
+.rx-studio a{color:var(--rx-core-soft)}
+.rx-studio main{margin:0 auto;align-self:start}
+.rx-studio :focus-visible{outline:2px solid var(--rx-core);outline-offset:2px}
+.rx-studio .eyebrow,.rx-studio .pill,.rx-studio .stat span,.rx-studio .agent small,.rx-studio .tag{font-size:12px}
+/* Selected specialist and primary action use the Studio accent instead of blue */
+.rx-studio .agent[aria-pressed=true],.rx-studio .agent.active{border-color:var(--rx-studio);background:color-mix(in srgb,var(--rx-studio) 10%,var(--rx-surface-2))}
+.rx-studio .primary{background:var(--rx-core);border-color:var(--rx-core);color:#03201A;font-weight:600}
+.rx-studio .primary:disabled{background:var(--rx-surface-2);border-color:var(--rx-border-strong);color:var(--rx-muted)}
+.rx-studio .panel{background:linear-gradient(160deg,var(--rx-surface-2),var(--rx-surface))}
+.rx-studio .agent{border-color:var(--rx-border-strong);background:var(--rx-bg-raised)}
+.rx-studio .agent[aria-pressed=true]{background:color-mix(in srgb,var(--rx-studio) 10%,var(--rx-surface-2))}
+.rx-studio .workflow,.rx-studio .secondary{border-color:var(--rx-border-strong);background:transparent;color:var(--rx-text)}
+.rx-studio .field textarea,.rx-studio .field input{border-color:var(--rx-border);background:var(--rx-bg-raised);color:var(--rx-text)}
+.rx-studio .output{border-color:var(--rx-border);background:var(--rx-bg-raised)}
+.rx-studio .stat{border-color:var(--rx-border);background:var(--rx-surface)}
+/* Project picker (registry): select#project + #projectLinks before the request */
+.rx-studio select{min-height:40px;padding:8px 12px;border:1px solid var(--rx-border);border-radius:10px;background:var(--rx-bg-raised);color:var(--rx-text);font:inherit;max-width:100%}
+.rx-studio select:focus-visible{outline:2px solid var(--rx-accent);outline-offset:2px}
+.rx-studio #projectLinks{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 12px;font-size:13px}
+.rx-studio #projectLinks a{color:var(--rx-accent)}
+.rx-studio #saveNote{color:var(--rx-muted);font-size:12px}
+/* Send panel under the draft (.tools, commercial/legal/accounting) */
+.rx-studio .tools{display:grid;gap:10px;margin-top:14px;padding:14px 16px;border:1px solid var(--rx-border);border-radius:14px;background:var(--rx-surface)}
+.rx-studio .tools input,.rx-studio .tools textarea{border:1px solid var(--rx-border);border-radius:10px;background:var(--rx-bg-raised);color:var(--rx-text)}

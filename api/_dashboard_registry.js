@@ -5,6 +5,8 @@
 const {obj,arr,short,stamp,iso}=require('./_dashboard_helpers');
 const {projectFlow}=require('./_dashboard_flow');
 const {labels}=require('./_dashboard_helpers');
+const {AGENTS}=require('../lib/radix-agent-runtime');
+const GROUP_LABELS=Object.freeze({marketing:'Marketing',commerciale:'Commerciale',admin:'Amministrazione',legale:'Legale',dev:'Sviluppo'});
 
 const ACTIONS=Object.freeze({
  'client.created':'ha creato il cliente','client.updated':'ha aggiornato il cliente','client.deleted':'ha eliminato il cliente',
@@ -31,7 +33,11 @@ async function loadRegistry(db){
      FROM rx_activity a LEFT JOIN users u ON u.id=a.actor_id LEFT JOIN rx_projects p ON p.id=a.project_id ORDER BY a.id DESC LIMIT 40`,
   db`SELECT d.project_id,d.data,d.updated_at FROM rx_documents d WHERE d.module='agents' ORDER BY d.updated_at DESC LIMIT 20`
  ]);
- return {projects,approvals,activity,agentDocs};
+ // Knowledge counts; agency_memory may be missing on an older database: counts then stay unknown.
+ const knowledge=await db`SELECT (SELECT count(*) FROM rx_documents)::int AS documents,
+   (SELECT count(*) FROM agency_memory WHERE confirmed_at IS NOT NULL)::int AS memory_confirmed,
+   (SELECT count(*) FROM agency_memory WHERE confirmed_at IS NULL)::int AS memory_pending`.then(r=>r[0]||null,()=>null);
+ return {projects,approvals,activity,agentDocs,knowledge};
 }
 
 function requester(r){const s=String(r||'');return s.startsWith('agent:')?labels[s.slice(6)]||s.slice(6):'una persona del team'}
@@ -82,6 +88,24 @@ function withRegistry(base,reg,now=Date.now()){
  out.metrics={...obj(base.metrics),projects:out.projects.length,workflows:allFlows.length,
   activeWorkflows:allFlows.filter(f=>['unverified','stale'].includes(f.status)).length,
   activeAgents:Object.values(agentStatus).filter(a=>['unverified','stale'].includes(a.status)).length,approvals:awaiting,attention:blocked.length+awaiting};
+ // Per project: agents with saved conversations and the orchestrator used most (the project's "role" in the network).
+ const byProject=new Map();let conversations=0;
+ for(const d of arr(reg.agentDocs)){const conv=obj(obj(d.data).conversations),m=byProject.get(d.project_id)||new Map();
+  for(const [agentId,messages] of Object.entries(conv)){const n=arr(messages).length;if(!n)continue;conversations+=n;m.set(agentId,(m.get(agentId)||0)+n)}byProject.set(d.project_id,m)}
+ const roster=new Map(AGENTS.map(a=>[a.id,a]));
+ out.projects=out.projects.map(p=>{const m=byProject.get(p.id);if(!m)return {...p,agents:[],orchestrator:null};
+  const agents=[...m].sort((a,b)=>b[1]-a[1]).map(([id,messages])=>({id:short(id,90),name:roster.get(id)?.name||labels[id]||short(id,100),group:roster.get(id)?.group||null,hub:!!roster.get(id)?.hub,messages}));
+  const hub=agents.find(a=>a.hub);return {...p,agents:agents.slice(0,12),orchestrator:hub?{id:hub.id,name:hub.name}:null}});
+ // Digital Team by function: configured agents in the roster, agents with a running step now, last step seen.
+ const lastByAgent=new Map();for(const {nodes} of snapshots)for(const n of nodes){const t=stamp(n.endedAt||n.startedAt);if(n.agentId&&t>(lastByAgent.get(n.agentId)||0))lastByAgent.set(n.agentId,t)}
+ out.team=Object.keys(GROUP_LABELS).map(g=>{const ids=AGENTS.filter(a=>a.group===g).map(a=>a.id);const last=Math.max(0,...ids.map(id=>lastByAgent.get(id)||0));
+  return {group:g,label:GROUP_LABELS[g],configured:ids.length,active:ids.filter(id=>['unverified','stale'].includes(obj(agentStatus[id]).status)).length,lastAt:last?iso(last):null}});
+ // Live activity per agent: the latest saved steps, done / running / error, never the outputs.
+ const steps=[];for(const {flow,nodes} of snapshots)for(const n of nodes){const at=n.endedAt||n.startedAt;if(!at||!n.agentId)continue;
+  steps.push({at,agentId:n.agentId,agentName:roster.get(n.agentId)?.name||labels[n.agentId]||n.label,task:short(String(n.subtask||n.label).split('\n')[0],120),state:n.status==='done'?'done':n.status==='error'?'error':['unverified','stale','running'].includes(n.status)?'running':'pending',workflowId:flow.id,projectId:flow.projectId||null})}
+ out.agentActivity=steps.sort((a,b)=>stamp(b.at)-stamp(a.at)).slice(0,12);
+ const k=obj(reg.knowledge);
+ out.knowledge={documents:Number.isInteger(k.documents)?k.documents:null,conversations,memoryConfirmed:Number.isInteger(k.memory_confirmed)?k.memory_confirmed:null,memoryPending:Number.isInteger(k.memory_pending)?k.memory_pending:null};
  out.dataQuality={...obj(base.dataQuality),source:'registry+saved-state',registry:true};
  return out;
 }

@@ -1,5 +1,9 @@
 # RADIX — LinkedIn Local Browser Agent · Preview only
 
+> **Modo consigliato: l'estensione Chrome «RADIX — Importa in RADIX»** (`tools/radix-chrome-extension`, istruzioni in italiano nel suo [README](../tools/radix-chrome-extension/README.md)). Funziona nel Chrome di tutti i giorni, senza terminale né Node.js: apri una ricerca o lista lead di Sales Navigator, premi **Importa in RADIX** e i contatti arrivano come lavoro in **Lead Intelligence › Contatti individuali**. Il collegamento si fa da Lead Intelligence con **Collega estensione Chrome** (codice valido 14 giorni, limitato all'importazione). Valgono gli stessi limiti legali indicati sotto.
+>
+> L'agente locale qui descritto resta disponibile e invariato, per chi lo usa già o vuole i checkpoint su disco.
+
 This optional local module is independent of Captain Data and intermediary CRMs. It launches a visible Chromium browser, allows the user to sign in manually, then uses visible search cards and Next controls to build RADIX individual-contact job backups. It is scripted browser automation, **not an LLM agent** or a tested official LinkedIn integration.
 
 ## On your own computer

@@ -1,0 +1,19 @@
+/* CRM campaign: three guided email proposals (sales/crm-email-ideas.js and crm-sequence-ideas.js). */
+.crm-ideas[hidden]{display:none}
+.crm-ideas{display:grid;gap:10px;margin:10px 0;padding:12px;border:1px dashed var(--line,#2b3550);border-radius:12px}
+.crm-ideas fieldset{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:6px 8px;border:1px solid var(--line,#2b3550);border-radius:10px}
+.crm-ideas legend{font-size:12px;opacity:.75;padding:0 4px}
+.crm-ideas-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border:1px solid var(--line,#2b3550);border-radius:999px;font-size:13px;cursor:pointer}
+.crm-ideas-chip:has(input:checked){border-color:#7c5cff;background:rgba(124,92,255,.14)}
+.crm-ideas-chip input{margin:0;width:auto;min-height:0}
+.crm-ideas>label{display:grid;gap:5px;font-size:13px}
+.crm-ideas>.primary{justify-self:start}
+.crm-ideas-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.crm-ideas-cards:empty{display:none}
+.crm-ideas-card{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid var(--line,#2b3550);border-radius:12px}
+.crm-ideas-card[data-chosen=true]{border-color:#7c5cff;box-shadow:0 0 0 2px #7c5cff}
+.crm-ideas-subject{margin:0;font-weight:600}
+.crm-ideas-body{margin:0;white-space:pre-wrap;font-size:13px;line-height:1.45;max-height:220px;overflow:auto}
+.crm-ideas-card button{margin-top:auto;align-self:flex-start}
+.crm-ideas-warn{margin:0;color:#f0b35a;font-size:12px}
+.crm-seq-steps{margin:0;padding-left:18px;font-size:13px;display:grid;gap:3px}

@@ -1,0 +1,21 @@
+/* System pages (Admin, Control Room, Ecosystem): RADIX tokens, page-local brand headers removed (the shell carries the brand). CSS only. */
+html.rx-shell body.rx-admin{--verde-bosco:var(--rx-surface);--avorio:var(--rx-text);--antracite:var(--rx-text);--sabbia:var(--rx-surface-2);--verde-salvia:var(--rx-muted);
+  background:var(--rx-bg);color:var(--rx-text);font-family:var(--rx-font)}
+.rx-admin h1,.rx-admin h2,.rx-admin h3{font-family:var(--rx-display);color:var(--rx-text)}
+.rx-admin #appScreen>.topbar{display:none} /* brand lives in the shell */
+.rx-admin .wrap{max-width:860px;padding:28px 28px 60px}
+.rx-admin .card{background:var(--rx-surface);border:1px solid var(--rx-border);border-radius:16px;box-shadow:none;color:var(--rx-text)}
+.rx-admin .hint,.rx-admin .card p{color:var(--rx-muted)}
+.rx-admin code{background:var(--rx-surface-2);color:var(--rx-core-soft);padding:1px 5px;border-radius:5px}
+.rx-admin input,.rx-admin select{background:var(--rx-bg-raised);color:var(--rx-text);border:1px solid var(--rx-border-strong);border-radius:10px;min-height:40px}
+.rx-admin button{background:var(--rx-core);color:#03201A;font-family:var(--rx-font);font-weight:600;min-height:40px}
+.rx-admin button.ghost{background:transparent;color:var(--rx-text);border:1px solid var(--rx-border-strong)}
+.rx-admin #gateScreen{left:var(--rx-sidebar);top:var(--rx-topbar);background:radial-gradient(ellipse at 50% 0,color-mix(in srgb,var(--rx-core) 10%,transparent),transparent 60%),var(--rx-bg)}
+.rx-admin .gate-box{background:var(--rx-surface);border:1px solid var(--rx-border-strong);color:var(--rx-text);border-radius:18px}
+.rx-admin .gate-box .mark,.rx-admin .topbar .mark{background:var(--rx-core);color:#03201A}
+.rx-admin .gate-box p{color:var(--rx-muted)}
+@media (max-width:767px){.rx-admin #gateScreen{left:0}.rx-admin .wrap{padding:16px 12px 40px}}
+.rx-admin .msg-box:empty{display:none}
+/* Control Room and Ecosystem: the local "RADIX" brand row duplicates the shell */
+.rx-system main.shell>.top,.rx-system main.layout>header.top{display:none}
+.rx-system main.shell{padding-top:20px}

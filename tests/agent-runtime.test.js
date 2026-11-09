@@ -57,6 +57,26 @@ test('a billing error halts the queue so the flow can be resumed',async()=>{
  assert.match(flow.halted,/credit balance/);assert.equal(flow.nodes.filter(n=>n.status==='pending').length,2);
 });
 
+test('the plain-language API errors from the server still halt the queue',async()=>{
+ const {friendlyApiError}=require('../api/chat.js');
+ for(const [m,st] of [['Your credit balance is too low',400],['invalid x-api-key',401],['Overloaded',529]]){
+  const msg=friendlyApiError(Object.assign(new Error(m),{status:st}));
+  const flow=rt.makeFlow([{role:'strategist',subtask:'A'},{role:'copywriter',subtask:'B'}],1);
+  await rt.runNodes(flow,{concurrency:1,call:async()=>{throw Error(msg)}});
+  assert.equal(flow.halted,msg);assert.equal(flow.nodes[1].status,'pending');
+ }
+});
+
+test('a reply cut off before the document is a failure, not a delivery',async()=>{
+ const flow=rt.makeFlow([{role:'legal-contracts',subtask:'Contratto'},{role:'legal-risk-analyst',subtask:'Rileggi',deps:[1]}],1);
+ await rt.runNodes(flow,{concurrency:1,call:async()=>({text:'---DOCUMENTO: Contratto---\n# CONTRATTO\n\n⚠️ [Risposta interrotta per limite di spazio anche dopo 2 parti: scrivi "continua" per farla finire.]',truncated:true})});
+ assert.deepEqual(flow.nodes.map(n=>n.status),['error','error']);
+ assert.match(flow.nodes[0].output,/Rigenera ultima risposta/);
+ const long=rt.makeFlow([{role:'legal-contracts',subtask:'X'}],1);
+ await rt.runNodes(long,{call:async()=>({text:'a'.repeat(4000),truncated:true})});
+ assert.equal(long.nodes[0].status,'done','a long text cut at the end is still delivered');
+});
+
 test('markdown is escaped before formatting',()=>{
  const html=rt.renderMarkdown('# Titolo\n<script>x</script> **forte** [link](javascript:alert(1))\n\n| a | b |\n|---|---|\n| 1 | <b>2</b> |\n\n- uno\n- due',1);
  assert.doesNotMatch(html,/<script>|<b>2/);assert.match(html,/<h2>Titolo<\/h2>/);assert.match(html,/<strong>forte<\/strong>/);
@@ -129,4 +149,21 @@ test('Web Developer pages: recognised, unwrapped from code fences, one per file 
  assert.equal(rt.htmlSource(a),'<!doctype html><html><body>v1</body></html>');assert.equal(rt.htmlFilename(a),'home.html');assert.equal(rt.htmlFilename(b),'chi-siamo.html');
  assert.deepEqual(rt.sitePages([{doc:a},{doc:{title:'NDA',body:'x'}},{doc:b},{doc:c}]).map(p=>p.doc),[a,b]);
  const page=fs.readFileSync('agents.html','utf8');assert.match(page,/<iframe id="site-frame" sandbox="allow-same-origin"/);assert.doesNotMatch(page,/sandbox="[^"]*allow-scripts/);
+});
+test('single post images: layout field, automatic layout and on-brand colour pairs',()=>{
+ const media=require('../lib/radix-agent-media');
+ const [a]=media.parseSlides('---SLIDES---\n1|#0F2D24|#FAF9F6|Quanto costa non delegare?|question\n---FINE---');
+ assert.equal(a.layout,'question');assert.equal(a.text,'Quanto costa non delegare?');
+ assert.equal(media.parseSlides('---SLIDES---\n1|#0F2D24|#FAF9F6|Testo | con barra\n---FINE---')[0].layout,undefined);
+ assert.equal(media.autoLayout('Sei pronto?'),'question');assert.equal(media.autoLayout('«Delegare è scegliere»'),'quote');
+ assert.equal(media.autoLayout('Uno · due · tre'),'list');assert.equal(media.autoLayout('Il 30% del tempo'),'stat');assert.equal(media.autoLayout('Delegare è una scelta'),'statement');
+ const seen=new Set(['Primo post','Secondo messaggio','Terzo claim forte','Quarta frase','Quinto'].map(t=>media.schemeFor({bg:'#0F2D24',fg:'#FAF9F6',text:t},null).bg));
+ assert.ok(seen.size>=2,'posts do not all share one background');
+});
+test('style guide in the visual identity: one colour per role, font and signature',()=>{
+ const media=require('../lib/radix-agent-media');
+ const g=media.styleGuide({name:'X',visual:'Copertina e chiusura: blu notte #14283F. Pagine interne: bianco caldo #F5F3EE. Numeri e parole chiave: petrolio #147D83. Accento: oro tenue #D8AD58. Testi su fondo chiaro: grigio scuro #344054. Font: Inter Bold e Inter Regular. Firma: FRANCESCO ILARI – GCP in alto a sinistra.'});
+ assert.deepEqual(g,{cover:'#14283F',page:'#F5F3EE',key:'#147D83',accent:'#D8AD58',text:'#344054',font:'Inter',signature:'FRANCESCO ILARI – GCP'});
+ assert.equal(media.styleGuide({visual:'Palette #0F2D24, #6B7F72, #EDE6DE, Montserrat + Inter'}),null,'a plain palette keeps the rotating layouts');
+ const h=media.styleGuide({name:'Studio Alfa — sito',visual:'Copertina #000000\nSfondo #FFFFFF'});assert.equal(h.key,'#000000');assert.equal(h.text,'#000000');assert.equal(h.signature,'STUDIO ALFA');
 });

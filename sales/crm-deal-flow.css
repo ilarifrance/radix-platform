@@ -1,0 +1,30 @@
+/* Scheda laterale dell'opportunità e dialogo del cambio fase (sales/crm-deal-flow.js). */
+.df-back{position:fixed;inset:0;background:rgba(20,16,40,.35);z-index:900}
+.df-drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:#fff;color:#1b1530;z-index:901;overflow:auto;padding:0 20px 28px;box-shadow:-12px 0 32px rgba(40,20,90,.18);font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+.df-head{position:sticky;top:0;background:#fff;display:flex;gap:12px;align-items:flex-start;justify-content:space-between;padding:18px 0 10px;border-bottom:1px solid #eee9f8;z-index:1}
+.df-head h2{margin:0;font-size:20px;line-height:1.2;overflow-wrap:anywhere}
+.df-close{flex:none;border:1px solid #d9d0f2;background:#fff;color:#4c1d95;border-radius:8px;padding:6px 12px;cursor:pointer}
+.df-sec{margin:16px 0 0}
+.df-sec h3{margin:0 0 8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b5fa0}
+.df-f{display:flex;gap:12px;padding:5px 0;border-bottom:1px solid #f3f0fb}
+.df-l{flex:0 0 120px;color:#6b5fa0}
+.df-v,.df-f a{flex:1;min-width:0;overflow-wrap:anywhere}
+.df-f a,.df-note a{color:#5b21b6}
+.df-item{margin:0 0 8px;overflow-wrap:anywhere}
+.df-note{margin:6px 0 0;color:#6b5fa0;font-size:13px}
+.df-err{margin:8px 0 0;color:#b42318}
+.df-drawer select,.df-dialog select,.df-dialog textarea,.df-dialog input[type=text]{width:100%;box-sizing:border-box;padding:9px 10px;border:1px solid #cfc5ee;border-radius:8px;font:inherit;background:#fff;color:inherit;margin:4px 0}
+.df-drawer select{width:auto;min-width:200px}
+.df-bar{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.df-bar button,.df-drawer .df-ok{border:1px solid #cfc5ee;background:#fff;color:#4c1d95;border-radius:8px;padding:9px 14px;cursor:pointer;font:inherit}
+.df-ok{background:#5b21b6!important;color:#fff!important;border-color:#5b21b6!important}
+.df-ok:disabled{opacity:.5;cursor:default}
+.df-dialog{width:min(560px,calc(100vw - 24px));border:0;border-radius:14px;padding:22px;box-shadow:0 24px 64px rgba(40,20,90,.35);color:#1b1530;font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+.df-dialog::backdrop{background:rgba(20,16,40,.45)}
+.df-dialog h2{margin:0 0 6px;font-size:18px;overflow-wrap:anywhere}
+.df-row{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f3f0fb}
+.df-row label{flex:1 1 220px;display:flex;gap:6px;align-items:center}
+.df-row label input[type=text]{margin:0}
+.df-days input{width:64px;padding:6px;border:1px solid #cfc5ee;border-radius:8px;font:inherit}
+@media(max-width:560px){.df-l{flex-basis:96px}}
+.deal-open{cursor:pointer}.deal-open:hover{text-decoration:underline;text-decoration-color:#a78bfa}

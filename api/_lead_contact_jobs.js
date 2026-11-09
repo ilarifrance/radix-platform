@@ -18,7 +18,7 @@ function payload(p){
  if(!Number.isSafeInteger(p.total)||p.total<records.length||p.total>100000||!Number.isSafeInteger(p.duplicates)||p.duplicates<0||p.total<records.length+p.duplicates)fail('Statistiche non valide');
  const result={version:1,sourceUrl:source,records,batches,total:p.total,duplicates:p.duplicates};
  if(p.providerRunUid!==undefined){if(typeof p.providerRunUid!=='string'||!/^[a-zA-Z0-9_-]{1,100}$/.test(p.providerRunUid))fail('ID esecuzione provider non valido');result.providerRunUid=p.providerRunUid}
- if(Buffer.byteLength(JSON.stringify(result))>1500000){const e=new Error('Lavoro troppo grande: dividi in più lavori');e.status=413;throw e}
+ if(Buffer.byteLength(JSON.stringify(result))>3800000){const e=new Error('Lavoro troppo grande: dividi in più lavori');e.status=413;throw e}
  return result;
 }
 function command(b){
