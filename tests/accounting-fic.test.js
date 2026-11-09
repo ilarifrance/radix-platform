@@ -73,3 +73,11 @@ test('xmlOf riconosce solo una FatturaPA',()=>{
  assert.strictEqual(fic.xmlOf(Buffer.from('%PDF')),null);
  assert.strictEqual(fic.xmlOf(null),null);
 });
+
+// Vercel only bundles files reached by a literal require('...'): an aliased require left management.js out of
+// /api/accounting in production (Cannot find module './management').
+test('le librerie della contabilità usano require letterali',()=>{
+ const fs=require('fs'),path=require('path'),dir=path.join(__dirname,'..','lib','accounting');
+ for(const f of fs.readdirSync(dir).filter(x=>x.endsWith('.js'))){const s=fs.readFileSync(path.join(dir,f),'utf8');
+  assert.ok(!/\?\s*require\s*:/.test(s)&&!/\b[a-z]\?[a-z]\('\.\//.test(s),f+': require passato come variabile');}
+});
