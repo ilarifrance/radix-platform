@@ -8,6 +8,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/accounting-stripe",
+      "destination": "/api/accounting?stripe=webhook"
+    },
+    {
       "source": "/crm",
       "destination": "/radix-sales.html"
     },

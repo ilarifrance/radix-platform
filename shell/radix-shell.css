@@ -11,7 +11,7 @@
 }
 html.rx-shell[data-rx-area="agency"]{--rx-accent:var(--rx-agency)}
 html.rx-shell[data-rx-area="sales"]{--rx-accent:var(--rx-sales)}
-html.rx-shell[data-rx-area="studio"]{--rx-accent:var(--rx-studio)}
+html.rx-shell[data-rx-area="studio"],html.rx-shell[data-rx-area="accounting"]{--rx-accent:var(--rx-studio)}
 html.rx-shell[data-rx-area="pm"]{--rx-accent:var(--rx-projects)}
 
 /* Layout: the global sidebar replaces each page's own sidebar */
