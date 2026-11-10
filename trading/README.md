@@ -54,7 +54,7 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 
 ## Moduli
 
-- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi), RSS (`collectors/rss.py`, dal 10/11/2026: i titoli di oggi dai feed pubblici di CNBC, MarketWatch, Yahoo Finance, BBC, Fed, BCE, Al Jazeera, ANSA, ogni ora nella stessa tabella `news`; li leggono la sentinella di mercato e il diario Axi), Wikipedia (archivio storico delle notizie). Fonti gratuite, senza chiavi.
+- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi), RSS (`collectors/rss.py`, dal 10/11/2026: i titoli di oggi dai feed pubblici di CNBC, MarketWatch, Yahoo Finance, BBC, BCE, Al Jazeera, ANSA, ogni ora nella stessa tabella `news`; li leggono la sentinella di mercato e il diario Axi), Wikipedia (archivio storico delle notizie). Fonti gratuite, senza chiavi.
 - `store.py` — archivio unico SQLite (prezzi, macro, notizie), lo stesso per backtest e live.
 - `backtest.py` — backtest vettoriale: decisione a t, posizione da t+1; commissioni, slippage e commissione minima in euro; banda di non intervento; walk-forward.
 - `validation.py` — Probabilistic e Deflated Sharpe Ratio; `passes_gate` e' il cancello 1 della roadmap.
@@ -165,8 +165,9 @@ S&P 500, Nasdaq 100 e Russell 2000 (SPY, QQQ, IWM); si compra all'apertura dopo 
 dell'escursione di giornata con la chiusura sopra la media a 200 giorni; target +3% in giornata, stop −3% sulla
 chiusura (uscita all'apertura dopo), uscita a tempo dopo 10 giorni di mercato; una posizione per mercato; rischio 2%
 di un conto simulato da 10.000 € (nozionale 6.667 €), costi CFD (spread 0,02% per lato, 6,5% l'anno di finanziamento).
-Atteso dallo storico: 1,3-1,6 € guadagnati per € perso, 57-60% di operazioni vinte, ~31 operazioni l'anno, +7,7%
-l'anno con perdita massima −19%; le entrate casuali con le stesse uscite rendono 1,22. Il giro `daily` manda su Telegram
+Atteso dallo storico (replay 2005-2026 con queste regole): 667 operazioni, 60% vinte, 1,31 € guadagnati per € perso,
+circa +7% l'anno (+7,7% con il rischio composto a leva 2, perdita massima −19%); le entrate casuali con le stesse uscite
+rendono 1,22. Il giro `daily` manda su Telegram
 il segnale la sera stessa (`[SIMULATO metodo60] ... Domani all'apertura la regola COMPRA ...`), poi entrata, uscita e il
 riepilogo del venerdi'. `python -m radix_trading metodo60 --from 2005-01-01` rifa' la regola sul passato;
 `--prova` stampa gli avvisi senza mandarli. Nessun euro vero.
@@ -178,7 +179,9 @@ riepilogo del venerdi'. `python -m radix_trading metodo60 --from 2005-01-01` rif
 locale (mai nel repository), ricostruisce le operazioni chiuse (entrata ricavata dal risultato: su US500 1 lotto = 1 $ per
 punto), affianca a ognuna le notizie del giorno in archivio (RSS, GDELT, Wikipedia) e cosa ha fatto il mercato di
 riferimento nei giorni dopo, e scrive la pagella (vinte/perse, vincita media contro perdita media, euro guadagnati per
-euro perso, esposizione massima) in `data/axi_diario.md`. `--nota TICKET "testo"` aggiunge un appunto a un'operazione.
+euro perso, esposizione massima contemporanea) in `data/axi_diario.md`. `--nota TICKET "testo"` aggiunge un appunto a
+un'operazione; `--giorno AAAA-MM-GG` dice il giorno dell'estratto quando e' stato incollato senza intestazione (altrimenti
+si prende l'ultima data nel testo). Le notizie accanto a ogni operazione sono ordinate per pertinenza allo strumento.
 Nessun ordine parte da qui.
 
 ## Kill switch

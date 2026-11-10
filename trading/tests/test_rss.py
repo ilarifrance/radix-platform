@@ -36,15 +36,17 @@ def test_parse_rss_items_dates_and_entities():
 
 
 def test_parse_atom_entries():
-    items = rss.parse_feed(ATOM, "fed_press", "en", "US")
+    items = rss.parse_feed(ATOM, "ecb_press", "en", "EU")
     assert len(items) == 2
     assert items[0]["url"] == "https://www.federalreserve.gov/x.htm" and items[0]["ts"] == "2026-11-10T19:00:00Z"
     assert items[1]["ts"] == "2026-11-10T19:30:00Z"
 
 
-def test_bad_xml_is_an_error():
-    with pytest.raises(RuntimeError):
+def test_bad_xml_and_html_pages_are_errors():
+    with pytest.raises(RuntimeError, match="XML non valido"):
         rss.parse_feed("<rss><channel>", "x")
+    with pytest.raises(RuntimeError, match="pagina HTML"):
+        rss.parse_feed("<!DOCTYPE html><html><body>Access denied</body></html>", "x")
 
 
 def test_collect_saves_titles_and_isolates_a_failing_feed():
@@ -55,15 +57,15 @@ def test_collect_saves_titles_and_isolates_a_failing_feed():
     def fetch(url, timeout=20, user_agent=None):
         if "cnbc" in url:
             return R(RSS)
-        if "federalreserve" in url:
+        if "ecb.europa" in url:
             return R(ATOM)
         raise RuntimeError("giu'")
 
     st = Store(":memory:")
-    report = rss.collect(st, feeds=("cnbc_top", "fed_press", "bbc_world"), fetch=fetch)
-    assert report["cnbc_top"] == 3 and report["fed_press"] == 2 and report["bbc_world"].startswith("errore")
+    report = rss.collect(st, feeds=("cnbc_top", "ecb_press", "bbc_world"), fetch=fetch)
+    assert report["cnbc_top"] == 3 and report["ecb_press"] == 2 and report["bbc_world"].startswith("errore")
     news = st.load_news("2026-11-10T00:00:00Z")
-    assert len(news) == 5 and set(news["query"]) == {"rss:cnbc_top", "rss:fed_press"}
+    assert len(news) == 5 and set(news["query"]) == {"rss:cnbc_top", "rss:ecb_press"}
     # lo stesso giro di nuovo: nessun doppione (chiave = url)
     rss.collect(st, feeds=("cnbc_top",), fetch=fetch)
     assert len(st.load_news("2026-11-10T00:00:00Z")) == 5

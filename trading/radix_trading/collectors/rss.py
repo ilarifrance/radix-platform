@@ -4,7 +4,8 @@ L'archivio di Wikipedia arriva con un giorno di ritardo e GDELT concede una rice
 mossa di mercato (o un'operazione del conto Axi) a cio' che e' successo nel mondo servono i titoli di oggi. Ogni ora
 il giro `hourly` scarica i feed qui sotto e salva i titoli nella tabella `news` (stessa forma di GDELT: la sentinella di
 mercato e il diario Axi li leggono gia'). Un feed che non risponde non ferma gli altri. Niente chiavi, niente scraping:
-solo gli RSS pubblici che le testate offrono.
+solo gli RSS pubblici che le testate offrono. (Il feed della Fed risponde con una pagina HTML a un lettore automatico e non
+si forza: le date delle riunioni Fed arrivano gia' dal calendario in `collectors/fomc.py`.)
 """
 
 from __future__ import annotations
@@ -25,10 +26,9 @@ FEEDS = {
     "cnbc_economy": ("https://www.cnbc.com/id/10001147/device/rss/rss.html", "en", "US"),
     "marketwatch_top": ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "en", "US"),
     "marketwatch_pulse": ("https://feeds.content.dowjones.io/public/rss/mw_marketpulse", "en", "US"),
-    "yahoo_finance": ("https://finance.yahoo.com/news/rssindex", "en", "US"),
+    "yahoo_finance": ("https://feeds.finance.yahoo.com/rss/2.0/headline?s=SPY,QQQ,IWM&region=US&lang=en-US", "en", "US"),
     "bbc_business": ("https://feeds.bbci.co.uk/news/business/rss.xml", "en", "GB"),
     "bbc_world": ("https://feeds.bbci.co.uk/news/world/rss.xml", "en", "GB"),
-    "fed_press": ("https://www.federalreserve.gov/feeds/press_all.xml", "en", "US"),
     "ecb_press": ("https://www.ecb.europa.eu/rss/press.html", "en", "EU"),
     "aljazeera": ("https://www.aljazeera.com/xml/rss/all.xml", "en", "QA"),
     "ansa_economia": ("https://www.ansa.it/sito/notizie/economia/economia_rss.xml", "it", "IT"),
@@ -67,8 +67,11 @@ def parse_feed(xml_text: str, name: str, language: str | None = None, country: s
                now: datetime | None = None) -> list[dict]:
     """Voci di un feed RSS 2.0 o Atom nella forma della tabella `news`. Le voci senza data prendono l'ora della lettura."""
     now = now or datetime.now(timezone.utc)
+    body = xml_text.strip()
+    if body[:1] != "<" or re.match(r"<!doctype html|<html", body, re.I):
+        raise RuntimeError(f"{name}: la fonte ha risposto con una pagina HTML, non con il feed (protezione anti-bot o indirizzo cambiato)")
     try:
-        root = ET.fromstring(xml_text.strip())
+        root = ET.fromstring(body)
     except ET.ParseError:
         raise RuntimeError(f"{name}: feed non leggibile (XML non valido)") from None
     items = []

@@ -111,13 +111,18 @@ def _table(lines: list[str], first_col: str, date_first: bool = False) -> list[l
     return rows
 
 
-def parse_statement(text: str) -> dict:
+def parse_statement(text: str, day: str | None = None) -> dict:
+    """`day` (AAAA-MM-GG) forza il giorno dell'estratto; senza, si legge dall'intestazione «Name: ... 2026.11.06 23:59»
+    e, se l'estratto e' stato incollato senza intestazione, si prende l'ultima data che compare nel testo."""
     sec = split_sections(text)
     head = "\n".join(sec["intestazione"])
     m = re.search(r"Login ID:\s*(\S+)", head)
     account = m.group(1) if m else None
-    m = re.search(r"(\d{4}\.\d{2}\.\d{2}) \d{2}:\d{2}", head)
-    day = m.group(1).replace(".", "-") if m else None
+    if not day:
+        m = re.search(r"(\d{4}\.\d{2}\.\d{2}) \d{2}:\d{2}", head)
+        dates = re.findall(r"\d{4}\.\d{2}\.\d{2}", text)
+        day = (m.group(1) if m else max(dates) if dates else None)
+        day = day.replace(".", "-") if day else None
     deals = []
     for c in _table(sec.get("Deals", []), "Ticket"):
         c += [""] * (13 - len(c))
@@ -279,37 +284,50 @@ def exposure(positions: list[dict], equity: float | None) -> list[dict]:
 
 # --- contesto: notizie e mercato dopo ------------------------------------------------------------
 
-def news_for(store: Store, day: str, limit: int = 3) -> list[str]:
-    """Titoli del giorno e del giorno prima dall'archivio: feed RSS e GDELT (tabella news) e Wikipedia (news_items),
-    scelti con i temi di mercato dello studio eventi."""
+# Parole che legano un titolo allo strumento trattato: contano il doppio dei temi generali di mercato.
+RELEVANCE = {
+    "US500": r"S&P|Wall Street|\bstocks?\b|\bDow\b|Nasdaq|\bFed\b|Federal Reserve|Nvidia|\bHuang\b|Apple|Microsoft|Amazon|Alphabet|"
+             r"Treasur|yields?|earnings|tariffs?|midterm|\bjobs report|payrolls|inflation|\bCPI\b|rate (?:cut|hike)",
+    "XAUUSD": r"\bgold\b|bullion|\bFed\b|Federal Reserve|dollar|yields?|inflation|war|Iran|Israel|Russia|Ukrain",
+}
+RELEVANCE["NAS100"] = RELEVANCE["US30"] = RELEVANCE["US500"]
+_RELEVANCE = {k: re.compile(v, re.I) for k, v in RELEVANCE.items()}
+
+
+def news_for(store: Store, day: str, limit: int = 3, item: str | None = None) -> list[str]:
+    """Titoli del giorno e del giorno prima dall'archivio: feed RSS e GDELT (tabella news) e Wikipedia (news_items).
+    Si tengono quelli sui temi di mercato dello studio eventi e si ordinano per pertinenza allo strumento (parole di
+    RELEVANCE, poi temi generali), a pari punteggio prima il giorno stesso e il titolo piu' recente."""
     from .events import _THEMES
     from .mercato import NEWS_EXTRA, NEWS_THEMES
     pats = [_THEMES[t] for t in NEWS_THEMES if t in _THEMES] + [NEWS_EXTRA]
+    rel = _RELEVANCE.get(item or "")
     d0 = (pd.Timestamp(day) - pd.Timedelta(days=1)).strftime("%Y-%m-%d")
     d1 = (pd.Timestamp(day) + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
-    titles: list[tuple[str, str]] = []
+    titles: list[tuple[str, str, str]] = []     # (giorno, ora, titolo)
     try:
         news = store.load_news(d0 + "T00:00:00Z")
         if not news.empty:
             news = news[news["ts"] < d1 + "T00:00:00Z"]
-            titles += [(str(ts)[:10], str(t)) for ts, t in zip(news["ts"], news["title"]) if t]
+            titles += [(str(ts)[:10], str(ts), str(t)) for ts, t in zip(news["ts"], news["title"]) if t]
     except Exception:
         pass
     try:
         for d, text in store.conn.execute("SELECT day, text FROM news_items WHERE day IN (?, ?) ORDER BY day", (d0, day)):
-            titles.append((d, text))
+            titles.append((d, d, text))
     except Exception:
         pass
-    seen, out = set(), []
-    for d, t in titles:
+    scored, seen = [], set()
+    for d, ts, t in titles:
         key = t.lower()[:60]
-        if key in seen or not any(p.search(t) for p in pats):
+        themes = sum(1 for p in pats if p.search(t))
+        if key in seen or not themes:
             continue
         seen.add(key)
-        out.append(f"{d}: {t[:140]}")
-        if len(out) >= limit:
-            break
-    return out
+        specific = len(rel.findall(t)) if rel else 0
+        scored.append((2 * specific + themes, d == day, ts, f"{d}: {t[:140]}"))
+    scored.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+    return [s[3] for s in scored[:limit]]
 
 
 def market_after(store: Store, item: str, day: str) -> dict:
@@ -334,19 +352,37 @@ def market_after(store: Store, item: str, day: str) -> dict:
 
 # --- pagella e diario -------------------------------------------------------------------------------
 
-def scorecard(trades: list[dict]) -> dict:
+def max_exposure(store: Store) -> float:
+    """Massima esposizione contemporanea nel tempo, in $ per punto: somma delle posizioni aperte insieme (entrate «in»
+    meno uscite «out», per strumento e verso), cosi' tre corti aperti nella stessa ora contano come uno solo grande."""
+    store.conn.executescript(SCHEMA)
+    rows = store.conn.execute("SELECT ts, type, size, item, entry FROM axi_deals WHERE type IN ('buy','sell') AND entry IN ('in','out') "
+                              "ORDER BY ts, CASE entry WHEN 'out' THEN 0 ELSE 1 END").fetchall()
+    open_pp: dict[tuple, float] = {}
+    worst = 0.0
+    for ts, typ, size, item, entry in rows:
+        pv = POINT_VALUE.get(item or "", 0.0)
+        side = typ if entry == "in" else ("sell" if typ == "buy" else "buy")    # «buy out» chiude un corto
+        key = (item, side)
+        open_pp[key] = open_pp.get(key, 0.0) + (1 if entry == "in" else -1) * float(size or 0) * pv
+        worst = max(worst, sum(abs(v) for v in open_pp.values()))
+    return worst
+
+
+def scorecard(trades: list[dict], exposure_max: float | None = None) -> dict:
     if not trades:
         return {"operazioni": 0}
     pnl = [t["risultato"] for t in trades]
     wins = [p for p in pnl if p > 0]
     losses = [p for p in pnl if p < 0]
+    per_trade = max((t["per_punto"] or 0) for t in trades)
     return {"operazioni": len(pnl), "vinte": len(wins), "perse": len(losses), "vinte_quota": round(len(wins) / len(pnl), 3),
             "risultato": round(sum(pnl), 2),
             "vincita_media": round(sum(wins) / len(wins), 2) if wins else None,
             "perdita_media": round(sum(losses) / len(losses), 2) if losses else None,
             "per_euro_perso": round(sum(wins) / -sum(losses), 2) if losses and wins else None,
             "peggiore": round(min(pnl), 2), "migliore": round(max(pnl), 2),
-            "per_punto_massimo": max((t["per_punto"] or 0) for t in trades)}
+            "per_punto_massimo": max(per_trade, exposure_max or 0.0), "per_punto_operazione": per_trade}
 
 
 def _fmt(x, dec=2):
@@ -380,17 +416,18 @@ def diary_text(store: Store) -> str:
         if any(k.startswith("dopo_") for k in after):
             moves = ", ".join(f"{h} g {after[f'dopo_{h}']:+.1%}" for h in AFTER_DAYS if f"dopo_{h}" in after)
             lines.append(f"  - mercato dopo ({after['riferimento']}): {moves}")
-        for n in news_for(store, t["giorno"]):
+        for n in news_for(store, t["giorno"], item=t["mercato"]):
             lines.append(f"  - notizia: {n}")
         if t["nota"]:
             lines.append(f"  - appunto: {t['nota']}")
-    s = scorecard(trades)
+    s = scorecard(trades, max_exposure(store))
     lines += ["", "## Pagella"]
     if s["operazioni"]:
         lines.append(f"{s['operazioni']} operazioni: {s['vinte']} vinte, {s['perse']} perse ({s['vinte_quota']:.0%}); "
                      f"vincita media {_fmt(s['vincita_media'])} $, perdita media {_fmt(s['perdita_media'])} $; "
                      f"euro guadagnati per euro perso {_fmt(s['per_euro_perso'])}; risultato {s['risultato']:+,.2f} $; "
-                     f"peggiore {s['peggiore']:+,.2f} $, esposizione massima {s['per_punto_massimo']:g} $/punto.")
+                     f"peggiore {s['peggiore']:+,.2f} $, esposizione massima {s['per_punto_massimo']:g} $/punto "
+                     f"(posizioni aperte insieme; la singola piu' grande {s['per_punto_operazione']:g}).")
         if s["operazioni"] % SCORECARD_EVERY == 0:
             lines.append(f"Pagella delle {s['operazioni']} operazioni: da leggere con Francesco.")
     else:
@@ -398,13 +435,13 @@ def diary_text(store: Store) -> str:
     return "\n".join(lines)
 
 
-def run(store: Store, text: str | None = None, nota: tuple[str, str] | None = None) -> dict:
+def run(store: Store, text: str | None = None, nota: tuple[str, str] | None = None, giorno: str | None = None) -> dict:
     out: dict = {}
     if text:
-        out["letto"] = save(store, parse_statement(text))
+        out["letto"] = save(store, parse_statement(text, giorno))
     if nota:
         note(store, int(nota[0]), nota[1])
         out["nota"] = {"ticket": int(nota[0])}
-    out["pagella"] = scorecard(closed_trades(store))
+    out["pagella"] = scorecard(closed_trades(store), max_exposure(store))
     out["testo"] = diary_text(store)
     return out

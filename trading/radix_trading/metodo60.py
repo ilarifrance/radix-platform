@@ -11,15 +11,18 @@ americani e non in Europa o Giappone. Questa corsia la registra con parametri FI
 - entrata all'apertura del giorno dopo, una posizione per mercato alla volta (i segnali durante un'operazione si saltano);
 - target +3% toccato in giornata (se l'apertura e' gia' oltre, si esce all'apertura); stop −3% misurato sulla chiusura,
   con uscita all'apertura del giorno dopo (un CFD tratta 23 ore al giorno: lo stop intraday sui minimi della seduta
-  americana non e' lo stesso strumento; sullo storico lo stop sulla chiusura ha reso 1,60 per euro perso contro 1,34
-  dello stop intraday, con 21 operazioni su 672 passate oltre lo stop in apertura, la peggiore −5,7%);
+  americana non e' lo stesso strumento; sullo storico, costi compresi, lo stop sulla chiusura rende 1,38 per euro perso
+  contro 1,34 dello stop intraday; con lo stop intraday 21 operazioni su 672 sono passate oltre lo stop in apertura,
+  la peggiore −5,7%);
 - uscita a tempo alla chiusura del decimo giorno di mercato;
 - misura: rischio 2% di un conto simulato da 10.000 € per operazione (nozionale 6.667 €), al massimo tre posizioni
   (leva 2); costi CFD: spread 0,02% per lato e finanziamento notturno 6,5% l'anno sul nozionale.
 
-Cosa aspettarsi (storico 2005-2026, stop intraday, piu' prudente): 1,34 euro guadagnati per euro perso, 57-59% di
-operazioni vinte, circa 31 operazioni l'anno, +7,7% l'anno con perdita massima −19%; anni negativi −4/−9%. Le entrate
-casuali con le stesse uscite rendono 1,22: il vantaggio della regola e' reale ma modesto. Nessun euro vero: la corsia
+Cosa aspettarsi (`replay` sullo storico 2005-2026 con queste regole, misurato sul Mac il 10/11): 667 operazioni, 60%
+vinte, 1,31 euro guadagnati per euro perso, vincita media +155 € contro perdita media −178 €, +14.892 € in 21 anni su
+un conto simulato da 10.000 € (circa +7% l'anno), anni negativi 2008, 2010, 2012, 2014, 2015, 2022, 2026 (il peggiore
+−1.470 €); con il rischio composto a leva 2 +7,7% l'anno e perdita massima −19%. Le entrate casuali con le stesse
+uscite rendono 1,22: il vantaggio della regola e' reale ma modesto. Nessun euro vero: la corsia
 scrive un'operazione simulata a ogni segnale e avvisa su Telegram la sera stessa («domani all'apertura...»), cosi'
 Francesco vede la regola lavorare dal vivo prima di qualunque decisione. Gira nel giro `daily` (23:30 UTC): i prezzi
 del giorno arrivano la sera, il segnale della sera vale per l'apertura del giorno dopo.
@@ -249,7 +252,7 @@ def report_text(store: Store, week: str) -> str:
     return (f"{TAG} Settimana {week}, dall'inizio: {s['operazioni']} operazioni chiuse, {s['vinte']} vinte ({s['vinte_quota']:.0%}), "
             f"euro guadagnati per euro perso {pf}, risultato {s['risultato']:+.2f} € su un conto simulato da {ACCOUNT_EUR:,.0f} € "
             f"({s['risultato'] / ACCOUNT_EUR:+.1%}), costi {s['costi']:.2f} €. Per mercato: {per_sym}. In corso: {aperte}. "
-            f"Atteso dallo storico: 1,3-1,6 per euro perso, 57-60% vinte. Tutto simulato, nessun euro vero.")
+            f"Atteso dallo storico: 1,3-1,4 per euro perso, 58-61% vinte. Tutto simulato, nessun euro vero.")
 
 
 def replay(store: Store, since: str = "2005-01-01") -> dict:

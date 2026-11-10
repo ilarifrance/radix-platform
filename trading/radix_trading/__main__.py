@@ -265,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
                    help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
+    p.add_argument("--giorno", default=None,
+                   help="solo per axi: giorno dell'estratto (AAAA-MM-GG) quando e' stato incollato senza intestazione")
     p.add_argument("--quando", default=None,
                    help="solo per mercato: ora da simulare, es. 2026-10-30T21:17Z (con --prova il testo si stampa e basta)")
     args = p.parse_args(argv)
@@ -377,7 +379,7 @@ def main(argv: list[str] | None = None) -> int:
             from . import axi
             # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.
             text = open(args.file, encoding="utf-8").read() if args.file else None
-            result = axi.run(store, text, tuple(args.nota) if args.nota else None)
+            result = axi.run(store, text, tuple(args.nota) if args.nota else None, giorno=args.giorno)
             (settings.data_dir / "axi_diario.md").write_text(result["testo"])
             print(result["testo"], file=sys.stderr)
             result = {k: v for k, v in result.items() if k != "testo"}
