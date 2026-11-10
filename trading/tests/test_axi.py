@@ -169,8 +169,9 @@ def test_exposure_and_diary_text_with_news_and_market_after():
     early = axi.news_for(st, "2026-03-09", item="US500", before="2026-03-09T11:00:00Z")
     assert early and not any("Nvidia" in n for n in early) and any("China exports" in n for n in early)
     # i comunicati di piccole quotate («(NASDAQ: XXXX)») non sono notizie di mercato
-    st.upsert_news([item(6, "2026-03-09T10:00:00Z", "Acme Bancorp (NASDAQ: ACME) announces quarterly earnings")])
-    assert not any("Acme" in n for n in axi.news_for(st, "2026-03-09", item="US500", limit=10))
+    st.upsert_news([item(6, "2026-03-09T10:00:00Z", "Acme Bancorp (NASDAQ: ACME) announces quarterly earnings"),
+                    item(7, "2026-03-09T10:05:00Z", "Beta Corp ( NASDAQ : BETA ) Announces Quarterly Earnings Results")])   # GDELT spazia i segni
+    assert not any("Acme" in n or "Beta" in n for n in axi.news_for(st, "2026-03-09", item="US500", limit=10))
     axi.note(st, 2007, "chiuso a mano dopo il rimbalzo del lunedi'")
     text = axi.diary_text(st)
     assert "Patrimonio 6,059.04 $" in text and "US500 corto 15 lotti a 5,418.83" in text and "-4,562 $" in text

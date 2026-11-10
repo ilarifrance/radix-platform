@@ -294,7 +294,8 @@ RELEVANCE["NAS100"] = RELEVANCE["US30"] = RELEVANCE["US500"]
 _RELEVANCE = {k: re.compile(v, re.I) for k, v in RELEVANCE.items()}
 
 
-_PRESS_RELEASE = re.compile(r"\((?:NASDAQ|NYSE|OTC|TSX)[:\s]", re.I)   # comunicati di piccole societa' quotate: non e' il mercato
+# Comunicati di piccole societa' quotate («(NASDAQ: ACME)», da GDELT anche «( NASDAQ : ACME )»): non sono il mercato.
+_PRESS_RELEASE = re.compile(r"\(\s*(?:NASDAQ|NYSE|OTC[A-Z]*|TSXV?|AMEX)\s*:\s*[A-Z.\-]+\s*\)", re.I)
 
 
 def news_for(store: Store, day: str, limit: int = 3, item: str | None = None, before: str | None = None) -> list[str]:
