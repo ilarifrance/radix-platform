@@ -14,6 +14,8 @@
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
     python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
+    python -m radix_trading metodo60         # corsia simulata «metodo 60%» (un giro; --from 2005-01-01 per il passato)
+    python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ from dataclasses import replace
 import pandas as pd
 
 from . import backtest, candles, data, events, intraday, intraday_events, paper, portfolio, research, snapshot, strategies, universe, validation
-from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
+from .collectors import binance, fred, fx, gdelt, kraken, rss, tiingo, yahoo
 from .config import Settings
 from .store import Store
 
@@ -49,6 +51,8 @@ def collect(store: Store, tier: str = "all") -> dict:
         items, news_report = gdelt.fetch_all((q,))
         store.upsert_news(items)
         report.update({f"gdelt:{k}": v for k, v in news_report.items()})
+        # Titoli di oggi dai feed RSS delle testate (chiesti il 10/11): stessa tabella, li leggono sentinella e diario Axi.
+        report.update({f"rss:{k}": v for k, v in rss.collect(store).items()})
     if slow:
         yahoo_blocked = False
         for series in fred.DEFAULT_SERIES + fx.FRED_SERIES:
@@ -222,6 +226,11 @@ def run_backtests(store: Store, curves: dict | None = None) -> dict:
     return out
 
 
+def alerts_send():
+    from . import alerts
+    return alerts.send
+
+
 def _safe(fn):
     try:
         return fn()
@@ -233,7 +242,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
-                                          "osservatorio", "confronto", "mercato", "ribasso", "serve"])
+                                          "osservatorio", "confronto", "mercato", "ribasso", "serve", "metodo60", "axi"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -253,6 +262,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
     p.add_argument("--crypto-csv", default=None,
                    help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
+    p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
+    p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
+                   help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
     p.add_argument("--quando", default=None,
                    help="solo per mercato: ora da simulare, es. 2026-10-30T21:17Z (con --prova il testo si stampa e basta)")
     args = p.parse_args(argv)
@@ -288,6 +300,9 @@ def main(argv: list[str] | None = None) -> int:
                 from . import osservatorio
                 # Osservatorio «leva 20 su segnali concreti»: operazioni simulate, avvisi Telegram, nessun euro vero.
                 result["osservatorio"] = _safe(lambda: osservatorio.step(store))
+                from . import metodo60
+                # Corsia simulata «metodo 60%» (10/11): chiusura sul minimo in trend rialzista sui tre indici USA, avvisi Telegram.
+                result["metodo60"] = _safe(lambda: metodo60.step(store))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
         elif args.command == "research":
             result = research.run(store, target_dd=-abs(args.max_dd))
@@ -350,6 +365,22 @@ def main(argv: list[str] | None = None) -> int:
             result = osservatorio.replay(store, args.since) if args.since else osservatorio.step(store)
             if args.since:
                 (settings.data_dir / "osservatorio.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
+        elif args.command == "metodo60":
+            from . import metodo60
+            # senza --from: un giro come nel daily (con --prova gli avvisi si stampano); con --from: la regola sul passato
+            if args.since:
+                result = metodo60.replay(store, args.since)
+                (settings.data_dir / "metodo60.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
+            else:
+                result = metodo60.step(store, send=(lambda text: print(text, file=sys.stderr) or True) if args.prova else alerts_send())
+        elif args.command == "axi":
+            from . import axi
+            # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.
+            text = open(args.file, encoding="utf-8").read() if args.file else None
+            result = axi.run(store, text, tuple(args.nota) if args.nota else None)
+            (settings.data_dir / "axi_diario.md").write_text(result["testo"])
+            print(result["testo"], file=sys.stderr)
+            result = {k: v for k, v in result.items() if k != "testo"}
         elif args.command == "confronto":
             from . import confronto
             # Ricerca sola: pochi modelli a confronto sugli stessi dati e costi, quote intere, tasse stimate.

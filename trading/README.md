@@ -54,7 +54,7 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 
 ## Moduli
 
-- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi). Fonti gratuite, senza chiavi.
+- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi), RSS (`collectors/rss.py`, dal 10/11/2026: i titoli di oggi dai feed pubblici di CNBC, MarketWatch, Yahoo Finance, BBC, Fed, BCE, Al Jazeera, ANSA, ogni ora nella stessa tabella `news`; li leggono la sentinella di mercato e il diario Axi), Wikipedia (archivio storico delle notizie). Fonti gratuite, senza chiavi.
 - `store.py` — archivio unico SQLite (prezzi, macro, notizie), lo stesso per backtest e live.
 - `backtest.py` — backtest vettoriale: decisione a t, posizione da t+1; commissioni, slippage e commissione minima in euro; banda di non intervento; walk-forward.
 - `validation.py` — Probabilistic e Deflated Sharpe Ratio; `passes_gate` e' il cancello 1 della roadmap.
@@ -155,6 +155,31 @@ scatta, il giro `daily` registra un'operazione simulata con margine 200 €, lev
 notturno dei CFD e chiusura forzata a meta' del margine, e avvisa su Telegram con il prefisso `[SIMULATO leva]`; il
 venerdi' manda il riepilogo. `python -m radix_trading osservatorio --from 2015-01-01` rifa' le stesse regole sul passato.
 Nessun euro vero: serve a decidere, dopo 4-8 settimane, se un conto a leva ha senso.
+
+## Corsia simulata «metodo 60%» (solo simulazione)
+
+Chiesta da Francesco il 10/11/2026: «un metodo che guadagni piu' di quanto perde» (misura: euro guadagnati per euro
+perso sopra 1 dopo i costi, su anni mai visti). La sera stessa 1.920 combinazioni su 8 mercati (2005-2019 scoperta,
+2020-2026 verifica): regge una famiglia sola, sugli indici americani. `metodo60.py` la registra con parametri fissi:
+S&P 500, Nasdaq 100 e Russell 2000 (SPY, QQQ, IWM); si compra all'apertura dopo una chiusura nel 10% piu' basso
+dell'escursione di giornata con la chiusura sopra la media a 200 giorni; target +3% in giornata, stop −3% sulla
+chiusura (uscita all'apertura dopo), uscita a tempo dopo 10 giorni di mercato; una posizione per mercato; rischio 2%
+di un conto simulato da 10.000 € (nozionale 6.667 €), costi CFD (spread 0,02% per lato, 6,5% l'anno di finanziamento).
+Atteso dallo storico: 1,3-1,6 € guadagnati per € perso, 57-60% di operazioni vinte, ~31 operazioni l'anno, +7,7%
+l'anno con perdita massima −19%; le entrate casuali con le stesse uscite rendono 1,22. Il giro `daily` manda su Telegram
+il segnale la sera stessa (`[SIMULATO metodo60] ... Domani all'apertura la regola COMPRA ...`), poi entrata, uscita e il
+riepilogo del venerdi'. `python -m radix_trading metodo60 --from 2005-01-01` rifa' la regola sul passato;
+`--prova` stampa gli avvisi senza mandarli. Nessun euro vero.
+
+## Diario del conto Axi (solo lettura)
+
+`axi.py` legge gli estratti MetaTrader 4 («Statement» di Axi) che Francesco incolla in un file di testo:
+`python -m radix_trading axi --file estratto.txt` salva ordini, esecuzioni, posizioni aperte e riepilogo nell'archivio
+locale (mai nel repository), ricostruisce le operazioni chiuse (entrata ricavata dal risultato: su US500 1 lotto = 1 $ per
+punto), affianca a ognuna le notizie del giorno in archivio (RSS, GDELT, Wikipedia) e cosa ha fatto il mercato di
+riferimento nei giorni dopo, e scrive la pagella (vinte/perse, vincita media contro perdita media, euro guadagnati per
+euro perso, esposizione massima) in `data/axi_diario.md`. `--nota TICKET "testo"` aggiunge un appunto a un'operazione.
+Nessun ordine parte da qui.
 
 ## Kill switch
 
