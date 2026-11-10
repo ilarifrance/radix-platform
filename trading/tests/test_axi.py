@@ -165,10 +165,18 @@ def test_exposure_and_diary_text_with_news_and_market_after():
     assert not any("derby" in n or "Paraguay" in n for n in news)
     assert axi.news_for(st, "2026-03-09", limit=1, item="US500") == ["2026-03-09: Stocks fall as Nvidia probe rattles Wall Street"]
     assert len(axi.news_for(st, "2026-03-09")) == 3      # senza strumento: solo i temi di mercato, il derby resta fuori
+    # niente sguardo al futuro: con l'ora di apertura dell'operazione restano solo i titoli usciti prima
+    early = axi.news_for(st, "2026-03-09", item="US500", before="2026-03-09T11:00:00Z")
+    assert early and not any("Nvidia" in n for n in early) and any("China exports" in n for n in early)
+    # i comunicati di piccole quotate («(NASDAQ: XXXX)») non sono notizie di mercato
+    st.upsert_news([item(6, "2026-03-09T10:00:00Z", "Acme Bancorp (NASDAQ: ACME) announces quarterly earnings")])
+    assert not any("Acme" in n for n in axi.news_for(st, "2026-03-09", item="US500", limit=10))
     axi.note(st, 2007, "chiuso a mano dopo il rimbalzo del lunedi'")
     text = axi.diary_text(st)
     assert "Patrimonio 6,059.04 $" in text and "US500 corto 15 lotti a 5,418.83" in text and "-4,562 $" in text
-    assert "mercato dopo (SPY)" in text and "notizia: 2026-03-09: Stocks fall" in text and "appunto: chiuso a mano" in text
+    # le operazioni del 9/3 aprono alle 11:05-11:45 UTC: il titolo su Nvidia delle 12:00 e' DOPO e non compare; quello delle 9 si'
+    assert "mercato dopo (SPY)" in text and "notizia: 2026-03-09: China exports" in text and "Nvidia" not in text
+    assert "appunto: chiuso a mano" in text
     assert "4 operazioni: 1 vinte, 3 perse (25%)" in text and "euro guadagnati per euro perso 0.05" in text
     assert "esposizione massima 65 $/punto (posizioni aperte insieme; la singola piu' grande 50)" in text
     out = axi.run(st)

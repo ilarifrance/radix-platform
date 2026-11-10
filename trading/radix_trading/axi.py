@@ -294,10 +294,15 @@ RELEVANCE["NAS100"] = RELEVANCE["US30"] = RELEVANCE["US500"]
 _RELEVANCE = {k: re.compile(v, re.I) for k, v in RELEVANCE.items()}
 
 
-def news_for(store: Store, day: str, limit: int = 3, item: str | None = None) -> list[str]:
+_PRESS_RELEASE = re.compile(r"\((?:NASDAQ|NYSE|OTC|TSX)[:\s]", re.I)   # comunicati di piccole societa' quotate: non e' il mercato
+
+
+def news_for(store: Store, day: str, limit: int = 3, item: str | None = None, before: str | None = None) -> list[str]:
     """Titoli del giorno e del giorno prima dall'archivio: feed RSS e GDELT (tabella news) e Wikipedia (news_items).
     Si tengono quelli sui temi di mercato dello studio eventi e si ordinano per pertinenza allo strumento (parole di
-    RELEVANCE, poi temi generali), a pari punteggio prima il giorno stesso e il titolo piu' recente."""
+    RELEVANCE, poi temi generali), a pari punteggio prima il giorno stesso e il titolo piu' recente. `before` (ISO UTC,
+    di solito l'ora di apertura dell'operazione) esclude i titoli usciti dopo: cio' che il trader non poteva sapere.
+    Le voci di Wikipedia hanno solo il giorno e restano."""
     from .events import _THEMES
     from .mercato import NEWS_EXTRA, NEWS_THEMES
     pats = [_THEMES[t] for t in NEWS_THEMES if t in _THEMES] + [NEWS_EXTRA]
@@ -309,6 +314,8 @@ def news_for(store: Store, day: str, limit: int = 3, item: str | None = None) ->
         news = store.load_news(d0 + "T00:00:00Z")
         if not news.empty:
             news = news[news["ts"] < d1 + "T00:00:00Z"]
+            if before:
+                news = news[news["ts"] <= before]
             titles += [(str(ts)[:10], str(ts), str(t)) for ts, t in zip(news["ts"], news["title"]) if t]
     except Exception:
         pass
@@ -321,7 +328,7 @@ def news_for(store: Store, day: str, limit: int = 3, item: str | None = None) ->
     for d, ts, t in titles:
         key = t.lower()[:60]
         themes = sum(1 for p in pats if p.search(t))
-        if key in seen or not themes:
+        if key in seen or not themes or _PRESS_RELEASE.search(t):
             continue
         seen.add(key)
         specific = len(rel.findall(t)) if rel else 0
@@ -416,7 +423,7 @@ def diary_text(store: Store) -> str:
         if any(k.startswith("dopo_") for k in after):
             moves = ", ".join(f"{h} g {after[f'dopo_{h}']:+.1%}" for h in AFTER_DAYS if f"dopo_{h}" in after)
             lines.append(f"  - mercato dopo ({after['riferimento']}): {moves}")
-        for n in news_for(store, t["giorno"], item=t["mercato"]):
+        for n in news_for(store, t["giorno"], item=t["mercato"], before=t["aperta"]):
             lines.append(f"  - notizia: {n}")
         if t["nota"]:
             lines.append(f"  - appunto: {t['nota']}")
