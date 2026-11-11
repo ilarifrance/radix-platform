@@ -233,18 +233,27 @@ def closed_trades(store: Store) -> list[dict]:
         side = -1 if typ == "buy" else +1          # «buy out» chiude un corto, «sell out» chiude un lungo
         pv = POINT_VALUE.get(item or "")
         opened_ts, open_price = None, None
+        derived = price - side * pnl / (float(size) * pv) if pv and pnl is not None and price is not None else None
         q = open_q.get((item, "buy" if side > 0 else "sell"), [])
         if q:
-            opened_ts, open_price = q[0][0], q[0][2]
+            # l'entrata e' quella aperta allo stesso prezzo ricavato dal risultato (l'ultima, se piu' d'una: gli stop
+            # chiudono i pezzi recenti), altrimenti la piu' vecchia (FIFO)
+            pick = q[0]
+            if derived is not None:
+                same = [e for e in q if abs(e[2] - derived) <= max(0.05, abs(derived) * 1e-5)]
+                if same:
+                    pick = same[-1]
+            opened_ts, open_price = pick[0], pick[2]
             left = float(size)
-            while q and left > 1e-9:
-                take = min(left, q[0][1])
-                q[0][1] -= take
+            for e in [pick] + [e for e in q if e is not pick]:
+                if left <= 1e-9:
+                    break
+                take = min(left, e[1])
+                e[1] -= take
                 left -= take
-                if q[0][1] <= 1e-9:
-                    q.pop(0)
-        if pv and pnl is not None and price is not None:
-            open_price = price - side * pnl / (float(size) * pv)
+            q[:] = [e for e in q if e[1] > 1e-9]
+        if derived is not None:
+            open_price = derived
         minutes = (pd.Timestamp(ts) - pd.Timestamp(opened_ts)).total_seconds() / 60 if opened_ts and ts else None
         out.append({"ticket": int(ticket), "giorno": (ts or "")[:10], "aperta": opened_ts, "chiusa": ts, "mercato": item,
                     "verso": "lungo" if side > 0 else "corto", "lotti": float(size), "entrata": open_price, "uscita": price,

@@ -112,9 +112,13 @@ def test_closed_trades_entry_from_pnl_and_scorecard():
     # non dal primo corto aperto
     assert abs(trades[1]["entrata"] - 5426.73) < 1e-6 and trades[1]["risultato"] == -253.05
     assert abs(trades[2]["entrata"] - 5427.73) < 1e-6 and trades[2]["risultato"] == -838.75
-    # la chiusura parziale di 10 lotti: entrata 5570.75 - 1519.20/10 = 5418.83
+    # ...e anche l'ora di apertura e' quella del pezzo allo stesso prezzo, non del primo corto (durate 64 e 102 minuti,
+    # non 104 e 126: difetto visto sul Mac l'11/11 con due corti da 10 aperti e chiusi lo stesso giorno)
+    assert trades[1]["aperta"] == "2026-03-09T11:45:10Z" and abs(trades[1]["minuti"] - 64.33) < 0.1
+    assert trades[2]["aperta"] == "2026-03-09T11:29:43Z" and abs(trades[2]["minuti"] - 102.15) < 0.1
+    # la chiusura parziale di 10 lotti: entrata 5570.75 - 1519.20/10 = 5418.83, aperta alle 13:05 (server)
     part = trades[3]
-    assert abs(part["entrata"] - 5418.83) < 1e-6 and part["lotti"] == 10
+    assert abs(part["entrata"] - 5418.83) < 1e-6 and part["lotti"] == 10 and part["aperta"] == "2026-03-09T11:05:01Z"
     # esposizione contemporanea: 25 + 25 + 15 corti aperti insieme = 65 $/punto, piu' della singola operazione piu' grande (50)
     assert axi.max_exposure(st) == 65
     s = axi.scorecard(trades, axi.max_exposure(st))
