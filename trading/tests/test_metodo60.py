@@ -235,7 +235,7 @@ def test_leverage_table_compounds_and_wipes_out():
     tab = m60.leverage_table({"SPY": long_bars}, [late], levers=(1,))
     years = (long_idx[-1] - long_idx[-3]).days / 365.25
     assert abs(tab[1]["conto_finale"] - expected) < 0.01
-    assert tab[1]["annuo"] == round((tab[1]["conto_finale"] / m60.ACCOUNT_EUR) ** (1 / years) - 1, 4)
+    assert abs(tab[1]["annuo"] - ((expected / m60.ACCOUNT_EUR) ** (1 / years) - 1)) < 0.01   # pochi giorni: tasso enorme, ma dal 2025 e non dal 2021
 
 
 def test_replay_splits_the_two_lanes_when_the_archive_covers_the_days():
