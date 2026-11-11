@@ -2,9 +2,18 @@ from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
+import pytest
 
+from radix_trading import events
 from radix_trading import metodo60 as m60
+from radix_trading.collectors import wikinews
 from radix_trading.store import Store
+
+
+@pytest.fixture(autouse=True)
+def no_wikipedia(monkeypatch):
+    """Il giro della sera riscarica la pagina di oggi da Wikipedia: nei test niente rete (archivio com'e')."""
+    monkeypatch.setattr(wikinews, "fetch_days", lambda days: {})
 
 
 def _bars(rows, start="2025-01-01"):
@@ -87,12 +96,14 @@ def test_step_signals_then_opens_then_closes_and_reports():
     out = m60.step(st, now, send=sent.append)
     assert out["segnali"] == ["SPY"] and out["aperte"] == [] and out["chiuse"] == []
     assert len(sent) == 1 and sent[0].startswith("[SIMULATO metodo60] Segnale di oggi su S&P 500 (SPY)") and "Domani all'apertura" in sent[0]
+    # senza archivio notizie il verdetto e' «non so»: il segnale resta nella corsia statistica
+    assert "Notizie: archivio notizie non disponibile → solo la corsia statistica." in sent[0]
     row = st.conn.execute("SELECT status, entry FROM m60_trades").fetchone()
     assert row == ("segnalata", None)
     # il giro dopo, senza dati nuovi: niente doppioni
     sent.clear()
     out = m60.step(st, now, send=sent.append)
-    assert out == {"segnali": [], "aperte": [], "chiuse": [], "riepilogo": None} and sent == []
+    assert out == {"segnali": [], "aperte": [], "chiuse": [], "riepilogo": None, "notizie": 0} and sent == []
     # arriva la barra dopo: entrata all'apertura, poi il target nel giorno seguente
     d1, d2 = pd.bdate_range(last, periods=3)[1:]
     more = pd.DataFrame({"open": [101.0, 102.0], "high": [102.0, 104.5], "low": [100.0, 101.5], "close": [101.5, 104.0], "volume": 1.0},
@@ -110,8 +121,11 @@ def test_step_signals_then_opens_then_closes_and_reports():
     # un venerdi': riepilogo una volta sola
     friday = now2 + pd.Timedelta(days=(4 - now2.weekday()) % 7)
     first = out if now2.weekday() == 4 else m60.step(st, friday, send=sent.append)
-    assert first["riepilogo"] and "1 operazioni chiuse, 1 vinte (100%)" in first["riepilogo"]
+    assert first["riepilogo"] and "Corsia statistica (tutti i segnali): 1 operazioni chiuse, 1 vinte (100%)" in first["riepilogo"]
+    assert "Corsia + notizie (solo i segnali con una notizia forte): nessuna operazione chiusa" in first["riepilogo"]
+    assert "leva 1: +" in first["riepilogo"] and "+ notizie —" in first["riepilogo"]
     assert m60.step(st, friday, send=sent.append)["riepilogo"] is None
+    assert st.conn.execute("SELECT notizie, temi FROM m60_trades").fetchone() == (None, "archivio notizie non disponibile")
 
 
 def test_one_position_per_market_and_replay_stats():
@@ -130,3 +144,98 @@ def test_one_position_per_market_and_replay_stats():
     rep = m60.replay(st, "2025-01-01")
     assert rep["totale"]["operazioni"] == 1 and rep["mercati"]["SPY"]["operazioni"] == 1 and rep["mercati"]["QQQ"]["operazioni"] == 0
     assert rep["totale"]["per_uscita"]["tempo"] == 1 and len(rep["anni"]) == 1
+    # senza archivio notizie niente sezione «notizie»; la tabella della leva c'e' per ogni leva (operazione in utile: conto su)
+    assert "notizie" not in rep and set(rep["leva"]) == set(m60.LEVERS)
+    assert rep["leva"][1]["conto_finale"] > m60.ACCOUNT_EUR and rep["leva"][1]["azzerato"] is None and rep["leva"][1]["chiusure_forzate"] == 0
+
+
+def _news_archive(st, days, items_by_day):
+    """Archivio Wikipedia finto: per ogni giorno le voci indicate (default una voce neutra)."""
+    events.init(st)
+    for d in days:
+        items = items_by_day.get(d, [("Politics", "Parliament debates the budget")])
+        st.conn.executemany("INSERT OR IGNORE INTO news_items VALUES (?,?,?)", [(d.date().isoformat(), s, t) for s, t in items])
+        st.conn.execute("INSERT OR REPLACE INTO news_days VALUES (?, ?)", (d.date().isoformat(), len(items)))
+    st.conn.commit()
+
+
+def test_news_check_flags_strong_days_only_after_warmup():
+    st = Store(":memory:")
+    days = pd.date_range("2025-01-01", periods=120, freq="D")
+    iran = [("International relations", f"Iran summons the Saudi envoy, round {k}") for k in range(5)]
+    _news_archive(st, days, {days[-1]: iran, days[30]: iran})          # il giorno 30 e' nei primi 61: percentile non ancora pronto
+    counts, flags = m60.news_flags(st)
+    assert counts.index[0] == days[m60.NEWS_WARMUP_DAYS] and list(flags.columns) == list(m60.SHOCK_THEMES)
+    assert m60.news_check(counts, flags, days[-1]) == (True, "Medio Oriente 5 (oggi)")
+    assert m60.news_check(counts, flags, days[-1] + pd.Timedelta(days=1)) == (True, "Medio Oriente 5 (ieri)")   # il giorno dopo vede «ieri»
+    assert m60.news_check(counts, flags, days[-2]) == (False, "nessuna")
+    assert m60.news_check(counts, flags, days[30])[0] is None                    # dentro il riscaldamento: non so
+    assert m60.news_check(counts, flags, "2030-01-01") == (None, "archivio notizie senza questi giorni")
+    assert m60.news_check(pd.DataFrame(), pd.DataFrame(), days[-1]) == (None, "archivio notizie non disponibile")
+
+
+def test_step_refreshes_today_and_records_the_news_lane(monkeypatch):
+    start = "2025-01-01"
+    rows = _flat(200) + [(101, 103, 100.5, 100.6)]          # ultimo giorno: segnale su SPY
+    st = _store(rows, start)
+    last = pd.bdate_range(start, periods=len(rows))[-1]
+    # archivio fino a ieri con una voce neutra al giorno; la pagina di oggi arriva dal riscarico della sera
+    _news_archive(st, pd.date_range(end=last - pd.Timedelta(days=1), periods=100, freq="D"), {})
+    fetched = []
+
+    def fake_fetch(days):
+        fetched.append(list(days))
+        return {last.date(): [{"sezione": "Armed conflicts", "testo": f"Israel strikes Gaza, round {k}"} for k in range(4)]}
+
+    monkeypatch.setattr(wikinews, "fetch_days", fake_fetch)
+    sent = []
+    out = m60.step(st, datetime(last.year, last.month, last.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert fetched == [[(last - pd.Timedelta(days=1)).date(), last.date()]] and out["notizie"] == 4
+    assert out["segnali"] == ["SPY"]
+    assert st.conn.execute("SELECT notizie, temi FROM m60_trades").fetchone() == (1, "Medio Oriente 4 (oggi)")
+    assert "Notizie forti (Wikipedia, oggi/ieri): Medio Oriente 4 (oggi) → entra anche la corsia «+ notizie»" in sent[0]
+    # la barra dopo chiude in target: l'avviso dice che vale anche per la corsia + notizie, il venerdi' la conta
+    d1 = pd.bdate_range(last, periods=2)[1]
+    bar = pd.DataFrame({"open": [101.0], "high": [104.5], "low": [100.5], "close": [104.0], "volume": 1.0},
+                       index=pd.DatetimeIndex([d1]).tz_localize("UTC"))
+    st.upsert_bars(m60.VENUE, "SPY", "1d", bar)
+    out = m60.step(st, datetime(d1.year, d1.month, d1.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert out["chiuse"] == ["SPY"] and "[anche corsia + notizie]" in sent[-1]
+    rep = m60.report_text(st, "2025-W40")
+    assert "Corsia + notizie (solo i segnali con una notizia forte): 1 operazioni chiuse, 1 vinte (100%)" in rep
+    # la riga della leva: la misura della corsia e' leva 2, a leva 1 la meta', a leva 5 due volte e mezzo
+    s = m60.stats(m60._rows(st.conn, ""))
+    assert f"leva 1: {s['risultato'] / 2:+.0f} €" in rep and f"leva 5: {s['risultato'] * 2.5:+.0f} €" in rep
+
+
+def test_leverage_table_compounds_and_wipes_out():
+    idx = pd.bdate_range("2025-01-01", periods=4)
+    bars = pd.DataFrame({"open": [100, 100, 103, 103], "high": [101, 101, 104, 104], "low": [99, 99, 102, 102], "close": [100, 100, 103, 103]},
+                        index=idx, dtype=float)
+    win = {"symbol": "SPY", "status": "chiusa", "entry_day": idx[1].date().isoformat(), "entry": 100.0,
+           "exit_day": idx[2].date().isoformat(), "exit": 103.0}
+    tab = m60.leverage_table({"SPY": bars}, [win], levers=(1, 3))
+    n = m60.ACCOUNT_EUR / 3                                   # leva 1: un terzo del conto per posizione
+    expected = m60.ACCOUNT_EUR - n * m60.SPREAD              # giorno di entrata: spread, chiusura = entrata
+    expected += n * 0.03 - n * m60.SPREAD - n * m60.FINANCING_YEAR / 365   # giorno dopo: target, spread, una notte
+    assert abs(tab[1]["conto_finale"] - expected) < 0.01 and tab[1]["azzerato"] is None
+    assert abs(tab[3]["conto_finale"] - (m60.ACCOUNT_EUR + 3 * (expected - m60.ACCOUNT_EUR))) < 0.01   # leva 3 = tre volte il guadagno
+    # un crollo del 10% a leva 30 (nozionale 10 volte il conto) azzera il conto
+    crash = pd.DataFrame({"open": [100, 100, 90, 90], "high": [101, 101, 91, 91], "low": [99, 99, 89, 89], "close": [100, 100, 90, 90]},
+                         index=idx, dtype=float)
+    lose = {**win, "exit": 90.0}
+    tab = m60.leverage_table({"SPY": crash}, [lose], levers=(1, 30))
+    assert tab[30]["conto_finale"] == 0 and tab[30]["azzerato"] == idx[2].date().isoformat() and tab[30]["annuo"] == -1.0
+    assert tab[1]["conto_finale"] > 0 and tab[1]["azzerato"] is None and tab[1]["perdita_max"] < -0.03
+
+
+def test_replay_splits_the_two_lanes_when_the_archive_covers_the_days():
+    rows = _flat(200) + [(101, 103, 100.5, 100.6)] + [(101, 102, 100, 101.5)] * 12
+    st = _store(rows, "2025-01-01")
+    bars = _bars(rows)
+    sig = m60.signal_days(bars)[0]
+    _news_archive(st, pd.date_range(end=sig, periods=100, freq="D"),
+                  {sig: [("Business and economy", f"Stock market sell-off deepens, part {k}") for k in range(3)]})
+    rep = m60.replay(st, "2025-01-01")
+    assert rep["notizie"]["con_notizia_forte"]["operazioni"] == 1 and rep["notizie"]["senza_notizia_forte"]["operazioni"] == 0
+    assert rep["notizie"]["dal"] == sig.date().isoformat() and rep["notizie"]["periodi"]["dal_2020"]["statistica"]["operazioni"] == 1

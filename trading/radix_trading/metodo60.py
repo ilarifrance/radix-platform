@@ -22,23 +22,39 @@ Cosa aspettarsi (`replay` sullo storico 2005-2026 con queste regole, misurato su
 vinte, 1,31 euro guadagnati per euro perso, vincita media +155 € contro perdita media −178 €, +14.892 € in 21 anni su
 un conto simulato da 10.000 € (circa +7% l'anno), anni negativi 2008, 2010, 2012, 2014, 2015, 2022, 2026 (il peggiore
 −1.470 €); con il rischio composto a leva 2 +7,7% l'anno e perdita massima −19%. Le entrate casuali con le stesse
-uscite rendono 1,22: il vantaggio della regola e' reale ma modesto. Nessun euro vero: la corsia
+uscite rendono 1,22: il vantaggio della regola e' reale ma modesto.
+
+Due corsie, dall'11/11/2026 (Francesco: «le notizie sono molto importanti... sdoppiare le simulazioni»). Ogni segnale
+viene registrato nella corsia «statistica»; la corsia «+ notizie» tiene solo i segnali arrivati con una NOTIZIA FORTE:
+il giorno del segnale o il giorno prima una delle famiglie di notizie in `SHOCK_THEMES` (guerra, crisi bancaria,
+epidemie, dazi, borse, Medio Oriente, Russia-Ucraina, sanzioni, Cina; archivio Wikipedia «Current events», regole in
+`events.py`) conta piu' voci del 90° percentile dell'anno precedente. Sullo storico dal 2015 (Mac, 11/11): tutti i
+segnali 1,77 per euro perso nel 2015-19 e 1,30 nel 2020-26; solo con notizia forte 1,94 e 1,51 (68% e 60% vinte,
++0,62% per operazione contro +0,37%); saltando i giorni di notizie forti 1,58 e 1,05; le notizie da sole, senza il
+segnale statistico, 1,15. Casi pochi (60 e 119): per questo le due corsie corrono in parallelo e si confrontano ogni
+venerdi'. Dal vivo la pagina di Wikipedia del giorno e' ancora in scrittura alle 23:30 UTC: si riscarica prima del
+controllo e il verdetto resta quello scritto quella sera (non si riscrive col senno di poi).
+
+Leva (Francesco, 11/11: «la stessa simulazione con leva 5, 10, 20 e 30»): `replay` rifa' la stessa lista di operazioni
+con il conto a leva L (nozionale per posizione L/3 del conto, tre insieme = leva piena, valutazione giornaliera, chiusura
+forzata del broker sotto il 50% del margine). Sul Mac, 2005-2026: leva 2 +8,6% l'anno con perdita massima −22%; leva 5
++18% / −49%; leva 10 +22% / −86% (2020-26 solo +13%); leva 20 e 30 conto azzerato. Nessun euro vero: la corsia
 scrive un'operazione simulata a ogni segnale e avvisa su Telegram la sera stessa («domani all'apertura...»), cosi'
 Francesco vede la regola lavorare dal vivo prima di qualunque decisione. Gira nel giro `daily` (23:30 UTC): i prezzi
 del giorno arrivano la sera, il segnale della sera vale per l'apertura del giorno dopo.
 
     python -m radix_trading metodo60                      # un giro (come nel daily)
     python -m radix_trading metodo60 --prova              # stampa gli avvisi senza mandarli
-    python -m radix_trading metodo60 --from 2005-01-01    # la stessa regola sul passato
+    python -m radix_trading metodo60 --from 2005-01-01    # la stessa regola sul passato: due corsie e tabella della leva
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
-from . import alerts
+from . import alerts, events
 from .store import Store
 
 MARKETS = {"SPY": "S&P 500", "QQQ": "Nasdaq 100", "IWM": "Russell 2000"}
@@ -55,14 +71,33 @@ SPREAD = 0.0002           # per lato
 FINANCING_YEAR = 0.065
 LOOKBACK_DAYS = 14
 TAG = "[SIMULATO metodo60]"
+# Corsia «+ notizie»: famiglie di notizie (events.THEMES) che fanno «notizia forte» il giorno del segnale o il giorno prima.
+SHOCK_THEMES = ("guerra", "crisi_banche", "epidemie", "dazi", "borse", "medio_oriente", "russia_ucraina", "sanzioni", "cina")
+THEME_LABELS = {"guerra": "guerra", "crisi_banche": "crisi bancaria", "epidemie": "epidemie", "dazi": "dazi", "borse": "borse",
+                "medio_oriente": "Medio Oriente", "russia_ucraina": "Russia-Ucraina", "sanzioni": "sanzioni", "cina": "Cina"}
+NEWS_WARMUP_DAYS = 61     # il 90° percentile vuole almeno 60 giorni di archivio prima: fino ad allora il verdetto e' «non so»
+# Leva: la stessa lista di operazioni con il conto a leva L (nozionale per posizione L/3 del conto).
+LEVERS = (1, 2, 3, 5, 10, 20, 30)
+REPORT_LEVERS = (1, 3, 5)
+LANE_LEVER = NOTIONAL_EUR * 3 / ACCOUNT_EUR     # = 2: la misura della corsia equivale a leva 2 con tre posizioni
+VERIFY_FROM = "2020-01-01"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS m60_trades (id INTEGER PRIMARY KEY AUTOINCREMENT, symbol TEXT NOT NULL, signal_day TEXT NOT NULL,
     entry_day TEXT, entry REAL, exit_day TEXT, exit REAL, how TEXT, pnl REAL, costs REAL, status TEXT NOT NULL,
+    notizie INTEGER, temi TEXT,
     UNIQUE (symbol, signal_day));
 CREATE TABLE IF NOT EXISTS m60_reports (week TEXT PRIMARY KEY, ts TEXT NOT NULL);
 """
-_COLS = ("symbol", "signal_day", "entry_day", "entry", "exit_day", "exit", "how", "pnl", "costs", "status")
+_COLS = ("symbol", "signal_day", "entry_day", "entry", "exit_day", "exit", "how", "pnl", "costs", "status", "notizie", "temi")
+
+
+def _init(db) -> None:
+    db.executescript(SCHEMA)
+    have = {r[1] for r in db.execute("PRAGMA table_info(m60_trades)")}
+    for col, typ in (("notizie", "INTEGER"), ("temi", "TEXT")):      # tabella nata il 10/11 senza le due colonne
+        if col not in have:
+            db.execute(f"ALTER TABLE m60_trades ADD COLUMN {col} {typ}")
 
 
 def load_bars(store: Store, symbol: str) -> pd.DataFrame:
@@ -128,27 +163,83 @@ def simulate(bars: pd.DataFrame, signal_day: pd.Timestamp, notional: float = NOT
     return out
 
 
+# --- notizie: la corsia «+ notizie» -------------------------------------------------------------
+
+def news_flags(store: Store) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Conteggi per famiglia e giorni di «notizia forte» (sopra il 90° percentile dell'anno prima) dall'archivio Wikipedia.
+    I primi 61 giorni dell'archivio non hanno un percentile alle spalle e si scartano (verdetto «non so»)."""
+    try:
+        counts = events.theme_counts(store)
+    except Exception:
+        counts = pd.DataFrame()
+    if counts.empty or len(counts) <= NEWS_WARMUP_DAYS:
+        return pd.DataFrame(), pd.DataFrame()
+    flags = events.news_events(counts)
+    cols = [t for t in SHOCK_THEMES if t in flags.columns]
+    return counts[cols].iloc[NEWS_WARMUP_DAYS:], flags[cols].iloc[NEWS_WARMUP_DAYS:]
+
+
+def news_check(counts: pd.DataFrame, flags: pd.DataFrame, day) -> tuple[bool | None, str]:
+    """C'e' una notizia forte il giorno del segnale o il giorno prima? None = l'archivio non copre quei giorni.
+    Il testo elenca le famiglie sopra soglia con il numero di voci: «Medio Oriente 7 (oggi), Cina 4 (ieri)»."""
+    if flags.empty:
+        return None, "archivio notizie non disponibile"
+    day = pd.Timestamp(day).normalize()
+    parts, known = [], False
+    for d, label in ((day, "oggi"), (day - pd.Timedelta(days=1), "ieri")):
+        if d not in flags.index:
+            continue
+        known = True
+        for theme in flags.columns:
+            if bool(flags.at[d, theme]):
+                parts.append(f"{THEME_LABELS.get(theme, theme)} {int(counts.at[d, theme])} ({label})")
+    if not known:
+        return None, "archivio notizie senza questi giorni"
+    return bool(parts), (", ".join(parts) if parts else "nessuna")
+
+
+def refresh_news(store: Store, day: date) -> int:
+    """Riscarica da Wikipedia la pagina di oggi (ancora in scrittura) e di ieri, cosi' il controllo della sera vede il giorno.
+    Senza rete torna −1 e il controllo usa l'archivio com'e'."""
+    try:
+        return events.refresh_days(store, [day - timedelta(days=1), day])
+    except Exception:
+        return -1
+
+
+def news_line(t: dict) -> str:
+    if t.get("notizie") == 1:
+        return f"Notizie forti (Wikipedia, oggi/ieri): {t.get('temi') or '—'} → entra anche la corsia «+ notizie»."
+    if t.get("notizie") == 0:
+        return "Notizie forti: nessuna → solo la corsia statistica."
+    return f"Notizie: {t.get('temi') or 'archivio non disponibile'} → solo la corsia statistica."
+
+
 # --- testi degli avvisi --------------------------------------------------------------------------
 
 def _name(sym: str) -> str:
     return f"{MARKETS.get(sym, sym)} ({sym})"
 
 
+def _lane(t: dict) -> str:
+    return " [anche corsia + notizie]" if t.get("notizie") == 1 else ""
+
+
 def signal_text(sym: str, t: dict, close: float) -> str:
     return (f"{TAG} Segnale di oggi su {_name(sym)}: chiusura {close:,.2f} sul minimo di giornata, sopra la media a 200 giorni. "
             f"Domani all'apertura la regola COMPRA: nozionale simulato {NOTIONAL_EUR:,.0f} € (rischio {ACCOUNT_EUR * RISK:,.0f} €, "
             f"il {RISK:.0%} di un conto da {ACCOUNT_EUR:,.0f} €), target +{TARGET:.0%} in giornata, stop −{STOP:.0%} sulla chiusura, "
-            f"uscita entro {MAX_DAYS} giorni di mercato. Nessun euro vero.")
+            f"uscita entro {MAX_DAYS} giorni di mercato. {news_line(t)} Nessun euro vero.")
 
 
 def open_text(sym: str, t: dict) -> str:
-    return (f"{TAG} Entrata su {_name(sym)} a {t['entry']:,.2f} il {t['entry_day']} (segnale del {t['signal_day']}): "
+    return (f"{TAG} Entrata su {_name(sym)} a {t['entry']:,.2f} il {t['entry_day']} (segnale del {t['signal_day']}){_lane(t)}: "
             f"target {t['target_level']:,.2f}, stop sulla chiusura {t['stop_level']:,.2f}, uscita a tempo il {t['last_day'] or '—'}. "
             f"Nozionale simulato {NOTIONAL_EUR:,.0f} €.")
 
 
 def close_text(sym: str, t: dict) -> str:
-    return (f"{TAG} Chiusa ({t['how']}) l'operazione su {_name(sym)}: da {t['entry']:,.2f} a {t['exit']:,.2f} "
+    return (f"{TAG} Chiusa ({t['how']}) l'operazione su {_name(sym)}{_lane(t)}: da {t['entry']:,.2f} a {t['exit']:,.2f} "
             f"({t['exit'] / t['entry'] - 1:+.2%}), risultato {t['pnl']:+.2f} € su {NOTIONAL_EUR:,.0f} € simulati, costi {t['costs']:.2f} €.")
 
 
@@ -176,9 +267,10 @@ def _busy(trades: list[dict], signal_day: pd.Timestamp) -> bool:
 def step(store: Store, now: datetime | None = None, send=alerts.send) -> dict:
     now = now or datetime.now(timezone.utc)
     db = store.conn
-    db.executescript(SCHEMA)
+    _init(db)
     since = pd.Timestamp(now.date()) - pd.Timedelta(days=LOOKBACK_DAYS)
-    out = {"segnali": [], "aperte": [], "chiuse": [], "riepilogo": None}
+    out = {"segnali": [], "aperte": [], "chiuse": [], "riepilogo": None, "notizie": refresh_news(store, now.date())}
+    counts, flags = news_flags(store)
     for sym in MARKETS:
         bars = load_bars(store, sym)
         if bars.empty:
@@ -189,6 +281,7 @@ def step(store: Store, now: datetime | None = None, send=alerts.send) -> dict:
             if t["status"] == row["status"] and t["status"] != "aperta":
                 continue
             _update(db, row["id"], t)
+            t["notizie"], t["temi"] = row["notizie"], row["temi"]
             if row["status"] == "segnalata" and t["status"] in ("aperta", "chiusa"):
                 send(open_text(sym, t))
                 out["aperte"].append(sym)
@@ -202,6 +295,8 @@ def step(store: Store, now: datetime | None = None, send=alerts.send) -> dict:
             if day < since or day.date().isoformat() in done or _busy(existing, day):
                 continue
             t = simulate(bars, day)
+            flag, detail = news_check(counts, flags, day)
+            t["notizie"], t["temi"] = (None if flag is None else int(flag)), detail
             db.execute(f"INSERT OR IGNORE INTO m60_trades ({', '.join(_COLS)}) VALUES ({', '.join('?' * len(_COLS))})",
                        (sym, *(t[c] for c in _COLS[1:])))
             existing.append({**t, "symbol": sym})
@@ -236,31 +331,133 @@ def stats(trades: list[dict]) -> dict:
             "vincita_media": round(sum(wins) / len(wins), 2) if wins else None,
             "perdita_media": round(sum(losses) / len(losses), 2) if losses else None,
             "per_euro_perso": round(sum(wins) / -sum(losses), 2) if wins and losses and sum(losses) < 0 else None,
+            "per_operazione": round(sum(pnl) / len(done) / NOTIONAL_EUR, 5),
             "peggiore": round(min(pnl), 2), "migliore": round(max(pnl), 2),
             "per_uscita": {k: sum(1 for t in done if t["how"] == k) for k in ("target", "target in apertura", "stop", "tempo")}}
+
+
+def _lane_text(s: dict) -> str:
+    if not s["operazioni"]:
+        return "nessuna operazione chiusa"
+    pf = f"{s['per_euro_perso']:.2f}" if s["per_euro_perso"] is not None else "—"
+    return (f"{s['operazioni']} operazioni chiuse, {s['vinte']} vinte ({s['vinte_quota']:.0%}), {pf} euro guadagnati per euro perso, "
+            f"risultato {s['risultato']:+.2f} € ({s['risultato'] / ACCOUNT_EUR:+.1%} del conto simulato da {ACCOUNT_EUR:,.0f} €)")
+
+
+def _lever_text(s: dict) -> str:
+    if not s["operazioni"]:
+        return "—"
+    return " / ".join(f"leva {L}: {s['risultato'] * L / LANE_LEVER:+.0f} €" for L in REPORT_LEVERS)
 
 
 def report_text(store: Store, week: str) -> str:
     trades = _rows(store.conn, "")
     s = stats(trades)
+    sn = stats([t for t in trades if t.get("notizie") == 1])
     aperte = sum(t["status"] in ("segnalata", "aperta") for t in trades)
     if not s["operazioni"]:
         return f"{TAG} Settimana {week}: nessuna operazione simulata chiusa finora ({aperte} in corso). Attesi ~31 segnali l'anno sui tre indici."
     per_sym = "; ".join(f"{sym} {st['operazioni']} op. {st['risultato']:+.0f} €"
                         for sym in MARKETS for st in [stats([t for t in trades if t["symbol"] == sym])] if st["operazioni"])
-    pf = f"{s['per_euro_perso']:.2f}" if s["per_euro_perso"] is not None else "—"
-    return (f"{TAG} Settimana {week}, dall'inizio: {s['operazioni']} operazioni chiuse, {s['vinte']} vinte ({s['vinte_quota']:.0%}), "
-            f"euro guadagnati per euro perso {pf}, risultato {s['risultato']:+.2f} € su un conto simulato da {ACCOUNT_EUR:,.0f} € "
-            f"({s['risultato'] / ACCOUNT_EUR:+.1%}), costi {s['costi']:.2f} €. Per mercato: {per_sym}. In corso: {aperte}. "
-            f"Atteso dallo storico: 1,3-1,4 per euro perso, 58-61% vinte. Tutto simulato, nessun euro vero.")
+    return (f"{TAG} Settimana {week}, dall'inizio. Corsia statistica (tutti i segnali): {_lane_text(s)}. "
+            f"Corsia + notizie (solo i segnali con una notizia forte): {_lane_text(sn)}. "
+            f"Lo stesso a leva 1, 3 e 5 (senza interesse composto): statistica {_lever_text(s)}; + notizie {_lever_text(sn)}. "
+            f"Per mercato: {per_sym}. In corso: {aperte}. Costi: {s['costi']:.2f} €. "
+            f"Atteso dallo storico: statistica 1,3-1,4 per euro perso e 58-61% vinte; + notizie 1,5 (dal 2015, casi pochi). "
+            f"Tutto simulato, nessun euro vero.")
 
 
-def replay(store: Store, since: str = "2005-01-01") -> dict:
-    """La stessa regola sul passato, un mercato alla volta, una posizione per mercato: cosa aspettarsi."""
+# --- il passato: due corsie e tabella della leva -------------------------------------------------
+
+def _curve_summary(curve: pd.Series, account: float, closeouts: int, ruin) -> dict:
+    final = float(curve.iloc[-1])
+    years = max((curve.index[-1] - curve.index[0]).days / 365.25, 1 / 365.25)
+    monthly = curve.resample("ME").last().pct_change().dropna()
+    yearly = curve.resample("YE").last().pct_change().dropna()
+
+    def annual(c: pd.Series, start_value: float):
+        if len(c) < 2 or start_value <= 0 or float(c.iloc[-1]) <= 0:
+            return None
+        y = (c.index[-1] - c.index[0]).days / 365.25
+        return round((float(c.iloc[-1]) / start_value) ** (1 / y) - 1, 4) if y > 0 else None
+
+    disc, ver = curve[curve.index < pd.Timestamp(VERIFY_FROM)], curve[curve.index >= pd.Timestamp(VERIFY_FROM)]
+    return {"conto_finale": round(final, 2),
+            "annuo": round((final / account) ** (1 / years) - 1, 4) if final > 0 else -1.0,
+            "perdita_max": round(float((curve / curve.cummax() - 1).min()), 4),
+            "mese_peggiore": round(float(monthly.min()), 4) if len(monthly) else None,
+            "mesi_positivi": round(float((monthly > 0).mean()), 3) if len(monthly) else None,
+            "anni_negativi": int((yearly < 0).sum()),
+            "chiusure_forzate": closeouts,
+            "azzerato": ruin.date().isoformat() if ruin is not None else None,
+            "annuo_scoperta": annual(disc, account),
+            "annuo_verifica": annual(ver, float(disc.iloc[-1])) if len(disc) else annual(ver, account)}
+
+
+def leverage_table(bars_by: dict[str, pd.DataFrame], trades: list[dict], levers=LEVERS, account: float = ACCOUNT_EUR) -> dict:
+    """La stessa lista di operazioni con il conto a leva L: nozionale per posizione = L/3 del conto del momento (tre posizioni
+    insieme = leva piena), valutazione giornaliera alla chiusura, spread per lato, finanziamento ogni notte, chiusura forzata
+    del broker quando il conto scende sotto il 50% del margine (leva massima del broker max(20, L)), conto azzerato sotto l'1%."""
+    done = [t for t in trades if t.get("status", "chiusa") == "chiusa" and t.get("exit_day")]
+    if not done or not bars_by:
+        return {}
+    days = pd.DatetimeIndex(sorted(set().union(*[set(b.index) for b in bars_by.values()])))
+    closes = {sym: b["close"] for sym, b in bars_by.items()}
+    by_entry: dict[pd.Timestamp, list[dict]] = {}
+    for t in done:
+        by_entry.setdefault(pd.Timestamp(t["entry_day"]), []).append(t)
+    out = {}
+    for L in levers:
+        eq, pos, curve, closeouts, ruin = float(account), [], [], 0, None
+        pmax = max(20.0, float(L))
+        for d in days:
+            pnl = 0.0
+            for p in list(pos):
+                c = closes[p["symbol"]]
+                if d not in c.index:
+                    continue
+                if pd.Timestamp(p["exit_day"]) == d:
+                    pnl += p["n"] * (p["exit"] / p["last"] - 1) - p["n"] * SPREAD
+                    pos.remove(p)
+                else:
+                    px = float(c.loc[d])
+                    pnl += p["n"] * (px / p["last"] - 1)
+                    p["last"] = px
+                pnl -= p["n"] * FINANCING_YEAR / 365
+            if ruin is None:
+                for t in by_entry.get(d, []):
+                    used = sum(p["n"] for p in pos)
+                    n = min(eq * L / 3, max(eq * L - used, 0.0))
+                    if n <= 0:
+                        continue
+                    pnl -= n * SPREAD
+                    if pd.Timestamp(t["exit_day"]) == d:
+                        pnl += n * (t["exit"] / t["entry"] - 1) - n * SPREAD
+                    else:
+                        px = float(closes[t["symbol"]].loc[d])
+                        pnl += n * (px / t["entry"] - 1)
+                        pos.append({"symbol": t["symbol"], "exit_day": t["exit_day"], "exit": t["exit"], "n": n, "last": px})
+            eq += pnl
+            used = sum(p["n"] for p in pos)
+            if pos and eq < 0.5 * used / pmax:          # chiusura forzata: margine sotto il 50%
+                closeouts += 1
+                pos = []
+            if eq <= account * 0.01 and ruin is None:
+                ruin, eq, pos = d, max(eq, 0.0), []
+            curve.append(max(eq, 0.0))
+        out[L] = _curve_summary(pd.Series(curve, index=days), account, closeouts, ruin)
+    return out
+
+
+def replay(store: Store, since: str = "2005-01-01", levers=LEVERS) -> dict:
+    """La stessa regola sul passato, un mercato alla volta, una posizione per mercato: cosa aspettarsi.
+    Torna le due corsie (tutti i segnali / solo con notizia forte, dove l'archivio notizie copre i giorni), gli anni e la leva."""
     out = {"dal": since, "mercati": {}, "anni": {}}
-    all_trades = []
+    counts, flags = news_flags(store)
+    bars_by, all_trades = {}, []
     for sym in MARKETS:
         bars = load_bars(store, sym)
+        bars_by[sym] = bars
         trades, last_exit = [], None
         for day in signal_days(bars):
             if day < pd.Timestamp(since) or (last_exit is not None and day < last_exit):
@@ -269,6 +466,8 @@ def replay(store: Store, since: str = "2005-01-01") -> dict:
             if t["status"] != "chiusa":
                 continue
             t["symbol"] = sym
+            flag, detail = news_check(counts, flags, day)
+            t["notizie"], t["temi"] = (None if flag is None else int(flag)), detail
             trades.append(t)
             last_exit = pd.Timestamp(t["exit_day"])
         out["mercati"][sym] = stats(trades)
@@ -278,4 +477,13 @@ def replay(store: Store, since: str = "2005-01-01") -> dict:
         out["anni"][y] = round(out["anni"].get(y, 0.0) + t["pnl"], 2)
     out["anni"] = dict(sorted(out["anni"].items()))
     out["totale"] = stats(all_trades)
+    known = [t for t in all_trades if t["notizie"] is not None]
+    if known:
+        def split(ts):
+            return {"statistica": stats(ts), "con_notizia_forte": stats([t for t in ts if t["notizie"] == 1]),
+                    "senza_notizia_forte": stats([t for t in ts if t["notizie"] == 0])}
+        out["notizie"] = {"dal": min(t["signal_day"] for t in known), "temi": list(SHOCK_THEMES), **split(known),
+                          "periodi": {f"fino_{int(VERIFY_FROM[:4]) - 1}": split([t for t in known if t["signal_day"] < VERIFY_FROM]),
+                                      f"dal_{VERIFY_FROM[:4]}": split([t for t in known if t["signal_day"] >= VERIFY_FROM])}}
+    out["leva"] = leverage_table(bars_by, all_trades, levers)
     return out

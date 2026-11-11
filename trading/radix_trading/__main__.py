@@ -14,7 +14,7 @@
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
     python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
-    python -m radix_trading metodo60         # corsia simulata «metodo 60%» (un giro; --from 2005-01-01 per il passato)
+    python -m radix_trading metodo60         # corsie simulate «metodo 60%» statistica e + notizie (un giro; --from 2005-01-01: passato e tabella della leva)
     python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
 """
 

@@ -100,6 +100,13 @@ def collect_news(store: Store, batches: int = BATCHES_PER_RUN, today: date | Non
                if (today - timedelta(days=k)).isoformat() not in have or (today - timedelta(days=k)).isoformat() in recent]
     todo = missing[: batches * wikinews.BATCH]
     got = wikinews.fetch_days(todo) if todo else {}
+    n = save_days(store, got)
+    left = len(missing) - len(todo)
+    return {"giorni_scaricati": len(got), "notizie": n, "giorni_mancanti": max(0, left)}
+
+
+def save_days(store: Store, got: dict[date, list[dict]]) -> int:
+    """Scrive in archivio le pagine scaricate (una per giorno), sostituendo quelle gia' presenti."""
     n = 0
     for d, items in got.items():
         store.conn.execute("DELETE FROM news_items WHERE day = ?", (d.isoformat(),))
@@ -108,8 +115,14 @@ def collect_news(store: Store, batches: int = BATCHES_PER_RUN, today: date | Non
         store.conn.execute("INSERT OR REPLACE INTO news_days VALUES (?, ?)", (d.isoformat(), len(items)))
         n += len(items)
     store.conn.commit()
-    left = len(missing) - len(todo)
-    return {"giorni_scaricati": len(got), "notizie": n, "giorni_mancanti": max(0, left)}
+    return n
+
+
+def refresh_days(store: Store, days: list[date]) -> int:
+    """Riscarica giorni precisi (anche oggi, con la pagina ancora in scrittura): per chi decide la sera stessa."""
+    init(store)
+    got = wikinews.fetch_days(days) if days else {}
+    return save_days(store, {d: items for d, items in got.items() if items})
 
 
 def collect_calendar(store: Store) -> dict:

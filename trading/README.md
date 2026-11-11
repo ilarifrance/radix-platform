@@ -172,6 +172,18 @@ il segnale la sera stessa (`[SIMULATO metodo60] ... Domani all'apertura la regol
 riepilogo del venerdi'. `python -m radix_trading metodo60 --from 2005-01-01` rifa' la regola sul passato;
 `--prova` stampa gli avvisi senza mandarli. Nessun euro vero.
 
+Due corsie dall'11/11/2026 (Francesco: «le notizie sono molto importanti... sdoppiare le simulazioni»). Ogni segnale
+finisce nella corsia «statistica»; la corsia «+ notizie» tiene solo i segnali arrivati con una notizia forte: il giorno del
+segnale o il giorno prima una delle famiglie guerra, crisi bancaria, epidemie, dazi, borse, Medio Oriente, Russia-Ucraina,
+sanzioni, Cina (archivio Wikipedia «Current events», regole di `events.py`) conta piu' voci del 90° percentile dell'anno
+prima. Sullo storico dal 2015: tutti i segnali 1,77 per euro perso nel 2015-19 e 1,30 nel 2020-26, solo con notizia forte
+1,94 e 1,51, saltando i giorni di notizie forti 1,58 e 1,05, notizie da sole senza il segnale 1,15 (casi pochi: 60 e 119).
+La sera del segnale si riscarica la pagina di Wikipedia di oggi e ieri e il verdetto resta scritto (colonne `notizie`,
+`temi` di `m60_trades`); il riepilogo del venerdi' confronta le due corsie e riporta il risultato a leva 1, 3 e 5.
+`--from` stampa anche la tabella della leva (nozionale per posizione L/3 del conto, valutazione giornaliera, chiusura forzata
+del broker sotto il 50% del margine): sul Mac, 2005-2026, leva 2 +8,6% l'anno con perdita massima −22%, leva 5 +18% / −49%,
+leva 10 +22% / −86%, leva 20 e 30 conto azzerato.
+
 ## Diario del conto Axi (solo lettura)
 
 `axi.py` legge gli estratti MetaTrader 4 («Statement» di Axi) che Francesco incolla in un file di testo:
