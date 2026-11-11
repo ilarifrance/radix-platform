@@ -28,17 +28,19 @@ Due corsie, dall'11/11/2026 (Francesco: «le notizie sono molto importanti... sd
 viene registrato nella corsia «statistica»; la corsia «+ notizie» tiene solo i segnali arrivati con una NOTIZIA FORTE:
 il giorno del segnale o il giorno prima una delle famiglie di notizie in `SHOCK_THEMES` (guerra, crisi bancaria,
 epidemie, dazi, borse, Medio Oriente, Russia-Ucraina, sanzioni, Cina; archivio Wikipedia «Current events», regole in
-`events.py`) conta piu' voci del 90° percentile dell'anno precedente. Sullo storico dal 2015 (Mac, 11/11): tutti i
-segnali 1,77 per euro perso nel 2015-19 e 1,30 nel 2020-26; solo con notizia forte 1,94 e 1,51 (68% e 60% vinte,
-+0,62% per operazione contro +0,37%); saltando i giorni di notizie forti 1,58 e 1,05; le notizie da sole, senza il
-segnale statistico, 1,15. Casi pochi (60 e 119): per questo le due corsie corrono in parallelo e si confrontano ogni
-venerdi'. Dal vivo la pagina di Wikipedia del giorno e' ancora in scrittura alle 23:30 UTC: si riscarica prima del
-controllo e il verdetto resta quello scritto quella sera (non si riscrive col senno di poi).
+`events.py`) conta piu' voci del 90° percentile dell'anno precedente. Sullo storico dal 2015 con queste regole (`replay`
+sul Mac, 11/11; euro guadagnati per euro perso 2015-19 / 2020-26): tutti i segnali 1,58 / 1,32; solo con notizia forte
+1,60 / 1,51 (64% e 62% vinte); senza notizia forte 1,55 / 1,11. Il vantaggio delle notizie c'e' solo dal 2020 e i casi
+sono pochi (64 e 129): per questo le due corsie corrono in parallelo e si confrontano ogni venerdi'. (Con il target
+misurato sulla chiusura invece che toccato in giornata i numeri salgono, 1,94 / 1,51 contro 1,77 / 1,30: variante NON
+adottata, sceglierla dopo aver visto i risultati sarebbe senno di poi.) Dal vivo la pagina di Wikipedia del giorno e'
+ancora in scrittura la sera: si riscarica prima del controllo e il verdetto resta quello scritto quella sera.
 
 Leva (Francesco, 11/11: «la stessa simulazione con leva 5, 10, 20 e 30»): `replay` rifa' la stessa lista di operazioni
 con il conto a leva L (nozionale per posizione L/3 del conto, tre insieme = leva piena, valutazione giornaliera, chiusura
-forzata del broker sotto il 50% del margine). Sul Mac, 2005-2026: leva 2 +8,6% l'anno con perdita massima −22%; leva 5
-+18% / −49%; leva 10 +22% / −86% (2020-26 solo +13%); leva 20 e 30 conto azzerato. Nessun euro vero: la corsia
+forzata del broker sotto il 50% del margine). Sul Mac, 2005-2026, con le regole della corsia: leva 1 +3,7% l'anno con
+perdita massima −17%; leva 2 +7,0% / −31%; leva 3 +9,9% / −45%; leva 5 +13,9% / −67% (mese peggiore −37%); leva 10
++12,3% / −95%; leva 20 e 30 conto azzerato (2010, 2009). Nessun euro vero: la corsia
 scrive un'operazione simulata a ogni segnale e avvisa su Telegram la sera stessa («domani all'apertura...»), cosi'
 Francesco vede la regola lavorare dal vivo prima di qualunque decisione. Gira nel giro `daily` (23:30 UTC): i prezzi
 del giorno arrivano la sera, il segnale della sera vale per l'apertura del giorno dopo.

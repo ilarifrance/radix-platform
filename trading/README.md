@@ -176,13 +176,15 @@ Due corsie dall'11/11/2026 (Francesco: «le notizie sono molto importanti... sdo
 finisce nella corsia «statistica»; la corsia «+ notizie» tiene solo i segnali arrivati con una notizia forte: il giorno del
 segnale o il giorno prima una delle famiglie guerra, crisi bancaria, epidemie, dazi, borse, Medio Oriente, Russia-Ucraina,
 sanzioni, Cina (archivio Wikipedia «Current events», regole di `events.py`) conta piu' voci del 90° percentile dell'anno
-prima. Sullo storico dal 2015: tutti i segnali 1,77 per euro perso nel 2015-19 e 1,30 nel 2020-26, solo con notizia forte
-1,94 e 1,51, saltando i giorni di notizie forti 1,58 e 1,05, notizie da sole senza il segnale 1,15 (casi pochi: 60 e 119).
-La sera del segnale si riscarica la pagina di Wikipedia di oggi e ieri e il verdetto resta scritto (colonne `notizie`,
-`temi` di `m60_trades`); il riepilogo del venerdi' confronta le due corsie e riporta il risultato a leva 1, 3 e 5.
-`--from` stampa anche la tabella della leva (nozionale per posizione L/3 del conto, valutazione giornaliera, chiusura forzata
-del broker sotto il 50% del margine): sul Mac, 2005-2026, leva 2 +8,6% l'anno con perdita massima −22%, leva 5 +18% / −49%,
-leva 10 +22% / −86%, leva 20 e 30 conto azzerato.
+prima. Sullo storico dal 2015 con le regole della corsia (euro guadagnati per euro perso 2015-19 / 2020-26): tutti i segnali
+1,58 / 1,32, solo con notizia forte 1,60 / 1,51, senza notizia forte 1,55 / 1,11: il vantaggio delle notizie c'e' solo dal 2020
+e i casi sono pochi (64 e 129), per questo le due corsie si confrontano dal vivo. La sera del segnale si riscarica la pagina
+di Wikipedia di oggi e ieri e il verdetto resta scritto (colonne `notizie`, `temi` di `m60_trades`); il riepilogo del
+venerdi' confronta le due corsie e riporta il risultato a leva 1, 3 e 5. `--from` stampa anche la tabella della leva
+(nozionale per posizione L/3 del conto, valutazione giornaliera, chiusura forzata del broker sotto il 50% del margine): sul
+Mac, 2005-2026, leva 2 +7,0% l'anno con perdita massima −31%, leva 3 +9,9% / −45%, leva 5 +13,9% / −67%, leva 10 +12,3% / −95%,
+leva 20 e 30 conto azzerato. (Con il target misurato sulla chiusura i numeri salgono; variante non adottata: sceglierla dopo
+aver visto i risultati sarebbe senno di poi.)
 
 ## Diario del conto Axi (solo lettura)
 
