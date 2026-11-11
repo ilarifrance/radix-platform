@@ -404,6 +404,7 @@ def leverage_table(bars_by: dict[str, pd.DataFrame], trades: list[dict], levers=
     if not done or not bars_by:
         return {}
     days = pd.DatetimeIndex(sorted(set().union(*[set(b.index) for b in bars_by.values()])))
+    days = days[days >= min(pd.Timestamp(t["entry_day"]) for t in done)]   # la resa annua si misura dalla prima operazione
     closes = {sym: b["close"] for sym, b in bars_by.items()}
     by_entry: dict[pd.Timestamp, list[dict]] = {}
     for t in done:

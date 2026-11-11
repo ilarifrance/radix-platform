@@ -227,6 +227,15 @@ def test_leverage_table_compounds_and_wipes_out():
     tab = m60.leverage_table({"SPY": crash}, [lose], levers=(1, 30))
     assert tab[30]["conto_finale"] == 0 and tab[30]["azzerato"] == idx[2].date().isoformat() and tab[30]["annuo"] == -1.0
     assert tab[1]["conto_finale"] > 0 and tab[1]["azzerato"] is None and tab[1]["perdita_max"] < -0.03
+    # anni di barre prima della prima operazione non contano: la resa annua parte dalla prima entrata
+    long_idx = pd.bdate_range("2021-01-01", periods=len(idx) + 500)
+    long_bars = pd.DataFrame({"open": 100.0, "high": 101.0, "low": 99.0, "close": 100.0}, index=long_idx)
+    long_bars.iloc[-4:] = bars.values
+    late = {**win, "entry_day": long_idx[-3].date().isoformat(), "exit_day": long_idx[-2].date().isoformat()}
+    tab = m60.leverage_table({"SPY": long_bars}, [late], levers=(1,))
+    years = (long_idx[-1] - long_idx[-3]).days / 365.25
+    assert abs(tab[1]["conto_finale"] - expected) < 0.01
+    assert tab[1]["annuo"] == round((tab[1]["conto_finale"] / m60.ACCOUNT_EUR) ** (1 / years) - 1, 4)
 
 
 def test_replay_splits_the_two_lanes_when_the_archive_covers_the_days():
