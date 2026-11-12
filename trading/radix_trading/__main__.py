@@ -14,7 +14,7 @@
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
     python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
-    python -m radix_trading metodo60         # corsie simulate «metodo 60%» statistica e + notizie (un giro; --from 2005-01-01: passato e tabella della leva)
+    python -m radix_trading metodo60         # corsie simulate «metodo 60%» (indici statistica / + notizie, oro, osservazioni; --from: passato e leva)
     python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
 """
 
@@ -265,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
                    help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
+    p.add_argument("--completa-notizie", dest="completa_notizie", action="store_true",
+                   help="solo per metodo60: verdetto notizie (a posteriori) alle operazioni registrate prima dell'11/11/2026")
     p.add_argument("--giorno", default=None,
                    help="solo per axi: giorno dell'estratto (AAAA-MM-GG) quando e' stato incollato senza intestazione")
     p.add_argument("--quando", default=None,
@@ -369,8 +371,11 @@ def main(argv: list[str] | None = None) -> int:
                 (settings.data_dir / "osservatorio.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
         elif args.command == "metodo60":
             from . import metodo60
-            # senza --from: un giro come nel daily (con --prova gli avvisi si stampano); con --from: la regola sul passato
-            if args.since:
+            # senza --from: un giro come nel daily (con --prova gli avvisi si stampano); con --from: la regola sul passato;
+            # --completa-notizie: verdetto notizie alle operazioni nate prima dello sdoppiamento delle corsie
+            if args.completa_notizie:
+                result = {"completate": metodo60.backfill_news(store)}
+            elif args.since:
                 result = metodo60.replay(store, args.since)
                 (settings.data_dir / "metodo60.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
             else:

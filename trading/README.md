@@ -186,6 +186,19 @@ Mac, 2005-2026, leva 2 +7,0% l'anno con perdita massima −31%, leva 3 +9,9% / �
 leva 20 e 30 conto azzerato. (Con il target misurato sulla chiusura i numeri salgono; variante non adottata: sceglierla dopo
 aver visto i risultati sarebbe senno di poi.)
 
+Corsia «oro, solo statistica» e osservazioni dal 12/11/2026 (Francesco, 11/11: «mappare bene le notizie e dove agire, se solo
+su S&P 500, su oro o altre»). La stessa regola provata su 15 mercati dal 2015 regge sugli indici USA e sull'oro (GLD 1,42 /
+1,40 per euro perso 2015-19 / 2020-26; con il filtro notizie peggiora, 0,84 nel 2020-26), non su Europa, Italia, Giappone,
+emergenti, petrolio, bond e settori: la terza corsia registra i segnali IBS sul GLD (prezzi Tiingo nel venue `materie`, quelli
+yahoo sono fermi) con il prefisso `[SIMULATO metodo60 oro]`, notizie annotate ma non filtranti. La mappa 16 temi × 15 mercati
+(33 coppie su 152 reggono in entrambi i periodi contro il 10-21% con le date delle notizie spostate a caso) indica due
+famiglie «notizia senza minimo» messe in osservazione, prefisso `[SIMULATO osservazione]`: tregua/negoziati di pace → Nasdaq
+(QQQ) e Russia-Ucraina → oro (GLD); si compra all'apertura dopo un giorno con la notizia del tema (oggi o ieri) e chiusura
+sopra la media a 200 giorni, stesse uscite, colonna `lane` di `m60_trades` (`indici`, `oro`, `tregua_nasdaq`, `russia_oro`).
+Il riepilogo del venerdi' riporta anche oro e osservazioni; `--from` stampa le sezioni `oro` e `osservazioni`;
+`--completa-notizie` da' il verdetto notizie (segnato «a posteriori») alle operazioni registrate prima dello sdoppiamento.
+Tutto osservazione, nessun euro.
+
 ## Diario del conto Axi (solo lettura)
 
 `axi.py` legge gli estratti MetaTrader 4 («Statement» di Axi) che Francesco incolla in un file di testo:

@@ -77,12 +77,17 @@ def test_simulate_target_stop_time_and_gap():
     assert m60.simulate(bars, sig)["status"] == "segnalata"
 
 
-def _store(rows, start):
+def _store(rows, start, by_sym=None, gold_rows=None):
+    """Archivio finto: SPY = rows, gli altri indici piatti (o `by_sym`), l'oro (venue materie) piatto o `gold_rows`."""
     st = Store(":memory:")
+    by_sym = by_sym or {}
     for sym in m60.MARKETS:
-        b = _bars(rows, start) if sym == "SPY" else _bars(_flat(len(rows)), start)
+        b = _bars(by_sym.get(sym, rows if sym == "SPY" else _flat(len(rows))), start)
         b.index = b.index.tz_localize("UTC")
         st.upsert_bars(m60.VENUE, sym, "1d", b.assign(volume=1.0))
+    g = _bars(gold_rows or _flat(len(rows), 180.0), start)
+    g.index = g.index.tz_localize("UTC")
+    st.upsert_bars(m60.GOLD_VENUE, "GLD", "1d", g.assign(volume=1.0))
     return st
 
 
@@ -248,3 +253,108 @@ def test_replay_splits_the_two_lanes_when_the_archive_covers_the_days():
     rep = m60.replay(st, "2025-01-01")
     assert rep["notizie"]["con_notizia_forte"]["operazioni"] == 1 and rep["notizie"]["senza_notizia_forte"]["operazioni"] == 0
     assert rep["notizie"]["dal"] == sig.date().isoformat() and rep["notizie"]["periodi"]["dal_2020"]["statistica"]["operazioni"] == 1
+
+
+def test_gold_lane_signals_without_the_news_filter():
+    start = "2025-01-01"
+    rows = _flat(200)
+    gold = _flat(200, 180.0) + [(181, 183, 180.5, 180.6)]     # ultimo giorno: GLD chiude sul minimo sopra la media
+    st = _store(rows + [_flat(1)[0]], start, gold_rows=gold)
+    last = pd.bdate_range(start, periods=len(gold))[-1]
+    # l'archivio notizie ha una notizia forte: sull'oro si registra ma non filtra
+    _news_archive(st, pd.date_range(end=last, periods=100, freq="D"),
+                  {last: [("Armed conflicts", f"Israel strikes Gaza, round {k}") for k in range(4)]})
+    sent = []
+    out = m60.step(st, datetime(last.year, last.month, last.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert out["segnali"] == ["GLD"] and len(sent) == 1
+    assert sent[0].startswith("[SIMULATO metodo60 oro] Segnale di oggi su Oro (GLD): chiusura 180.60")
+    assert "Corsia oro, solo statistica" in sent[0] and "Nessun euro vero" in sent[0]
+    assert st.conn.execute("SELECT symbol, lane, notizie, temi, status FROM m60_trades").fetchall() == \
+        [("GLD", "oro", 1, "Medio Oriente 4 (oggi)", "segnalata")]
+    # la barra dopo: entrata, target; il riepilogo mette l'oro nella sua riga e non nelle corsie indici
+    d1 = pd.bdate_range(last, periods=2)[1]
+    bar = pd.DataFrame({"open": [181.0], "high": [187.0], "low": [180.5], "close": [186.5], "volume": 1.0},
+                       index=pd.DatetimeIndex([d1]).tz_localize("UTC"))
+    st.upsert_bars(m60.GOLD_VENUE, "GLD", "1d", bar)
+    out = m60.step(st, datetime(d1.year, d1.month, d1.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert out["aperte"] == ["GLD"] and out["chiuse"] == ["GLD"]
+    assert sent[-1].startswith("[SIMULATO metodo60 oro] Chiusa (target) l'operazione su Oro (GLD):") and "[anche corsia" not in sent[-1]
+    rep = m60.report_text(st, "2025-W40")
+    assert "Corsia statistica (tutti i segnali): nessuna operazione chiusa" in rep
+    assert "Corsia oro (solo statistica): 1 operazioni chiuse, 1 vinte (100%)" in rep
+    assert "Osservazioni: tregua → Nasdaq 100 (QQQ): nessuna chiusa; Russia-Ucraina → oro (GLD): nessuna chiusa" in rep
+
+
+def test_observation_lane_buys_after_a_theme_day_above_ma200():
+    start = "2025-01-01"
+    rows = _flat(200) + [_flat(1)[0]]
+    qqq = _flat(200) + [(100, 101, 99.5, 100.5)]              # chiusura sopra la media, ma non sul minimo: niente IBS
+    st = _store(rows, start, by_sym={"QQQ": qqq})
+    last = pd.bdate_range(start, periods=len(rows))[-1]
+    # la notizia «tregua» e' di IERI (giorno di calendario): vale per il giorno di borsa di oggi
+    yesterday = last - pd.Timedelta(days=1)
+    _news_archive(st, pd.date_range(end=last, periods=100, freq="D"),
+                  {yesterday: [("International relations", f"Ceasefire talks in Cairo, round {k}") for k in range(3)]})
+    sent = []
+    out = m60.step(st, datetime(last.year, last.month, last.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert out["segnali"] == ["tregua_nasdaq"] and len(sent) == 1
+    assert sent[0].startswith("[SIMULATO osservazione] tregua → Nasdaq 100 (QQQ): notizia «tregua 3 (ieri)» con chiusura 100.50")
+    assert "Solo osservazione, nessun euro." in sent[0]
+    assert st.conn.execute("SELECT symbol, lane, notizie, temi, status FROM m60_trades").fetchall() == \
+        [("tregua_nasdaq", "tregua_nasdaq", None, "tregua 3 (ieri)", "segnalata")]
+    # senza chiusura sopra la media (QQQ piatto) la stessa notizia non da' segnale
+    st2 = _store(rows, start)
+    _news_archive(st2, pd.date_range(end=last, periods=100, freq="D"),
+                  {yesterday: [("International relations", f"Ceasefire talks in Cairo, round {k}") for k in range(3)]})
+    assert m60.step(st2, datetime(last.year, last.month, last.day, 23, 30, tzinfo=timezone.utc), send=sent.append)["segnali"] == []
+    # entrata e stop: l'avviso porta il prefisso dell'osservazione e il riepilogo la conta nella sua riga
+    d1, d2 = pd.bdate_range(last, periods=3)[1:]
+    more = pd.DataFrame({"open": [100.0, 96.0], "high": [100.5, 97.0], "low": [96.0, 95.0], "close": [96.5, 96.0], "volume": 1.0},
+                        index=pd.DatetimeIndex([d1, d2]).tz_localize("UTC"))
+    st.upsert_bars(m60.VENUE, "QQQ", "1d", more)
+    out = m60.step(st, datetime(d2.year, d2.month, d2.day, 23, 30, tzinfo=timezone.utc), send=sent.append)
+    assert out["aperte"] == ["tregua_nasdaq"] and out["chiuse"] == ["tregua_nasdaq"]
+    assert any(m.startswith("[SIMULATO osservazione] Chiusa (stop) l'operazione su tregua → Nasdaq 100 (QQQ): da 100.00 a 96.00") for m in sent)
+    rep = m60.report_text(st, "2025-W40")
+    assert "Osservazioni: tregua → Nasdaq 100 (QQQ): 1 op., 0 vinte, — per euro perso, -" in rep
+    assert "Corsia statistica (tutti i segnali): nessuna operazione chiusa" in rep
+
+
+def test_backfill_gives_the_news_verdict_to_rows_born_before_the_split():
+    st = _store(_flat(10), "2025-01-01")
+    m60._init(st.conn)
+    days = pd.date_range("2025-01-01", periods=120, freq="D")
+    _news_archive(st, days, {days[-1]: [("Business and economy", f"Stock market sell-off deepens, part {k}") for k in range(3)]})
+    cols = "symbol, signal_day, status, lane"
+    st.conn.executemany(f"INSERT INTO m60_trades ({cols}) VALUES (?, ?, 'chiusa', ?)",
+                        [("SPY", days[-1].date().isoformat(), None),           # riga del 10/11: lane e notizie vuote
+                         ("QQQ", days[-2].date().isoformat(), "indici"),
+                         ("IWM", days[10].date().isoformat(), "indici"),       # nel riscaldamento dell'archivio: resta «non so»
+                         ("GLD", days[-1].date().isoformat(), "oro")])         # l'oro non si tocca
+    st.conn.commit()
+    assert m60.backfill_news(st) == 2
+    rows = dict((r[0], r[1:]) for r in st.conn.execute("SELECT symbol, lane, notizie, temi FROM m60_trades"))
+    assert rows["SPY"] == ("indici", 1, "borse 3 (oggi) (a posteriori)")
+    assert rows["QQQ"] == ("indici", 0, "nessuna (a posteriori)")
+    assert rows["IWM"] == ("indici", None, None)
+    assert rows["GLD"] == ("oro", None, None)
+    assert m60.backfill_news(st) == 0                       # una volta sola
+
+
+def test_replay_reports_gold_and_observations():
+    rows = _flat(200) + [(101, 103, 100.5, 100.6)] + [(101, 102, 100, 101.5)] * 12
+    gold = _flat(200, 180.0) + [(181, 183, 180.5, 180.6)] + [(181, 187, 180.5, 186.5)] * 12
+    qqq = _flat(200) + [(100, 101, 99.5, 100.5)] + [(100, 100.5, 96, 96.5), (96, 97, 95, 96)] + [(96, 97, 95, 96)] * 10
+    st = _store(rows, "2025-01-01", by_sym={"QQQ": qqq}, gold_rows=gold)
+    sig = m60.signal_days(_bars(rows))[0]
+    _news_archive(st, pd.date_range(end=sig + pd.Timedelta(days=20), periods=120, freq="D"),
+                  {sig: [("International relations", f"Ceasefire talks in Cairo, round {k}") for k in range(3)]})
+    rep = m60.replay(st, "2025-01-01")
+    assert rep["oro"]["statistica"]["operazioni"] == 1 and rep["oro"]["statistica"]["per_uscita"]["target"] == 1
+    assert rep["oro"]["periodi"]["dal_2020"]["statistica"]["operazioni"] == 1
+    obs = rep["osservazioni"]
+    assert set(obs) == set(m60.OBSERVATIONS) and obs["tregua_nasdaq"]["nome"] == "tregua → Nasdaq 100 (QQQ)"
+    assert obs["tregua_nasdaq"]["operazioni"] == 1 and obs["tregua_nasdaq"]["per_uscita"]["stop"] == 1
+    assert obs["russia_oro"]["operazioni"] == 0
+    # la tabella della leva resta sugli indici: una sola operazione (SPY)
+    assert rep["totale"]["operazioni"] == 1 and set(rep["leva"]) == set(m60.LEVERS)
