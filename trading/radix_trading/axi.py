@@ -126,10 +126,20 @@ def parse_statement(text: str, day: str | None = None) -> dict:
     deals = []
     for c in _table(sec.get("Deals", []), "Ticket"):
         c += [""] * (13 - len(c))
-        deals.append({"ticket": int(_num(c[0])), "ts": _ts(c[1]), "type": c[2].lower(), "size": _num(c[3]), "item": c[4] or None,
-                      "price": _num(c[5]), "order_ticket": int(_num(c[6])) if _num(c[6]) is not None else None,
-                      "entry": c[7].lower() or None, "comment": c[8] or None, "fee": _num(c[9]), "commission": _num(c[10]),
-                      "swap": _num(c[11]), "pnl": _num(c[12])})
+        d = {"ticket": int(_num(c[0])), "ts": _ts(c[1]), "type": c[2].lower(), "size": _num(c[3]), "item": c[4] or None,
+             "price": _num(c[5]), "order_ticket": int(_num(c[6])) if _num(c[6]) is not None else None,
+             "entry": c[7].lower() or None, "comment": c[8] or None, "fee": _num(c[9]), "commission": _num(c[10]),
+             "swap": _num(c[11]), "pnl": _num(c[12])}
+        if d["type"] == "balance":
+            # Depositi, dividendi, rettifiche: il numero di celle vuote dopo «balance» cambia da riga a riga (5 o 6),
+            # quindi il commento e' la prima cella con testo e l'importo l'ultimo numero della riga.
+            rest = [x for x in c[3:] if x.strip()]
+            text = [x for x in rest if _num(x) is None]
+            nums = [x for x in rest if _num(x) is not None]
+            d.update({"size": None, "item": None, "price": None, "order_ticket": None, "entry": None,
+                      "comment": text[0] if text else None, "fee": None, "commission": None, "swap": None,
+                      "pnl": _num(nums[-1]) if nums else None})
+        deals.append(d)
     orders = []
     for c in _table(sec.get("Closed Transactions", []), "Ticket"):
         c += [""] * (13 - len(c))
@@ -285,8 +295,11 @@ def exposure(positions: list[dict], equity: float | None) -> list[dict]:
         per_point = float(p["size"] or 0) * pv
         side = +1 if p["type"] == "buy" else -1
         loss_at_stop = side * (p["sl"] - p["price"]) * per_point if p.get("sl") and p.get("price") and pv else None
+        # Quanto manca ancora allo stop dal prezzo di oggi: la parte gia' persa e' dentro il patrimonio.
+        left = side * (p["sl"] - p["market"]) * per_point if p.get("sl") and p.get("market") and pv else None
         out.append({**p, "per_punto": per_point, "allo_stop": loss_at_stop,
                     "allo_stop_quota": (loss_at_stop / equity) if (loss_at_stop is not None and equity) else None,
+                    "da_qui": left, "da_qui_quota": (left / equity) if (left is not None and equity) else None,
                     "nozionale": float(p["size"] or 0) * float(p.get("market") or p.get("price") or 0) * pv})
     return out
 
@@ -417,8 +430,10 @@ def diary_text(store: Store) -> str:
         if positions:
             lines.append("## Posizioni aperte")
             for p in exposure(positions, eq):
-                stop = (f"stop {p['sl']:,.2f} → {p['allo_stop']:+,.0f} $ ({p['allo_stop_quota']:+.0%} del patrimonio)"
-                        if p["allo_stop"] is not None and p["allo_stop_quota"] is not None else "senza stop")
+                stop = (f"stop {p['sl']:,.2f} → {p['allo_stop']:+,.0f} $ dall'entrata"
+                        + (f", ancora {p['da_qui']:+,.0f} $ da qui ({p['da_qui_quota']:+.0%} del patrimonio)"
+                           if p["da_qui"] is not None and p["da_qui_quota"] is not None else "")
+                        if p["allo_stop"] is not None else "senza stop")
                 lines.append(f"- {p['item']} {'lungo' if p['type'] == 'buy' else 'corto'} {p['size']:g} lotti a {p['price']:,.2f} "
                              f"({p['per_punto']:g} $/punto, nozionale {p['nozionale']:,.0f} $), {stop}, ora {p.get('profit') or 0:+,.2f} $")
             lines.append("")

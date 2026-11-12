@@ -81,6 +81,11 @@ def test_parse_statement_sections_numbers_and_server_time():
     assert len(p["deals"]) == 9
     dep = p["deals"][0]
     assert dep["type"] == "balance" and dep["pnl"] == 10000.0 and dep["comment"] == "DEP TEST"
+    # riga «balance» di un dividendo: sei celle vuote dopo il tipo (una in piu' del deposito) e importo in fondo
+    div = axi.parse_statement(STATEMENT.replace(
+        "2001{T}2026.03.06 11:10:24{T}balance{T} {T} {T} {T} {T} {T}DEP TEST{T} {T} {T} {T}10 000.00".replace("{T}", "\t"),
+        "2001{T}2026.03.06 11:10:24{T}balance{T} {T} {T} {T} {T} {T} {T}Dividend US500 #4968530{T} {T} {T} {T}-9.44".replace("{T}", "\t")))["deals"][0]
+    assert div["type"] == "balance" and div["pnl"] == -9.44 and div["comment"] == "Dividend US500 #4968530" and div["item"] is None
     d = p["deals"][1]
     # ora del server (UTC+2) -> UTC
     assert d["ts"] == "2026-03-06T14:39:19Z" and d["entry"] == "in" and d["price"] == 5400.10 and d["order_ticket"] == 1002
