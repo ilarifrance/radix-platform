@@ -54,7 +54,7 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 
 ## Moduli
 
-- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi). Fonti gratuite, senza chiavi.
+- `collectors/` — agenti di raccolta: Kraken (prezzi crypto correnti), Binance (storico crypto orario di 4 anni, solo ricerca), Tiingo (storico ETF, chiave gratuita in `~/RadixTrading/.env` come `TIINGO_API_KEY=...`; senza chiave si prova Yahoo, che spesso blocca), FRED (macro), GDELT (notizie e geopolitica, una richiesta ogni 6 secondi), RSS (`collectors/rss.py`, dal 10/11/2026: i titoli di oggi dai feed pubblici di CNBC, MarketWatch, Yahoo Finance, BBC, BCE, Al Jazeera, ANSA, ogni ora nella stessa tabella `news`; li leggono la sentinella di mercato e il diario Axi), Wikipedia (archivio storico delle notizie). Fonti gratuite, senza chiavi.
 - `store.py` — archivio unico SQLite (prezzi, macro, notizie), lo stesso per backtest e live.
 - `backtest.py` — backtest vettoriale: decisione a t, posizione da t+1; commissioni, slippage e commissione minima in euro; banda di non intervento; walk-forward.
 - `validation.py` — Probabilistic e Deflated Sharpe Ratio; `passes_gate` e' il cancello 1 della roadmap.
@@ -62,6 +62,154 @@ Il token permette solo di scrivere la fotografia di quel membro. RADIX accetta s
 - `config.py` — limiti di rischio (1.000 euro di capitale di test, posizioni da 100 euro).
 - `probability.py` — meta-modello: regressione logistica walk-forward che stima la probabilita' che un'operazione superi i costi; misurato con il Brier score (0,25 = nessuna capacita').
 - `paper.py` — paper trading interno: conto simulato da 1.000 euro con prezzi veri; ogni ora segnale → probabilita' (soglia 55%) → risk manager → esecuzione simulata, con ogni decisione registrata e motivata. `report` ne fa il riepilogo.
+
+## Test da 100 euro veri (spento)
+
+Solo la corsia crypto_trend, su un conto Kraken usato solo per questo (`live.py`).
+- Al massimo 100 euro investiti, niente leva. Gli ordini della regola partono come limite «post only» al miglior
+  prezzo del momento (commissione da maker); se dopo 6 ore non si sono eseguiti, la parte mancante va a mercato.
+  Le vendite dello stop sono sempre a mercato. `RADIX_TRADING_ORDERS=market` torna agli ordini a mercato per tutto.
+- Le monete in portafoglio vanno in staking flessibile su Kraken Earn (`earn.py`, solo strategie «instant», sblocco
+  immediato prima di vendere). Serve il permesso «Earn Funds» sulla chiave; `RADIX_TRADING_EARN=no` lo spegne.
+  Se il conto ha gia' attivo «Kraken Rewards» (Kraken alloca da solo, le monete restano nel saldo spot), quelle
+  monete rendono gia' e non si toccano: niente Allocate, niente sblocco prima di vendere; il riepilogo le conta
+  comunque in «In staking».
+- Sentinella di mercato (`mercato.py`, nel giro `hourly`, chiesta da Francesco il 31/10/2026): nelle ore di Wall Street
+  guarda S&P 500, Nasdaq 100, mondo ex USA, oro, Treasury, petrolio (quotazioni Yahoo), VIX e decennale USA; Bitcoin ed
+  Ethereum sulle 24 ore anche nel fine settimana. Quando una soglia scatta (es. Nasdaq ±2,5%, VIX +20%, BTC ±5%) manda
+  un avviso con valutazione: notizie del giorno in archivio, cosa ha reso il mercato dopo giornate simili (5 e 20
+  giorni), ogni ETF Fineco rispetto al livello di 12 mesi, il conto crypto, e il verdetto (mai un acquisto su una
+  notizia da sola: lo studio eventi non ha trovato vantaggi che reggano la verifica). Un avviso per mercato al giorno.
+  Prova a mano: `python -m radix_trading mercato --prova --quando 2026-10-30T21:17Z` stampa il testo senza mandarlo.
+- Se il patrimonio scende 20 euro sotto quello del primo giro, vende tutto e resta fermo.
+- Quanto investire lo decide l'obiettivo di volatilita' della regola (`portfolio.vol_target`, 0,25 di partenza: in media
+  il 13% del capitale). Il 1/11/2026 Francesco ha accettato perdite fino al 50-60% in cambio di un rendimento piu' alto;
+  misurato 2018-2026 con costi Kraken: 0,25 → +11%/anno e perdita massima −25%; 0,50 → +22% e −42%; 0,75 → +29% e −54%;
+  1,00 → +36% e −57%. Gli anni negativi restano gli stessi (2018, 2022, 2025, 2026), solo piu' profondi, e negli anni
+  mai visti 2024-26 la differenza e' +7-8% contro +4%. Si cambia in `~/RadixTrading/.env` con due righe insieme, senza
+  toccare il codice: `RADIX_TRADING_VOL_TARGET=0.75` e `RADIX_TRADING_MAX_LOSS_EUR=60` (stop a 50 euro con 110 di
+  partenza; con lo stop di 20 euro una regola piu' aggressiva si fermerebbe alla prima discesa normale). Il riepilogo
+  su Telegram dice la regola in vigore. Lo stesso valore vale per il conto finto e per `replay`.
+- Ogni ordine manda un avviso su Telegram. Gli avvisi partono anche per gli ordini del conto finto, con il prefisso `[finto]`.
+
+Passi, tutti di Francesco:
+1. Su Kraken crea una chiave API con i soli permessi "Query Funds", "Query Open Orders & Trades",
+   "Query Closed Orders & Trades", "Create & Modify Orders" e "Cancel/Close Orders", senza prelievi
+   (gli ultimi tre servono a seguire e annullare gli ordini limite).
+2. Scrivi `KRAKEN_API_KEY` e `KRAKEN_API_SECRET` in `~/RadixTrading/.env`. Per gli avvisi aggiungi `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+3. Prova senza rischi:
+   - `python -m radix_trading alert-test`;
+   - `python -m radix_trading live --prova`: Kraken convalida gli ordini senza eseguirli.
+4. Per accendere il conto vero servono `RADIX_TRADING_MODE=live` e `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`, più un giro orario di `live`.
+
+## Server sempre acceso (Railway)
+
+Il 2/11/2026 il Mac ha perso la rete per ore (il Wi-Fi dell'ufficio filtra gli exchange, l'hotspot si stacca): in quelle
+ore il conto vero non opera e lo stop non e' sorvegliato. `python -m radix_trading serve` (`serve.py`) e' un solo
+processo sempre acceso che fa girare i lavori agli orari del Mac, ciascuno in un processo a parte con un tempo
+massimo: `hourly` al minuto 5 di ogni ora, `live` al minuto 15 (solo con `RADIX_TRADING_MODE=live`), `daily` alle
+22:30 UTC. Un turno saltato si recupera al giro dopo; un riavvio non rifa' il `daily` della sera prima.
+
+`Dockerfile` e `railway.json` (cartella `trading`) sono pronti per Railway (piano Hobby, circa 5 €/mese):
+1. Nuovo progetto Railway dal repository GitHub, cartella radice `trading`, un volume montato su `/data`.
+2. Variabili nel pannello Railway (mai in chat): `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`, `TELEGRAM_BOT_TOKEN`,
+   `TELEGRAM_CHAT_ID`, `RADIX_TRADING_MODE=live`, `RADIX_TRADING_LIVE_CONFIRMED=si-confermo-denaro-reale`,
+   `RADIX_TRADING_VOL_TARGET=0.75`, `RADIX_TRADING_MAX_LOSS_EUR=60`, `FINECO_PAUSA=si` finche' il piano ETF resta fermo
+   (sul server non c'e' un terminale: la pausa si toglie cancellando la variabile), `TIINGO_API_KEY` se c'e'.
+3. Prima spegnere i lavori sul Mac (`bash scripts/install_mac.sh --live-off` e `--uninstall`), cosi' non operano in due.
+4. Il database riparte vuoto sul volume: il primo giro `live` registra il patrimonio di partenza e lo stop si calcola da
+   li' (es. 109 − 60 = 49 €); la storia degli ordini resta sul Mac.
+5. Spegnere il conto vero dal pannello: `RADIX_TRADING_MODE=research` (il giro `live` viene saltato).
+
+## Corsia ETF su Fineco (esecuzione a mano)
+
+`fineco.py`: cinque ETF UCITS (S&P 500, Nasdaq 100, oro, Treasury 20+, Europa), un quinto del capitale ciascuno,
+dentro se il prezzo e' sopra quello di 12 mesi prima. Il primo giorno di borsa del mese, dalle 8 italiane, il giro
+`hourly` manda su Telegram il piano («compra N quote di…», «vendi tutto…») e Francesco esegue dall'app Fineco.
+Capitale di riferimento `FINECO_CAPITAL_EUR` in `~/RadixTrading/.env` (3.000 euro se manca).
+Regola `FINECO_RULE`: `trend` (12 mesi, quella originale), `conferma` (si entra o si esce solo con due mesi di fila
+dello stesso segnale) oppure `tieni` (sempre dentro tutti e cinque, a gennaio si torna a un quinto ciascuno se lo
+scarto vale almeno 150 euro). Il confronto del 31/10/2026 (`confronto`) e' nel modulo; Francesco ha scelto `tieni`
+la sera del 31/10/2026, ed e' il default senza variabile.
+`python -m radix_trading fineco --ora` manda il piano subito; `fineco --prova` lo stampa senza mandarlo ne' registrarlo.
+Il piano automatico parte solo il primo giorno di borsa del mese (piu' due giorni di tolleranza): un programma installato
+a meta' mese non spedisce un piano vecchio (il 31/10/2026 era successo).
+Pausa (1/11/2026, Francesco: «su Fineco forse conviene aspettare un attimo»): `fineco --pausa` crea il file `FINECO_PAUSA`
+nella cartella dati e il piano mensile non parte finche' esiste (il controllo orario dei prezzi e la sentinella continuano,
+e la sentinella lo dice nel verdetto); `fineco --riprendi` toglie il file e manda subito il piano del mese in corso, da
+eseguire il prossimo giorno di borsa; `fineco --prova` in pausa stampa il piano con l'avviso «IN PAUSA».
+- Ricerca «compra sul ribasso» (`ribasso.py`, comando `ribasso`): riserva di cassa 10-30% e acquisti il giorno dopo un
+  -2/3/4% del Nasdaq, con o senza rivendita dopo 20 giorni, contro il piano fisso compra e tieni; panieri di prova,
+  operativo e ETF USA dal 2005. Scrive ribasso.md e ribasso.json nella cartella dati.
+Controllo orario (dal 31/10/2026, `fineco.watch` nel giro `hourly`): a mercato aperto legge i prezzi dei cinque ETF e
+avvisa su Telegram solo se succede qualcosa di rilevante (un ETF oltre il 3% in giornata, il paniere in portafoglio
+sotto del 2%, perdita dal prezzo del piano oltre 8/12/16%, prezzo che attraversa il livello di 12 mesi fa, VIX +25%);
+alle 18 italiane un riepilogo della giornata. Un avviso per evento al giorno. Gli avvisi informano: la regola decide
+il primo giorno del mese e gli ordini li mette Francesco.
+
+## Osservatorio «leva 20 su segnali concreti» (solo simulazione)
+
+`osservatorio.py`: cinque regole scritte prima e non piu' toccate (shock geopolitico → oro, panico → S&P 500, giorno Fed
+→ S&P 500 nel verso della giornata, shock petrolio → petrolio, picco di notizie su Trump → Bitcoin corto). Quando una
+scatta, il giro `daily` registra un'operazione simulata con margine 200 €, leva massima ESMA, spread, finanziamento
+notturno dei CFD e chiusura forzata a meta' del margine, e avvisa su Telegram con il prefisso `[SIMULATO leva]`; il
+venerdi' manda il riepilogo. `python -m radix_trading osservatorio --from 2015-01-01` rifa' le stesse regole sul passato.
+Nessun euro vero: serve a decidere, dopo 4-8 settimane, se un conto a leva ha senso.
+
+## Corsia simulata «metodo 60%» (solo simulazione)
+
+Chiesta da Francesco il 10/11/2026: «un metodo che guadagni piu' di quanto perde» (misura: euro guadagnati per euro
+perso sopra 1 dopo i costi, su anni mai visti). La sera stessa 1.920 combinazioni su 8 mercati (2005-2019 scoperta,
+2020-2026 verifica): regge una famiglia sola, sugli indici americani. `metodo60.py` la registra con parametri fissi:
+S&P 500, Nasdaq 100 e Russell 2000 (SPY, QQQ, IWM); si compra all'apertura dopo una chiusura nel 10% piu' basso
+dell'escursione di giornata con la chiusura sopra la media a 200 giorni; target +3% in giornata, stop −3% sulla
+chiusura (uscita all'apertura dopo), uscita a tempo dopo 10 giorni di mercato; una posizione per mercato; rischio 2%
+di un conto simulato da 10.000 € (nozionale 6.667 €), costi CFD (spread 0,02% per lato, 6,5% l'anno di finanziamento).
+Atteso dallo storico (replay 2005-2026 con queste regole): 667 operazioni, 60% vinte, 1,31 € guadagnati per € perso,
+circa +7% l'anno (+7,7% con il rischio composto a leva 2, perdita massima −19%); le entrate casuali con le stesse uscite
+rendono 1,22. Il giro `daily` manda su Telegram
+il segnale la sera stessa (`[SIMULATO metodo60] ... Domani all'apertura la regola COMPRA ...`), poi entrata, uscita e il
+riepilogo del venerdi'. `python -m radix_trading metodo60 --from 2005-01-01` rifa' la regola sul passato;
+`--prova` stampa gli avvisi senza mandarli. Nessun euro vero.
+
+Due corsie dall'11/11/2026 (Francesco: «le notizie sono molto importanti... sdoppiare le simulazioni»). Ogni segnale
+finisce nella corsia «statistica»; la corsia «+ notizie» tiene solo i segnali arrivati con una notizia forte: il giorno del
+segnale o il giorno prima una delle famiglie guerra, crisi bancaria, epidemie, dazi, borse, Medio Oriente, Russia-Ucraina,
+sanzioni, Cina (archivio Wikipedia «Current events», regole di `events.py`) conta piu' voci del 90° percentile dell'anno
+prima. Sullo storico dal 2015 con le regole della corsia (euro guadagnati per euro perso 2015-19 / 2020-26): tutti i segnali
+1,58 / 1,32, solo con notizia forte 1,60 / 1,51, senza notizia forte 1,55 / 1,11: il vantaggio delle notizie c'e' solo dal 2020
+e i casi sono pochi (64 e 129), per questo le due corsie si confrontano dal vivo. La sera del segnale si riscarica la pagina
+di Wikipedia di oggi e ieri e il verdetto resta scritto (colonne `notizie`, `temi` di `m60_trades`); il riepilogo del
+venerdi' confronta le due corsie e riporta il risultato a leva 1, 3 e 5. `--from` stampa anche la tabella della leva
+(nozionale per posizione L/3 del conto, valutazione giornaliera, chiusura forzata del broker sotto il 50% del margine): sul
+Mac, 2005-2026, leva 2 +7,0% l'anno con perdita massima −31%, leva 3 +9,9% / −45%, leva 5 +13,9% / −67%, leva 10 +12,3% / −95%,
+leva 20 e 30 conto azzerato. (Con il target misurato sulla chiusura i numeri salgono; variante non adottata: sceglierla dopo
+aver visto i risultati sarebbe senno di poi.)
+
+Corsia «oro, solo statistica» e osservazioni dal 12/11/2026 (Francesco, 11/11: «mappare bene le notizie e dove agire, se solo
+su S&P 500, su oro o altre»). La stessa regola provata su 15 mercati dal 2015 regge sugli indici USA e sull'oro (GLD 1,42 /
+1,40 per euro perso 2015-19 / 2020-26; con il filtro notizie peggiora, 0,84 nel 2020-26), non su Europa, Italia, Giappone,
+emergenti, petrolio, bond e settori: la terza corsia registra i segnali IBS sul GLD (prezzi Tiingo nel venue `materie`, quelli
+yahoo sono fermi) con il prefisso `[SIMULATO metodo60 oro]`, notizie annotate ma non filtranti. La mappa 16 temi × 15 mercati
+(33 coppie su 152 reggono in entrambi i periodi contro il 10-21% con le date delle notizie spostate a caso) indica due
+famiglie «notizia senza minimo» messe in osservazione, prefisso `[SIMULATO osservazione]`: tregua/negoziati di pace → Nasdaq
+(QQQ) e Russia-Ucraina → oro (GLD); si compra all'apertura dopo un giorno con la notizia del tema (oggi o ieri) e chiusura
+sopra la media a 200 giorni, stesse uscite, colonna `lane` di `m60_trades` (`indici`, `oro`, `tregua_nasdaq`, `russia_oro`).
+Il riepilogo del venerdi' riporta anche oro e osservazioni; `--from` stampa le sezioni `oro` e `osservazioni`;
+`--completa-notizie` da' il verdetto notizie (segnato «a posteriori») alle operazioni registrate prima dello sdoppiamento.
+Tutto osservazione, nessun euro.
+
+## Diario del conto Axi (solo lettura)
+
+`axi.py` legge gli estratti MetaTrader 4 («Statement» di Axi) che Francesco incolla in un file di testo:
+`python -m radix_trading axi --file estratto.txt` salva ordini, esecuzioni, posizioni aperte e riepilogo nell'archivio
+locale (mai nel repository), ricostruisce le operazioni chiuse (entrata ricavata dal risultato: su US500 1 lotto = 1 $ per
+punto), affianca a ognuna le notizie del giorno in archivio (RSS, GDELT, Wikipedia) e cosa ha fatto il mercato di
+riferimento nei giorni dopo, e scrive la pagella (vinte/perse, vincita media contro perdita media, euro guadagnati per
+euro perso, esposizione massima contemporanea) in `data/axi_diario.md`. `--nota TICKET "testo"` aggiunge un appunto a
+un'operazione; `--giorno AAAA-MM-GG` dice il giorno dell'estratto quando e' stato incollato senza intestazione (altrimenti
+si prende l'ultima data nel testo). Le notizie accanto a ogni operazione sono ordinate per pertinenza allo strumento.
+Nessun ordine parte da qui.
 
 ## Kill switch
 
