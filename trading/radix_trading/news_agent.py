@@ -10,7 +10,7 @@ Scopo (Francesco, 14/11/2026: «implementa quello che ci serviva»): costruire g
 Chiave: OPENAI_API_KEY oppure ANTHROPIC_API_KEY in ~/RadixTrading/.env (la inserisce Francesco, mai nel repository, mai in
 chat). Senza chiave il passo non fa nulla e lo dice. Le chiamate usano `requests` (nessun pacchetto in piu'), titoli in
 lotti di 40, modello piccolo (RADIX_NEWS_MODEL per cambiarlo): qualche centesimo al giorno. I piu' recenti si
-classificano per primi, l'arretrato (dal 3/11) si smaltisce in pochi giri con un tetto per giro.
+classificano per primi, l'arretrato (dal 3/11) si smaltisce in pochi giri con un tetto per giro; i titoli piu' vecchi del 3/11 si ignorano.
 """
 from __future__ import annotations
 
@@ -26,7 +26,8 @@ from .config import env_value
 from .store import Store
 
 BATCH = 40                  # titoli per chiamata
-MAX_PER_RUN = 1500          # titoli per giro: tiene i costi sotto controllo e l'arretrato si smaltisce in pochi giorni
+MAX_PER_RUN = 4000          # titoli per giro (~100 chiamate): l'arretrato dal 3/11 (~12.000 titoli il 14/11) si smaltisce in 3 sere
+SINCE = "2026-11-03"        # i titoli delle testate si raccolgono da questo giorno: quelli sparsi piu' vecchi non servono
 STRONG = 2                  # intensita' minima per contare un titolo come «notizia forte» nei conteggi per giorno
 WARMUP_DAYS = 60            # giorni di storico prima del confronto con Wikipedia
 TIMEOUT = 90
@@ -128,8 +129,8 @@ def pending(store: Store, limit: int = MAX_PER_RUN) -> list[dict]:
     init(store)
     rows = store.conn.execute(
         "SELECT n.url, n.ts, n.title, n.source FROM news n LEFT JOIN news_llm c ON c.url = n.url "
-        "WHERE c.url IS NULL AND n.title IS NOT NULL AND length(trim(n.title)) >= 12 ORDER BY n.ts DESC LIMIT ?",
-        (int(limit),)).fetchall()
+        "WHERE c.url IS NULL AND n.ts >= ? AND n.title IS NOT NULL AND length(trim(n.title)) >= 12 ORDER BY n.ts DESC LIMIT ?",
+        (SINCE, int(limit))).fetchall()
     return [{"url": u, "ts": ts, "title": t.strip(), "source": s} for u, ts, t, s in rows]
 
 
@@ -236,7 +237,7 @@ def count_pending(store: Store) -> int:
     init(store)
     return int(store.conn.execute(
         "SELECT count(*) FROM news n LEFT JOIN news_llm c ON c.url = n.url "
-        "WHERE c.url IS NULL AND n.title IS NOT NULL AND length(trim(n.title)) >= 12").fetchone()[0])
+        "WHERE c.url IS NULL AND n.ts >= ? AND n.title IS NOT NULL AND length(trim(n.title)) >= 12", (SINCE,)).fetchone()[0])
 
 
 # --- conteggi per giorno e tema (stessa forma di events.theme_counts) -------------------------

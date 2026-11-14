@@ -266,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
                    help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
     p.add_argument("--limite", type=int, default=None,
-                   help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 1500)")
+                   help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 4000)")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
                    help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
     p.add_argument("--completa-notizie", dest="completa_notizie", action="store_true",

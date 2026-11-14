@@ -22,6 +22,7 @@ TITLES = [
     ("2026-11-12T20:00:00Z", "Ten tips for a better sourdough", "bbc_world"),
     ("2026-11-12T08:00:00Z", "US announces 60% tariffs on all Chinese imports", "cnbc_economy"),
     ("2026-11-12T07:00:00Z", "short", "bbc_world"),      # troppo corto: non si classifica
+    ("2026-10-01T07:00:00Z", "An old headline from before the RSS collection started", "cnbc_top"),   # prima del 3/11: si ignora
 ]
 
 
@@ -58,6 +59,7 @@ def test_pending_takes_recent_first_and_skips_short_titles():
     items = na.pending(store)
     assert [it["title"] for it in items][:2] == ["Israel strikes Iranian missile sites as oil jumps 6%", "Fed holds rates steady, as expected"]
     assert all(it["title"] != "short" for it in items) and len(items) == 4
+    assert all(it["ts"] >= na.SINCE for it in items)
     assert na.pending(store, 1)[0]["title"].startswith("Israel")
 
 

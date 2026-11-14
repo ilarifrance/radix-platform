@@ -209,9 +209,9 @@ con la corsia «+ notizie» quando lo storico avra' ~60 giorni (gennaio 2027), c
 ogni altro filtro: `news_agent.theme_counts(store)` ha la stessa forma di `events.theme_counts`, cosi' `events.news_events`
 ci gira sopra senza modifiche. Chiave: `OPENAI_API_KEY` oppure `ANTHROPIC_API_KEY` in `~/RadixTrading/.env` (mai nel
 repository); senza chiave il passo del daily non fa nulla e lo dice. Modello piccolo (`RADIX_NEWS_MODEL` per cambiarlo),
-titoli in lotti di 40, al massimo 1500 per giro (i piu' recenti prima, l'arretrato dal 3/11 si smaltisce in pochi giri):
+titoli in lotti di 40, al massimo 4000 per giro (i piu' recenti prima; l'arretrato dal 3/11, ~12.000 titoli il 14/11, si smaltisce in 3 sere):
 qualche centesimo al giorno; il rapporto del daily riporta token e costo stimato (`RADIX_NEWS_PRICE_IN/OUT` per milione).
-`python -m radix_trading agente-notizie [--limite N]` classifica adesso; `--prova` legge 10 titoli e stampa senza salvare.
+`python -m radix_trading agente-notizie [--limite N]` classifica adesso (i titoli prima del 3/11 si ignorano); `--prova` legge 10 titoli e stampa senza salvare.
 Il riepilogo del venerdi' aggiunge una riga con lo storico accumulato e le famiglie forti della settimana.
 
 ## Diario del conto Axi (solo lettura)
