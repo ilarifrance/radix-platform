@@ -16,6 +16,7 @@
     python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
     python -m radix_trading metodo60         # corsie simulate «metodo 60%» (indici statistica / + notizie, oro, osservazioni; --from: passato e leva)
     python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
+    python -m radix_trading agente-notizie   # classifica i titoli delle testate per famiglia e intensita' (chiave in .env)
 """
 
 from __future__ import annotations
@@ -242,7 +243,8 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
-                                          "osservatorio", "confronto", "mercato", "ribasso", "serve", "metodo60", "axi"])
+                                          "osservatorio", "confronto", "mercato", "ribasso", "serve", "metodo60", "axi",
+                                          "agente-notizie"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -263,6 +265,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--crypto-csv", default=None,
                    help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
+    p.add_argument("--limite", type=int, default=None,
+                   help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 1500)")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
                    help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
     p.add_argument("--completa-notizie", dest="completa_notizie", action="store_true",
@@ -288,6 +292,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "daily":
                 # archivio notizie: qualche centinaio di giorni a sera finche' lo storico e' completo
                 result["raccolta"]["notizie"] = _safe(lambda: events.collect_news(store))
+                # Agente notizie (14/11): un modello classifica i titoli delle testate per famiglia e intensita'.
+                # Solo osservazione; senza chiave in .env non fa nulla e lo dice.
+                from . import news_agent
+                result["raccolta"]["agente_notizie"] = _safe(lambda: news_agent.step(store))
                 # posizioni CFTC: escono il venerdi', si scaricano quando l'ultimo rapporto ha piu' di 7 giorni
                 from . import bigplayers
                 if bigplayers.stale(store):
@@ -380,6 +388,21 @@ def main(argv: list[str] | None = None) -> int:
                 (settings.data_dir / "metodo60.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
             else:
                 result = metodo60.step(store, send=(lambda text: print(text, file=sys.stderr) or True) if args.prova else alerts_send())
+        elif args.command == "agente-notizie":
+            from . import news_agent
+            # Classifica i titoli ora (il daily lo fa da solo ogni sera); --prova legge 10 titoli e stampa senza salvare.
+            if args.prova:
+                prov = news_agent.provider()
+                if prov is None:
+                    result = {"saltato": "manca OPENAI_API_KEY o ANTHROPIC_API_KEY in ~/RadixTrading/.env"}
+                else:
+                    items = news_agent.pending(store, 10)
+                    rows, usage = news_agent.classify(items, news_agent.make_call(prov))
+                    result = {"modello": prov[2], "titoli": [{"titolo": it["title"], **next(
+                        ({"temi": r["temi"], "intensita": r["intensita"]} for r in rows if r["url"] == it["url"]),
+                        {"temi": None, "intensita": None})} for it in items], **usage}
+            else:
+                result = news_agent.step(store, limit=args.limite or news_agent.MAX_PER_RUN)
         elif args.command == "axi":
             from . import axi
             # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.

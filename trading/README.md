@@ -199,6 +199,21 @@ Il riepilogo del venerdi' riporta anche oro e osservazioni; `--from` stampa le s
 `--completa-notizie` da' il verdetto notizie (segnato «a posteriori») alle operazioni registrate prima dello sdoppiamento.
 Tutto osservazione, nessun euro.
 
+## Agente notizie (solo osservazione)
+
+`news_agent.py` (14/11/2026): un modello di linguaggio legge i titoli delle testate gia' in archivio (RSS e GDELT, tabella
+`news`, dal 3/11/2026) e li classifica nelle stesse famiglie di `events.THEMES` con un'intensita' da 0 a 3 (tabella
+`news_llm`). E' solo un classificatore: non decide niente e non tocca le corsie del metodo 60%, i cui parametri restano
+congelati fino al 23/12. Serve a costruire una seconda fonte di «notizia forte», indipendente da Wikipedia, da confrontare
+con la corsia «+ notizie» quando lo storico avra' ~60 giorni (gennaio 2027), con il controllo a date spostate come per
+ogni altro filtro: `news_agent.theme_counts(store)` ha la stessa forma di `events.theme_counts`, cosi' `events.news_events`
+ci gira sopra senza modifiche. Chiave: `OPENAI_API_KEY` oppure `ANTHROPIC_API_KEY` in `~/RadixTrading/.env` (mai nel
+repository); senza chiave il passo del daily non fa nulla e lo dice. Modello piccolo (`RADIX_NEWS_MODEL` per cambiarlo),
+titoli in lotti di 40, al massimo 1500 per giro (i piu' recenti prima, l'arretrato dal 3/11 si smaltisce in pochi giri):
+qualche centesimo al giorno; il rapporto del daily riporta token e costo stimato (`RADIX_NEWS_PRICE_IN/OUT` per milione).
+`python -m radix_trading agente-notizie [--limite N]` classifica adesso; `--prova` legge 10 titoli e stampa senza salvare.
+Il riepilogo del venerdi' aggiunge una riga con lo storico accumulato e le famiglie forti della settimana.
+
 ## Diario del conto Axi (solo lettura)
 
 `axi.py` legge gli estratti MetaTrader 4 («Statement» di Axi) che Francesco incolla in un file di testo:

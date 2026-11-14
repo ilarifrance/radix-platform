@@ -475,7 +475,17 @@ def report_text(store: Store, week: str) -> str:
             f"Per mercato: {per_sym}. Corsia oro (solo statistica): {_lane_text(gold)}. Osservazioni: {obs}. "
             f"In corso: {aperte}. Costi indici: {s.get('costi', 0):.2f} €. "
             f"Atteso dallo storico: statistica 1,3-1,4 per euro perso e 58-61% vinte; + notizie 1,5 (dal 2015, casi pochi); oro 1,4. "
-            f"Tutto simulato, nessun euro vero.")
+            f"Tutto simulato, nessun euro vero." + _news_agent_line(store))
+
+
+def _news_agent_line(store: Store) -> str:
+    """La riga dell'agente notizie (14/11) in coda al riepilogo del venerdi', se ha classificato qualcosa."""
+    try:
+        from . import news_agent
+        line = news_agent.weekly_line(store)
+    except Exception:  # noqa: BLE001 - una riga informativa non deve fermare il riepilogo
+        return ""
+    return f" {line}" if line else ""
 
 
 # --- il passato: corsie, osservazioni e tabella della leva --------------------------------------
