@@ -17,6 +17,7 @@
     python -m radix_trading metodo60         # corsie simulate «metodo 60%» (indici statistica / + notizie, oro, osservazioni; --from: passato e leva)
     python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
     python -m radix_trading agente-notizie   # classifica i titoli delle testate per famiglia e intensita' (chiave in .env)
+    python -m radix_trading osservatorio-notizie [--rapporto]  # un giro dell'osservatorio al minuto (titoli, prezzi) / il rapporto
 """
 
 from __future__ import annotations
@@ -244,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
                                           "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
                                           "osservatorio", "confronto", "mercato", "ribasso", "serve", "metodo60", "axi",
-                                          "agente-notizie"])
+                                          "agente-notizie", "osservatorio-notizie"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
@@ -265,6 +266,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--crypto-csv", default=None,
                    help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
+    p.add_argument("--rapporto", action="store_true",
+                   help="solo per osservatorio-notizie: il rapporto (mosse dopo i titoli contro il controllo), senza fare un giro")
     p.add_argument("--limite", type=int, default=None,
                    help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 4000)")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
@@ -403,6 +406,10 @@ def main(argv: list[str] | None = None) -> int:
                         {"temi": None, "intensita": None})} for it in items], **usage}
             else:
                 result = news_agent.step(store, limit=args.limite or news_agent.MAX_PER_RUN)
+        elif args.command == "osservatorio-notizie":
+            from . import news_watch
+            # Osservatorio al minuto (15/11): titoli nuovi, classificazione subito, prezzi correnti, osservazioni; --rapporto fa i conti.
+            result = news_watch.report(store) if args.rapporto else news_watch.tick(store)
         elif args.command == "axi":
             from . import axi
             # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.
@@ -478,6 +485,9 @@ def main(argv: list[str] | None = None) -> int:
                 for t in result["portafoglio"].get("operazioni", []):
                     alerts.send(alerts.order_text("[finto]", t["simbolo"], t["quantita"], t["prezzo"], t["commissione"]))
             if args.command == "hourly":
+                from . import news_watch
+                # Osservatorio notizie al minuto (15/11): sul Mac gira ogni ora qui dentro (i titoli sono gia' stati raccolti sopra).
+                result["osservatorio_notizie"] = _safe(lambda: news_watch.tick(store, raccolta=False))
                 from . import fineco
                 # Corsia ETF su Fineco: il piano del mese su Telegram, il primo giorno di borsa (esecuzione a mano).
                 result["etf_fineco"] = _safe(lambda: fineco.maybe_alert(store))

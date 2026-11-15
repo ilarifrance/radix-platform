@@ -37,7 +37,8 @@ PRICE_IN, PRICE_OUT = 0.15, 0.60
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS news_llm (url TEXT PRIMARY KEY, day TEXT NOT NULL, ts TEXT NOT NULL, source TEXT,
-    temi TEXT NOT NULL, intensita INTEGER NOT NULL, modello TEXT NOT NULL, quando TEXT NOT NULL);
+    temi TEXT NOT NULL, intensita INTEGER NOT NULL, modello TEXT NOT NULL, quando TEXT NOT NULL,
+    segno INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX IF NOT EXISTS news_llm_day ON news_llm(day);
 CREATE TABLE IF NOT EXISTS news_llm_runs (quando TEXT PRIMARY KEY, classificate INTEGER NOT NULL, chiamate INTEGER NOT NULL,
     token_in INTEGER NOT NULL, token_out INTEGER NOT NULL, modello TEXT NOT NULL, errori INTEGER NOT NULL);
@@ -71,14 +72,19 @@ SYSTEM = (
     "1 = relevant but ordinary (scheduled data as expected, commentary, analyst notes, routine politics); "
     "2 = a significant new development (surprise data, policy change, escalation, big corporate shock); "
     "3 = a shock that moves whole markets (war escalation or attack on a major country, bank failure, surprise tariff "
-    "wall, market crash, pandemic declared, major default). Judge only the headline text, do not predict direction. "
+    "wall, market crash, pandemic declared, major default). Also give a sign for US stock markets: -1 if the news is "
+    "bad for stocks (risk-off), +1 if good for stocks (risk-on), 0 if neutral or unclear. Judge only the headline text. "
     "Answer with JSON only, in this exact shape: {\"items\": [{\"n\": <headline number>, \"temi\": [<keys>], "
-    "\"intensita\": <0-3>}, ...]}, one entry per headline, in order."
+    "\"intensita\": <0-3>, \"segno\": <-1|0|1>}, ...]}, one entry per headline, in order."
 )
 
 
 def init(store: Store) -> None:
     store.conn.executescript(SCHEMA)
+    # 15/11: colonna «segno» (-1 male per le borse, +1 bene) sulle tabelle gia' create prima
+    if "segno" not in {r[1] for r in store.conn.execute("PRAGMA table_info(news_llm)")}:
+        store.conn.execute("ALTER TABLE news_llm ADD COLUMN segno INTEGER NOT NULL DEFAULT 0")
+        store.conn.commit()
 
 
 # --- chiave e modello -----------------------------------------------------------------------------
@@ -142,8 +148,8 @@ def user_text(items: list[dict]) -> str:
 _JSON = re.compile(r"\{.*\}", re.S)
 
 
-def parse(text: str, n: int) -> dict[int, tuple[list[str], int]]:
-    """Dalla risposta del modello: {numero: (temi validi, intensita' 0-3)}. Voci mancanti o rotte si saltano
+def parse(text: str, n: int) -> dict[int, tuple[list[str], int, int]]:
+    """Dalla risposta del modello: {numero: (temi validi, intensita' 0-3, segno -1/0/+1)}. Voci mancanti o rotte si saltano
     (restano «da classificare» e si riprovano al giro dopo)."""
     m = _JSON.search(text or "")
     if not m:
@@ -152,7 +158,7 @@ def parse(text: str, n: int) -> dict[int, tuple[list[str], int]]:
         data = json.loads(m.group(0))
     except json.JSONDecodeError:
         return {}
-    out: dict[int, tuple[list[str], int]] = {}
+    out: dict[int, tuple[list[str], int, int]] = {}
     for it in data.get("items", []) if isinstance(data, dict) else []:
         try:
             k = int(it.get("n"))
@@ -165,7 +171,11 @@ def parse(text: str, n: int) -> dict[int, tuple[list[str], int]]:
             inten = max(0, min(3, int(it.get("intensita", 0))))
         except (TypeError, ValueError):
             inten = 0
-        out[k] = (sorted(set(temi)), inten)
+        try:
+            segno = max(-1, min(1, int(it.get("segno", 0) or 0)))
+        except (TypeError, ValueError):
+            segno = 0
+        out[k] = (sorted(set(temi)), inten, segno)
     return out
 
 
@@ -186,17 +196,17 @@ def classify(items: list[dict], call, batch: int = BATCH) -> tuple[list[dict], d
         usage["token_in"] += tin
         usage["token_out"] += tout
         got = parse(text, len(lot))
-        for k, (temi, inten) in got.items():
+        for k, (temi, inten, segno) in got.items():
             it = lot[k - 1]
             rows.append({"url": it["url"], "day": it["ts"][:10], "ts": it["ts"], "source": it.get("source"),
-                         "temi": ",".join(temi), "intensita": inten})
+                         "temi": ",".join(temi), "intensita": inten, "segno": segno})
     return rows, usage
 
 
 def save(store: Store, rows: list[dict], model: str, when: str) -> int:
     init(store)
-    store.conn.executemany("INSERT OR REPLACE INTO news_llm VALUES (?,?,?,?,?,?,?,?)",
-                           [(r["url"], r["day"], r["ts"], r["source"], r["temi"], r["intensita"], model, when) for r in rows])
+    store.conn.executemany("INSERT OR REPLACE INTO news_llm VALUES (?,?,?,?,?,?,?,?,?)",
+                           [(r["url"], r["day"], r["ts"], r["source"], r["temi"], r["intensita"], model, when, r.get("segno", 0)) for r in rows])
     store.conn.commit()
     return len(rows)
 

@@ -479,13 +479,17 @@ def report_text(store: Store, week: str) -> str:
 
 
 def _news_agent_line(store: Store) -> str:
-    """La riga dell'agente notizie (14/11) in coda al riepilogo del venerdi', se ha classificato qualcosa."""
-    try:
-        from . import news_agent
-        line = news_agent.weekly_line(store)
-    except Exception:  # noqa: BLE001 - una riga informativa non deve fermare il riepilogo
-        return ""
-    return f" {line}" if line else ""
+    """Le righe dell'agente notizie (14/11) e dell'osservatorio al minuto (15/11) in coda al riepilogo del venerdi',
+    se hanno qualcosa da dire."""
+    out = ""
+    for mod in ("news_agent", "news_watch"):
+        try:
+            from importlib import import_module
+            line = import_module(f"radix_trading.{mod}").weekly_line(store)
+        except Exception:  # noqa: BLE001 - una riga informativa non deve fermare il riepilogo
+            line = ""
+        out += f" {line}" if line else ""
+    return out
 
 
 # --- il passato: corsie, osservazioni e tabella della leva --------------------------------------

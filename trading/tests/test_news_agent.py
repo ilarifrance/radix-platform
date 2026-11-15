@@ -33,11 +33,11 @@ def fake_call(system, user):
     for line in user.splitlines()[1:]:
         n = int(line.split(".")[0])
         if "Israel" in line:
-            items.append({"n": n, "temi": ["medio_oriente", "guerra", "petrolio", "inventato"], "intensita": 3})
+            items.append({"n": n, "temi": ["medio_oriente", "guerra", "petrolio", "inventato"], "intensita": 3, "segno": -1})
         elif "Fed" in line:
             items.append({"n": n, "temi": ["fed_tassi"], "intensita": 1})
         elif "tariffs" in line:
-            items.append({"n": n, "temi": ["dazi", "cina"], "intensita": 7})   # fuori scala: si taglia a 3
+            items.append({"n": n, "temi": ["dazi", "cina"], "intensita": 7, "segno": -5})   # fuori scala: si tagliano a 3 e -1
         else:
             items.append({"n": n, "temi": [], "intensita": 0})
     return "Here you go:\n" + json.dumps({"items": items}) + "\nthanks", 1200, 300
@@ -47,10 +47,13 @@ def test_parse_is_robust_to_noise_and_bad_values():
     text = 'ok {"items": [{"n": 1, "temi": ["dazi", "boh"], "intensita": 9}, {"n": "2", "temi": ["cina"], "intensita": "1"}, ' \
            '{"n": 5, "temi": ["guerra"], "intensita": 2}, {"temi": ["guerra"]}, {"n": 3, "temi": "cina", "intensita": "x"}]} fine'
     got = na.parse(text, 3)
-    assert got[1] == (["dazi"], 3)
-    assert got[2] == (["cina"], 1)
+    assert got[1] == (["dazi"], 3, 0)          # senza «segno» -> 0
+    assert got[2] == (["cina"], 1, 0)
     assert 5 not in got            # fuori intervallo
-    assert got[3] == ([], 0)       # temi non lista -> nessun tema; intensita' rotta -> 0
+    assert got[3] == ([], 0, 0)    # temi non lista -> nessun tema; intensita' rotta -> 0
+    got = na.parse('{"items": [{"n": 1, "temi": [], "intensita": 2, "segno": -1}, {"n": 2, "temi": [], "intensita": 2, "segno": "x"}, '
+                   '{"n": 3, "temi": [], "intensita": 2, "segno": 4}]}', 3)
+    assert [got[k][2] for k in (1, 2, 3)] == [-1, 0, 1]
     assert na.parse("niente json", 3) == {} and na.parse('{"items": [', 3) == {}
 
 
@@ -165,3 +168,20 @@ def test_friday_report_line_appears_only_with_rows():
     na.step(store, call=fake_call, now=datetime(2026, 11, 13, 22, 30, tzinfo=timezone.utc))
     line = m60._news_agent_line(store)
     assert line.startswith(" Agente notizie") and "4 titoli in 2 giorni" in line
+
+
+def test_segno_is_saved_and_old_tables_get_the_column():
+    store = Store(":memory:")
+    # tabella «vecchia» (14/11) senza la colonna segno: init la aggiunge
+    store.conn.executescript("""CREATE TABLE news_llm (url TEXT PRIMARY KEY, day TEXT NOT NULL, ts TEXT NOT NULL, source TEXT,
+        temi TEXT NOT NULL, intensita INTEGER NOT NULL, modello TEXT NOT NULL, quando TEXT NOT NULL);""")
+    store.conn.execute("INSERT INTO news_llm VALUES ('https://x/old','2026-11-13','2026-11-13T10:00:00Z','cnbc_top','dazi',2,'m','2026-11-14T22:30:00Z')")
+    store.conn.commit()
+    na.init(store)
+    assert store.conn.execute("SELECT segno FROM news_llm WHERE url='https://x/old'").fetchone() == (0,)
+    store.upsert_news([{"url": f"https://x/{i}", "ts": ts, "title": t, "source": s, "language": "en", "country": "US", "query": None,
+                        "sentiment": None} for i, (ts, t, s) in enumerate(TITLES[:2])])
+    out = na.step(store, call=fake_call, now=datetime(2026, 11, 14, 22, 30, tzinfo=timezone.utc))
+    assert out["classificate"] == 2
+    rows = dict(store.conn.execute("SELECT url, segno FROM news_llm WHERE url LIKE 'https://x/_'").fetchall())
+    assert rows == {"https://x/0": -1, "https://x/1": 0}

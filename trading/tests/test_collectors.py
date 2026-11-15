@@ -1,3 +1,5 @@
+import pytest
+
 from radix_trading.collectors import binance, fred, gdelt, kraken, tiingo, yahoo
 
 
@@ -13,8 +15,15 @@ def test_kraken_parse():
     assert str(df.index.tz) == "UTC"
 
 
+def test_kraken_ticker():
+    payload = {"error": [], "result": {"XXBTZEUR": {"a": ["80000.1", "1", "1.000"], "b": ["79999.9", "1", "1.000"],
+                                                    "c": ["80000.0", "0.01000000"], "v": ["1", "2"]}}}
+    assert kraken.parse_ticker(payload) == 80000.0
+    with pytest.raises(RuntimeError):
+        kraken.parse_ticker({"error": ["EQuery:Unknown asset pair"], "result": {}})
+
+
 def test_kraken_error():
-    import pytest
     with pytest.raises(RuntimeError):
         kraken.parse_ohlc({"error": ["EQuery:Unknown asset pair"], "result": {}})
 

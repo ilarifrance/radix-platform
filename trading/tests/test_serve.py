@@ -10,7 +10,10 @@ def _t(h, m, d=2):
 
 
 def test_slots_hourly_and_daily():
-    hourly, live, daily = serve.JOBS
+    watch, hourly, live, daily = serve.JOBS
+    assert serve.slot(watch, _t(14, 4)) == _t(14, 2)        # ogni 5 minuti ai minuti 2, 7, 12, ...
+    assert serve.slot(watch, _t(14, 1)) == _t(13, 57)
+    assert serve.slot(watch, _t(14, 7)) == _t(14, 7)
     assert serve.slot(hourly, _t(14, 4)) == _t(13, 5)      # il turno delle 14:05 non e' ancora arrivato
     assert serve.slot(hourly, _t(14, 5)) == _t(14, 5)
     assert serve.slot(live, _t(0, 14)) == _t(23, 15, d=1)   # a cavallo della mezzanotte
@@ -20,23 +23,38 @@ def test_slots_hourly_and_daily():
 
 def test_due_runs_each_job_once_per_slot_and_catches_up_missed_slots(tmp_path):
     s = Settings(data_dir=tmp_path, mode="research")
-    last = {j.name: serve.slot(j, _t(13, 0)) for j in serve.JOBS}
-    assert [j.name for j in serve.due(_t(13, 4), last, s)] == []
-    assert [j.name for j in serve.due(_t(13, 5), last, s)] == ["hourly"]
+    jobs = serve.JOBS[1:]                                   # senza l'osservatorio ogni 5 minuti (sotto)
+    last = {j.name: serve.slot(j, _t(13, 0)) for j in jobs}
+    assert [j.name for j in serve.due(_t(13, 4), last, s, jobs)] == []
+    assert [j.name for j in serve.due(_t(13, 5), last, s, jobs)] == ["hourly"]
     last["hourly"] = _t(13, 5)
-    assert [j.name for j in serve.due(_t(13, 5), last, s)] == []
-    assert [j.name for j in serve.due(_t(13, 15), last, s)] == []      # live saltato: conto vero spento
+    assert [j.name for j in serve.due(_t(13, 5), last, s, jobs)] == []
+    assert [j.name for j in serve.due(_t(13, 15), last, s, jobs)] == []      # live saltato: conto vero spento
     # un turno mancato (processo occupato fino alle 13:40) si recupera subito dopo
-    assert [j.name for j in serve.due(_t(13, 40), last, s)] == []
-    assert [j.name for j in serve.due(_t(14, 7), last, s)] == ["hourly"]
-    assert [j.name for j in serve.due(_t(22, 31), last, s)] == ["hourly", "daily"]
+    assert [j.name for j in serve.due(_t(13, 40), last, s, jobs)] == []
+    assert [j.name for j in serve.due(_t(14, 7), last, s, jobs)] == ["hourly"]
+    assert [j.name for j in serve.due(_t(22, 31), last, s, jobs)] == ["hourly", "daily"]
+
+
+def test_news_watch_job_every_five_minutes_and_first_in_line(tmp_path):
+    s = Settings(data_dir=tmp_path, mode="research")
+    last = {j.name: serve.slot(j, _t(13, 0)) for j in serve.JOBS}
+    assert [j.name for j in serve.due(_t(13, 1), last, s)] == []
+    assert [j.name for j in serve.due(_t(13, 2), last, s)] == ["osservatorio-notizie"]
+    last["osservatorio-notizie"] = _t(13, 2)
+    assert [j.name for j in serve.due(_t(13, 6), last, s)] == ["hourly"]
+    assert [j.name for j in serve.due(_t(13, 7), last, s)] == ["osservatorio-notizie", "hourly"]
+    # dopo un daily lungo (22:30 -> 23:20) si recupera un solo giro, non tutti quelli persi
+    last = {j.name: serve.slot(j, _t(22, 31)) for j in serve.JOBS}
+    assert [j.name for j in serve.due(_t(23, 20), last, s)] == ["osservatorio-notizie", "hourly"]
+    assert serve.JOBS[0].timeout == 4 * 60
 
 
 def test_live_job_only_with_the_real_account_on(tmp_path, monkeypatch):
     monkeypatch.setenv("RADIX_TRADING_LIVE_CONFIRMED", "si-confermo-denaro-reale")
     s = Settings(data_dir=tmp_path, mode="live")
     last = {j.name: serve.slot(j, _t(13, 0)) for j in serve.JOBS}
-    assert [j.name for j in serve.due(_t(13, 16), last, s)] == ["hourly", "live"]
+    assert [j.name for j in serve.due(_t(13, 16), last, s)] == ["osservatorio-notizie", "hourly", "live"]
 
 
 def test_loop_runs_due_jobs_in_their_own_process_and_survives_failures(tmp_path, monkeypatch):

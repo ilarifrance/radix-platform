@@ -108,7 +108,10 @@ Il 2/11/2026 il Mac ha perso la rete per ore (il Wi-Fi dell'ufficio filtra gli e
 ore il conto vero non opera e lo stop non e' sorvegliato. `python -m radix_trading serve` (`serve.py`) e' un solo
 processo sempre acceso che fa girare i lavori agli orari del Mac, ciascuno in un processo a parte con un tempo
 massimo: `hourly` al minuto 5 di ogni ora, `live` al minuto 15 (solo con `RADIX_TRADING_MODE=live`), `daily` alle
-22:30 UTC. Un turno saltato si recupera al giro dopo; un riavvio non rifa' il `daily` della sera prima.
+22:30 UTC, `osservatorio-notizie` ogni 5 minuti (dal 15/11/2026; vedi la sezione sotto). Un turno saltato si recupera al
+giro dopo (uno solo, non tutti quelli persi); un riavvio non rifa' il `daily` della sera prima. Per il solo osservatorio
+notizie bastano `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` e `OPENAI_API_KEY` (o `ANTHROPIC_API_KEY`): senza chiavi Kraken il
+giro `live` resta spento e il conto vero continua sul Mac.
 
 `Dockerfile` e `railway.json` (cartella `trading`) sono pronti per Railway (piano Hobby, circa 5 €/mese):
 1. Nuovo progetto Railway dal repository GitHub, cartella radice `trading`, un volume montato su `/data`.
@@ -213,6 +216,29 @@ titoli in lotti di 40, al massimo 4000 per giro (i piu' recenti prima; l'arretra
 qualche centesimo al giorno; il rapporto del daily riporta token e costo stimato (`RADIX_NEWS_PRICE_IN/OUT` per milione).
 `python -m radix_trading agente-notizie [--limite N]` classifica adesso (i titoli prima del 3/11 si ignorano); `--prova` legge 10 titoli e stampa senza salvare.
 Il riepilogo del venerdi' aggiunge una riga con lo storico accumulato e le famiglie forti della settimana.
+
+## Osservatorio notizie al minuto (solo misura)
+
+Chiesto da Francesco il 15/11/2026 («dovrebbe leggerli non dico ogni minuto ma quasi e agire di conseguenza»). Prima di
+far agire qualcosa sui titoli si misura se nei minuti dopo una notizia forte resta qualcosa da prendere, perche' finora
+non c'e' nessuna prova: la prima gamba la fanno gli algoritmi in millisecondi, i feed gratuiti arrivano con minuti di
+ritardo e sulle notizie programmate al minuto (CPI, lavoro, Fed; 144 prove) nessuna regola ha retto.
+
+`news_watch.py`, comando `osservatorio-notizie`, un giro ogni 5 minuti sul server (`serve`, ai minuti 2, 7, 12, …) e ogni
+ora sul Mac dentro `hourly`: scarica i titoli nuovi (tutti i feed RSS, una ricerca GDELT a rotazione), li fa classificare
+subito all'agente notizie (200 per giro, i nuovi per primi; senza chiave la classificazione e' saltata ma i prezzi si
+registrano lo stesso), registra il prezzo corrente di S&P 500 e Nasdaq (future `ES=F`/`NQ=F`, Yahoo), BTC, ETH e oro
+(Kraken, 24 ore su 24; l'oro e' il token PAXG) in `news_watch_prices`, e per ogni titolo forte (intensita' ≥ 2) visto
+entro 3 ore dalla pubblicazione apre un'osservazione in `news_watch_events` (ora in cui lo abbiamo visto, ritardo dalla
+pubblicazione, famiglie, intensita', segno). Dal 15/11 il modello da' anche un **segno** (−1 male per le borse USA, +1 bene,
+0 neutro; colonna `segno` in `news_llm`, aggiunta da sola alle tabelle gia' create).
+
+`osservatorio-notizie --rapporto` legge le mosse a +5, +15 e +60 minuti dai prezzi dei giri successivi e le confronta con il
+controllo a orario spostato (stessa ora, 1-3 giorni prima e dopo): per mercato e orizzonte quante volte il mercato si e'
+mosso nel verso della notizia, la mossa media nel verso e l'ampiezza media, piu' il verso medio a +15 minuti per famiglia su
+S&P e BTC; una riga va nel riepilogo Telegram del venerdi'. Verdetto dopo 4-6 settimane: se il verso reale non batte il
+controllo dopo i costi (spread CFD, ritardo dei feed), nessun automatismo. Nessun ordine, nessun euro: le corsie del metodo
+60% non cambiano.
 
 ## Diario del conto Axi (solo lettura)
 
