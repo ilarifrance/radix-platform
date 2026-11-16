@@ -2,8 +2,91 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/control-center-v2.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
       "permanent": false
+    },
+    {
+      "source": "/control-center-v2.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/agents.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/marketing-agency.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/admin.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/impostazioni.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/trading.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ],
+      "destination": "/crm",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "destination": "/control-center-v2.html",
+      "permanent": false,
+      "missing": [
+        {
+          "type": "host",
+          "value": "(sales-orbis|crm)\\..+"
+        }
+      ]
     }
   ],
   "rewrites": [

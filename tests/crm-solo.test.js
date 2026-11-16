@@ -13,7 +13,7 @@ test('the CRM page loads the sign-in script and style',()=>{
 });
 test('sign-in script: only on /crm, asks /api/auth/me, posts /api/auth/login, never stores a password',()=>{
   const s=read('sales/crm-solo.js');
-  assert.match(s,/location\.pathname!=='\/crm'\)return/);
+  assert.match(s,/location\.pathname!=='\/crm'&&!product\)return/);
   assert.match(s,/\/api\/auth\/me/);assert.match(s,/\/api\/auth\/login/);
   assert.doesNotMatch(s,/localStorage|sessionStorage/);
 });

@@ -4,14 +4,15 @@
    Command Center and the other areas (menu in sales-nav.js, remembered in this browser). Nothing else changes: the data a person
    sees is still decided by the server (workspace membership and role). */
 (()=>{
-if(location.pathname!=='/crm')return;
-document.documentElement.classList.add('crm-solo');document.title='RADIX · CRM';
+const PR=window.RadixCrmProduct,product=!!(PR&&PR.here());
+if(location.pathname!=='/crm'&&!product)return;
+document.documentElement.classList.add('crm-solo');document.title=product?'Sales Orbis · CRM':'RADIX · CRM';
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n};
 function gate(){
  if(document.querySelector('.solo-gate'))return;
  const box=E('div',undefined,'solo-gate');box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-labelledby','solo-title');
  const form=E('form',undefined,'solo-card');form.setAttribute('autocomplete','on');
- const brand=E('div','RADIX','solo-brand');const title=E('h1','CRM','');title.id='solo-title';
+ const brand=E('div',product?'Sales Orbis':'RADIX','solo-brand');const title=E('h1','CRM','');title.id='solo-title';
  const lead=E('p','Accedi con il tuo account per aprire il CRM.','solo-lead');
  const field=(label,type,auto)=>{const l=E('label',label);const i=E('input');i.type=type;i.autocomplete=auto;i.required=true;i.name=type==='password'?'password':'email';l.append(i);return [l,i]};
  const [le,email]=field('Email','email','username'),[lp,pass]=field('Password','password','current-password');

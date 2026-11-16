@@ -49,14 +49,16 @@
   var HOME = { href: '/control-center-v2.html', text: 'Command Center', ic: 'home' };
   // «Solo CRM» (a colleague who only works in the CRM): opening /crm remembers it in this browser; the menu then has no
   // Command Center (the rest of the menu stays), and an «Esci» entry. ?completo=1 on any Sales page turns it off.
-  var SOLO_KEY = 'radix.crm-solo', solo = location.pathname === '/crm';
+  var P = window.RadixCrmProduct, product = !!(P && P.here()); // «Sales Orbis»: CRM sold on its own host
+  var SOLO_KEY = 'radix.crm-solo', solo = location.pathname === '/crm' || product;
+  var ROOT = product ? '/' : '/crm';
   try {
     if (location.pathname === '/crm') localStorage.setItem(SOLO_KEY, '1');
     else if (/[?&]completo=1/.test(location.search)) localStorage.removeItem(SOLO_KEY);
-    solo = localStorage.getItem(SOLO_KEY) === '1';
+    solo = localStorage.getItem(SOLO_KEY) === '1' || product;
   } catch (e) { /* storage blocked: /crm alone stays reduced */ }
   var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
-  var path = location.pathname === '/crm' ? '/radix-sales.html' : location.pathname;
+  var path = (location.pathname === '/crm' || (product && location.pathname === '/')) ? '/radix-sales.html' : location.pathname;
   var onCrm = /\/radix-sales\.html$/.test(path);
 
   function isCurrent(href) {
@@ -73,7 +75,7 @@
     if (item.logout) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
-        fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(function () {}).then(function () { location.href = '/crm'; });
+        fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(function () {}).then(function () { location.href = ROOT; });
       });
     }
     a.className = 'sx-link';
@@ -128,7 +130,7 @@
         : 'Le pagine Sales mostrano solo i dati del workspace commerciale a cui appartieni, e oggi il tuo account non ne ha nessuno. Chiedi a un amministratore di aggiungerti: da quel momento qui trovi aziende, contatti, opportunità e attività.';
       txt.append(h, p);
       var act = document.createElement('div'); act.className = 'sx-access-actions';
-      var home = document.createElement('a'); home.href = solo ? '/crm' : '/control-center-v2.html'; home.textContent = solo ? 'Vai all’accesso' : 'Torna al Command Center';
+      var home = document.createElement('a'); home.href = solo ? ROOT : '/control-center-v2.html'; home.textContent = solo ? 'Vai all’accesso' : 'Torna al Command Center';
       act.append(home);
       if (!d.login && navigator.clipboard) {
         var copy = document.createElement('button'); copy.type = 'button'; copy.textContent = 'Copia la richiesta di accesso';
@@ -156,8 +158,8 @@
     if (side.parentElement) side.parentElement.classList.add('sx-app');
     side.textContent = '';
     var brand = document.createElement('a');
-    brand.className = 'sx-brand'; brand.href = solo ? '/crm' : '/sales-orbit-higgsfield.html';
-    brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
+    brand.className = 'sx-brand'; brand.href = solo ? ROOT : '/sales-orbit-higgsfield.html';
+    brand.innerHTML = product ? 'Sales <b>Orbis</b><small>CRM</small>' : 'RAD<b>I</b>X<small>Sales Intelligence</small>';
     var nav = document.createElement('nav');
     nav.className = 'sx-nav'; nav.setAttribute('aria-label', 'Menu Sales');
     build(nav);
@@ -195,8 +197,8 @@
     for (var i = 1; i < links.length; i++) links[i].remove();
     crmNav.classList.add('sx-nav');
     if (!crmNav.querySelector(':scope > .sx-brand')) {
-      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = solo ? '/crm' : '/sales-orbit-higgsfield.html';
-      brand.innerHTML = 'RAD<b>I</b>X<small>Sales Intelligence</small>';
+      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = solo ? ROOT : '/sales-orbit-higgsfield.html';
+      brand.innerHTML = product ? 'Sales <b>Orbis</b><small>CRM</small>' : 'RAD<b>I</b>X<small>Sales Intelligence</small>';
       crmNav.prepend(brand);
     }
     mark(crmNav);
