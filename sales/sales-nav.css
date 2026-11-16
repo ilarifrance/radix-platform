@@ -78,3 +78,6 @@ html.sx-no-crm #main>.metrics,html.sx-no-crm #main>.filterbar,html.sx-no-crm #ma
   body:has(>div.layout>nav#navigation)>header>div>label{display:none}
   body:has(>div.layout>nav#navigation)>header select{max-width:200px}
 }
+
+/* Sales Orbis (html[data-product], sales/crm-product.js): links to RADIX pages the product does not serve stay hidden. */
+html[data-product] a[href*="sales-orbit"], html[data-product] a[href*="control-center"], html[data-product] a[href^="https://claude.ai/"] { display: none !important; }

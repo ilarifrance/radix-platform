@@ -99,6 +99,8 @@
     if (!solo) frag.append(link(HOME));
     GROUPS.forEach(function (g) {
       var items = g.items.slice();
+      // On the product only its own pages: no Sales Orbit globe and no RADIX guide (pageAllowed in crm-product.js).
+      if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]); });
       if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';

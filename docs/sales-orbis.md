@@ -11,6 +11,10 @@ Tutte le regole stanno in `sales/crm-product.js`.
 - **Pagine:** solo quelle in `PAGES` (CRM, Pipeline, Posta, Vendite, Lead Intelligence, LinkedIn, Campagne, Progetti commerciali, Impostazioni). Ogni altro indirizzo torna a `/crm` (`vercel.json`, test `tests/crm-product.test.js`).
 - **API:** solo `auth`, `sales`, `chat` (agenti `crm-*` e `comm-*`), `parse-file`, `ms-oauth`, `admin` (solo con `ADMIN_SECRET`) e, fra le integrazioni, `status`, `send-email` e `send-queue`. Le altre rispondono 404 (`api/_product.js`, test `tests/sales-orbis-api.test.js`).
 
+## Marchio
+
+Sul prodotto nessun testo dice RADIX: `brand()` in `sales/crm-product.js` cambia «RADIX» e «Sales Orbit» in «Sales Orbis» in ogni testo dell'interfaccia (dopo la traduzione, in `lib/radix-i18n.js`), `applyHead()` mette icona (`sales/icons/sales-orbis.svg`) e manifest (`sales-orbis.webmanifest`) del prodotto. Il menu non ha il globo Sales Orbit né la guida esterna, i link a pagine RADIX restano nascosti (`html[data-product]` in `sales/sales-nav.css`) e la Regia RADIX non si carica: l'assistente è il Copilota del CRM. Test: `tests/sales-orbis-brand.test.js`.
+
 ## Database separato
 
 Il database va creato solo con l'ok di Francesco. Poi, una volta sola, su quel database vuoto:
