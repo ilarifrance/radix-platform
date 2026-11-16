@@ -23,6 +23,10 @@ Sul prodotto nessun testo dice RADIX: `brand()` in `sales/crm-product.js` cambia
 
 `api/_sales_plan.js` (migrazione `migrations/sales/023`): ogni workspace ha un piano, `prova` (tutto, il predefinito), `base` (tutto tranne Lead Intelligence) o `completo` (tutto). Sul prodotto, con `base`, le risorse di Lead Intelligence in `/api/sales` rispondono 403, il menu non mostra Lead Intelligence e la pagina dice che è nel Completo; Impostazioni › CRM mostra il piano. RADIX non applica i piani. Il piano lo cambia chi lo vende, mai il cliente: `node tools/sales-orbis/db.js plan --workspace <id> --plan base` (poi i pagamenti, passo 10). Durata della prova e prezzi: da decidere. Test: `tests/sales-orbis-plan.test.js`.
 
+## Lead Intelligence guidata
+
+In cima a Lead Intelligence il «Percorso guidato» (`sales/lead-guide-core.js`, `sales/lead-guide.js`) dice il prossimo passo (prima lista, lead nel CRM, email mancanti, prima email) e lo stato di ogni fonte e servizio: estensione Chrome, file CSV/Excel e JSON e ricerca email gratuita sono sempre pronti; Captain Data, Hunter, Apollo e Dropcontact risultano «da collegare» finché il progetto non ha le loro chiavi (`CAPTAIN_DATA_API_KEY` e `CAPTAIN_DATA_USER_UID`, `HUNTER_API_KEY`, `APOLLO_API_KEY`, `DROPCONTACT_API_KEY`), da decidere con Francesco. Captain Data oggi è spento in produzione per scelta del codice (`api/_lead_provider_client.js`). Il percorso legge soltanto: nessuna ricerca parte da lì. Test: `tests/lead-guide.test.js`.
+
 ## Database separato
 
 Il database va creato solo con l'ok di Francesco. Poi, una volta sola, su quel database vuoto:
