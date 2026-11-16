@@ -7,8 +7,9 @@ const list=v=>Array.isArray(v)?v:[];
 // Campaign emails are recorded by sales/crm-campaigns.js as «Email: <oggetto>» and by the
 // Lead Intelligence newsletter (sales/lead-newsletter.js) as «Newsletter: <oggetto>».
 const CAMPAIGN=/^(?:Email|Newsletter): /;
-function steps(d){
- const x=d||{};
+// opts.lead === false (Sales Orbis plans without Lead Intelligence): the lead step points to the CRM's own Lead list.
+function steps(d,opts){
+ const x=d||{},li=!(opts&&opts.lead===false);
  const processes=list(x.processes),stages=list(x.stages);
  const pipeline=processes.some(p=>p.kind==='opportunity'&&stages.some(s=>s.process_id===p.id));
  return [
@@ -16,7 +17,8 @@ function steps(d){
   {id:'company',label:'Aggiungi la prima azienda',hint:'Il cliente o il prospect con cui lavori.',done:list(x.companies).length>0,href:'#companies'},
   {id:'contact',label:'Aggiungi il primo contatto',hint:'La persona di riferimento in azienda.',done:list(x.contacts).length>0,href:'#contacts'},
   {id:'opportunity',label:'Apri la prima opportunità',hint:'Una trattativa con importo e fase.',done:list(x.opportunities).length>0,href:'#opportunities'},
-  {id:'lead',label:'Porta il primo lead nel CRM',hint:'Da Lead Intelligence, con «Porta nel CRM».',done:list(x.leads).length>0,href:'/lead-intelligence.html'},
+  li?{id:'lead',label:'Porta il primo lead nel CRM',hint:'Da Lead Intelligence, con «Porta nel CRM».',done:list(x.leads).length>0,href:'/lead-intelligence.html'}
+    :{id:'lead',label:'Aggiungi il primo lead',hint:'Una persona o un’azienda interessata, da Dati CRM › Lead.',done:list(x.leads).length>0,href:'#leads'},
   {id:'campaign',label:'Invia la prima campagna email',hint:'Da Contatti › Sequenze e campagne email, o dalla Newsletter.',done:list(x.interactions).some(i=>i&&i.kind==='email'&&CAMPAIGN.test(String(i.title||''))),href:'#contacts'}
  ];
 }

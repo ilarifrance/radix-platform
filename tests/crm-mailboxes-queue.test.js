@@ -308,3 +308,16 @@ test('router: mailbox and queue requests go through their own validator, GET kee
  assert.equal(r2.code,403,'a viewer cannot add mailboxes');
  const r3=res();await h({method:'GET',query:{entity:'send_queue',workspace:W,extra:'1'},headers:{}},r3);assert.equal(r3.code,400);
 });
+
+// Sales Orbis plan limits (api/_sales_plan.js): the emails of a campaign are taken before queueing; what is not queued comes back.
+test('queue: the plan\'s monthly emails are taken before queueing, over the limit nothing is queued',async()=>{
+ const meter=limit=>{const m={used:0};m.take=async(k,n)=>{if(m.used+n>limit){const e=new Error('Questi invii superano le email di questo mese previste dal piano.');e.status=429;throw e}m.used+=n};m.give=async(k,n)=>{m.used-=n};return m};
+ const mk=()=>{const db=fakeDb();db.mailboxes.push({workspace_id:W,id:M1,label:'Anna',from_email:'anna@example.it',daily_limit:50,warmup_start:'2026-01-01',status:'active'});return db};
+ const data={campaign:'Ottobre',subject:'{nome}, una proposta',body:'Gentile {nome}',contacts:[C1,C2,C3],origin:'https://radix.example',confirm:true};
+ let db=mk(),m=meter(5);
+ const r=(await mailq.handle(mailq.command({workspace:W,entity:'send_queue',action:'enqueue',data}),{sql:db.sql,user:1,role:'member',req:REQ,env:ENV,now:at('2026-10-20T08:00:00Z'),random:seq(0.5),meter:m})).rows[0];
+ assert.equal(r.queued,1);assert.equal(m.used,1,'only what was queued counts');
+ db=mk();m=meter(0);
+ await assert.rejects(mailq.handle(mailq.command({workspace:W,entity:'send_queue',action:'enqueue',data}),{sql:db.sql,user:1,role:'member',req:REQ,env:ENV,now:at('2026-10-20T08:00:00Z'),random:seq(0.5),meter:m}),e=>e.status===429);
+ assert.equal(db.queue.length,0,'nothing queued over the limit');
+});

@@ -299,7 +299,7 @@ function createHandler({getSessionUser,getStore}){
    // «Indirizzi disiscritti»: owner/admin only, checked in suppressions.handle (reads included).
    if(c.suppressions)return res.status(200).json(await suppressions.handle(c,{sql:store.sql,user:user.uid,role:membership.role,method:req.method}));
    // «Trova email»: owner/admin/member, visibility in its own query; a found email is saved with the contact update command.
-   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,meter,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
+   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,meter,product:onProduct,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.entity==='segments')await reservedGuard(store,c,membership.role);

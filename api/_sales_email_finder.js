@@ -211,7 +211,7 @@ function personOf(c){
 }
 
 /* opts: {sql,user,role,env,fetch,now,getPage(url,domain),save(entity,data)} — save runs the normal sales_command update. */
-async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,now=Date.now(),getPage=sitePage,save,budgetMs=12000,meter=null}){
+async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,now=Date.now(),getPage=sitePage,save,budgetMs=12000,meter=null,product=false}){
  if(!c.action){const order=await orderOf(sql,c.workspace);return {rows:[{chain:F.chain(order,configuredMap(env)),order,can_configure:['owner','admin'].includes(role),sync_max:SYNC_MAX,batch_max:BATCH_MAX}]}}
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
  const out={saved:0,guessed:0,company:0,not_found:0,already:0,failed:0,suppressed:0,resolved:[],rows:[]};
@@ -283,7 +283,8 @@ async function handle(c,{sql,user,role,env=process.env,fetch:f=globalThis.fetch,
  const order=await orderOf(sql,c.workspace),name=c.data.provider,p=PROVIDERS[name];
  if(!order.includes(name))fail(400,p.label+' è spento nell’ordine dei servizi «Trova email».');
  if(p.unavailable)fail(400,F.byId(name).unavailable);
- if(!p.configured(env))fail(503,p.label+' da collegare: serve la chiave '+F.byId(name).env+' nelle variabili d’ambiente di Vercel (Production). Nessuna ricerca è partita.');
+ // On Sales Orbis the customer never sees how the server is set up.
+ if(!p.configured(env))fail(503,product?p.label+' non è ancora attivo. Nessuna ricerca è partita.':p.label+' da collegare: serve la chiave '+F.byId(name).env+' nelle variabili d’ambiente di Vercel (Production). Nessuna ricerca è partita.');
  if(c.action==='paid'){
   const rows=await load(c.data.contacts),pick=F.candidates(rows,{paid:true});
   // Sales Orbis plan (api/_sales_plan.js): every contact sent to a paid provider counts; a search that fails goes back.

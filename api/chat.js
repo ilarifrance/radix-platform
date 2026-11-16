@@ -1847,9 +1847,12 @@ module.exports = async (req, res) => {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({
-      error:
-        "ANTHROPIC_API_KEY non configurata su Vercel. Vai su Project Settings -> Environment Variables, aggiungila e rifai il deploy.",
+    // «Sales Orbis»: the customer never sees how the server is set up.
+    const productReq = require("./_product").isProductRequest(req);
+    res.status(productReq ? 503 : 500).json({
+      error: productReq
+        ? "Il Copilota non è disponibile in questo momento: riprova più tardi."
+        : "ANTHROPIC_API_KEY non configurata su Vercel. Vai su Project Settings -> Environment Variables, aggiungila e rifai il deploy.",
     });
     return;
   }

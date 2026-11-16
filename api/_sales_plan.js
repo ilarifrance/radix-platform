@@ -102,7 +102,7 @@ async function aiWorkspace(sql, user, wanted) {
   const r = await sql('SELECT m.workspace_id AS id FROM sales_memberships m WHERE m.user_id=$1', [user]);
   const ids = r.map(x => x.id);
   if (wanted && ids.includes(wanted)) return wanted;
-  let best = null, rank = -1;
+  let best = null, rank = -2;
   for (const id of ids) {
     const p = await planOf(sql, id), k = has(p, 'copilot') ? limits(p).ai : -1;
     if (k > rank) { rank = k; best = id; }

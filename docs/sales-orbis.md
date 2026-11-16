@@ -68,3 +68,12 @@ Tutte nuove, mai le stesse di RADIX. I valori non vanno mai scritti nel reposito
 | caselle email e Microsoft 365 | come nel CRM di RADIX, con credenziali del prodotto |
 
 Dominio, database di produzione, chiavi e pagamenti: solo con l'ok esplicito di Francesco.
+
+## Sito di prova (progetto Vercel «sales-orbis»)
+
+Il progetto Vercel `sales-orbis` (team Radix Innovation Studio) pubblica questo stesso repository con `RADIX_PRODUCT=sales-orbis`. È protetto dall'accesso Vercel del team, salvo i domini propri. Mancano ancora, a cura di Francesco:
+
+1. **Database:** da Vercel › sales-orbis › Storage › Create Database › Neon, regione Francoforte, collegato a tutti gli ambienti. Imposta `DATABASE_URL`. L'account Neon è gestito da Vercel, quindi non si crea dal connettore Neon. Il progetto Neon di RADIX non va usato.
+2. **`JWT_SECRET`:** una stringa casuale lunga, di tipo Sensitive, per Production e Preview.
+
+Poi: `node tools/sales-orbis/db.js schema` sul database nuovo (migrazioni 001-024), un account di prova con dati finti e la pubblicazione del ramo. Facoltativi: `ANTHROPIC_API_KEY` (Copilota), `MAILBOX_ENC_KEY` (caselle email), `AUTH_SMTP_*` (password dimenticata), le chiavi dei servizi «Trova email» (Extreme), `PUBLIC_URL`.
