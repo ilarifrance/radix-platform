@@ -67,6 +67,14 @@ async function reload(){
  if(!current(generation))return;state.ready=result.every(r=>r.status==='fulfilled');render();
  if(!state.ready)error('Alcuni dati non sono disponibili. Scrittura disabilitata: premi Aggiorna per riprovare.');
 }
+// The workspace currency (Impostazioni › CRM › Valuta): remembered for this browser's pages (lib/radix-i18n.js); a change
+// reloads once so every amount is shown with it. Best effort: without the setting the pages keep what they had.
+async function syncCurrency(){
+ const I=window.RadixI18n;if(!I||!I.saveWsCurrency||!state.workspace)return;
+ try{const d=await api('workspace_settings');const code=d&&d.settings&&d.settings.currency;if(!code)return;
+  let before=null;try{before=localStorage.getItem(I.WS_KEY)}catch{}
+  if(before!==code&&I.saveWsCurrency(window,code)&&(before||code!=='EUR'))location.reload();}catch{}
+}
 async function refresh(memberships=true){
  if(state.busy)return;lock(true);error('');notice('Caricamento dal server…');
  try{
@@ -76,6 +84,7 @@ async function refresh(memberships=true){
   renderWorkspace();
   if(!state.workspace){state.ready=false;state.rows={};$('content').replaceChildren();$('membership').textContent='Nessun workspace disponibile. Chiedi a un amministratore di assegnarti una membership. Nessun workspace viene creato automaticamente.';notice('Nessun dato da mostrare.');return;}
   await reload();notice(state.ready?'Dati aggiornati dal server.':'Caricamento parziale.');
+  syncCurrency();
  }catch(e){state.ready=false;state.rows={};$('content').replaceChildren();error(e.message);notice('Caricamento non riuscito.');}
  finally{lock(false);$('workspace').disabled=!state.workspaces.length;}
 }

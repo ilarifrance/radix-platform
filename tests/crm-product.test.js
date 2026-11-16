@@ -65,3 +65,22 @@ test('menu and sign-in use the product brand and never link to the Command Cente
   assert.match(s,/location\.pathname!=='\/crm'&&!product/);
   assert.match(s,/Sales Orbis/);
 });
+
+test('every product page loads the product module before the menu, settings included',()=>{
+  for(const p of P.PAGES.filter(p=>p.endsWith('.html'))){
+    const h=read(p),i=h.indexOf('/sales/crm-product.js')>=0?h.indexOf('/sales/crm-product.js'):h.indexOf('sales/crm-product.js');
+    assert.ok(i>0,p+' loads sales/crm-product.js');
+    const nav=h.indexOf('sales/sales-nav.js'),area=h.indexOf('shell/settings-area.js');
+    if(nav>0)assert.ok(i<nav,p+': before the menu');
+    if(area>0)assert.ok(i<area,p+': before the settings area');
+  }
+});
+test('settings on the product: CRM menu, no RADIX services or billing',()=>{
+  const A=require('../shell/settings-area.js'),C=require('../shell/settings-core.js');
+  assert.equal(A.areaOf({search:'?area=system',product:true}),'sales');
+  assert.equal(A.areaOf({search:'?area=system'}),'system');
+  assert.deepEqual(C.sectionsFor(true).map(s=>s.id),C.SECTIONS.map(s=>s.id).filter(id=>!['collegamenti','crediti'].includes(id)));
+  assert.equal(C.sectionsFor(false),C.SECTIONS);
+  assert.equal(C.sectionFromHash('#collegamenti',true),'profilo');
+  assert.equal(C.sectionFromHash('#collegamenti',false),'collegamenti');
+});

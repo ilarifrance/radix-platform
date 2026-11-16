@@ -7,7 +7,9 @@
 'use strict';
 const SALES_PAGE=/^\/(radix-sales|sales-[a-z0-9-]+|lead-intelligence)\.html$/;
 // 'sales' or 'system': the query wins, then the referrer (same origin), then what the tab remembers.
-function areaOf({search='',referrer='',origin='',stored=''}={}){
+function areaOf({search='',referrer='',origin='',stored='',product=false}={}){
+ // «Sales Orbis» (sales/crm-product.js): the product has no global shell, its settings always keep the CRM menu.
+ if(product)return 'sales';
  const q=new URLSearchParams(search).get('area');
  if(q==='sales')return 'sales';if(q==='system'||q==='cc')return 'system';
  if(referrer){try{const u=new URL(referrer);if(origin&&u.origin===origin&&SALES_PAGE.test(u.pathname))return 'sales'}catch(e){}}
@@ -15,7 +17,7 @@ function areaOf({search='',referrer='',origin='',stored=''}={}){
 }
 function boot(win){const doc=win.document,body=doc.body;if(!body||win.__radixSettingsArea)return;win.__radixSettingsArea=true;
  let stored='';try{stored=win.sessionStorage.getItem('rx-settings-area')||''}catch(e){}
- const area=areaOf({search:win.location.search,referrer:doc.referrer,origin:win.location.origin,stored});
+ const area=areaOf({search:win.location.search,referrer:doc.referrer,origin:win.location.origin,stored,product:!!(win.RadixCrmProduct&&win.RadixCrmProduct.here())});
  try{win.sessionStorage.setItem('rx-settings-area',area)}catch(e){}
  if(area!=='sales')return;
  // No global shell on this visit: the Sales sidebar and the Regia loader of the Sales pages take its place.

@@ -19,6 +19,7 @@ const siteForm=require('./_site_form');
 const docs=require('./_sales_documents');
 // «Aggiungi campo» (migration sales 015): field definitions per workspace, values in «custom».
 const customFields=require('./_sales_custom_fields');
+const wsSettings=require('./_sales_workspace_settings');
 // «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
 const mailq=require('./_sales_mailboxes');
 const mailRead=require('./_sales_mail_read');
@@ -230,6 +231,7 @@ function createHandler({getSessionUser,getStore}){
      else if(mailq.ENTITIES.includes(body?.entity))c={...mailq.command(body),mailq:true};
      else if(calendars.ENTITIES.includes(body?.entity))c={...calendars.command(body),calendars:true};
      else if(body?.entity==='custom_fields')c={...customFields.command(body),entity:'custom_fields',customFields:true};
+     else if(body?.entity===wsSettings.ENTITY)c={...wsSettings.command(body),wsSettings:true};
      else if(docs.ENTITIES.includes(body?.entity))c={...docs.command(body),documents:true};
      else c=body?.entity==='members'?memberCommand(body):body?.entity==='lead_growth_projects'?growthProjects.command(body):body?.entity==='lead_contact_jobs'?leadContactJobs.command(body):body?.entity==='lead_lists'?leadLists.command(body):command(body);
    }else{
@@ -239,6 +241,7 @@ function createHandler({getSessionUser,getStore}){
      else if(mailq.ENTITIES.includes(q.entity))c={...mailq.query(q),mailq:true};
      else if(q.entity===mailRead.ENTITY)c={...mailRead.query(q),mailRead:true};
      else if(calendars.ENTITIES.includes(q.entity))c={...calendars.query(q),calendars:true};
+     else if(q.entity===wsSettings.ENTITY)c={...wsSettings.query(q),wsSettings:true};
      else if(q.entity==='custom_fields'){if(Object.keys(q).some(k=>!['entity','workspace','offset'].includes(k))||(q.offset!==undefined&&q.offset!=='0')||!uuid(q.workspace))fail(400,'Parametri campi non validi.');c={workspace:q.workspace,entity:'custom_fields',customFields:true};}
      else if(docs.READS.includes(q.entity))c={...docs.query(q),documents:true};
      else{if(Object.keys(q).some(k=>!['entity','workspace','offset','subject','id','search','due','limit'].includes(k)&&!(k==='report'&&q.entity==='email_clicks')))fail(400,'Parametro non consentito.');
@@ -279,6 +282,8 @@ function createHandler({getSessionUser,getStore}){
      const result=await publicLookup.lookup(c.data);
      return res.status(200).json(result);
    }
+   // Impostazioni › CRM › Valuta: every member reads, owner/admin change (checked in wsSettings.handle).
+   if(c.wsSettings)return res.status(200).json(await wsSettings.handle(c,{sql:store.sql,role:membership.role,method:req.method}));
    // Calendari esterni: every member manages only their own links (the handler filters every statement on the caller).
    if(c.calendars)return res.status(200).json(await calendars.handle(c,{sql:store.sql,user:user.uid}));
    // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.

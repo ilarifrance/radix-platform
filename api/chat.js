@@ -2030,7 +2030,9 @@ function languageRule(lang, currency) {
   const l = typeof lang === "string" ? lang.trim().toLowerCase() : "";
   if (!LANGUAGES.includes(l) || l === "it") return "";
   const c = typeof currency === "string" ? currency.trim().toUpperCase() : "";
-  return "\n\n" + ENGLISH_RULE + (CURRENCY_RULE[c] || "");
+  // Any other workspace currency (Impostazioni › CRM › Valuta): its ISO code, never euro.
+  const other = require("../lib/radix-i18n.js").CODES.includes(c) && !CURRENCY_RULE[c] ? " Amounts are in " + c + ": write them in " + c + " (for example " + c + " 1,200.00), never with € or £." : "";
+  return "\n\n" + ENGLISH_RULE + (CURRENCY_RULE[c] || other);
 }
 module.exports.friendlyApiError = friendlyApiError;
 module.exports.languageRule = languageRule;
