@@ -29,5 +29,8 @@ module.exports = async function integrationRoute(req, res) {
   if (typeof service !== 'string' || !Object.hasOwn(handlers, service)) {
     return res.status(404).json({ error: 'Endpoint non trovato' });
   }
+  // «Sales Orbis»: on the product only the CRM services answer (sales/crm-product.js SERVICES).
+  const product = require('../_product');
+  if (product.isProductRequest(req) && !require('../../sales/crm-product.js').apiAllowed('integrations', service)) return product.notFound(res);
   return handlers[service]()(req, res);
 };

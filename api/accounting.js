@@ -35,12 +35,12 @@ async function stripeWebhook(req,res){
  try{return res.status(200).json(await billing.webhook(getStore(),req,res));}
  catch(e){if(!e.status)console.error('accounting stripe webhook',e);res.status(e.status||500).json({error:e.status?e.message:'Errore interno.'});}
 }
-module.exports=async function(req,res){
+module.exports=require('./_product').radixOnly(async function(req,res){
  if(req.query&&req.query.stripe==='webhook')return stripeWebhook(req,res);
  if(req.method!=='GET'&&req.method!=='HEAD'&&req.body===undefined){
   try{req.body=await readJson(req);}catch(e){res.setHeader('Cache-Control','no-store');return res.status(e.status||400).json({error:e.status?e.message:'Richiesta non leggibile.'});}
  }
  return handler(req,res);
-};
+});
 module.exports.config={api:{bodyParser:false}};
 module.exports.stripeWebhook=stripeWebhook;

@@ -1834,6 +1834,8 @@ module.exports = async (req, res) => {
   if (req.method === "GET") {
     // v3.3: insieme allo stato, i profili progetto predefiniti — il frontend li semina nello stato condiviso
     // alla prima apertura (poi sono modificabili lì) e li usa per la migrazione del vecchio campo "brand".
+    // «Sales Orbis»: no RADIX project profiles on the product.
+    if (require("./_product").isProductRequest(req)) { res.status(200).json({ configured: !!process.env.ANTHROPIC_API_KEY }); return; }
     res.status(200).json({ configured: !!process.env.ANTHROPIC_API_KEY, presets: Object.values(PRESET_PROJECTS) });
     return;
   }
@@ -1860,7 +1862,14 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { role, messages, brand, project, memoryScope, crmScope } = body || {};
+  const { role, messages, brand, project, crmScope } = body || {};
+  // «Sales Orbis» (api/_product.js): on the product only the CRM agents run, without the RADIX team memory.
+  const onProduct = require("./_product").isProductRequest(req);
+  if (onProduct && !require("../sales/crm-product.js").chatRoleAllowed(role)) {
+    res.status(404).json({ error: "Agente non disponibile." });
+    return;
+  }
+  const memoryScope = onProduct ? undefined : body && body.memoryScope;
   // "legacy" asks for the previous engine (comparisons, or a reply that worked better there).
   const forcedTier = body && body.engine === "legacy" ? "legacy" : undefined;
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
