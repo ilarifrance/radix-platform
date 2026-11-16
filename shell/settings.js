@@ -213,7 +213,7 @@ async function currencyCard(manage){
  const I=root.RadixI18n,codes=(I&&I.CODES)||['EUR'];
  const c=card('Valuta','La valuta in cui il workspace scrive importi, preventivi e report, in italiano e in inglese. Cambia come gli importi vengono mostrati: i valori salvati restano gli stessi.');
  let names=null;try{names=new Intl.DisplayNames(['it'],{type:'currency'})}catch{names=null}
- const label=code=>code+(names?' · '+names.of(code):'');
+ const label=code=>code+(names?' ('+names.of(code)+')':'');
  let current='EUR',pending=false;
  try{const d=await api('workspace_settings');current=(d.settings&&d.settings.currency)||'EUR';pending=!!(d.settings&&d.settings.pending)}catch(e){c.append(E('p',e.message,'st-err'));return c}
  if(rememberCurrency(current)){location.reload();return c}

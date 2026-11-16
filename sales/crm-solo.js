@@ -18,7 +18,11 @@ function gate(){
  const [le,email]=field('Email','email','username'),[lp,pass]=field('Password','password','current-password');
  const err=E('p',undefined,'solo-err');err.setAttribute('role','alert');err.hidden=true;
  const go=E('button','Accedi','solo-go');go.type='submit';
- form.append(brand,title,lead,le,lp,err,go);box.append(form);document.body.append(box);email.focus();
+ // The language flag of the top bar is behind this window: the same choice here (lib/radix-i18n.js), before signing in.
+ const I=window.RadixI18n,langs=E('div',undefined,'solo-langs');langs.setAttribute('data-i18n-skip','');langs.setAttribute('role','group');langs.setAttribute('aria-label',I&&I.en?'Language':'Lingua');
+ if(I&&I.saveLang)for(const [l,name] of [['it','Italiano'],['en','English']]){const b=E('button',l.toUpperCase(),'solo-lang');b.type='button';b.lang=l;b.title=name;b.setAttribute('aria-label',name);b.setAttribute('aria-pressed',String(I.lang===l));
+  b.addEventListener('click',()=>{if(I.lang===l)return;I.saveLang(window,l);try{const u=new URL(location.href);if(u.searchParams.has('lang')){u.searchParams.set('lang',l);location.href=u.toString();return}}catch(e){}location.reload()});langs.append(b)}
+ form.append(langs,brand,title,lead,le,lp,err,go);box.append(form);document.body.append(box);email.focus();
  form.addEventListener('submit',async ev=>{ev.preventDefault();err.hidden=true;go.disabled=true;go.textContent='Accesso in corso…';
   try{const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:pass.value})});
    const d=await r.json().catch(()=>({}));

@@ -116,7 +116,9 @@ function planB2B(subject,body,contacts,ctx={}){
 /* The footer of every B2B email: not editable, always last, the text above is cut to make room.
    issuer: document settings (Impostazioni › Documenti); sender: the mailbox; contact; url: personal opt-out link. */
 function issuerReady(i){return !!(i&&String(i.legal_name||i.name||'').trim()&&String(i.street||'').trim()&&String(i.city||'').trim())}
-function footer({issuer,sender,contact,url}){
+// lang 'en' (the English CRM, header x-radix-lang on /api/sales): the same notice in English, same facts and link.
+function footer({issuer,sender,contact,url,lang}){
+ if(lang==='en')return footerEn({issuer,sender,contact,url});
  const i=issuer||{},c=contact||{},s=sender||{};
  const company=String(i.legal_name||i.name||'').trim();
  const place=[String(i.street||'').trim(),[i.zip,i.city].map(x=>String(x||'').trim()).filter(Boolean).join(' ')+(i.province?' ('+String(i.province).trim()+')':''),i.country&&!/^(it|italia|italy)$/i.test(String(i.country).trim())?String(i.country).trim():''].filter(Boolean).join(', ');
@@ -128,6 +130,18 @@ function footer({issuer,sender,contact,url}){
   'Non vuoi essere ricontattato? Un clic e non ti scriveremo più: '+url];
  return lines.join('\n');
 }
+function footerEn({issuer,sender,contact,url}){
+ const i=issuer||{},c=contact||{},s=sender||{};
+ const company=String(i.legal_name||i.name||'').trim();
+ const place=[String(i.street||'').trim(),[i.zip,i.city].map(x=>String(x||'').trim()).filter(Boolean).join(' ')+(i.province?' ('+String(i.province).trim()+')':''),String(i.country||'').trim()].filter(Boolean).join(', ');
+ const who=String(s.from_name||'').trim()||String(s.from_email||'').trim();
+ const f=findingOf(c),src=!f?'':f.qualification==='pubblicata sul sito'?' published on your company website':f.qualification==='da verificare'?' derived from the pattern of the addresses published on your company website':' found with '+f.source;
+ return ['','','—',
+  (who?who+' · ':'')+company+(i.vat_number?' · VAT '+String(i.vat_number).trim():'')+(place?' · '+place:''),
+  'Why you are receiving this email: I am writing to you because of your business role'+(c.company?' at '+c.company:'')+' and your public professional profile, on the basis of legitimate interest between businesses (B2B). It is an individual message, not a newsletter.',
+  'Where the data comes from: name, role and company from the public professional profile'+(c.linkedin_url?' (LinkedIn)':'')+'; business email address'+src+'. You can ask which data we hold or for its deletion by replying to this email.',
+  'Do not want to be contacted again? One click and we will not write to you again: '+url].join('\n');
+}
 function sourceText(c){
  const f=findingOf(c);if(!f)return '';
  if(f.qualification==='pubblicata sul sito')return ' pubblicato sul sito della tua azienda';
@@ -137,7 +151,7 @@ function sourceText(c){
 function withFooter(body,foot){
  const room=4000-foot.length;return String(body).slice(0,Math.max(0,room)).replace(/\s+$/,'')+foot;
 }
-const hasFooter=(body,url)=>{const b=String(body||'');return b.includes('Perché ricevi questa email:')&&b.includes('Da dove vengono i dati:')&&b.endsWith(url)};
+const hasFooter=(body,url)=>{const b=String(body||'');return ((b.includes('Perché ricevi questa email:')&&b.includes('Da dove vengono i dati:'))||(b.includes('Why you are receiving this email:')&&b.includes('Where the data comes from:')))&&b.endsWith(url)};
 
 const core={GENERIC,genericEmail,localOf,findingOf,qualificationRank,QUAL_OK,QUAL_UNVERIFIED,DAY,B2B_PREFIX,MAX_FOLLOW_UPS,WINDOW_DAYS,FOLLOW_UP_MIN_DAYS,BASE_MAX,OPTOUT,OPTOUT_TITLE,VERIFIED,REASONS,businessEmail,emailOk,optedOut,finderNote,qualificationOf,qualificationLevel,parseCampaign,b2bCampaign,b2bReason,planB2B,issuerReady,footer,withFooter,hasFooter,romeDay};
 if(typeof module==='object'&&module.exports){module.exports=core;return}

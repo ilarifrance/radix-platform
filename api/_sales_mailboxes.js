@@ -208,6 +208,8 @@ async function issuerOf(sql,workspace){
    footer (sender, why, data source, opt-out link) closes every email. Same queue, mailboxes and limits. */
 async function planB2BQueue(sql,c,user,{req,env,now,random}){
  const d=c.data,origin=originOf(req,d.origin),w=c.workspace;
+ // English CRM (lib/radix-i18n.js adds x-radix-lang: en): the legal footer of the emails in English.
+ const lang=req&&req.headers&&req.headers['x-radix-lang']==='en'?'en':'it';
  const all=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,t.notes,t.linkedin_url,${optout.OPTED_OUT('t')} AS opted_out,${optout.LAST_REPLY('t')} AS last_reply_at,co.name AS company FROM sales_contacts t
   LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`,[w,d.contacts,user]);
  const issuer=await issuerOf(sql,w);
@@ -237,9 +239,9 @@ async function planB2BQueue(sql,c,user,{req,env,now,random}){
  const byId=new Map(mailboxes.map(m=>[m.id,m])),fallback=mailboxes.find(m=>m.status==='active')||mailboxes[0]||{};
  // The footer goes on last, with the sender of the mailbox that will send it; the text above is cut to make room.
  const emails=plan.emails.map((e,i)=>{const url=origin+'/api/sales?unsubscribe='+links[e.contact.id],sender=(sched.slots[i]&&byId.get(sched.slots[i].mailbox))||fallback;
-  const foot=prospecting.footer({issuer,sender,contact:e.contact,url});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
+  const foot=prospecting.footer({issuer,sender,contact:e.contact,url,lang});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
  const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
- const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…'});
+ const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…',lang});
  const summary={campaign:d.campaign,mode:'b2b',step:d.step,base:d.base,recipients:emails.length,personalised:pers.personalised,
   skipped:{consent:0,...plan.skipped,link:missingLink,duplicate,already:queued.size,missing:d.contacts.length-all.length},
   issuer_ready:prospecting.issuerReady(issuer),footer_preview:sampleFoot.replace(/^\n+/,''),
