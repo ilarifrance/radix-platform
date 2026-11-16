@@ -109,3 +109,4 @@ body.st-sales{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:
 .st-invite{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--crm-line)}
 .st-invite input[type=email]{flex:1 1 220px;min-width:0}
 @media (max-width:620px){.st-members li{flex-direction:column;align-items:flex-start}.st-member-acts{justify-content:flex-start}}
+.st-list{margin:4px 0 6px;padding-left:18px;display:grid;gap:4px;font-size:14px}

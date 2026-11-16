@@ -39,7 +39,7 @@ function owner({ email, name, workspace, password, id = crypto.randomUUID() }) {
     `INSERT INTO sales_memberships (workspace_id, user_id, role) SELECT ${lit(id)}, id, 'owner' FROM users WHERE email = ${lit(e)};`,
     'COMMIT;'].join('\n') + '\n';
 }
-// The plan of a workspace (api/_sales_plan.js): prova, base or completo. Set by whoever sells it, never by the customer.
+// The plan of a workspace (api/_sales_plan.js): prova, completo, avanzato or extreme. Set by whoever sells it, never by the customer.
 function plan({ workspace, plan: p }) {
   const { PLANS } = require(path.join(ROOT, 'api', '_sales_plan.js'));
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(workspace || ''))) throw new Error('Workspace: l’id (uuid) del workspace.');
@@ -57,7 +57,7 @@ if (require.main === module) {
     if (cmd === 'schema') process.stdout.write(schema());
     else if (cmd === 'owner') { const a = args(rest); process.stdout.write(owner({ ...a, password: process.env.SALES_ORBIS_OWNER_PASSWORD })); }
     else if (cmd === 'plan') process.stdout.write(plan(args(rest)));
-    else { process.stderr.write('Uso: node tools/sales-orbis/db.js schema | owner --email … --name … --workspace … | plan --workspace <id> --plan prova|base|completo\n'); process.exit(2); }
+    else { process.stderr.write('Uso: node tools/sales-orbis/db.js schema | owner --email … --name … --workspace … | plan --workspace <id> --plan prova|completo|avanzato|extreme\n'); process.exit(2); }
   } catch (e) { process.stderr.write(e.message + '\n'); process.exit(1); }
 }
 module.exports = { USERS, migrations, schema, owner, plan };

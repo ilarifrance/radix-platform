@@ -3,7 +3,7 @@
 /* «Sales Orbis» on this machine, with fake data only: the real pages and the real CRM API on an in-memory Postgres (PGlite),
    for screenshots and end-to-end checks (docs/sales-orbis.md). No network, no real database, no AI call, no email sent.
      npm i --no-save @electric-sql/pglite
-     node tools/sales-orbis/demo-server.js [--port 8090] [--seed] [--plan prova|base|completo]
+     node tools/sales-orbis/demo-server.js [--port 8090] [--seed] [--plan prova|completo|avanzato|extreme]
    Open it as a product host, e.g. a browser started with --host-resolver-rules="MAP sales-orbis.test 127.0.0.1":
    http://sales-orbis.test:8090/ . Demo account: demo@example.com / password-demo (printed at start). */
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');

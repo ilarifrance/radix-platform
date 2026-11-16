@@ -6,7 +6,7 @@ Stesso codice di RADIX (questo repository, nessuna copia), pubblicato come **sec
 
 Tutte le regole stanno in `sales/crm-product.js`.
 
-- **Host:** `sales-orbis.*`, `sales-orbis-*.vercel.app` (il progetto Vercel «sales-orbis») oppure `crm.*`.
+- **Host:** `sales-orbis.*`, `sales-orbis-*.vercel.app` (il progetto Vercel «sales-orbis»), `salesorbis.*`, `app.salesorbis.*` oppure `crm.*`.
 - **Deploy:** con `RADIX_PRODUCT=sales-orbis` ogni richiesta alle API è trattata come prodotto, qualunque sia l'host.
 - **Pagine:** solo quelle in `PAGES` (CRM, Pipeline, Posta, Vendite, Lead Intelligence, LinkedIn, Campagne, Progetti commerciali, Impostazioni). Ogni altro indirizzo torna a `/crm` (`vercel.json`, test `tests/crm-product.test.js`).
 - **API:** solo `auth`, `sales`, `chat` (agenti `crm-*` e `comm-*`), `parse-file`, `ms-oauth`, `admin` (solo con `ADMIN_SECRET`) e, fra le integrazioni, `status`, `send-email` e `send-queue`. Le altre rispondono 404 (`api/_product.js`, test `tests/sales-orbis-api.test.js`).
@@ -21,7 +21,18 @@ Sul prodotto nessun testo dice RADIX: `brand()` in `sales/crm-product.js` cambia
 
 ## Piani
 
-`api/_sales_plan.js` (migrazione `migrations/sales/023`): ogni workspace ha un piano, `prova` (tutto, il predefinito), `base` (tutto tranne Lead Intelligence) o `completo` (tutto). Sul prodotto, con `base`, le risorse di Lead Intelligence in `/api/sales` rispondono 403, il menu non mostra Lead Intelligence e la pagina dice che è nel Completo; Impostazioni › CRM mostra il piano. RADIX non applica i piani. Il piano lo cambia chi lo vende, mai il cliente: `node tools/sales-orbis/db.js plan --workspace <id> --plan base` (poi i pagamenti, passo 10). Durata della prova e prezzi: da decidere. Test: `tests/sales-orbis-plan.test.js`.
+`api/_sales_plan.js` (migrazioni `migrations/sales/023` e `024`). Prezzi IVA inclusa, per utente al mese; i limiti sono per utente, per workspace e per mese di calendario (ora di Roma) e si azzerano il primo del mese.
+
+| Piano | Prezzo | Include | Copilota (richieste AI) | Ricerche email a pagamento | Email in coda |
+|---|---|---|---|---|---|
+| `completo` | 8 € | il CRM | no | no | 1.000 |
+| `avanzato` | 17 € | CRM e Copilota | 140 | no | 1.000 |
+| `extreme` | 59 € | CRM, Copilota e Lead Intelligence | 350 | 300 | 1.500 |
+| `prova` | gratis | tutto | 100 | 50 | 300 |
+
+Margini al limite (stime, netto IVA 22%, quota fissa circa 2 € a utente con 20 clienti, commissione carta 1,5% + 0,25 €, AI circa 0,03 € a richiesta su Sonnet 5.5, ricerca a pagamento circa 0,035 €): Completo circa 64%, Avanzato circa 52%, Extreme circa 50%. Gli invii partono dalle caselle del cliente e non costano: il limite protegge la reputazione delle caselle.
+
+Sul prodotto: senza Lead Intelligence nel piano le risorse di Lead Intelligence in `/api/sales` rispondono 403, il menu non la mostra e la pagina dice che è in Extreme; con `completo` `/api/chat` risponde 403 e il pulsante del Copilota sparisce; oltre il limite `/api/chat`, la ricerca email a pagamento e la messa in coda rispondono 429 (`sales_plan_usage`, preso prima e restituito se la chiamata fallisce). Impostazioni › CRM mostra piano, limiti e uso del mese. Prima della migrazione 024 il prodotto risponde 503 a queste tre azioni. RADIX non applica piani né limiti. Il piano lo cambia chi lo vende, mai il cliente: `node tools/sales-orbis/db.js plan --workspace <id> --plan avanzato` (poi i pagamenti, passo 10). Test: `tests/sales-orbis-plan.test.js`.
 
 ## Lead Intelligence guidata
 

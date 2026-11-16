@@ -1949,6 +1949,31 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // «Sales Orbis» plans (api/_sales_plan.js): the Copilota only with «avanzato», «extreme» or «prova», and a monthly limit
+  // of requests per user, taken before the call and given back if the call fails.
+  let aiMeter = null;
+  if (onProduct) {
+    const plans = require("./_sales_plan");
+    const db = require("./_db").sql();
+    const uid = req.user && req.user.uid;
+    const wanted = crmScope && typeof crmScope.workspace === "string" ? crmScope.workspace : null;
+    try {
+      const ws = await plans.aiWorkspace(db, uid, wanted);
+      if (!ws) {
+        res.status(403).json({ error: "Nessun workspace CRM per questo account." });
+        return;
+      }
+      aiMeter = await plans.meter(db, { workspace: ws, user: uid, product: true });
+      await aiMeter.take("ai", 1);
+    } catch (e) {
+      if (e instanceof plans.LimitError) {
+        res.status(e.status).json({ error: e.message, code: "plan_limit" });
+        return;
+      }
+      throw e;
+    }
+  }
+
   try {
     let { text, usage, sources, stopReason, engine } = await callAnthropic(apiKey, agent, sendMessages, system, agentKey, forcedTier);
     let revised = false;
@@ -2002,6 +2027,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [], engine });
   } catch (err) {
+    if (aiMeter) await aiMeter.give("ai", 1).catch(() => {});
     const status = err && err.status ? err.status : 502;
     res.status(status).json({ error: friendlyApiError(err) });
   }

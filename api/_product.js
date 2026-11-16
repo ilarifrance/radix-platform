@@ -1,6 +1,6 @@
 'use strict';
 /* «Sales Orbis» on the server: the same rule as sales/crm-product.js. A request is the product when its host is a product
-   host (sales-orbis.*, sales-orbis-*.vercel.app, crm.*) or when the whole deployment is the product (RADIX_PRODUCT=sales-orbis,
+   host (sales-orbis.*, sales-orbis-*.vercel.app, salesorbis.*, app.salesorbis.*, crm.*) or when the whole deployment is the product (RADIX_PRODUCT=sales-orbis,
    its own Vercel project and database). On the product only the CRM endpoints answer: every other /api endpoint answers
    404 as if it did not exist, so a Sales Orbis account never reaches the RADIX team state, registry, memory or tools. */
 const P = require('../sales/crm-product.js');

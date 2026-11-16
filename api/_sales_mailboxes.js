@@ -254,7 +254,10 @@ async function enqueue(sql,c,user,ctx){
  if(!p.summary.active_mailboxes)fail(400,'Nessuna casella attiva: collegane una in «Caselle email» prima di mettere in coda.');
  if(!p.summary.recipients)return {...p.summary,queued:0};
  if(p.summary.unplanned)fail(400,'Troppi destinatari per le caselle collegate: '+p.summary.unplanned+' email resterebbero fuori dai prossimi mesi. Riduci il segmento o collega altre caselle.');
+ // Sales Orbis plan (api/_sales_plan.js): the emails of this month, taken before queueing; what is not queued goes back.
+ if(ctx.meter)await ctx.meter.take('send',p.emails.length);
  let inserted=0;
+ try{
  for(let i=0;i<p.emails.length;i+=500){
   const rows=p.emails.slice(i,i+500).map((e,j)=>{const s=p.slots[i+j];return {contact_id:e.contact.id,mailbox_id:s.mailbox,subject:e.subject,body:e.body,unsubscribe_url:e.unsubscribeUrl,scheduled_at:new Date(s.at).toISOString()}});
   const r=await sql(`INSERT INTO sales_send_queue(workspace_id,campaign,contact_id,mailbox_id,subject,body,unsubscribe_url,scheduled_at,created_by)
@@ -262,6 +265,7 @@ async function enqueue(sql,c,user,ctx){
    ON CONFLICT (workspace_id,campaign,contact_id) DO NOTHING RETURNING id`,[c.workspace,c.data.campaign,user,JSON.stringify(rows)]);
   inserted+=r.length;
  }
+ }finally{if(ctx.meter)await ctx.meter.give('send',p.emails.length-inserted)}
  return {...p.summary,queued:inserted};
 }
 async function status(sql,workspace,user){
@@ -359,7 +363,7 @@ async function handle(c,opts){
  try{return await run(c,opts)}
  catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: servono le migrazioni sales 016 e 017 (da approvare).');throw e}
 }
-async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport,fetchImpl}){
+async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport,fetchImpl,meter=null}){
  if(req.method==='GET'){
   if(c.entity==='mailboxes'){const rows=await listMailboxes(sql,c.workspace,now);return {rows,max:core.MAX_MAILBOXES,encryption:mcrypto.configured(env),microsoft:msoauth.configured(env),can_manage:roleAdmin(role)}}
   return {rows:await status(sql,c.workspace,user)};
@@ -370,7 +374,7 @@ async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Ma
  }
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
  if(c.action==='cancel'){const r=await sql("UPDATE sales_send_queue q SET status='cancelled',error='Annullata dall’utente.',updated_at=now() WHERE workspace_id=$1 AND campaign=$2 AND status='queued' AND "+vis.contact('q.contact_id','$1','$3')+" RETURNING id",[c.workspace,c.data.campaign,user]);return {rows:[{campaign:c.data.campaign,cancelled:r.length}]}}
- const ctx={req,env,now,random};
+ const ctx={req,env,now,random,meter};
  if(c.action==='plan')return {rows:[(await planQueue(sql,c,user,ctx)).summary]};
  return {rows:[await enqueue(sql,c,user,ctx)]};
 }

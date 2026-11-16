@@ -23,19 +23,21 @@ function command(body){
  return {workspace:body.workspace,entity:ENTITY,action:'update',data:{currency:c}};
 }
 // plan: the Sales Orbis plan (api/_sales_plan.js), so the pages can show what it includes; read only, never set here.
-async function read(sql,workspace){
+// limits and usage: the plan's monthly limits and how much of them the caller used this month (Impostazioni › CRM › Piano).
+async function read(sql,workspace,user){
  let out;
  try{const r=await sql('SELECT currency FROM sales_workspaces WHERE id=$1',[workspace]);out={...DEFAULTS,...(r[0]&&r[0].currency?{currency:r[0].currency}:{})}}
  catch(e){if(e&&e.code==='42703')out={...DEFAULTS,pending:true};else throw e}
- return {...out,plan:await plans.planOf(sql,workspace)};
+ const plan=await plans.planOf(sql,workspace);
+ return {...out,plan,limits:{...plans.limits(plan)},usage:user?await plans.usage(sql,workspace,user):{ai:0,lead:0,send:0}};
 }
-async function handle(c,{sql,role,method}){
+async function handle(c,{sql,role,method,user}){
  // rows: the shape every /api/sales read has (the pages check it); settings: the same object by name.
  const answer=settings=>({rows:[settings],settings});
- if(method!=='POST')return answer(await read(sql,c.workspace));
+ if(method!=='POST')return answer(await read(sql,c.workspace,user));
  if(!['owner','admin'].includes(role))fail(403,'Solo owner e admin cambiano la valuta del workspace.');
  try{await sql('UPDATE sales_workspaces SET currency=$2 WHERE id=$1',[c.workspace,c.data.currency])}
  catch(e){if(e&&e.code==='42703')fail(503,'La valuta del workspace non è ancora attiva in questo archivio: serve la migrazione sales 021 (da approvare).');throw e}
- return answer(await read(sql,c.workspace));
+ return answer(await read(sql,c.workspace,user));
 }
 module.exports={ENTITY,DEFAULTS,query,command,read,handle};

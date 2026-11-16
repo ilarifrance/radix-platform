@@ -273,8 +273,10 @@ function createHandler({getSessionUser,getStore}){
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
-   // Sales Orbis plans: on the product, Lead Intelligence only with «prova» or «completo» (api/_sales_plan.js).
-   {const locked=await plans.gate(c.entity,c.workspace,{sql:store.sql,product:isProductRequest(req,process.env)});if(locked)fail(locked[0],locked[1]);}
+   // Sales Orbis plans: on the product, Lead Intelligence only with «prova» or «extreme»; monthly limits per user (api/_sales_plan.js).
+   const onProduct=isProductRequest(req,process.env);
+   {const locked=await plans.gate(c.entity,c.workspace,{sql:store.sql,product:onProduct});if(locked)fail(locked[0],locked[1]);}
+   const meter=req.method==='POST'&&(c.mailq||c.finder)?await plans.meter(store.sql,{workspace:c.workspace,user:user.uid,product:onProduct}):null;
    // The link of «Calendario da abbonare»: every member, viewers included (the feed only shows what they can already read).
    if(c.entity==='calendar_feed'){let token;try{token=calendarFeed.sign(calendarFeed.secretOf(process.env),{uid:user.uid,workspace:c.workspace})}catch{fail(503,'Link del calendario non disponibile: manca la chiave del server (JWT_SECRET).')}return res.status(200).json({token,path:'/api/sales?calendar='+token});}
    if(c.entity==='lead_provider_status'){
@@ -287,17 +289,17 @@ function createHandler({getSessionUser,getStore}){
      return res.status(200).json(result);
    }
    // Impostazioni › CRM › Valuta: every member reads, owner/admin change (checked in wsSettings.handle).
-   if(c.wsSettings)return res.status(200).json(await wsSettings.handle(c,{sql:store.sql,role:membership.role,method:req.method}));
+   if(c.wsSettings)return res.status(200).json(await wsSettings.handle(c,{sql:store.sql,role:membership.role,method:req.method,user:user.uid}));
    // Calendari esterni: every member manages only their own links (the handler filters every statement on the caller).
    if(c.calendars)return res.status(200).json(await calendars.handle(c,{sql:store.sql,user:user.uid}));
    // Mailboxes: owner/admin only for changes; queue: owner/admin/member. Checked in mailq.handle.
-   if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req}));
+   if(c.mailq)return res.status(200).json(await mailq.handle(c,{sql:store.sql,user:user.uid,role:membership.role,req,meter}));
    // «Posta»: any member reads only the mailbox they connected themselves (checked in mailRead.handle).
    if(c.mailRead)return res.status(200).json(await mailRead.handle(c,{sql:store.sql,user:user.uid}));
    // «Indirizzi disiscritti»: owner/admin only, checked in suppressions.handle (reads included).
    if(c.suppressions)return res.status(200).json(await suppressions.handle(c,{sql:store.sql,user:user.uid,role:membership.role,method:req.method}));
    // «Trova email»: owner/admin/member, visibility in its own query; a found email is saved with the contact update command.
-   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
+   if(c.finder)return res.status(200).json(await finder.handle(c,{sql:store.sql,user:user.uid,role:membership.role,meter,save:(entity,data)=>store.command(command({workspace:c.workspace,entity,action:'update',data}),user.uid)}));
    if(req.method==='POST'){
      if(!['owner','admin','member'].includes(membership.role)||(['processes','stages'].includes(c.entity)&&!['owner','admin'].includes(membership.role)))fail(403,'Permessi insufficienti.');
      if(c.entity==='segments')await reservedGuard(store,c,membership.role);

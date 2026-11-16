@@ -57,13 +57,19 @@
     else if (/[?&]completo=1/.test(location.search)) localStorage.removeItem(SOLO_KEY);
     solo = localStorage.getItem(SOLO_KEY) === '1' || product;
   } catch (e) { /* storage blocked: /crm alone stays reduced */ }
-  // Sales Orbis «Base» plan: no Lead Intelligence (the server refuses it too, api/_sales_plan.js). The plan is the one of the
-  // workspace last opened in the CRM (sales/sales.js keeps it in this browser).
-  var LEAD = '/lead-intelligence.html', baseOnly = false;
-  try { baseOnly = product && localStorage.getItem('rx-ws-plan') === 'base'; } catch (e) { baseOnly = false; }
+  // Sales Orbis plans (api/_sales_plan.js): Lead Intelligence only with «extreme» or «prova», the Copilota not with
+  // «completo» (the server refuses both too). The plan is the one of the workspace last opened in the CRM (sales/sales.js
+  // keeps it in this browser); html[data-plan] lets the CSS hide the Copilota button.
+  var LEAD = '/lead-intelligence.html', NO_LEAD = ['completo', 'avanzato'], plan = '', baseOnly = false;
+  function setPlan(p) {
+    plan = product && typeof p === 'string' ? p : '';
+    baseOnly = NO_LEAD.indexOf(plan) >= 0;
+    if (plan) document.documentElement.setAttribute('data-plan', plan); else document.documentElement.removeAttribute('data-plan');
+  }
+  try { setPlan(localStorage.getItem('rx-ws-plan')); } catch (e) { setPlan(''); }
   // The first visit learns the plan after the menu is built: the link goes away then.
   window.addEventListener('rx-ws-plan', function (e) {
-    baseOnly = product && e.detail === 'base';
+    setPlan(e.detail);
     [].slice.call(document.querySelectorAll('a.sx-link[href="' + LEAD + '"]')).forEach(function (a) { a.hidden = baseOnly; });
   });
   var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
@@ -159,15 +165,15 @@
     }).catch(function () {});
   }
   accessNotice();
-  // Lead Intelligence opened with the «Base» plan: say why it is empty, once, at the top.
+  // Lead Intelligence opened without it in the plan: say why it is empty, once, at the top.
   function planNotice() {
     if (!baseOnly || path !== LEAD) return;
     var main = document.getElementById('main') || document.querySelector('main'); if (!main || main.querySelector('.sx-access')) return;
     var box = document.createElement('section'); box.className = 'sx-access'; box.setAttribute('role', 'status');
     var orb = document.createElement('span'); orb.className = 'sx-access-orb'; orb.setAttribute('aria-hidden', 'true');
     var txt = document.createElement('div');
-    var h = document.createElement('h2'); h.textContent = 'Lead Intelligence è nel piano Completo';
-    var p = document.createElement('p'); p.textContent = 'Il tuo workspace ha il piano Base: il CRM completo, senza la ricerca dei lead. Chiedi all’owner del workspace di passare al Completo.';
+    var h = document.createElement('h2'); h.textContent = 'Lead Intelligence è nel piano Extreme';
+    var p = document.createElement('p'); p.textContent = 'Il piano di questo workspace non comprende la ricerca dei lead. Chiedi all’owner del workspace di passare a Extreme.';
     txt.append(h, p);
     var act = document.createElement('div'); act.className = 'sx-access-actions';
     var back = document.createElement('a'); back.href = ROOT; back.textContent = 'Torna al CRM'; act.append(back);

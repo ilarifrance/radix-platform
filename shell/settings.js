@@ -228,12 +228,24 @@ async function currencyCard(manage){
  const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);return c;
 }
 // Sales Orbis: the plan of the workspace (api/_sales_plan.js), read only; it is changed by whoever sells it.
-const PLAN_TEXT={prova:['Prova','Tutto incluso, Lead Intelligence compresa, per il periodo di prova.'],base:['Base','Il CRM completo: aziende, contatti, pipeline, attività, posta, campagne e vendite. Lead Intelligence è nel piano Completo.'],completo:['Completo','Il CRM e Lead Intelligence.']};
+const PLAN_TEXT={prova:['Prova','Tutto incluso, Copilota e Lead Intelligence compresi, per il periodo di prova.'],
+ completo:['Completo','Il CRM completo: aziende, contatti, pipeline, attività, posta, campagne e vendite. Il Copilota è nei piani Avanzato ed Extreme.'],
+ avanzato:['Avanzato','Il CRM completo e il Copilota. Lead Intelligence è nel piano Extreme.'],
+ extreme:['Extreme','Il CRM completo, il Copilota e Lead Intelligence.']};
+// The monthly limits of the plan, for the signed-in user (api/_sales_plan.js).
+const PLAN_METER=[['ai','Richieste al Copilota: {0} su {1}'],['lead','Ricerche email a pagamento: {0} su {1}'],['send','Email messe in coda: {0} su {1}']];
 async function planCard(){
  const c=card('Piano','Il piano Sales Orbis di questo workspace.');
- let plan='prova';try{const d=await api('workspace_settings');plan=(d.settings&&d.settings.plan)||'prova'}catch(e){c.append(E('p',e.message,'st-err'));return c}
- const t=PLAN_TEXT[plan]||PLAN_TEXT.prova;rememberPlan(plan);
- c.append(E('p','Piano: '+t[0],'st-strong'),E('p',t[1],'st-note'));return c;
+ let s={};try{const d=await api('workspace_settings');s=d.settings||{}}catch(e){c.append(E('p',e.message,'st-err'));return c}
+ const plan=PLAN_TEXT[s.plan]?s.plan:'prova',t=PLAN_TEXT[plan];rememberPlan(plan);
+ c.append(E('p','Piano: '+t[0],'st-strong'),E('p',t[1],'st-note'));
+ const lim=s.limits||{},use=s.usage||{},rows=PLAN_METER.filter(([k])=>lim[k]>0);
+ if(rows.length){
+  c.append(E('p','I tuoi limiti di questo mese','st-strong'));
+  const ul=E('ul',undefined,'st-list');rows.forEach(([k,txt])=>ul.append(E('li',txt.replace('{0}',String(use[k]||0)).replace('{1}',String(lim[k])))));
+  c.append(ul,E('p','Si azzerano il primo di ogni mese.','st-note'));
+ }
+ return c;
 }
 function rememberPlan(plan){try{localStorage.setItem('rx-ws-plan',plan)}catch{}}
 async function show(){

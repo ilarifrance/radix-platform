@@ -23,9 +23,9 @@
     }
   }
 })(typeof self !== 'undefined' ? self : this, function () {
-  var HOST_RE = /^(?:sales-orbis[.-]|crm\.)/i;
+  var HOST_RE = /^(?:sales-orbis[.-]|(?:app\.)?salesorbis\.|crm\.)/i;
   // The same rule for vercel.json's «has host» conditions (Vercel matches the whole host).
-  var HOST_VALUE = '(?:sales-orbis[.-]|crm\\.).+';
+  var HOST_VALUE = '(?:sales-orbis[.-]|(?:app\\.)?salesorbis\\.|crm\\.).+';
   var NAME = 'Sales Orbis';
   var ENV_VALUE = 'sales-orbis';
   // The CRM pages of the product (the Sales menu without the RADIX «Sales Orbit» globe pages) and its settings.
