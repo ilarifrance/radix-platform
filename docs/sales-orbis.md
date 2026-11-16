@@ -15,6 +15,10 @@ Tutte le regole stanno in `sales/crm-product.js`.
 
 Sul prodotto nessun testo dice RADIX: `brand()` in `sales/crm-product.js` cambia «RADIX» e «Sales Orbit» in «Sales Orbis» in ogni testo dell'interfaccia (dopo la traduzione, in `lib/radix-i18n.js`), `applyHead()` mette icona (`sales/icons/sales-orbis.svg`) e manifest (`sales-orbis.webmanifest`) del prodotto. Il menu non ha il globo Sales Orbit né la guida esterna, i link a pagine RADIX restano nascosti (`html[data-product]` in `sales/sales-nav.css`) e la Regia RADIX non si carica: l'assistente è il Copilota del CRM. Test: `tests/sales-orbis-brand.test.js`.
 
+## Accesso
+
+`api/_auth_guard.js`: dopo 8 accessi sbagliati in 15 minuti per la stessa email (30 per lo stesso indirizzo) l'accesso risponde 429; «Password dimenticata?» manda un link firmato valido 30 minuti e usabile una volta sola (`/crm#reset=…`), con la stessa risposta che l'email esista o no. Gli errori del database non arrivano più a chi accede. I tentativi stanno in `auth_attempts` (`migrations/sales/022`); un database senza quella tabella (oggi RADIX) funziona come prima, senza limite. Test: `tests/auth-guard.test.js`.
+
 ## Database separato
 
 Il database va creato solo con l'ok di Francesco. Poi, una volta sola, su quel database vuoto:
@@ -40,6 +44,8 @@ Tutte nuove, mai le stesse di RADIX. I valori non vanno mai scritti nel reposito
 | `ADMIN_SECRET` | per `/api/admin/*` del prodotto |
 | `ANTHROPIC_API_KEY` | l'AI del CRM, con un limite di spesa proprio |
 | `CRON_SECRET` | la coda degli invii email |
+| `PUBLIC_URL` | l'indirizzo pubblico del prodotto (https), per il link di «Password dimenticata» |
+| `AUTH_SMTP_HOST`, `AUTH_SMTP_PORT`, `AUTH_SMTP_USER`, `AUTH_SMTP_PASS`, `AUTH_MAIL_FROM` | la casella che spedisce il link di «Password dimenticata»; senza, il recupero risponde «non ancora attivo» |
 | caselle email e Microsoft 365 | come nel CRM di RADIX, con credenziali del prodotto |
 
 Dominio, database di produzione, chiavi e pagamenti: solo con l'ok esplicito di Francesco.
