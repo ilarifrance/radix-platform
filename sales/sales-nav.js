@@ -57,6 +57,15 @@
     else if (/[?&]completo=1/.test(location.search)) localStorage.removeItem(SOLO_KEY);
     solo = localStorage.getItem(SOLO_KEY) === '1' || product;
   } catch (e) { /* storage blocked: /crm alone stays reduced */ }
+  // Sales Orbis «Base» plan: no Lead Intelligence (the server refuses it too, api/_sales_plan.js). The plan is the one of the
+  // workspace last opened in the CRM (sales/sales.js keeps it in this browser).
+  var LEAD = '/lead-intelligence.html', baseOnly = false;
+  try { baseOnly = product && localStorage.getItem('rx-ws-plan') === 'base'; } catch (e) { baseOnly = false; }
+  // The first visit learns the plan after the menu is built: the link goes away then.
+  window.addEventListener('rx-ws-plan', function (e) {
+    baseOnly = product && e.detail === 'base';
+    [].slice.call(document.querySelectorAll('a.sx-link[href="' + LEAD + '"]')).forEach(function (a) { a.hidden = baseOnly; });
+  });
   var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
   var path = (location.pathname === '/crm' || (product && location.pathname === '/')) ? '/radix-sales.html' : location.pathname;
   var onCrm = /\/radix-sales\.html$/.test(path);
@@ -100,7 +109,7 @@
     GROUPS.forEach(function (g) {
       var items = g.items.slice();
       // On the product only its own pages: no Sales Orbit globe and no RADIX guide (pageAllowed in crm-product.js).
-      if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]); });
+      if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]) && !(baseOnly && it.href === LEAD); });
       if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';
@@ -150,6 +159,21 @@
     }).catch(function () {});
   }
   accessNotice();
+  // Lead Intelligence opened with the «Base» plan: say why it is empty, once, at the top.
+  function planNotice() {
+    if (!baseOnly || path !== LEAD) return;
+    var main = document.getElementById('main') || document.querySelector('main'); if (!main || main.querySelector('.sx-access')) return;
+    var box = document.createElement('section'); box.className = 'sx-access'; box.setAttribute('role', 'status');
+    var orb = document.createElement('span'); orb.className = 'sx-access-orb'; orb.setAttribute('aria-hidden', 'true');
+    var txt = document.createElement('div');
+    var h = document.createElement('h2'); h.textContent = 'Lead Intelligence è nel piano Completo';
+    var p = document.createElement('p'); p.textContent = 'Il tuo workspace ha il piano Base: il CRM completo, senza la ricerca dei lead. Chiedi all’owner del workspace di passare al Completo.';
+    txt.append(h, p);
+    var act = document.createElement('div'); act.className = 'sx-access-actions';
+    var back = document.createElement('a'); back.href = ROOT; back.textContent = 'Torna al CRM'; act.append(back);
+    box.append(orb, txt, act); main.prepend(box);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', planNotice); else planNotice();
 
   if (!onCrm) {
     // Static Sales pages: the menu lives in the page's own <aside>; this script runs right after it, before paint.

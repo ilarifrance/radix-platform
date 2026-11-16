@@ -3,7 +3,7 @@
 /* «Sales Orbis» on this machine, with fake data only: the real pages and the real CRM API on an in-memory Postgres (PGlite),
    for screenshots and end-to-end checks (docs/sales-orbis.md). No network, no real database, no AI call, no email sent.
      npm i --no-save @electric-sql/pglite
-     node tools/sales-orbis/demo-server.js [--port 8090] [--seed]
+     node tools/sales-orbis/demo-server.js [--port 8090] [--seed] [--plan prova|base|completo]
    Open it as a product host, e.g. a browser started with --host-resolver-rules="MAP sales-orbis.test 127.0.0.1":
    http://sales-orbis.test:8090/ . Demo account: demo@example.com / password-demo (printed at start). */
 const http = require('node:http'), fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
@@ -21,12 +21,13 @@ function neonLike(db) {
   };
 }
 
-async function start({ port = 8090, seed = false, log = console.log } = {}) {
+async function start({ port = 8090, seed = false, plan = '', log = console.log } = {}) {
   const { PGlite } = require('@electric-sql/pglite');
   const db = new PGlite();
   await db.exec(DB.schema());
   const ws = crypto.randomUUID();
   await db.exec(DB.owner({ ...DEMO, id: ws }));
+  if (plan) await db.exec(DB.plan({ workspace: ws, plan }));
   process.env.JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(24).toString('hex');
   process.env.RADIX_PRODUCT = 'sales-orbis';
   // api/_db.js answers with the in-memory database.
@@ -75,6 +76,7 @@ async function start({ port = 8090, seed = false, log = console.log } = {}) {
 }
 if (require.main === module) {
   const a = process.argv.slice(2), i = a.indexOf('--port');
-  start({ port: i >= 0 ? Number(a[i + 1]) : 8090, seed: a.includes('--seed') }).catch(e => { console.error(e.message); process.exit(1); });
+  const j = a.indexOf('--plan');
+  start({ port: i >= 0 ? Number(a[i + 1]) : 8090, seed: a.includes('--seed'), plan: j >= 0 ? a[j + 1] : '' }).catch(e => { console.error(e.message); process.exit(1); });
 }
 module.exports = { start, neonLike, DEMO };

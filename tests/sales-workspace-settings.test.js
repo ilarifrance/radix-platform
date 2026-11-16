@@ -12,12 +12,12 @@ test('command: only the currency, only a known code, upper case',()=>{
 });
 test('handle: every member reads, owner/admin change; before migration 021 euro and a clear 503',async()=>{
   let cur='EUR';const sql=async(q,p)=>{if(/^UPDATE/.test(q))cur=p[1];return [{currency:cur}]};
-  assert.deepEqual((await W.handle({workspace:ws},{sql,role:'viewer',method:'GET'})).settings,{currency:'EUR'});
+  assert.deepEqual((await W.handle({workspace:ws},{sql,role:'viewer',method:'GET'})).settings,{currency:'EUR',plan:'prova'});
   await assert.rejects(W.handle({workspace:ws,data:{currency:'GBP'}},{sql,role:'member',method:'POST'}),e=>e.status===403);
   const r=await W.handle({workspace:ws,data:{currency:'GBP'}},{sql,role:'admin',method:'POST'});
   assert.equal(r.settings.currency,'GBP');assert.deepEqual(r.rows,[r.settings]);
   const old=async()=>{const e=new Error('column "currency" does not exist');e.code='42703';throw e};
-  assert.deepEqual((await W.handle({workspace:ws},{sql:old,role:'owner',method:'GET'})).settings,{currency:'EUR',pending:true});
+  assert.deepEqual((await W.handle({workspace:ws},{sql:old,role:'owner',method:'GET'})).settings,{currency:'EUR',pending:true,plan:'completo'},'before 021 and 023: euro, every feature');
   await assert.rejects(W.handle({workspace:ws,data:{currency:'GBP'}},{sql:old,role:'owner',method:'POST'}),e=>e.status===503);
 });
 test('migration 021: one idempotent column with an ISO check, euro by default',()=>{

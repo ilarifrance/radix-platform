@@ -3,6 +3,7 @@
    from the list lib/radix-i18n.js can show (CODES), euro by default. Every member reads it (the pages show amounts with it);
    only owner and admin change it. Before migration 021 reads answer euro and changes answer 503. */
 const I18N=require('../lib/radix-i18n.js');
+const plans=require('./_sales_plan');
 const ENTITY='workspace_settings';
 class SettingsError extends Error{constructor(status,message){super(message);this.status=status}}
 const fail=(status,message)=>{throw new SettingsError(status,message)};
@@ -21,9 +22,12 @@ function command(body){
  if(!I18N.CODES.includes(c))fail(400,'Valuta non disponibile.');
  return {workspace:body.workspace,entity:ENTITY,action:'update',data:{currency:c}};
 }
+// plan: the Sales Orbis plan (api/_sales_plan.js), so the pages can show what it includes; read only, never set here.
 async function read(sql,workspace){
- try{const r=await sql('SELECT currency FROM sales_workspaces WHERE id=$1',[workspace]);return {...DEFAULTS,...(r[0]&&r[0].currency?{currency:r[0].currency}:{})}}
- catch(e){if(e&&e.code==='42703')return {...DEFAULTS,pending:true};throw e}
+ let out;
+ try{const r=await sql('SELECT currency FROM sales_workspaces WHERE id=$1',[workspace]);out={...DEFAULTS,...(r[0]&&r[0].currency?{currency:r[0].currency}:{})}}
+ catch(e){if(e&&e.code==='42703')out={...DEFAULTS,pending:true};else throw e}
+ return {...out,plan:await plans.planOf(sql,workspace)};
 }
 async function handle(c,{sql,role,method}){
  // rows: the shape every /api/sales read has (the pages check it); settings: the same object by name.

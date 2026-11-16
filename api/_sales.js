@@ -20,6 +20,8 @@ const docs=require('./_sales_documents');
 // «Aggiungi campo» (migration sales 015): field definitions per workspace, values in «custom».
 const customFields=require('./_sales_custom_fields');
 const wsSettings=require('./_sales_workspace_settings');
+const plans=require('./_sales_plan');
+const {isProductRequest}=require('./_product');
 // «Caselle email» and «Coda invii» (migration sales 016): own validator, admin-only mailbox actions.
 const mailq=require('./_sales_mailboxes');
 const mailRead=require('./_sales_mail_read');
@@ -271,6 +273,8 @@ function createHandler({getSessionUser,getStore}){
    }
    const store=getStore();const membership=await (['lead_lists','lead_contact_jobs','lead_growth_projects','lead_public_lookup','lead_provider_status','lead_import_token'].includes(c.entity)?store.leadLists.membership(c.workspace,user.uid):store.membership(c.workspace,user.uid));
    if(!membership||!['owner','admin','member','viewer'].includes(membership.role))fail(403,'Membership esplicita richiesta per questo workspace.');
+   // Sales Orbis plans: on the product, Lead Intelligence only with «prova» or «completo» (api/_sales_plan.js).
+   {const locked=await plans.gate(c.entity,c.workspace,{sql:store.sql,product:isProductRequest(req,process.env)});if(locked)fail(locked[0],locked[1]);}
    // The link of «Calendario da abbonare»: every member, viewers included (the feed only shows what they can already read).
    if(c.entity==='calendar_feed'){let token;try{token=calendarFeed.sign(calendarFeed.secretOf(process.env),{uid:user.uid,workspace:c.workspace})}catch{fail(503,'Link del calendario non disponibile: manca la chiave del server (JWT_SECRET).')}return res.status(200).json({token,path:'/api/sales?calendar='+token});}
    if(c.entity==='lead_provider_status'){

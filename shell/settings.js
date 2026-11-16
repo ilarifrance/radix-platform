@@ -182,6 +182,7 @@ const R={
   // «Regole delle automazioni» (sales/crm-rules.js, settings mode): on/off, new, edit, delete. The editor lists the
   // pipeline stages, the members and the lead sources, so those rows are read here first (the CRM records are not).
   // «Valuta» (api/_sales_workspace_settings.js, migration sales 021): the currency the whole workspace works in.
+  if(PRODUCT)out.append(await planCard());
   out.append(await currencyCard(manage));
   const Ru=root.RadixCrmRules;
   const auto=card('Automazioni',Ru&&Ru.settingsPanel?undefined:'Le regole che propongono attività e bozze email nel CRM (trattative ferme, ticket urgenti, preventivi accettati…). Cosa propongono oggi e «Applica» sono in Attività › Automazioni.',Ru&&Ru.settingsPanel?'st-mount':undefined);
@@ -226,6 +227,15 @@ async function currencyCard(manage){
   catch(e){msg.textContent=e.message||String(e)}finally{S.busy=false;save.disabled=false}},'st-btn st-primary');
  const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);return c;
 }
+// Sales Orbis: the plan of the workspace (api/_sales_plan.js), read only; it is changed by whoever sells it.
+const PLAN_TEXT={prova:['Prova','Tutto incluso, Lead Intelligence compresa, per il periodo di prova.'],base:['Base','Il CRM completo: aziende, contatti, pipeline, attività, posta, campagne e vendite. Lead Intelligence è nel piano Completo.'],completo:['Completo','Il CRM e Lead Intelligence.']};
+async function planCard(){
+ const c=card('Piano','Il piano Sales Orbis di questo workspace.');
+ let plan='prova';try{const d=await api('workspace_settings');plan=(d.settings&&d.settings.plan)||'prova'}catch(e){c.append(E('p',e.message,'st-err'));return c}
+ const t=PLAN_TEXT[plan]||PLAN_TEXT.prova;rememberPlan(plan);
+ c.append(E('p','Piano: '+t[0],'st-strong'),E('p',t[1],'st-note'));return c;
+}
+function rememberPlan(plan){try{localStorage.setItem('rx-ws-plan',plan)}catch{}}
 async function show(){
  const id=C.sectionFromHash(location.hash,PRODUCT),gen=++S.gen;S.section=id;
  drawNav();drawWorkspace();error('');notice('');

@@ -71,7 +71,10 @@ async function reload(){
 // reloads once so every amount is shown with it. Best effort: without the setting the pages keep what they had.
 async function syncCurrency(){
  const I=window.RadixI18n;if(!I||!I.saveWsCurrency||!state.workspace)return;
- try{const d=await api('workspace_settings');const code=d&&d.settings&&d.settings.currency;if(!code)return;
+ try{const d=await api('workspace_settings');const code=d&&d.settings&&d.settings.currency;
+  // Sales Orbis plan (api/_sales_plan.js), for the menu of every Sales page (sales/sales-nav.js).
+  const plan=d&&d.settings&&d.settings.plan;if(plan){try{localStorage.setItem('rx-ws-plan',plan)}catch{}window.dispatchEvent(new CustomEvent('rx-ws-plan',{detail:plan}))}
+  if(!code)return;
   let before=null;try{before=localStorage.getItem(I.WS_KEY)}catch{}
   if(before!==code&&I.saveWsCurrency(window,code)&&(before||code!=='EUR'))location.reload();}catch{}
 }

@@ -19,6 +19,10 @@ Sul prodotto nessun testo dice RADIX: `brand()` in `sales/crm-product.js` cambia
 
 `api/_auth_guard.js`: dopo 8 accessi sbagliati in 15 minuti per la stessa email (30 per lo stesso indirizzo) l'accesso risponde 429; «Password dimenticata?» manda un link firmato valido 30 minuti e usabile una volta sola (`/crm#reset=…`), con la stessa risposta che l'email esista o no. Gli errori del database non arrivano più a chi accede. I tentativi stanno in `auth_attempts` (`migrations/sales/022`); un database senza quella tabella (oggi RADIX) funziona come prima, senza limite. Test: `tests/auth-guard.test.js`.
 
+## Piani
+
+`api/_sales_plan.js` (migrazione `migrations/sales/023`): ogni workspace ha un piano, `prova` (tutto, il predefinito), `base` (tutto tranne Lead Intelligence) o `completo` (tutto). Sul prodotto, con `base`, le risorse di Lead Intelligence in `/api/sales` rispondono 403, il menu non mostra Lead Intelligence e la pagina dice che è nel Completo; Impostazioni › CRM mostra il piano. RADIX non applica i piani. Il piano lo cambia chi lo vende, mai il cliente: `node tools/sales-orbis/db.js plan --workspace <id> --plan base` (poi i pagamenti, passo 10). Durata della prova e prezzi: da decidere. Test: `tests/sales-orbis-plan.test.js`.
+
 ## Database separato
 
 Il database va creato solo con l'ok di Francesco. Poi, una volta sola, su quel database vuoto:
