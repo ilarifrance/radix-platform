@@ -17,7 +17,7 @@
     python -m radix_trading metodo60         # corsie simulate «metodo 60%» (indici statistica / + notizie, oro, osservazioni; --from: passato e leva)
     python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
     python -m radix_trading agente-notizie   # classifica i titoli delle testate per famiglia e intensita' (chiave in .env)
-    python -m radix_trading osservatorio-notizie [--rapporto]  # un giro dell'osservatorio al minuto (titoli, prezzi) / il rapporto
+    python -m radix_trading osservatorio-notizie [--rapporto|--accendi|--spegni]  # osservatorio al minuto: un giro / rapporto / interruttore dell'hourly
 """
 
 from __future__ import annotations
@@ -268,6 +268,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
     p.add_argument("--rapporto", action="store_true",
                    help="solo per osservatorio-notizie: il rapporto (mosse dopo i titoli contro il controllo), senza fare un giro")
+    p.add_argument("--accendi", action="store_true", help="solo per osservatorio-notizie: da ora il giro hourly fa anche l'osservatorio")
+    p.add_argument("--spegni", action="store_true", help="solo per osservatorio-notizie: l'hourly non fa piu' l'osservatorio")
     p.add_argument("--limite", type=int, default=None,
                    help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 4000)")
     p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
@@ -409,7 +411,10 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "osservatorio-notizie":
             from . import news_watch
             # Osservatorio al minuto (15/11): titoli nuovi, classificazione subito, prezzi correnti, osservazioni; --rapporto fa i conti.
-            result = news_watch.report(store) if args.rapporto else news_watch.tick(store)
+            if args.accendi or args.spegni:
+                result = news_watch.switch(store, bool(args.accendi))
+            else:
+                result = news_watch.report(store) if args.rapporto else news_watch.tick(store)
         elif args.command == "axi":
             from . import axi
             # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.
@@ -486,8 +491,10 @@ def main(argv: list[str] | None = None) -> int:
                     alerts.send(alerts.order_text("[finto]", t["simbolo"], t["quantita"], t["prezzo"], t["commissione"]))
             if args.command == "hourly":
                 from . import news_watch
-                # Osservatorio notizie al minuto (15/11): sul Mac gira ogni ora qui dentro (i titoli sono gia' stati raccolti sopra).
-                result["osservatorio_notizie"] = _safe(lambda: news_watch.tick(store, raccolta=False))
+                # Osservatorio notizie al minuto (15/11): sul Mac gira ogni ora qui dentro (i titoli sono gia' stati raccolti sopra),
+                # solo se acceso con `osservatorio-notizie --accendi` (file OSSERVATORIO_NOTIZIE nella cartella dati).
+                result["osservatorio_notizie"] = _safe(lambda: news_watch.tick(store, raccolta=False)) if news_watch.enabled(store) \
+                    else "spento (osservatorio-notizie --accendi)"
                 from . import fineco
                 # Corsia ETF su Fineco: il piano del mese su Telegram, il primo giorno di borsa (esecuzione a mano).
                 result["etf_fineco"] = _safe(lambda: fineco.maybe_alert(store))

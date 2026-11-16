@@ -448,7 +448,9 @@ def diary_text(store: Store) -> str:
         if any(k.startswith("dopo_") for k in after):
             moves = ", ".join(f"{h} g {after[f'dopo_{h}']:+.1%}" for h in AFTER_DAYS if f"dopo_{h}" in after)
             lines.append(f"  - mercato dopo ({after['riferimento']}): {moves}")
-        for n in news_for(store, t["giorno"], item=t["mercato"], before=t["aperta"]):
+        # le notizie sono quelle del giorno di APERTURA (prima dell'entrata): per un'operazione tenuta piu' giorni il giorno
+        # di chiusura mostrerebbe titoli che il trader non poteva sapere (visto sul Mac il 16/11 con lo short del 9/11)
+        for n in news_for(store, (t["aperta"] or t["giorno"])[:10], item=t["mercato"], before=t["aperta"]):
             lines.append(f"  - notizia: {n}")
         if t["nota"]:
             lines.append(f"  - appunto: {t['nota']}")

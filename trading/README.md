@@ -225,7 +225,8 @@ non c'e' nessuna prova: la prima gamba la fanno gli algoritmi in millisecondi, i
 ritardo e sulle notizie programmate al minuto (CPI, lavoro, Fed; 144 prove) nessuna regola ha retto.
 
 `news_watch.py`, comando `osservatorio-notizie`, un giro ogni 5 minuti sul server (`serve`, ai minuti 2, 7, 12, …) e ogni
-ora sul Mac dentro `hourly`: scarica i titoli nuovi (tutti i feed RSS, una ricerca GDELT a rotazione), li fa classificare
+ora sul Mac dentro `hourly` (solo dopo `osservatorio-notizie --accendi`, che crea il file `OSSERVATORIO_NOTIZIE` nella cartella
+dati; `--spegni` lo toglie): scarica i titoli nuovi (tutti i feed RSS, una ricerca GDELT a rotazione), li fa classificare
 subito all'agente notizie (200 per giro, i nuovi per primi; senza chiave la classificazione e' saltata ma i prezzi si
 registrano lo stesso), registra il prezzo corrente di S&P 500 e Nasdaq (future `ES=F`/`NQ=F`, Yahoo), BTC, ETH e oro
 (Kraken, 24 ore su 24; l'oro e' il token PAXG) in `news_watch_prices`, e per ogni titolo forte (intensita' ≥ 2) visto

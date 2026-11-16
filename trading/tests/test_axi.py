@@ -191,3 +191,27 @@ def test_exposure_and_diary_text_with_news_and_market_after():
     assert "esposizione massima 65 $/punto (posizioni aperte insieme; la singola piu' grande 50)" in text
     out = axi.run(st)
     assert out["pagella"]["operazioni"] == 4 and out["pagella"]["per_punto_massimo"] == 65 and out["testo"].startswith("# Diario conto Axi")
+
+
+def test_diary_news_of_a_multi_day_trade_come_from_the_opening_day():
+    """Short aperto il 9/3 e chiuso il 16/3: le notizie nel diario sono quelle del 9/3 prima dell'entrata, non quelle
+    del 15-16/3 (difetto visto sul Mac il 16/11/2026 con lo short del 9/11)."""
+    st = Store(":memory:")
+    text = STATEMENT.replace("2026.03.10 23:59", "2026.03.16 23:59")
+    # un pezzo dello short da 5418.83 chiuso il 16/3 (buy out), oltre alle righe gia' nel fixture
+    text = text.replace("2007{T}2026.03.09 17:40:00{T}buy{T}10{T}US500{T}5570.75{T}1007{T}out{T}{T}0.00{T}0.00{T}0.00{T}-1 519.20".replace("{T}", "\t"),
+                        "2007{T}2026.03.09 17:40:00{T}buy{T}10{T}US500{T}5570.75{T}1007{T}out{T}{T}0.00{T}0.00{T}0.00{T}-1 519.20\n"
+                        "2010{T}2026.03.16 22:28:43{T}buy{T}7{T}US500{T}5424.80{T}1010{T}out{T}{T}0.00{T}0.00{T}10.09{T}-41.79".replace("{T}", "\t"))
+    axi.save(st, axi.parse_statement(text))
+    trades = axi.closed_trades(st)
+    last = trades[-1]
+    assert last["giorno"] == "2026-03-16" and last["aperta"] == "2026-03-09T11:05:01Z" and abs(last["entrata"] - 5418.83) < 1e-6
+    st.conn.executescript("CREATE TABLE IF NOT EXISTS news_items (day TEXT NOT NULL, section TEXT, text TEXT NOT NULL, PRIMARY KEY (day, text));")
+    st.conn.executemany("INSERT INTO news_items VALUES (?,?,?)", [
+        ("2026-03-08", "Conflicts", "Iran tensions mount as oil prices rise"),
+        ("2026-03-15", "Conflicts", "Strait of Hormuz crisis: ships attacked, stocks fall"),
+        ("2026-03-16", "Conflicts", "Ceasefire talks lift Wall Street")])
+    st.conn.commit()
+    text_out = axi.diary_text(st)
+    block = text_out.split("2026-03-16 US500 corto 7 lotti")[1].split("\n- ")[0]
+    assert "2026-03-08: Iran tensions" in block and "2026-03-15" not in block and "2026-03-16: Ceasefire" not in block

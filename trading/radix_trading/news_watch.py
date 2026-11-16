@@ -23,11 +23,13 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import pandas as pd
 
 from . import news_agent
 from .collectors import gdelt, kraken, rss, yahoo
+from .config import env_value
 from .store import Store
 
 HORIZONS = (5, 15, 60)          # minuti
@@ -37,6 +39,7 @@ FAST_MIN = 15                   # «titoli freschi»: visti entro 15 minuti dall
 PER_RUN = 200                   # titoli classificati per giro (5 chiamate): i nuovi prima, poi un pezzo di arretrato
 SHIFTS = (-3, -2, -1, 1, 2, 3)  # giorni del controllo a orario spostato
 VERDICT_AFTER = "4-6 settimane"
+FLAG_FILE = "OSSERVATORIO_NOTIZIE"   # nella cartella dati: finche' manca, il giro `hourly` del Mac non fa l'osservatorio
 
 # nome -> (fonte, codice)
 MARKETS = {
@@ -62,6 +65,26 @@ CREATE TABLE IF NOT EXISTS news_watch_runs (quando TEXT PRIMARY KEY, titoli INTE
 def init(store: Store) -> None:
     news_agent.init(store)
     store.conn.executescript(SCHEMA)
+
+
+def flag_file(store: Store) -> Path:
+    return Path(store.path).parent / FLAG_FILE
+
+
+def enabled(store: Store) -> bool:
+    """Acceso: file OSSERVATORIO_NOTIZIE nella cartella dati (`osservatorio-notizie --accendi`) oppure
+    RADIX_OSSERVATORIO_NOTIZIE=si nell'ambiente (server). Il comando esplicito gira sempre; qui si decide solo l'hourly."""
+    return flag_file(store).exists() or (env_value("RADIX_OSSERVATORIO_NOTIZIE") or "").strip().lower() in ("si", "sì", "1", "true")
+
+
+def switch(store: Store, on: bool) -> dict:
+    f = flag_file(store)
+    if on:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(f"acceso il {datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC\n")
+    elif f.exists():
+        f.unlink()
+    return {"osservatorio": "acceso" if on else "spento", "file": str(f)}
 
 
 def _minute(t: datetime) -> str:

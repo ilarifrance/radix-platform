@@ -158,3 +158,18 @@ def test_cli_and_friday_line_are_wired(monkeypatch, tmp_path, capsys):
     assert m60._news_agent_line(store) == ""
     monkeypatch.setattr(nw, "weekly_line", lambda store, now=None: "Osservatorio: 1 titolo.")
     assert m60._news_agent_line(store) == " Osservatorio: 1 titolo."
+
+
+def test_switch_file_controls_the_hourly_observatory(monkeypatch, tmp_path, capsys):
+    from radix_trading import __main__ as cli
+    monkeypatch.setattr(cli, "Settings", lambda: Settings(data_dir=tmp_path, mode="research"))
+    monkeypatch.delenv("RADIX_OSSERVATORIO_NOTIZIE", raising=False)
+    store = Store(tmp_path / "radix_trading.sqlite")
+    assert nw.enabled(store) is False
+    assert cli.main(["osservatorio-notizie", "--accendi"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["osservatorio"] == "acceso" and (tmp_path / "OSSERVATORIO_NOTIZIE").exists() and nw.enabled(store) is True
+    assert cli.main(["osservatorio-notizie", "--spegni"]) == 0
+    assert not (tmp_path / "OSSERVATORIO_NOTIZIE").exists() and nw.enabled(store) is False
+    monkeypatch.setenv("RADIX_OSSERVATORIO_NOTIZIE", "si")      # sul server basta la variabile
+    assert nw.enabled(store) is True
