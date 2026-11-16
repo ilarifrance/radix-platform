@@ -7,6 +7,7 @@ import pandas as pd
 from .http import get
 
 API = "https://api.kraken.com/0/public/OHLC"
+TICKER = "https://api.kraken.com/0/public/Ticker"
 # Kraken accetta intervalli in minuti.
 INTERVALS = {"1m": 1, "5m": 5, "15m": 15, "1h": 60, "4h": 240, "1d": 1440}
 
@@ -30,3 +31,16 @@ def fetch_ohlc(pair: str = "XBTEUR", timeframe: str = "1h", since: int | None = 
         params["since"] = since
     df, _ = parse_ohlc(get(API, params).json())
     return df.iloc[:-1]
+
+
+def parse_ticker(payload: dict) -> float:
+    """Ultimo prezzo scambiato (`c[0]`) dalla risposta Ticker di una sola coppia."""
+    if payload.get("error"):
+        raise RuntimeError(f"Kraken: {payload['error']}")
+    (entry,) = payload["result"].values()
+    return float(entry["c"][0])
+
+
+def fetch_ticker(pair: str = "XBTEUR") -> float:
+    """Prezzo corrente di una coppia (es. XBTEUR, ETHEUR, PAXGUSD): API pubblica, nessuna chiave, 24 ore su 24."""
+    return parse_ticker(get(TICKER, {"pair": pair}, rate_limit_wait=3.0).json())

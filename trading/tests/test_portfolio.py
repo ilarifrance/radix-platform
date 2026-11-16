@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from radix_trading import portfolio, snapshot
 from radix_trading.config import Settings
@@ -64,3 +65,25 @@ def test_plan_and_snapshot_on_real_shaped_data(tmp_path):
     portfolio.Portfolio(st).step(p=p)
     snap = snapshot.build(st, Settings(data_dir=tmp_path))
     assert snap["portafoglio"]["corsie"] and snap["portafoglio"]["capitale_iniziale"] == 1000.0
+
+
+def test_vol_target_comes_from_env_and_rejects_nonsense(monkeypatch):
+    monkeypatch.delenv("RADIX_TRADING_VOL_TARGET", raising=False)
+    monkeypatch.setattr(portfolio, "env_value", lambda n: None)
+    assert portfolio.vol_target() == 0.25
+    values = {}
+    monkeypatch.setattr(portfolio, "env_value", lambda n: values.get(n))
+    values["RADIX_TRADING_VOL_TARGET"] = "0.75"
+    assert portfolio.vol_target() == 0.75
+    idx = pd.date_range("2024-01-01", periods=24 * 200, freq="h", tz="UTC")
+    rng = np.random.default_rng(7)   # trend in salita con oscillazione annua intorno al 90%, come le crypto
+    close = pd.DataFrame({s: 100 * np.exp(np.cumsum(rng.normal(0.0005, 0.01, len(idx)))) for s in ("XBTEUR", "ETHEUR")}, index=idx)
+    w_high = portfolio.lane_weights(portfolio.LANES[0], close, None)
+    values["RADIX_TRADING_VOL_TARGET"] = "0.25"
+    w_low = portfolio.lane_weights(portfolio.LANES[0], close, None)
+    assert w_high.iloc[-1].sum() > w_low.iloc[-1].sum() > 0   # piu' obiettivo, piu' capitale nel trend
+    for bad in ("abc", "0", "5"):
+        values["RADIX_TRADING_VOL_TARGET"] = bad
+        with pytest.raises(ValueError):
+            portfolio.vol_target()
+
