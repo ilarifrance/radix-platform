@@ -81,3 +81,7 @@ html.sx-no-crm #main>.metrics,html.sx-no-crm #main>.filterbar,html.sx-no-crm #ma
 
 /* Sales Orbis (html[data-product], sales/crm-product.js): links to RADIX pages the product does not serve stay hidden. */
 html[data-product] a[href*="sales-orbit"], html[data-product] a[href*="control-center"], html[data-product] a[href^="https://claude.ai/"] { display: none !important; }
+/* A static page's own old menu stays hidden until sales-nav.js replaces it: while the script was still loading, the
+   browser painted it as a column of raw links («scritte strane» on every page change). If the script never runs, it shows after 4 s. */
+aside:has(+script[src="/sales/sales-nav.js"]):not(.sx-side){visibility:hidden;animation:sx-reveal 0s 4s forwards}
+@keyframes sx-reveal{to{visibility:visible}}
