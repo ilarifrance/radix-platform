@@ -83,6 +83,23 @@
   function page(p) { return (p === '/crm' || p === '/radix-sales.html' || (product && p === '/')) ? CRM : p; }
   var path = page(location.pathname);
   var onCrm = path === CRM;
+  // Sales Orbis: the RADIX pages still link the old addresses in their texts (/radix-sales.html,
+  // the Command Center and the Sales Orbit globe). On the product a click on one of them opens the CRM page that
+  // replaces it, keeping the query and the section (#contacts…), so no old RADIX page or menu opens.
+  function productHref(href) {
+    var u; try { u = new URL(href, location.href); } catch (e) { return null; }
+    if (u.origin !== location.origin) return null;
+    if (u.pathname === '/radix-sales.html') return '/crm' + u.search + u.hash;
+    if (u.pathname === '/control-center-v2.html' || u.pathname === '/sales-orbit-higgsfield.html') return '/crm';
+    return null;
+  }
+  if (product) {
+    document.addEventListener('click', function (e) {
+      var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+      var to = a && productHref(a.getAttribute('href'));
+      if (to) a.setAttribute('href', to);
+    }, true);
+  }
 
   function isCurrent(href) {
     var u = new URL(href, location.href);

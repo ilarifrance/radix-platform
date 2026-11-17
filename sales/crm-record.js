@@ -128,7 +128,14 @@ function composerPanel(ctx){
  const box=E('section',undefined,'crm-rec-composer');box.setAttribute('aria-labelledby','crm-rec-cmp-title');
  const h=E('h3','Registra un’attività');h.id='crm-rec-cmp-title';box.append(h);
  const call=core.meetingCall(a.state.workspace,ctx.subject,rec);
- if(call&&a.writable('interactions')){const P=window.RadixCrmProduct?.here?.();const l=E('a',P?'📞 Chiama e registra':'📞 Chiama da RADIX e registra','crm-rec-call');l.href=call.href;l.title='Chiama '+call.number+(P?' dal numero del workspace':' dal numero RADIX')+': la telefonata viene registrata, trascritta e salvata qui nello storico';box.append(l)}
+ let callLink=null;
+ if(call&&a.writable('interactions')){const P=window.RadixCrmProduct?.here?.();
+  // Sales Orbis has no RADIX call room (meeting.html is not a product page): the phone dials the number and the
+  // «Chiamata» tab opens below to log how it went.
+  callLink=E('a',P?'📞 Chiama '+call.number:'📞 Chiama da RADIX e registra','crm-rec-call');
+  callLink.href=P?'tel:'+call.number.replace(/[^\d+]/g,''):call.href;
+  callLink.title=P?'Chiama '+call.number+' dal tuo telefono, poi registra la chiamata qui sotto':'Chiama '+call.number+' dal numero RADIX: la telefonata viene registrata, trascritta e salvata qui nello storico';
+  box.append(callLink)}
  if(!a.writable('interactions')){box.append(E('p','Sola lettura: il tuo ruolo non può registrare attività.','muted'));return box}
  if(!rec){box.append(E('p','Scheda non caricata: riapri la scheda.','muted'));return box}
  const bar=E('div',undefined,'crm-rec-tabs');bar.setAttribute('role','tablist');bar.setAttribute('aria-label','Tipo di attività');
@@ -136,7 +143,9 @@ function composerPanel(ctx){
  const show=tab=>{tabs.set(key,tab);for(const b of bar.children){const on=b.dataset.tab===tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1}body.replaceChildren(form(ctx,rec,tab,a.writable('tasks')))};
  core.TABS.forEach(([tab,name])=>{const b=B(name,()=>show(tab));b.setAttribute('role','tab');b.dataset.tab=tab;bar.append(b)});
  bar.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;const list=[...bar.children],i=list.indexOf(document.activeElement);if(i<0)return;const n=list[(i+(e.key==='ArrowRight'?1:list.length-1))%list.length];n.click();n.focus()});
- box.append(bar,body);show(tabs.get(key)||'email');return box;
+ box.append(bar,body);show(tabs.get(key)||'email');
+ if(callLink&&callLink.href.startsWith('tel:'))callLink.addEventListener('click',()=>show('call'));
+ return box;
 }
 
 /* ---------- Dettagli (Aziende e Contatti) ---------- */
@@ -174,7 +183,10 @@ function dealPanel(ctx){
  const prob=rec.probability??(stage?stage.probability:null);
  const box=E('section',undefined,'crm-rec-details crm-rec-deal');box.setAttribute('aria-labelledby','crm-rec-deal-title');
  const head=E('div',undefined,'crm-rec-head');const h=E('h3','Opportunità');h.id='crm-rec-deal-title';head.append(h);
- if(a.writable('opportunities'))head.append(B('Modifica',()=>a.edit('opportunities',rec)));box.append(head);
+ if(a.writable('opportunities'))head.append(B('Modifica',()=>a.edit('opportunities',rec)));
+ // «Crea preventivo» from the record too (the list row already has it): the quote opens with company, contact and deal set.
+ if(!rec.outcome||rec.outcome==='open'){const q=E('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(rec.id)+'#quotes/new';head.append(q)}
+ box.append(head);
  const dl=E('dl');const row=(k,v)=>{if(v==null||v==='')return;const dd=E('dd');if(v instanceof Node)dd.append(v);else dd.textContent=String(v);dl.append(E('dt',k),dd)};
  row('Fase',stage?stage.title:'');row('Valore','€ '+(Number(rec.amount_cents||0)/100).toLocaleString('it-IT',{maximumFractionDigits:2}));
  row('Probabilità',prob==null?'':prob+'%');row('Chiusura prevista',rec.expected_close?new Date(rec.expected_close+'T00:00:00').toLocaleDateString('it-IT'):'');

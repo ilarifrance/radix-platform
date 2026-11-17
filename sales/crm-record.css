@@ -31,6 +31,8 @@
 .crm-rec h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--crx-heading)}
 .crm-rec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
 .crm-rec-head button{min-height:36px;font-size:13px}
+.crm-rec-deal .crm-rec-head{justify-content:flex-start}.crm-rec-deal .crm-rec-head h3{margin-right:auto}
+.crm-rec-head .crm-quote-link{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px solid var(--crx-border);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:inherit}
 .crm-rec>section>p.muted{font-size:12px;margin:4px 0 8px;color:var(--crx-muted)}
 .crm-rec .crm-rec-ai{border-color:var(--crx-border-accent)}
 .crm-rec-ai h3{color:var(--crx-accent)}
