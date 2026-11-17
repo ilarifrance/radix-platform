@@ -166,9 +166,26 @@ function detailsPanel(ctx){
  box.append(cols);return box;
 }
 
+// Opportunity: the deal at a glance (stage, value, close date, contact, company), with «Modifica».
+function dealPanel(ctx){
+ const a=app(),rec=recordOf(ctx);if(ctx.subject!=='opportunities'||!rec)return null;
+ const of=e=>(ctx.rows||[]).filter(x=>x.entity===e).map(x=>x.record);
+ const stage=a.rows('stages').find(s=>s.id===rec.stage_id),contact=of('contacts').find(c=>c.id===rec.contact_id),company=of('companies').find(c=>c.id===rec.company_id);
+ const prob=rec.probability??(stage?stage.probability:null);
+ const box=E('section',undefined,'crm-rec-details crm-rec-deal');box.setAttribute('aria-labelledby','crm-rec-deal-title');
+ const head=E('div',undefined,'crm-rec-head');const h=E('h3','Opportunità');h.id='crm-rec-deal-title';head.append(h);
+ if(a.writable('opportunities'))head.append(B('Modifica',()=>a.edit('opportunities',rec)));box.append(head);
+ const dl=E('dl');const row=(k,v)=>{if(v==null||v==='')return;const dd=E('dd');if(v instanceof Node)dd.append(v);else dd.textContent=String(v);dl.append(E('dt',k),dd)};
+ row('Fase',stage?stage.title:'');row('Valore','€ '+(Number(rec.amount_cents||0)/100).toLocaleString('it-IT',{maximumFractionDigits:2}));
+ row('Probabilità',prob==null?'':prob+'%');row('Chiusura prevista',rec.expected_close?new Date(rec.expected_close+'T00:00:00').toLocaleDateString('it-IT'):'');
+ row('Esito',rec.outcome==='won'?'Vinta':rec.outcome==='lost'?'Persa'+(rec.lost_reason?' · '+rec.lost_reason:''):'Aperta');
+ if(contact)row('Contatto',B(contact.name||'Contatto',()=>a.openCustomer('contacts',contact),'crm-rec-link'));
+ if(company)row('Azienda',B(company.name||'Azienda',()=>a.openCustomer('companies',company),'crm-rec-link'));
+ const cols=E('div',undefined,'crm-rec-det-cols');const part=E('div',undefined,'crm-rec-det-group');part.append(dl);cols.append(part);box.append(cols);return box;
+}
 function mount(panel,ctx){
  if(!app()||!ctx||!core.SUBJECT_LABEL[ctx.subject])return;
- const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx);if(det)wrap.append(det);
+ const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx)||dealPanel(ctx);if(det)wrap.append(det);
  // «Percorso commerciale»: activities on the contact before (and around) its opportunities (sales/crm-journey.js).
  const journey=window.RadixCrmJourney?.panel(ctx);if(journey)wrap.append(journey);
  wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);

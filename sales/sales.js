@@ -439,13 +439,35 @@ function openEditor(entity,row=null){
   // A new opportunity starts in the first pipeline, first stage: one click less, and no «Processo *» left empty.
   const fresh=entity==='opportunities'&&!row&&processes.length>0;
   const process=addSelect('process_id','Processo'+(entity==='opportunities'?' *':''),processChoices,row?.process_id||(fresh?processes[0].id:''),entity==='opportunities');
+  // Empty workspace (no pipeline yet): one click creates the standard one, then the form comes back with what was typed.
+  if(entity==='opportunities'&&!row&&!processes.length&&writable('processes')&&writable('stages')){
+   const note=el('div',undefined,'notice editor-pipeline');note.append(el('p','Non c’è ancora una pipeline: serve per dare una fase all’opportunità.'));
+   note.append(button('Crea la pipeline standard (Primo contatto → Firma)',()=>createDefaultPipeline(),'primary'));fields.append(note);
+  }
   const stage=addSelect('stage_id','Fase',[],row?.stage_id,entity==='opportunities');
   const fill=()=>{stage.replaceChildren();const choices=[['','Nessuna fase'],...rows('stages').filter(s=>s.process_id===process.value).sort((a,b)=>a.position-b.position).map(s=>[s.id,s.title])];if(row?.stage_id && process.value===row.process_id && !choices.some(c=>c[0]===row.stage_id))choices.push([row.stage_id,'Fase corrente non caricata']);choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;stage.append(o);});stage.value=process.value===row?.process_id?row?.stage_id || '':'';if(fresh&&!stage.value&&choices.length>1)stage.value=choices[1][0];stage.required=Boolean(process.value);};process.addEventListener('change',fill);fill();
  }
  for(const n of fields.querySelectorAll('select')){if(n.name==='company_id'&&entity!=='companies')quickAdd(n,'companies',fields);if(n.name==='contact_id'&&entity!=='contacts')quickAdd(n,'contacts',fields);}
  // «Detta i campi» (sales/crm-dictation.js): the dictated values go into this form, saved by its own button.
  window.RadixCrmDictation?.editor(entity,row,fields);
- $('editor').showModal();fields.querySelector('input')?.focus();
+ if(!$('editor').open)$('editor').showModal();fields.querySelector('input')?.focus();
+}
+// «Vendita»: Primo contatto 10% · Qualifica 25% · Proposta 50% · Negoziazione 75% · Firma 90% (editable later in Pipeline › Personalizza).
+const DEFAULT_PIPELINE=[['Primo contatto',10],['Qualifica',25],['Proposta',50],['Negoziazione',75],['Firma',90]];
+async function createDefaultPipeline(){
+ if(state.busy||!editing||editing.entity!=='opportunities'||editing.row)return;
+ const f=$('editor-form'),keep={};for(const [k,v] of new FormData(f))if(typeof v==='string'&&v!=='')keep[k]=v;
+ lock(true);error('');notice('Creo la pipeline…');let ok=false;
+ try{
+  const p=await api('processes',{body:{workspace:state.workspace,entity:'processes',action:'create',data:{title:'Vendita',kind:'opportunity'}}});
+  const proc=p.rows&&p.rows[0];if(!proc||!proc.id)throw new Error('Pipeline non creata: premi Aggiorna e controlla.');
+  for(const [i,[title,probability]] of DEFAULT_PIPELINE.entries())await api('stages',{body:{workspace:state.workspace,entity:'stages',action:'create',data:{title,position:i,probability,process_id:proc.id}}});
+  await load('processes');await load('stages');ok=true;notice('Pipeline «Vendita» creata: la trovi e la modifichi in Pipeline.');
+ }catch(e){error(e.message+' Premi Aggiorna prima di riprovare.');}
+ finally{lock(false);}
+ if(!ok)return;
+ openEditor('opportunities');const g=$('editor-form');
+ for(const [k,v] of Object.entries(keep)){if(k==='process_id'||k==='stage_id')continue;const c=g.elements.namedItem(k);if(!c)continue;if(c.tagName==='SELECT'&&![...c.options].some(o=>o.value===v))continue;c.value=v;}
 }
 $('editor-form').addEventListener('submit',event=>{
  event.preventDefault();if(!editing || state.busy)return;const {entity,row}=editing;const data={};
