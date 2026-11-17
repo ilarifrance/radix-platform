@@ -34,8 +34,8 @@ test('vercel.json: on the product host / and every page outside the allow-list g
   for(const h of ['radix-platform.vercel.app','crmx.example.com'])assert.ok(!hostRe.test(h),h);
   const all=prod.find(r=>r.source!=='/');assert.equal(all.source,P.redirectSource(),'built from sales/crm-product.js');
   const re=sourceRe(all.source);
-  for(const p of ['/control-center-v2.html','/agents.html','/admin.html','/trading.html','/contabilita/','/contabilita/index.html','/sales-orbit.html','/sales-orbit-higgsfield.html','/index.html','/tests/crm-product.test.js','/crmx','/docs/x.md'])assert.ok(re.test(p),'redirected: '+p);
-  for(const p of ['/crm','/radix-sales.html','/impostazioni.html','/lead-intelligence.html','/sales-posta.html','/sales/sales.js','/lib/radix-i18n.js','/shell/settings.js','/api/sales','/api/state'])assert.ok(!re.test(p),'served: '+p);
+  for(const p of ['/control-center-v2.html','/agents.html','/admin.html','/trading.html','/contabilita/','/contabilita/index.html','/sales-orbit.html','/sales-orbit-higgsfield.html','/radix-sales.html','/index.html','/tests/crm-product.test.js','/crmx','/docs/x.md'])assert.ok(re.test(p),'redirected: '+p);
+  for(const p of ['/crm','/impostazioni.html','/lead-intelligence.html','/sales-posta.html','/sales/sales.js','/lib/radix-i18n.js','/shell/settings.js','/api/sales','/api/state'])assert.ok(!re.test(p),'served: '+p);
   // Every page the product serves exists, and the menu links of the product stay inside the allow-list.
   for(const p of P.PAGES.filter(p=>p.endsWith('.html')))assert.ok(fs.existsSync(path.join(__dirname,'..',p)),p);
   assert.ok(!v.rewrites.some(r=>r.has),'no host rewrite: it would lose to index.html');

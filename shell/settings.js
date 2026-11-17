@@ -203,6 +203,13 @@ const R={
   for(const [entity,label] of [['companies','Aziende'],['contacts','Contatti']]){const f=X.of(defs,entity),box=E('div',undefined,'st-field-group');box.append(E('strong',label));
    if(!f.length)box.append(E('span','Nessun campo aggiunto.','st-sub'));else{const ul=E('ul');for(const x of f)ul.append(E('li',x.label));box.append(ul)}list.append(box)}
  },
+ // «Dati CRM» (Francesco, 17/11): the CRM's own data pages, out of the Sales menu and reachable from here.
+ async dati(out){
+  const crm=PRODUCT?'/crm':'/radix-sales.html';
+  const groups=[['Struttura del CRM','Chi lavora nel workspace e come sono fatte le trattative.',[['#members','Membri'],['#processes','Processi di vendita'],['#stages','Fasi']]],
+   ['Elenchi completi','Tutti i record, uno per riga, con modifica e cancellazione.',[['#opportunities','Opportunità'],['#leads','Lead'],['#interactions','Interazioni']]]];
+  for(const [title,hint,links] of groups){const c=card(title,hint);const ul=E('ul','', 'st-links');for(const [h,label] of links){const li=E('li');li.append(A(label,crm+h));ul.append(li)}c.append(ul);out.append(c)}
+ },
  async crediti(out){
   const c=card('Crediti e fatturazione','In arrivo: qui vedrai i crediti AI usati dal team, il piano attivo e le fatture di RADIX.','st-soon');
   c.append(E('span','In arrivo','st-badge'));out.append(c);

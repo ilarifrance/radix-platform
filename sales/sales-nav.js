@@ -3,7 +3,8 @@
 // in #navigation are kept (same elements, same hrefs) and only regrouped, with the cross-page links added around them.
 'use strict';
 (function () {
-  var CRM = '/radix-sales.html';
+  // Sales Orbis shows the CRM as /crm (no «radix» in the address bar; vercel.json sends /radix-sales.html there).
+  var CRM = window.RadixCrmProduct && window.RadixCrmProduct.here() ? '/crm' : '/radix-sales.html';
   var GROUPS = [
     { label: 'Sales', items: [
       { href: '/sales-orbit-higgsfield.html', text: 'Sales Orbit', ic: 'globe' },
@@ -73,14 +74,23 @@
     [].slice.call(document.querySelectorAll('a.sx-link[href="' + LEAD + '"]')).forEach(function (a) { a.hidden = baseOnly; });
   });
   var LOGOUT = { href: '/crm?esci=1', text: 'Esci', ic: 'person', logout: true };
-  var path = (location.pathname === '/crm' || (product && location.pathname === '/')) ? '/radix-sales.html' : location.pathname;
-  var onCrm = /\/radix-sales\.html$/.test(path);
+  // Sales Orbis menu (Francesco, 17/11): no «Oggi» (Attività covers it; the #today page still opens from a link),
+  // «Assistenza» at the end of the Sales group. RADIX keeps its menu as it is.
+  // Also no «Report» (it is a tab of Analisi, crm-analisi-tabs.js) and no «Dati CRM» group (its pages are linked from
+  // Impostazioni › Dati del CRM, shell/settings.js).
+  var PRODUCT_HIDDEN = [CRM + '#today', CRM + '#report'], PRODUCT_LAST = [CRM + '#tickets'];
+  // /crm and /radix-sales.html are the same CRM page (and / on the product).
+  function page(p) { return (p === '/crm' || p === '/radix-sales.html' || (product && p === '/')) ? CRM : p; }
+  var path = page(location.pathname);
+  var onCrm = path === CRM;
 
   function isCurrent(href) {
     var u = new URL(href, location.href);
-    if (u.pathname !== path) return false;
+    if (page(u.pathname) !== path) return false;
     if (!onCrm) return true;
-    return u.hash === (location.hash || '#dashboard');
+    // Report opens as a tab of Analisi: Analisi stays the current entry.
+    var here = location.hash || '#dashboard';
+    return u.hash === (here === '#report' && product ? '#analytics' : here);
   }
   function link(item, existing) {
     var a = existing || document.createElement('a');
@@ -113,9 +123,16 @@
     var frag = document.createDocumentFragment();
     if (!solo) frag.append(link(HOME));
     GROUPS.forEach(function (g) {
+      if (product && g.fold) return;
+      // Sales Orbis: «Campagne» opens the email campaigns of the CRM (sales/crm-campagne.js); the planning studio
+      // (sales-growth-campaigns.html) is linked from there.
+      var CAMPAIGNS = '/sales-growth-campaigns.html';
       var items = g.items.slice();
       // On the product only its own pages: no Sales Orbit globe and no RADIX guide (pageAllowed in crm-product.js).
-      if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]) && !(baseOnly && it.href === LEAD); });
+      if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]) && !(baseOnly && it.href === LEAD) && PRODUCT_HIDDEN.indexOf(it.href) < 0; });
+      // On the product «Assistenza» is used less than the rest: last in its group (Francesco, 17/11).
+      if (product) items = items.map(function (it) { return it.href === CAMPAIGNS ? { href: CRM + '#campagne', text: it.text, ic: it.ic } : it; });
+      if (product) items.sort(function (a, b) { return (PRODUCT_LAST.indexOf(a.href) >= 0) - (PRODUCT_LAST.indexOf(b.href) >= 0); });
       if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';
@@ -220,7 +237,8 @@
     });
     // Anything sales.js adds that the menu does not list yet stays reachable under Dati CRM.
     var fold = crmNav.querySelector('details.sx-fold');
-    extra.forEach(function (a) { if (keep.indexOf(a) === -1) { link({ ic: 'steps', text: a.textContent }, a); fold.append(a); } });
+    // (On the product there is no Dati CRM group: those links are dropped below, the pages open from Impostazioni.)
+    extra.forEach(function (a) { if (keep.indexOf(a) === -1 && fold) { link({ ic: 'steps', text: a.textContent }, a); fold.append(a); } });
     // Drop what was there before the groups (old Sales Orbit link, stray text), keeping the grouped nodes.
     [].slice.call(crmNav.childNodes).forEach(function (n) {
       if (n.nodeType !== 1 || !(n.classList.contains('sx-group') || n.classList.contains('sx-link'))) n.remove();

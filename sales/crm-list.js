@@ -174,7 +174,7 @@ function mount(section,kind){
 
  drawCols();
  const anchor=[...section.querySelectorAll(':scope>p.muted')].pop()||section.querySelector(':scope>form')||section.querySelector(':scope>.row');
- anchor?anchor.after(box):section.prepend(box);
+ anchor?anchor.after(box):section.prepend(box);section.classList.add('lv-ready');// crm-light-sales.css: the plain cards stay hidden until here
  box.redraw=draw;applyMode();
 }
 

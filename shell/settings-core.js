@@ -10,11 +10,12 @@ const SECTIONS=Object.freeze([
  {id:'calendari',label:'Calendari',hint:'Outlook e Google: abbonamento e calendari esterni',crm:true},
  {id:'collegamenti',label:'Collegamenti',hint:'Servizi esterni e estensione Chrome'},
  {id:'crm',label:'CRM',hint:'Automazioni, SLA e campi aggiunti',crm:true},
+ {id:'dati',label:'Dati del CRM',hint:'Membri, processi e fasi, ed elenchi completi di opportunità, lead e interazioni'},
  {id:'crediti',label:'Crediti e fatturazione',hint:'In arrivo'}
 ]);
 const IDS=SECTIONS.map(s=>s.id);
 // Old names and anchors that point to the same section.
-const ALIAS={profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',calendars:'calendari',calendario:'calendari',calendar:'calendari',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
+const ALIAS={dati_crm:'dati',processi:'dati',fasi:'dati',profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',calendars:'calendari',calendario:'calendari',calendar:'calendari',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
 // '#caselle', 'caselle', '#members' → a section id; anything else → 'profilo'.
 // «Sales Orbis» (sales/crm-product.js): no RADIX services or RADIX billing in the product's settings.
 const PRODUCT_HIDDEN=Object.freeze(['collegamenti','crediti']);

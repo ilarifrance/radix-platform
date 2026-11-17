@@ -57,10 +57,10 @@ test('password rule: page and server give the same answer',()=>{
  assert.equal(core.passwordProblem({current:'a',password:'abcdefgh',confirm:'abcdefgh'}),'');
 });
 
-test('sections: seven, deep-linkable by #hash, aliases and fallback to Profilo',()=>{
- assert.deepEqual(core.IDS,['profilo','membri','caselle','calendari','collegamenti','crm','crediti']);assert.equal(core.sectionFromHash('#calendars'),'calendari');
+test('sections: eight, deep-linkable by #hash, aliases and fallback to Profilo',()=>{
+ assert.deepEqual(core.IDS,['profilo','membri','caselle','calendari','collegamenti','crm','dati','crediti']);assert.equal(core.sectionFromHash('#calendars'),'calendari');
  assert.equal(core.sectionFromHash('#caselle'),'caselle');assert.equal(core.sectionFromHash('#crm?x=1'),'crm');assert.equal(core.sectionFromHash('#MEMBRI'),'membri');
- assert.equal(core.sectionFromHash('#members'),'membri');assert.equal(core.sectionFromHash('#mailboxes'),'caselle');assert.equal(core.sectionFromHash('#sla'),'crm');
+ assert.equal(core.sectionFromHash('#members'),'membri');assert.equal(core.sectionFromHash('#mailboxes'),'caselle');assert.equal(core.sectionFromHash('#sla'),'crm');assert.equal(core.sectionFromHash('#processi'),'dati');
  assert.equal(core.sectionFromHash(''),'profilo');assert.equal(core.sectionFromHash('#<script>'),'profilo');assert.equal(core.sectionFromHash(undefined),'profilo');
  assert.ok(core.SECTIONS.filter(s=>s.crm).map(s=>s.id).join()==='membri,caselle,calendari,crm');
 });
