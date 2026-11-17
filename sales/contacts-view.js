@@ -12,7 +12,7 @@ const initials=t=>String(t||'').trim().split(/\s+/).filter(w=>/^[\p{L}\p{N}]/u.t
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
 const day=v=>{if(!v)return'';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'}):''};
 const ago=v=>{const d=new Date(v);if(!Number.isFinite(d.getTime()))return'';const n=Math.round((Date.now()-d)/864e5);return n<=0?'oggi':n===1?'ieri':n+' g fa'};
-const KIND={email:'Email',call:'Call',meeting:'Meeting',note:'Nota',linkedin:'LinkedIn'};
+const KIND={email:'Email',call:'Chiamata',meeting:'Incontro',note:'Nota',linkedin:'LinkedIn'};
 const state={selected:null};
 
 const scoreOf=(d,c)=>window.RadixCrmScore?window.RadixCrmScore.score(c,{interactions:d.interactions,opportunities:d.opportunities,stages:d.stages}):null;
