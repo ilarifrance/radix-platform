@@ -53,7 +53,7 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
     const tx=E('div');tx.append(E('b',t.title),E('small',[x&&+x<t0()?'Scaduta '+rel(x).toLowerCase():x?rel(x):'',PRI[t.priority]?PRI[t.priority][0]+' priorità':''].filter(Boolean).join(' · ')));box.append(chk,tx);
     const c=company(d,t.company_id);if(c)box.append(E('span',c,'tv-tag'));li.append(box);ol.append(li)}
   if(!list.length)ol.append(E('li','Nessuna attività aperta con una data.','tv-empty'));p.append(ol);
-  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/radix-sales.html#calendar';p.append(a);return p}
+  const a=E('a','Visualizza calendario completo','tv-foot');a.href='#calendar';p.append(a);return p}
 
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
   p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente.','tv-note'));
@@ -62,7 +62,7 @@ function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E
   if(!rows.length)p.append(E('p','Nessun contatto da richiamare: ogni trattativa ha un’attività aperta.','tv-empty'));
   for(const c of rows){const o=d.opportunities.find(x=>x.contact_id===c.id&&isOpen(x));const r=E('div',undefined,'tv-recall-row');const av=E('span',initials(c.name),'tv-av');av.setAttribute('aria-hidden','true');
     const tx=E('div');const l=last(c);tx.append(E('b',c.name),E('small',l?'Ultimo contatto '+rel(dd(l)).toLowerCase():'Nessuna interazione registrata'),E('small','Deal: '+o.title+' · '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(o.amount_cents||0)/100),'tv-deal'));
-    const a=E('a','Apri contatto','tv-btn');a.href='#contacts';r.append(av,tx,a);p.append(r)}
+    const a=E('a','Apri contatto','tv-btn');a.href='#contacts';a.addEventListener('click',e=>{const A=window.RadixSalesApp;if(!A?.openCustomer)return;e.preventDefault();A.openCustomer('contacts',c)});r.append(av,tx,a);p.append(r)}
   return p}
 
 function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-table'+(opts.warn?' warn':''));const h=E('div',undefined,'tv-head');const ht=E('h3',title);if(opts.warn)ht.prepend(E('span','⚠','tv-warn-ico'));h.append(ht);h.append(E('span',rows.length,'tv-count'));p.append(h);
