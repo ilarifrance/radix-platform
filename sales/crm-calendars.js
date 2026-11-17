@@ -69,13 +69,16 @@ function feedBox(){const ws=wsOf();if(feedEl&&ws&&feedEl.dataset.ws===ws&&feed.w
 
 /* ---------- Deep link from a feed event: ?ws=…&contatto=… opens the contact's Customer360 ---------- */
 (function deepLink(){
- const q=new URLSearchParams(location.search),id=q.get('contatto'),ws=q.get('ws');if(!UUID.test(id||''))return;
+ // Also ?opportunita=… and ?azienda=… (the Pipeline drawer links the full record of a deal this way).
+ const q=new URLSearchParams(location.search),ws=q.get('ws');
+ const kind=[['contatto','contacts'],['opportunita','opportunities'],['azienda','companies']].find(([k])=>UUID.test(q.get(k)||''));if(!kind)return;
+ const id=q.get(kind[0]),subject=kind[1];
  let tries=0,switched=false;
- const done=()=>{clearInterval(t);const u=new URL(location.href);u.searchParams.delete('contatto');u.searchParams.delete('ws');history.replaceState(null,'',u.pathname+(u.search||'')+u.hash)};
+ const done=()=>{clearInterval(t);const u=new URL(location.href);for(const k of ['contatto','opportunita','azienda','ws'])u.searchParams.delete(k);history.replaceState(null,'',u.pathname+(u.search||'')+u.hash)};
  const t=setInterval(()=>{const a=window.RadixSalesApp;if(++tries>80)return done();if(!a||!a.state.ready||a.state.busy)return;
   if(UUID.test(ws||'')&&a.state.workspace!==ws){if(switched||!a.state.workspaces.some(w=>w.id===ws))return done();
    const sel=document.getElementById('workspace');if(!sel)return done();switched=true;sel.value=ws;sel.dispatchEvent(new Event('change'));return}
-  const row=(a.rows('contacts')||[]).find(r=>r.id===id)||{id,name:'Contatto'};done();a.openCustomer('contacts',row)},250);
+  const row=(a.rows(subject)||[]).find(r=>r.id===id)||{id,name:subject==='contacts'?'Contatto':subject==='companies'?'Azienda':'Opportunità'};done();a.openCustomer(subject,row)},250);
 })();
 
 /* ---------- «Calendari esterni»: the person's own links ---------- */

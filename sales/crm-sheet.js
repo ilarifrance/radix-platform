@@ -174,10 +174,10 @@ function cell(r,c,now,host,ctx,canCall){
   td.append(due,E('span',x.title,'cs-todo-title'));
   td.setAttribute('aria-haspopup','dialog');td.title=C().todoText(x)+(x.source==='interaction'?' (interazione in calendario)':'')+' · Invio o clic: dettagli';return td}
  switch(c.id){
-  case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri Customer360 · '+r.name;o.setAttribute('aria-label','Apri Customer360 di '+r.name);td.append(o);td.title=r.name;
+  case 'name':{const s=E('span',r.name,'cs-name');td.append(s);const o=B('↗',e=>{e.stopPropagation();ctx.open('contacts',r.record)},'cs-open');o.tabIndex=-1;o.title='Apri la scheda · '+r.name;o.setAttribute('aria-label','Apri la scheda di '+r.name);td.append(o);td.title=r.name;
    // How many «Attività» columns this contact fills on the right, readable without scrolling.
    const n=C().countLabel(r.acts.length);if(n){td.append(E('small',n,'lv-sub cs-count'));td.title=r.name+' · '+n}break}
-  case 'company':if(r.companyRecord){const b=B(r.company||'(senza nome)',()=>ctx.open('companies',r.companyRecord),'lv-link');b.tabIndex=-1;b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(empty(r.companyMissing?'non caricata':'—'));break;
+  case 'company':if(r.companyRecord){const b=B(r.company||'(senza nome)',()=>ctx.open('companies',r.companyRecord),'lv-link');b.tabIndex=-1;b.title='Apri la scheda · '+r.company;td.append(b)}else td.append(empty(r.companyMissing?'non caricata':'—'));break;
   case 'phone':case 'mobile':case 'companyPhone':td.append(tel(r[c.id]));if(c.id==='companyPhone'&&!r.companyRecord)td.classList.remove('cs-edit');break;
   case 'email':{const h=window.RadixCrmList?.mailHref(r.email);if(h){const l=E('a',r.email);l.href=h;l.tabIndex=-1;td.append(l)}else td.append(r.email?E('span',r.email):empty());break}
   case 'country':td.append(r.country?E('span',r.country):empty());if(r.countryFrom==='contact'&&r.companyRecord){td.append(E('small','dal contatto','lv-sub'));td.title='Paese del contatto: l’azienda non ha il Paese di fatturazione. Modificando scrivi quello dell’azienda.'}break;

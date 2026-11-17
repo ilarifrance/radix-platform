@@ -1,6 +1,8 @@
 'use strict';
 (() => {
 const $ = id => document.getElementById(id);
+// «Nuovo contatto» instead of «Crea · Contatti» on the create buttons and in the editor title.
+const NEW={companies:'Nuova azienda',contacts:'Nuovo contatto',leads:'Nuovo lead',opportunities:'Nuova opportunità',tasks:'Nuova attività',interactions:'Nuova interazione',tickets:'Nuova richiesta',processes:'Nuovo processo',stages:'Nuova fase'};
 const names = {dashboard:'Panoramica',companies:'Aziende',contacts:'Contatti',leads:'Lead',opportunities:'Opportunità',tasks:'Attività',interactions:'Interazioni',tickets:'Assistenza',members:'Membri',processes:'Processi',stages:'Fasi'};
 const entities = Object.keys(names).filter(x => x !== 'dashboard');
 // The last workspace chosen in the CRM, shared with the Sales pages (Lead Intelligence, Growth, LinkedIn): a convenience only.
@@ -23,6 +25,8 @@ const when = iso => window.RadixCrmDates?.label(iso) || iso || '';
 const role = () => state.workspaces.find(w=>w.id===state.workspace)?.role;
 const writable = entity => state.ready && !['members','customer360'].includes(entity) && (['processes','stages'].includes(entity)?['admin','owner'].includes(role()):['member','admin','owner'].includes(role()));
 // Hook for sales/crm-tools.js (CSV, segments, GDPR, follow-up automation): same state and API, no second copy.
+// Sales Orbis: «Scheda» instead of the RADIX name «Customer360».
+const PRODUCT=!!window.RadixCrmProduct?.here?.(),C360=PRODUCT?'Apri scheda':'Customer360';
 window.RadixSalesApp={state,mutate:(...a)=>mutate(...a),rows:e=>rows(e),api:(...a)=>api(...a),refresh:(...a)=>refresh(...a),role:()=>role(),writable:e=>writable(e),notice:m=>notice(m),error:m=>error(m),lock:v=>lock(v),title:r=>title(r),openCustomer:(...a)=>openCustomer(...a),edit:(e,r)=>openEditor(e,r),remove:(e,r)=>removeRecord(e,r),closeCustomer:()=>{if(customer&&!state.busy){customer=null;render();}},render:()=>{if(!state.busy)render();}};
 function notice(message){$('status').textContent=message;}
 function error(message){$('error').textContent=message || ''; $('error').hidden=!message;$('editor-error').textContent=message || '';$('editor-error').hidden=!message;}
@@ -105,7 +109,7 @@ function card(entity,row,readonly=false){
  if(entity==='opportunities')c.append(el('p','Valore: € '+new Intl.NumberFormat('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(row.amount_cents || 0)/100)));
  if(entity==='opportunities'){const q=el('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(row.id)+'#quotes/new';c.append(q);}
  if(entity==='opportunities')c.append(el('p','Responsabile: '+relation('members',row.owner_id)+' · Chiusura prevista: '+(row.expected_close ? (window.RadixCrmDates?.dateLabel(row.expected_close)||row.expected_close) : 'non impostata')));
- if(entity==='processes')c.append(el('p','Tipo: '+row.kind));
+ if(entity==='processes')c.append(el('p','Tipo: '+({opportunity:'Opportunità',task:'Attività'}[row.kind]||row.kind)));
  if(entity==='stages')c.append(el('p',relation('processes',row.process_id)+' · Posizione '+row.position+' · Attività automatica: '+(row.task_title || 'nessuna')));
  if(!readonly && ((entity==='opportunities'&&(!row.outcome||row.outcome==='open')) || (entity==='tasks' && row.process_id))){
   const stageRows=rows('stages').filter(s=>s.process_id===row.process_id).sort((a,b)=>a.position-b.position);
@@ -122,9 +126,9 @@ function card(entity,row,readonly=false){
  if(row.contact_id)c.append(el('p','Contatto: '+relation('contacts',row.contact_id),'muted'));
  if(row.opportunity_id)c.append(el('p','Opportunità: '+relation('opportunities',row.opportunity_id),'muted'));
  if(entity==='members')c.append(...memberControls(row,readonly));
- if(entity==='tasks' && readonly)c.append(el('p','Stato: '+row.status+' · Fase: '+relation('stages',row.stage_id)));
+ if(entity==='tasks' && readonly)c.append(el('p','Stato: '+({todo:'da fare',doing:'in corso',done:'fatta'}[row.status]||row.status)+(row.stage_id?' · Fase: '+relation('stages',row.stage_id):'')));
  if(entity==='opportunities' && readonly)c.append(el('p','Fase: '+relation('stages',row.stage_id)));
- if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+(row.priority || 'normal')+' · Scadenza: '+(row.due_at ? when(row.due_at) : 'nessuna')));
+ if(entity==='tasks')c.append(el('p','Assegnatario: '+relation('members',row.assignee_id)+' · Priorità: '+({low:'bassa',normal:'normale',high:'alta',urgent:'urgente'}[row.priority||'normal']||row.priority)+' · Scadenza: '+(row.due_at ? when(row.due_at) : 'nessuna')));
  if(entity==='stages' && row.task_title)c.append(el('p','Regole esplicite: '+relation('members',row.task_assignee_id)+' · '+(row.task_priority || 'non impostata')+' · Giorni: '+(row.task_due_days ?? 'non impostati')));
  if(entity==='interactions'){c.append(el('p','Tipo: '+(INTERACTION_KINDS[row.kind]||row.kind)+' · Data: '+when(row.occurred_at)+(row.created_by?' · Registrata da '+relation('members',row.created_by):'')));if(row.body)c.append(el('p',row.body,'interaction-body'));}
  if(entity==='tickets'){
@@ -134,7 +138,7 @@ function card(entity,row,readonly=false){
   if(!readonly){const control=selectControl('Stato di '+title(row),Object.entries(ticketStatus),row.status);control.select.disabled=!writable(entity);
    const save=button('Conferma stato',()=>{if(control.select.value!==row.status)mutate(entity,'update',{id:row.id,version:row.version,status:control.select.value},'Portare «'+title(row)+'» in «'+ticketStatus[control.select.value]+'»?');});save.disabled=!writable(entity);c.append(control.wrap,save);}
  }
- if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button('Customer360',()=>openCustomer(entity,row)));
+ if(!readonly && ['companies','contacts','opportunities'].includes(entity))c.append(button(C360,()=>openCustomer(entity,row)));
  if(!readonly && writable(entity)){const a=el('div',undefined,'actions');a.append(button('Modifica',()=>openEditor(entity,row)),button('Elimina',()=>removeRecord(entity,row),'danger'));c.append(a);}
  window.RadixCrmTools?.card(entity,row,c,readonly);
  return c;
@@ -194,7 +198,7 @@ function render(){
  const reminder=reminderPanel();if(reminder)root.append(reminder);
  for(const [entity,label] of Object.entries(names)){
   const section=el('section',undefined,'panel');section.id=entity;const heading=el('div',undefined,'row');heading.append(el('h2',label));
-  if(entity!=='dashboard' && writable(entity))heading.append(button('Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
+  if(entity!=='dashboard' && writable(entity))heading.append(button(NEW[entity]||'Crea · '+label,()=>openEditor(entity), 'primary'));section.append(heading);
   if(entity==='members'&&state.ready&&['owner','admin'].includes(role())){const a=el('a','Aggiungi membri e cambia ruoli in Impostazioni','crm-mb-link');a.href='/impostazioni.html?area=sales#membri';section.append(a)}
   if(['companies','contacts'].includes(entity))section.append(searchControl(entity));
   if(entity==='tasks')section.append(taskDueControl());
@@ -250,13 +254,13 @@ async function loadCustomer(append=false){
 }
 function customerPanel(){
  const panel=el('section',undefined,'panel customer360');panel.id='customer360';panel.tabIndex=-1;
- const heading=el('div',undefined,'row');heading.append(el('h2','Customer360 · '+customer.title),button('Chiudi Customer360',()=>{if(!state.busy){customer=null;render();}}));panel.append(heading);
- if(customer.error)panel.append(el('p',customer.error,'notice'),button('Riprova Customer360',()=>loadCustomer(customer.offset>0)));
+ const heading=el('div',undefined,'row');heading.append(el('h2',(PRODUCT?'Scheda · ':'Customer360 · ')+customer.title),button(PRODUCT?'Chiudi scheda':'Chiudi Customer360',()=>{if(!state.busy){customer=null;render();}}));panel.append(heading);
+ if(customer.error)panel.append(el('p',customer.error,'notice'),button(PRODUCT?'Riprova':'Riprova Customer360',()=>loadCustomer(customer.offset>0)));
  // Riepilogo AI and the activity composer for this record (sales/crm-record.js).
  if(customer.rows.length)window.RadixCrmRecord?.mount(panel,{subject:customer.subject,id:customer.id,title:customer.title,rows:customer.rows});
  customer.rows.forEach(item=>{const group=el('div');group.append(el('h3',names[item.entity] || item.entity),card(item.entity,item.record,true));panel.append(group);});
  if(!customer.rows.length && !customer.error)panel.append(el('p','Nessun record restituito.','muted'));
- if(customer.more)panel.append(button('Carica altri 100 · Customer360',()=>loadCustomer(true)));
+ if(customer.more)panel.append(button(PRODUCT?'Carica altri 100':'Carica altri 100 · Customer360',()=>loadCustomer(true)));
  return panel;
 }
 async function mutate(entity,action,data,confirmation){
@@ -346,7 +350,7 @@ function quickAdd(select,entity,fields){
 }
 function openEditor(entity,row=null){
  if(state.busy || !writable(entity))return;
- error('');editing={entity,row};$('editor-title').textContent=(row?'Modifica · ':'Crea · ')+names[entity];const fields=$('editor-fields');fields.replaceChildren();
+ error('');editing={entity,row};$('editor-title').textContent=row?'Modifica · '+names[entity]:(NEW[entity]||'Crea · '+names[entity]);const fields=$('editor-fields');fields.replaceChildren();
  const addInput=(key,label,type='text',value='',required=false)=>{const box=el('div');const l=el('label',label);const input=el('input');input.name=key;input.type=type;input.value=value ?? '';input.required=required;if(type==='text')input.maxLength=200;if(type==='number'){input.min='0';input.step='1';input.max=String(Number.MAX_SAFE_INTEGER);}l.append(input);box.append(l);fields.append(box);return input;};
  const addSelect=(key,label,options,value='',required=false)=>{const control=selectControl(label,options,value);control.select.name=key;control.select.required=required;fields.append(control.wrap);return control.select;};
  const references=(entity,value)=>{const choices=[['','Non assegnato'],...rows(entity).map(r=>[r.id,title(r)])];if(value && !rows(entity).some(r=>r.id===value))choices.push([value,'Riferimento corrente non caricato']);return choices;};
@@ -432,9 +436,11 @@ function openEditor(entity,row=null){
  if((entity==='opportunities' && !row) || entity==='tasks'){
   const kind=entity==='tasks'?'task':'opportunity';const processes=rows('processes').filter(p=>p.kind===kind);const processChoices=[['',entity==='tasks'?'Nessun processo':'Seleziona processo'],...processes.map(p=>[p.id,p.title])];
   if(row?.process_id && !processes.some(p=>p.id===row.process_id))processChoices.push([row.process_id,'Processo corrente non caricato']);
-  const process=addSelect('process_id','Processo'+(entity==='opportunities'?' *':''),processChoices,row?.process_id,entity==='opportunities');
+  // A new opportunity starts in the first pipeline, first stage: one click less, and no «Processo *» left empty.
+  const fresh=entity==='opportunities'&&!row&&processes.length>0;
+  const process=addSelect('process_id','Processo'+(entity==='opportunities'?' *':''),processChoices,row?.process_id||(fresh?processes[0].id:''),entity==='opportunities');
   const stage=addSelect('stage_id','Fase',[],row?.stage_id,entity==='opportunities');
-  const fill=()=>{stage.replaceChildren();const choices=[['','Nessuna fase'],...rows('stages').filter(s=>s.process_id===process.value).sort((a,b)=>a.position-b.position).map(s=>[s.id,s.title])];if(row?.stage_id && process.value===row.process_id && !choices.some(c=>c[0]===row.stage_id))choices.push([row.stage_id,'Fase corrente non caricata']);choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;stage.append(o);});stage.value=process.value===row?.process_id?row?.stage_id || '':'';stage.required=Boolean(process.value);};process.addEventListener('change',fill);fill();
+  const fill=()=>{stage.replaceChildren();const choices=[['','Nessuna fase'],...rows('stages').filter(s=>s.process_id===process.value).sort((a,b)=>a.position-b.position).map(s=>[s.id,s.title])];if(row?.stage_id && process.value===row.process_id && !choices.some(c=>c[0]===row.stage_id))choices.push([row.stage_id,'Fase corrente non caricata']);choices.forEach(([v,t])=>{const o=el('option',t);o.value=v;stage.append(o);});stage.value=process.value===row?.process_id?row?.stage_id || '':'';if(fresh&&!stage.value&&choices.length>1)stage.value=choices[1][0];stage.required=Boolean(process.value);};process.addEventListener('change',fill);fill();
  }
  for(const n of fields.querySelectorAll('select')){if(n.name==='company_id'&&entity!=='companies')quickAdd(n,'companies',fields);if(n.name==='contact_id'&&entity!=='contacts')quickAdd(n,'contacts',fields);}
  // «Detta i campi» (sales/crm-dictation.js): the dictated values go into this form, saved by its own button.

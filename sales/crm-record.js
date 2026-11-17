@@ -38,7 +38,7 @@ function label(btn,entry){btn.textContent=entry&&entry.status==='done'?'Rigenera
 async function generate(ctx){
  const a=app(),key=keyOf(ctx),prev=summaries.get(key);if(prev&&prev.status==='busy')return;
  const facts=core.summaryFacts(ctx.subject,ctx.id,ctx.rows,{stages:a.rows('stages'),members:a.rows('members'),now:Date.now()});
- if(!facts){summaries.set(key,{status:'error',error:'Dati della scheda non caricati: premi Riprova Customer360.'});repaint(key);return}
+ if(!facts){summaries.set(key,{status:'error',error:'Dati della scheda non caricati: riapri la scheda.'});repaint(key);return}
  summaries.set(key,{status:'busy'});repaint(key);
  let entry;
  try{
@@ -128,9 +128,9 @@ function composerPanel(ctx){
  const box=E('section',undefined,'crm-rec-composer');box.setAttribute('aria-labelledby','crm-rec-cmp-title');
  const h=E('h3','Registra un’attività');h.id='crm-rec-cmp-title';box.append(h);
  const call=core.meetingCall(a.state.workspace,ctx.subject,rec);
- if(call&&a.writable('interactions')){const l=E('a','📞 Chiama da RADIX e registra','crm-rec-call');l.href=call.href;l.title='Chiama '+call.number+' dal numero RADIX: la telefonata viene registrata, trascritta e salvata qui nello storico';box.append(l)}
+ if(call&&a.writable('interactions')){const P=window.RadixCrmProduct?.here?.();const l=E('a',P?'📞 Chiama e registra':'📞 Chiama da RADIX e registra','crm-rec-call');l.href=call.href;l.title='Chiama '+call.number+(P?' dal numero del workspace':' dal numero RADIX')+': la telefonata viene registrata, trascritta e salvata qui nello storico';box.append(l)}
  if(!a.writable('interactions')){box.append(E('p','Sola lettura: il tuo ruolo non può registrare attività.','muted'));return box}
- if(!rec){box.append(E('p','Scheda non caricata: premi Riprova Customer360.','muted'));return box}
+ if(!rec){box.append(E('p','Scheda non caricata: riapri la scheda.','muted'));return box}
  const bar=E('div',undefined,'crm-rec-tabs');bar.setAttribute('role','tablist');bar.setAttribute('aria-label','Tipo di attività');
  const body=E('div',undefined,'crm-rec-tabpanel');body.setAttribute('role','tabpanel');
  const show=tab=>{tabs.set(key,tab);for(const b of bar.children){const on=b.dataset.tab===tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1}body.replaceChildren(form(ctx,rec,tab,a.writable('tasks')))};
@@ -157,7 +157,7 @@ function detailsPanel(ctx){
  for(const g of groups){const part=E('div',undefined,'crm-rec-det-group');part.dataset.section=g.id;part.append(E('h4',g.label));const dl=E('dl');
   for(const it of g.items){const dd=E('dd');dd.dataset.key=it.key;
    const target=it.ref&&(it.type==='company'?lists.companies:lists.contacts).find(r=>r.id===it.ref);
-   if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri Customer360 · '+it.text;dd.append(b)}
+   if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri la scheda · '+it.text;dd.append(b)}
    else if(it.key==='pec'||it.key==='email')dd.append(Object.assign(E('a',it.text),{href:'mailto:'+it.text}));
    else if(it.type==='url'&&/^https?:\/\//i.test(it.text))dd.append(Object.assign(E('a',it.text.replace(/^https?:\/\//,'')),{href:it.text,target:'_blank',rel:'noopener noreferrer'}));
    else dd.textContent=it.text;
@@ -168,7 +168,10 @@ function detailsPanel(ctx){
 
 function mount(panel,ctx){
  if(!app()||!ctx||!core.SUBJECT_LABEL[ctx.subject])return;
- const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx);if(det)wrap.append(det);wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
+ const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx);if(det)wrap.append(det);
+ // «Percorso commerciale»: activities on the contact before (and around) its opportunities (sales/crm-journey.js).
+ const journey=window.RadixCrmJourney?.panel(ctx);if(journey)wrap.append(journey);
+ wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
 }
 window.RadixCrmRecord={mount};
 })();

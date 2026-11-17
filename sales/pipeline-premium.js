@@ -63,7 +63,7 @@ function selectionPanel(row){const target=$('selection');target.replaceChildren(
   options.forEach(s=>{const o=E('option',s.title||'Fase');o.value=s.id;sel.append(o)});const go=E('button','Sposta');go.type='button';go.disabled=true;sel.onchange=()=>{go.disabled=!sel.value};
   go.onclick=()=>{const stage=state.stages.find(s=>s.id===sel.value);if(stage)move(row,stage)};wrap.append(label,' ',sel,' ',go);target.append(wrap)}
  else if(!canWrite())target.append(E('p','Ruolo in sola lettura: lo spostamento di fase non è disponibile.'));
- const a=E('a','Apri nel CRM operativo ↗');a.href='/radix-sales.html#opportunities';target.append(a)}
+ const P=window.RadixCrmProduct&&window.RadixCrmProduct.here();const a=E('a',P?'Apri la scheda completa':'Apri nel CRM operativo ↗');a.href=(P?'/crm':'/radix-sales.html')+'?opportunita='+encodeURIComponent(row.id)+(state.workspace?'&ws='+encodeURIComponent(state.workspace):'')+'#opportunities';target.append(a)}
 function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}b.append(E('small','Vedi dettagli'));
  if(canWrite()&&isOpen(row)&&moveTargets(row,state.stages).length){b.draggable=true;b.title='Trascina su un’altra fase per spostarla';b.addEventListener('dragstart',e=>{state.dragId=row.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.id);b.classList.add('dragging')});b.addEventListener('dragend',()=>{state.dragId=null;b.classList.remove('dragging');clearTargets()})}
  b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');if(window.RadixDealFlow)window.RadixDealFlow.openDetail({...flowCtx(row,null),onDone:async msg=>{await load();if(msg)$('status').textContent=msg}});else selectionPanel(row)};return b}
@@ -201,7 +201,9 @@ async function deleteSetup(){const proc=state.processes.find(x=>x.id===setup.pro
  f.querySelector('[data-setup="new"]').onclick=()=>setupPick('');
  f.querySelector('[data-setup="add"]').onclick=()=>{if(setup.cols.length>=50)return;setup.cols.push({title:'',probability:''});setupRows();const inputs=$('setup-cols').querySelectorAll('input:not([inputmode])');inputs[inputs.length-1]?.focus()};
  f.querySelector('[data-setup="cancel"]').onclick=closeSetup;f.querySelector('[data-setup="delete"]').onclick=deleteSetup;
- const b=$('setup-pipeline');if(b)b.onclick=openSetup}}
+ const b=$('setup-pipeline');if(b)b.onclick=openSetup;
+ // Sales Orbis: the Pipeline is where deals are managed; no link to the old full list of the CRM.
+ const md=$('manage-deals');if(md&&window.RadixCrmProduct&&window.RadixCrmProduct.here())md.remove()}}
 // The board starts with a loading line (sales-pipeline-premium.html); when nothing can load it says why instead.
 function idle(msg){$('board').replaceChildren(E('div',msg,'empty'))}
 // The workspace last chosen in the CRM (radix.workspace, see sales.js), so every Sales page opens the same one.
