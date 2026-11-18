@@ -38,6 +38,10 @@
     {
       "source": "/api/trading",
       "destination": "/api/integrations/trading"
+    },
+    {
+      "source": "/api/trasporti",
+      "destination": "/api/integrations/trasporti"
     }
   ],
   "headers": [

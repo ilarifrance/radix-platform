@@ -1,0 +1,63 @@
+/* RADIX Trasporti — driver app and command center. A product of its own (sector brand to be chosen), so it does not
+   load the RADIX shell: plain, high-contrast, large touch targets for drivers. Light and dark. */
+:root{--bg:#f4f6f7;--surface:#fff;--surface-2:#eef2f3;--text:#10202a;--muted:#4e6270;--subtle:#6c7f8b;--border:#d5dee2;--accent:#0b6e4f;--accent-text:#fff;--warn:#b42318;--flag:#a15c00;--flag-bg:#fff4e0;--ok:#0b6e4f;--live:#e6f4ee;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#0b141a;--surface:#111e26;--surface-2:#162833;--text:#ecf3f6;--muted:#a3b6c0;--subtle:#7f95a1;--border:#24404d;--accent:#3ccf91;--accent-text:#06231a;--warn:#ff7b72;--flag:#ffb84d;--flag-bg:#2d2310;--ok:#3ccf91;--live:#10291f;color-scheme:dark}}
+*{box-sizing:border-box}
+body.tr{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+.tr a{color:var(--accent)}
+.tr :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.tr h1{font-size:22px;line-height:1.2;margin:0 0 6px}.tr h2{font-size:17px;margin:0 0 10px}.tr h3{font-size:15px;margin:0 0 6px}
+.tr-muted{color:var(--muted);margin:0 0 10px}.tr-subtle{color:var(--subtle);font-size:13px}
+.tr-eyebrow{margin:0 0 4px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.tr label{display:grid;gap:4px;font-size:13px;color:var(--muted);margin:0 0 10px}
+.tr input,.tr select,.tr textarea{font:inherit;font-size:16px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 12px;min-width:0;width:100%}
+.tr-btn{font:600 15px/1 inherit;font-family:inherit;cursor:pointer;border-radius:10px;padding:12px 16px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-text)}
+.tr-btn.ghost{background:transparent;color:var(--text);border-color:var(--border)}
+.tr-btn.warn{background:transparent;color:var(--warn);border-color:var(--warn)}
+.tr-btn.small{padding:7px 10px;font-size:13px}
+.tr-btn.big{width:100%;min-height:56px;font-size:17px}
+.tr-btn:disabled{opacity:.5;cursor:not-allowed}
+.tr-link{background:none;border:0;color:var(--accent);font:inherit;cursor:pointer;padding:8px}
+.tr-banner{margin:0 0 12px;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2)}
+.tr-banner.ok{border-color:var(--ok)}.tr-banner.error{border-color:var(--warn)}.tr-banner.demo{border-color:var(--flag);background:var(--flag-bg)}
+.tr-error{color:var(--warn);margin:4px 0 10px}
+.tr-flag{display:inline-block;font-size:11px;font-weight:700;color:var(--flag);background:var(--flag-bg);border-radius:6px;padding:1px 6px;margin-left:4px}
+label.check input{border-color:var(--flag);border-width:2px}
+.tr-row{display:flex;gap:10px}.tr-row>*{flex:1}
+.tr-list{margin:0;padding:0;list-style:none}.tr-list li{padding:8px 0;border-top:1px solid var(--border)}.tr-list li:first-child{border-top:0}
+.tr-foot{color:var(--subtle);font-size:12px;text-align:center;padding:12px 16px 28px}
+/* driver app */
+.tr-app{max-width:560px;margin:0 auto}
+.tr-top{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+.tr-app .tr-banner{margin:12px 16px 0}
+.tr-view{padding:12px 16px}
+.tr-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;margin:0 0 12px}
+.tr-card.live{background:var(--live);border-color:var(--ok)}
+.tr-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px}
+.tr-preview{display:block;width:100%;max-height:260px;object-fit:contain;border-radius:10px;background:var(--surface-2);margin:0 0 12px}
+/* command center */
+.tr-cc{min-height:100vh}
+.tr-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;padding:20px 24px 12px;max-width:1360px;margin:0 auto}
+.tr-head .tr-muted{max-width:720px}
+.tr-tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--border);padding:0 24px;max-width:1360px;margin:0 auto}
+.tr-tabs a{padding:10px 14px;color:var(--muted);text-decoration:none;font-weight:500;border-bottom:3px solid transparent;white-space:nowrap}
+.tr-tabs a[aria-current=page]{color:var(--text);border-bottom-color:var(--accent)}
+.tr-cc main{max-width:1360px;margin:0 auto;padding:16px 24px 32px}
+.tr-cc .tr-banner{max-width:1312px;margin:12px auto 0}
+.tr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:0 0 16px}
+.tr-kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.tr-kpi b{display:block;font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums}.tr-kpi span{color:var(--muted);font-size:13px}
+.tr-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin:0 0 16px;overflow-x:auto}
+.tr-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:16px}
+table.tr-table{width:100%;border-collapse:collapse;font-size:14px}
+.tr-table th,.tr-table td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top;white-space:nowrap}
+.tr-table td.wrap{white-space:normal;min-width:200px}
+.tr-table th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.tr-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.tr-table tr.sel td{background:var(--surface-2)}
+.neg{color:var(--warn)}
+.tr-pill{display:inline-block;border-radius:999px;padding:1px 8px;font-size:12px;font-weight:600;border:1px solid var(--border)}
+.tr-pill.ok{color:var(--ok);border-color:var(--ok)}.tr-pill.flag{color:var(--flag);border-color:var(--flag);background:var(--flag-bg)}.tr-pill.bad{color:var(--warn);border-color:var(--warn)}
+.tr-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:0 0 12px}.tr-toolbar label{margin:0}.tr-toolbar input,.tr-toolbar select{width:auto}
+.tr-bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;min-width:80px}.tr-bar i{display:block;height:100%;background:var(--accent)}
+@media (max-width:640px){.tr-head,.tr-tabs,.tr-cc main{padding-left:16px;padding-right:16px}.tr-grid2{grid-template-columns:1fr}}

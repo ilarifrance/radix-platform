@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1f2a"><meta name="color-scheme" content="light dark">
+<title>App autista · RADIX Trasporti</title>
+<link rel="stylesheet" href="/trasporti/trasporti.css">
+</head>
+<body class="tr tr-app">
+<header class="tr-top">
+ <div><strong id="who">App autista</strong><span id="whoSub" class="tr-subtle"></span></div>
+ <button type="button" class="tr-link" id="changeWho" hidden>Cambia</button>
+</header>
+<p class="tr-banner" id="banner" role="status" aria-live="polite" hidden></p>
+<main id="view" class="tr-view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
+<input type="file" id="photo" accept="image/*,application/pdf" capture="environment" hidden>
+<p class="tr-foot">Dimostrazione: i dati restano su questo telefono. La posizione si registra solo con un viaggio aperto.</p>
+<script src="/lib/trasporti/documenti.js" defer></script>
+<script src="/trasporti/store.js" defer></script>
+<script src="/trasporti/autista/app.js" defer></script>
+</body></html>

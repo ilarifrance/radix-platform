@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Centro di comando · RADIX Trasporti</title>
+<link rel="stylesheet" href="/trasporti/trasporti.css">
+</head>
+<body class="tr tr-cc">
+<header class="tr-head">
+ <div>
+  <p class="tr-eyebrow">RADIX Trasporti · centro di comando</p>
+  <h1 id="company">Centro di comando</h1>
+  <p class="tr-muted">Viaggi, documenti letti dalle foto degli autisti, pedaggi abbinati per targa e orario, margine per mezzo, autista e cliente.</p>
+ </div>
+ <div class="tr-toolbar">
+  <label>Dal<input type="date" id="from"></label><label>Al<input type="date" id="to"></label>
+  <a class="tr-btn ghost" href="/trasporti/autista/" target="_blank" rel="noopener">Apri l'app autista</a>
+ </div>
+</header>
+<nav class="tr-tabs" id="tabs" aria-label="Sezioni">
+ <a href="#oggi" data-tab="oggi">Mezzi</a>
+ <a href="#viaggi" data-tab="viaggi">Viaggi e documenti</a>
+ <a href="#pedaggi" data-tab="pedaggi">Pedaggi</a>
+ <a href="#margine" data-tab="margine">Margine</a>
+ <a href="#fatturazione" data-tab="fatturazione">Fatturazione</a>
+ <a href="#costi" data-tab="costi">Costi</a>
+</nav>
+<p class="tr-banner demo" id="banner" role="status" aria-live="polite">Dimostrazione con un'azienda di esempio: i dati restano in questo browser. <button type="button" class="tr-link" id="reset">Ricomincia da capo</button></p>
+<main id="view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
+<input type="file" id="tollFile" accept=".csv,text/csv,text/plain" hidden>
+<script src="/lib/trasporti/documenti.js" defer></script>
+<script src="/lib/trasporti/pedaggi.js" defer></script>
+<script src="/lib/trasporti/margini.js" defer></script>
+<script src="/trasporti/store.js" defer></script>
+<script src="/trasporti/app.js" defer></script>
+</body></html>
