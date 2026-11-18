@@ -84,7 +84,7 @@
  const addDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
  function head(s){
   const where=[s.address,s.city].filter(Boolean).join(', ');
-  $('head').innerHTML='<h1>'+C.esc(s.name)+'</h1><div class="meta">'+(where?'<span>'+C.esc(where)+'</span>':'')+(s.phone?'<a href="tel:'+C.esc(s.phone)+'">'+C.esc(s.phone)+'</a>':'')+'</div>'+(s.welcome?'<p class="welcome">'+C.esc(s.welcome)+'</p>':'');
+  $('head').innerHTML='<h1>'+C.esc(s.name)+'</h1><div class="meta">'+(where?'<span>'+C.esc(where)+'</span>':'')+(s.phone?'<a href="tel:'+C.esc(s.phone)+'">'+C.esc(C.tel(s.phone))+'</a>':'')+'</div>'+(s.welcome?'<p class="welcome">'+C.esc(s.welcome)+'</p>':'');
   document.title='Prenota da '+s.name;
  }
  function services(){
@@ -99,7 +99,7 @@
  async function loadDays(){
   $('s3').classList.remove('locked');$('times').innerHTML='<p class="muted small">Cerco gli orari liberi…</p>';$('days').innerHTML='';
   try{const r=await C.api('GET',{resource:'slots',slug,service:st.service.id,date:st.from,days:14,...(st.staff?{staff:st.staff}:{})});
-   if(!r.open){$('times').innerHTML='<p class="notice">Il salone in questo momento non accetta prenotazioni online. '+(st.shop.phone?'Chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(st.shop.phone)+'</a>.':'')+'</p>';return;}
+   if(!r.open){$('times').innerHTML='<p class="notice">Il salone in questo momento non accetta prenotazioni online. '+(st.shop.phone?'Chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(C.tel(st.shop.phone))+'</a>.':'')+'</p>';return;}
    st.days=r.days;const first=r.days.find(d=>d.slots.length);
    if(!st.date||!r.days.some(d=>d.date===st.date&&d.slots.length))st.date=first?first.date:null;
    drawDays();drawTimes();$('more').classList.toggle('hidden',addDays(st.from,14)>addDays(todayRome(),st.shop.max_days_ahead));
@@ -111,7 +111,7 @@
  }
  function drawTimes(){
   const d=st.days.find(x=>x.date===st.date);
-  if(!d){$('times').innerHTML='<p class="notice" style="margin-top:12px">Nessun orario libero in questi giorni. Prova «Altri giorni»'+(st.shop.phone?' o chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(st.shop.phone)+'</a>':'')+'.</p>';return;}
+  if(!d){$('times').innerHTML='<p class="notice" style="margin-top:12px">Nessun orario libero in questi giorni. Prova «Altri giorni»'+(st.shop.phone?' o chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(C.tel(st.shop.phone))+'</a>':'')+'.</p>';return;}
   const am=d.slots.filter(s=>s.time<'13:00'),pm=d.slots.filter(s=>s.time>='13:00');
   const chips=a=>'<div class="chips">'+a.map(s=>'<button type="button" class="chip" data-start="'+s.starts_at+'" aria-pressed="'+(st.slot&&st.slot.starts_at===s.starts_at)+'">'+s.time+'</button>').join('')+'</div>';
   $('times').innerHTML='<p class="part" style="text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--ink)">'+C.esc(C.day(d.date))+'</p>'+(am.length?'<p class="part">Mattina</p>'+chips(am):'')+(pm.length?'<p class="part">Pomeriggio</p>'+chips(pm):'');
