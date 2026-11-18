@@ -64,8 +64,8 @@ function panel(ctx){
  if(ctx.subject==='contacts'&&!j.openOpportunities.length&&a.writable('opportunities'))head.append(B('Crea opportunità',()=>createOpportunity(j),'primary cj-create'));
  box.append(head);
  const facts=[];
- facts.push(j.counts.done+(j.counts.done===1?' attività fatta':' attività fatte')+' prima dell’opportunità');
- if(j.open.length)facts.push(j.open.length+' da fare'+(j.overdue.length?' ('+j.overdue.length+' scadute)':''));
+ if(j.counts.done||!j.opportunities.length)facts.push(j.counts.done+(j.counts.done===1?' attività fatta':' attività fatte')+(j.opportunities.length?' prima dell’opportunità':' sul contatto'));
+ if(j.open.length)facts.push(j.open.length+' da fare'+(j.overdue.length?' ('+j.overdue.length+(j.overdue.length===1?' scaduta)':' scadute)'):''));
  if(j.daysSinceLast!=null)facts.push(j.daysSinceLast===0?'ultimo contatto oggi':'ultimo contatto '+j.daysSinceLast+' g fa');
  box.append(E('p',s.hint+' '+facts.join(' · ')+'.','cj-hint'));
  // The contact's opportunities, each one opens its record.

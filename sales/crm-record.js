@@ -168,6 +168,7 @@ function detailsPanel(ctx){
    const target=it.ref&&(it.type==='company'?lists.companies:lists.contacts).find(r=>r.id===it.ref);
    if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri la scheda · '+it.text;dd.append(b)}
    else if(it.key==='pec'||it.key==='email')dd.append(Object.assign(E('a',it.text),{href:'mailto:'+it.text}));
+   else if(/^(phone|mobile)$/.test(it.key)&&it.text.replace(/\D/g,'').length>=6)dd.append(Object.assign(E('a',it.text),{href:'tel:'+it.text.replace(/[^\d+]/g,'')}));
    else if(it.type==='url'&&/^https?:\/\//i.test(it.text))dd.append(Object.assign(E('a',it.text.replace(/^https?:\/\//,'')),{href:it.text,target:'_blank',rel:'noopener noreferrer'}));
    else dd.textContent=it.text;
    dl.append(E('dt',it.label),dd)}
