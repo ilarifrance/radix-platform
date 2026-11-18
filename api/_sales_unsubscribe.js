@@ -27,10 +27,25 @@ function verify(secret,token){
 }
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+// The recipient's language is not known: every page says the same thing in Italian and in English (EN below).
+const EN=Object.freeze({
+ 'Servizio non disponibile':'Service not available',
+ 'Link non valido':'Invalid link',
+ 'Non ricevere più queste email':'Stop receiving these emails',
+ 'Richiesta non valida':'Invalid request',
+ 'Disiscrizione registrata':'Unsubscribe recorded',
+ 'La disiscrizione non è disponibile in questo momento. Riprova più tardi o rispondi all’email ricevuta chiedendo di non essere più contattato.':'Unsubscribing is not available right now. Try again later, or reply to the email asking not to be contacted again.',
+ 'Questo link di disiscrizione non è valido o è incompleto. Rispondi all’email ricevuta chiedendo di non essere più contattato.':'This unsubscribe link is not valid or is incomplete. Reply to the email asking not to be contacted again.',
+ 'Confermando, non riceverai più email commerciali da questo mittente. Le comunicazioni su ordini o richieste già in corso possono continuare.':'If you confirm, you will no longer receive commercial emails from this sender. Messages about orders or requests already under way may continue.',
+ 'Apri il link dall’email.':'Open the link from the email.',
+ 'La disiscrizione non è riuscita in questo momento. Riprova tra qualche minuto oppure rispondi all’email ricevuta chiedendo di non essere più contattato.':'Unsubscribing did not work right now. Try again in a few minutes, or reply to the email asking not to be contacted again.',
+ 'Non risultano più tuoi dati per queste email: non riceverai altri messaggi commerciali.':'We no longer hold your data for these emails: you will not receive any more commercial messages.',
+ 'Fatto: non riceverai più email commerciali da questo mittente.':'Done: you will no longer receive commercial emails from this sender.'});
 function page(title,text,form){
+ const en=t=>EN[t]||'';
  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>'+esc(title)+'</title>'
  +'<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#06161d;color:#e6f6f2;font:16px/1.5 system-ui,sans-serif}main{max-width:440px;margin:24px;padding:28px;border:1px solid #1f5a5c;border-radius:14px;background:#0a2129}h1{margin:0 0 8px;font-size:20px}p{margin:0 0 16px;color:#b5cfcc}button{min-height:44px;padding:8px 18px;border:0;border-radius:10px;background:#3fe8bd;color:#04241c;font:600 15px system-ui,sans-serif;cursor:pointer}</style></head>'
- +'<body><main><h1>'+esc(title)+'</h1><p>'+esc(text)+'</p>'+(form?'<form method="post"><button type="submit">Conferma la disiscrizione</button></form>':'')+'</main></body></html>';
+ +'<body><main><h1>'+esc(title)+'</h1><p>'+esc(text)+'</p>'+(en(text)?'<div lang="en"><h2>'+esc(en(title))+'</h2><p>'+esc(en(text))+'</p></div>':'')+(form?'<form method="post"><button type="submit">Conferma la disiscrizione · Confirm unsubscribe</button></form>':'')+'</main></body></html>';
 }
 function send(res,status,html){
  res.setHeader('Content-Type','text/html; charset=utf-8');

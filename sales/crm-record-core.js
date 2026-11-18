@@ -147,7 +147,7 @@ function slotField(tab,canWrite){return canWrite===true&&Object.prototype.hasOwn
 // One composer form → {error} or {error:null, entity, data, send, label}. send is set only for a real send.
 // related: the Customer360 rows (optional), to name the opportunity's contact in the default title.
 function composerPlan(tab,input,subject,rec,now,related){
- const links=recordLinks(subject,rec);if(!links)return {error:'Scheda non caricata: riapri Customer360.'};
+ const links=recordLinks(subject,rec);if(!links)return {error:'Scheda non caricata: riapri la scheda.'};
  const i=input||{},at=Number.isFinite(now)?now:Date.now();
  const text=k=>String(i[k]??'').trim();
  const who=counterpart(subject,rec,related)||'scheda';

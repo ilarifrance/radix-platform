@@ -41,3 +41,5 @@ html[data-rx-regia] body:has(>.cc-fab){padding-bottom:132px}
 .cc-chips button{display:inline-block;width:auto;margin:0}
 .cc-form textarea{height:58px;min-height:0;width:auto}
 .cc-form button{align-self:stretch;height:auto;margin:0}
+/* Sales Orbis «Completo» plan (sales/sales-nav.js sets html[data-plan]): no Copilota, so no button. */
+html[data-product][data-plan="completo"] .cc-fab{display:none!important}

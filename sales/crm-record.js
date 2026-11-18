@@ -38,7 +38,7 @@ function label(btn,entry){btn.textContent=entry&&entry.status==='done'?'Rigenera
 async function generate(ctx){
  const a=app(),key=keyOf(ctx),prev=summaries.get(key);if(prev&&prev.status==='busy')return;
  const facts=core.summaryFacts(ctx.subject,ctx.id,ctx.rows,{stages:a.rows('stages'),members:a.rows('members'),now:Date.now()});
- if(!facts){summaries.set(key,{status:'error',error:'Dati della scheda non caricati: premi Riprova Customer360.'});repaint(key);return}
+ if(!facts){summaries.set(key,{status:'error',error:'Dati della scheda non caricati: riapri la scheda.'});repaint(key);return}
  summaries.set(key,{status:'busy'});repaint(key);
  let entry;
  try{
@@ -128,15 +128,24 @@ function composerPanel(ctx){
  const box=E('section',undefined,'crm-rec-composer');box.setAttribute('aria-labelledby','crm-rec-cmp-title');
  const h=E('h3','Registra un’attività');h.id='crm-rec-cmp-title';box.append(h);
  const call=core.meetingCall(a.state.workspace,ctx.subject,rec);
- if(call&&a.writable('interactions')){const l=E('a','📞 Chiama da RADIX e registra','crm-rec-call');l.href=call.href;l.title='Chiama '+call.number+' dal numero RADIX: la telefonata viene registrata, trascritta e salvata qui nello storico';box.append(l)}
+ let callLink=null;
+ if(call&&a.writable('interactions')){const P=window.RadixCrmProduct?.here?.();
+  // Sales Orbis has no RADIX call room (meeting.html is not a product page): the phone dials the number and the
+  // «Chiamata» tab opens below to log how it went.
+  callLink=E('a',P?'📞 Chiama '+call.number:'📞 Chiama da RADIX e registra','crm-rec-call');
+  callLink.href=P?'tel:'+call.number.replace(/[^\d+]/g,''):call.href;
+  callLink.title=P?'Chiama '+call.number+' dal tuo telefono, poi registra la chiamata qui sotto':'Chiama '+call.number+' dal numero RADIX: la telefonata viene registrata, trascritta e salvata qui nello storico';
+  box.append(callLink)}
  if(!a.writable('interactions')){box.append(E('p','Sola lettura: il tuo ruolo non può registrare attività.','muted'));return box}
- if(!rec){box.append(E('p','Scheda non caricata: premi Riprova Customer360.','muted'));return box}
+ if(!rec){box.append(E('p','Scheda non caricata: riapri la scheda.','muted'));return box}
  const bar=E('div',undefined,'crm-rec-tabs');bar.setAttribute('role','tablist');bar.setAttribute('aria-label','Tipo di attività');
  const body=E('div',undefined,'crm-rec-tabpanel');body.setAttribute('role','tabpanel');
  const show=tab=>{tabs.set(key,tab);for(const b of bar.children){const on=b.dataset.tab===tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1}body.replaceChildren(form(ctx,rec,tab,a.writable('tasks')))};
  core.TABS.forEach(([tab,name])=>{const b=B(name,()=>show(tab));b.setAttribute('role','tab');b.dataset.tab=tab;bar.append(b)});
  bar.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;const list=[...bar.children],i=list.indexOf(document.activeElement);if(i<0)return;const n=list[(i+(e.key==='ArrowRight'?1:list.length-1))%list.length];n.click();n.focus()});
- box.append(bar,body);show(tabs.get(key)||'email');return box;
+ box.append(bar,body);show(tabs.get(key)||'email');
+ if(callLink&&callLink.href.startsWith('tel:'))callLink.addEventListener('click',()=>show('call'));
+ return box;
 }
 
 /* ---------- Dettagli (Aziende e Contatti) ---------- */
@@ -157,8 +166,9 @@ function detailsPanel(ctx){
  for(const g of groups){const part=E('div',undefined,'crm-rec-det-group');part.dataset.section=g.id;part.append(E('h4',g.label));const dl=E('dl');
   for(const it of g.items){const dd=E('dd');dd.dataset.key=it.key;
    const target=it.ref&&(it.type==='company'?lists.companies:lists.contacts).find(r=>r.id===it.ref);
-   if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri Customer360 · '+it.text;dd.append(b)}
+   if(target&&a.openCustomer){const b=B(it.text,()=>a.openCustomer(it.type==='company'?'companies':'contacts',target),'crm-rec-link');b.title='Apri la scheda · '+it.text;dd.append(b)}
    else if(it.key==='pec'||it.key==='email')dd.append(Object.assign(E('a',it.text),{href:'mailto:'+it.text}));
+   else if(/^(phone|mobile)$/.test(it.key)&&it.text.replace(/\D/g,'').length>=6)dd.append(Object.assign(E('a',it.text),{href:'tel:'+it.text.replace(/[^\d+]/g,'')}));
    else if(it.type==='url'&&/^https?:\/\//i.test(it.text))dd.append(Object.assign(E('a',it.text.replace(/^https?:\/\//,'')),{href:it.text,target:'_blank',rel:'noopener noreferrer'}));
    else dd.textContent=it.text;
    dl.append(E('dt',it.label),dd)}
@@ -166,9 +176,32 @@ function detailsPanel(ctx){
  box.append(cols);return box;
 }
 
+// Opportunity: the deal at a glance (stage, value, close date, contact, company), with «Modifica».
+function dealPanel(ctx){
+ const a=app(),rec=recordOf(ctx);if(ctx.subject!=='opportunities'||!rec)return null;
+ const of=e=>(ctx.rows||[]).filter(x=>x.entity===e).map(x=>x.record);
+ const stage=a.rows('stages').find(s=>s.id===rec.stage_id),contact=of('contacts').find(c=>c.id===rec.contact_id),company=of('companies').find(c=>c.id===rec.company_id);
+ const prob=rec.probability??(stage?stage.probability:null);
+ const box=E('section',undefined,'crm-rec-details crm-rec-deal');box.setAttribute('aria-labelledby','crm-rec-deal-title');
+ const head=E('div',undefined,'crm-rec-head');const h=E('h3','Opportunità');h.id='crm-rec-deal-title';head.append(h);
+ if(a.writable('opportunities'))head.append(B('Modifica',()=>a.edit('opportunities',rec)));
+ // «Crea preventivo» from the record too (the list row already has it): the quote opens with company, contact and deal set.
+ if(!rec.outcome||rec.outcome==='open'){const q=E('a','Crea preventivo','crm-quote-link');q.href='/sales-vendite.html?opp='+encodeURIComponent(rec.id)+'#quotes/new';head.append(q)}
+ box.append(head);
+ const dl=E('dl');const row=(k,v)=>{if(v==null||v==='')return;const dd=E('dd');if(v instanceof Node)dd.append(v);else dd.textContent=String(v);dl.append(E('dt',k),dd)};
+ row('Fase',stage?stage.title:'');row('Valore','€ '+(Number(rec.amount_cents||0)/100).toLocaleString('it-IT',{maximumFractionDigits:2}));
+ row('Probabilità',prob==null?'':prob+'%');row('Chiusura prevista',rec.expected_close?new Date(rec.expected_close+'T00:00:00').toLocaleDateString('it-IT'):'');
+ row('Esito',rec.outcome==='won'?'Vinta':rec.outcome==='lost'?'Persa'+(rec.lost_reason?' · '+rec.lost_reason:''):'Aperta');
+ if(contact)row('Contatto',B(contact.name||'Contatto',()=>a.openCustomer('contacts',contact),'crm-rec-link'));
+ if(company)row('Azienda',B(company.name||'Azienda',()=>a.openCustomer('companies',company),'crm-rec-link'));
+ const cols=E('div',undefined,'crm-rec-det-cols');const part=E('div',undefined,'crm-rec-det-group');part.append(dl);cols.append(part);box.append(cols);return box;
+}
 function mount(panel,ctx){
  if(!app()||!ctx||!core.SUBJECT_LABEL[ctx.subject])return;
- const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx);if(det)wrap.append(det);wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
+ const wrap=E('div',undefined,'crm-rec');const det=detailsPanel(ctx)||dealPanel(ctx);if(det)wrap.append(det);
+ // «Percorso commerciale»: activities on the contact before (and around) its opportunities (sales/crm-journey.js).
+ const journey=window.RadixCrmJourney?.panel(ctx);if(journey)wrap.append(journey);
+ wrap.append(summaryPanel(ctx),composerPanel(ctx));panel.append(wrap);
 }
 window.RadixCrmRecord={mount};
 })();

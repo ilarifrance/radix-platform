@@ -194,3 +194,40 @@ test('site reader: only hosts of the company domain, never IP literals or other 
  assert.equal(await finder.hasMx('acme.it',{env:{},fetch:doh({Status:3})}),false);
  assert.equal(await finder.hasMx('acme.it',{env:{},fetch:async()=>{throw new Error('down')}}),null);
 });
+
+// Sales Orbis plan limits (api/_sales_plan.js): every contact sent to a paid provider is taken from the month's allowance;
+// a provider that fails gives it back; over the limit nothing is sent.
+function fakeMeter(limit){
+ const m={used:0,taken:[],given:[]};
+ m.take=async(metric,n)=>{m.taken.push([metric,n]);if(m.used+n>limit){const e=new Error('Hai usato tutte le ricerche email a pagamento di questo mese previste dal piano.');e.status=429;throw e}m.used+=n};
+ m.give=async(metric,n)=>{if(n>0){m.given.push([metric,n]);m.used-=n}};
+ return m;
+}
+test('server: paid searches count against the plan; failures come back; over the limit nothing reaches the provider',async()=>{
+ const f=await fakeProvider();
+ try{
+  const env={...KEYS,HUNTER_API_BASE:f.base,DROPCONTACT_API_BASE:f.base};
+  const db=fakeCrm([C(1,{name:'Lucia Verdi',company:'Beta'}),C(2,{name:'Ugo Generico',company:'Zeta'}),C(3,{name:'Già Fatto',company:'X',email:'gia.fatto@x.it'})]);
+  const cmd=(provider,ids)=>finder.command({workspace:W,entity:'email_finder',action:'paid',data:{provider,contacts:ids,confirm:true}});
+  const meter=fakeMeter(3),opts={sql:db.sql,user:1,role:'member',env,fetch,save:db.save,meter,now:Date.parse('2026-10-23T10:00:00Z')};
+  await finder.handle(cmd('hunter',[id(1),id(2),id(3)]),opts);
+  assert.deepEqual(meter.taken,[['lead',2]],'only the contacts actually sent to Hunter count');assert.equal(meter.used,2);
+  // A key Hunter refuses: every lookup fails and goes back.
+  const bad=fakeMeter(3);await finder.handle(cmd('hunter',[id(2)]),{...opts,meter:bad,env:{...env,HUNTER_API_KEY:'wrong-key-0000'}});
+  assert.equal(bad.used,0);assert.deepEqual(bad.given,[['lead',1]]);
+  // Over the limit: 429 and no call to the provider.
+  const before=f.seen.length,full=fakeMeter(0);
+  await assert.rejects(finder.handle(cmd('hunter',[id(2)]),{...opts,meter:full}),e=>e.status===429);
+  assert.equal(f.seen.length,before,'nothing sent');
+  // Dropcontact batch: taken on submit, given back if the submit fails.
+  const dc=fakeMeter(10);await finder.handle(cmd('dropcontact',[id(2)]),{...opts,meter:dc});assert.equal(dc.used,1);
+  const dcBad=fakeMeter(10);await assert.rejects(finder.handle(cmd('dropcontact',[id(2)]),{...opts,meter:dcBad,env:{...env,DROPCONTACT_API_KEY:'wrong-key-0000'}}));
+  assert.equal(dcBad.used,0,'a refused batch is not counted');
+ }finally{f.srv.close()}
+});
+test('server: on Sales Orbis a provider without its key says so plainly, without the server setup',async()=>{
+ const db=fakeCrm([C(1,{name:'Lucia Verdi',company:'Beta'})]);
+ const cmd=finder.command({workspace:W,entity:'email_finder',action:'paid',data:{provider:'hunter',contacts:[id(1)],confirm:true}});
+ await assert.rejects(finder.handle(cmd,{sql:db.sql,user:1,role:'member',env:{},save:db.save,product:true}),e=>e.status===503&&!/Vercel|HUNTER_API_KEY/.test(e.message)&&/non è ancora attivo/.test(e.message));
+ await assert.rejects(finder.handle(cmd,{sql:db.sql,user:1,role:'member',env:{},save:db.save}),/HUNTER_API_KEY/,'RADIX keeps the setup hint for its admins');
+});

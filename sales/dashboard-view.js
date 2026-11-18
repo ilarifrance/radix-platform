@@ -90,7 +90,9 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
   let hidden=false;if(key){try{hidden=localStorage.getItem(key)==='hidden'}catch{}}
   // Hidden: only a small link to show the card again.
   if(hidden){const w=E('p',undefined,'pv-onboard-show');const b=E('button','Mostra i primi passi');b.type='button';b.onclick=()=>{try{localStorage.removeItem(key)}catch{}const n=onboarding(d);if(n)w.replaceWith(n)};w.append(b);return w}
-  const steps=O.steps(d),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
+  // Sales Orbis plans without Lead Intelligence (sales/sales-nav.js keeps the plan): the lead step stays in the CRM.
+  let plan='';try{plan=window.RadixCrmProduct?.here()?localStorage.getItem('rx-ws-plan')||'':''}catch{}
+  const steps=O.steps(d,{lead:!['completo','avanzato'].includes(plan),product:!!window.RadixCrmProduct?.here?.()}),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
   const h=E('div',undefined,'pv-head');const t=E('h3',pr.complete?'Primi passi: tutto pronto':'Primi passi');t.id='pv-onboard-title';h.append(t,E('span',pr.done+' di '+pr.total+' fatti','pv-onboard-count'));
   if(key){const x=E('button','Nascondi','pv-onboard-hide');x.type='button';x.onclick=()=>{try{localStorage.setItem(key,'hidden')}catch{}const n=onboarding(d);if(n)p.replaceWith(n);else p.remove()};h.append(x)}
   p.append(h);const body=E('div',undefined,'pv-onboard-body');

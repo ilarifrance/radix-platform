@@ -51,7 +51,7 @@ test('Pipeline page: no internal notes on screen; the Regia reads the weighted v
 
 test('Attività › «Visualizza calendario completo» opens the CRM calendar, not the concept page',()=>{
   const s=src('sales/tasks-view.js');
-  assert.ok(s.includes("a.href='/radix-sales.html#calendar'"));assert.ok(!s.includes('sales-workspace.html#calendar'));
+  assert.ok(s.includes("a.href='#calendar'"));assert.ok(!s.includes('sales-workspace.html#calendar'));
 });
 
 test('Opportunità editor: the amount is typed in currency units, not in cents',()=>{

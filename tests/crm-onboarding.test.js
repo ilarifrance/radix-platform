@@ -49,3 +49,9 @@ test('«Crea la pipeline» opens the Pipeline page, where «Personalizza pipelin
  assert.match(fs.readFileSync(__dirname+'/../sales/crm-leads.js','utf8'),/crea prima la pipeline da «Personalizza pipeline» nella pagina Pipeline/);
  const en=fs.readFileSync(__dirname+'/../lib/radix-i18n-en.js','utf8');assert.ok(en.includes('"'+s.hint+'"'),'hint translated');assert.ok(!en.includes('"Un processo «Opportunità» con almeno una fase."'));
 });
+test('Sales Orbis plans without Lead Intelligence: the lead step stays in the CRM',()=>{
+ const s=steps({leads:[]},{lead:false}).find(x=>x.id==='lead');
+ assert.equal(s.href,'#leads');assert.doesNotMatch(s.hint,/Lead Intelligence/);
+ assert.equal(steps({leads:[{id:1}]},{lead:false}).find(x=>x.id==='lead').done,true);
+ assert.equal(steps({}).find(x=>x.id==='lead').href,'/lead-intelligence.html','default: Lead Intelligence');
+});

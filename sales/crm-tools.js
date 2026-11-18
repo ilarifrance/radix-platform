@@ -309,6 +309,8 @@ function playbookBlock(opp){
  return box;
 }
 window.RadixCrmTools={
+ // The contacts segment panel, also used by the Campagne view (sales/crm-campagne.js).
+ segmentPanel:()=>segmentPanel(),
  // CSV of a subset (the rows ticked in the list views): the same export, filtered by id.
  exportCsv:(kind,filter)=>exportCsv(kind,filter),
  section(entity,section){
@@ -322,9 +324,12 @@ window.RadixCrmTools={
   const findNow=box=>{const b=[...box.querySelectorAll('button')].find(x=>(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(x)==='Cerca doppioni');if(b&&!box.querySelector('.crm-dedupe-list').childElementCount)b.click()};
   if(entity==='contacts'){const seg=tuck(segmentPanel()),bar=ioBar('contacts');head.append(bar);section.append(seg);
    bar.append(B('Segmenti',reveal(seg)));
-   if(window.RadixCrmCampaigns){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
+   // Sales Orbis: email campaigns have their own menu entry, Campagne (sales/crm-campagne.js), which also says when no
+   // mailbox is connected; the contacts bar keeps only the list actions (Francesco, 17/11).
+   const product=!!window.RadixCrmProduct?.here();
+   if(window.RadixCrmCampaigns&&!product){const camp=tuck(RadixCrmCampaigns.panel(seg.filterOf));section.append(camp);if(app().writable('interactions'))bar.append(B('Campagna email',reveal(camp)))}
    // «Caselle email» (sales/crm-mailboxes.js): the mailboxes the campaign queue sends from live in Impostazioni (impostazioni.html#caselle).
-   if(app().writable('interactions')){const mb=E('a','Gestisci le caselle in Impostazioni','crm-mb-link');mb.href='/impostazioni.html?area=sales#caselle';bar.append(mb)}
+   if(app().writable('interactions')&&!product){const mb=E('a','Gestisci le caselle in Impostazioni','crm-mb-link');mb.href='/impostazioni.html?area=sales#caselle';bar.append(mb)}
    if(window.RadixCrmDedupe&&app().writable('contacts')){const dd=tuck(dedupePanel('contacts'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='companies'){const bar=ioBar('companies');head.append(bar);if(window.RadixCrmDedupe&&app().writable('companies')){const dd=tuck(dedupePanel('companies'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}

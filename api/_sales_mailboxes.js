@@ -208,6 +208,8 @@ async function issuerOf(sql,workspace){
    footer (sender, why, data source, opt-out link) closes every email. Same queue, mailboxes and limits. */
 async function planB2BQueue(sql,c,user,{req,env,now,random}){
  const d=c.data,origin=originOf(req,d.origin),w=c.workspace;
+ // English CRM (lib/radix-i18n.js adds x-radix-lang: en): the legal footer of the emails in English.
+ const lang=req&&req.headers&&req.headers['x-radix-lang']==='en'?'en':'it';
  const all=await sql(`SELECT t.id,t.name,t.role,t.email,t.marketing_consent,t.company_id,t.notes,t.linkedin_url,${optout.OPTED_OUT('t')} AS opted_out,${optout.LAST_REPLY('t')} AS last_reply_at,co.name AS company FROM sales_contacts t
   LEFT JOIN sales_companies co ON co.workspace_id=t.workspace_id AND co.id=t.company_id WHERE t.workspace_id=$1 AND t.id=ANY($2::uuid[]) AND ${vis.visible('contacts','t','$1','$3')}`,[w,d.contacts,user]);
  const issuer=await issuerOf(sql,w);
@@ -237,9 +239,9 @@ async function planB2BQueue(sql,c,user,{req,env,now,random}){
  const byId=new Map(mailboxes.map(m=>[m.id,m])),fallback=mailboxes.find(m=>m.status==='active')||mailboxes[0]||{};
  // The footer goes on last, with the sender of the mailbox that will send it; the text above is cut to make room.
  const emails=plan.emails.map((e,i)=>{const url=origin+'/api/sales?unsubscribe='+links[e.contact.id],sender=(sched.slots[i]&&byId.get(sched.slots[i].mailbox))||fallback;
-  const foot=prospecting.footer({issuer,sender,contact:e.contact,url});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
+  const foot=prospecting.footer({issuer,sender,contact:e.contact,url,lang});return {...e,body:prospecting.withFooter(e.body,foot),unsubscribeUrl:url,footer:foot}});
  const used=mailboxes.filter(m=>sched.perMailbox[m.id]).map(m=>({id:m.id,label:m.label,from_email:m.from_email,emails:sched.perMailbox[m.id]}));
- const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…'});
+ const sampleFoot=emails[0]?emails[0].footer:prospecting.footer({issuer,sender:fallback,contact:{company:'{azienda}'},url:origin+'/api/sales?unsubscribe=…',lang});
  const summary={campaign:d.campaign,mode:'b2b',step:d.step,base:d.base,recipients:emails.length,personalised:pers.personalised,
   skipped:{consent:0,...plan.skipped,link:missingLink,duplicate,already:queued.size,missing:d.contacts.length-all.length},
   issuer_ready:prospecting.issuerReady(issuer),footer_preview:sampleFoot.replace(/^\n+/,''),
@@ -252,7 +254,10 @@ async function enqueue(sql,c,user,ctx){
  if(!p.summary.active_mailboxes)fail(400,'Nessuna casella attiva: collegane una in «Caselle email» prima di mettere in coda.');
  if(!p.summary.recipients)return {...p.summary,queued:0};
  if(p.summary.unplanned)fail(400,'Troppi destinatari per le caselle collegate: '+p.summary.unplanned+' email resterebbero fuori dai prossimi mesi. Riduci il segmento o collega altre caselle.');
+ // Sales Orbis plan (api/_sales_plan.js): the emails of this month, taken before queueing; what is not queued goes back.
+ if(ctx.meter)await ctx.meter.take('send',p.emails.length);
  let inserted=0;
+ try{
  for(let i=0;i<p.emails.length;i+=500){
   const rows=p.emails.slice(i,i+500).map((e,j)=>{const s=p.slots[i+j];return {contact_id:e.contact.id,mailbox_id:s.mailbox,subject:e.subject,body:e.body,unsubscribe_url:e.unsubscribeUrl,scheduled_at:new Date(s.at).toISOString()}});
   const r=await sql(`INSERT INTO sales_send_queue(workspace_id,campaign,contact_id,mailbox_id,subject,body,unsubscribe_url,scheduled_at,created_by)
@@ -260,6 +265,7 @@ async function enqueue(sql,c,user,ctx){
    ON CONFLICT (workspace_id,campaign,contact_id) DO NOTHING RETURNING id`,[c.workspace,c.data.campaign,user,JSON.stringify(rows)]);
   inserted+=r.length;
  }
+ }finally{if(ctx.meter)await ctx.meter.give('send',p.emails.length-inserted)}
  return {...p.summary,queued:inserted};
 }
 async function status(sql,workspace,user){
@@ -357,7 +363,7 @@ async function handle(c,opts){
  try{return await run(c,opts)}
  catch(e){if(e&&e.code==='42P01')fail(503,'Caselle email e coda invii non ancora disponibili in questo archivio: servono le migrazioni sales 016 e 017 (da approvare).');throw e}
 }
-async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport,fetchImpl}){
+async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Math.random,createTransport,fetchImpl,meter=null}){
  if(req.method==='GET'){
   if(c.entity==='mailboxes'){const rows=await listMailboxes(sql,c.workspace,now);return {rows,max:core.MAX_MAILBOXES,encryption:mcrypto.configured(env),microsoft:msoauth.configured(env),can_manage:roleAdmin(role)}}
   return {rows:await status(sql,c.workspace,user)};
@@ -368,7 +374,7 @@ async function run(c,{sql,user,role,req,env=process.env,now=Date.now(),random=Ma
  }
  if(!['owner','admin','member'].includes(role))fail(403,'Permessi insufficienti.');
  if(c.action==='cancel'){const r=await sql("UPDATE sales_send_queue q SET status='cancelled',error='Annullata dall’utente.',updated_at=now() WHERE workspace_id=$1 AND campaign=$2 AND status='queued' AND "+vis.contact('q.contact_id','$1','$3')+" RETURNING id",[c.workspace,c.data.campaign,user]);return {rows:[{campaign:c.data.campaign,cancelled:r.length}]}}
- const ctx={req,env,now,random};
+ const ctx={req,env,now,random,meter};
  if(c.action==='plan')return {rows:[(await planQueue(sql,c,user,ctx)).summary]};
  return {rows:[await enqueue(sql,c,user,ctx)]};
 }

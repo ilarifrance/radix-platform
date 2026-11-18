@@ -135,7 +135,9 @@ function openDetail(ctx){
    const rem=E('button','Nuovo promemoria');rem.type='button';rem.onclick=()=>quickAdd(ctx,'task',()=>openDetail(ctx));
    bar.append(act,rem);sec.append(bar);body.append(sec);
   }
-  const more=E('p',undefined,'df-note');more.append(link('/radix-sales.html?ws='+encodeURIComponent(ctx.workspace)+'#opportunities','Modifica campi e altre azioni nel CRM'));body.append(more);
+  const more=E('p',undefined,'df-note');// The full record (fields, contact journey, activities): Sales Orbis shows the CRM at /crm.
+  const crm=window.RadixCrmProduct&&window.RadixCrmProduct.here()?'/crm':'/radix-sales.html';
+  more.append(link(crm+'?ws='+encodeURIComponent(ctx.workspace)+'&opportunita='+encodeURIComponent(deal.id)+'#opportunities','Apri la scheda completa: campi, percorso del contatto e altre azioni'));body.append(more);
  }).catch(e=>{if(open===wrap){body.replaceChildren(E('p',e.message||'Dettagli non disponibili.','df-err'))}});
  close.focus();
 }

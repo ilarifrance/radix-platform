@@ -12,6 +12,8 @@ const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined
 const A=(text,href,cls)=>{const a=E('a',text,cls);a.href=href;return a};
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
 const card=(title,sub,cls)=>{const c=E('section',undefined,'st-card'+(cls?' '+cls:''));if(title)c.append(E('h2',title));if(sub)c.append(E('p',sub,'st-sub'));return c};
+// «Sales Orbis» (sales/crm-product.js): the product's settings, without the RADIX sections and with its own name.
+const PRODUCT=!!(root.RadixCrmProduct&&root.RadixCrmProduct.here());
 const S={section:'profilo',me:undefined,workspace:null,workspaces:[],busy:false,loaded:false,gen:0};
 
 /* ---- CRM host: what the mounted CRM modules call (subset of sales/sales.js window.RadixSalesApp) ---- */
@@ -57,7 +59,7 @@ function drawWorkspace(){
 }
 function drawNav(){
  const nav=$('st-nav');if(!nav)return;nav.replaceChildren();
- for(const s of C.SECTIONS){const a=A('','#'+s.id,'st-nav-link');a.append(E('strong',s.label),E('small',s.hint));if(s.id===S.section)a.setAttribute('aria-current','page');nav.append(a)}
+ for(const s of C.sectionsFor(PRODUCT)){const a=A('','#'+s.id,'st-nav-link');a.append(E('strong',s.label),E('small',s.hint));if(s.id===S.section)a.setAttribute('aria-current','page');nav.append(a)}
  // On phones the list is one scrolling row: bring the open section into view.
  const cur=nav.querySelector('[aria-current]');if(cur&&nav.scrollWidth>nav.clientWidth)nav.scrollLeft=cur.offsetLeft-nav.offsetLeft-12;
 }
@@ -93,7 +95,7 @@ const R={
     form.reset();user.value=u.email||'';msg.className='st-msg is-ok';msg.textContent='Password aggiornata. Usala dal prossimo accesso.'}
    catch(e){msg.className='st-msg is-err';msg.textContent=e.message}
    finally{lock(false)}});
-  const lang=card('Lingua','La lingua dell’interfaccia di RADIX.');
+  const lang=card('Lingua',PRODUCT?'La lingua dell’interfaccia di Sales Orbis.':'La lingua dell’interfaccia di RADIX.');
   const l=E('label',undefined,'st-field'),sel=E('select');sel.name='lingua';
   // With the language layer loaded (lib/radix-i18n.js), English is selectable here as well as from the flag in the top bar.
   const I18N=window.RadixI18n&&typeof window.RadixI18n.saveLang==='function'?window.RadixI18n:null;
@@ -103,7 +105,7 @@ const R={
    try{const u=new URL(location.href);if(u.searchParams.has('lang')){u.searchParams.set('lang',sel.value);location.href=u.toString();return}}catch(e){}
    location.reload()});
   l.append(E('span','Lingua'),sel);
-  lang.append(l,E('p',I18N?'English vale per il Command Center, Project manager, Agenti AI, Archivio, Profilo del progetto, Impostazioni e il CRM; le altre aree restano in italiano per ora. La lingua si cambia anche dalla bandiera in alto.':'English è in arrivo: per ora RADIX è solo in italiano.','st-note'));out.append(lang);
+  lang.append(l,E('p',PRODUCT?'La lingua vale per tutto Sales Orbis e si cambia anche dalla bandiera in alto.':I18N?'English vale per il Command Center, Project manager, Agenti AI, Archivio, Profilo del progetto, Impostazioni e il CRM; le altre aree restano in italiano per ora. La lingua si cambia anche dalla bandiera in alto.':'English è in arrivo: per ora RADIX è solo in italiano.','st-note'));out.append(lang);
  },
  async membri(out){
   await workspaces();if(needWorkspace(out))return;
@@ -179,6 +181,9 @@ const R={
   const manage=C.canManage(role());
   // «Regole delle automazioni» (sales/crm-rules.js, settings mode): on/off, new, edit, delete. The editor lists the
   // pipeline stages, the members and the lead sources, so those rows are read here first (the CRM records are not).
+  // «Valuta» (api/_sales_workspace_settings.js, migration sales 021): the currency the whole workspace works in.
+  if(PRODUCT)out.append(await planCard());
+  out.append(await currencyCard(manage));
   const Ru=root.RadixCrmRules;
   const auto=card('Automazioni',Ru&&Ru.settingsPanel?undefined:'Le regole che propongono attività e bozze email nel CRM (trattative ferme, ticket urgenti, preventivi accettati…). Cosa propongono oggi e «Applica» sono in Attività › Automazioni.',Ru&&Ru.settingsPanel?'st-mount':undefined);
   const aa=E('div',undefined,'st-actions');aa.append(A('Apri Attività › Automazioni','/radix-sales.html#tasks','st-btn'));
@@ -198,13 +203,60 @@ const R={
   for(const [entity,label] of [['companies','Aziende'],['contacts','Contatti']]){const f=X.of(defs,entity),box=E('div',undefined,'st-field-group');box.append(E('strong',label));
    if(!f.length)box.append(E('span','Nessun campo aggiunto.','st-sub'));else{const ul=E('ul');for(const x of f)ul.append(E('li',x.label));box.append(ul)}list.append(box)}
  },
+ // «Dati CRM» (Francesco, 17/11): the CRM's own data pages, out of the Sales menu and reachable from here.
+ async dati(out){
+  const crm=PRODUCT?'/crm':'/radix-sales.html';
+  const groups=[['Struttura del CRM','Chi lavora nel workspace e come sono fatte le trattative.',[['#members','Membri'],['#processes','Processi di vendita'],['#stages','Fasi']]],
+   ['Elenchi completi','Tutti i record, uno per riga, con modifica e cancellazione.',[['#opportunities','Opportunità'],['#leads','Lead'],['#interactions','Interazioni']]]];
+  for(const [title,hint,links] of groups){const c=card(title,hint);const ul=E('ul','', 'st-links');for(const [h,label] of links){const li=E('li');li.append(A(label,crm+h));ul.append(li)}c.append(ul);out.append(c)}
+ },
  async crediti(out){
   const c=card('Crediti e fatturazione','In arrivo: qui vedrai i crediti AI usati dal team, il piano attivo e le fatture di RADIX.','st-soon');
   c.append(E('span','In arrivo','st-badge'));out.append(c);
  }
 };
+// The workspace currency, remembered for the pages of this browser (lib/radix-i18n.js «rx-ws-currency»): a change reloads.
+function rememberCurrency(code){const I=root.RadixI18n;if(!I||!I.saveWsCurrency)return false;let before=null;try{before=localStorage.getItem(I.WS_KEY)}catch{}if(before===code)return false;return I.saveWsCurrency(root,code)}
+async function currencyCard(manage){
+ const I=root.RadixI18n,codes=(I&&I.CODES)||['EUR'];
+ const c=card('Valuta','La valuta in cui il workspace scrive importi, preventivi e report, in italiano e in inglese. Cambia come gli importi vengono mostrati: i valori salvati restano gli stessi.');
+ let names=null;try{names=new Intl.DisplayNames(['it'],{type:'currency'})}catch{names=null}
+ const label=code=>code+(names?' ('+names.of(code)+')':'');
+ let current='EUR',pending=false;
+ try{const d=await api('workspace_settings');current=(d.settings&&d.settings.currency)||'EUR';pending=!!(d.settings&&d.settings.pending)}catch(e){c.append(E('p',e.message,'st-err'));return c}
+ if(rememberCurrency(current)){location.reload();return c}
+ if(!manage||pending){c.append(E('p','Valuta: '+label(current),'st-strong'));c.append(E('p',pending?'La scelta della valuta si attiva con l’aggiornamento dell’archivio (migrazione sales 021).':'La valuta la cambiano owner e admin.','st-note'));return c}
+ const l=E('label','Valuta del workspace','st-label'),sel=E('select');sel.id='st-currency';
+ for(const code of codes){const o=E('option',label(code));o.value=code;if(code===current)o.selected=true;sel.append(o)}
+ l.append(sel);const msg=E('p','','st-note');msg.setAttribute('role','status');
+ const save=B('Salva la valuta',async()=>{if(S.busy||sel.value===current)return;S.busy=true;save.disabled=true;msg.textContent='Salvataggio…';
+  try{const d=await api('workspace_settings',{body:{workspace:S.workspace,entity:'workspace_settings',action:'update',data:{currency:sel.value}}});current=(d.settings&&d.settings.currency)||sel.value;msg.textContent='Valuta salvata: '+label(current)+'.';if(rememberCurrency(current))setTimeout(()=>location.reload(),600)}
+  catch(e){msg.textContent=e.message||String(e)}finally{S.busy=false;save.disabled=false}},'st-btn st-primary');
+ const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);return c;
+}
+// Sales Orbis: the plan of the workspace (api/_sales_plan.js), read only; it is changed by whoever sells it.
+const PLAN_TEXT={prova:['Prova','Tutto incluso, Copilota e Lead Intelligence compresi, per il periodo di prova.'],
+ completo:['Completo','Il CRM completo: aziende, contatti, pipeline, attività, posta, campagne e vendite. Il Copilota è nei piani Avanzato ed Extreme.'],
+ avanzato:['Avanzato','Il CRM completo e il Copilota. Lead Intelligence è nel piano Extreme.'],
+ extreme:['Extreme','Il CRM completo, il Copilota e Lead Intelligence.']};
+// The monthly limits of the plan, for the signed-in user (api/_sales_plan.js).
+const PLAN_METER=[['ai','Richieste al Copilota: {0} su {1}'],['lead','Ricerche email a pagamento: {0} su {1}'],['send','Email messe in coda: {0} su {1}']];
+async function planCard(){
+ const c=card('Piano','Il piano Sales Orbis di questo workspace.');
+ let s={};try{const d=await api('workspace_settings');s=d.settings||{}}catch(e){c.append(E('p',e.message,'st-err'));return c}
+ const plan=PLAN_TEXT[s.plan]?s.plan:'prova',t=PLAN_TEXT[plan];rememberPlan(plan);
+ c.append(E('p','Piano: '+t[0],'st-strong'),E('p',t[1],'st-note'));
+ const lim=s.limits||{},use=s.usage||{},rows=PLAN_METER.filter(([k])=>lim[k]>0);
+ if(rows.length){
+  c.append(E('p','I tuoi limiti di questo mese','st-strong'));
+  const ul=E('ul',undefined,'st-list');rows.forEach(([k,txt])=>ul.append(E('li',txt.replace('{0}',String(use[k]||0)).replace('{1}',String(lim[k])))));
+  c.append(ul,E('p','Si azzerano il primo di ogni mese.','st-note'));
+ }
+ return c;
+}
+function rememberPlan(plan){try{localStorage.setItem('rx-ws-plan',plan)}catch{}}
 async function show(){
- const id=C.sectionFromHash(location.hash),gen=++S.gen;S.section=id;
+ const id=C.sectionFromHash(location.hash,PRODUCT),gen=++S.gen;S.section=id;
  drawNav();drawWorkspace();error('');notice('');
  const out=$('st-section');if(!out)return;out.replaceChildren();
  const s=C.SECTIONS.find(x=>x.id===id);const h=E('header',undefined,'st-section-head');h.append(E('h2',s.label),E('p',s.hint,'st-sub'));out.append(h);
@@ -212,6 +264,8 @@ async function show(){
  try{await R[id](body)}catch(e){if(gen===S.gen)error(e.message||String(e))}
 }
 function start(){
+ if(PRODUCT){document.title='Sales Orbis · Impostazioni';const eb=document.querySelector('.st-eyebrow');if(eb)eb.textContent='Sales Orbis · Impostazioni';
+  const lead=document.querySelector('.st-lead');if(lead)lead.textContent='Profilo e password, chi lavora nel workspace, caselle email, calendari, valuta e regole del CRM: tutto in un posto.'}
  const sel=$('st-workspace');if(sel)sel.addEventListener('change',()=>{if(S.busy){sel.value=S.workspace;return}S.workspace=sel.value||null;show()});
  root.addEventListener('hashchange',show);
  me();show();

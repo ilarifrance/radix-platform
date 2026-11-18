@@ -88,3 +88,33 @@ body[data-step="3"] .lp-tabs,body[data-step="4"] .lp-tabs{margin-top:24px}
  .panel .lf-jobs-multi .lp-btn{width:100%;white-space:normal}
  .lf-next .lp-btn{width:100%}
 }
+
+/* «Percorso guidato» (sales/lead-guide.js): the next step and the state of every source, under the page title. */
+.lf-guide{margin:14px 0 0;border:1px solid var(--lp-line);border-radius:var(--lp-r-lg);background:var(--lp-card)}
+.lf-guide-sum{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:10px 16px;cursor:pointer;list-style:none}
+.lf-guide-sum::-webkit-details-marker{display:none}
+.lf-guide-sum::after{content:'';width:8px;height:8px;border-right:2px solid var(--lp-muted);border-bottom:2px solid var(--lp-muted);transform:rotate(45deg);margin-left:4px}
+.lf-guide[open]>.lf-guide-sum::after{transform:rotate(-135deg)}
+.lf-guide-title{font-weight:700;color:var(--lp-text)}
+.lf-guide-count{margin-left:auto;font-size:13px;color:var(--lp-muted)}
+.lf-guide-sum:focus-visible{outline:3px solid var(--lp-accent);outline-offset:2px;border-radius:var(--lp-r-lg)}
+.lf-guide-body{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;padding:0 16px 16px}
+.lf-guide-steps{list-style:none;margin:0;padding:0;display:grid;gap:8px;align-content:start}
+.lf-guide-step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--lp-line);border-radius:var(--lp-r-md)}
+.lf-guide-step strong{display:block;font-size:14px;color:var(--lp-text)}
+.lf-guide-step p{margin:2px 0 0;font-size:13px;line-height:1.45;color:var(--lp-muted)}
+.lf-guide-step.is-next{border-color:var(--lp-accent);background:var(--lp-accent-soft)}
+.lf-guide-mark{display:grid;place-items:center;width:24px;height:24px;border:2px solid var(--lp-line);border-radius:50%;font-size:13px;font-weight:800;color:var(--lp-ok)}
+.lf-guide-step.is-done .lf-guide-mark{border-color:var(--lp-ok);background:var(--lp-ok-soft)}
+.lf-guide-go{min-height:36px;padding:6px 12px;border:1px solid var(--lp-line);border-radius:var(--lp-r-sm);background:var(--lp-card);color:var(--lp-text);font:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.lf-guide-go.primary{border-color:var(--lp-accent);background:var(--lp-accent);color:#fff}
+.lf-guide-go:focus-visible{outline:3px solid var(--lp-accent);outline-offset:2px}
+.lf-guide-sources h3{margin:2px 0 8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--lp-muted)}
+.lf-guide-sources ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lf-guide-sources li{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:13px;color:var(--lp-text)}
+.lf-guide-sources small{display:block;color:var(--lp-muted);font-size:12px}
+.lf-guide-state{flex:none;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;background:var(--lp-soft);color:var(--lp-muted)}
+.lf-guide-state.is-pronto{background:var(--lp-ok-soft);color:var(--lp-ok)}
+.lf-guide-state.is-da-collegare{background:var(--lp-warn-soft);color:var(--lp-warn)}
+.lf-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:760px){.lf-guide-body{grid-template-columns:1fr}.lf-guide-mark{align-self:start}.lf-guide-step{grid-template-columns:24px minmax(0,1fr)}.lf-guide-go{grid-column:2;justify-self:start}}

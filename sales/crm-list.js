@@ -27,7 +27,7 @@ function save(kind){try{localStorage.setItem(L().storageKey(st[kind].ws,kind),JS
 let cached=null;
 async function fallback(){if(!window.RadixCrmData)return;try{cached=await window.RadixCrmData.load()}catch{cached=null}}
 function data(){const a=app(),ready=!!a?.state.ready,r={};
- for(const e of ['contacts','companies','interactions','opportunities','stages','members']){const mine=a?a.rows(e):[];r[e]=!ready&&!mine.length&&cached&&Array.isArray(cached[e])?cached[e]:mine}
+ for(const e of ['contacts','companies','interactions','opportunities','stages','members','tasks']){const mine=a?a.rows(e):[];r[e]=!ready&&!mine.length&&cached&&Array.isArray(cached[e])?cached[e]:mine}
  return r}
 
 function setMode(kind,mode){document.documentElement.dataset['lv'+(kind==='contacts'?'Contacts':'Companies')]=mode}
@@ -82,7 +82,7 @@ function mount(section,kind){
  function drawCols(){colList.replaceChildren();offered=L().columnsFor(kind,colOpts()).map(c=>c.id).join();for(const c of L().columnsFor(kind,colOpts())){const l=E('label',undefined,'lv-check');const i=E('input');i.type='checkbox';i.checked=p.columns.includes(c.id);i.disabled=!!c.fixed;
   i.addEventListener('change',()=>{p.columns=L().toggleColumn(kind,p.columns,c.id);save(kind);draw()});l.append(i,E('span',' '+c.label));colList.append(l)}}
 
- function rowsNow(){const d=data(),now=Date.now();const all=L().buildRows(kind,d,{now,score:window.RadixCrmScore?.score,explain:window.RadixCrmScore?.explain});
+ function rowsNow(){const d=data(),now=Date.now();const all=L().buildRows(kind,d,{now,score:window.RadixCrmScore?.score,explain:window.RadixCrmScore?.explain,journey:window.RadixCrmJourneyCore?.listLine});
   // A selection handed over from Aziende («Seleziona i loro contatti») shows every contact.
   if(st[kind].pending){st[kind].selected=new Set(st[kind].pending);st[kind].pending=null;p.view='all';viewSel.value='all';st[kind].query='';search.value=''}
   st[kind].selected=L().prune(st[kind].selected,all.map(r=>r.id));
@@ -94,12 +94,12 @@ function mount(section,kind){
   const link=(label,href,ext)=>{const a=E('a',label);a.href=href;if(ext){a.target='_blank';a.rel='noopener noreferrer'}return a};
   const v=r[col.id];
   switch(col.id){
-   case 'name':{const b=B(r.name,()=>open(kind,r.record),'lv-name');b.title='Apri Customer360 · '+r.name;td.append(b);
+   case 'name':{const b=B(r.name,()=>open(kind,r.record),'lv-name');b.title='Apri la scheda · '+r.name;td.append(b);
     // Contacts with a valid LinkedIn profile: a compact «in» opening «Messaggio LinkedIn» (crm-linkedin-message.js).
     if(kind==='contacts'&&r.linkedinUrl&&window.RadixCrmLinkedIn){const li=B('in',e=>{e.stopPropagation();if(!app()?.state.busy)window.RadixCrmLinkedIn.open(r.record)},'lv-li');
      li.title='Messaggio LinkedIn · '+r.name;li.setAttribute('aria-label','Messaggio LinkedIn a '+r.name);li.setAttribute('aria-haspopup','dialog');td.append(li);td.classList.add('lv-has-li')}
     break}
-   case 'company':if(r.companyRecord){const b=B(r.company,()=>open('companies',r.companyRecord),'lv-link');b.title='Apri Customer360 · '+r.company;td.append(b)}else td.append(E('span','—','lv-empty'));break;
+   case 'company':if(r.companyRecord){const b=B(r.company,()=>open('companies',r.companyRecord),'lv-link');b.title='Apri la scheda · '+r.company;td.append(b)}else td.append(E('span','—','lv-empty'));break;
    case 'email':{const h=L().mailHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
    case 'phone':case 'mobile':{const h=L().telHref(v);td.append(h?link(v,h):E('span',v||'—',v?'':'lv-empty'));break}
    case 'revenue':td.append(v==null?E('span','—','lv-empty'):E('span',money(v)));td.className='num';td.title='Fatturato annuo in euro';break;
@@ -108,6 +108,7 @@ function mount(section,kind){
    case 'linkedin':{const h=L().websiteHref(v);td.append(h?link('Profilo',h,true):E('span','—','lv-empty'));break}
    case 'consent':{const s=E('span',r.consent?'Sì':'No','lv-pill '+(r.consent?'ok':'no'));if(r.consent&&r.consentAt)s.title='Registrato il '+shortDate(Date.parse(r.consentAt));td.append(s);break}
    case 'score':if(r.score==null)td.append(E('span','—','lv-empty'));else{const s=E('span',undefined,'cx-score crm-score-'+r.band);s.dataset.score=String(r.score);s.title=r.explain;s.append(E('b',r.score),E('small',r.band));td.append(s)}break;
+   case 'journey':if(!r.journey){td.append(E('span','—','lv-empty'));break}{const s=E('span',r.journey,'lv-journey lv-journey-'+r.journeyKey);s.title=r.journeyFull;td.append(s);const bits=[];if(r.journeyDone)bits.push(r.journeyDone+(r.journeyDone===1?' fatta':' fatte'));if(r.journeyPlanned)bits.push(r.journeyPlanned+' da fare');if(r.journeyOverdue)bits.push(r.journeyOverdue+' scadute');if(bits.length)td.append(E('small',bits.join(' · '),'lv-sub'))}break;
    case 'lastAt':if(r.lastAt==null)td.append(E('span',kind==='contacts'?'Mai':'Nessuna','lv-empty'));else{const s=E('span',L().ago(r.lastAt,now));s.title=fullDate(r.lastAt);td.append(s);if(r.lastKind)td.append(E('small',KIND[r.lastKind]||r.lastKind,'lv-sub'))}break;
    case 'contacts':td.append(E('span',String(r.contacts)));td.className='num';break;
    case 'openValue':if(!r.openCount)td.append(E('span','—','lv-empty'));else{td.append(E('span',money(r.openValue)),E('small',r.openCount+(r.openCount===1?' aperta':' aperte'),'lv-sub'));td.title='Valore nella valuta del workspace'}td.className='num';break;
@@ -174,7 +175,7 @@ function mount(section,kind){
 
  drawCols();
  const anchor=[...section.querySelectorAll(':scope>p.muted')].pop()||section.querySelector(':scope>form')||section.querySelector(':scope>.row');
- anchor?anchor.after(box):section.prepend(box);
+ anchor?anchor.after(box):section.prepend(box);section.classList.add('lv-ready');// crm-light-sales.css: the plain cards stay hidden until here
  box.redraw=draw;applyMode();
 }
 

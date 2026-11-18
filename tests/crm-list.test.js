@@ -32,10 +32,10 @@ const ids=rows=>rows.map(r=>r.id);
 
 test('columns only use fields the CRM stores, plus counted values',()=>{
  const stored={contacts:{division:'division',company:'company_id',role:'role',email:'email',phone:'phone',consent:'marketing_consent',linkedin:'linkedin_url',title:'title',department:'department',mobile:'mobile',city:'city',owner:'owner_id',leadSource:'lead_source'},companies:{division:'division',industry:'industry',city:'city',phone:'phone',website:'website',email:'email',accountType:'account_type',vat:'vat_number',legalName:'legal_name',owner:'owner_id',rating:'rating',employees:'employees',revenue:'annual_revenue_cents',province:'billing_province'}};
- const counted=new Set(['name','score','lastAt','createdAt','contacts','openValue']);
+ const counted=new Set(['name','score','lastAt','createdAt','contacts','openValue','journey']);
  for(const kind of L.KINDS)for(const c of L.COLUMNS[kind]){if(counted.has(c.id))continue;assert.ok(stored[kind][c.id],kind+'.'+c.id+' unmapped');assert.ok(fields[kind].includes(stored[kind][c.id]),kind+'.'+c.id+' is not a stored field')}
  // Narrow defaults: Contatti fits a 1280px screen without sideways scroll; the rest is in «Colonne».
- assert.deepEqual(L.COLUMNS.contacts.filter(c=>!c.hidden).map(c=>c.label),['Nome','Azienda','Ruolo','Email','Consenso marketing','Punteggio']);
+ assert.deepEqual(L.COLUMNS.contacts.filter(c=>!c.hidden).map(c=>c.label),['Nome','Azienda','Ruolo','Email','Percorso','Punteggio']);
  assert.deepEqual(L.COLUMNS.companies.filter(c=>!c.hidden).map(c=>c.label),['Nome','Dipartimento','Tipo','Settore','N. contatti','Opportunità aperte','Ultima attività']);
  assert.equal(L.columnsFor('contacts',{score:false}).some(c=>c.id==='score'),false,'no score column without crm-score-core');
 });
