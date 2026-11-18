@@ -3,6 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const DOC=require('../lib/trasporti/documenti');
 const TOLL=require('../lib/trasporti/pedaggi');
 const MRG=require('../lib/trasporti/margini');
+const LOC=require('../lib/trasporti/localizzatori');
+const XL=require('../lib/trasporti/xlsx');
 const {createHandler}=require('../api/_trasporti');
 
 test('document reading: values normalised, unsure and missing required fields flagged, nothing invented',()=>{
@@ -97,12 +99,89 @@ test('API: login, header, kind, format and size checked before the AI is called'
 test('route, rewrite and pages are wired; the demo data reconciles with its own sample toll file',()=>{
  assert.match(fs.readFileSync('api/integrations/[service].js','utf8'),/'trasporti': \(\) => require\('\.\.\/_trasporti'\)/);
  const cfg=JSON.parse(fs.readFileSync('vercel.json','utf8'));assert.ok(cfg.rewrites.some(r=>r.source==='/api/trasporti'&&r.destination==='/api/integrations/trasporti'));
- for(const f of ['trasporti/index.html','trasporti/autista/index.html'])for(const m of fs.readFileSync(f,'utf8').matchAll(/(?:src|href)="(\/[^"#?]+\.(?:js|css))"/g))assert.ok(fs.existsSync(m[1].slice(1)),m[1]);
+ for(const f of ['trasporti/index.html','trasporti/autista/index.html'])for(const m of fs.readFileSync(f,'utf8').matchAll(/(?:src|href)="(\/[^"#?]+\.(?:js|css|svg|png|webmanifest))"/g))assert.ok(fs.existsSync(m[1].slice(1)),m[1]);
+ const man=JSON.parse(fs.readFileSync('trasporti/autista/manifest.webmanifest','utf8'));for(const i of man.icons)assert.ok(fs.existsSync(i.src.slice(1)),i.src);
+ assert.ok(man.icons.some(i=>i.sizes==='512x512'&&i.purpose==='maskable'));
+ for(const u of fs.readFileSync('trasporti/autista/sw.js','utf8').match(/SHELL=\[([^\]]+)\]/)[1].match(/'([^']+)'/g).map(x=>x.slice(1,-1)))assert.ok(fs.existsSync(u.endsWith('/')?u.slice(1)+'index.html':u.slice(1)),u);
  const ST=require('../trasporti/store.js');const d=ST.seed(new Date(2026,10,18,9,0));
- assert.ok(d.trips.length>20);
+ assert.ok(d.trips.length>20);const closed=d.trips.filter(t=>t.ended_at);assert.equal(d.trips.length-closed.length,1);
  const p=TOLL.parseTransits(ST.sampleTollCsv(d));assert.equal(p.skipped.length,0);
  const r=TOLL.reconcile({transits:p.transits,vehicles:d.vehicles,trips:d.trips,positions:d.positions});
- assert.equal(r.totals.matched,d.trips.length*2);assert.equal(r.rows.filter(x=>x.status==='fuori_viaggio').length,1);assert.equal(r.rows.filter(x=>x.status==='mezzo_sconosciuto').length,1);
- const m=MRG.compute({trips:d.trips,costs:d.costs,tolls:r,vehicles:d.vehicles,drivers:d.drivers,customers:d.customers});
+ assert.equal(r.totals.matched,closed.length*2);assert.equal(r.rows.filter(x=>x.status==='fuori_viaggio').length,1);assert.equal(r.rows.filter(x=>x.status==='mezzo_sconosciuto').length,1);
+ const m=MRG.compute({trips:closed,costs:d.costs,tolls:r,vehicles:d.vehicles,drivers:d.drivers,customers:d.customers});
+ // every demo position belongs to a vehicle with its own source; the open trip has a track and no alert at 09:00
+ assert.ok(d.positions.every(p=>d.vehicles.some(v=>v.id===p.vehicle_id)));
+ assert.deepEqual(LOC.alerts({vehicles:d.vehicles,trips:d.trips,positions:d.positions,nowAt:'2026-11-18T09:00'}),[]);
+ assert.ok(LOC.tripKm(d.trips.find(t=>!t.ended_at),d.positions,'2026-11-18T09:00').km>0);
  assert.ok(m.totals.revenue_cents>0);assert.equal(m.totals.missing_revenue,0);
+});
+
+test('trackers: Webfleet, Verizon, rFMS and CSV exports become the same position, times in Italian local time',()=>{
+ const w=LOC.fromWebfleet([{objectno:'001',objectname:'GA123BC',latitude_mdeg:45133000,longitude_mdeg:10022000,pos_time:'2026-07-01T08:00:00+02:00',speed:60,odometer:1234567},{objectno:'002',latitude_mdeg:0,longitude_mdeg:0,pos_time:'2026-07-01T08:00:00Z'}]);
+ assert.equal(w.length,1);assert.deepEqual([w[0].ref,w[0].at,w[0].lat,w[0].lon,w[0].odometer_km],['001','2026-07-01T08:00',45.133,10.022,123456.7]);
+ assert.throws(()=>LOC.fromWebfleet({errorCode:8011,errorMsg:'request quota reached'}),/quota/);
+ const v=LOC.fromVerizon({VehicleNumber:'TRK7',Latitude:45.5,Longitude:9.2,UpdateUTC:'2026-11-18T05:00:00Z',Speed:0});
+ assert.equal(v[0].at,'2026-11-18T06:00');assert.equal(v[0].ref,'TRK7');
+ const r=LOC.fromRfms({vehiclePositionResponse:{vehiclePositions:[{vin:'zcfc1lf0x0d123456',gnssPosition:{latitude:44.6,longitude:10.9,positionDateTime:'2026-11-18T08:30:00.000Z',speed:72},hrTotalVehicleDistance:812345000}]},moreDataAvailable:false});
+ assert.deepEqual([r[0].vin,r[0].at,r[0].speed_kmh,r[0].odometer_km],['ZCFC1LF0X0D123456','2026-11-18T09:30',72,812345]);
+ const c=LOC.fromCsv('Report Targa Telematics\nTarga;Data ora;Latitudine;Longitudine;Velocità\nGA 123 BC;18/11/2026 06:05;45,133;10,022;55\nGD789FG;;;\n');
+ assert.equal(c.error,null);assert.equal(c.positions.length,1);assert.equal(c.skipped.length,1);assert.equal(c.positions[0].at,'2026-11-18T06:05');
+ assert.match(LOC.fromCsv('a;b\n1;2').error,/colonne/);
+ const vehicles=[{id:'v1',plate:'GA123BC',tracker_ref:'001'},{id:'v3',plate:'GD789FG',vin:'ZCFC1LF0X0D123456'},{id:'v7',plate:'AA000AA',tracker_ref:'TRK7'}];
+ const a=LOC.assign([...w,...v,...r,...c.positions,{ref:'999',at:'2026-11-18T06:00',lat:45,lon:9}],vehicles);
+ assert.deepEqual(a.positions.map(p=>p.vehicle_id),['v1','v7','v3','v1']);assert.deepEqual(a.unknown,[{ref:'999',count:1}]);
+});
+
+test('trackers: phone only where the tracker is silent; trip km from odometer or points; alerts',()=>{
+ const P=[{vehicle_id:'v1',at:'2026-11-18T06:00',lat:45.13,lon:10.02,source:'webfleet',odometer_km:1000},{vehicle_id:'v1',at:'2026-11-18T06:10',lat:45.2,lon:10.1,source:'telefono'},
+  {vehicle_id:'v1',at:'2026-11-18T07:30',lat:45.4,lon:10.9,source:'telefono'},{vehicle_id:'v1',at:'2026-11-18T08:00',lat:45.44,lon:10.99,source:'webfleet',odometer_km:1112},{vehicle_id:'v1',at:'2026-11-18T08:00',lat:45.44,lon:10.99,source:'webfleet',odometer_km:1112}];
+ const m=LOC.merge(P);assert.deepEqual(m.map(p=>p.at+' '+p.source),['2026-11-18T06:00 webfleet','2026-11-18T07:30 telefono','2026-11-18T08:00 webfleet']);
+ const trip={id:'t',vehicle_id:'v1',started_at:'2026-11-18T05:50',ended_at:'2026-11-18T08:10'};
+ assert.deepEqual(LOC.tripKm(trip,m),{km:112,method:'contachilometri',points:3});
+ const noOdo=LOC.tripKm(trip,m.map(p=>({...p,odometer_km:null})));assert.equal(noOdo.method,'punti_gps');assert.ok(noOdo.km>70&&noOdo.km<90,String(noOdo.km));
+ assert.equal(LOC.tripKm(trip,[]),null);
+ const al=LOC.alerts({vehicles:[{id:'v1',plate:'GA123BC',tracker:'webfleet'},{id:'v2',plate:'FX456DE',tracker:'webfleet'}],nowAt:'2026-11-18T20:30',
+  trips:[trip,{id:'o',vehicle_id:'v2',started_at:'2026-11-18T03:00',ended_at:null}],
+  positions:[...m,{vehicle_id:'v1',at:'2026-11-18T19:00',lat:45.44,lon:10.99,source:'webfleet'},{vehicle_id:'v1',at:'2026-11-18T19:30',lat:45.2,lon:10.5,source:'webfleet'},{vehicle_id:'v2',at:'2026-11-18T04:00',lat:45,lon:9,source:'webfleet'}]});
+ assert.deepEqual(al.map(a=>a.kind+':'+a.vehicle_id).sort(),['senza_posizione:v2','senza_viaggio:v1','viaggio_lungo:v2']);assert.equal(al[0].kind,'senza_viaggio');
+ assert.match(al.find(a=>a.kind==='senza_posizione').text,/da 16,5 ore/);
+ assert.match(al[0].text,/GA123BC in movimento senza un viaggio/);
+});
+
+test('trackers: server requests carry the credentials, Verizon goes token then vehicle; the API action',async()=>{
+ const w=LOC.webfleetRequest({account:'acme',username:'api',password:'p',apikey:'K'});
+ assert.match(w.url,/^https:\/\/csv\.webfleet\.com\/extern\?account=acme&apikey=K.*action=showObjectReportExtern.*outputformat=json/);assert.equal(w.headers.Authorization,'Basic '+Buffer.from('api:p').toString('base64'));
+ assert.throws(()=>LOC.rfmsRequest({base_url:'http://x'}),/https/);
+ const calls=[];const f=async(url,o)=>{calls.push([url,o.headers.Authorization]);if(url.endsWith('/token'))return {ok:true,text:async()=>'"TOK"'};if(url.includes('/missing/'))return {ok:false,status:404};return {ok:true,json:async()=>({VehicleNumber:'TRK7',Latitude:45,Longitude:9,UpdateUTC:'2026-11-18T05:00:00Z'})};};
+ const ps=await LOC.fetchPositions('verizon',{username:'u',password:'p',app_id:'APP',vehicles:['TRK7','missing']},{fetch:f});
+ assert.equal(ps.length,1);assert.equal(calls[1][1],'Atmosphere atmosphere_app_id=APP, Bearer TOK');
+ await assert.rejects(LOC.fetchPositions('targa',{}),/file di export/);
+ let t=0;const H=createHandler({getSessionUser:()=>({uid:3}),now:()=>t,tracker:()=>({provider:'webfleet'}),fetchPositions:async()=>[{ref:'001',at:'2026-11-18T06:00',lat:45,lon:9}]});
+ const ok=await call(H,{body:{action:'posizioni.aggiorna'}});assert.equal(ok.status,200);assert.equal(ok.body.positions.length,1);
+ assert.equal((await call(H,{body:{action:'posizioni.aggiorna'}})).status,429);t=61000;assert.equal((await call(H,{body:{action:'posizioni.aggiorna'}})).status,200);
+ assert.equal((await call(createHandler({getSessionUser:()=>({uid:3}),tracker:()=>null}),{body:{action:'posizioni.aggiorna'}})).status,503);
+ const down=await call(createHandler({getSessionUser:()=>({uid:3}),tracker:()=>({provider:'rfms'}),fetchPositions:async()=>{throw new Error('ECONNRESET secret');}}),{body:{action:'posizioni.aggiorna'}});
+ assert.equal(down.status,502);assert.doesNotMatch(down.body.error,/secret/);
+});
+
+test('Excel: written file has the sheets, numbers as numbers, euro and date formats; read back, also a toll detail',async()=>{
+ const b=XL.write([{name:'Da fatturare: novembre/2026',columns:[{title:'Cliente'},{title:'Data',type:'date'},{title:'Importo',type:'euro'},{title:'Km',type:'int'}],rows:[['Rossi & C. <srl>','2026-11-12',1234.5,1200],['=HYPERLINK("x")','2026-11-13',null,'']]},{name:'Dettaglio',columns:[{title:'A'}],rows:[['x']]}]);
+ assert.ok(XL.isXlsx(b));
+ const text=Buffer.from(b).toString('latin1');
+ assert.match(text,/<sheet name="Da fatturare  novembre 2026" sheetId="1"/);assert.match(text,/<c r="C2" s="2"><v>1234.5<\/v><\/c>/);assert.match(text,/<c r="B2" s="3"><v>46338<\/v>/);
+ assert.match(text,/t="inlineStr"><is><t xml:space="preserve">=HYPERLINK\(&quot;x&quot;\)<\/t>/);assert.doesNotMatch(text,/<f>/);
+ const back=await XL.read(b);assert.equal(back.length,2);assert.deepEqual(back[0].rows,[['Cliente','Data','Importo','Km'],['Rossi & C. <srl>','12/11/2026','1234,5','1200'],['=HYPERLINK("x")','13/11/2026']]);
+ // a deflated workbook with shared strings and date styles, as Telepass and Excel produce
+ const zlib=require('zlib');const raw=(n,s)=>[n,new Uint8Array(zlib.deflateRawSync(Buffer.from(s)))];
+ const files=[raw('xl/workbook.xml','<workbook xmlns:r="r"><sheets><sheet name="Transiti" sheetId="1" r:id="rId1"/></sheets></workbook>'),
+  raw('xl/_rels/workbook.xml.rels','<Relationships><Relationship Id="rId1" Type="x" Target="worksheets/sheet1.xml"/></Relationships>'),
+  raw('xl/sharedStrings.xml','<sst><si><t>Data</t></si><si><t>Ora uscita</t></si><si><t>Targa</t></si><si><t>Importo</t></si><si><r><t>GA123</t></r><r><t>BC</t></r></si></sst>'),
+  raw('xl/styles.xml','<styleSheet><numFmts><numFmt numFmtId="170" formatCode="[$-410]hh:mm"/></numFmts><cellXfs><xf numFmtId="0"/><xf numFmtId="14"/><xf numFmtId="170"/></cellXfs></styleSheet>'),
+  raw('xl/worksheets/sheet1.xml','<worksheet><sheetData><row r="1"><c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c><c r="D1" t="s"><v>3</v></c></row><row r="2"><c r="A2" s="1"><v>46338</v></c><c r="B2" s="2"><v>0.29513888888888889</v></c><c r="C2" t="s"><v>4</v></c><c r="D2"><v>12.4</v></c></row></sheetData></worksheet>')];
+ // rebuild as a deflated zip: patch the stored zip's method and sizes
+ const z=XL.zip(files.map(([n,d])=>[n,d]));const dv=new DataView(z.buffer);
+ for(let i=0;i<z.length-4;i++){const sig=dv.getUint32(i,true);if(sig===0x04034b50)dv.setUint16(i+8,8,true);if(sig===0x02014b50)dv.setUint16(i+10,8,true);}
+ const rows=(await XL.read(z))[0].rows;assert.deepEqual(rows[1],['12/11/2026','07:05','GA123BC','12,4']);
+ const p=TOLL.parseTransits(rows);assert.equal(p.error,null);assert.deepEqual([p.transits[0].exitAt,p.transits[0].plate,p.transits[0].amount_cents],['2026-11-12T07:05','GA123BC',1240]);
+ await assert.rejects(XL.read(new Uint8Array([1,2,3])),/Excel/);
 });

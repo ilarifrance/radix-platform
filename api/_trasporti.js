@@ -6,9 +6,14 @@
 
    POST /api/trasporti {action:'documento.leggi', data:{kind, image (base64), media_type}}
         session cookie + X-Radix-Trasporti: 1 + application/json
+   POST /api/trasporti {action:'posizioni.aggiorna'} → {provider, positions} from the tracker of the pilot company.
+        TRASPORTI_TRACKER = JSON {"provider":"webfleet"|"verizon"|"rfms", ...credentials} on the server only
+        (webfleet: account, username, password, apikey · verizon: username, password, app_id, vehicles[], base_url?
+        · rfms: base_url, token or username/password). At most one request a minute per member.
    The image is sent to the Claude API and not stored here. ANTHROPIC_API_KEY (already set for the agents);
    TRASPORTI_AI_MODEL optional. At most DAILY readings per member per day on this instance. */
 const doc=require('../lib/trasporti/documenti');
+const loc=require('../lib/trasporti/localizzatori');
 
 const MEDIA=['image/jpeg','image/png','image/webp','application/pdf'];
 const MAX_BASE64=4200000; // Vercel accepts request bodies up to 4.5 MB; the app shrinks photos to ~1600 px first.
@@ -28,8 +33,13 @@ async function defaultAsk({system,content}){
  return {text:r.content.filter(b=>b.type==='text').map(b=>b.text).join('\n').trim()};
 }
 
-function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now()}={}){
- const counts=new Map();
+function trackerConfig(){
+ const raw=process.env.TRASPORTI_TRACKER;if(!raw)return null;
+ try{const c=JSON.parse(raw);return c&&typeof c==='object'&&loc.PROVIDERS[c.provider]&&loc.PROVIDERS[c.provider].api?c:null;}catch{return null;}
+}
+
+function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker=trackerConfig,fetchPositions=loc.fetchPositions}={}){
+ const counts=new Map(),lastSync=new Map();
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
@@ -40,6 +50,15 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now()}={}){
    let body=req.body;
    if(typeof body==='string'){try{body=JSON.parse(body);}catch{throw failure(400,'JSON non valido.');}}
    if(!body||typeof body!=='object'||Array.isArray(body))throw failure(400,'Richiesta non valida.');
+   if(body.action==='posizioni.aggiorna'){
+    const c=tracker();if(!c)throw failure(503,'Nessun localizzatore collegato su questo ambiente: carica il file di export.');
+    const last=lastSync.get(user.uid);if(last!=null&&now()-last<60000)throw failure(429,'Posizioni appena aggiornate: riprova tra un minuto.');
+    lastSync.set(user.uid,now());if(lastSync.size>5000)lastSync.clear();
+    let positions;
+    try{positions=await fetchPositions(c.provider,c);}
+    catch(e){console.error('trasporti posizioni',c.provider,e&&e.message);throw failure(502,(loc.PROVIDERS[c.provider].label)+' non risponde: riprova tra qualche minuto.');}
+    return res.status(200).json({provider:c.provider,positions:positions.slice(0,5000)});
+   }
    if(body.action!=='documento.leggi')throw failure(400,'Azione non riconosciuta.');
    const d=body.data&&typeof body.data==='object'?body.data:{};
    if(!doc.KIND_KEYS.includes(d.kind))throw failure(400,'Tipo di documento non riconosciuto.');
