@@ -115,7 +115,7 @@ function matches(kind,row,query){const q=fold(query);if(!q)return true;const key
 /* Sort: empty values always last; text in Italian order; ties by name. */
 const collator=typeof Intl!=='undefined'?new Intl.Collator('it',{sensitivity:'base',numeric:true}):null;
 const cmpText=(a,b)=>collator?collator.compare(a,b):a<b?-1:a>b?1:0;
-const JOURNEY_RANK={new:0,working:1,ready:2,opportunity:3,closed:4};
+const JOURNEY_RANK={new:0,working:1,ready:2,opportunity:3,won:4,closed:5};
 function sortKey(kind,key,row){
  if(key==='journey')return row.journeyRank;
  if(key==='consent')return row.consent?1:0;

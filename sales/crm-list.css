@@ -101,4 +101,5 @@ th.lv-cb{padding:0 8px}
 .lv-journey-ready{color:var(--crm-ok);border-color:var(--crm-ok);background:var(--crm-ok-soft)}
 .lv-journey-working{color:var(--crm-warn);border-color:var(--crm-warn);background:var(--crm-warn-soft)}
 .lv-journey-opportunity{color:var(--crm-accent);border-color:var(--crm-accent-line);background:var(--crm-accent-soft)}
+.lv-journey-won{color:var(--crm-ok);border-color:var(--crm-ok)}
 .lv-journey-new{color:var(--crm-muted)}

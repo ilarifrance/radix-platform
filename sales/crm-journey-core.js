@@ -12,7 +12,7 @@ const KIND={note:'Nota',call:'Chiamata',meeting:'Incontro',email:'Email'};
 const ICON={note:'✎',call:'☎',meeting:'◷',email:'✉',task:'☐',done:'☑'};
 const DAY=864e5;
 // Short words for the contacts list column.
-const SHORT={new:'Da lavorare',working:'In corso',ready:'Pronto',opportunity:'In trattativa',closed:'Chiuso'};
+const SHORT={new:'Da lavorare',working:'In corso',ready:'Pronto',opportunity:'In trattativa',won:'Cliente',closed:'Chiuso'};
 const t=v=>{const n=Date.parse(v);return Number.isFinite(n)?n:NaN};
 
 function rowsOf(related,entity){return (Array.isArray(related)?related:[]).filter(x=>x&&x.entity===entity&&x.record).map(x=>x.record)}
@@ -66,6 +66,7 @@ function journey(subject,id,related,now){
 function stage(j){
  if(!j)return null;
  if(j.openOpportunities.length)return {key:'opportunity',label:'Opportunità aperta',hint:j.openOpportunities.length===1?'Il lavoro continua sull’opportunità.':'Il lavoro continua sulle '+j.openOpportunities.length+' opportunità aperte.'};
+ if(j.opportunities.some(o=>o.outcome==='won'))return {key:'won',label:'Cliente acquisito',hint:'Opportunità vinta: puoi aprirne una nuova per un’altra vendita.'};
  if(j.opportunities.length)return {key:'closed',label:'Opportunità chiuse',hint:'Nessuna opportunità aperta: puoi aprirne una nuova quando serve.'};
  const real=j.preparatory.filter(s=>s.done&&s.kind!=='note'&&s.kind!=='task').length;
  if(real>=2)return {key:'ready',label:'Pronto per un’opportunità',hint:real+' contatti avuti: se c’è interesse, apri l’opportunità.'};

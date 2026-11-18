@@ -98,6 +98,7 @@
 .crm-journey .cj-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .crm-journey .cj-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--crx-border);color:var(--crx-muted)}
 .crm-journey .cj-badge-ready{color:var(--crm-ok,#0f7a4a);border-color:var(--crm-ok,#7fd1a8);background:var(--crm-ok-soft,transparent)}
+.crm-journey .cj-badge-won{color:var(--crm-ok,#0f7a4a);border-color:var(--crm-ok,#7fd1a8)}
 .crm-journey .cj-badge-opportunity{color:var(--crx-link);border-color:var(--crx-border-accent)}
 .crm-journey .cj-badge-working{color:var(--crm-warn,#8a5a00);border-color:var(--crm-warn,#f0c977);background:var(--crm-warn-soft,transparent)}
 .crm-journey .cj-hint{margin:6px 0 12px;color:var(--crx-muted);font-size:14px}
