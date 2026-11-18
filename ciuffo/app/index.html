@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agenda · Ciuffo</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/ciuffo/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ciuffo/ciuffo.css">
+<link rel="stylesheet" href="/ciuffo/app/app.css">
+</head>
+<body>
+<header class="top">
+ <div class="top-in">
+  <a href="/ciuffo/app/" class="logo"><img src="/ciuffo/logo-mark.svg" alt="Ciuffo"></a>
+  <div class="shopname" id="shopname">…</div>
+  <nav class="tabs" aria-label="Sezioni">
+   <button type="button" data-view="agenda" aria-current="page">Agenda</button>
+   <button type="button" data-view="clienti">Clienti</button>
+   <button type="button" data-view="impostazioni">Impostazioni</button>
+  </nav>
+  <button type="button" class="btn ghost small" id="logout">Esci</button>
+ </div>
+</header>
+
+<main class="app">
+ <div id="toast" class="toast hidden" role="status"></div>
+ <section id="welcome" class="card welcome hidden"></section>
+ <section class="linkbar card" id="linkbar"></section>
+
+ <section id="v-agenda">
+  <div class="agenda-bar">
+   <div class="datenav">
+    <button type="button" class="btn ghost small" id="prev" aria-label="Indietro">‹</button>
+    <button type="button" class="btn ghost small" id="today">Oggi</button>
+    <button type="button" class="btn ghost small" id="next" aria-label="Avanti">›</button>
+    <h2 id="datelabel"></h2>
+   </div>
+   <div class="agenda-actions">
+    <div class="seg" role="group" aria-label="Vista"><button type="button" data-mode="day" aria-pressed="true">Giorno</button><button type="button" data-mode="week" aria-pressed="false">Settimana</button></div>
+    <button type="button" class="btn small" id="newappt">+ Appuntamento</button>
+   </div>
+  </div>
+  <div id="board" class="board card"></div>
+  <p class="legend small muted"><span class="sw free"></span> Libero, tocca per prenotare &nbsp; <span class="sw web"></span> Prenotato online</p>
+ </section>
+
+ <section id="v-clienti" class="hidden">
+  <div class="card pad">
+   <div class="field"><label for="csearch">Cerca un cliente</label><input id="csearch" placeholder="Nome o numero"></div>
+   <div id="clist"></div>
+  </div>
+ </section>
+
+ <section id="v-impostazioni" class="hidden">
+  <div class="settings">
+   <nav class="subtabs" aria-label="Impostazioni">
+    <button type="button" data-set="orari" aria-pressed="true">Orari</button>
+    <button type="button" data-set="servizi" aria-pressed="false">Servizi</button>
+    <button type="button" data-set="operatori" aria-pressed="false">Operatori</button>
+    <button type="button" data-set="chiusure" aria-pressed="false">Chiusure e ferie</button>
+    <button type="button" data-set="salone" aria-pressed="false">Salone e prenotazioni</button>
+   </nav>
+   <div class="card pad" id="setbox"></div>
+  </div>
+ </section>
+</main>
+
+<dialog id="dlg" class="dlg"><form method="dialog" id="dlgform"></form></dialog>
+
+<script src="/lib/booking/slots.js"></script>
+<script src="/ciuffo/ciuffo.js"></script>
+<script src="/ciuffo/app/app.js"></script>
+</body>
+</html>
