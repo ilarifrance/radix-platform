@@ -41,9 +41,9 @@ function welcome(){
  $('wclose').onclick=()=>{w.classList.add('hidden');history.replaceState(null,'','/ciuffo/app/');};
 }
 function show(view){
- st.view=view;for(const v of ['agenda','clienti','impostazioni'])$('v-'+v).classList.toggle('hidden',v!==view);
+ st.view=view;for(const v of ['agenda','messaggi','clienti','impostazioni'])$('v-'+v).classList.toggle('hidden',v!==view);
  document.querySelectorAll('.tabs button').forEach(b=>{if(b.dataset.view===view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
- if(view==='agenda')loadAgenda();if(view==='clienti')loadClients();if(view==='impostazioni')renderSettings();
+ if(view==='agenda')loadAgenda();if(view==='clienti')loadClients();if(view==='messaggi')loadInbox();if(view==='impostazioni')renderSettings();
 }
 document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)show(b.dataset.view);});
 $('logout').onclick=async()=>{await C.api('POST',null,{action:'auth.logout',data:{}}).catch(()=>{});location.href='/ciuffo/accedi.html';};
@@ -174,7 +174,7 @@ document.querySelector('.subtabs').addEventListener('click',e=>{const b=e.target
 async function reload(){await loadSetup(st.shop.id);renderLink();renderSettings();}
 function renderSettings(){
  document.querySelectorAll('.subtabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.set===st.set)));
- ({orari:setHours,servizi:setServices,operatori:setStaff,chiusure:setClosures,salone:setShop})[st.set]();
+ ({orari:setHours,servizi:setServices,operatori:setStaff,chiusure:setClosures,salone:setShop,assistente:setAssistant})[st.set]();
 }
 function setHours(){
  const h=st.shop.hours||{};let html='<h3>Orari di apertura</h3><p class="muted small">Per la pausa pranzo usa due fasce. Le prenotazioni online finiscono in tempo per chiudere all\'orario indicato.</p>';
@@ -251,5 +251,97 @@ function setShop(){
   try{await call('shop.save',{name:g('x-n'),phone:g('x-t')||null,address:g('x-a')||null,city:g('x-c')||null,welcome:g('x-w')||null,slug:g('x-s').trim().toLowerCase(),step_min:Number(g('x-st')),min_notice_min:Number(g('x-mn')),max_days_ahead:Number(g('x-md')),cancel_notice_min:Number(g('x-cn')),booking_open:$('setbox').querySelector('#x-o').checked});
    toast('Salvato');await reload();}catch(e){toast(e.message,true);}};
 }
+// ---------- messages: the assistant's chats and calls, manual answers, trial chat ----------
+const CH={whatsapp:'WhatsApp',voice:'Telefono',sim:'Prova'};
+const ROLE_LABEL={customer:'Cliente',assistant:'Assistente',owner:'Salone',note:''};
+const paused=c=>c.paused_until&&Date.parse(c.paused_until)>Date.now();
+const when=iso=>{const d=local(iso);return (d.date===today()?'':C.day(d.date).replace(/^\S+\s/,'')+' ')+d.time;};
+let curConv=null,inboxTimer=null;
+async function loadInbox(){
+ clearInterval(inboxTimer);inboxTimer=setInterval(()=>{if(st.view==='messaggi'&&!document.hidden)refreshInbox();},20000);
+ await refreshInbox();
+}
+async function refreshInbox(){
+ let list;try{list=await C.api('GET',{resource:'conversations',shop:st.shop.id});}catch(e){$('convlist').innerHTML='<p class="notice err">'+esc(e.message)+'</p>';return;}
+ $('msgbadge').classList.toggle('hidden',!list.some(c=>c.needs_owner));
+ $('convlist').innerHTML=list.length?list.map(c=>'<button type="button" class="conv'+(curConv===c.id?' on':'')+'" data-c="'+c.id+'"><span class="ch ch-'+c.channel+'">'+CH[c.channel]+'</span>'+
+  '<b>'+esc(c.name||(c.peer?C.tel(c.peer):'Numero nascosto'))+'</b>'+(c.needs_owner?'<span class="tag warn">Ti cerca</span>':paused(c)?'<span class="tag">Rispondi tu</span>':'')+
+  '<span class="sub">'+esc(c.last?((c.last.role==='owner'?'Tu: ':c.last.role==='assistant'?'Assistente: ':'')+c.last.body):'')+'</span><span class="t">'+esc(when(c.last_at))+'</span></button>').join('')
+  :'<p class="muted small pad">Ancora nessun messaggio. Quando un cliente scrive su WhatsApp o chiama, la conversazione compare qui.</p>';
+ if(curConv&&curConv!=='sim')openConv(curConv,true);
+}
+$('convlist').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)openConv(b.dataset.c);});
+function bubbles(msgs){
+ return '<div class="bubbles" id="bubbles">'+(msgs.length?msgs.map(m=>m.role==='note'?'<p class="mnote">'+esc(m.body)+'</p>':
+  '<div class="bub '+m.role+'"><span class="who">'+ROLE_LABEL[m.role]+' · '+esc(when(m.at))+'</span>'+esc(m.body).replace(/\n/g,'<br>')+'</div>').join(''):'<p class="muted small">Nessun messaggio.</p>')+'</div>';
+}
+const scrollEnd=()=>{const b=$('bubbles');if(b)b.scrollTop=b.scrollHeight;};
+async function openConv(id,quiet){
+ curConv=id;document.querySelectorAll('.conv').forEach(b=>b.classList.toggle('on',b.dataset.c===id));
+ let c;try{c=await C.api('GET',{resource:'conversation',shop:st.shop.id,id});}catch(e){if(!quiet)toast(e.message,true);return;}
+ if(curConv!==id)return;
+ const can=c.channel==='whatsapp'&&c.peer;
+ $('thread').innerHTML='<div class="thead"><div><b>'+esc(c.name||(c.peer?C.tel(c.peer):'Numero nascosto'))+'</b><div class="small muted">'+CH[c.channel]+(c.peer?' · '+esc(C.tel(c.peer)):'')+'</div></div>'+
+  (c.needs_owner||paused(c)?'<button type="button" class="btn ghost small" id="resume">Riattiva l\'assistente</button>':'')+'</div>'+
+  (c.needs_owner?'<p class="notice">L\'assistente ha passato a te questa conversazione: rispondi tu.</p>':paused(c)?'<p class="notice">Hai risposto tu: l\'assistente resta in silenzio in questa chat fino alle '+esc(when(c.paused_until))+'.</p>':'')+
+  bubbles(c.messages)+
+  (can?'<form class="reply" id="replyform"><textarea id="replytext" rows="2" maxlength="1500" placeholder="Scrivi al cliente: l\'assistente si ferma in questa chat"></textarea><button class="btn">Invia</button></form>':c.channel==='voice'?'<p class="small muted pad">Trascrizione della telefonata.</p>':'');
+ scrollEnd();
+ const rs=$('resume');if(rs)rs.onclick=async()=>{try{await call('conversation.resume',{id});toast('L\'assistente risponde di nuovo');refreshInbox();}catch(e){toast(e.message,true);}};
+ const f=$('replyform');if(f)f.onsubmit=async e=>{e.preventDefault();const t=$('replytext').value.trim();if(!t)return;f.querySelector('button').disabled=true;
+  try{await call('conversation.reply',{id,text:t});toast('Inviato');await refreshInbox();}catch(err){toast(err.message,true);f.querySelector('button').disabled=false;}};
+}
+// Trial chat: the owner writes as a customer; bookings made here are real (marked «prova» in the note).
+$('simopen').onclick=()=>openSim();
+async function openSim(){
+ curConv='sim';document.querySelectorAll('.conv').forEach(b=>b.classList.remove('on'));
+ const s=await C.api('GET',{resource:'sim',shop:st.shop.id}).catch(()=>({voice:false,messages:[]}));
+ $('thread').innerHTML='<div class="thead"><div><b>Prova l\'assistente</b><div class="small muted">Fai la parte del cliente. Le prenotazioni fatte qui finiscono davvero in agenda, con la nota «prova».</div></div>'+
+  '<button type="button" class="btn ghost small" id="simreset">Ricomincia</button></div>'+
+  '<div class="seg simseg" role="group" aria-label="Come risponde"><button type="button" data-v="0" aria-pressed="'+!s.voice+'">Come su WhatsApp</button><button type="button" data-v="1" aria-pressed="'+!!s.voice+'">Come al telefono</button></div>'+
+  bubbles(s.messages)+
+  '<form class="reply" id="simform"><textarea id="simtext" rows="2" maxlength="1000" placeholder="Es. Ciao, avete posto sabato mattina per un taglio?"></textarea><button class="btn">Invia</button></form>';
+ scrollEnd();let voice=!!s.voice;
+ $('thread').querySelector('.simseg').onclick=e=>{const b=e.target.closest('button');if(!b)return;voice=b.dataset.v==='1';$('thread').querySelectorAll('.simseg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};
+ $('simreset').onclick=async()=>{await call('sim.reset',{}).catch(e=>toast(e.message,true));openSim();};
+ const f=$('simform'),ta=$('simtext');
+ ta.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();f.requestSubmit();}};
+ f.onsubmit=async e=>{e.preventDefault();const t=ta.value.trim();if(!t)return;const btn=f.querySelector('button');btn.disabled=true;ta.value='';
+  const box=$('bubbles');box.querySelector('.muted')?.remove();
+  box.insertAdjacentHTML('beforeend','<div class="bub customer"><span class="who">Tu, come cliente</span>'+esc(t)+'</div><p class="mnote typing">L\'assistente sta scrivendo…</p>');scrollEnd();
+  try{const r=await call('sim.send',{text:t,voice});box.querySelector('.typing')?.remove();
+   box.insertAdjacentHTML('beforeend','<div class="bub assistant"><span class="who">Assistente'+(voice?' (al telefono lo legge a voce)':'')+'</span>'+esc(r.text||'').replace(/\n/g,'<br>')+'</div>'+
+    (r.actions||[]).filter(a=>a.ok&&(a.tool==='prenota'||a.tool==='disdici')).map(a=>'<p class="mnote">'+(a.tool==='prenota'?'Appuntamento messo in agenda':'Appuntamento disdetto')+'</p>').join('')+(r.end?'<p class="mnote">Fine della telefonata</p>':''));
+  }catch(err){box.querySelector('.typing')?.remove();toast(err.message,true);ta.value=t;}
+  btn.disabled=false;scrollEnd();ta.focus();};
+ ta.focus();
+}
+
+// ---------- settings: the assistant ----------
+async function setAssistant(){
+ const s=st.shop;
+ $('setbox').innerHTML='<p class="muted">Carico…</p>';
+ const ch=await C.api('GET',{resource:'channels',shop:s.id}).catch(()=>({admin:false,list:[]}));
+ const wa=ch.list.filter(c=>c.kind==='whatsapp'),vo=ch.list.filter(c=>c.kind==='voice');
+ const row=c=>'<div class="list-row"><div><b>'+esc(c.provider==='meta'?'Il tuo numero WhatsApp Business':C.tel(c.address)||c.address)+'</b><div class="sub">'+(c.kind==='voice'?'Telefono · ':'WhatsApp · ')+(c.provider==='meta'?'collegato con Meta (ID '+esc(c.address)+')':'numero Ciuffo')+'</div></div>'+(ch.admin?'<button type="button" class="btn ghost small" data-delch="'+c.id+'">Togli</button>':'')+'</div>';
+ $('setbox').innerHTML='<h3>Assistente su WhatsApp e al telefono</h3>'+
+  '<p class="muted small">Risponde ai clienti al posto tuo: guarda l\'agenda, propone gli orari liberi, prenota, sposta e disdice. Quando non sa rispondere passa la conversazione a te, e se rispondi tu a mano in una chat si ferma lì per 12 ore.</p>'+
+  '<label class="check"><input type="checkbox" id="as-on"'+(s.assistant_on?' checked':'')+'> Assistente acceso per i clienti</label>'+
+  '<div class="field" style="margin-top:12px"><label for="as-n">Cosa deve sapere oltre a orari e servizi</label><textarea id="as-n" rows="5" maxlength="2000" placeholder="Es. Parcheggio gratuito in piazza. Si paga anche con carta. Per la sposa serve una prova: passala a me. Il colore si prenota solo con Marco.">'+esc(s.assistant_notes||'')+'</textarea>'+
+  '<span class="small muted">Scrivi solo cose vere: l\'assistente le usa come fatti. Quello che non c\'è lo passa a te.</span></div>'+
+  '<button type="button" class="btn" id="as-save">Salva</button> <button type="button" class="btn ghost" id="as-try">Provalo adesso</button>'+
+  '<h3 style="margin-top:24px;font-size:1.05rem">WhatsApp</h3>'+(wa.length?wa.map(row).join(''):'<p class="muted small">Non ancora attivo. Per la prova ti diamo un numero WhatsApp di Ciuffo; poi lo colleghiamo al tuo numero WhatsApp Business, che continui a usare dal telefono.</p>')+
+  '<h3 style="margin-top:20px;font-size:1.05rem">Telefono</h3>'+(vo.length?vo.map(row).join('')+
+   '<p class="small muted">Imposta sul telefono del salone la deviazione verso questo numero quando sei occupato o non rispondi (sui cellulari di solito: <b>**67*numero#</b> se occupato, <b>**61*numero#</b> se non rispondi; sul fisso chiedi al tuo operatore). Così rispondi tu quando puoi e l\'assistente quando non puoi.</p>'
+   :'<p class="muted small">Non ancora attivo. Ti diamo un numero a cui deviare le chiamate quando sei occupato o non rispondi.</p>')+
+  (ch.admin?'<details style="margin-top:16px"><summary class="small">Assegna un numero (solo Ciuffo)</summary><div class="row2" style="margin-top:10px"><div class="field"><label for="ch-k">Canale</label><select id="ch-k"><option value="whatsapp|twilio">WhatsApp · numero Twilio</option><option value="whatsapp|meta">WhatsApp · numero del salone (Meta)</option><option value="voice|twilio">Telefono · numero Twilio</option></select></div>'+
+   '<div class="field"><label for="ch-a">Numero o Phone number ID</label><input id="ch-a" placeholder="+39… oppure ID Meta"></div></div><button type="button" class="btn small" id="ch-add">Assegna</button></details>':'');
+ $('as-save').onclick=async()=>{try{await call('shop.save',{assistant_on:$('as-on').checked,assistant_notes:$('as-n').value.trim()||null});toast('Salvato');await loadSetup(s.id);}catch(e){toast(e.message,true);}};
+ $('as-try').onclick=()=>{show('messaggi');openSim();};
+ $('setbox').onclick=async e=>{const d=e.target.closest('[data-delch]');
+  try{if(d){if(!confirm('Togliere questo numero dal salone?'))return;await call('channel.delete',{id:d.dataset.delch});toast('Tolto');setAssistant();}
+   if(e.target.id==='ch-add'){const [kind,provider]=$('ch-k').value.split('|');await call('channel.save',{kind,provider,address:$('ch-a').value.trim()});toast('Numero assegnato');setAssistant();}}catch(err){toast(err.message,true);}};
+}
+
 boot();
 })();

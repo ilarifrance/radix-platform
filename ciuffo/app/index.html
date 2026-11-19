@@ -17,6 +17,7 @@
   <div class="shopname" id="shopname">…</div>
   <nav class="tabs" aria-label="Sezioni">
    <button type="button" data-view="agenda" aria-current="page">Agenda</button>
+   <button type="button" data-view="messaggi">Messaggi<span class="dotbadge hidden" id="msgbadge"></span></button>
    <button type="button" data-view="clienti">Clienti</button>
    <button type="button" data-view="impostazioni">Impostazioni</button>
   </nav>
@@ -46,6 +47,16 @@
   <p class="legend small muted"><span class="sw free"></span> Libero, tocca per prenotare &nbsp; <span class="sw web"></span> Prenotato online</p>
  </section>
 
+ <section id="v-messaggi" class="hidden">
+  <div class="inbox">
+   <aside class="card inbox-list">
+    <button type="button" class="btn small" id="simopen" style="width:100%;margin-bottom:10px">Prova l'assistente</button>
+    <div id="convlist"><p class="muted small pad">Carico…</p></div>
+   </aside>
+   <section class="card inbox-thread" id="thread"><div class="pad muted">Scegli una conversazione, oppure prova l'assistente facendo la parte di un cliente.</div></section>
+  </div>
+ </section>
+
  <section id="v-clienti" class="hidden">
   <div class="card pad">
    <div class="field"><label for="csearch">Cerca un cliente</label><input id="csearch" placeholder="Nome o numero"></div>
@@ -61,6 +72,7 @@
     <button type="button" data-set="operatori" aria-pressed="false">Operatori</button>
     <button type="button" data-set="chiusure" aria-pressed="false">Chiusure e ferie</button>
     <button type="button" data-set="salone" aria-pressed="false">Salone e prenotazioni</button>
+    <button type="button" data-set="assistente" aria-pressed="false">Assistente WhatsApp e telefono</button>
    </nav>
    <div class="card pad" id="setbox"></div>
   </div>

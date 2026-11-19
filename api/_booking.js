@@ -8,6 +8,7 @@ const crypto=require('node:crypto');
 const {randomUUID}=crypto;
 const S=require('../lib/booking/slots');
 const {hashPassword,verifyPassword,parseCookies}=require('./_auth');
+const {createAssistant}=require('./_booking_assistant');
 
 class BkError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(s,m)=>{throw new BkError(s,m);};
@@ -91,7 +92,7 @@ const SHOP_FIELDS={name:v=>text(v,120,true,'Indica il nome del salone.'),phone:v
  slug:v=>{if(typeof v!=='string'||!SLUG.test(v)||RESERVED.has(v))fail(400,'Indirizzo della pagina non valido: lettere minuscole, numeri e trattini, da 3 a 40 caratteri.');return v;},
  hours:hoursOf,step_min:v=>{if(![5,10,15,20,30,60].includes(v))fail(400,'Intervallo tra gli orari non valido.');return v;},
  min_notice_min:v=>int(v,0,10080,'Preavviso non valido.'),max_days_ahead:v=>int(v,1,365,'Giorni prenotabili non validi.'),cancel_notice_min:v=>int(v,0,10080,'Preavviso di disdetta non valido.'),
- booking_open:v=>bool(v),welcome:v=>text(v,500)};
+ booking_open:v=>bool(v),welcome:v=>text(v,500),assistant_on:v=>bool(v),assistant_notes:v=>text(v,2000)};
 function pick(d,fields){if(!obj(d))fail(400,'Dati non validi.');const out={};for(const [k,v] of Object.entries(d)){if(['id','shop_id'].includes(k))continue;if(!Object.hasOwn(fields,k))fail(400,'Campo non consentito: '+k);out[k]=fields[k](v);}return out;}
 const STAFF_FIELDS={name:v=>text(v,80,true,'Indica il nome.'),color:v=>{if(v===null)return null;if(typeof v!=='string'||!/^#[0-9a-fA-F]{6}$/.test(v))fail(400,'Colore non valido.');return v;},
  hours:v=>v===null?null:hoursOf(v),active:v=>bool(v),position:v=>int(v,0,1000)};
@@ -143,6 +144,24 @@ function createHandler(deps){
    out.push({date:d,slots:slotsFor(shop,{service,staff_id:staffId,date:d,now}).map(x=>({time:x.time,starts_at:x.starts_at}))});}
   return {open:true,days:out};
  }
+// The booking itself, shared by the «Prenota» page and the assistant (WhatsApp, phone): the slot is computed again
+// from the agenda, then customer and appointment are written in one transaction (the database refuses overlaps).
+ async function bookCore(store,{shop,service,staffId,start,name,tel,email:mail_,note,source,detail}){
+  const local=S.utcToLocal(start,shop.timezone);
+  const now=nowOf();if(local.date>S.addDays(todayIn(shop.timezone,now),shop.max_days_ahead))fail(400,'Questa data non è ancora prenotabile.');
+  if(staffId&&!shop.staff.some(t=>t.id===staffId&&t.active))fail(400,'Operatore non valido.');
+  const slot=slotsFor(shop,{service,staff_id:staffId,date:local.date,now}).find(x=>x.starts_at===start);
+  if(!slot)fail(409,'Quell\'orario non è più libero: scegline un altro.');
+  const staff=S.pickStaff(slot.staff_ids,shop.staff,shop.busy);
+  const apptId=randomUUID(),custId=randomUUID(),token=crypto.randomBytes(24).toString('base64url');
+  await store.tx([
+   q('INSERT INTO bk_customers(shop_id,id,name,phone,email) VALUES($1,$2,$3,$4,$5) ON CONFLICT(shop_id,phone) DO UPDATE SET name=EXCLUDED.name,email=coalesce(EXCLUDED.email,bk_customers.email)',[shop.id,custId,name,tel,mail_||null]),
+   q("INSERT INTO bk_appointments(shop_id,id,staff_id,service_id,customer_id,starts_at,ends_at,blocks_until,source,price_cents,note,manage_token_hash) SELECT $1,$2,$3,$4,c.id,$5,$6,$7,$12,$8,$9,$10 FROM bk_customers c WHERE c.shop_id=$1 AND c.phone=$11",
+    [shop.id,apptId,staff,service.id,slot.starts_at,slot.ends_at,slot.blocks_until,service.price_cents,note||null,sha(token),tel,source]),
+   q('INSERT INTO bk_audit(shop_id,actor_id,action,entity_id,detail) VALUES($1,NULL,$2,$3,$4::jsonb)',[shop.id,'appointment.book',apptId,JSON.stringify({source,...(detail||{})})])]);
+  const staffName=(shop.staff.find(t=>t.id===staff)||{}).name||null;
+  return {id:apptId,token,slot,staff,staffName};
+ }
  async function book(store,req,d){
   limit(req,'book',20);
   if(!obj(d))fail(400,'Dati non validi.');
@@ -154,22 +173,13 @@ function createHandler(deps){
   if(!shop.booking_open)fail(409,'Il salone non accetta prenotazioni online in questo momento.');
   const service=shop.services.find(v=>v.id===String(d.service||'').toLowerCase()&&v.active);if(!service)fail(400,'Scegli un servizio.');
   const staffId=d.staff?id(d.staff,'Operatore non valido.'):null;
-  const now=nowOf();if(local.date>S.addDays(todayIn(shop.timezone,now),shop.max_days_ahead))fail(400,'Questa data non è ancora prenotabile.');
-  const slot=slotsFor(shop,{service,staff_id:staffId,date:local.date,now}).find(x=>x.starts_at===start);
-  if(!slot)fail(409,'Quell\'orario non è più libero: scegline un altro.');
-  const staff=S.pickStaff(slot.staff_ids,shop.staff,shop.busy);
-  const apptId=randomUUID(),custId=randomUUID(),token=crypto.randomBytes(24).toString('base64url');
-  await store.tx([
-   q('INSERT INTO bk_customers(shop_id,id,name,phone,email) VALUES($1,$2,$3,$4,$5) ON CONFLICT(shop_id,phone) DO UPDATE SET name=EXCLUDED.name,email=coalesce(EXCLUDED.email,bk_customers.email)',[shop.id,custId,name,tel,mail_]),
-   q("INSERT INTO bk_appointments(shop_id,id,staff_id,service_id,customer_id,starts_at,ends_at,blocks_until,source,price_cents,note,manage_token_hash) SELECT $1,$2,$3,$4,c.id,$5,$6,$7,'web',$8,$9,$10 FROM bk_customers c WHERE c.shop_id=$1 AND c.phone=$11",
-    [shop.id,apptId,staff,service.id,slot.starts_at,slot.ends_at,slot.blocks_until,service.price_cents,note,sha(token),tel]),
-   q('INSERT INTO bk_audit(shop_id,actor_id,action,entity_id,detail) VALUES($1,NULL,$2,$3,$4::jsonb)',[shop.id,'appointment.book',apptId,JSON.stringify({source:'web',ip:clientIp(req)})])]);
-  const staffName=(shop.staff.find(t=>t.id===staff)||{}).name||null,when=fmtWhen(slot.starts_at,shop.timezone);
+  const r=await bookCore(store,{shop,service,staffId,start,name,tel,email:mail_,note,source:'web',detail:{ip:clientIp(req)}});
+  const {slot,staffName,token}=r,when=fmtWhen(slot.starts_at,shop.timezone);
   const link=originOf(req)+'/ciuffo/gestisci.html#t='+token;
   const mailed=await mail(mail_&&{to:mail_,subject:'Appuntamento confermato da '+shop.name,
    text:'Ciao '+name+',\n\nil tuo appuntamento da '+shop.name+' è confermato:\n'+service.name+', '+when+(staffName?' con '+staffName:'')+'.\n'+(shop.address?'\nDove: '+shop.address+(shop.city?', '+shop.city:'')+'\n':'')+
     '\nPer vederlo o disdirlo: '+link+'\n\nA presto!\n'+shop.name});
-  return {id:apptId,token,starts_at:slot.starts_at,ends_at:slot.ends_at,service:service.name,staff:staffName,shop:{name:shop.name,address:shop.address,city:shop.city,phone:shop.phone},mailed};
+  return {id:r.id,token,starts_at:slot.starts_at,ends_at:slot.ends_at,service:service.name,staff:staffName,shop:{name:shop.name,address:shop.address,city:shop.city,phone:shop.phone},mailed};
  }
  const BOOKING_BY_TOKEN="SELECT jsonb_build_object('id',a.id,'status',a.status,'starts_at',a.starts_at,'ends_at',a.ends_at,'service',v.name,'staff',t.name,'customer',c.name,'shop',jsonb_build_object('id',s.id,'slug',s.slug,'name',s.name,'phone',s.phone,'address',s.address,'city',s.city,'timezone',s.timezone,'cancel_notice_min',s.cancel_notice_min)) AS v FROM bk_appointments a JOIN bk_shops s ON s.id=a.shop_id JOIN bk_services v ON v.shop_id=a.shop_id AND v.id=a.service_id JOIN bk_staff t ON t.shop_id=a.shop_id AND t.id=a.staff_id JOIN bk_customers c ON c.shop_id=a.shop_id AND c.id=a.customer_id WHERE a.manage_token_hash=$1";
  async function byToken(store,token){
@@ -225,7 +235,7 @@ function createHandler(deps){
  async function member(store,shop,uid){const r=await store.json('SELECT to_jsonb(bk_role($1::uuid,$2::integer)) AS v',[shop,uid]);if(!r)fail(403,'Non hai accesso a questo salone.');return r;}
  async function setup(store,shop,uid){
   const role=await member(store,shop,uid);
-  const s=await store.json("SELECT "+SHOP_PUBLIC+"||jsonb_build_object('email',s.email,'staff',"+STAFF_JSON+",'services',"+SERVICES_JSON+",'closures',"+CLOSURES_JSON('(now() AT TIME ZONE s.timezone)::date - 31')+") AS v FROM bk_shops s WHERE s.id=$1",[shop]);
+  const s=await store.json("SELECT "+SHOP_PUBLIC+"||jsonb_build_object('email',s.email,'assistant_on',s.assistant_on,'assistant_notes',s.assistant_notes,'staff',"+STAFF_JSON+",'services',"+SERVICES_JSON+",'closures',"+CLOSURES_JSON('(now() AT TIME ZONE s.timezone)::date - 31')+") AS v FROM bk_shops s WHERE s.id=$1",[shop]);
   if(!s)fail(404,'Salone non trovato.');s.role=role;return s;
  }
  async function agenda(store,shop,uid,qs){
@@ -296,8 +306,30 @@ function createHandler(deps){
   }
  }
 
+ const assistantFor=req=>createAssistant({fail,q,S,loadShop,dayWindow,slotsFor,todayIn,bookCore,nowOf,mail,fmtWhen,BkError,
+  env:deps.env,fetch:deps.fetch,callModel:deps.callModel,origin:originOf(req)});
+ const ownerTools={ROLE:(...a)=>ROLE(...a),audit:(...a)=>audit(...a),text};
+ // Webhooks of Twilio (WhatsApp, phone) and Meta (WhatsApp Business): signed by the provider, answered in its format.
+ async function hook(req,res,qs){
+  const store=deps.getStore(),as=assistantFor(req),url=originOf(req)+(req.url||'');
+  const send=(status,type,body)=>{res.statusCode=status;res.setHeader('Content-Type',type);res.end(body);};
+  try{
+   if(qs.hook==='twilio-wa')return send(200,'text/xml',await as.twilioWhatsApp(store,req,url));
+   if(qs.hook==='twilio-voice')return send(200,'text/xml',await as.twilioVoice(store,req,url,qs));
+   if(qs.hook==='meta'){
+    if(req.method==='GET')return send(200,'text/plain',as.metaVerify(qs));
+    const raw=Buffer.isBuffer(req.rawBody)?req.rawBody:Buffer.from(typeof req.body==='string'?req.body:JSON.stringify(req.body||{}));
+    return send(200,'application/json',JSON.stringify(await as.metaWebhook(store,req,raw)));
+   }
+   return send(404,'text/plain','Not found');
+  }catch(e){const err=dbError(e);if(err.status>=500)console.error('ciuffo hook',qs.hook,e&&e.message);
+   // Twilio reads the TwiML even on errors: the caller hears a polite sentence instead of «an application error».
+   if(qs.hook==='twilio-voice'&&err.status>=500)return send(200,'text/xml','<?xml version="1.0" encoding="UTF-8"?><Response><Say language="it-IT">Scusa, c\'è un problema tecnico. Riprova tra poco.</Say><Hangup/></Response>');
+   return send(err.status,'text/plain',err.message);}
+ }
  return async function handler(req,res){
   res.setHeader('Cache-Control','no-store');
+  const qs0=req.query||{};if(qs0.hook)return hook(req,res,qs0);
   try{
    const qs=req.query||{};
    if(req.method==='GET'){
@@ -314,6 +346,12 @@ function createHandler(deps){
      case 'setup':return res.status(200).json(await setup(store,id(qs.shop,'Salone non valido.'),u.uid));
      case 'agenda':return res.status(200).json(await agenda(store,id(qs.shop,'Salone non valido.'),u.uid,qs));
      case 'customers':return res.status(200).json(await customers(store,id(qs.shop,'Salone non valido.'),u.uid,qs));
+     case 'conversations':case 'conversation':case 'channels':case 'sim':{
+      const shop=id(qs.shop,'Salone non valido.');await member(store,shop,u.uid);const as=assistantFor(req);
+      if(qs.resource==='conversations')return res.status(200).json(await as.conversations(store,shop));
+      if(qs.resource==='conversation')return res.status(200).json(await as.conversation(store,shop,id(qs.id,'Conversazione non valida.')));
+      if(qs.resource==='channels')return res.status(200).json(await as.channels(store,shop,u.uid));
+      return res.status(200).json(await as.simConversation(store,shop,u.uid)||{voice:false,messages:[]});}
     }
     fail(400,'Risorsa non riconosciuta.');
    }
@@ -330,6 +368,11 @@ function createHandler(deps){
     case 'auth.logout':res.setHeader('Set-Cookie',clearCookie());return res.status(200).json({ok:true});
    }
    const u=deps.getOwner(req);if(!u)fail(401,'Accedi per continuare.');
+   if(/^(conversation|sim|channel)\./.test(String(action||''))){
+    if(!obj(data))fail(400,'Dati non validi.');limit(req,'assistant',action==='sim.send'?120:300);
+    const r=await assistantFor(req).ownerAct(store,u.uid,action,id(body.shop,'Salone non valido.'),data,ownerTools);
+    if(r===undefined)fail(400,'Azione non riconosciuta.');return res.status(200).json(r);
+   }
    return res.status(200).json(await act(store,u.uid,action,id(body.shop,'Salone non valido.'),data,req));
   }catch(e){const err=dbError(e);return res.status(err.status).json({error:err.message});}
  };
