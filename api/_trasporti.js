@@ -6,6 +6,8 @@
 
    POST /api/trasporti {action:'documento.leggi', data:{kind, image (base64), media_type}}
         session cookie + X-Radix-Trasporti: 1 + application/json
+   POST /api/trasporti {action:'pratica.leggi', data:{first, pages:[{image, media_type}]}} → documents found in up to
+        12 pages of a scanned bundle (the browser renders the PDF into page images and sends them in batches).
    POST /api/trasporti {action:'posizioni.aggiorna'} → {provider, positions} from the tracker of the pilot company.
         TRASPORTI_TRACKER = JSON {"provider":"webfleet"|"verizon"|"rfms", ...credentials} on the server only
         (webfleet: account, username, password, apikey · verizon: username, password, app_id, vehicles[], base_url?
@@ -14,6 +16,7 @@
    TRASPORTI_AI_MODEL optional. At most DAILY readings per member per day on this instance. */
 const doc=require('../lib/trasporti/documenti');
 const loc=require('../lib/trasporti/localizzatori');
+const pr=require('../lib/trasporti/pratiche');
 
 const MEDIA=['image/jpeg','image/png','image/webp','application/pdf'];
 const MAX_BASE64=4200000; // Vercel accepts request bodies up to 4.5 MB; the app shrinks photos to ~1600 px first.
@@ -21,12 +24,12 @@ const DAILY=300;
 function failure(status,message){const e=new Error(message);e.status=status;return e;}
 
 let client=null;
-async function defaultAsk({system,content}){
+async function defaultAsk({system,content,maxTokens=4000}){
  if(!process.env.ANTHROPIC_API_KEY)return null;
  const Anthropic=require('@anthropic-ai/sdk');
  client=client||new (Anthropic.default||Anthropic)();
  const r=await client.beta.messages.create({
-  model:process.env.TRASPORTI_AI_MODEL||'claude-sonnet-5-5',max_tokens:4000,
+  model:process.env.TRASPORTI_AI_MODEL||'claude-sonnet-5-5',max_tokens:maxTokens,
   betas:['server-side-fallback-2026-07-01'],fallbacks:'default',output_config:{effort:'low'},
   system:[{type:'text',text:system,cache_control:{type:'ephemeral'}}],messages:[{role:'user',content}]});
  if(r.stop_reason==='refusal')return {refused:true};
@@ -58,6 +61,23 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
     try{positions=await fetchPositions(c.provider,c);}
     catch(e){console.error('trasporti posizioni',c.provider,e&&e.message);throw failure(502,(loc.PROVIDERS[c.provider].label)+' non risponde: riprova tra qualche minuto.');}
     return res.status(200).json({provider:c.provider,positions:positions.slice(0,5000)});
+   }
+   if(body.action==='pratica.leggi'){
+    const d=body.data&&typeof body.data==='object'?body.data:{};
+    const pages=Array.isArray(d.pages)?d.pages:[];const first=Number.isInteger(d.first)&&d.first>=1&&d.first<=500?d.first:1;
+    if(!pages.length||pages.length>pr.MAX_PAGES)throw failure(400,'Da 1 a '+pr.MAX_PAGES+' pagine per volta.');
+    let size=0;
+    for(const p of pages){if(!p||!['image/jpeg','image/png','image/webp'].includes(p.media_type)||typeof p.image!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(p.image))throw failure(400,'Pagina non valida.');size+=p.image.length;}
+    if(size>MAX_BASE64)throw failure(413,'Pagine troppo grandi: riprova, l\'app le riduce.');
+    const key=user.uid+':'+new Date(now()).toISOString().slice(0,10);
+    const n=(counts.get(key)||0)+pages.length;if(n>DAILY)throw failure(429,'Limite di letture di oggi raggiunto: riprova domani.');
+    let answer;
+    try{answer=await ask({system:doc.SYSTEM,maxTokens:12000,content:[...pages.map(p=>({type:'image',source:{type:'base64',media_type:p.media_type,data:p.image}})),{type:'text',text:pr.instructions(first,pages.length)}]});}
+    catch(e){console.error('trasporti pratica.leggi',e&&e.message);throw failure(502,'La lettura automatica non risponde: riprova.');}
+    if(answer===null)throw failure(503,'Lettura automatica non configurata su questo ambiente.');
+    counts.set(key,n);
+    if(answer.refused)return res.status(200).json({documents:[],error:'Queste pagine non sono state lette.'});
+    return res.status(200).json(pr.parseBatch(answer.text,first,pages.length));
    }
    if(body.action!=='documento.leggi')throw failure(400,'Azione non riconosciuta.');
    const d=body.data&&typeof body.data==='object'?body.data:{};

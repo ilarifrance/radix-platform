@@ -185,3 +185,90 @@ test('Excel: written file has the sheets, numbers as numbers, euro and date form
  const p=TOLL.parseTransits(rows);assert.equal(p.error,null);assert.deepEqual([p.transits[0].exitAt,p.transits[0].plate,p.transits[0].amount_cents],['2026-11-12T07:05','GA123BC',1240]);
  await assert.rejects(XL.read(new Uint8Array([1,2,3])),/Excel/);
 });
+
+// A bundle shaped like the real ones (names invented): two cattle consignments on one truck, each with contract,
+// CMR in two copies, carnet de route over 5 pages cut by the batch boundary; a weighing ticket stuck on a CMR page.
+const PR=require('../lib/trasporti/pratiche');
+const c=(v,s='alta')=>({valore:v,sicurezza:s});
+const BATCH1={documenti:[
+ {tipo:'contratto',pagine:[1],campi:{numero:c('2125BRXX 106'),data:c('30/04/25'),venditore:c('Esempio Export'),acquirente:c('Azienda Agricola Uno'),capi:c('15'),qualita:c('Broutards femelles'),resa:c('reso franco destino')}},
+ {tipo:'cmr',pagine:[2],campi:{numero:c('1302'),mittente:c('Esempio Export'),destinatario:c('Azienda Agricola Uno'),luogo_carico:c('Pouilly en Auxois (21) France'),luogo_scarico:c('Canneto sull\'Oglio'),data_presa_in_carico:c('30/04/2025'),documenti_allegati:c('Certificat sanitaire 2125 BRXX 106 Intra EV.FR.2025 0032291','media'),istruzioni:c('Prix rendu'),consegna_data:c('01/05/2025','media')}},
+ {tipo:'pesata',pagine:[2],campi:{data:c('01/05/2025'),peso_entrata_kg:c('13320'),peso_uscita_kg:c('8800'),peso_netto_kg:c('4520')}},
+ {tipo:'cmr',pagine:[3],copia:true,campi:{numero:c('1302'),mittente:c('Esempio Export'),destinatario:c('Azienda Agricola Uno'),luogo_carico:c('Pouilly en Auxois'),luogo_scarico:c(null),targa:c('FF902PW')}},
+ {tipo:'giornale',pagine:[4,5,6],campi:{numero:c('2125BRXX 106'),certificato_sanitario:c('INTRA.EU.FR.2025.0032291'),specie:c('Bovins'),numero_animali:c('15'),peso_stimato_kg:c('4 779'),luogo_partenza:c('Bellenot sous Pouilly (21) France'),partenza:c('30/04/2025 18:00'),luogo_destinazione:c('Canneto sull\'Oglio'),arrivo_previsto:c('01/05/2025 07:00'),targa:c('FF902PW'),targa_rimorchio:c('XA449EE'),conducente:c('Luca Esempio')}}]};
+const BATCH2={documenti:[
+ {tipo:'giornale',pagine:[7,8],continua:true,campi:{arrivo_effettivo:c('01/05/2025 06:30'),animali_idonei_arrivo:c('15')}},
+ {tipo:'cmr',pagine:[9],campi:{numero:c('1312'),mittente:c('Esempio Export'),destinatario:c('Società Agricola Due'),luogo_carico:c('Pouilly en Auxois'),luogo_scarico:c('Mogliano Veneto (TV)'),documenti_allegati:c('Certificat sanitaire 2125 BRXX 105 Intra EV.FR.2025 0032289'),consegna_ricevuto_da:c('Società Agricola Due','media')}},
+ {tipo:'contratto',pagine:[10],campi:{numero:c('2125BRXX 105'),venditore:c('Esempio Export'),acquirente:c('Società Agricola Due'),capi:c('20')}},
+ {tipo:'giornale',pagine:[11,12],campi:{numero:c('2125BRXX 105'),certificato_sanitario:c('INTRA.EU.FR.2025.0032289'),specie:c('Bovins'),numero_animali:c('21'),luogo_partenza:c('Bellenot sous Pouilly'),partenza:c('30/04/2025 18:30'),luogo_destinazione:c('Mogliano Veneto')}},
+ {tipo:'boh',pagine:[99],campi:{}}]};
+
+test('bundle: batches merged, CMR copies collapsed, carnet joined across batches, consignments grouped by shared numbers',()=>{
+ assert.match(PR.instructions(13,12),/pagine da 13 a 24/);assert.deepEqual(PR.pageBatches(23,12),[{first:1,count:12},{first:13,count:11}]);
+ const b1=PR.parseBatch(JSON.stringify(BATCH1),1,6),b2=PR.parseBatch('```json\n'+JSON.stringify(BATCH2)+'\n```',7,6);
+ assert.equal(b2.documents[4].kind,'altro');assert.deepEqual(b2.documents[4].pages,[7]); // page outside the batch is not trusted
+ assert.equal(PR.parseBatch('boh',1,3).error.includes('1-3'),true);
+ const docs=PR.merge([b1.documents,b2.documents]);
+ const cmr=docs.filter(d=>d.kind==='cmr');assert.equal(cmr.length,2);
+ assert.deepEqual(cmr[0].copy_pages,[3]);assert.equal(cmr[0].fields.targa,'FF902PW');assert.equal(cmr[0].fields.consegna_data,'2025-05-01'); // filled from the copy
+ const g=docs.find(d=>d.kind==='giornale'&&d.fields.numero==='2125BRXX 106');assert.deepEqual(g.pages,[4,5,6,7,8]);assert.equal(g.fields.animali_idonei_arrivo,15);assert.equal(g.fields.peso_stimato_kg,4779);
+ const groups=PR.group(docs);
+ assert.equal(groups.length,2,JSON.stringify(groups.map(x=>x.documents.map(d=>d.kind+d.pages))));
+ const [s1,s2]=groups.map(PR.shipmentOf);
+ assert.deepEqual(s1.documents.map(d=>d.kind).sort(),['altro','cmr','contratto','giornale','pesata']); // loose pages stay with what was scanned before them
+ assert.deepEqual([s1.number,s1.consignee,s1.animals,s1.weight_kg,s1.delivered_at,s1.plate,s1.customer_hint],['1302','Azienda Agricola Uno',15,4520,'2025-05-01','FF902PW','Esempio Export']);
+ assert.deepEqual(s2.documents.map(d=>d.kind).sort(),['cmr','contratto','giornale']);
+ assert.equal(s2.animals,21);assert.ok(s2.warnings.some(w=>/Capi diversi.*20.*21/.test(w)));assert.ok(s2.warnings.some(w=>/casella 24/.test(w)));
+ const alone=PR.group([{id:'x',kind:'giornale',pages:[1],fields:{numero:'99XX99999'}}]).map(PR.shipmentOf)[0];
+ assert.equal(alone.kind,'altro');assert.ok(alone.warnings.some(w=>/Manca la CMR/.test(w)));
+});
+
+test('CMR groupage lines: normalised, totals, confirmed lines kept',()=>{
+ const r=DOC.parseReading('cmr',{campi:{numero:c('34719'),mittente:c('Mittenti vari'),destinatario:c('Stock B SAS'),luogo_carico:c('Sassuolo'),luogo_scarico:c('Vitry sur Seine'),pallet:c('26'),peso_kg:c('13.405'),
+  righe:[{colli:'1',imballaggio:'pallet',descrizione:'Alfa Maranello',ddt:'362504',data:'16/06/2023',peso_kg:'47'},{colli:'6',descrizione:'Alfa Maranello',ddt:'79553',data:'16/06/2023',peso_kg:'5.072'},null,{}]}});
+ assert.equal(r.righe.length,2);assert.deepEqual(r.righe[1],{colli:6,imballaggio:null,descrizione:'Alfa Maranello',ddt:'79553',data:'2023-06-16',peso_kg:5072});
+ assert.equal(r.campi.peso_kg,13405);assert.equal(r.campi.pallet,26);assert.match(DOC.instructions('cmr'),/righe/);assert.doesNotMatch(DOC.instructions('giornale'),/righe/);
+ const ok=DOC.checkConfirmed('cmr',{numero:'1',mittente:'a',destinatario:'b',luogo_carico:'c',luogo_scarico:'d',righe:[{colli:'2',peso_kg:'1.000,5'}]});
+ assert.ok(ok.ok);assert.equal(ok.values.righe[0].peso_kg,1000.5);
+ const s=PR.shipmentOf({id:'s1',documents:[{id:'d1',kind:'cmr',pages:[1],fields:{...r.campi,pallet:null},lines:r.righe}]});
+ assert.equal(s.pallets,7);assert.equal(s.weight_kg,13405);
+});
+
+test('API pratica.leggi: page limits, then the batch reading with absolute page numbers',async()=>{
+ let seen=null;const H=createHandler({getSessionUser:()=>({uid:4}),ask:async a=>{seen=a;return {text:JSON.stringify(BATCH2)};}});
+ const page={image:IMG,media_type:'image/jpeg'};
+ assert.equal((await call(H,{body:{action:'pratica.leggi',data:{pages:[]}}})).status,400);
+ assert.equal((await call(H,{body:{action:'pratica.leggi',data:{pages:Array(13).fill(page)}}})).status,400);
+ assert.equal((await call(H,{body:{action:'pratica.leggi',data:{pages:[{image:IMG,media_type:'application/pdf'}]}}})).status,400);
+ assert.equal((await call(H,{body:{action:'pratica.leggi',data:{pages:[{image:'A'.repeat(4200004),media_type:'image/jpeg'}]}}})).status,413);
+ assert.equal(seen,null);
+ const r=await call(H,{body:{action:'pratica.leggi',data:{first:7,pages:Array(6).fill(page)}}});
+ assert.equal(r.status,200);assert.equal(seen.content.length,7);assert.match(seen.content[6].text,/pagine da 7 a 12/);assert.equal(seen.maxTokens,12000);
+ assert.equal(r.body.documents.length,5);assert.equal(r.body.documents[1].fields.numero,'1312');
+});
+
+test('customer: broker in box 16 when we are the successive carrier; per conto di; live pigs DDT',()=>{
+ const PR=require('../lib/trasporti/pratiche');
+ const own='Autotrasporti Esempio Srl';
+ const cmr={id:'c',documents:[{id:'d1',kind:'cmr',pages:[1],fields:{numero:'00539',mittente:'Mittente Uno Spa',destinatario:'Ricevitore FR',vettore:'Broker Logistica Srl',vettore_successivo:'Autotrasporti Esempio',pallet:7,peso_kg:736}}]};
+ const s=PR.shipmentOf(cmr,own);
+ assert.equal(s.customer_hint,'Broker Logistica Srl');assert.match(s.customer_why,/subvettori/);
+ // we are the carrier in box 16 → sender pays
+ cmr.documents[0].fields.vettore='Autotrasporti Esempio S.r.l.';cmr.documents[0].fields.vettore_successivo=null;
+ assert.equal(PR.shipmentOf(cmr,own).customer_hint,'Mittente Uno Spa');
+ const ddt={id:'p',documents:[{id:'d2',kind:'ddt',pages:[1],fields:{numero:'14',mittente:'Allevamento Esempio',destinatario:'Macello Esempio',per_conto_di:'Soccida Esempio Srl',specie:'Suini',numero_capi:110,modello_4:'14',peso_kg:20150}}]};
+ const p=PR.shipmentOf(ddt,own);
+ assert.deepEqual([p.customer_hint,p.animals,p.species,p.animal_ref,p.weight_kg],['Soccida Esempio Srl',110,'Suini','14',20150]);
+ assert.match(DOC.instructions('ddt'),/numero_capi/);assert.match(DOC.instructions('cmr'),/casella|16 vettore/);
+});
+
+test('invoicing: one row per shipment, trip amount split by kg unless a shipment has its own',()=>{
+ const trips=[{id:'t',status:'chiuso',started_at:'2026-11-10T06:00',customer_id:'c1',vehicle_id:'v1',revenue_cents:100000}];
+ const customers=[{id:'c1',name:'Uno'},{id:'c2',name:'Broker'}];
+ const shipments=[{id:'a',trip_id:'t',kind:'cmr',number:'1',weight_kg:3000,customer_id:'c2'},{id:'b',trip_id:'t',kind:'cmr',number:'2',weight_kg:1000}];
+ let r=MRG.invoiceRows({trips,documents:[],vehicles:[],customers,drivers:[],shipments,from:'2026-11-01',to:'2026-11-30'});
+ assert.deepEqual(r.map(x=>[x.customer,x.doc,x.amount_cents,x.split_by]),[['Broker','CMR 1',75000,'weight_kg'],['Uno','CMR 2',25000,'weight_kg']]);
+ shipments[1].revenue_cents=40000;
+ r=MRG.invoiceRows({trips,documents:[],vehicles:[],customers,drivers:[],shipments,from:'2026-11-01',to:'2026-11-30'});
+ assert.deepEqual(r.map(x=>x.amount_cents),[60000,40000]);
+});

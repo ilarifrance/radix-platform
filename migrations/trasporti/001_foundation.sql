@@ -1,6 +1,6 @@
 -- RADIX Trasporti foundation: transport companies, members, vehicles, drivers, customers, trips, documents,
 -- positions, costs and toll transits. Amounts in integer cents. Every table is scoped by company_id.
--- MANUAL: NOT applied anywhere yet. Apply on the Preview database (Neon radix-preview) only after Francesco's OK;
+-- Applied on Neon radix-preview on 19/11/2026 with Francesco's OK ("ok per le tabelle");
 -- production needs a separate OK. Requires public.users(id integer).
 -- Positions: kept only while a trip is open (the app never sends them otherwise) and deleted after 90 days by
 -- tr_purge_positions(), to respect art. 4 Statuto dei lavoratori and the Garante's limits on location data.
@@ -47,7 +47,7 @@ CREATE TABLE tr_trips (
 CREATE INDEX tr_trips_vehicle ON tr_trips(company_id,vehicle_id,started_at);
 CREATE TABLE tr_documents (
  company_id uuid NOT NULL REFERENCES tr_companies(id) ON DELETE CASCADE, id uuid NOT NULL, trip_id uuid NOT NULL,
- kind text NOT NULL CHECK(kind IN('ddt','cmr','giornale','carburante','consegna','altro')),
+ kind text NOT NULL CHECK(kind IN('ddt','cmr','giornale','contratto','pesata','certificato','carburante','consegna','altro')),
  file_url text CHECK(length(file_url)<=600), fields jsonb NOT NULL DEFAULT '{}' CHECK(jsonb_typeof(fields)='object' AND length(fields::text)<=20000),
  read_fields jsonb CHECK(read_fields IS NULL OR length(read_fields::text)<=20000), -- what the AI read, kept to measure corrections
  confirmed_by integer REFERENCES users(id), confirmed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
@@ -55,7 +55,8 @@ CREATE TABLE tr_documents (
 CREATE TABLE tr_positions (
  company_id uuid NOT NULL REFERENCES tr_companies(id) ON DELETE CASCADE, vehicle_id uuid NOT NULL, at timestamptz NOT NULL,
  lat double precision NOT NULL CHECK(lat BETWEEN -90 AND 90), lon double precision NOT NULL CHECK(lon BETWEEN -180 AND 180),
- source text NOT NULL CHECK(source IN('telefono','localizzatore','rfms')), trip_id uuid,
+ source text NOT NULL CHECK(source IN('telefono','webfleet','verizon','targa','rfms','file','localizzatore')), trip_id uuid,
+ speed_kmh real, odometer_km numeric(10,1),
  PRIMARY KEY(company_id,vehicle_id,at,source));
 CREATE TABLE tr_costs (
  company_id uuid NOT NULL REFERENCES tr_companies(id) ON DELETE CASCADE, id uuid NOT NULL,

@@ -104,14 +104,25 @@ function renderTrips(){
  const read=data.documents.filter(d=>d.kind!=='consegna'),corrected=read.filter(d=>d.corrected).length;
  const noPod=trips.filter(t=>t.status!=='aperto'&&!docsOf(t.id).some(d=>d.kind==='consegna')).length;
  view.innerHTML=kpis([[num(trips.length),'Viaggi nel periodo'],[num(trips.filter(t=>!docsOf(t.id).some(d=>d.kind!=='consegna')).length),'Senza documento di trasporto'],[num(noPod),'Chiusi senza consegna firmata'],[read.length?Math.round((read.length-corrected)*100/read.length)+'%':'—','Letti senza correzioni']])
-  +'<div class="tr-toolbar"><button class="tr-btn ghost small" id="xlsTrips">Scarica viaggi in Excel</button></div>'
+  +'<div class="tr-toolbar"><button class="tr-btn small" id="pratica">Carica pratica (PDF)</button><button class="tr-btn ghost small" id="xlsTrips">Scarica viaggi in Excel</button></div>'
   +'<div class="tr-grid2"><section class="tr-panel"><h2>Viaggi</h2><table class="tr-table"><thead><tr><th>Data</th><th>Mezzo</th><th>Autista</th><th>Tratta</th><th>Documenti</th><th>Stato</th></tr></thead><tbody>'
   +trips.map(t=>{const ds=docsOf(t.id);return '<tr data-trip="'+esc(t.id)+'"'+(sel===t.id?' class="sel"':'')+' style="cursor:pointer" tabindex="0"><td>'+dmy(t.started_at)+'<br><span class="tr-subtle">'+hm(t.started_at)+'–'+(hm(t.ended_at)||'in corso')+'</span></td><td>'+esc(veh(t.vehicle_id).plate)+'</td><td>'+esc(drv(t.driver_id).name)+'</td><td class="wrap">'+esc((t.origin||'?')+' → '+(t.destination||'?'))+'</td><td>'+(ds.length?ds.map(d=>'<span class="tr-pill'+(d.corrected?' flag':' ok')+'">'+esc(DOC_LABEL(d.kind))+'</span>').join(' '):'<span class="tr-pill bad">manca</span>')+'</td><td>'+esc(t.status)+'</td></tr>';}).join('')
   +'</tbody></table></section><section class="tr-panel" id="detail">'+tripDetail(sel)+'</section></div>';
  view.querySelectorAll('[data-trip]').forEach(r=>{r.onclick=()=>{sel=r.dataset.trip;renderTrips();};r.onkeydown=e=>{if(e.key==='Enter')r.onclick();};});
  $('xlsTrips').onclick=()=>xlsx('viaggi-'+p.from+'-'+p.to+'.xlsx',[{name:'Viaggi',columns:[{title:'Data',type:'date'},{title:'Partenza',type:'datetime'},{title:'Arrivo',type:'datetime'},{title:'Mezzo'},{title:'Autista'},{title:'Cliente'},{title:'Da'},{title:'A'},{title:'Km',type:'int'},{title:'Ricavo',type:'euro'},{title:'Stato'},{title:'Documenti'}],
   rows:trips.map(t=>[t.started_at.slice(0,10),t.started_at,t.ended_at,veh(t.vehicle_id).plate,drv(t.driver_id).name,cus(t.customer_id).name,t.origin,t.destination,t.km,t.revenue_cents!=null?t.revenue_cents/100:null,t.status,docsOf(t.id).map(d=>DOC_LABEL(d.kind)+(d.fields&&d.fields.numero?' '+d.fields.numero:'')).join(', ')])}]);
+ $('pratica').onclick=()=>{if(!window.TrPratica){say('Modulo pratiche non caricato.','error');return;}window.scrollTo(0,0);window.TrPratica.open(view,{data,save,tripId:sel,done:msg=>{renderTrips();if(msg)say(msg,'ok');}});};
  bindTripEdit();
+}
+function shipmentsOf(id){
+ const ss=(data.shipments||[]).filter(s=>s.trip_id===id);if(!ss.length)return '';
+ return '<h3>Spedizioni ('+ss.length+')</h3><div style="overflow-x:auto"><table class="tr-table"><thead><tr><th>Documento</th><th>Destinatario</th><th>Cliente</th><th class="num">Quantità</th><th>Consegna</th><th class="num">Importo €</th></tr></thead><tbody>'
+  +ss.map(s=>'<tr><td>'+esc((s.kind||'').toUpperCase()+' '+(s.number||''))+'</td><td class="wrap">'+esc(s.consignee||'')+'<br><span class="tr-subtle">'+esc(s.delivery_place||'')+'</span></td><td class="wrap">'+esc(cus(s.customer_id).name||s.customer_hint||'')+(s.customer_why?'<br><span class="tr-subtle">'+esc(s.customer_why)+'</span>':'')+'</td>'
+   +'<td class="num">'+[s.animals?num(s.animals)+' capi':null,s.pallets?num(s.pallets)+' pallet':null,s.weight_kg?num(s.weight_kg)+' kg':null].filter(Boolean).join('<br>')+'</td>'
+   +'<td>'+(s.delivered_at?'<span class="tr-pill ok">'+dmy(s.delivered_at)+'</span>':'<span class="tr-pill flag">non firmata</span>')+'</td>'
+   +'<td class="num"><input class="tr-mini" data-shiprev="'+esc(s.id)+'" inputmode="decimal" placeholder="quota" value="'+esc(s.revenue_cents!=null?(s.revenue_cents/100).toFixed(2).replace('.',','):'')+'" aria-label="Importo della spedizione"></td></tr>'
+   +((s.warnings||[]).length?'<tr><td colspan="6" class="wrap tr-subtle">'+s.warnings.map(esc).join(' · ')+'</td></tr>':'')).join('')
+  +'</tbody></table></div><p class="tr-subtle">Senza importo, il totale del viaggio si divide tra le spedizioni per peso, capi o pallet.</p>';
 }
 function tripDetail(id){
  const t=data.trips.find(x=>x.id===id);if(!t)return '<h2>Dettaglio</h2><p class="tr-muted">Scegli un viaggio per vedere i documenti letti dalle foto e correggere km e importo.</p>';
@@ -122,6 +133,7 @@ function tripDetail(id){
   +'<label>Stato<select name="status">'+['aperto','chiuso','fatturato'].map(s=>'<option'+(t.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select></label><button class="tr-btn small">Salva</button></form>'
   +(km?'<p class="tr-subtle">Dal localizzatore: '+num(km.km)+' km'+(km.method==='punti_gps'?' in linea d\'aria tra '+km.points+' posizioni (il percorso su strada è più lungo)':' dal contachilometri')+(t.km==null?' · <button type="button" class="tr-link" id="useKm">usa questo valore</button>':'')+'</p>':'')
   +'<p class="tr-error" id="tripErr" hidden></p>'
+  +shipmentsOf(id)
   +is.map(i=>'<p class="tr-banner'+(i.resolved?'':' error')+'"><strong>'+esc(ISSUE[i.kind]||i.kind)+'</strong> '+hm(i.at)+': '+esc(i.text||'')+(i.resolved?' (gestita)':'')+'</p>').join('')
   +(ds.length?ds.map(d=>{
    if(d.kind==='consegna'){const f=d.fields||{};return '<h3>Consegna firmata <span class="tr-subtle">'+dmy(d.at)+' '+hm(d.at)+'</span></h3><table class="tr-table"><tbody><tr><th>Ricevuto da</th><td>'+esc(f.ricevuto_da||'')+'</td></tr>'+(f.riserve?'<tr><th>Riserve</th><td class="wrap">'+esc(f.riserve)+'</td></tr>':'')+'<tr><th>Firma</th><td>'+(typeof f.firma==='string'&&f.firma.startsWith('data:image/')?'<img src="'+esc(f.firma)+'" alt="Firma del destinatario" style="max-width:240px;background:#fff;border-radius:6px">':f.firma?'presente':'—')+'</td></tr>'+(d.photo?'<tr><th>Foto</th><td><img src="'+esc(d.photo)+'" alt="Foto alla consegna" style="max-width:240px;border-radius:6px"></td></tr>':'')+'</tbody></table>';}
@@ -136,6 +148,7 @@ function bindTripEdit(){
   if(el.rev.value.trim()!==''&&(rev==null||rev<0)){err.textContent='Importo non valido.';err.hidden=false;return;}
   t.km=km;t.revenue_cents=rev==null?null:Math.round(rev*100);t.status=el.status.value;if(t.status!=='aperto'&&!t.ended_at)t.ended_at=nowIso();
   save();say('Viaggio aggiornato.','ok');renderTrips();};
+ document.querySelectorAll('[data-shiprev]').forEach(inp=>{inp.onchange=()=>{const s=data.shipments.find(x=>x.id===inp.dataset.shiprev);if(!s)return;const v=inp.value.trim()===''?null:DOC.normNumber(inp.value);if(v!=null&&v<0)return;s.revenue_cents=v==null?null:Math.round(v*100);save();say('Importo della spedizione salvato.','ok');};});
  const u=$('useKm');if(u)u.onclick=()=>{const km=LOC.tripKm(t,data.positions,nowIso());if(km){f.elements.km.value=km.km;}};
 }
 
@@ -202,18 +215,18 @@ function renderMargin(){
 
 // ---------- invoicing ----------
 function renderInvoicing(){
- const p=period();const rows=MRG.invoiceRows({trips:data.trips,documents:data.documents,vehicles:data.vehicles,customers:data.customers,drivers:data.drivers,from:p.from,to:p.to});
+ const p=period();const rows=MRG.invoiceRows({trips:data.trips,documents:data.documents,vehicles:data.vehicles,customers:data.customers,drivers:data.drivers,shipments:data.shipments,from:p.from,to:p.to});
  const byC=new Map();for(const r of rows){const g=byC.get(r.customer)||{n:0,c:0};g.n++;g.c+=r.amount_cents;byC.set(r.customer,g);}
  const pod=new Set(data.documents.filter(d=>d.kind==='consegna').map(d=>d.trip_id));
  view.innerHTML='<section class="tr-panel"><h2>Da fatturare nel periodo</h2><p class="tr-muted">Viaggi chiusi con i dati del documento confermato dall\'autista. Il file Excel ha un foglio per il riepilogo per cliente e uno con il dettaglio, pronto per il programma di fatturazione.</p>'
   +'<div class="tr-toolbar"><button class="tr-btn" id="xls"'+(rows.length?'':' disabled')+'>Scarica in Excel</button><button class="tr-btn ghost" id="csv"'+(rows.length?'':' disabled')+'>CSV</button><button class="tr-btn ghost" id="mark"'+(rows.length?'':' disabled')+'>Segna come fatturati</button></div>'
   +'<table class="tr-table"><thead><tr><th>Cliente</th><th class="num">Viaggi</th><th class="num">Importo</th></tr></thead><tbody>'+[...byC].map(([k,g])=>'<tr><td>'+esc(k)+'</td><td class="num">'+g.n+'</td><td class="num">'+eur(g.c)+'</td></tr>').join('')+'</tbody></table></section>'
   +'<section class="tr-panel"><table class="tr-table"><thead><tr><th>Cliente</th><th>Data</th><th>Documento</th><th>Tratta</th><th>Merce</th><th>Targa</th><th>Consegna</th><th class="num">Km</th><th class="num">Importo</th></tr></thead><tbody>'
-  +rows.map(r=>'<tr><td>'+esc(r.customer)+'</td><td>'+dmy(r.date)+'</td><td>'+esc(r.doc)+'</td><td class="wrap">'+esc(r.origin+' → '+r.destination)+'</td><td>'+esc(r.goods)+'</td><td>'+esc(r.plate)+'</td><td>'+(pod.has(r.trip_id)?'<span class="tr-pill ok">firmata</span>':'<span class="tr-pill flag">manca</span>')+'</td><td class="num">'+num(r.km)+'</td><td class="num">'+eur(r.amount_cents)+'</td></tr>').join('')+'</tbody></table></section>';
+  +rows.map(r=>'<tr><td>'+esc(r.customer)+'</td><td>'+dmy(r.date)+'</td><td>'+esc(r.doc)+'</td><td class="wrap">'+esc(r.origin+' → '+r.destination)+'</td><td>'+esc(r.goods)+'</td><td>'+esc(r.plate)+'</td><td>'+((r.delivered??pod.has(r.trip_id))?'<span class="tr-pill ok">firmata</span>':'<span class="tr-pill flag">manca</span>')+'</td><td class="num">'+num(r.km)+'</td><td class="num">'+eur(r.amount_cents)+'</td></tr>').join('')+'</tbody></table></section>';
  $('xls').onclick=()=>xlsx('viaggi-da-fatturare-'+p.from+'-'+p.to+'.xlsx',[
   {name:'Per cliente',columns:[{title:'Cliente'},{title:'Viaggi',type:'int'},{title:'Importo',type:'euro'}],rows:[...byC].map(([k,g])=>[k,g.n,g.c/100])},
   {name:'Dettaglio',columns:[{title:'Cliente'},{title:'Data',type:'date'},{title:'Documento'},{title:'Da'},{title:'A'},{title:'Merce'},{title:'Peso kg',type:'number'},{title:'Targa'},{title:'Autista'},{title:'Km',type:'int'},{title:'Consegna firmata'},{title:'Importo',type:'euro'},{title:'Viaggio'}],
-   rows:rows.map(r=>[r.customer,r.date,r.doc,r.origin,r.destination,r.goods,r.weight_kg===''?null:r.weight_kg,r.plate,r.driver,r.km===''?null:r.km,pod.has(r.trip_id)?'sì':'no',r.amount_cents/100,r.trip_id])}]);
+   rows:rows.map(r=>[r.customer,r.date,r.doc,r.origin,r.destination,r.goods,r.weight_kg===''?null:r.weight_kg,r.plate,r.driver,r.km===''?null:r.km,(r.delivered??pod.has(r.trip_id))?'sì':'no',r.amount_cents/100,r.trip_id])}]);
  $('csv').onclick=()=>download('viaggi-da-fatturare-'+p.from+'-'+p.to+'.csv',MRG.toCsv(rows),'text/csv;charset=utf-8');
  $('mark').onclick=()=>{const ids=new Set(rows.map(r=>r.trip_id));for(const t of data.trips)if(ids.has(t.id))t.status='fatturato';save();renderInvoicing();};
 }
@@ -247,7 +260,7 @@ const ENT={
 function renderMaster(){
  const E=ENT[ana],list=data[ana].slice().sort((a,b)=>(a.active===false)-(b.active===false));
  const item=editing&&editing!=='new'?data[ana].find(x=>x.id===editing):null;
- const val=(k,type)=>{if(!item)return '';if(type==='list')return (item[k]||[]).join(', ');if(type==='money')return item.rate_cents!=null?(item.rate_cents/100).toFixed(2).replace('.',','):'';return item[k]??'';};
+ const val=(k,type)=>{if(!item)return k==='tracker'?'telefono':'';if(type==='list')return (item[k]||[]).join(', ');if(type==='money')return item.rate_cents!=null?(item.rate_cents/100).toFixed(2).replace('.',','):'';return item[k]??'';};
  const field=([k,label,type,req])=>{
   if(Array.isArray(type))return '<label>'+esc(label)+'<select name="'+k+'"><option value="">—</option>'+type.map(o=>'<option value="'+esc(o)+'"'+(val(k)===o?' selected':'')+'>'+esc(k==='tracker'?LOC.PROVIDERS[o].label:k==='rate_kind'?RATE[o]:o)+'</option>').join('')+'</select></label>';
   if(type==='vehicle')return '<label>'+esc(label)+'<select name="'+k+'"><option value="">—</option>'+data.vehicles.map(v=>'<option value="'+esc(v.id)+'"'+(val(k)===v.id?' selected':'')+'>'+esc(v.plate)+'</option>').join('')+'</select></label>';
@@ -279,8 +292,8 @@ function renderMaster(){
 function renderTrackers(){
  const counts={};for(const v of data.vehicles)if(v.active!==false)counts[v.tracker||'nessuno']=(counts[v.tracker||'nessuno']||0)+1;
  const now=nowIso();
- view.innerHTML='<div class="tr-grid2"><section class="tr-panel"><h2>Localizzatori</h2><p class="tr-muted">La posizione si legge dal localizzatore che i mezzi hanno già. Il telefono dell\'autista serve solo per i mezzi senza localizzatore o quando il localizzatore tace, e solo con un viaggio aperto.</p>'
-  +'<table class="tr-table"><tbody>'+Object.entries(LOC.PROVIDERS).filter(([k])=>k!=='file').map(([k,p])=>'<tr><td><strong>'+esc(p.label)+'</strong><br><span class="tr-subtle wrap" style="white-space:normal">'+esc(p.note)+'</span></td><td class="num">'+(counts[k]||0)+' mezzi</td><td>'+(p.api?'<span class="tr-pill ok">API</span>':k==='telefono'?'<span class="tr-pill">riserva</span>':'<span class="tr-pill flag">file</span>')+'</td></tr>').join('')+'</tbody></table>'
+ view.innerHTML='<div class="tr-grid2"><section class="tr-panel"><h2>Localizzatori</h2><p class="tr-muted">Il localizzatore principale è il telefono dell\'autista con l\'app Plancia: registra la posizione solo da &laquo;Inizia viaggio&raquo; a &laquo;Chiudi viaggio&raquo;, senza costi né installazioni sul mezzo. Se il mezzo ha già un localizzatore (Webfleet, Verizon, rFMS…) si può collegare: Plancia usa quello e il telefono copre i momenti in cui tace.</p>'
+  +'<table class="tr-table"><tbody>'+Object.entries(LOC.PROVIDERS).filter(([k])=>k!=='file').map(([k,p])=>'<tr><td><strong>'+esc(p.label)+'</strong><br><span class="tr-subtle wrap" style="white-space:normal">'+esc(p.note)+'</span></td><td class="num">'+(counts[k]||0)+' mezzi</td><td>'+(p.api?'<span class="tr-pill ok">API</span>':k==='telefono'?'<span class="tr-pill ok">principale</span>':'<span class="tr-pill flag">file</span>')+'</td></tr>').join('')+'</tbody></table>'
   +'<div class="tr-toolbar" style="margin-top:12px"><button class="tr-btn" id="sync">Aggiorna ora dal localizzatore</button><button class="tr-btn ghost" id="imp">Importa export (CSV o Excel)</button></div>'
   +'<p class="tr-subtle">Il collegamento via API si configura sul server con le credenziali dell\'azienda (mai nel browser). Ultimo aggiornamento: '+(data.tracker&&data.tracker.lastSync?dmy(data.tracker.lastSync)+' '+hm(data.tracker.lastSync):'mai')+'.</p>'
   +(lastImport?'<p class="tr-banner '+(lastImport.error?'error':'ok')+'">'+esc(lastImport.text)+'</p>':'')+'</section>'

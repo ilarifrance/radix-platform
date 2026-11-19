@@ -3,8 +3,10 @@
    confirms), log refuelling, report a problem to the office, have the delivery signed, close the trip.
    Without signal the driver fills in the main fields and the photo waits on the phone (IndexedDB): it is read as soon
    as the network comes back and the office sees where the reading differs from what the driver typed.
-   Position from the phone only while a trip is open and only for vehicles without a tracker: the command center
-   normally reads it from the tracker already on the vehicle. */
+   The phone is the tracker (guide mode): from "Inizia viaggio" to "Chiudi viaggio" only, a point every 2 minutes when
+   moving (every 10 when still), screen kept on with Wake Lock. Where the vehicle also has a tracker the command
+   center prefers the tracker and uses the phone where the tracker is silent. A browser stops the GPS when the screen
+   is off or the app is closed: continuous tracking in the pocket needs the Android app wrapper (next step). */
 (function(){
 'use strict';
 const DOC=window.RadixTrDocumenti,ST=window.RadixTrStore;
@@ -58,18 +60,45 @@ async function updateOffline(){
 window.addEventListener('online',()=>{updateOffline();flushQueue();});
 window.addEventListener('offline',updateOffline);
 
-// ---------- position: only with an open trip, only where the vehicle has no tracker ----------
-function phoneTracking(){const v=vehicle();return !v||!v.tracker||v.tracker==='telefono'||v.phone_backup;}
+// ---------- position: the phone is the tracker while a trip is open (guide mode) ----------
+function phoneTracking(){const v=vehicle();return !v||v.phone_off!==true;}
+const gps={id:null,last:null,lock:null,error:null};
+const distM=(a,b)=>{const R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;const h=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
+function keepPoint(p,trip,force){
+ const pt={vehicle_id:trip.vehicle_id,trip_id:trip.id,at:nowIso(),lat:Math.round(p.coords.latitude*1e5)/1e5,lon:Math.round(p.coords.longitude*1e5)/1e5,speed_kmh:p.coords.speed!=null?Math.round(p.coords.speed*3.6):null,accuracy_m:p.coords.accuracy!=null?Math.round(p.coords.accuracy):null,source:'telefono'};
+ if(pt.accuracy_m!=null&&pt.accuracy_m>500&&!force)return;
+ const L=gps.last,age=L?(Date.now()-L.t)/60000:Infinity,moved=L?distM(L,pt):Infinity;
+ // moving: one point every 2 minutes; standing still (under 150 m): one every 10 minutes
+ if(!force&&!(age>=2&&moved>=150)&&!(age>=10))return;
+ gps.last={t:Date.now(),lat:pt.lat,lon:pt.lon,at:pt.at};gps.error=null;
+ data=ST.load();data.positions.push(pt);save();showGps();
+}
 function recordPosition(trip){
  if(!trip||!navigator.geolocation||!phoneTracking())return;
- navigator.geolocation.getCurrentPosition(p=>{
-  data=ST.load();data.positions.push({vehicle_id:trip.vehicle_id,trip_id:trip.id,at:nowIso(),lat:Math.round(p.coords.latitude*1e5)/1e5,lon:Math.round(p.coords.longitude*1e5)/1e5,speed_kmh:p.coords.speed!=null?Math.round(p.coords.speed*3.6):null,source:'telefono'});save();
- },()=>{},{enableHighAccuracy:false,maximumAge:120000,timeout:15000});
+ navigator.geolocation.getCurrentPosition(p=>keepPoint(p,trip,true),e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:60000,timeout:20000});
+}
+async function lockScreen(on){
+ try{if(on&&!gps.lock&&navigator.wakeLock){gps.lock=await navigator.wakeLock.request('screen');gps.lock.addEventListener('release',()=>{gps.lock=null;showGps();});}
+  if(!on&&gps.lock){await gps.lock.release();gps.lock=null;}}catch{gps.lock=null;}
+ showGps();
 }
 function followTrip(){
  const t=openTrip();
  if(watch){clearInterval(watch);watch=null;}
- if(t&&phoneTracking())watch=setInterval(()=>{const o=openTrip();if(o)recordPosition(o);else{clearInterval(watch);watch=null;}},5*60*1000);
+ if(gps.id!=null&&navigator.geolocation){navigator.geolocation.clearWatch(gps.id);gps.id=null;}
+ if(!t||!phoneTracking()||!navigator.geolocation){lockScreen(false);return;}
+ gps.id=navigator.geolocation.watchPosition(p=>{const o=openTrip();if(o)keepPoint(p,o,false);},e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:30000,timeout:60000});
+ // a still truck sends no watch events: a point every 10 minutes anyway
+ watch=setInterval(()=>{const o=openTrip();if(o)recordPosition(o);else followTrip();},10*60*1000);
+ lockScreen(true);
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&openTrip()){lockScreen(true);recordPosition(openTrip());}});
+function showGps(){
+ const el=document.getElementById('gpsState');if(!el)return;
+ const t=openTrip();if(!t){el.hidden=true;return;}el.hidden=false;
+ el.className='tr-gps'+(gps.error?' bad':'');
+ el.innerHTML=gps.error?'<strong>Posizione non attiva</strong> ('+esc(gps.error)+'). Controlla che la localizzazione del telefono sia accesa e consentita a Plancia.'
+  :'<strong>Modalità guida attiva</strong> · il telefono fa da localizzatore'+(gps.last?' · ultima posizione alle '+hm(gps.last.at):'')+(gps.lock?' · schermo sempre acceso':'')+'<br><span class="tr-subtle">Tieni Plancia aperta sul supporto: a schermo spento il telefono non registra.</span>';
 }
 
 // ---------- screens ----------
@@ -100,7 +129,7 @@ function renderIdle(){
   +'<label>Cliente<select id="cus">'+data.customers.filter(c=>c.active!==false).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select></label>'
   +'<div class="tr-row"><label>Da<input id="orig" list="places" autocomplete="off" placeholder="Luogo di carico"></label><label>A<input id="dest" list="places" autocomplete="off" placeholder="Luogo di scarico"></label></div>'
   +'<datalist id="places">'+places.map(p=>'<option value="'+esc(p)+'">').join('')+'</datalist>'
-  +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Il mezzo non ha un localizzatore: la posizione si prende da questo telefono solo fino alla chiusura del viaggio.':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p></section>'
+  +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Durante il viaggio questo telefono fa da localizzatore: registra la posizione solo da "Inizia viaggio" a "Chiudi viaggio".':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p></section>'
   +(last.length?'<section class="tr-card"><h2>Ultimi viaggi</h2><ul class="tr-list">'+last.map(t=>'<li><strong>'+dmy(t.started_at)+'</strong> '+esc((t.origin||'')+' → '+(t.destination||''))+' <span class="tr-subtle">'+esc(t.status)+'</span></li>').join('')+'</ul></section>':'');
  $('start').onclick=()=>{
   data=ST.load();
@@ -112,7 +141,7 @@ function renderTrip(t){
  const docs=data.documents.filter(d=>d.trip_id===t.id),fuel=data.costs.filter(c=>c.trip_id===t.id&&c.kind==='carburante'),issues=(data.issues||[]).filter(i=>i.trip_id===t.id);
  const cus=data.customers.find(c=>c.id===t.customer_id);
  const label=d=>d.kind==='consegna'?'Consegna firmata':DOC.KINDS[d.kind]?.label||d.kind;
- view.innerHTML='<section class="tr-card live"><p class="tr-eyebrow">Viaggio in corso dalle '+hm(t.started_at)+'</p><h1>'+esc((t.origin||'Partenza')+' → '+(t.destination||'Arrivo'))+'</h1><p class="tr-muted">'+esc(cus?cus.name:'')+'</p></section>'
+ view.innerHTML='<section class="tr-card live"><p class="tr-eyebrow">Viaggio in corso dalle '+hm(t.started_at)+'</p><h1>'+esc((t.origin||'Partenza')+' → '+(t.destination||'Arrivo'))+'</h1><p class="tr-muted">'+esc(cus?cus.name:'')+'</p><p id="gpsState" class="tr-gps" hidden></p></section>'
   +'<section class="tr-actions">'
   +'<button class="tr-btn big" data-doc="ddt">Foto DDT</button><button class="tr-btn big" data-doc="cmr">Foto CMR</button>'
   +'<button class="tr-btn big blue" data-doc="giornale">Giornale di viaggio</button><button class="tr-btn big blue" data-doc="carburante">Rifornimento</button>'
@@ -121,7 +150,7 @@ function renderTrip(t){
   +(fuel.length?'<p class="tr-subtle">Rifornimenti: '+fuel.map(f=>esc((f.liters??'?')+' l, '+(f.amount_cents/100).toFixed(2).replace('.',',')+' €')).join(' · ')+'</p>':'')
   +(issues.length?'<p class="tr-subtle">Segnalazioni: '+issues.map(i=>esc((ISSUE[i.kind]||i.kind)+' alle '+hm(i.at))+(i.resolved?' (gestita)':'')).join(' · ')+'</p>':'')+'</section>'
   +'<section class="tr-card"><h2>Fine viaggio</h2><label>Km percorsi (dal contachilometri)<input id="km" type="number" inputmode="numeric" min="0" max="20000"></label><button class="tr-btn big warn" id="close">Chiudi viaggio</button></section>';
- view.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>startPhoto(b.dataset.doc,t));
+ view.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>startPhoto(b.dataset.doc,t));showGps();
  $('pod').onclick=()=>{flow={type:'delivery',trip:t.id};render();};
  $('issue').onclick=()=>{flow={type:'issue',trip:t.id};render();};
  $('close').onclick=()=>{

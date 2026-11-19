@@ -84,7 +84,7 @@ function sampleTollCsv(data){
 function load(){
  let d=null;try{d=JSON.parse(root.localStorage.getItem(KEY)||'null');}catch{d=null;}
  if(!d||d.version!==2){d=seed();save(d);}
- for(const k of ['issues','positions','documents','costs'])if(!Array.isArray(d[k]))d[k]=[];
+ for(const k of ['issues','positions','documents','costs','shipments'])if(!Array.isArray(d[k]))d[k]=[];
  return d;
 }
 function save(d){try{root.localStorage.setItem(KEY,JSON.stringify(d));return true;}catch{return false;}}
