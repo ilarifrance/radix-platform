@@ -22,7 +22,9 @@ const handlers = Object.freeze({
   // App «Meeting»: one audio segment to text (OpenAI), only after the person confirmed the cost.
   'transcribe': () => require('../_transcribe'),
   // Personal Trading page: snapshot pushed by the member's Mac (rtr1 bearer) and read with the session cookie.
-  'trading': () => require('../_trading')
+  'trading': () => require('../_trading'),
+  // RADIX Trasporti: AI reading of a photographed DDT/CMR/giornale di viaggio/fuel receipt, after login.
+  'trasporti': () => require('../_trasporti')
 });
 module.exports = async function integrationRoute(req, res) {
   const service = req.query && req.query.service;

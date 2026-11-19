@@ -1,0 +1,12 @@
+{
+  "appId": "it.plancia.app",
+  "appName": "Plancia",
+  "webDir": "www",
+  "server": {
+    "url": "https://radix-platform-git-claude-projec-6fadc1-radix-innovation-studio.vercel.app/trasporti/autista/",
+    "cleartext": false,
+    "errorPath": "offline.html"
+  },
+  "android": { "backgroundColor": "#0F2A44" },
+  "ios": { "backgroundColor": "#0F2A44", "contentInset": "never" }
+}

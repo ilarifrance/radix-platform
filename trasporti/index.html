@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark"><meta name="theme-color" content="#0F2A44">
+<title>Plancia · centro operativo</title>
+<link rel="icon" href="/trasporti/marchio/plancia-icona.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="/trasporti/trasporti.css">
+</head>
+<body class="tr tr-cc">
+<div class="tr-brandbar">
+<header class="tr-head">
+ <div>
+  <div class="tr-logo"><img src="/trasporti/marchio/plancia-icona.svg" alt=""><p class="tr-eyebrow" style="margin:0"><span data-brand="console">Plancia · centro operativo</span></p></div>
+  <h1 id="company" style="margin-top:8px">Centro operativo</h1>
+  <p class="tr-muted">Mezzi sulla mappa, viaggi e documenti letti dalle foto degli autisti, pedaggi abbinati per targa e orario, margine per mezzo, autista e cliente.</p>
+ </div>
+ <div class="tr-toolbar">
+  <label>Dal<input type="date" id="from"></label><label>Al<input type="date" id="to"></label>
+  <a class="tr-btn ghost" href="/trasporti/autista/" target="_blank" rel="noopener">Apri l'app autista</a>
+ </div>
+</header>
+</div>
+<nav class="tr-tabs" id="tabs" aria-label="Sezioni">
+ <a href="#oggi" data-tab="oggi">Oggi</a>
+ <a href="#viaggi" data-tab="viaggi">Viaggi e documenti</a>
+ <a href="#pedaggi" data-tab="pedaggi">Pedaggi</a>
+ <a href="#margine" data-tab="margine">Margine</a>
+ <a href="#fatturazione" data-tab="fatturazione">Fatturazione</a>
+ <a href="#costi" data-tab="costi">Costi</a>
+ <a href="#anagrafiche" data-tab="anagrafiche">Anagrafiche</a>
+ <a href="#localizzatori" data-tab="localizzatori">Localizzatori</a>
+</nav>
+<p class="tr-banner demo" id="banner">Dimostrazione con un'azienda di esempio: i dati restano in questo browser. <button type="button" class="tr-link" id="reset">Ricomincia da capo</button></p>
+<p class="tr-banner" id="notice" role="status" aria-live="polite" hidden></p>
+<main id="view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
+<input type="file" id="anyFile" hidden>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+<script src="/trasporti/brand.js" defer></script>
+<script src="/lib/trasporti/documenti.js" defer></script>
+<script src="/lib/trasporti/pedaggi.js" defer></script>
+<script src="/lib/trasporti/margini.js" defer></script>
+<script src="/lib/trasporti/localizzatori.js" defer></script>
+<script src="/lib/trasporti/xlsx.js" defer></script>
+<script src="/lib/trasporti/pratiche.js" defer></script>
+<script src="/trasporti/store.js" defer></script>
+<script src="/trasporti/pratica.js" defer></script>
+<script src="/trasporti/app.js" defer></script>
+</body></html>

@@ -4,6 +4,16 @@
       "source": "/",
       "destination": "/control-center-v2.html",
       "permanent": false
+    },
+    {
+      "source": "/area-riservata",
+      "destination": "/trasporti/",
+      "permanent": false
+    },
+    {
+      "source": "/area-riservata/",
+      "destination": "/trasporti/",
+      "permanent": false
     }
   ],
   "rewrites": [
@@ -38,6 +48,10 @@
     {
       "source": "/api/trading",
       "destination": "/api/integrations/trading"
+    },
+    {
+      "source": "/api/trasporti",
+      "destination": "/api/integrations/trasporti"
     }
   ],
   "headers": [
@@ -56,6 +70,24 @@
         {
           "key": "Content-Type",
           "value": "application/manifest+json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/trasporti/autista/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/trasporti/autista/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
         }
       ]
     }
