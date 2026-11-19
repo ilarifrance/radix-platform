@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prenota · Ciuffo</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/ciuffo/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ciuffo/ciuffo.css">
+<style>
+ .hero{background:var(--plum);color:#fff;padding:28px 0 36px;border-radius:0 0 28px 28px}
+ .hero h1{font-size:clamp(1.8rem,6vw,2.4rem);margin-bottom:6px}
+ .hero .meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.95rem;opacity:.92}
+ .hero a{color:#fff}
+ .hero .welcome{margin-top:12px;font-size:.98rem;opacity:.95}
+ main{margin-top:-18px;padding-bottom:40px}
+ .step{padding:18px;margin-bottom:14px}
+ .step h2{font-size:1.15rem;display:flex;align-items:center;gap:10px;margin-bottom:12px}
+ .num{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--coral-soft);color:var(--coral-ink);font:700 .9rem var(--body);flex:none}
+ .step.done .num{background:var(--sage-soft);color:var(--sage)}
+ .step.locked{opacity:.55}
+ .services{display:grid;gap:8px}
+ .svc{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;border:1px solid var(--line);border-radius:var(--radius-s);background:#fff;font:inherit;color:inherit;cursor:pointer;min-height:56px}
+ .svc:hover{border-color:var(--coral)}
+ .svc[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+ .svc b{display:block}.svc .sub{color:var(--muted);font-size:.88rem}
+ .svc .price{font-weight:700;white-space:nowrap}
+ .chips{display:flex;flex-wrap:wrap;gap:8px}
+ .days{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory}
+ .dayb{flex:none;scroll-snap-align:start;width:64px;padding:10px 0;border-radius:var(--radius-s);border:1px solid var(--line);background:#fff;font:inherit;color:inherit;cursor:pointer;text-align:center}
+ .dayb .wd{font-size:.78rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+ .dayb .n{font:600 1.35rem var(--display);display:block}
+ .dayb .m{font-size:.78rem;color:var(--muted)}
+ .dayb .dot{display:block;width:6px;height:6px;border-radius:50%;background:var(--sage);margin:4px auto 0}
+ .dayb[disabled]{opacity:.38;cursor:not-allowed}.dayb[disabled] .dot{visibility:hidden}
+ .dayb[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}.dayb[aria-pressed="true"] .wd,.dayb[aria-pressed="true"] .m{color:#fff}
+ .part{font-size:.82rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:12px 0 8px}
+ .times .chip{min-width:76px}
+ .summary{display:flex;flex-direction:column;gap:2px;padding:12px 14px;background:var(--sand);border-radius:var(--radius-s);margin-bottom:14px}
+ .done-card{text-align:center;padding:28px 20px}
+ .tick{width:64px;height:64px;border-radius:50%;background:var(--sage-soft);display:grid;place-items:center;margin:0 auto 12px}
+ .actions{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+ .powered{display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:.82rem;margin-top:22px;text-decoration:none}
+ .powered img{height:18px}
+</style>
+</head>
+<body>
+<header class="hero"><div class="narrow" id="head"><p class="muted" style="color:#fff;opacity:.8">Caricamento…</p></div></header>
+<main class="narrow">
+ <div id="err" class="notice err hidden" role="alert"></div>
+ <div id="flow">
+  <section class="step card" id="s1"><h2><span class="num">1</span>Cosa ti facciamo?</h2><div class="services" id="services"></div></section>
+  <section class="step card hidden" id="s2"><h2><span class="num">2</span>Con chi?</h2><div class="chips" id="staff"></div></section>
+  <section class="step card locked" id="s3"><h2><span class="num" id="n3">2</span>Quando?</h2>
+   <div class="days" id="days" aria-label="Giorni"></div>
+   <div id="times" class="times"></div>
+   <button class="btn ghost small hidden" id="more" type="button" style="margin-top:10px">Altri giorni</button>
+  </section>
+  <section class="step card locked" id="s4"><h2><span class="num" id="n4">3</span>I tuoi dati</h2>
+   <div id="sum" class="summary hidden"></div>
+   <form id="form" novalidate>
+    <div class="field"><label for="name">Nome e cognome</label><input id="name" autocomplete="name" required maxlength="120"></div>
+    <div class="field"><label for="phone">Cellulare</label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" required placeholder="347 123 4567"></div>
+    <div class="field"><label for="email">Email <span class="muted small">(facoltativa, per la conferma)</span></label><input id="email" type="email" autocomplete="email"></div>
+    <div class="field"><label for="note">Note per il salone <span class="muted small">(facoltative)</span></label><textarea id="note" maxlength="500" rows="2"></textarea></div>
+    <label class="check"><input type="checkbox" id="consent"> <span>Acconsento che il salone usi nome e numero per gestire l'appuntamento. <a href="/ciuffo/privacy.html" target="_blank" rel="noopener">Informativa</a></span></label>
+    <div style="margin-top:16px"><button class="btn" id="go" type="submit" style="width:100%">Conferma prenotazione</button></div>
+   </form>
+  </section>
+ </div>
+ <section class="card done-card hidden" id="done" aria-live="polite"></section>
+ <a class="powered" href="/ciuffo/" target="_blank" rel="noopener">Prenotazioni con <img src="/ciuffo/logo.svg" alt="Ciuffo"></a>
+</main>
+<script src="/ciuffo/ciuffo.js"></script>
+<script>
+(function(){
+ 'use strict';
+ const C=window.Ciuffo,$=id=>document.getElementById(id);
+ const slug=(location.pathname.match(/\/ciuffo\/p\/([a-z0-9-]+)/)||[])[1]||new URLSearchParams(location.search).get('s')||'';
+ const st={shop:null,service:null,staff:'',from:null,days:[],date:null,slot:null};
+ const showErr=m=>{const e=$('err');e.textContent=m;e.classList.toggle('hidden',!m);if(m)e.scrollIntoView({behavior:'smooth',block:'center'});};
+ const todayRome=()=>new Intl.DateTimeFormat('en-CA',{timeZone:C.TZ}).format(new Date());
+ const addDays=(d,n)=>new Date(Date.parse(d+'T12:00:00Z')+n*864e5).toISOString().slice(0,10);
+ function head(s){
+  const where=[s.address,s.city].filter(Boolean).join(', ');
+  $('head').innerHTML='<h1>'+C.esc(s.name)+'</h1><div class="meta">'+(where?'<span>'+C.esc(where)+'</span>':'')+(s.phone?'<a href="tel:'+C.esc(s.phone)+'">'+C.esc(C.tel(s.phone))+'</a>':'')+'</div>'+(s.welcome?'<p class="welcome">'+C.esc(s.welcome)+'</p>':'');
+  document.title='Prenota da '+s.name;
+ }
+ function services(){
+  $('services').innerHTML=st.shop.services.map(v=>'<button type="button" class="svc" data-id="'+v.id+'" aria-pressed="'+(st.service&&st.service.id===v.id)+'"><span><b>'+C.esc(v.name)+'</b><span class="sub">'+C.dur(v.duration_min)+(v.description?' · '+C.esc(v.description):'')+'</span></span><span class="price">'+C.money(v.price_cents)+'</span></button>').join('')||'<p class="muted">Il salone non ha ancora servizi prenotabili online.</p>';
+ }
+ function staffStep(){
+  const ok=st.shop.staff.filter(t=>!st.service.staff_ids.length||st.service.staff_ids.includes(t.id));
+  const show=ok.length>1;$('s2').classList.toggle('hidden',!show);$('n3').textContent=show?'3':'2';$('n4').textContent=show?'4':'3';
+  if(!ok.some(t=>t.id===st.staff))st.staff='';
+  $('staff').innerHTML='<button type="button" class="chip" data-id="" aria-pressed="'+(st.staff==='')+'">Chiunque sia libero</button>'+ok.map(t=>'<button type="button" class="chip" data-id="'+t.id+'" aria-pressed="'+(st.staff===t.id)+'">'+C.esc(t.name)+'</button>').join('');
+ }
+ async function loadDays(){
+  $('s3').classList.remove('locked');$('times').innerHTML='<p class="muted small">Cerco gli orari liberi…</p>';$('days').innerHTML='';
+  try{const r=await C.api('GET',{resource:'slots',slug,service:st.service.id,date:st.from,days:14,...(st.staff?{staff:st.staff}:{})});
+   if(!r.open){$('times').innerHTML='<p class="notice">Il salone in questo momento non accetta prenotazioni online. '+(st.shop.phone?'Chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(C.tel(st.shop.phone))+'</a>.':'')+'</p>';return;}
+   st.days=r.days;const first=r.days.find(d=>d.slots.length);
+   if(!st.date||!r.days.some(d=>d.date===st.date&&d.slots.length))st.date=first?first.date:null;
+   drawDays();drawTimes();$('more').classList.toggle('hidden',addDays(st.from,14)>addDays(todayRome(),st.shop.max_days_ahead));
+  }catch(e){$('times').innerHTML='';showErr(e.message);}
+ }
+ function drawDays(){
+  $('days').innerHTML=(st.from>todayRome()?'<button type="button" class="dayb" data-prev="1" aria-label="Giorni precedenti"><span class="n">‹</span></button>':'')+st.days.map(d=>{const x=C.dayShort(d.date);return '<button type="button" class="dayb" data-date="'+d.date+'" aria-pressed="'+(d.date===st.date)+'"'+(d.slots.length?'':' disabled')+' aria-label="'+C.esc(C.day(d.date))+(d.slots.length?'':', nessun orario libero')+'"><span class="wd">'+x.wd+'</span><span class="n">'+x.n+'</span><span class="m">'+x.m+'</span><span class="dot"></span></button>';}).join('');
+  const sel=$('days').querySelector('[aria-pressed="true"]');if(sel)sel.scrollIntoView({block:'nearest',inline:'center'});
+ }
+ function drawTimes(){
+  const d=st.days.find(x=>x.date===st.date);
+  if(!d){$('times').innerHTML='<p class="notice" style="margin-top:12px">Nessun orario libero in questi giorni. Prova «Altri giorni»'+(st.shop.phone?' o chiama il <a href="tel:'+C.esc(st.shop.phone)+'">'+C.esc(C.tel(st.shop.phone))+'</a>':'')+'.</p>';return;}
+  const am=d.slots.filter(s=>s.time<'13:00'),pm=d.slots.filter(s=>s.time>='13:00');
+  const chips=a=>'<div class="chips">'+a.map(s=>'<button type="button" class="chip" data-start="'+s.starts_at+'" aria-pressed="'+(st.slot&&st.slot.starts_at===s.starts_at)+'">'+s.time+'</button>').join('')+'</div>';
+  $('times').innerHTML='<p class="part" style="text-transform:none;letter-spacing:0;font-size:.95rem;color:var(--ink)">'+C.esc(C.day(d.date))+'</p>'+(am.length?'<p class="part">Mattina</p>'+chips(am):'')+(pm.length?'<p class="part">Pomeriggio</p>'+chips(pm):'');
+ }
+ function summary(){
+  const t=st.staff&&st.shop.staff.find(x=>x.id===st.staff);
+  $('sum').innerHTML='<b>'+C.esc(st.service.name)+'</b><span>'+C.esc(C.day(st.slot.starts_at))+', ore '+C.time(st.slot.starts_at)+(t?' con '+C.esc(t.name):'')+'</span><span class="muted small">'+C.dur(st.service.duration_min)+(st.service.price_cents!=null?' · '+C.money(st.service.price_cents):'')+'</span>';
+  $('sum').classList.remove('hidden');$('s4').classList.remove('locked');
+ }
+ $('services').addEventListener('click',e=>{const b=e.target.closest('.svc');if(!b)return;showErr('');st.service=st.shop.services.find(v=>v.id===b.dataset.id);st.slot=null;$('s4').classList.add('locked');$('sum').classList.add('hidden');services();staffStep();$('s1').classList.add('done');loadDays();setTimeout(()=>($('s2').classList.contains('hidden')?$('s3'):$('s2')).scrollIntoView({behavior:'smooth',block:'start'}),50);});
+ $('staff').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;st.staff=b.dataset.id;st.slot=null;staffStep();loadDays();});
+ $('days').addEventListener('click',e=>{const b=e.target.closest('.dayb');if(!b||b.disabled)return;if(b.dataset.prev){st.from=addDays(st.from,-14);if(st.from<todayRome())st.from=todayRome();st.date=null;loadDays();return;}st.date=b.dataset.date;st.slot=null;drawDays();drawTimes();});
+ $('more').addEventListener('click',()=>{st.from=addDays(st.from,14);st.date=null;loadDays();});
+ $('times').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;st.slot={starts_at:b.dataset.start};drawTimes();summary();$('s3').classList.add('done');setTimeout(()=>$('s4').scrollIntoView({behavior:'smooth',block:'start'}),50);});
+ $('form').addEventListener('submit',async e=>{
+  e.preventDefault();showErr('');
+  if(!st.slot)return showErr('Scegli prima un orario.');
+  if(!$('consent').checked)return showErr('Per prenotare serve il consenso: spunta la casella.');
+  const go=$('go');go.disabled=true;go.textContent='Sto prenotando…';
+  try{
+   const r=await C.api('POST',null,{action:'book',data:{slug,service:st.service.id,staff:st.staff||undefined,starts_at:st.slot.starts_at,name:$('name').value,phone:$('phone').value,email:$('email').value||undefined,note:$('note').value||undefined,consent:true}});
+   done(r);
+  }catch(err){showErr(err.message);if(err.status===409){st.slot=null;$('sum').classList.add('hidden');loadDays();}}
+  finally{go.disabled=false;go.textContent='Conferma prenotazione';}
+ });
+ function ics(r){
+  const z=s=>s.replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+  const body=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Ciuffo//IT','BEGIN:VEVENT','UID:'+r.id+'@ciuffo','DTSTAMP:'+z(new Date().toISOString()),'DTSTART:'+z(r.starts_at),'DTEND:'+z(r.ends_at),'SUMMARY:'+r.service+' da '+r.shop.name,'LOCATION:'+[r.shop.address,r.shop.city].filter(Boolean).join(', '),'END:VEVENT','END:VCALENDAR'].join('\r\n');
+  return URL.createObjectURL(new Blob([body],{type:'text/calendar'}));
+ }
+ function done(r){
+  $('flow').classList.add('hidden');const d=$('done');d.classList.remove('hidden');
+  const manage=location.origin+'/ciuffo/gestisci.html#t='+r.token;
+  d.innerHTML='<div class="tick"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#4F8A66" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L19 7"/></svg></div><h2>Prenotato!</h2>'+
+   '<p><b>'+C.esc(r.service)+'</b><br>'+C.esc(C.day(r.starts_at))+', ore '+C.time(r.starts_at)+(r.staff?' con '+C.esc(r.staff):'')+'<br><span class="muted">'+C.esc(r.shop.name)+'</span></p>'+
+   (r.mailed?'<p class="muted small">Ti abbiamo mandato la conferma per email.</p>':'')+
+   '<div class="actions"><a class="btn" download="appuntamento.ics" href="'+ics(r)+'">Aggiungi al calendario</a><a class="btn ghost" href="'+manage+'">Vedi o disdici</a></div>'+
+   '<p class="muted small" style="margin-top:14px">Salva il link «Vedi o disdici»: serve per cambiare idea.</p>';
+  window.scrollTo({top:0,behavior:'smooth'});
+ }
+ (async function(){
+  if(!slug){showErr('Indirizzo della pagina incompleto.');return;}
+  try{st.shop=await C.api('GET',{resource:'shop',slug});st.from=todayRome();head(st.shop);services();}
+  catch(e){$('head').innerHTML='<h1>Salone non trovato</h1>';$('flow').classList.add('hidden');showErr(e.message);}
+ })();
+})();
+</script>
+</body>
+</html>

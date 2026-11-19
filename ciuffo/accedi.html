@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/ciuffo/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ciuffo/ciuffo.css">
+<title>Accedi · Ciuffo</title>
+</head>
+<body>
+<main class="narrow" style="padding:28px 16px 48px">
+ <div class="brandbar"><a href="/ciuffo/"><img src="/ciuffo/logo.svg" alt="Ciuffo"></a></div>
+ <section class="card" style="padding:24px">
+  <h1 style="font-size:1.9rem">Entra nella tua agenda</h1>
+  <form id="f" novalidate>
+   <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" required></div>
+   <div class="field"><label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password" required></div>
+   <p id="err" class="notice err hidden" role="alert"></p>
+   <button class="btn" style="width:100%" id="go">Accedi</button>
+  </form>
+  <p class="small muted" style="margin-top:16px">Non hai ancora un account? <a href="/ciuffo/iscrizione.html">Prova Ciuffo gratis</a></p>
+ </section>
+</main>
+<script src="/ciuffo/ciuffo.js"></script>
+<script>
+document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const err=document.getElementById('err'),go=document.getElementById('go');err.classList.add('hidden');go.disabled=true;
+ try{await Ciuffo.api('POST',null,{action:'auth.login',data:{email:document.getElementById('email').value,password:document.getElementById('pw').value}});location.href='/ciuffo/app/';}
+ catch(x){err.textContent=x.message;err.classList.remove('hidden');go.disabled=false;}});
+</script>
+</body>
+</html>
