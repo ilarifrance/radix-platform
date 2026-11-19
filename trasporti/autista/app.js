@@ -3,10 +3,10 @@
    confirms), log refuelling, report a problem to the office, have the delivery signed, close the trip.
    Without signal the driver fills in the main fields and the photo waits on the phone (IndexedDB): it is read as soon
    as the network comes back and the office sees where the reading differs from what the driver typed.
-   The phone is the tracker (guide mode): from "Inizia viaggio" to "Chiudi viaggio" only, a point every 2 minutes when
-   moving (every 10 when still), screen kept on with Wake Lock. Where the vehicle also has a tracker the command
-   center prefers the tracker and uses the phone where the tracker is silent. A browser stops the GPS when the screen
-   is off or the app is closed: continuous tracking in the pocket needs the Android app wrapper (next step). */
+   The phone is the tracker, always on from the driver's sign-in (the company has the agreements with the drivers):
+   a point every 2 minutes when moving, every 10 when still, sent to the server in batches. In the native app
+   (mobile/, Capacitor) it records with the screen off; in the browser only while the app is open. Where the vehicle
+   also has a tracker the command center prefers the tracker and uses the phone where the tracker is silent. */
 (function(){
 'use strict';
 const DOC=window.RadixTrDocumenti,ST=window.RadixTrStore;
@@ -60,45 +60,87 @@ async function updateOffline(){
 window.addEventListener('online',()=>{updateOffline();flushQueue();});
 window.addEventListener('offline',updateOffline);
 
-// ---------- position: the phone is the tracker while a trip is open (guide mode) ----------
-function phoneTracking(){const v=vehicle();return !v||v.phone_off!==true;}
-const gps={id:null,last:null,lock:null,error:null};
+// ---------- position: the phone is the tracker, always on from the driver's sign-in ----------
+// Native app (Android/iPhone, Capacitor + background geolocation): records with the screen off and in the pocket.
+// Browser: records only while Plancia is open, so the screen is kept on. Points go to the server (tr_positions)
+// in batches; without signal they wait on the phone and leave when the network comes back.
+function phoneTracking(){const v=vehicle();return !!me&&(!v||v.phone_off!==true);}
+const GPSQ='plancia-gps-coda';
+const gps={id:null,native:null,last:null,lock:null,error:null,server:null,sent:null};
+const BG=()=>window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.BackgroundGeolocation||null;
 const distM=(a,b)=>{const R=6371000,r=Math.PI/180,dl=(b.lat-a.lat)*r,dn=(b.lon-a.lon)*r;const h=Math.sin(dl/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(h));};
-function keepPoint(p,trip,force){
- const pt={vehicle_id:trip.vehicle_id,trip_id:trip.id,at:nowIso(),lat:Math.round(p.coords.latitude*1e5)/1e5,lon:Math.round(p.coords.longitude*1e5)/1e5,speed_kmh:p.coords.speed!=null?Math.round(p.coords.speed*3.6):null,accuracy_m:p.coords.accuracy!=null?Math.round(p.coords.accuracy):null,source:'telefono'};
+function queue(){try{return JSON.parse(localStorage.getItem(GPSQ)||'[]');}catch{return [];}}
+function setQueue(q){try{localStorage.setItem(GPSQ,JSON.stringify(q.slice(-20000)));}catch{}}
+function keepPoint(c,force){
+ if(!me)return;
+ const trip=openTrip();
+ const pt={vehicle_id:me.vehicle,trip_id:trip?trip.id:null,at:nowIso(),lat:Math.round(c.latitude*1e5)/1e5,lon:Math.round(c.longitude*1e5)/1e5,speed_kmh:c.speed!=null&&c.speed>=0?Math.round(c.speed*3.6):null,accuracy_m:c.accuracy!=null?Math.round(c.accuracy):null,source:'telefono'};
  if(pt.accuracy_m!=null&&pt.accuracy_m>500&&!force)return;
  const L=gps.last,age=L?(Date.now()-L.t)/60000:Infinity,moved=L?distM(L,pt):Infinity;
  // moving: one point every 2 minutes; standing still (under 150 m): one every 10 minutes
  if(!force&&!(age>=2&&moved>=150)&&!(age>=10))return;
+ if(force&&age<0.5)return; // several forced readings in a row (sign-in, trip start): one is enough
  gps.last={t:Date.now(),lat:pt.lat,lon:pt.lon,at:pt.at};gps.error=null;
- data=ST.load();data.positions.push(pt);save();showGps();
+ data=ST.load();data.positions.push(pt);save();
+ const q=queue();q.push({at:new Date().toISOString(),lat:pt.lat,lon:pt.lon,speed_kmh:pt.speed_kmh,accuracy_m:pt.accuracy_m,trip_id:pt.trip_id});setQueue(q);
+ showGps();
 }
-function recordPosition(trip){
- if(!trip||!navigator.geolocation||!phoneTracking())return;
- navigator.geolocation.getCurrentPosition(p=>keepPoint(p,trip,true),e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:60000,timeout:20000});
+let gpsFlushing=false;
+async function flushGps(){
+ if(gpsFlushing||!online()||gps.server==="off")return;const q=queue();if(!q.length)return;
+ gpsFlushing=true;
+ try{
+  const batch=q.slice(0,1000);
+  const r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'posizioni.telefono',data:{vehicle_id:me&&me.vehicle,points:batch}})});
+  if(r.ok){setQueue(queue().slice(batch.length));gps.sent=nowIso();gps.server=null;}
+  // demo without an account, or archive not configured: positions stay on this phone
+  else if([401,403,404,503].includes(r.status))gps.server='off';
+ }catch{}finally{gpsFlushing=false;showGps();}
+}
+function recordPosition(){
+ if(!navigator.geolocation||!phoneTracking())return;
+ navigator.geolocation.getCurrentPosition(p=>keepPoint(p.coords,true),e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:60000,timeout:20000});
 }
 async function lockScreen(on){
+ if(BG())return; // the native app records with the screen off
  try{if(on&&!gps.lock&&navigator.wakeLock){gps.lock=await navigator.wakeLock.request('screen');gps.lock.addEventListener('release',()=>{gps.lock=null;showGps();});}
   if(!on&&gps.lock){await gps.lock.release();gps.lock=null;}}catch{gps.lock=null;}
  showGps();
 }
-function followTrip(){
- const t=openTrip();
+async function stopTracking(){
  if(watch){clearInterval(watch);watch=null;}
  if(gps.id!=null&&navigator.geolocation){navigator.geolocation.clearWatch(gps.id);gps.id=null;}
- if(!t||!phoneTracking()||!navigator.geolocation){lockScreen(false);return;}
- gps.id=navigator.geolocation.watchPosition(p=>{const o=openTrip();if(o)keepPoint(p,o,false);},e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:30000,timeout:60000});
- // a still truck sends no watch events: a point every 10 minutes anyway
- watch=setInterval(()=>{const o=openTrip();if(o)recordPosition(o);else followTrip();},10*60*1000);
- lockScreen(true);
+ if(gps.native&&BG()){try{await BG().removeWatcher({id:gps.native});}catch{}gps.native=null;}
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&openTrip()){lockScreen(true);recordPosition(openTrip());}});
+async function followTrip(){
+ await stopTracking();
+ if(!phoneTracking()){lockScreen(false);showGps();return;}
+ const bg=BG();
+ if(bg){
+  try{gps.native=await bg.addWatcher({backgroundTitle:'Plancia',backgroundMessage:'Plancia registra la posizione del mezzo.',requestPermissions:true,stale:false,distanceFilter:50},
+   (loc,err)=>{if(err){gps.error=err.code==='NOT_AUTHORIZED'?'permesso negato':'segnale GPS assente';showGps();return;}if(loc)keepPoint({latitude:loc.latitude,longitude:loc.longitude,accuracy:loc.accuracy,speed:loc.speed},false);});}
+  catch{gps.error='localizzazione non disponibile';}
+ }else if(navigator.geolocation){
+  gps.id=navigator.geolocation.watchPosition(p=>keepPoint(p.coords,false),e=>{gps.error=e.code===1?'permesso negato':'segnale GPS assente';showGps();},{enableHighAccuracy:true,maximumAge:30000,timeout:60000});
+  lockScreen(true);
+ }
+ // a still truck sends no events: a point every 10 minutes anyway; positions leave every 2 minutes
+ recordPosition();
+ watch=setInterval(()=>{recordPosition();},10*60*1000);
+ if(!window.__gpsFlush)window.__gpsFlush=setInterval(flushGps,2*60*1000);
+ showGps();
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&phoneTracking()){lockScreen(true);recordPosition();flushGps();}});
+window.addEventListener('online',()=>flushGps());
 function showGps(){
  const el=document.getElementById('gpsState');if(!el)return;
- const t=openTrip();if(!t){el.hidden=true;return;}el.hidden=false;
+ if(!me){el.hidden=true;return;}el.hidden=false;
+ const n=queue().length;
  el.className='tr-gps'+(gps.error?' bad':'');
- el.innerHTML=gps.error?'<strong>Posizione non attiva</strong> ('+esc(gps.error)+'). Controlla che la localizzazione del telefono sia accesa e consentita a Plancia.'
-  :'<strong>Modalità guida attiva</strong> · il telefono fa da localizzatore'+(gps.last?' · ultima posizione alle '+hm(gps.last.at):'')+(gps.lock?' · schermo sempre acceso':'')+'<br><span class="tr-subtle">Tieni Plancia aperta sul supporto: a schermo spento il telefono non registra.</span>';
+ el.innerHTML=gps.error?'<strong>Posizione non attiva</strong> ('+esc(gps.error)+'). Accendi la localizzazione e consenti a Plancia di usarla «sempre».'
+  :'<strong>Posizione attiva</strong> · il telefono fa da localizzatore'+(gps.last?' · ultima alle '+hm(gps.last.at):'')
+   +(gps.server==='off'?'':n?' · '+n+' da inviare':gps.sent?' · inviate alle '+hm(gps.sent):'')
+   +'<br><span class="tr-subtle">'+(BG()?'Registra anche a schermo spento.':'Nel browser registra solo con Plancia aperta'+(gps.lock?' (schermo sempre acceso)':'')+': con l\'app Plancia installata registra sempre.')+'</span>';
 }
 
 // ---------- screens ----------
@@ -129,13 +171,14 @@ function renderIdle(){
   +'<label>Cliente<select id="cus">'+data.customers.filter(c=>c.active!==false).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select></label>'
   +'<div class="tr-row"><label>Da<input id="orig" list="places" autocomplete="off" placeholder="Luogo di carico"></label><label>A<input id="dest" list="places" autocomplete="off" placeholder="Luogo di scarico"></label></div>'
   +'<datalist id="places">'+places.map(p=>'<option value="'+esc(p)+'">').join('')+'</datalist>'
-  +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Durante il viaggio questo telefono fa da localizzatore: registra la posizione solo da "Inizia viaggio" a "Chiudi viaggio".':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p></section>'
+  +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Questo telefono fa da localizzatore del mezzo.':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p><p id="gpsState" class="tr-gps" hidden></p></section>'
   +(last.length?'<section class="tr-card"><h2>Ultimi viaggi</h2><ul class="tr-list">'+last.map(t=>'<li><strong>'+dmy(t.started_at)+'</strong> '+esc((t.origin||'')+' → '+(t.destination||''))+' <span class="tr-subtle">'+esc(t.status)+'</span></li>').join('')+'</ul></section>':'');
  $('start').onclick=()=>{
   data=ST.load();
   const t={id:ST.uid(),vehicle_id:me.vehicle,driver_id:me.driver,customer_id:$('cus').value,status:'aperto',started_at:nowIso(),ended_at:null,origin:$('orig').value.trim()||null,destination:$('dest').value.trim()||null,km:null,revenue_cents:null};
   data.trips.push(t);save();recordPosition(t);followTrip();say('Viaggio iniziato alle '+hm(t.started_at)+'.','ok');render();
  };
+ showGps();
 }
 function renderTrip(t){
  const docs=data.documents.filter(d=>d.trip_id===t.id),fuel=data.costs.filter(c=>c.trip_id===t.id&&c.kind==='carburante'),issues=(data.issues||[]).filter(i=>i.trip_id===t.id);

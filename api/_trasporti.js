@@ -8,6 +8,8 @@
         session cookie + X-Radix-Trasporti: 1 + application/json
    POST /api/trasporti {action:'pratica.leggi', data:{first, pages:[{image, media_type}]}} → documents found in up to
         12 pages of a scanned bundle (the browser renders the PDF into page images and sends them in batches).
+   POST /api/trasporti {action:'posizioni.telefono', data:{vehicle_id?, points:[{at,lat,lon,speed_kmh?,accuracy_m?,trip_id?}]}}
+        → {saved}: positions recorded by the driver's phone (the app records all the time), into tr_positions.
    POST /api/trasporti {action:'posizioni.aggiorna'} → {provider, positions} from the tracker of the pilot company.
         TRASPORTI_TRACKER = JSON {"provider":"webfleet"|"verizon"|"rfms", ...credentials} on the server only
         (webfleet: account, username, password, apikey · verizon: username, password, app_id, vehicles[], base_url?
@@ -41,8 +43,27 @@ function trackerConfig(){
  try{const c=JSON.parse(raw);return c&&typeof c==='object'&&loc.PROVIDERS[c.provider]&&loc.PROVIDERS[c.provider].api?c:null;}catch{return null;}
 }
 
-function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker=trackerConfig,fetchPositions=loc.fetchPositions}={}){
- const counts=new Map(),lastSync=new Map();
+/* Database access for the phone positions (Neon, tables of migrations/trasporti). The driver is the RADIX user linked
+   to a tr_drivers row of a company where they are a member. */
+const defaultDb={
+ async driverOf(uid){
+  const {sql}=require('./_db');const q=sql();
+  const r=await q`SELECT d.company_id,d.id AS driver_id,d.default_vehicle FROM tr_drivers d JOIN tr_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.user_id=${uid} AND d.active ORDER BY m.role='driver' DESC LIMIT 1`;
+  return r[0]||null;
+ },
+ async vehicleOk(company,vehicle){const {sql}=require('./_db');const r=await sql()`SELECT 1 FROM tr_vehicles WHERE company_id=${company} AND id=${vehicle} AND active`;return r.length>0;},
+ async insertPositions(company,driver,vehicle,points){
+  const {sql}=require('./_db');const q=sql();
+  const r=await q`INSERT INTO tr_positions(company_id,vehicle_id,driver_id,at,lat,lon,source,trip_id,speed_kmh,accuracy_m)
+   SELECT ${company}::uuid,${vehicle}::uuid,${driver}::uuid,x.at,x.lat,x.lon,'telefono',x.trip_id,x.speed_kmh,x.accuracy_m
+   FROM jsonb_to_recordset(${JSON.stringify(points)}::jsonb) AS x(at timestamptz,lat double precision,lon double precision,trip_id uuid,speed_kmh real,accuracy_m real)
+   ON CONFLICT DO NOTHING RETURNING 1`;
+  return r.length;
+ }
+};
+
+function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker=trackerConfig,fetchPositions=loc.fetchPositions,db=defaultDb}={}){
+ const counts=new Map(),lastSync=new Map(),lastPhone=new Map();
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
@@ -61,6 +82,24 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
     try{positions=await fetchPositions(c.provider,c);}
     catch(e){console.error('trasporti posizioni',c.provider,e&&e.message);throw failure(502,(loc.PROVIDERS[c.provider].label)+' non risponde: riprova tra qualche minuto.');}
     return res.status(200).json({provider:c.provider,positions:positions.slice(0,5000)});
+   }
+   if(body.action==='posizioni.telefono'){
+    // the app sends what it collected (also after hours offline); at most one call every 20 seconds per user
+    const last=lastPhone.get(user.uid);if(last!=null&&now()-last<20000)throw failure(429,'Troppe richieste: riprova tra poco.');
+    const d=body.data&&typeof body.data==='object'?body.data:{};
+    const points=loc.phonePoints(d.points,now());
+    if(!points.length)return res.status(200).json({saved:0});
+    if(!process.env.DATABASE_URL&&db===defaultDb)throw failure(503,'Archivio posizioni non configurato su questo ambiente.');
+    let who;try{who=await db.driverOf(user.uid);}catch(e){console.error('trasporti posizioni.telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: le posizioni restano sul telefono.');}
+    if(!who)throw failure(403,'Questo utente non è collegato a un autista: chiedi all\'ufficio.');
+    let vehicle=typeof d.vehicle_id==='string'&&loc.UUID.test(d.vehicle_id)?d.vehicle_id:who.default_vehicle;
+    if(!vehicle)throw failure(400,'Scegli il mezzo nell\'app.');
+    lastPhone.set(user.uid,now());if(lastPhone.size>5000)lastPhone.clear();
+    try{
+     if(vehicle!==who.default_vehicle&&!(await db.vehicleOk(who.company_id,vehicle)))throw failure(400,'Mezzo non trovato.');
+     const saved=await db.insertPositions(who.company_id,who.driver_id,vehicle,points);
+     return res.status(200).json({saved,received:points.length});
+    }catch(e){if(e.status)throw e;console.error('trasporti posizioni.telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: le posizioni restano sul telefono.');}
    }
    if(body.action==='pratica.leggi'){
     const d=body.data&&typeof body.data==='object'?body.data:{};

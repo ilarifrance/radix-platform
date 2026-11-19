@@ -272,3 +272,18 @@ test('invoicing: one row per shipment, trip amount split by kg unless a shipment
  r=MRG.invoiceRows({trips,documents:[],vehicles:[],customers,drivers:[],shipments,from:'2026-11-01',to:'2026-11-30'});
  assert.deepEqual(r.map(x=>x.amount_cents),[60000,40000]);
 });
+
+test('phone positions: validation and API posizioni.telefono',async()=>{
+ const now=Date.parse('2026-11-19T20:00:00Z');
+ const pts=LOC.phonePoints([{at:'2026-11-19T19:58:00Z',lat:43.12345678,lon:13.5,speed_kmh:80.4,accuracy_m:12},{at:'2026-11-19T19:58:00.400Z',lat:43,lon:13},{at:'2026-11-30T00:00:00Z',lat:1,lon:1},{at:'2026-11-19T19:00:00Z',lat:0,lon:0},{at:'2026-11-19T19:00:00Z',lat:95,lon:1},{at:'2026-11-19T19:30:00Z',lat:'44.1',lon:'12.2',trip_id:'nope'}],now);
+ assert.deepEqual(pts.map(p=>[p.at.slice(11,19),p.lat,p.speed_kmh,p.trip_id]),[['19:30:00',44.1,null,null],['19:58:00',43.12346,80,null]]);
+ const saved=[];const V='11111111-1111-4111-8111-111111111111';
+ const db={driverOf:async uid=>uid===7?{company_id:'c',driver_id:'d',default_vehicle:V}:null,vehicleOk:async()=>false,insertPositions:async(c,d,v,p)=>{saved.push([c,d,v,p.length]);return p.length;}};
+ const h=createHandler({getSessionUser:req=>req.uid?{uid:req.uid}:null,now:()=>now,db});
+ const call=async(uid,data)=>{const res={code:0,body:null,setHeader(){},status(c){this.code=c;return this;},json(b){this.body=b;return this;}};await h({method:'POST',uid,headers:{'x-radix-trasporti':'1','content-type':'application/json'},body:{action:'posizioni.telefono',data}},res);return res;};
+ let r=await call(7,{points:[{at:'2026-11-19T19:59:00Z',lat:43.1,lon:13.5}]});
+ assert.deepEqual([r.code,r.body.saved],[200,1]);assert.deepEqual(saved[0],['c','d',V,1]);
+ r=await call(7,{points:[{at:'2026-11-19T19:59:30Z',lat:43.1,lon:13.5}]});assert.equal(r.code,429);
+ r=await call(8,{points:[{at:'2026-11-19T19:59:00Z',lat:43.1,lon:13.5}]});assert.equal(r.code,403);
+ r=await call(9,{points:[]});assert.deepEqual([r.code,r.body.saved],[200,0]);
+});
