@@ -179,6 +179,35 @@ def test_news_check_flags_strong_days_only_after_warmup():
     assert m60.news_check(pd.DataFrame(), pd.DataFrame(), days[-1]) == (None, "archivio notizie non disponibile")
 
 
+def test_step_ignores_todays_partial_bar_and_defers_the_report_until_the_close():
+    # 20/11/2026: il Mac si e' riavviato e launchd (RunAtLoad) ha fatto partire il daily alle 13 UTC di venerdi'
+    start = "2025-01-01"
+    rows = _flat(202) + [(101, 103, 100.5, 100.6)]          # ultimo giorno (un venerdi'): segnale su SPY
+    st = _store(rows, start)
+    last = pd.bdate_range(start, periods=len(rows))[-1]
+    assert last.weekday() == 4
+    sent = []
+    early = datetime(last.year, last.month, last.day, 13, 0, tzinfo=timezone.utc)
+    out = m60.step(st, early, send=sent.append)
+    assert out["segnali"] == [] and out["riepilogo"] is None and sent == []
+    assert st.conn.execute("SELECT COUNT(*) FROM m60_trades").fetchone() == (0,)
+    assert st.conn.execute("SELECT COUNT(*) FROM m60_reports").fetchone() == (0,)
+    # alle 21:04 la barra di oggi non vale ancora, dalle 21:05 si'
+    assert not m60.market_closed(early.replace(hour=21, minute=4)) and m60.market_closed(early.replace(hour=21, minute=5))
+    late = early.replace(hour=22, minute=30)
+    out = m60.step(st, late, send=sent.append)
+    assert out["segnali"] == ["SPY"] and out["riepilogo"] and len(sent) == 2
+    assert st.conn.execute("SELECT week FROM m60_reports").fetchone() == (late.strftime("%G-W%V"),)
+    # settimana saltata al venerdi' (Mac spento): il riepilogo parte al primo giro del fine settimana, una volta sola
+    st2 = _store(rows, start)
+    saturday = datetime(last.year, last.month, last.day, 3, 0, tzinfo=timezone.utc) + pd.Timedelta(days=1)
+    out = m60.step(st2, saturday, send=sent.append)
+    assert out["segnali"] == ["SPY"] and out["riepilogo"] and "Settimana " + saturday.strftime("%G-W%V") in out["riepilogo"]
+    assert m60.step(st2, saturday + pd.Timedelta(days=1), send=sent.append)["riepilogo"] is None
+    # un giorno di settimana prima della chiusura non manda il riepilogo
+    assert not m60.week_closed(early) and not m60.week_closed(early - pd.Timedelta(days=1, hours=-10))
+
+
 def test_step_refreshes_today_and_records_the_news_lane(monkeypatch):
     start = "2025-01-01"
     rows = _flat(200) + [(101, 103, 100.5, 100.6)]          # ultimo giorno: segnale su SPY

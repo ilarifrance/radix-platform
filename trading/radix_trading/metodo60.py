@@ -85,6 +85,10 @@ NOTIONAL_EUR = ACCOUNT_EUR * RISK / STOP
 SPREAD = 0.0002           # per lato
 FINANCING_YEAR = 0.065
 LOOKBACK_DAYS = 14
+# Chiusura di Wall Street in UTC (16:00 New York = 21:00 d'inverno, 20:00 d'estate) piu' cinque minuti: prima di quest'ora
+# la barra di oggi non e' completa. Un giro fuori orario (riavvio del Mac, RunAtLoad di launchd) la deve ignorare,
+# altrimenti un minimo intraday inventa un segnale e il riepilogo del venerdi' parte a settimana aperta (20/11/2026).
+CLOSE_UTC = (21, 5)
 TAG = "[SIMULATO metodo60]"
 TAG_GOLD = "[SIMULATO metodo60 oro]"
 TAG_OBS = "[SIMULATO osservazione]"
@@ -381,6 +385,23 @@ def _run(db, lane: str, sym: str, bars: pd.DataFrame, days: pd.DatetimeIndex, ve
             out["chiuse"].append(sym)
 
 
+def market_closed(now: datetime) -> bool:
+    """Vero da CLOSE_UTC in poi: la barra di oggi e' completa."""
+    return (now.hour, now.minute) >= CLOSE_UTC
+
+
+def complete_bars(bars: pd.DataFrame, now: datetime) -> pd.DataFrame:
+    """Senza la barra di oggi finche' Wall Street non ha chiuso: prima di CLOSE_UTC e' parziale."""
+    if bars.empty or market_closed(now):
+        return bars
+    return bars[bars.index != pd.Timestamp(now.date())]
+
+
+def week_closed(now: datetime) -> bool:
+    """Il riepilogo della settimana parte dal venerdi' dopo la chiusura; se quel giro manca, nel fine settimana."""
+    return now.weekday() > 4 or (now.weekday() == 4 and market_closed(now))
+
+
 def step(store: Store, now: datetime | None = None, send=alerts.send) -> dict:
     now = now or datetime.now(timezone.utc)
     db = store.conn
@@ -397,18 +418,18 @@ def step(store: Store, now: datetime | None = None, send=alerts.send) -> dict:
 
     for lane, (markets, venue) in LANES.items():
         for sym in markets:
-            bars = load_bars(store, sym, venue)
+            bars = complete_bars(load_bars(store, sym, venue), now)
             if not bars.empty:
                 _run(db, lane, sym, bars, signal_days(bars), shock_verdict, since, send, out)
     for key, ob in OBSERVATIONS.items():
-        bars = load_bars(store, ob["symbol"], ob["venue"])
+        bars = complete_bars(load_bars(store, ob["symbol"], ob["venue"]), now)
         if bars.empty or flags_all.empty:
             continue
         _run(db, key, key, bars, theme_signal_days(bars, flags_all, ob["theme"]),
              lambda day, ob=ob: (None, theme_detail(counts_all, flags_all, ob["theme"], day)), since, send, out)
     db.commit()
     week = now.strftime("%G-W%V")
-    if now.weekday() == 4 and db.execute("SELECT 1 FROM m60_reports WHERE week = ?", (week,)).fetchone() is None:
+    if week_closed(now) and db.execute("SELECT 1 FROM m60_reports WHERE week = ?", (week,)).fetchone() is None:
         out["riepilogo"] = report_text(store, week)
         send(out["riepilogo"])
         db.execute("INSERT INTO m60_reports VALUES (?, ?)", (week, now.strftime("%Y-%m-%dT%H:%M:%SZ")))
