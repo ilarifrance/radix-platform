@@ -88,3 +88,10 @@ table.tr-table{width:100%;border-collapse:collapse;font-size:14px}
 .tr-actions .tr-btn.big{min-height:64px}
 .tr-mini{width:7.5em;padding:.3em .5em;border:1px solid var(--border);border-radius:6px;font:inherit;text-align:right;background:var(--surface-2);color:inherit}
 .tr-gps{margin:10px 0 0;padding:8px 10px;border-radius:10px;border:1px solid var(--ok);background:var(--surface-2);font-size:.92em}.tr-gps.bad{border-color:var(--warn)}
+.tr-rate{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;align-items:end}
+.tr-rate label{margin:0}
+.tr-rate textarea,.tr-rate .tr-wide,.tr-rate .tr-fs{grid-column:1/-1}
+.tr textarea{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,monospace;font-size:14px}
+.tr-fs{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+.tr-fs legend{padding:0 6px;font-weight:600}
+.tr [hidden]{display:none!important}

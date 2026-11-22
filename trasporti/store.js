@@ -81,14 +81,32 @@ function sampleTollCsv(data){
  return lines.join('\n');
 }
 
+/* Example invoice data and price lists (listini) of the demonstration company: added also to data saved before
+   they existed, without touching what the user changed. */
+function defaults(d){
+ for(const k of ['issues','positions','documents','costs','shipments','rate_cards','consignees','invoices'])if(!Array.isArray(d[k]))d[k]=[];
+ const c=d.company=d.company||{name:'Autotrasporti Esempio Srl'};
+ if(!c.vat&&!c._seeded){Object.assign(c,{vat:'01950620201',street:'Via San Giorgio 1',cap:'63835',comune:'Montappone',provincia:'FM',regime:'RF01',iban:'',ref_cost_km_cents:null,_seeded:true});}
+ const addr={c1:['Via Emilia 10','46100','Mantova','MN'],c2:['Via del Porto 5','44121','Ferrara','FE'],c3:['Strada Bassa 3','26100','Cremona','CR']};
+ for(const cu of d.customers||[])if(addr[cu.id]&&!cu.street&&!cu._seeded){const a=addr[cu.id];Object.assign(cu,{street:a[0],cap:a[1],comune:a[2],provincia:a[3],nazione:'IT',sdi:'0000000',_seeded:true});}
+ if(!d._rates_seeded){
+  d._rates_seeded=true;
+  const gas={kind:'gasolio',base_eur_l:1.65,incidence_pct:30,current_eur_l:1.72},sosta={kind:'sosta',free_hours:2,per_hour_cents:4000};
+  d.rate_cards.push(
+   {id:'r0',name:'Listino base al km (esempio)',customer_id:null,method:'km',per_km_cents:150,min_cents:25000,supplements:[gas,sosta]},
+   {id:'r1',name:'Latteria: zone di consegna (esempio)',customer_id:'c1',method:'zone',zones:[{name:'Lombardia est',to:['MN','CR','BS'],amount_cents:38000},{name:'Emilia',to:['BO','MO','RE','PR'],amount_cents:42000},{name:'Veneto',to:['VR','VI','PD'],amount_cents:36000},{name:'Piemonte e Milano',to:['TO','MI','NO'],amount_cents:48000}],min_cents:0,supplements:[gas,sosta,{kind:'scarico_extra',amount_cents:5000}]},
+   {id:'r2',name:'Ortofrutta: fasce di pallet (esempio)',customer_id:'c2',method:'fasce',basis:'pallet',bands:[{upto:10,amount_cents:25000},{upto:20,amount_cents:40000},{upto:33,amount_cents:52000}],supplements:[gas,{kind:'sponda',amount_cents:3000}]},
+   {id:'r3',name:'Allevamenti: a capo (esempio)',customer_id:'c3',method:'capo',per_unit_cents:1800,min_cents:30000,supplements:[gas,{kind:'scarico_extra',amount_cents:5000}]});
+ }
+ return d;
+}
 function load(){
  let d=null;try{d=JSON.parse(root.localStorage.getItem(KEY)||'null');}catch{d=null;}
  if(!d||d.version!==2){d=seed();save(d);}
- for(const k of ['issues','positions','documents','costs','shipments'])if(!Array.isArray(d[k]))d[k]=[];
- return d;
+ return defaults(d);
 }
 function save(d){try{root.localStorage.setItem(KEY,JSON.stringify(d));return true;}catch{return false;}}
-function reset(){const d=seed();save(d);return d;}
+function reset(){const d=defaults(seed());save(d);return d;}
 
 root.RadixTrStore={load,save,reset,seed,sampleTollCsv,uid,localIso,KEY};
 if(typeof module==='object'&&module.exports)module.exports=root.RadixTrStore;

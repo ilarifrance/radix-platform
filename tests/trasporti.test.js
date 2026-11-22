@@ -287,3 +287,70 @@ test('phone positions: validation and API posizioni.telefono',async()=>{
  r=await call(8,{points:[{at:'2026-11-19T19:59:00Z',lat:43.1,lon:13.5}]});assert.equal(r.code,403);
  r=await call(9,{points:[]});assert.deepEqual([r.code,r.body.saved],[200,0]);
 });
+
+test('listini: zones by province/region/country and origin, bands, per head, minimum, fuel and waiting supplements',()=>{
+ const L=require('../lib/trasporti/listini');
+ const zones=L.parseZones('MN, CR = 350\nLombardia = 420\nFR = 1200\nVI -> FR = 110 /pallet');
+ assert.ok(zones.every(z=>!z.error));
+ const card={method:'zone',zones,min_cents:40000,supplements:[{kind:'gasolio',base_eur_l:1.6,incidence_pct:30},{kind:'sosta',free_hours:2,per_hour_cents:4000},{kind:'adr',amount_cents:5000}]};
+ assert.equal(L.price(card,{delivery_place:'Canneto sull\'Oglio (MN)'}).amount_cents,40000); // 350 raised to the minimum
+ assert.equal(L.price(card,{delivery_place:'24100 Bergamo BG'}).zone,'Lombardia');
+ let r=L.price(card,{delivery_place:'74150 Marigny Saint Marcel - FR',load_place:'36050 Cartigliano VI',pallets:7,diesel_eur_l:1.72,wait_hours:3});
+ assert.equal(r.zone,'FR da VI');assert.equal(r.amount_cents,77000+1732+4000);
+ assert.equal(L.placeOf('03100 Frosinone (FR)').country,'IT');assert.equal(L.placeOf('Pouilly-en-Auxois (FR)').country,'FR');
+ r=L.price(card,{delivery_place:'Roma (RM)'});assert.equal(r.amount_cents,null);assert.match(r.missing[0],/zona/);
+ const bands={method:'fasce',basis:'peso',bands:L.parseBands('1000 = 120\n5000 = 300\n24000 = 0,08/u')};
+ assert.equal(L.price(bands,{weight_kg:800}).amount_cents,12000);assert.equal(L.price(bands,{weight_kg:20150}).amount_cents,161200);
+ assert.equal(L.price({method:'capo',per_unit_cents:1800},{animals:110}).amount_cents,198000);
+ assert.equal(L.price({method:'km',per_km_cents:165},{km:239}).amount_cents,39435);
+ const cards=[{id:'d',method:'km',per_km_cents:150},{id:'c',customer_id:'c1',method:'fisso',amount_cents:50000,valid_to:'2026-12-31'}];
+ assert.equal(L.cardFor(cards,'c1','2026-11-20').id,'c');assert.equal(L.cardFor(cards,'c1','2027-01-02').id,'d');assert.equal(L.cardFor(cards,'c2','2026-11-20').id,'d');
+});
+
+const ANA=require('../lib/trasporti/anagrafiche');
+const FPA=require('../lib/trasporti/fatturapa');
+
+test('customer records from documents: VAT check, addresses, proposals without duplicates or our own company',()=>{
+ assert.ok(ANA.pivaOk('04425640242'));assert.ok(ANA.pivaOk('01950620201'));assert.ok(!ANA.pivaOk('01950620202'));
+ assert.equal(ANA.vatIn('P.IVA IT 04425640242 - tel 0444')[0].code,'04425640242');
+ const a=ANA.addressOf('Via Roma 12, 36100 Vicenza (VI)');assert.equal(a.cap,'36100');assert.equal(a.provincia,'VI');
+ const docs=[{kind:'ddt',fields:{numero:'1',mittente:'Latteria Rossi Srl P.IVA 04425640242',mittente_indirizzo:'Via Roma 12, 36100 Vicenza (VI)',destinatario:'Supermercati Nord Spa',destinatario_indirizzo:'Via Po 3, 20100 Milano MI'}},
+  {kind:'ddt',fields:{numero:'2',mittente:'LATTERIA ROSSI S.R.L.',destinatario:'Supermercati Nord Spa'}},
+  {kind:'cmr',fields:{numero:'3',mittente:'Ilari Group Srl',vettore:'Broad Logistics',destinatario:'Ferme SA'}}];
+ const p=ANA.proposals({documents:docs,customers:[{name:'Broad Logistics'}],consignees:[],own:'Ilari Group Srl'});
+ const names=p.customers.map(c=>c.name);
+ assert.equal(names.filter(n=>/latteria/i.test(n)).length,1,'same company written differently is one proposal');
+ assert.ok(!names.some(n=>/ilari/i.test(n)),'our company is never proposed');
+ assert.ok(!names.some(n=>/broad/i.test(n)),'already known customers are skipped');
+ const lat=p.customers.find(c=>/latteria/i.test(c.name));assert.equal(lat.count,2);assert.equal(lat.vat.code,'04425640242');
+ assert.ok(p.places.some(x=>/supermercati/i.test(x.name)&&x.count===2));
+});
+
+test('electronic invoice: totals per VAT treatment, stamp duty, required data and Latin-1 only',()=>{
+ const company={name:'Trasporti Demo Srl',vat:'01950620201',street:'Via San Giorgio 1',cap:'63835',comune:'Montappone',provincia:'FM',iban:'IT60 X054 2811 1010 0000 0123 456'};
+ const customer={name:'Latteria Rossi Srl',vat:'04425640242',street:'Via Roma 12',cap:'36100',comune:'Vicenza',provincia:'VI',sdi:'abc1234'};
+ const r=FPA.build({company,customer,number:'12/2026',date:'2026-11-20',progressive:12,rows:[
+  {description:'Vicenza → Milano',amount_cents:50000,ddt:{numero:'4187',data:'2026-11-12'}},
+  {description:'Vicenza – Lione “frigo”',amount_cents:120000,load_country:'IT',delivery_country:'FR'}]});
+ assert.deepEqual(r.errors,[]);
+ assert.equal(r.totals.taxable_cents,170000);assert.equal(r.totals.vat_cents,11000);assert.ok(r.totals.stamp);assert.equal(r.totals.total_cents,181200);
+ assert.equal(r.file_name,'IT01950620201_00012.xml');
+ assert.match(r.xml,/<Natura>N3\.4<\/Natura>/);assert.match(r.xml,/<CodiceDestinatario>ABC1234<\/CodiceDestinatario>/);
+ assert.match(r.xml,/<NumeroDDT>4187<\/NumeroDDT>/);assert.match(r.xml,/<IBAN>IT60X0542811101000000123456<\/IBAN>/);
+ assert.ok(!/[^\x09\x0A\x0D\x20-\x7E\xA0-\xFF]/.test(r.xml),'only Latin-1 characters');
+ assert.equal(FPA.build({company,customer,number:'1',date:'2026-11-20',rows:[{amount_cents:120000,load_country:'IT',delivery_country:'FR'}],stamp_duty:false}).totals.stamp,false);
+ const foreign=FPA.build({company,customer:{name:'Ferme SA',vat:'FR12345678901',street:'Rue 1',comune:'Lyon',nazione:'FR'},number:'2',date:'2026-11-20',rows:[{amount_cents:10000}]});
+ assert.match(foreign.xml,/<Natura>N2\.1<\/Natura>/);assert.match(foreign.xml,/XXXXXXX/);assert.match(foreign.xml,/<IdPaese>FR<\/IdPaese>/);
+ const bad=FPA.build({company:{},customer:{},rows:[]});assert.ok(bad.errors.length>=6);
+});
+
+test('company costs shared over trips by km when asked',()=>{
+ const trips=[{id:'t1',started_at:'2026-11-10T08:00',km:100,vehicle_id:'v1',revenue_cents:50000},{id:'t2',started_at:'2026-11-11T08:00',km:300,vehicle_id:'v1',revenue_cents:90000}];
+ const costs=[{kind:'generali',date:'2026-11-05',amount_cents:40000}];
+ const a=MRG.compute({trips,costs,tolls:[],from:'2026-11-01',to:'2026-11-30',shareCompany:true});
+ const b=MRG.compute({trips,costs,tolls:[],from:'2026-11-01',to:'2026-11-30'});
+ const t1=a.trips.find(t=>t.id==='t1'),t2=a.trips.find(t=>t.id==='t2');
+ assert.equal(t1.cost_cents,10000);assert.equal(t2.cost_cents,30000);
+ assert.equal(b.trips.find(t=>t.id==='t1').cost_cents,0);
+ assert.equal(MRG.KIND_GROUP.autista_esterno,'Autista');assert.equal(MRG.KIND_GROUP.pedaggio,'Viaggio');
+});

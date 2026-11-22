@@ -5,7 +5,7 @@
    Exports are real Excel files (lib/trasporti/xlsx.js). */
 (function(){
 'use strict';
-const DOC=window.RadixTrDocumenti,TOLL=window.RadixTrPedaggi,MRG=window.RadixTrMargini,ST=window.RadixTrStore,LOC=window.RadixTrLocalizzatori,XL=window.RadixTrXlsx;
+const DOC=window.RadixTrDocumenti,TOLL=window.RadixTrPedaggi,MRG=window.RadixTrMargini,ST=window.RadixTrStore,LOC=window.RadixTrLocalizzatori,XL=window.RadixTrXlsx,LIS=window.RadixTrListini,ANA=window.RadixTrAnagrafiche,FPA=window.RadixTrFatturaPA;
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const EUR=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}),EUR0=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0});
@@ -14,7 +14,7 @@ const num=n=>new Intl.NumberFormat('it-IT').format(n||0);
 const dmy=s=>s?s.slice(8,10)+'/'+s.slice(5,7)+'/'+s.slice(0,4):'';
 const hm=s=>s?s.slice(11,16):'';
 const pctTxt=p=>p==null?'—':String(p).replace('.',',')+'%';
-const TABS=['oggi','viaggi','pedaggi','margine','fatturazione','costi','anagrafiche','localizzatori'];
+const TABS=['oggi','viaggi','pedaggi','margine','fatturazione','listini','costi','anagrafiche','localizzatori'];
 const DOC_LABEL=k=>k==='consegna'?'Consegna firmata':DOC.KINDS[k]?.label||k;
 const ISSUE={ritardo:'Ritardo',guasto:'Guasto al mezzo',incidente:'Incidente',merce:'Merce o carico',attesa:'Attesa al carico/scarico',altro:'Altro'};
 const view=$('view');
@@ -36,7 +36,7 @@ function margin(){
  const p=period(),tr=tollResult();
  // transits of a known vehicle outside every trip are a cost of that vehicle, shared among its trips
  const extra=tr?tr.rows.filter(r=>r.status==='fuori_viaggio').map(r=>({id:r.id,kind:'pedaggio',date:r.date,amount_cents:r.amount_cents,vehicle_id:r.vehicle_id})):[];
- return MRG.compute({trips:data.trips.filter(t=>t.status!=='aperto'),costs:data.costs.concat(extra),tolls:tr,from:p.from,to:p.to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers});
+ return MRG.compute({trips:data.trips.filter(t=>t.status!=='aperto'),costs:data.costs.concat(extra),tolls:tr,from:p.from,to:p.to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers,shareCompany:true});
 }
 function download(name,bytes,type){const blob=new Blob([bytes],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 const xlsx=(name,sheets)=>download(name,XL.write(sheets),XL.MIME);
@@ -49,7 +49,7 @@ function render(){
  tab=TABS.includes(location.hash.slice(1))?location.hash.slice(1):'oggi';
  document.querySelectorAll('#tabs a').forEach(a=>{if(a.dataset.tab===tab)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
  if(map){map.remove();map=null;}
- ({oggi:renderToday,viaggi:renderTrips,pedaggi:renderTolls,margine:renderMargin,fatturazione:renderInvoicing,costi:renderCosts,anagrafiche:renderMaster,localizzatori:renderTrackers})[tab]();
+ ({oggi:renderToday,viaggi:renderTrips,pedaggi:renderTolls,margine:renderMargin,fatturazione:renderInvoicing,listini:renderRates,costi:renderCosts,anagrafiche:renderMaster,localizzatori:renderTrackers})[tab]();
 }
 const kpis=list=>'<div class="tr-kpis">'+list.map(([b,s])=>'<div class="tr-kpi"><b>'+b+'</b><span>'+esc(s)+'</span></div>').join('')+'</div>';
 const lastPos=id=>{let best=null;for(const p of data.positions)if(p.vehicle_id===id&&(!best||p.at>best.at))best=p;return best;};
@@ -192,11 +192,12 @@ function renderMargin(){
  const m=margin(),t=m.totals,p=period();
  const dims={vehicles:'Per mezzo',drivers:'Per autista',customers:'Per cliente',trips:'Per viaggio'};
  const kinds=Object.entries(m.by_kind).sort((a,b)=>b[1]-a[1]);const maxK=Math.max(1,...kinds.map(k=>k[1]));
+ const refKm=(data.company||{}).ref_cost_km_cents||null;
  let rows;
  if(mDim==='trips')rows=m.trips.map(r=>'<tr><td>'+dmy(r.date)+'</td><td class="wrap">'+esc((r.origin||'?')+' → '+(r.destination||'?'))+'</td><td>'+esc(veh(r.vehicle_id).plate)+'</td><td class="num">'+num(r.km)+'</td><td class="num">'+eur(r.revenue_cents)+'</td><td class="num">'+eur(r.cost_cents)+'</td><td class="num '+(r.margin_cents<0?'neg':'')+'">'+eur(r.margin_cents)+'</td><td class="num">'+pctTxt(r.margin_pct)+'</td></tr>').join('');
- else rows=m[mDim].map(g=>'<tr><td>'+esc(g.name)+'</td><td class="num">'+num(g.trips)+'</td><td class="num">'+num(g.km)+'</td><td class="num">'+eur0(g.revenue_cents)+'</td><td class="num">'+eur0(g.cost_cents)+(g.unallocated_cents?'<br><span class="tr-subtle">'+eur0(g.unallocated_cents)+' senza viaggi</span>':'')+'</td><td class="num '+(g.margin_cents<0?'neg':'')+'">'+eur0(g.margin_cents)+'</td><td class="num">'+pctTxt(g.margin_pct)+'</td><td class="num">'+(g.cost_per_km_cents!=null?eur(g.cost_per_km_cents):'—')+'</td></tr>').join('');
+ else rows=m[mDim].map(g=>'<tr><td>'+esc(g.name)+'</td><td class="num">'+num(g.trips)+'</td><td class="num">'+num(g.km)+'</td><td class="num">'+eur0(g.revenue_cents)+'</td><td class="num">'+eur0(g.cost_cents)+(g.unallocated_cents?'<br><span class="tr-subtle">'+eur0(g.unallocated_cents)+' senza viaggi</span>':'')+'</td><td class="num '+(g.margin_cents<0?'neg':'')+'">'+eur0(g.margin_cents)+'</td><td class="num">'+pctTxt(g.margin_pct)+'</td><td class="num">'+(g.cost_per_km_cents!=null?'<span class="'+(refKm&&g.cost_per_km_cents>refKm?'neg':'')+'">'+eur(g.cost_per_km_cents)+'</span>':'—')+'</td></tr>').join('');
  const head=mDim==='trips'?'<th>Data</th><th>Tratta</th><th>Mezzo</th><th class="num">Km</th><th class="num">Ricavo</th><th class="num">Costi</th><th class="num">Margine</th><th class="num">%</th>':'<th>'+({vehicles:'Mezzo',drivers:'Autista',customers:'Cliente'}[mDim])+'</th><th class="num">Viaggi</th><th class="num">Km</th><th class="num">Ricavi</th><th class="num">Costi</th><th class="num">Margine</th><th class="num">%</th><th class="num">Costo/km</th>';
- view.innerHTML=kpis([[eur0(t.revenue_cents),'Ricavi'],[eur0(t.cost_cents),'Costi'],[eur0(t.margin_cents),'Margine'],[pctTxt(t.margin_pct),'Margine sui ricavi'],[t.km?eur(Math.round(t.cost_cents/t.km)):'—','Costo per km']])
+ view.innerHTML=kpis([[eur0(t.revenue_cents),'Ricavi'],[eur0(t.cost_cents),'Costi'],[eur0(t.margin_cents),'Margine'],[pctTxt(t.margin_pct),'Margine sui ricavi'],[t.km?eur(Math.round(t.cost_cents/t.km)):'—','Costo per km'+(refKm?' (riferimento '+eur(refKm)+')':'')]])
   +(t.missing_revenue?'<p class="tr-banner">'+t.missing_revenue+' viaggi senza ricavo: indica la tariffa del cliente in Anagrafiche o l\'importo nel viaggio.</p>':'')
   +'<section class="tr-panel"><div class="tr-toolbar">'+Object.entries(dims).map(([k,l])=>'<button class="tr-btn small'+(k===mDim?' blue':' ghost')+'" data-dim="'+k+'">'+l+'</button>').join('')+'<button class="tr-btn small ghost" id="xlsMargin" style="margin-left:auto">Scarica in Excel</button></div><table class="tr-table"><thead><tr>'+head+'</tr></thead><tbody>'+rows+'</tbody></table>'
   +'<p class="tr-subtle">Costi del viaggio: carburante segnalato e pedaggi abbinati. Costi del mezzo (leasing, manutenzione, pedaggi fuori viaggio) e del personale ripartiti sui viaggi in proporzione ai km.</p></section>'
@@ -216,27 +217,157 @@ function renderMargin(){
 // ---------- invoicing ----------
 function renderInvoicing(){
  const p=period();const rows=MRG.invoiceRows({trips:data.trips,documents:data.documents,vehicles:data.vehicles,customers:data.customers,drivers:data.drivers,shipments:data.shipments,from:p.from,to:p.to});
- const byC=new Map();for(const r of rows){const g=byC.get(r.customer)||{n:0,c:0};g.n++;g.c+=r.amount_cents;byC.set(r.customer,g);}
+ const byC=new Map();for(const r of rows){const key=r.customer_id||r.customer;const g=byC.get(key)||{id:r.customer_id,name:r.customer||'Cliente non indicato',n:0,c:0,zero:0};g.n++;g.c+=r.amount_cents;if(!r.amount_cents)g.zero++;byC.set(key,g);}
  const pod=new Set(data.documents.filter(d=>d.kind==='consegna').map(d=>d.trip_id));
- view.innerHTML='<section class="tr-panel"><h2>Da fatturare nel periodo</h2><p class="tr-muted">Viaggi chiusi con i dati del documento confermato dall\'autista. Il file Excel ha un foglio per il riepilogo per cliente e uno con il dettaglio, pronto per il programma di fatturazione.</p>'
-  +'<div class="tr-toolbar"><button class="tr-btn" id="xls"'+(rows.length?'':' disabled')+'>Scarica in Excel</button><button class="tr-btn ghost" id="csv"'+(rows.length?'':' disabled')+'>CSV</button><button class="tr-btn ghost" id="mark"'+(rows.length?'':' disabled')+'>Segna come fatturati</button></div>'
-  +'<table class="tr-table"><thead><tr><th>Cliente</th><th class="num">Viaggi</th><th class="num">Importo</th></tr></thead><tbody>'+[...byC].map(([k,g])=>'<tr><td>'+esc(k)+'</td><td class="num">'+g.n+'</td><td class="num">'+eur(g.c)+'</td></tr>').join('')+'</tbody></table></section>'
+ const co=data.company||{};const coMiss=!co.vat||!co.street||!co.cap||!co.comune;
+ view.innerHTML='<section class="tr-panel"><h2>Da fatturare nel periodo</h2><p class="tr-muted">Viaggi chiusi, una riga per viaggio o per spedizione. Gli importi mancanti si calcolano dal listino del cliente. Per ogni cliente puoi scaricare la fattura elettronica (XML FatturaPA) da caricare nel programma di fatturazione o inviare allo SdI.</p>'
+  +'<div class="tr-toolbar"><button class="tr-btn" id="rates">Calcola importi dal listino</button><button class="tr-btn ghost" id="ratesAll">Ricalcola anche quelli già da listino</button><button class="tr-btn ghost" id="xls"'+(rows.length?'':' disabled')+'>Scarica in Excel</button><button class="tr-btn ghost" id="csv"'+(rows.length?'':' disabled')+'>CSV</button><button class="tr-btn ghost" id="mark"'+(rows.length?'':' disabled')+'>Segna come fatturati</button></div>'
+  +(coMiss?'<p class="tr-banner">Per la fattura elettronica servono i dati della tua azienda: compilali qui sotto.</p>':'')
+  +'<table class="tr-table"><thead><tr><th>Cliente</th><th class="num">Righe</th><th class="num">Importo</th><th></th></tr></thead><tbody>'+[...byC.values()].map(g=>'<tr><td>'+esc(g.name)+(g.zero?' <span class="tr-pill flag">'+g.zero+' senza importo</span>':'')+'</td><td class="num">'+g.n+'</td><td class="num">'+eur(g.c)+'</td><td>'+(g.id?'<button class="tr-link" data-fpa="'+esc(g.id)+'">Fattura elettronica (XML)</button>':'<span class="tr-subtle">indica il cliente nel viaggio</span>')+'</td></tr>').join('')+'</tbody></table><div id="fpaOut"></div></section>'
   +'<section class="tr-panel"><table class="tr-table"><thead><tr><th>Cliente</th><th>Data</th><th>Documento</th><th>Tratta</th><th>Merce</th><th>Targa</th><th>Consegna</th><th class="num">Km</th><th class="num">Importo</th></tr></thead><tbody>'
-  +rows.map(r=>'<tr><td>'+esc(r.customer)+'</td><td>'+dmy(r.date)+'</td><td>'+esc(r.doc)+'</td><td class="wrap">'+esc(r.origin+' → '+r.destination)+'</td><td>'+esc(r.goods)+'</td><td>'+esc(r.plate)+'</td><td>'+((r.delivered??pod.has(r.trip_id))?'<span class="tr-pill ok">firmata</span>':'<span class="tr-pill flag">manca</span>')+'</td><td class="num">'+num(r.km)+'</td><td class="num">'+eur(r.amount_cents)+'</td></tr>').join('')+'</tbody></table></section>';
+  +rows.map(r=>'<tr><td>'+esc(r.customer)+'</td><td>'+dmy(r.date)+'</td><td>'+esc(r.doc)+'</td><td class="wrap">'+esc(r.origin+' → '+r.destination)+'</td><td>'+esc(r.goods)+'</td><td>'+esc(r.plate)+'</td><td>'+((r.delivered??pod.has(r.trip_id))?'<span class="tr-pill ok">firmata</span>':'<span class="tr-pill flag">manca</span>')+'</td><td class="num">'+num(r.km)+'</td><td class="num">'+eur(r.amount_cents)+(r.price_auto?'<br><span class="tr-subtle">da listino</span>':'')+'</td></tr>').join('')+'</tbody></table></section>'
+  +'<section class="tr-panel" style="max-width:760px"><h2>Dati della tua azienda per la fattura</h2><form id="coForm" class="tr-form-grid">'
+  +[['name','Ragione sociale'],['vat','Partita IVA'],['cf','Codice fiscale (se diverso)'],['street','Indirizzo'],['cap','CAP'],['comune','Comune'],['provincia','Provincia (sigla)'],['iban','IBAN per il pagamento'],['regime','Regime fiscale (RF01 ordinario)']].map(([k,l])=>'<label>'+esc(l)+'<input name="'+k+'" value="'+esc(co[k]||'')+'"></label>').join('')
+  +'<label>Costo di riferimento €/km (per il margine)<input name="ref_km" inputmode="decimal" value="'+esc(co.ref_cost_km_cents!=null?(co.ref_cost_km_cents/100).toFixed(2).replace('.',','):'')+'"></label><button class="tr-btn">Salva</button></form><p class="tr-subtle">Il costo di riferimento al km è quello con cui confrontarsi, per esempio i valori indicativi pubblicati dal Ministero dei Trasporti per la tua categoria di mezzi.</p></section>';
+ const runRates=only=>{const r=applyRates(only);say((r.done===0&&!r.miss.length?'Nessun importo da calcolare: i viaggi del periodo hanno già un importo. Usa «Ricalcola anche quelli già da listino» dopo aver cambiato un listino.':r.done+(r.done===1?' importo calcolato':' importi calcolati')+' dal listino.')+(r.miss.length?' Da controllare: '+r.miss.slice(0,3).join('; ')+(r.miss.length>3?'…':''):''),r.miss.length?'error':'ok');renderInvoicing();};
+ $('rates').onclick=()=>runRates(true);$('ratesAll').onclick=()=>runRates(false);
+ view.querySelectorAll('[data-fpa]').forEach(b=>b.onclick=()=>{
+  const cid=b.dataset.fpa;const mine=rows.filter(r=>r.customer_id===cid&&r.amount_cents>0);
+  const res=invoiceXml(cid,mine);const out=$('fpaOut');
+  if(res.errors.length){out.innerHTML='<p class="tr-banner error">Per la fattura di '+esc(cus(cid).name)+' manca: '+esc(res.errors.join(', '))+'. I dati del cliente si completano in Anagrafiche.</p>';return;}
+  download(res.file_name,res.xml,'application/xml');
+  data.invoices=data.invoices||[];data.invoices.push({id:ST.uid(),customer_id:cid,number:res.number,date:res.date,taxable_cents:res.totals.taxable_cents,vat_cents:res.totals.vat_cents,total_cents:res.totals.total_cents,file_name:res.file_name,trip_ids:[...new Set(mine.map(r=>r.trip_id))],shipment_ids:mine.map(r=>r.shipment_id).filter(Boolean)});save();
+  out.innerHTML='<p class="tr-banner ok">Fattura '+esc(res.number)+' per '+esc(cus(cid).name)+': imponibile '+eur(res.totals.taxable_cents)+', IVA '+eur(res.totals.vat_cents)+(res.totals.stamp?', bollo 2,00 €':'')+', totale '+eur(res.totals.total_cents)+'. File '+esc(res.file_name)+' scaricato. I trasporti internazionali sono non imponibili (art. 9): fai confermare le regole IVA al tuo commercialista.</p>';
+ });
+ $('coForm').onsubmit=e=>{e.preventDefault();const el=e.target.elements;const c=data.company;
+  for(const k of ['name','vat','cf','street','cap','comune','provincia','iban','regime'])c[k]=(el[k].value||'').trim()||null;
+  if(c.vat)c.vat=c.vat.replace(/^IT/i,'').replace(/\s/g,'');if(c.provincia)c.provincia=c.provincia.toUpperCase();
+  if(c.vat&&!ANA.pivaOk(c.vat)){say('Partita IVA non valida: controlla le 11 cifre.','error');return;}
+  const r=el.ref_km.value.trim();c.ref_cost_km_cents=r?Math.round((DOC.normNumber(r)||0)*100):null;
+  save();say('Dati dell\'azienda salvati.','ok');renderInvoicing();};
  $('xls').onclick=()=>xlsx('viaggi-da-fatturare-'+p.from+'-'+p.to+'.xlsx',[
-  {name:'Per cliente',columns:[{title:'Cliente'},{title:'Viaggi',type:'int'},{title:'Importo',type:'euro'}],rows:[...byC].map(([k,g])=>[k,g.n,g.c/100])},
-  {name:'Dettaglio',columns:[{title:'Cliente'},{title:'Data',type:'date'},{title:'Documento'},{title:'Da'},{title:'A'},{title:'Merce'},{title:'Peso kg',type:'number'},{title:'Targa'},{title:'Autista'},{title:'Km',type:'int'},{title:'Consegna firmata'},{title:'Importo',type:'euro'},{title:'Viaggio'}],
-   rows:rows.map(r=>[r.customer,r.date,r.doc,r.origin,r.destination,r.goods,r.weight_kg===''?null:r.weight_kg,r.plate,r.driver,r.km===''?null:r.km,(r.delivered??pod.has(r.trip_id))?'sì':'no',r.amount_cents/100,r.trip_id])}]);
+  {name:'Per cliente',columns:[{title:'Cliente'},{title:'Righe',type:'int'},{title:'Importo',type:'euro'}],rows:[...byC.values()].map(g=>[g.name,g.n,g.c/100])},
+  {name:'Dettaglio',columns:[{title:'Cliente'},{title:'Data',type:'date'},{title:'Documento'},{title:'Da'},{title:'A'},{title:'Merce'},{title:'Peso kg',type:'number'},{title:'Targa'},{title:'Autista'},{title:'Km',type:'int'},{title:'Consegna firmata'},{title:'Importo',type:'euro'},{title:'Da listino'},{title:'Viaggio'}],
+   rows:rows.map(r=>[r.customer,r.date,r.doc,r.origin,r.destination,r.goods,r.weight_kg===''?null:r.weight_kg,r.plate,r.driver,r.km===''?null:r.km,(r.delivered??pod.has(r.trip_id))?'sì':'no',r.amount_cents/100,r.price_auto?'sì':'',r.trip_id])}]);
  $('csv').onclick=()=>download('viaggi-da-fatturare-'+p.from+'-'+p.to+'.csv',MRG.toCsv(rows),'text/csv;charset=utf-8');
  $('mark').onclick=()=>{const ids=new Set(rows.map(r=>r.trip_id));for(const t of data.trips)if(ids.has(t.id))t.status='fatturato';save();renderInvoicing();};
+}
+
+// ---------- listini: how each customer is priced ----------
+const MLAB=LIS.METHODS;
+let rateEdit=null,rateTry=null;
+function applyRates(onlyMissing){
+ const p=period();let done=0;const miss=[];
+ const cards=data.rate_cards||[];
+ for(const t of data.trips){
+  if(t.status!=='chiuso'||t.started_at.slice(0,10)<p.from||t.started_at.slice(0,10)>p.to)continue;
+  const ships=(data.shipments||[]).filter(s=>s.trip_id===t.id);
+  const targets=ships.length?ships:[t];
+  for(const x of targets){
+   if(x.revenue_cents!=null&&(onlyMissing||!x.price_auto))continue;
+   const cid=x.customer_id||t.customer_id;const card=LIS.cardFor(cards,cid,t.started_at.slice(0,10));
+   if(!card){miss.push((cus(cid).name||'Cliente non indicato')+': nessun listino');continue;}
+   const r=LIS.price(card,LIS.jobOf(t,ships.length?x:null,ships,data.documents));
+   if(r.amount_cents==null){miss.push((cus(cid).name||'')+' '+dmy(t.started_at)+': manca '+r.missing.join(', '));continue;}
+   x.revenue_cents=r.amount_cents;x.price_auto=true;x.price_detail={card:card.name,lines:r.lines,missing:r.missing};done++;
+  }
+ }
+ save();return {done,miss};
+}
+function renderRates(){
+ const cards=data.rate_cards||[];
+ const card=rateEdit&&rateEdit!=='new'?cards.find(c=>c.id===rateEdit):null;
+ const sup=k=>(card&&card.supplements||[]).find(s=>s.kind===k)||{};
+ const v=(x,d='')=>x==null?d:x;
+ const money=c=>c==null?'':(c/100).toFixed(2).replace('.',',');
+ const zonesTxt=card&&card.zones?card.zones.map(z=>((z.from||[]).length?z.from.join(', ')+' -> ':'')+(z.to||[]).join(', ')+' = '+money(z.amount_cents!=null?z.amount_cents:z.per_unit_cents)+(z.per_unit_cents?' /'+({pallet:'pallet',peso:'kg',capi:'capo',colli:'collo',metri:'m'}[z.basis]||'pallet'):'')).join('\n'):'';
+ const bandsTxt=card&&card.bands?card.bands.map(b=>b.upto+' = '+money(b.amount_cents)+(b.per_unit?'/u':'')).join('\n'):'';
+ const mine=t=>card&&card.customer_id&&(t.customer_id===card.customer_id||(data.shipments||[]).some(x=>x.trip_id===t.id&&x.customer_id===card.customer_id))?0:1;
+ const closed=data.trips.filter(t=>t.status!=='aperto').sort((a,b)=>mine(a)-mine(b)||(a.started_at<b.started_at?1:-1)).slice(0,30);
+ let tryOut='';
+ if(card&&rateTry){const t=data.trips.find(x=>x.id===rateTry);if(t){const ships=(data.shipments||[]).filter(s=>s.trip_id===t.id);const r=LIS.price(card,LIS.jobOf(t,ships[0]||null,ships,data.documents));
+  tryOut='<table class="tr-table"><tbody>'+r.lines.map(l=>'<tr><td class="wrap">'+esc(l.label)+'</td><td class="num">'+esc(l.qty)+' '+esc(l.unit)+'</td><td class="num">'+eur(l.amount_cents)+'</td></tr>').join('')+'<tr><th>Totale</th><td></td><th class="num">'+(r.amount_cents!=null?eur(r.amount_cents):'—')+'</th></tr></tbody></table>'+(r.missing.length?'<p class="tr-banner error">Manca: '+esc(r.missing.join(', '))+'</p>':'');}}
+ view.innerHTML='<div class="tr-grid2"><section class="tr-panel"><div class="tr-toolbar"><h2 style="margin:0">Listini</h2><button class="tr-btn small" id="rateAdd" style="margin-left:auto">Nuovo listino</button></div>'
+  +'<p class="tr-muted">Ogni cliente può avere il suo listino. Il listino senza cliente vale per tutti gli altri. In Fatturazione, «Calcola importi dal listino» applica il listino ai viaggi e alle spedizioni senza importo.</p>'
+  +'<table class="tr-table"><thead><tr><th>Listino</th><th>Cliente</th><th>Metodo</th><th>Validità</th><th></th></tr></thead><tbody>'
+  +cards.map(c=>'<tr'+(rateEdit===c.id?' class="sel"':'')+(c.active===false?' style="opacity:.55"':'')+'><td class="wrap"><strong>'+esc(c.name)+'</strong></td><td class="wrap">'+esc(c.customer_id?cus(c.customer_id).name||'?':'Tutti gli altri clienti')+'</td><td>'+esc((MLAB[c.method]||{}).label||c.method)+'</td><td>'+(c.valid_from||c.valid_to?esc((c.valid_from?dmy(c.valid_from):'…')+' – '+(c.valid_to?dmy(c.valid_to):'…')):'sempre')+'</td><td><button class="tr-link" data-rate="'+esc(c.id)+'">Modifica</button></td></tr>').join('')
+  +'</tbody></table></section>'
+  +'<section class="tr-panel">'+(rateEdit?'<h2>'+(card?'Modifica listino':'Nuovo listino')+'</h2><form id="rateForm" class="tr-rate">'
+   +'<label>Nome<input name="name" required value="'+esc(card?card.name:'')+'"></label>'
+   +'<label>Cliente<select name="customer"><option value="">Tutti gli altri clienti (predefinito)</option>'+data.customers.map(c=>'<option value="'+esc(c.id)+'"'+(card&&card.customer_id===c.id?' selected':'')+'>'+esc(c.name)+'</option>').join('')+'</select></label>'
+   +'<label>Metodo<select name="method">'+Object.entries(MLAB).map(([k,m])=>'<option value="'+k+'"'+((card?card.method:'km')===k?' selected':'')+'>'+esc(m.label)+'</option>').join('')+'</select></label>'
+   +'<div class="tr-row"><label>Valido dal<input type="date" name="valid_from" value="'+esc(card&&card.valid_from||'')+'"></label><label>al<input type="date" name="valid_to" value="'+esc(card&&card.valid_to||'')+'"></label></div>'
+   +'<label data-m="fisso">Tratta<input name="route" placeholder="es. Mantova → Bologna" value="'+esc(card&&card.route||'')+'"></label><label data-m="fisso">Prezzo del viaggio €<input name="amount" inputmode="decimal" value="'+money(card&&card.amount_cents)+'"></label>'
+   +'<label data-m="km">€ al km<input name="per_km" inputmode="decimal" value="'+money(card&&card.per_km_cents)+'"></label>'
+   +'<label data-m="tonnellata">€ a tonnellata<input name="per_ton" inputmode="decimal" value="'+money(card&&card.per_ton_cents)+'"></label>'
+   +'<label data-m="collo capo">€ per unità<input name="per_unit" inputmode="decimal" value="'+money(card&&card.per_unit_cents)+'"></label>'
+   +'<label data-m="collo">Unità<select name="unit_basis"><option value="pallet"'+(card&&card.basis==='colli'?'':' selected')+'>pallet</option><option value="colli"'+(card&&card.basis==='colli'?' selected':'')+'>colli</option></select></label>'
+   +'<label data-m="ora">€ all\'ora<input name="per_hour" inputmode="decimal" value="'+money(card&&card.per_hour_cents)+'"></label>'
+   +'<label data-m="zone">Zone, una per riga<textarea name="zones" rows="6" placeholder="MN, CR, BS = 380&#10;Lombardia = 420&#10;FR = 1200&#10;VI -> FR = 110 /pallet">'+esc(zonesTxt)+'</textarea><span class="tr-subtle">Province (MN), regioni (Lombardia), paesi (FR, Francia), CAP (46*) o nomi di località. «da -> a» per le coppie di partenza e arrivo. «/pallet», «/kg», «/capo» per il prezzo a unità.</span></label>'
+   +'<label data-m="fasce">Fasce in base a<select name="band_basis">'+Object.entries(LIS.BASES).map(([k,b])=>'<option value="'+k+'"'+((card&&card.basis||'peso')===k?' selected':'')+'>'+esc(b.label)+'</option>').join('')+'</select></label>'
+   +'<label data-m="fasce">Fasce, una per riga<textarea name="bands" rows="5" placeholder="1000 = 120&#10;5000 = 300&#10;24000 = 0,08/u">'+esc(bandsTxt)+'</textarea><span class="tr-subtle">«fino a = importo». Con «/u» l\'importo è per unità (per kg, per pallet…).</span></label>'
+   +'<label>Minimo fatturabile €<input name="min" inputmode="decimal" value="'+money(card&&card.min_cents)+'"></label>'
+   +'<fieldset class="tr-fs"><legend>Supplementi</legend>'
+   +'<div class="tr-row"><label>Gasolio di base €/l<input name="gas_base" inputmode="decimal" value="'+esc(v(sup('gasolio').base_eur_l))+'"></label><label>Incidenza gasolio %<input name="gas_inc" inputmode="decimal" value="'+esc(v(sup('gasolio').incidence_pct,''))+'"></label><label>Gasolio attuale €/l<input name="gas_cur" inputmode="decimal" value="'+esc(v(sup('gasolio').current_eur_l))+'"></label></div><p class="tr-subtle" style="grid-column:1/-1;margin:0">Gasolio attuale: il prezzo medio settimanale pubblicato dal Ministero (MIMIT) o quello pagato. Aggiornalo quando cambia; il viaggio può avere il suo.</p>'
+   +'<div class="tr-row"><label>Sosta €/ora<input name="sosta" inputmode="decimal" value="'+money(sup('sosta').per_hour_cents)+'"></label><label>Ore di sosta gratuite<input name="sosta_free" inputmode="decimal" value="'+esc(v(sup('sosta').free_hours,''))+'"></label></div>'
+   +'<div class="tr-row"><label>Scarico in più €<input name="scarico" inputmode="decimal" value="'+money(sup('scarico_extra').amount_cents)+'"></label><label>ADR €<input name="adr" inputmode="decimal" value="'+money(sup('adr').amount_cents)+'"></label></div>'
+   +'<div class="tr-row"><label>Sponda idraulica €<input name="sponda" inputmode="decimal" value="'+money(sup('sponda').amount_cents)+'"></label><label>Consegna al piano €<input name="piano" inputmode="decimal" value="'+money(sup('piano').amount_cents)+'"></label></div>'
+   +'<div class="tr-row"><label>Festivo o notturno %<input name="festivo" inputmode="decimal" value="'+esc(v(sup('festivo').pct,''))+'"></label><label>Supplemento fisso €<input name="fisso_extra" inputmode="decimal" value="'+money(sup('fisso').amount_cents)+'"></label></div></fieldset>'
+   +'<p class="tr-error" id="rateErr" hidden></p><div class="tr-toolbar"><button class="tr-btn">Salva</button><button type="button" class="tr-btn ghost" id="rateCancel">Annulla</button>'+(card?'<button type="button" class="tr-btn ghost" id="rateOff">'+(card.active===false?'Riattiva':'Disattiva')+'</button>':'')+'</div></form>'
+   +(card?'<h3>Prova su un viaggio</h3><select id="rateTry"><option value="">Scegli un viaggio chiuso</option>'+closed.map(t=>'<option value="'+esc(t.id)+'"'+(rateTry===t.id?' selected':'')+'>'+dmy(t.started_at)+' · '+esc((t.origin||'?')+' → '+(t.destination||'?'))+' · '+esc(cus(t.customer_id).name||'')+'</option>').join('')+'</select>'+tryOut:'')
+   :'<h2>Metodi di calcolo</h2><ul class="tr-list"><li><strong>Prezzo fisso per tratta</strong>: un importo a viaggio.</li><li><strong>Al km</strong>: km del viaggio per la tariffa.</li><li><strong>A zone</strong>: per provincia, regione, paese o CAP di consegna, anche per coppia partenza → arrivo.</li><li><strong>A fasce</strong>: di peso, pallet, metri lineari, colli, km o capi.</li><li><strong>A tonnellata, a collo o pallet, a capo, all\'ora</strong>.</li></ul><p class="tr-muted">Su tutti: minimo fatturabile e supplementi (adeguamento gasolio, sosta oltre le ore gratuite, scarichi in più, ADR, sponda, consegna al piano, festivi).</p>')
+  +'</section></div>';
+ view.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>{rateEdit=b.dataset.rate;rateTry=null;renderRates();});
+ $('rateAdd').onclick=()=>{rateEdit='new';rateTry=null;renderRates();};
+ const f=$('rateForm');if(!f)return;
+ const show=()=>{const m=f.elements.method.value;f.querySelectorAll('[data-m]').forEach(el=>{el.hidden=!el.dataset.m.split(' ').includes(m);});};
+ f.elements.method.onchange=show;show();
+ $('rateCancel').onclick=()=>{rateEdit=null;renderRates();};
+ if($('rateOff'))$('rateOff').onclick=()=>{card.active=card.active===false;save();renderRates();};
+ if($('rateTry'))$('rateTry').onchange=e=>{rateTry=e.target.value||null;renderRates();};
+ f.onsubmit=e=>{e.preventDefault();const el=f.elements,errs=[];
+  const n=(k,label,{cents=true}={})=>{const raw=(el[k].value||'').trim();if(!raw)return null;const x=DOC.normNumber(raw);if(x==null||x<0){errs.push(label+' non valido.');return null;}return cents?Math.round(x*100):x;};
+  const o={id:card?card.id:ST.uid(),name:el.name.value.trim(),customer_id:el.customer.value||null,method:el.method.value,valid_from:el.valid_from.value||null,valid_to:el.valid_to.value||null,active:card?card.active:true};
+  if(!o.name)errs.push('Dai un nome al listino.');
+  if(o.method==='fisso'){o.amount_cents=n('amount','Prezzo');o.route=el.route.value.trim()||null;if(o.amount_cents==null)errs.push('Indica il prezzo del viaggio.');}
+  if(o.method==='km'){o.per_km_cents=n('per_km','€ al km');if(o.per_km_cents==null)errs.push('Indica i € al km.');}
+  if(o.method==='tonnellata'){o.per_ton_cents=n('per_ton','€ a tonnellata');if(o.per_ton_cents==null)errs.push('Indica i € a tonnellata.');}
+  if(o.method==='collo'||o.method==='capo'){o.per_unit_cents=n('per_unit','€ per unità');if(o.per_unit_cents==null)errs.push('Indica i € per unità.');if(o.method==='collo')o.basis=el.unit_basis.value;}
+  if(o.method==='ora'){o.per_hour_cents=n('per_hour','€ all\'ora');if(o.per_hour_cents==null)errs.push('Indica i € all\'ora.');}
+  if(o.method==='zone'){o.zones=LIS.parseZones(el.zones.value);const bad=o.zones.filter(z=>z.error);if(bad.length)errs.push(...bad.map(z=>z.error));if(!o.zones.length)errs.push('Scrivi almeno una zona.');}
+  if(o.method==='fasce'){o.basis=el.band_basis.value;o.bands=LIS.parseBands(el.bands.value);const bad=o.bands.filter(z=>z.error);if(bad.length)errs.push(...bad.map(z=>z.error));if(!o.bands.length)errs.push('Scrivi almeno una fascia.');}
+  o.min_cents=n('min','Minimo');
+  const s=[];const gb=n('gas_base','Gasolio di base',{cents:false}),gi=n('gas_inc','Incidenza gasolio',{cents:false}),gc=n('gas_cur','Gasolio attuale',{cents:false});
+  if(gb)s.push({kind:'gasolio',base_eur_l:gb,incidence_pct:gi||30,current_eur_l:gc||null});
+  const so=n('sosta','Sosta');if(so)s.push({kind:'sosta',per_hour_cents:so,free_hours:n('sosta_free','Ore gratuite',{cents:false})||0});
+  for(const [k,name,label] of [['scarico_extra','scarico','Scarico in più'],['adr','adr','ADR'],['sponda','sponda','Sponda'],['piano','piano','Consegna al piano'],['fisso','fisso_extra','Supplemento fisso']]){const a=n(name,label);if(a)s.push({kind:k,amount_cents:a});}
+  const fe=n('festivo','Festivo',{cents:false});if(fe)s.push({kind:'festivo',pct:fe});
+  o.supplements=s;
+  if(o.valid_from&&o.valid_to&&o.valid_to<o.valid_from)errs.push('La data di fine è prima dell\'inizio.');
+  if(errs.length){$('rateErr').textContent=errs.join(' ');$('rateErr').hidden=false;return;}
+  data.rate_cards=data.rate_cards||[];const i=data.rate_cards.findIndex(x=>x.id===o.id);if(i>=0)data.rate_cards[i]=o;else data.rate_cards.push(o);
+  rateEdit=o.id;save();say('Listino salvato.','ok');renderRates();};
+}
+
+// ---------- electronic invoice (FatturaPA) per customer ----------
+function nextInvoiceNumber(date){const y=date.slice(0,4);const n=(data.invoices||[]).filter(i=>i.date.slice(0,4)===y).length+1;return n+'/'+y;}
+function invoiceXml(customerId,rows){
+ const k=cus(customerId);const date=ST.localIso(new Date()).slice(0,10);const number=nextInvoiceNumber(date);
+ const co=data.company||{};
+ const lines=rows.map(r=>{const a=LIS.placeOf(r.origin),b=LIS.placeOf(r.destination);
+  return {description:'Trasporto '+(r.doc?r.doc+' ':'')+'del '+dmy(r.date)+': '+r.origin+' - '+r.destination+(r.goods?', '+r.goods:'')+(r.weight_kg?', '+num(r.weight_kg)+' kg':'')+(r.plate?', mezzo '+r.plate:''),
+   amount_cents:r.amount_cents,load_country:a.country||'IT',delivery_country:b.country||'IT',ddt:r.doc_kind==='ddt'&&r.doc_number&&/^\d{4}-\d{2}-\d{2}$/.test(r.doc_date||'')?{numero:r.doc_number,data:r.doc_date}:null};});
+ const res=FPA.build({company:{name:co.name,vat:co.vat,cf:co.cf,street:co.street,cap:co.cap,comune:co.comune,provincia:co.provincia,regime:co.regime,iban:co.iban},
+  customer:{name:k.name,vat:k.vat,cf:k.cf,street:k.street,cap:k.cap,comune:k.comune,provincia:k.provincia,nazione:k.nazione||'IT',sdi:k.sdi,pec:k.pec},number,date,rows:lines,progressive:String((data.invoices||[]).length+1)});
+ return {...res,number,date};
 }
 
 // ---------- costs ----------
 function renderCosts(){
  const p=period();const list=data.costs.filter(c=>c.date>=p.from&&c.date<=p.to).sort((a,b)=>a.date<b.date?1:-1);
  const opts=(arr,lab)=>'<option value="">—</option>'+arr.map(x=>'<option value="'+esc(x.id)+'">'+esc(lab(x))+'</option>').join('');
- view.innerHTML='<section class="tr-panel"><h2>Aggiungi un costo</h2><p class="tr-muted">Buste paga, leasing, manutenzioni, assicurazioni. Collega il costo al mezzo o all\'autista: il margine lo ripartisce sui suoi viaggi.</p>'
-  +'<form id="costForm" class="tr-form-grid"><label>Tipo<select name="kind">'+Object.entries(MRG.KIND_LABEL).map(([k,l])=>'<option value="'+k+'">'+esc(l)+'</option>').join('')+'</select></label><label>Data<input type="date" name="date" required value="'+esc(p.to)+'"></label><label>Importo €<input name="amount" inputmode="decimal" required></label><label>Mezzo<select name="vehicle">'+opts(data.vehicles,v=>v.plate)+'</select></label><label>Autista<select name="driver">'+opts(data.drivers,d=>d.name)+'</select></label><label>Descrizione<input name="description"></label><button class="tr-btn">Aggiungi</button></form><p class="tr-error" id="costErr" hidden></p></section>'
+ view.innerHTML='<section class="tr-panel"><h2>Aggiungi un costo</h2><p class="tr-muted">Tutte le voci di un\'azienda di trasporto: del viaggio (gasolio, AdBlue, pedaggi, subvettori), dell\'autista (stipendi, trasferte, straordinari, autisti esterni), del mezzo (leasing, noleggio, ammortamento, manutenzione, pneumatici, assicurazione, bollo e revisioni) e dell\'azienda (spese generali, multe). Collega il costo al mezzo o all\'autista: il margine lo ripartisce sui suoi viaggi per km. Le spese generali si ripartiscono su tutti i viaggi.</p>'
+  +'<form id="costForm" class="tr-form-grid"><label>Tipo<select name="kind">'+['Viaggio','Autista','Mezzo','Azienda'].map(g=>'<optgroup label="'+g+'">'+Object.entries(MRG.KIND_LABEL).filter(([k])=>MRG.KIND_GROUP[k]===g).map(([k,l])=>'<option value="'+k+'">'+esc(l)+'</option>').join('')+'</optgroup>').join('')+'</select></label><label>Data<input type="date" name="date" required value="'+esc(p.to)+'"></label><label>Importo €<input name="amount" inputmode="decimal" required></label><label>Mezzo<select name="vehicle">'+opts(data.vehicles,v=>v.plate)+'</select></label><label>Autista<select name="driver">'+opts(data.drivers,d=>d.name)+'</select></label><label>Descrizione<input name="description"></label><button class="tr-btn">Aggiungi</button></form><p class="tr-error" id="costErr" hidden></p></section>'
   +'<section class="tr-panel"><div class="tr-toolbar"><h2 style="margin:0">Costi del periodo</h2><button class="tr-btn small ghost" id="xlsCosts" style="margin-left:auto">Scarica in Excel</button></div><table class="tr-table"><thead><tr><th>Data</th><th>Tipo</th><th>Mezzo</th><th>Autista</th><th>Descrizione</th><th class="num">Importo</th><th></th></tr></thead><tbody>'
   +list.map(c=>'<tr><td>'+dmy(c.date)+'</td><td>'+esc(MRG.KIND_LABEL[c.kind]||c.kind)+'</td><td>'+esc(veh(c.vehicle_id).plate||'')+'</td><td>'+esc(drv(c.driver_id).name||'')+'</td><td class="wrap">'+esc(c.description||'')+'</td><td class="num">'+eur(c.amount_cents)+'</td><td>'+(c.trip_id?'':'<button class="tr-link" data-del="'+esc(c.id)+'" aria-label="Elimina costo">Elimina</button>')+'</td></tr>').join('')+'</tbody></table></section>';
  $('costForm').onsubmit=e=>{e.preventDefault();const f=e.target.elements;const n=DOC.normNumber(f.amount.value);
@@ -254,9 +385,31 @@ const ENT={
   cols:v=>[v.plate,v.label,v.kind,(v.devices||[]).join(', '),LOC.PROVIDERS[v.tracker]?.label||'—'],head:['Targa','Modello','Tipo','Pedaggi','Localizzatore'],used:id=>data.trips.some(t=>t.vehicle_id===id)},
  drivers:{title:'Autisti',one:'autista',fields:[['name','Nome e cognome','text',true],['phone','Telefono','text'],['vehicle','Mezzo abituale','vehicle']],
   cols:d=>[d.name,d.phone,veh(d.vehicle).plate||'—'],head:['Autista','Telefono','Mezzo abituale'],used:id=>data.trips.some(t=>t.driver_id===id)},
- customers:{title:'Clienti',one:'cliente',fields:[['name','Ragione sociale','text',true],['vat','Partita IVA','text'],['rate_kind','Tariffa',Object.keys(RATE)],['rate','Importo tariffa €','money']],
-  cols:c=>[c.name,c.vat,c.rate_cents!=null?eur(c.rate_cents)+' '+(RATE[c.rate_kind]||''):'—'],head:['Cliente','Partita IVA','Tariffa'],used:id=>data.trips.some(t=>t.customer_id===id)}
+ customers:{title:'Clienti',one:'cliente',fields:[['name','Ragione sociale','text',true],['vat','Partita IVA (con sigla del paese se estera, es. FR…)','vat'],['cf','Codice fiscale (se diverso)','text'],['street','Indirizzo','text'],['cap','CAP','text'],['comune','Comune','text'],['provincia','Provincia (sigla)','text'],['nazione','Paese (sigla, IT se vuoto)','text'],['sdi','Codice destinatario SdI (7 caratteri)','text'],['pec','PEC (se manca il codice SdI)','text'],['rate_kind','Tariffa semplice, se non ha un listino',Object.keys(RATE)],['rate','Importo tariffa semplice €','money']],
+  cols:c=>[c.name,c.vat,[c.comune,c.provincia].filter(Boolean).join(' ')||'—',(data.rate_cards||[]).some(r=>r.customer_id===c.id&&r.active!==false)?'listino':c.rate_cents!=null?eur(c.rate_cents)+' '+(RATE[c.rate_kind]||''):'listino base'],head:['Cliente','Partita IVA','Sede','Prezzo'],used:id=>data.trips.some(t=>t.customer_id===id)},
+ consignees:{title:'Destinatari e luoghi',one:'destinatario',fields:[['name','Nome','text',true],['kind','Tipo',['destinatario','carico','scarico']],['street','Indirizzo','text'],['cap','CAP','text'],['comune','Comune','text'],['provincia','Provincia','text'],['nazione','Paese (sigla)','text']],
+  cols:c=>[c.name,c.kind,[c.comune,c.provincia||c.nazione].filter(Boolean).join(' ')||(c.address&&c.address.text)||'—'],head:['Nome','Tipo','Località'],used:()=>false}
 };
+let proposalsOpen=false;
+function renderProposals(){
+ const pr=ANA.proposals({documents:data.documents,shipments:data.shipments,customers:data.customers,consignees:data.consignees,own:data.company&&data.company.name});
+ const list=ana==='customers'?pr.customers:pr.places;
+ return '<section class="tr-panel"><h2>Proposte dai documenti</h2><p class="tr-muted">'+(ana==='customers'?'Committenti e mittenti letti da DDT e CMR che non sono ancora in anagrafica. La partita IVA, quando è scritta sul documento, è già controllata.':'Destinatari e luoghi di carico letti da DDT e CMR.')+'</p>'
+  +(list.length?'<form id="propForm"><table class="tr-table"><thead><tr><th></th><th>Nome</th><th>Perché</th><th>Da</th></tr></thead><tbody>'+list.map((x,i)=>'<tr><td><input type="checkbox" name="p" value="'+i+'" checked aria-label="Crea '+esc(x.name)+'"></td><td class="wrap"><strong>'+esc(x.name)+'</strong>'+(x.vat?'<br><span class="tr-subtle">P.IVA '+esc(x.vat.country+' '+x.vat.code)+'</span>':'')+(x.address&&x.address.text?'<br><span class="tr-subtle">'+esc(x.address.text)+'</span>':'')+'</td><td>'+esc(x.why||x.kind)+'</td><td class="wrap">'+esc(x.sources.slice(0,3).join(', '))+(x.count>1?' <span class="tr-subtle">('+x.count+' documenti)</span>':'')+'</td></tr>').join('')+'</tbody></table><div class="tr-toolbar"><button class="tr-btn">Crea i selezionati</button><button type="button" class="tr-btn ghost" id="propClose">Chiudi</button></div></form>'
+   :'<p>Nessuna proposta: tutto quello che c\'è nei documenti confermati è già in anagrafica.</p><button type="button" class="tr-btn ghost" id="propClose">Chiudi</button>')+'</section>';
+}
+function bindProposals(){
+ const close=$('propClose');if(close)close.onclick=()=>{proposalsOpen=false;renderMaster();};
+ const f=$('propForm');if(!f)return;
+ f.onsubmit=e=>{e.preventDefault();
+  const pr=ANA.proposals({documents:data.documents,shipments:data.shipments,customers:data.customers,consignees:data.consignees,own:data.company&&data.company.name});
+  const list=ana==='customers'?pr.customers:pr.places;let n=0;
+  for(const el of f.querySelectorAll('input[name=p]:checked')){const x=list[+el.value];if(!x)continue;const a=x.address||{};
+   if(ana==='customers')data.customers.push({id:ST.uid(),name:x.name,vat:x.vat?(x.vat.country==='IT'?x.vat.code:x.vat.country+x.vat.code):null,street:a.street||null,cap:a.cap||null,comune:a.comune||null,provincia:a.provincia||null,nazione:a.nazione||'IT',source:'documento'});
+   else data.consignees.push({id:ST.uid(),name:x.name,kind:x.kind,street:a.street||null,cap:a.cap||null,comune:a.comune||null,provincia:a.provincia||null,nazione:a.nazione||null,address:a,source:'documento'});
+   n++;}
+  proposalsOpen=false;save();say(n+(n===1?' voce creata':' voci create')+' dai documenti. Completa indirizzo e codice SdI dove mancano.','ok');renderMaster();};
+}
 function renderMaster(){
  const E=ENT[ana],list=data[ana].slice().sort((a,b)=>(a.active===false)-(b.active===false));
  const item=editing&&editing!=='new'?data[ana].find(x=>x.id===editing):null;
@@ -266,13 +419,16 @@ function renderMaster(){
   if(type==='vehicle')return '<label>'+esc(label)+'<select name="'+k+'"><option value="">—</option>'+data.vehicles.map(v=>'<option value="'+esc(v.id)+'"'+(val(k)===v.id?' selected':'')+'>'+esc(v.plate)+'</option>').join('')+'</select></label>';
   return '<label>'+esc(label)+'<input name="'+k+'" value="'+esc(val(k,type))+'"'+(req?' required':'')+(type==='money'?' inputmode="decimal"':'')+(type==='plate'?' autocapitalize="characters"':'')+'></label>';};
  view.innerHTML='<div class="tr-toolbar">'+Object.entries(ENT).map(([k,e])=>'<button class="tr-btn small'+(k===ana?' blue':' ghost')+'" data-ana="'+k+'">'+e.title+' ('+data[k].length+')</button>').join('')+'</div>'
-  +'<div class="tr-grid2"><section class="tr-panel"><div class="tr-toolbar"><h2 style="margin:0">'+E.title+'</h2><button class="tr-btn small" id="addOne" style="margin-left:auto">Aggiungi '+E.one+'</button></div><table class="tr-table"><thead><tr>'+E.head.map(h=>'<th>'+h+'</th>').join('')+'<th></th></tr></thead><tbody>'
+  +(proposalsOpen?renderProposals():'')
+  +'<div class="tr-grid2"><section class="tr-panel"><div class="tr-toolbar"><h2 style="margin:0">'+E.title+'</h2>'+(ana==='customers'||ana==='consignees'?'<button class="tr-btn small ghost" id="propOpen" style="margin-left:auto">Proposte dai documenti</button>':'')+'<button class="tr-btn small" id="addOne"'+(ana==='customers'||ana==='consignees'?'':' style="margin-left:auto"')+'>Aggiungi '+E.one+'</button></div><table class="tr-table"><thead><tr>'+E.head.map(h=>'<th>'+h+'</th>').join('')+'<th></th></tr></thead><tbody>'
   +list.map(x=>'<tr'+(x.active===false?' style="opacity:.55"':'')+(editing===x.id?' class="sel"':'')+'>'+E.cols(x).map((c,i)=>'<td'+(i===0?'':' class="wrap"')+'>'+(i===0?'<strong>'+esc(c)+'</strong>':esc(c??''))+(i===0&&x.active===false?' <span class="tr-chip">non attivo</span>':'')+'</td>').join('')+'<td><button class="tr-link" data-edit="'+esc(x.id)+'">Modifica</button></td></tr>').join('')+'</tbody></table></section>'
   +'<section class="tr-panel">'+(editing?'<h2>'+(item?'Modifica '+E.one:'Nuovo '+E.one)+'</h2><form id="anaForm">'+E.fields.map(field).join('')+'<p class="tr-error" id="anaErr" hidden></p><div class="tr-toolbar"><button class="tr-btn">Salva</button><button type="button" class="tr-btn ghost" id="anaCancel">Annulla</button>'+(item?(E.used(item.id)?'<button type="button" class="tr-btn warn" id="anaOff">'+(item.active===false?'Riattiva':'Disattiva')+'</button>':'<button type="button" class="tr-btn warn" id="anaDel">Elimina</button>'):'')+'</div>'+(item&&E.used(item.id)?'<p class="tr-subtle">Ha già dei viaggi: si può disattivare, non eliminare, così lo storico e il margine restano giusti.</p>':'')+'</form>'
    :'<h2>'+E.title+'</h2><p class="tr-muted">'+({vehicles:'Per ogni mezzo: i dispositivi di pedaggio (servono ad abbinare i transiti anche se la targa sulla fattura manca) e il localizzatore da cui leggere la posizione, con il codice del mezzo in quel sistema o il telaio per rFMS.',drivers:'Ogni autista usa l\'app sul proprio telefono; il mezzo abituale viene proposto all\'inizio della giornata.',customers:'Con la tariffa al km il ricavo del viaggio si calcola da solo quando l\'autista lo chiude con i km.'}[ana])+'</p>')+'</section></div>';
  view.querySelectorAll('[data-ana]').forEach(b=>b.onclick=()=>{ana=b.dataset.ana;editing=null;renderMaster();});
  view.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{editing=b.dataset.edit;renderMaster();});
  $('addOne').onclick=()=>{editing='new';renderMaster();};
+ if($('propOpen'))$('propOpen').onclick=()=>{proposalsOpen=true;renderMaster();};
+ bindProposals();
  const f=$('anaForm');if(!f)return;
  $('anaCancel').onclick=()=>{editing=null;renderMaster();};
  if($('anaDel'))$('anaDel').onclick=()=>{data[ana]=data[ana].filter(x=>x.id!==item.id);editing=null;save();renderMaster();};
@@ -281,6 +437,7 @@ function renderMaster(){
   for(const [k,label,type,req] of E.fields){const raw=(el[k].value||'').trim();
    if(type==='plate'){const v=raw.toUpperCase().replace(/[^A-Z0-9]/g,'');if(v.length<4||v.length>10)errs.push('Targa non valida.');else if(data.vehicles.some(x=>x.plate===v&&x.id!==o.id))errs.push('Targa già presente.');o[k]=v;}
    else if(type==='list')o[k]=raw.split(/[,;\s]+/).map(s=>s.trim()).filter(Boolean);
+   else if(type==='vat'){const v=raw.toUpperCase().replace(/[\s.]/g,'').replace(/^IT(?=\d{11}$)/,'');if(v&&/^\d{11}$/.test(v)&&!ANA.pivaOk(v))errs.push('Partita IVA non valida: controlla le cifre.');o[k]=v||null;}
    else if(type==='money'){if(raw===''){o.rate_cents=null;}else{const n=DOC.normNumber(raw);if(n==null||n<0)errs.push('Tariffa non valida.');else o.rate_cents=Math.round(n*100);}}
    else{if(req&&!raw)errs.push(label+': obbligatorio.');o[k]=raw||null;}}
   if(ana==='vehicles'&&o.vin)o.vin=o.vin.toUpperCase();
@@ -324,7 +481,7 @@ function addPositions(raw,from,skipped){
 
 $('from').onchange=$('to').onchange=render;
 $('reset').onclick=()=>{if(!confirm('Cancello i dati di questa dimostrazione e ricreo l\'azienda di esempio?'))return;data=ST.reset();$('from').value='';$('to').value='';render();};
-window.addEventListener('hashchange',()=>{editing=null;render();});
+window.addEventListener('hashchange',()=>{editing=null;say('');render();});
 window.addEventListener('storage',e=>{if(e.key===ST.KEY&&tab!=='anagrafiche')render();});
 render();
 })();
