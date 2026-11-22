@@ -149,5 +149,5 @@ function open(host,ctx){
  }
  draw();
 }
-window.TrPratica={open,batches,exampleBatches};
+window.TrPratica={open,batches,exampleBatches,renderPages};
 })();

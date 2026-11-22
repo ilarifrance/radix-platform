@@ -354,3 +354,74 @@ test('company costs shared over trips by km when asked',()=>{
  assert.equal(b.trips.find(t=>t.id==='t1').cost_cents,0);
  assert.equal(MRG.KIND_GROUP.autista_esterno,'Autista');assert.equal(MRG.KIND_GROUP.pedaggio,'Viaggio');
 });
+
+const CO=require('../lib/trasporti/costi');
+const SUPPLIER_XML='<?xml version="1.0" encoding="UTF-8"?><p:FatturaElettronica versione="FPR12" xmlns:p="http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"><FatturaElettronicaHeader>'
+ +'<CedentePrestatore><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>01234567890</IdCodice></IdFiscaleIVA><Anagrafica><Denominazione>Carte Carburante Esempio Spa</Denominazione></Anagrafica></DatiAnagrafici></CedentePrestatore>'
+ +'<CessionarioCommittente><DatiAnagrafici><IdFiscaleIVA><IdPaese>IT</IdPaese><IdCodice>01950620201</IdCodice></IdFiscaleIVA></DatiAnagrafici></CessionarioCommittente></FatturaElettronicaHeader>'
+ +'<FatturaElettronicaBody><DatiGenerali><DatiGeneraliDocumento><TipoDocumento>TD01</TipoDocumento><Data>2026-11-15</Data><Numero>FC/889</Numero><ImportoTotaleDocumento>1342.00</ImportoTotaleDocumento><Causale>Rifornimenti periodo dal 01/11/2026 al 15/11/2026</Causale></DatiGeneraliDocumento></DatiGenerali>'
+ +'<DatiBeniServizi><DettaglioLinee><NumeroLinea>1</NumeroLinea><Descrizione>Gasolio autotrazione targa GA123BC lt 500</Descrizione><PrezzoTotale>700.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>'
+ +'<DettaglioLinee><NumeroLinea>2</NumeroLinea><Descrizione>Gasolio autotrazione targa FX456DE lt 300</Descrizione><PrezzoTotale>400.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>'
+ +'<DettaglioLinee><NumeroLinea>3</NumeroLinea><Descrizione>AdBlue GA123BC</Descrizione><PrezzoTotale>0.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>'
+ +'<DettaglioLinee><NumeroLinea>4</NumeroLinea><Descrizione>Pedaggio Francia &amp; Spagna</Descrizione><PrezzoTotale>0.00</PrezzoTotale><AliquotaIVA>22.00</AliquotaIVA></DettaglioLinee>'
+ +'<DatiRiepilogo><AliquotaIVA>22.00</AliquotaIVA><ImponibileImporto>1100.00</ImponibileImporto><Imposta>242.00</Imposta></DatiRiepilogo></DatiBeniServizi></FatturaElettronicaBody></p:FatturaElettronica>';
+
+test('supplier e-invoice XML: read exactly, lines classified and tied to the vehicle by plate, also inside a .p7m',()=>{
+ const r=CO.parseFatturaXml(SUPPLIER_XML);
+ assert.equal(r.supplier.name,'Carte Carburante Esempio Spa');assert.equal(r.supplier.vat,'01234567890');
+ const d=r.documents[0];assert.equal(d.number,'FC/889');assert.equal(d.taxable_cents,110000);assert.equal(d.total_cents,134200);assert.deepEqual(d.period,{from:'2026-11-01',to:'2026-11-15'});
+ assert.equal(d.lines[3].description,'Pedaggio Francia & Spagna');
+ const vehicles=[{id:'v1',plate:'GA123BC'},{id:'v2',plate:'FX456DE'}];
+ const c=CO.invoiceCosts({supplier:r.supplier,...d},{vehicles});
+ assert.equal(c.length,2);assert.ok(c.every(x=>x.kind==='carburante'));
+ assert.equal(c.find(x=>x.vehicle_id==='v1').amount_cents,70000);assert.equal(c.find(x=>x.vehicle_id==='v2').amount_cents,40000);
+ assert.equal(c[0].period_from,'2026-11-01');assert.ok(c[0].warn);
+ // learned from the office: this supplier → maintenance on v2
+ const l=CO.invoiceCosts({supplier:{name:'Officina X',vat:'111'},number:'5',date:'2026-11-03',lines:[{description:'Intervento',amount_cents:5000}]},{vehicles,rules:{'111':{kind:'manutenzione',vehicle_id:'v2'}}});
+ assert.equal(l[0].kind,'manutenzione');assert.equal(l[0].vehicle_id,'v2');
+ // signed file: XML inside a binary envelope, split in two chunks
+ const bytes=Buffer.concat([Buffer.from([0x30,0x80,0x06,0x09]),Buffer.from(SUPPLIER_XML.slice(0,300),'utf8'),Buffer.from([0x04,0x82,0x03,0xe8]),Buffer.from(SUPPLIER_XML.slice(300),'utf8'),Buffer.from([0,0,0xa0])]);
+ assert.equal(CO.parseFatturaXml(new Uint8Array(bytes)).documents[0].taxable_cents,110000);
+ assert.ok(CO.parseFatturaXml('<html></html>').error);
+});
+
+test('classification and period of competence',()=>{
+ const k=t=>CO.classify(t).kind;
+ assert.equal(k('Canone leasing trattore Volvo'),'leasing');assert.equal(k('Staff leasing autisti ottobre'),'autista_esterno');
+ assert.equal(k('Sostituzione pneumatici 315/80'),'pneumatici');assert.equal(k('Tagliando e filtri'),'manutenzione');
+ assert.equal(k('Polizza RCA autocarro'),'assicurazione');assert.equal(k('Revisione annuale cronotachigrafo'),'bollo');
+ assert.equal(k('Telepass transiti ottobre'),'pedaggio');assert.equal(k('Elaborazione cedolini paghe'),'generali');assert.equal(k('Servizio di trasporto Verona - Lione'),'subvettore');
+ assert.equal(k('Vario'),'altro');assert.equal(CO.litersOf({description:'Gasolio GA123BC lt 1.850'}),1850);assert.equal(CO.litersOf({qty:44,unit:'LT',description:''}),44);
+ assert.deepEqual(CO.periodIn('Premio RCA dal 01/03/2026 al 28/02/2027'),{from:'2026-03-01',to:'2027-02-28'});
+ assert.deepEqual(CO.suggestPeriod('assicurazione','2026-03-01'),{from:'2026-03-01',to:'2027-02-28'});
+ assert.deepEqual(CO.suggestPeriod('leasing','2026-11-05'),{from:'2026-11-01',to:'2026-11-30'});
+ // a yearly premium counts for the days of the month in the margin
+ const m=MRG.compute({trips:[{id:'t',started_at:'2026-11-10T08:00',km:100,vehicle_id:'v1',revenue_cents:100000}],costs:[{kind:'assicurazione',date:'2026-01-01',period_from:'2026-01-01',period_to:'2026-12-31',amount_cents:365000,vehicle_id:'v1'}],from:'2026-11-01',to:'2026-11-30'});
+ assert.equal(m.trips[0].cost_cents,30000);
+});
+
+test('payslips: whole LUL read in batches, matched to the driver, cost split into wages, overtime and allowances',()=>{
+ const raw={documenti:[{pagine:[3],campi:{dipendente:{valore:'ROSSI MARIO',sicurezza:'alta'},codice_fiscale:{valore:'RSSMRA80A01H501U'},mese:{valore:'Ottobre 2026'},lordo:{valore:'2.800,00'},straordinari:{valore:'150'},trasferte:{valore:'600,00'},contributi_azienda:{valore:'850,00'},tfr:{valore:'210'},netto:{valore:'2.150'}}},
+  {pagine:[4],campi:{dipendente:{valore:'BIANCHI LUCA'},mese:{valore:'10/2026'},lordo:{valore:null}}},{pagine:[99],campi:{}}]};
+ const docs=CO.parseBatch(DOC,'busta_paga',JSON.stringify(raw),3,2);
+ assert.equal(docs.length,3);assert.equal(docs[0].campi.mese,'2026-10');assert.equal(docs[0].campi.lordo,2800);assert.deepEqual(docs[2].pages,[]);
+ assert.ok(docs[1].da_controllare.includes('lordo'));
+ const drivers=[{id:'d1',name:'Mario Rossi'},{id:'d2',name:'Luca Bianchi',cf:'BNCLCU'}];
+ const p=CO.payslipCosts(docs[0],drivers);
+ assert.equal(p.driver_id,'d1');assert.equal(p.total_cents,386000);
+ assert.deepEqual(p.rows.map(r=>[r.kind,r.amount_cents]),[['stipendio',311000],['straordinari',15000],['trasferte',60000]]);
+ assert.equal(p.rows[0].period_from,'2026-10-01');assert.equal(p.rows[0].period_to,'2026-10-31');
+ assert.equal(CO.matchDriver('x','bnclcu',drivers).id,'d2');assert.equal(CO.matchDriver('Verdi Anna',null,drivers),null);
+ assert.ok(CO.payslipCosts({campi:{mese:'2026-10'}},drivers).error);
+ assert.equal(CO.docKey(p.rows[0]),'bp|RSSMRA80A01H501U|2026-10');
+ assert.match(CO.instructions('busta_paga',1,4),/Libro Unico/);
+});
+
+test('API costi.leggi: kind and page checks, then the reading',async()=>{
+ let seen=null;const H=createHandler({getSessionUser:()=>({uid:5}),ask:async a=>{seen=a;return {text:JSON.stringify({documenti:[{pagine:[1],campi:{fornitore:{valore:'Officina'},numero:{valore:'7'},data:{valore:'03/11/2026'},imponibile:{valore:'250,00'}},righe:[{descrizione:'Tagliando GA123BC',importo:'250'}]}]})};}});
+ const page={image:IMG,media_type:'image/jpeg'};
+ assert.equal((await call(H,{body:{action:'costi.leggi',data:{kind:'ddt',pages:[page]}}})).status,400);
+ assert.equal((await call(H,{body:{action:'costi.leggi',data:{kind:'fattura_acquisto',pages:Array(13).fill(page)}}})).status,400);
+ const r=await call(H,{body:{action:'costi.leggi',data:{kind:'fattura_acquisto',first:1,pages:[page]}}});
+ assert.equal(r.status,200);assert.equal(r.body.documents[0].campi.imponibile,250);assert.equal(r.body.documents[0].righe[0].amount_cents,25000);assert.match(seen.content[1].text,/fattura di acquisto/);
+});

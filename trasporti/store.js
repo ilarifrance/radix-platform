@@ -84,7 +84,13 @@ function sampleTollCsv(data){
 /* Example invoice data and price lists (listini) of the demonstration company: added also to data saved before
    they existed, without touching what the user changed. */
 function defaults(d){
- for(const k of ['issues','positions','documents','costs','shipments','rate_cards','consignees','invoices'])if(!Array.isArray(d[k]))d[k]=[];
+ for(const k of ['issues','positions','documents','costs','shipments','rate_cards','consignees','invoices','payslips','cost_documents'])if(!Array.isArray(d[k]))d[k]=[];
+ if(!d.supplier_rules||typeof d.supplier_rules!=='object')d.supplier_rules={};
+ // example deadlines of the fleet register and a reference cost per km, once
+ if(!d._ctrl_seeded){d._ctrl_seeded=true;const day=n=>localIso(new Date(Date.now()+n*86400000)).slice(0,10);
+  const due={v1:{due_revisione:day(20),due_assicurazione:day(140)},v2:{due_assicurazione:day(75),due_tachigrafo:day(300)},v3:{due_tachigrafo:day(-3),due_atp:day(200)},v4:{due_revisione:day(45)}};
+  for(const v of d.vehicles||[])if(due[v.id])Object.assign(v,due[v.id]);
+  if(d.company&&d.company.ref_cost_km_cents==null)d.company.ref_cost_km_cents=145;}
  const c=d.company=d.company||{name:'Autotrasporti Esempio Srl'};
  if(!c.vat&&!c._seeded){Object.assign(c,{vat:'01950620201',street:'Via San Giorgio 1',cap:'63835',comune:'Montappone',provincia:'FM',regime:'RF01',iban:'',ref_cost_km_cents:null,_seeded:true});}
  const addr={c1:['Via Emilia 10','46100','Mantova','MN'],c2:['Via del Porto 5','44121','Ferrara','FE'],c3:['Strada Bassa 3','26100','Cremona','CR']};

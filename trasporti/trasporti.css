@@ -95,3 +95,23 @@ table.tr-table{width:100%;border-collapse:collapse;font-size:14px}
 .tr-fs{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
 .tr-fs legend{padding:0 6px;font-weight:600}
 .tr [hidden]{display:none!important}
+/* controllo di gestione: chart (series colors validated for light and dark), cost documents to check */
+.tr{--s1:#2a78d6;--s2:#eb6834}
+@media (prefers-color-scheme:dark){.tr{--s1:#3987e5;--s2:#d95926}}
+.tr-chart{width:100%;height:auto;display:block}
+.tr-chart .s1{fill:var(--s1)}.tr-chart .s2{fill:var(--s2)}
+.tr-chart .grid{stroke:var(--border);stroke-width:1}.tr-chart .base{stroke:var(--subtle);stroke-width:1}
+.tr-chart .ax{fill:var(--subtle);font-size:11px}.tr-chart .lab{fill:var(--muted);font-size:11px;font-weight:600}.tr-chart .lab.neg{fill:var(--warn)}
+.tr-chart .hit{fill:transparent}.tr-chart .col:hover .hit,.tr-chart .col:focus .hit{fill:var(--surface-2)}.tr-chart .col{outline:none}
+.tr-legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;color:var(--muted);margin:0 0 6px}
+.tr-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}.tr-legend i.s1{background:var(--s1)}.tr-legend i.s2{background:var(--s2)}
+.tr-drop{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;border:2px dashed var(--border);border-radius:12px;padding:14px}
+.tr-drop.over{border-color:var(--action);background:var(--surface-2)}
+.tr-drop-col .tr-muted{font-size:14px}
+.tr-doc{border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.tr-doc.dup{opacity:.7;border-style:dashed}
+.tr-doc-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;margin:0 0 8px}
+.tr-doc select,.tr-doc input[type=date]{width:auto;padding:6px 8px;font-size:14px}
+.tr-doc input[type=date]{display:block;margin:0 0 4px}
+.tr-inline{display:flex!important;align-items:center;gap:10px;flex-wrap:wrap}.tr-inline select{width:auto}
+.tr details summary{cursor:pointer;padding:4px 0}
