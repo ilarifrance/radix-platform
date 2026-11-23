@@ -59,9 +59,11 @@ function ask(ctx,stage,tasks){
   const err=E('p',undefined,'df-err');err.hidden=true;form.append(err);
   const bar=E('div',undefined,'df-bar'),ok=E('button','Conferma spostamento','df-ok');ok.type='submit';ok.value='ok';
   const no=E('button','Annulla');no.type='button';no.onclick=()=>dlg.close();bar.append(ok,no);form.append(bar);
+  // In English the tasks are saved as the person read them: translated, without the Italian «[Playbook …]» prefix.
+  const I=window.RadixI18n,loc=t=>I&&I.en?I.t(C.tagOf(t)):t;
   form.addEventListener('submit',e=>{e.preventDefault();
    const picked=rows.filter(r=>r.cb.checked&&(r.titleInput?r.titleInput.value.trim():r.title));
-   result={activity:kind.value?{kind:kind.value,body:body.value}:null,tasks:picked.map(r=>({title:r.titleInput?r.titleInput.value:r.title,days:r.n.value}))};dlg.close()});
+   result={activity:kind.value?{kind:kind.value,body:body.value}:null,tasks:picked.map(r=>({title:r.titleInput?r.titleInput.value:loc(r.title),days:r.n.value}))};dlg.close()});
   dlg.addEventListener('close',()=>{dlg.remove();resolve(result)});
   dlg.append(form);document.body.append(dlg);dlg.showModal();ok.focus();
  })}
@@ -109,7 +111,7 @@ function openDetail(ctx){
  const bar=C.stageBar(ctx.stages,deal);
  if(bar.length&&open1){
   const nav=E('div',undefined,'df-stages');nav.setAttribute('role','group');nav.setAttribute('aria-label','Fasi della pipeline');
-  bar.forEach(x=>{const b=E('button',x.title,'df-stage df-stage-'+x.state);b.type='button';
+  bar.forEach(x=>{const b=E('button',x.title,'df-stage df-stage-'+x.state);b.type='button';b.setAttribute('data-i18n-ctx','stage');
    if(x.state==='current'){b.setAttribute('aria-current','step');b.disabled=true}
    else if(!ctx.canWrite)b.disabled=true;
    else{b.title='Sposta in «'+x.title+'»';b.onclick=async()=>{const stage=(ctx.stages||[]).find(s=>s.id===x.id);if(!stage)return;nav.querySelectorAll('button').forEach(n=>{n.disabled=true});const done=await moveDeal({...ctx,stage});if(done)closeDetail();else nav.querySelectorAll('button').forEach(n=>{n.disabled=n.getAttribute('aria-current')==='step'})}}
