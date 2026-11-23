@@ -46,3 +46,10 @@ fieldset{border:1px solid var(--line);border-radius:12px;margin:0 0 22px;padding
 .copy-check{border:1px solid #cbc3b7;background:#fbf9f7;color:#2b1f11;border-radius:10px;padding:10px 12px;margin:10px 0}.copy-check.ok{border-color:#009870;background:#fff;color:#081d17}.copy-check ul{margin:6px 0 0;padding-left:18px}.media-tools{margin:10px 0}.media-tools .gallery canvas{max-width:180px;height:auto;border-radius:8px}.media-tools .thumbs{display:flex;flex-wrap:wrap;gap:10px}
 .campaign-ideas{margin:8px 0}.idea-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:8px}.idea-card{border:1px solid var(--line,rgba(29,26,39,.246));border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:4px}.idea-card p{margin:2px 0;font-size:13px}.idea-card .actions{margin-top:auto}
 .campaign-ideas .memory-note{margin:8px 0 0;font-size:13px;color:#5568a6}.campaign-ideas .memory-note a{color:#077b60}
+/* LinkedIn newsletter edition (lib/ped-newsletter.js) */
+.nl-actions{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.nl-cover{display:block;width:100%;max-width:640px;height:auto;aspect-ratio:16/9;border-radius:10px;margin:8px 0;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.nl-problems{margin:8px 0;padding-left:20px}
+.nl-steps{margin:4px 0 12px;padding-left:20px;line-height:1.5}
+.nl-series label,.nl-publish label{display:block;margin:6px 0}
+.nl-series input,.nl-publish input{width:100%;max-width:520px}
