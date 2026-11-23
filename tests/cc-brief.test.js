@@ -32,6 +32,20 @@ test('Progetti e Sistema: passi da approvare, servizi non collegati (solo i nomi
  assert.equal(s.count,2);assert.equal(s.text,'2 servizi non collegati: Twilio, Apollo.');
  assert.equal(B.systemLine({items:[{id:'a',label:'A',configured:true}]}).tone,'ok');
 });
+test('Marketing: post in uscita oggi e pubblicazioni non riuscite, solo la riga più recente',()=>{
+ const pubs=[
+  {project_id:'p1',content_id:'c1',channel_id:'li',status:'queued',due_at:iso(NOW+3600e3),updated_at:iso(NOW-DAY)},
+  {project_id:'p1',content_id:'c2',channel_id:'li',status:'queued',scheduled_at:iso(NOW+2*DAY),updated_at:iso(NOW-DAY)},   // dopodomani
+  {project_id:'p1',content_id:'c3',channel_id:'li',status:'queued',due_at:iso(NOW-3600e3),updated_at:iso(NOW-DAY)},        // già uscito
+  {project_id:'p2',content_id:'c4',channel_id:'ig',status:'failed',updated_at:iso(NOW-2*DAY)},
+  {project_id:'p2',content_id:'c5',channel_id:'ig',status:'queued',due_at:iso(NOW+7200e3),updated_at:iso(NOW)},
+  {project_id:'p2',content_id:'c5',channel_id:'ig',status:'failed',updated_at:iso(NOW-DAY)}];                               // revisione vecchia
+ const l=B.marketingLine({publications:pubs},NOW,END);
+ assert.equal(l.count,3);assert.equal(l.tone,'late');assert.equal(l.text,'1 pubblicazione non riuscita, 2 post in uscita oggi.');
+ assert.equal(l.href,'/project-editorial.html?project=p2#ped');
+ const calm=B.marketingLine({publications:[],partial:true},NOW,END);assert.equal(calm.tone,'ok');assert.match(calm.text,/Nessun post in uscita oggi\. Guardati solo i primi progetti\./);
+ assert.equal(B.marketingLine(null,NOW,END),null);assert.match(B.marketingLine({error:'Pubblicazioni 500'},NOW,END).text,/non leggibili/);
+});
 test('Brief: solo le aree lette, totale e titolo; la pagina lo carica senza AI',()=>{
  const b=B.brief({now:NOW,dayEnd:END,sales,integrations:{items:[]}});
  assert.deepEqual(b.lines.map(l=>l.area),['sales','system']);assert.equal(b.total,3);assert.equal(b.late,true);
