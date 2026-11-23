@@ -1,0 +1,604 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Plancia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: fasce a tutta pagina, contenuto a 1120px, il telefono che legge il CMR come oggetto protagonista.
+   Marchio Plancia (proposta, in attesa di conferma): token da /mnt/project-files/marchio/palette.css. Arancio solo per le azioni principali. */
+:root{
+  --brand: #0F2A44;        /* Blu plancia */
+  --brand-2: #1B3D60;      /* Blu cabina */
+  --brand-ink: #ffffff;
+  --action: #F26B1D;       /* Arancio segnaletica: solo azioni principali */
+  --action-ink: #ffffff;
+  --signal: #F2B705;       /* Giallo */
+  --bg: #F6F3EE;           /* Sabbia */
+  --surface: #ffffff;
+  --fg: #1F2630;           /* Asfalto */
+  --muted: #6B7480;        /* Grigio */
+  --line: #e1ddd5;
+  --band: #ece8e0;
+  --good: #1E9E6A;
+  --bad: #D64545;
+  --f-display: "Plus Jakarta Sans", Inter, "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Plus Jakarta Sans", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --w: 1120px;
+  --gut-l: max(16px, env(safe-area-inset-left, 0px));
+  --gut-r: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --brand:#1B3D60;--brand-2:#24507c;--brand-ink:#ffffff;--action:#F26B1D;--action-ink:#ffffff;--signal:#F2B705;--bg:#141a22;--surface:#1F2630;--fg:#F6F3EE;--muted:#a3abb6;--line:#323b47;--band:#19202a;--good:#3cc48a;--bad:#f07070;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --brand:#1B3D60;--brand-2:#24507c;--brand-ink:#ffffff;--action:#F26B1D;--action-ink:#ffffff;--signal:#F2B705;--bg:#141a22;--surface:#1F2630;--fg:#F6F3EE;--muted:#a3abb6;--line:#323b47;--band:#19202a;--good:#3cc48a;--bad:#f07070;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16.5px;line-height:1.6}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.wrap{max-width:var(--w);margin:0 auto;padding-left:var(--gut-l);padding-right:var(--gut-r)}
+h1,h2,h3{font-family:var(--f-display);font-weight:800;line-height:1.06;text-wrap:balance;margin:0;letter-spacing:-.025em}
+h1{font-size:clamp(2.3rem,5.4vw,4rem)}
+h2{font-size:clamp(1.8rem,3.4vw,2.6rem)}
+h3{font-size:1.3rem;letter-spacing:-.015em}
+p{margin:0}
+.eyebrow{font-family:var(--f-data);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.lead{font-size:1.2rem;color:var(--muted);max-width:56ch}
+section{padding-block:clamp(56px,8vw,96px);scroll-margin-top:72px}
+.btn{display:inline-flex;align-items:center;gap:.5em;font:600 1rem var(--f-body);padding:.85em 1.3em;border-radius:6px;border:2px solid var(--action);background:var(--action);color:var(--action-ink);text-decoration:none;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+.btn:hover{filter:brightness(1.08)}
+
+/* banner anteprima */
+.preview{background:var(--signal);color:#1F2630;font-size:.9rem}
+.preview .wrap{display:flex;gap:12px;align-items:center;justify-content:space-between;padding-block:8px;flex-wrap:wrap}
+.preview button{font:inherit;background:transparent;border:1px solid #1b1400;border-radius:4px;padding:2px 10px;cursor:pointer;color:inherit}
+
+/* header */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+header.top .wrap{display:flex;align-items:center;gap:24px;padding-block:14px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--f-display);font-weight:800;font-size:1.55rem;letter-spacing:-.04em;color:var(--fg)}
+.logo .dot{color:var(--action)}
+.logo-mark{width:34px;height:34px;flex:none}
+nav.links{display:flex;gap:22px;margin-left:auto;font-weight:500}
+nav.links a{white-space:nowrap;text-decoration:none;color:var(--muted)}
+nav.links a:hover{color:var(--fg)}
+.btn.area{padding:.7em 1em}
+.menu-btn{display:none;font:600 .95rem var(--f-body);background:transparent;border:1px solid var(--line);border-radius:6px;padding:.85em .75em;color:var(--fg);cursor:pointer;align-items:center;gap:8px}
+.menu-btn span{display:block;width:18px;height:2px;background:currentColor;box-shadow:0 -6px 0 currentColor,0 6px 0 currentColor}
+.mobile-menu{display:none}
+@media (max-width:820px){
+ nav.links{display:none} header.top .btn.area{margin-left:auto} header.top .wrap > .btn:not(.area){display:none}
+ header.top .wrap{gap:10px}
+ .menu-btn{display:inline-flex}
+ .mobile-menu:not([hidden]){display:grid;gap:2px;padding:8px var(--gut-r) 16px var(--gut-l);border-top:1px solid var(--line);background:var(--bg)}
+ .mobile-menu a{padding:12px 4px;text-decoration:none;font-weight:600;font-size:1.05rem;border-bottom:1px solid var(--line)}
+ .mobile-menu .btn{margin-top:12px;justify-content:center;border-bottom:2px solid var(--action)}
+ .btn.area{padding:.6em .8em;font-size:.92rem}
+ .logo{font-size:1.35rem}
+}
+
+/* hero */
+.hero .wrap{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.hero-copy{display:grid;gap:24px;min-width:0}
+.hero h1 .hl{background:linear-gradient(transparent 62%,color-mix(in srgb,var(--signal) 70%,transparent) 62%);padding:0 .06em}
+.hero .ctas{display:flex;gap:12px;flex-wrap:wrap}
+.facts{display:flex;gap:28px;flex-wrap:wrap;font-size:.95rem;color:var(--muted)}
+.facts b{display:block;font-family:var(--f-display);font-size:1.5rem;font-weight:800;color:var(--fg);letter-spacing:-.02em}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr}}
+
+/* telefono */
+.phone{justify-self:center;width:min(340px,100%);background:#0c100e;border-radius:38px;padding:12px;box-shadow:0 30px 60px -20px rgba(0,0,0,.35)}
+.screen{background:var(--surface);border-radius:28px;overflow:hidden;display:grid}
+.scr-head{background:var(--brand);color:var(--brand-ink);padding:18px 18px 14px;display:grid;gap:2px}
+.scr-head small{font-family:var(--f-data);font-size:.72rem;opacity:.85}
+.scr-head strong{font-family:var(--f-display);font-size:1.2rem;font-weight:800}
+.doc{margin:14px;border:1px solid var(--line);border-radius:6px;position:relative;overflow:hidden;background:repeating-linear-gradient(0deg,transparent 0 21px,color-mix(in srgb,var(--line) 60%,transparent) 21px 22px)}
+.doc .scan{position:absolute;left:0;right:0;height:2px;background:var(--signal);box-shadow:0 0 12px var(--signal);top:0;animation:scan 3.2s ease-in-out infinite}
+@keyframes scan{0%,100%{top:4%}50%{top:92%}}
+@media (prefers-reduced-motion:reduce){.doc .scan{animation:none;top:50%}}
+.doc-title{font-family:var(--f-data);font-size:.7rem;padding:8px 10px;border-bottom:1px dashed var(--line);color:var(--muted)}
+.fields{display:grid;font-family:var(--f-data);font-size:.76rem}
+.fields div{display:grid;grid-template-columns:auto 1fr auto;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);align-items:center;background:var(--surface)}
+.fields div:last-child{border-bottom:0}
+.fields .k{color:var(--muted)}
+.fields .v{color:var(--fg);text-align:right}
+.fields .ok{color:var(--good)}
+.scr-foot{padding:4px 14px 18px;display:grid;gap:8px}
+.scr-foot .btn{justify-content:center;width:100%;border-radius:12px}
+.scr-foot p{font-size:.78rem;color:var(--muted);text-align:center}
+
+/* striscia problemi */
+.band{background:var(--band);border-block:1px solid var(--line)}
+.pains{display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.pains div{display:grid;gap:8px;align-content:start}
+.pains .q{font-family:var(--f-display);font-size:1.25rem;font-weight:700;line-height:1.25;letter-spacing:-.015em}
+.pains p{color:var(--muted)}
+@media (max-width:1000px){.pains{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.pains{grid-template-columns:1fr}}
+
+/* tre parti */
+.sec-head{display:grid;gap:14px;margin-bottom:44px;max-width:760px}
+.pillars{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.pillar{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:28px;display:grid;gap:14px;align-content:start}
+.pillar .tag{font-family:var(--f-data);font-size:.74rem;color:var(--brand-2);text-transform:uppercase;letter-spacing:.08em}
+.pillar ul{margin:0;padding-left:1.1em;display:grid;gap:6px;color:var(--muted)}
+.pillars.six{grid-template-columns:repeat(3,1fr)}@media (max-width:1000px){.pillars.six{grid-template-columns:repeat(2,1fr)}}@media (max-width:640px){.pillars.six{grid-template-columns:1fr}}.try{margin:28px 0 0;display:flex;flex-wrap:wrap;gap:12px}
+@media (max-width:1100px){.pillars{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:640px){.pillars{grid-template-columns:1fr}}
+
+/* passaggi */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:3px solid var(--fg)}
+.step{padding:24px 24px 0 0;display:grid;gap:10px;align-content:start}
+.step .n{font-family:var(--f-display);font-weight:800;font-size:2.6rem;color:var(--brand-2);line-height:1}
+.step p{color:var(--muted)}
+@media (max-width:820px){.steps{grid-template-columns:1fr}.step{padding-right:0}}
+
+/* tabelle demo */
+.demo{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media (max-width:980px){.demo{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:0;display:grid;align-content:start}
+.panel-h{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:16px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.panel-h strong{font-family:var(--f-display);font-size:1.1rem;font-weight:800}
+.panel-h span{font-family:var(--f-data);font-size:.72rem;color:var(--muted)}
+.tscroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-family:var(--f-data);font-size:.82rem;font-variant-numeric:tabular-nums}
+th,td{padding:10px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:500;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
+tr:last-child td{border-bottom:0}
+.plate{display:inline-block;border:1.5px solid var(--fg);border-radius:3px;padding:0 6px 0 0;font-weight:500;overflow:hidden;line-height:1.5}
+.plate::before{content:"I";display:inline-block;background:#1f4fbf;color:#fff;padding:0 4px;margin-right:6px;font-size:.7em;vertical-align:top;line-height:2.1}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.72rem}
+.pill.ok{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.pill.ko{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.panel-f{padding:12px 18px;font-size:.85rem;color:var(--muted);border-top:1px solid var(--line)}
+
+/* localizzatori */
+.trackers{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{font-family:var(--f-data);font-size:.85rem;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:10px 14px}
+.chip.alt{border-style:dashed;color:var(--muted)}
+@media (max-width:820px){.trackers{grid-template-columns:1fr}}
+
+/* prezzi */
+.pricing{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:stretch}
+@media (max-width:860px){.pricing{grid-template-columns:1fr}}
+.price-card{background:var(--brand);color:var(--brand-ink);border-radius:12px;padding:32px;display:grid;gap:20px;align-content:start}
+.price-card .amount{font-family:var(--f-display);font-weight:800;letter-spacing:-.04em;font-size:clamp(3rem,7vw,4.4rem);line-height:1}
+.price-card .amount small{display:block;margin-top:8px;font-size:1rem;font-family:var(--f-body);font-weight:500;letter-spacing:0;opacity:.85}
+.price-card ul{margin:0;padding-left:1.1em;display:grid;gap:6px}
+.toggle{display:inline-flex;border:1px solid color-mix(in srgb,var(--brand-ink) 40%,transparent);border-radius:8px;padding:3px;gap:3px;justify-self:start}
+.toggle button{font:600 .9rem var(--f-body);border:0;background:transparent;color:inherit;padding:6px 14px;border-radius:6px;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--brand-ink);color:var(--brand)}
+.toggle-note{font-family:var(--f-data);font-size:.72rem;opacity:.85}
+.calc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:32px;display:grid;gap:18px;align-content:start}
+.calc label{font-weight:600}
+.calc input[type=range]{width:100%;accent-color:var(--action)}
+.calc .row{display:flex;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--line);padding-bottom:10px}
+.calc .row:last-of-type{border-bottom:0}
+.calc .tot{font-family:var(--f-display);font-weight:800;font-size:2rem;letter-spacing:-.03em}
+.calc .small{font-size:.85rem;color:var(--muted)}
+
+/* faq */
+.faq{display:grid;gap:0;max-width:820px;border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line);padding-block:18px}
+summary{cursor:pointer;font-weight:600;font-size:1.1rem;list-style:none;display:flex;justify-content:space-between;gap:16px}
+summary::after{content:"+";font-family:var(--f-data);color:var(--action)}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin-top:10px;max-width:68ch}
+
+/* contatto */
+.cta{background:var(--brand);color:#F6F3EE}
+.cta .wrap{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
+.cta .lead{color:rgba(246,243,238,.78)}
+@media (max-width:860px){.cta .wrap{grid-template-columns:1fr}}
+form{display:grid;gap:14px;min-width:0}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:520px){.f2{grid-template-columns:1fr}}
+form label{display:grid;gap:6px;font-size:.9rem;font-weight:500}
+form input,form select,form textarea{font:inherit;padding:11px 12px;border-radius:6px;border:1px solid rgba(246,243,238,.3);background:rgba(246,243,238,.08);color:#F6F3EE;width:100%}
+form select option{color:#111}
+.cta .btn{justify-self:start}
+.form-msg{font-size:.95rem;padding:12px 14px;border-radius:6px;background:color-mix(in srgb,var(--signal) 22%,transparent)}
+
+footer{padding-block:32px;font-size:.9rem;color:var(--muted)}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+</style>
+
+</head>
+<body>
+<div class="preview" id="previewBar">
+  <div class="wrap">
+    <span><b>Anteprima interna.</b> Nome e marchio Plancia sono una proposta da confermare. Il prezzo mostra le due ipotesi (19 o 29 €). Indirizzo di prova, non indicizzato.</span>
+    <button type="button" id="hidePreview">Nascondi</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Home">
+      <!-- Icona Plancia, da /mnt/project-files/marchio/plancia-icona.svg -->
+      <svg class="logo-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect width="64" height="64" rx="14" fill="var(--brand)"/>
+        <path d="M22 50 V16 H34 a11 11 0 0 1 0 22 H31" fill="none" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="30" cy="38" r="5" fill="#F26B1D"/>
+      </svg>
+      <span><span data-brand="name">plancia</span><span class="dot">.</span></span>
+    </a>
+    <nav class="links" aria-label="Sezioni">
+      <a href="#come-funziona">Come funziona</a>
+      <a href="#gestionale">Gestionale</a>
+      <a href="#prezzi">Prezzi</a>
+      <a href="#faq">Domande</a>
+    </nav>
+    <a class="btn ghost area" href="/accedi">Area riservata</a>
+    <a class="btn" href="#contatti">Diventa azienda pilota</a>
+    <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mobileMenu" aria-label="Apri il menu"><span></span></button>
+  </div>
+  <nav class="mobile-menu" id="mobileMenu" aria-label="Menu" hidden>
+    <a href="#come-funziona">Come funziona</a>
+    <a href="#gestionale">Gestionale</a>
+    <a href="#margini">Margini</a>
+    <a href="#fatture">Fatture</a>
+    <a href="#prezzi">Prezzi</a>
+    <a href="#faq">Domande</a>
+    <a href="/accedi">Area riservata</a>
+    <a class="btn" href="#contatti">Diventa azienda pilota</a>
+  </nav>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-copy">
+      <span class="eyebrow">Per aziende di trasporto da 5 a 50 mezzi</span>
+      <h1>L'autista fotografa la bolla. La fattura <span class="hl">si prepara da sola</span>.</h1>
+      <p class="lead">DDT, CMR e giornale di viaggio letti dal telefono dell'autista, confermati con un tocco e già in ufficio. Dai documenti confermati nasce la fattura, con le tariffe di ogni cliente. Margine per mezzo, autista e cliente, e pedaggi Telepass abbinati al viaggio giusto.</p>
+      <div class="ctas">
+        <a class="btn" href="#contatti">Diventa azienda pilota</a>
+        <a class="btn ghost" href="/trasporti/">Prova il programma</a>
+      </div>
+      <div class="facts">
+        <span><b>1 foto</b>per ogni documento</span>
+        <span><b>0 fogli</b>da ricopiare in ufficio</span>
+        <span><b>Fattura</b>pronta dai documenti</span>
+      </div>
+    </div>
+
+    <div class="phone" role="img" aria-label="Esempio: l'app autista legge un CMR e mostra i campi da confermare">
+      <div class="screen">
+        <div class="scr-head">
+          <small>VIAGGIO 2026-1184 · GA 482 KT</small>
+          <strong>Controlla il CMR</strong>
+        </div>
+        <div class="doc">
+          <div class="scan"></div>
+          <div class="doc-title">LETTERA DI VETTURA INTERNAZIONALE · CMR</div>
+          <div class="fields">
+            <div><span class="k">1 Mittente</span><span class="v">Ceramiche Valsecchia</span><span class="ok">✓</span></div>
+            <div><span class="k">2 Destinatario</span><span class="v">Baustoffe Huber, Linz</span><span class="ok">✓</span></div>
+            <div><span class="k">4 Carico</span><span class="v">Sassuolo · 18/11</span><span class="ok">✓</span></div>
+            <div><span class="k">6-9 Merce</span><span class="v">22 bancali</span><span class="ok">✓</span></div>
+            <div><span class="k">11 Peso lordo</span><span class="v">21.480 kg</span><span class="ok">✓</span></div>
+          </div>
+        </div>
+        <div class="scr-foot">
+          <span class="btn">Confermo, invia in ufficio</span>
+          <p>Un campo sbagliato? Toccalo e correggilo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap pains">
+    <div><span class="q">«Le foto delle bolle arrivano su WhatsApp, a pezzi.»</span><p>E poi qualcuno in ufficio le ricopia a mano, la sera.</p></div>
+    <div><span class="q">«Questo viaggio l'abbiamo fatturato?»</span><p>Bolle sparse e listini a memoria: qualche viaggio sfugge sempre.</p></div>
+    <div><span class="q">«Quel cliente ci conviene ancora?»</span><p>Senza costi per viaggio, il margine si scopre a fine anno.</p></div>
+    <div><span class="q">«Di chi è questo pedaggio?»</span><p>L'estratto Telepass elenca caselli e orari, non i viaggi.</p></div>
+  </div>
+</section>
+
+<section id="come-funziona">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Dal mezzo all'ufficio</span>
+      <h2>Dal camion alla fattura senza ricopiare niente</h2>
+    </div>
+    <div class="pillars">
+      <article class="pillar">
+        <span class="tag">App autista</span>
+        <h3>Il telefono legge i documenti</h3>
+        <p>L'autista fotografa DDT, CMR e giornale di viaggio. L'intelligenza artificiale estrae mittente, destinatario, colli e peso, e l'autista conferma.</p>
+        <ul><li>Schermate grandi, pochi tasti</li><li>Funziona anche con poca rete</li><li>In italiano, con altre lingue per autisti stranieri</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Centro di comando</span>
+        <h3>Viaggi e margini in una schermata</h3>
+        <p>Ogni viaggio con i suoi documenti, chilometri, ricavi e costi. Il margine per mezzo, per autista e per cliente si aggiorna da solo.</p>
+        <ul><li>Posizione dei mezzi dai localizzatori che hai già</li><li>Documenti cercabili per targa, cliente o data</li><li>Export Excel in un clic</li></ul>
+      </article>
+      <article class="pillar" id="pedaggi">
+        <span class="tag">Pedaggi</span>
+        <h3>Telepass abbinato al viaggio</h3>
+        <p>Carichi l'estratto Telepass e ogni transito viene assegnato al viaggio giusto, confrontando targa e orario. Quelli che non tornano li vedi subito.</p>
+        <ul><li>Costo pedaggi per viaggio e per cliente</li><li>Transiti fuori servizio evidenziati</li><li>Niente più fogli da incrociare a mano</li></ul>
+      </article>
+      <article class="pillar" id="fatture">
+        <span class="tag">Fatture</span>
+        <h3>La fattura parte dalla foto</h3>
+        <p>Quando l'autista conferma DDT o CMR, il viaggio è già pronto da fatturare. Il programma applica il listino del cliente e le sue condizioni, tu controlli ed emetti.</p>
+        <ul><li>Listini per cliente, tratta, peso o bancale</li><li>Supplementi, soste e casi particolari</li><li>Nessun viaggio dimenticato in fattura</li></ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="gestionale">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Il gestionale in ufficio</span>
+      <h2>Dalle foto ai conti, i dati si elaborano da soli</h2>
+      <p class="lead">Tutto quello che arriva (foto dei documenti, fatture dei fornitori, buste paga, Telepass) viene letto, classificato e messo sul viaggio, sul mezzo e sul cliente giusto. Tu controlli e confermi.</p>
+    </div>
+    <div class="pillars six">
+      <article class="pillar">
+        <span class="tag">Listini</span>
+        <h3>L'importo lo calcola il listino</h3>
+        <p>Ogni cliente ha il suo listino, con i metodi usati nei trasporti. Il programma sceglie la tariffa giusta e calcola l'importo del viaggio.</p>
+        <ul><li>A km, a zone, a fasce di peso o km, prezzo fisso</li><li>A tonnellata, collo, bancale, capo o ora</li><li>Supplementi: gasolio, sosta, ADR, sponda, festivi</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Fattura elettronica</span>
+        <h3>Fattura pronta in formato FatturaPA</h3>
+        <p>I viaggi confermati del mese diventano una fattura per cliente, con il file XML pronto da caricare nel tuo programma di invio allo SdI.</p>
+        <ul><li>Riepilogo viaggi con DDT e CMR allegati</li><li>Clienti esteri e inversione contabile</li><li>Export Excel per il commercialista</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Anagrafiche</span>
+        <h3>Clienti e destinatari presi dai documenti</h3>
+        <p>Dal DDT o dal CMR il programma propone mittente, destinatario, vettore e partita IVA. Un tocco e l'anagrafica è creata, senza doppioni.</p>
+        <ul><li>Controllo di partita IVA e codice fiscale</li><li>Cliente da fatturare anche quando sei vettore successivo</li><li>Mezzi, autisti e rimorchi con le loro scadenze</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Costi e buste paga</span>
+        <h3>Fatture fornitori e buste paga lette in automatico</h3>
+        <p>Carichi le fatture XML dei fornitori, i PDF o le foto, e le buste paga degli autisti. Ogni riga va nella voce giusta e sul mezzo giusto, per il periodo di competenza.</p>
+        <ul><li>Gasolio, AdBlue, pedaggi, gomme, officina</li><li>Leasing, assicurazione, bollo, subvettori</li><li>Autisti esterni e personale in leasing</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Controllo di gestione</span>
+        <h3>Margine, costi fissi e variabili, pareggio</h3>
+        <p>Come nei gestionali di trasporto: costo e ricavo al km, consumo per mezzo, fatturato di pareggio, andamento degli ultimi sei mesi e cosa guardare per primo.</p>
+        <ul><li>Margine per mezzo, autista, cliente e tratta</li><li>Avvisi su clienti in perdita e mezzi che costano troppo</li><li>Costo di riferimento al km impostabile</li></ul>
+      </article>
+      <article class="pillar">
+        <span class="tag">Scadenze e spese</span>
+        <h3>Scadenzario dei mezzi e spese di viaggio</h3>
+        <p>Revisione, assicurazione, tachigrafo, bollo e ATP ti avvisano prima di scadere. L'autista fotografa parcheggi, hotel e lavaggi e la spesa entra nei costi del viaggio.</p>
+        <ul><li>Avvisi a 30 giorni, anche sul telefono dell'autista</li><li>Spese in contanti segnate da rimborsare</li><li>App per Android e iPhone</li></ul>
+      </article>
+    </div>
+    <p class="try"><a class="btn" href="/trasporti/">Prova il programma con dati di esempio</a> <a class="btn ghost" href="/trasporti/autista/">Apri l'app autista</a></p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Una giornata tipo</span>
+      <h2>Come cambia il lavoro</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>Al carico</h3><p>L'autista fotografa il documento. In pochi secondi vede i dati letti e li conferma o corregge.</p></div>
+      <div class="step"><span class="n">2</span><h3>In viaggio</h3><p>In ufficio il viaggio compare con posizione, documenti e stato. Nessuna telefonata per sapere dov'è il mezzo.</p></div>
+      <div class="step"><span class="n">3</span><h3>A fine mese</h3><p>Fatture elettroniche già preparate dai documenti confermati, costi e buste paga caricati, margini per mezzo e cliente già calcolati, pedaggi già abbinati.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="margini">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Cosa vedi in ufficio</span>
+      <h2>Ogni mezzo, ogni cliente, ogni euro</h2>
+      <p class="lead">Dati di esempio, per mostrare le schermate. Con i tuoi viaggi i numeri si compilano da soli.</p>
+    </div>
+    <div class="demo">
+      <div class="panel">
+        <div class="panel-h"><strong>Margine per mezzo</strong><span>OTTOBRE 2026 · ESEMPIO</span></div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Mezzo</th><th>km</th><th>Ricavi</th><th>Costi</th><th>€/km</th></tr></thead>
+            <tbody>
+              <tr><td><span class="plate">GA 482 KT</span></td><td>11.420</td><td>18.900 €</td><td>14.760 €</td><td class="pos">+0,36</td></tr>
+              <tr><td><span class="plate">FZ 913 PL</span></td><td>9.870</td><td>15.200 €</td><td>13.110 €</td><td class="pos">+0,21</td></tr>
+              <tr><td><span class="plate">GD 207 RS</span></td><td>12.050</td><td>16.400 €</td><td>16.980 €</td><td class="neg">−0,05</td></tr>
+              <tr><td><span class="plate">FX 556 MB</span></td><td>8.310</td><td>13.950 €</td><td>11.020 €</td><td class="pos">+0,35</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-f">GD 207 RS è in perdita: troppi rientri a vuoto sulla tratta per Verona.</div>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><strong>Pedaggi Telepass</strong><span>ABBINAMENTO PER TARGA E ORARIO · ESEMPIO</span></div>
+        <div class="tscroll">
+          <table>
+            <thead><tr><th>Transito</th><th>Targa</th><th>Importo</th><th>Viaggio</th></tr></thead>
+            <tbody>
+              <tr><td>14/10 06:42 Modena Nord → Brennero</td><td>GA 482 KT</td><td>78,40 €</td><td><span class="pill ok">2026-1121</span></td></tr>
+              <tr><td>14/10 07:15 Bologna B. Panigale → Firenze Sud</td><td>FZ 913 PL</td><td>31,90 €</td><td><span class="pill ok">2026-1122</span></td></tr>
+              <tr><td>15/10 22:08 Milano Sud → Piacenza Nord</td><td>GD 207 RS</td><td>14,60 €</td><td><span class="pill ko">nessun viaggio</span></td></tr>
+              <tr><td>16/10 05:30 Reggio Emilia → Verona Nord</td><td>FX 556 MB</td><td>22,70 €</td><td><span class="pill ok">2026-1130</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel-f">Un transito alle 22:08 senza viaggio aperto: da controllare con l'autista.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap trackers">
+    <div class="sec-head" style="margin-bottom:0">
+      <span class="eyebrow">Niente scatole nuove sui camion</span>
+      <h2>Usa i localizzatori che hai già</h2>
+      <p class="lead">La posizione dei mezzi arriva dai sistemi già installati. Il GPS del telefono serve solo come riserva, se un mezzo non ha localizzatore.</p>
+    </div>
+    <div class="chips" aria-label="Sistemi di localizzazione">
+      <span class="chip">Webfleet</span>
+      <span class="chip">Verizon Connect</span>
+      <span class="chip">Targa Telematics</span>
+      <span class="chip">rFMS (dati dal costruttore)</span>
+      <span class="chip alt">GPS del telefono, come riserva</span>
+    </div>
+  </div>
+</section>
+
+<section id="prezzi">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Prezzi</span>
+      <h2>Un prezzo per mezzo, tutto compreso</h2>
+      <p class="lead">Nessun costo di installazione e nessun hardware da comprare. Autisti e utenti d'ufficio senza limiti.</p>
+    </div>
+    <div class="pricing">
+      <div class="price-card">
+        <div class="toggle" role="group" aria-label="Ipotesi di prezzo">
+          <button type="button" data-price="19" aria-pressed="false">Ipotesi 19 €</button>
+          <button type="button" data-price="29" aria-pressed="true">Ipotesi 29 €</button>
+        </div>
+        <span class="toggle-note">ANTEPRIMA: scelta finale ancora da decidere</span>
+        <div class="amount"><span id="priceVal">29</span> € <small>al mese per mezzo, IVA esclusa</small></div>
+        <ul>
+          <li>App autista con lettura di DDT, CMR e giornale di viaggio</li>
+          <li>Fatture automatiche dai documenti, con i listini dei clienti</li>
+          <li>Centro di comando con margini ed export Excel</li>
+          <li>Abbinamento automatico dei pedaggi Telepass</li>
+          <li>Collegamento al tuo localizzatore</li>
+          <li>Assistenza in italiano</li>
+        </ul>
+      </div>
+      <div class="calc">
+        <label for="fleet">Quanti mezzi hai? <span id="fleetVal">15</span></label>
+        <input type="range" id="fleet" min="5" max="50" step="1" value="15">
+        <div class="row"><span>Mezzi</span><span id="cMezzi">15</span></div>
+        <div class="row"><span>Prezzo per mezzo</span><span id="cUnit">29 €</span></div>
+        <div class="row"><span>Totale al mese</span><span class="tot" id="cTot">435 €</span></div>
+        <p class="small">Per confronto: un'ora al giorno di un impiegato per ricopiare bolle costa circa <span id="cCompare">420 €</span> al mese (22 giorni a 19 € l'ora).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="band">
+  <div class="wrap">
+    <div class="sec-head"><span class="eyebrow">Domande frequenti</span><h2>Prima di provarlo</h2></div>
+    <div class="faq">
+      <details><summary>I miei autisti non sono pratici col telefono. Ce la fanno?</summary><p>L'app chiede una cosa sola alla volta: fotografare il documento e confermare. Se un campo è letto male, lo correggono toccandolo. Il resto lo fa l'ufficio.</p></details>
+      <details><summary>Su quali telefoni funziona?</summary><p>L'app autista è pensata per smartphone Android e iPhone. Durante la fase pilota ti diciamo esattamente quali versioni sono già pronte.</p></details>
+      <details><summary>Devo cambiare il localizzatore?</summary><p>No. Leggiamo la posizione dal sistema che hai già. Se un mezzo non ne ha uno, si usa il GPS del telefono dell'autista.</p></details>
+      <details><summary>Come vengono calcolate le fatture?</summary><p>Inserisci una volta i listini di ogni cliente: a viaggio, a tratta, a peso o a bancale, con supplementi e soste. Ogni documento confermato dall'autista genera la riga di fattura con la tariffa giusta. Prima di emetterla la controlli sempre tu.</p></details>
+      <details><summary>La fattura parte da sola verso lo SdI?</summary><p>No. Plancia prepara la fattura elettronica in formato XML FatturaPA; la invii con il programma o l'intermediario che usi già. Così il tuo commercialista non cambia niente.</p></details>
+      <details><summary>Devo caricare a mano le fatture dei fornitori e le buste paga?</summary><p>Basta trascinarle: i file XML delle fatture (anche firmati .p7m) si leggono subito, PDF e foto con l'intelligenza artificiale. Il programma impara voce e mezzo di ogni fornitore e la volta dopo li propone da solo.</p></details>
+      <details><summary>Dove finiscono i documenti e i dati?</summary><p>In un archivio riservato alla tua azienda, consultabile dall'ufficio. Puoi esportare tutto in Excel quando vuoi.</p></details>
+      <details><summary>Come funziona la fase pilota?</summary><p>Cerchiamo poche aziende con cui partire. Configuriamo insieme mezzi, autisti e localizzatore, e usiamo i vostri documenti veri per migliorare la lettura.</p></details>
+    </div>
+  </div>
+</section>
+
+<section id="contatti" class="cta">
+  <div class="wrap">
+    <div class="sec-head" style="margin-bottom:0">
+      <span class="eyebrow" style="color:inherit;opacity:.7">Fase pilota</span>
+      <h2>Cerchiamo le prime aziende di trasporto</h2>
+      <p class="lead">Se hai da 5 a 50 mezzi e sei stanco di ricopiare bolle, scrivici. Ti richiamiamo noi per organizzare una prova sui tuoi viaggi.</p>
+    </div>
+    <form id="pilotForm" novalidate>
+      <div class="f2">
+        <label for="fNome">Nome e cognome<input id="fNome" name="nome" autocomplete="name" required></label>
+        <label for="fAzienda">Azienda<input id="fAzienda" name="azienda" autocomplete="organization" required></label>
+      </div>
+      <div class="f2">
+        <label for="fTel">Telefono<input id="fTel" name="tel" type="tel" autocomplete="tel" required></label>
+        <label for="fMezzi">Numero di mezzi
+          <select id="fMezzi" name="mezzi"><option>5-10</option><option selected>11-20</option><option>21-35</option><option>36-50</option><option>Più di 50</option></select>
+        </label>
+      </div>
+      <label for="fLoc">Localizzatore in uso
+        <select id="fLoc" name="loc"><option>Webfleet</option><option>Verizon Connect</option><option>Targa Telematics</option><option>Altro / non so</option><option>Nessuno</option></select>
+      </label>
+      <button class="btn" type="submit">Voglio partecipare</button>
+      <p class="form-msg" id="formMsg" hidden></p>
+    </form>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 <span data-brand="display">Plancia</span>. Costruito per chi muove merci su strada.</span>
+    <a href="/accedi">Area riservata</a> · <span data-brand="contact">info@planciaapp.it (indirizzo da attivare)</span>
+  </div>
+</footer>
+
+<script>
+/* ====== CONFIGURAZIONE MARCHIO E PREZZO (unico punto da modificare) ====== */
+const BRAND = {
+  name: "plancia",                       // come nel logo (minuscolo)
+  display: "Plancia",                    // nei testi
+  contact: "info@planciaapp.it (indirizzo da attivare)",
+  priceOptions: [19, 29],                // ipotesi di prezzo €/mezzo/mese
+  defaultPrice: 29,
+  showPreviewBar: true
+};
+/* ======================================================================== */
+document.querySelectorAll('[data-brand]').forEach(el => { const v = BRAND[el.dataset.brand]; if (v) el.textContent = v; });
+
+let price = BRAND.defaultPrice;
+const fleet = document.getElementById('fleet');
+const fmt = n => n.toLocaleString('it-IT') + ' €';
+function render(){
+  const n = +fleet.value;
+  document.getElementById('fleetVal').textContent = n;
+  document.getElementById('cMezzi').textContent = n;
+  document.getElementById('cUnit').textContent = fmt(price);
+  document.getElementById('cTot').textContent = fmt(n * price);
+  document.getElementById('priceVal').textContent = price;
+  document.querySelectorAll('[data-price]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.price === price)));
+}
+document.querySelectorAll('[data-price]').forEach(b => b.addEventListener('click', () => { price = +b.dataset.price; render(); }));
+fleet.addEventListener('input', render);
+render();
+
+const bar = document.getElementById('previewBar');
+if (!BRAND.showPreviewBar) bar.hidden = true;
+document.getElementById('hidePreview').addEventListener('click', () => { bar.hidden = true; });
+
+const menuBtn = document.getElementById('menuBtn'), mobileMenu = document.getElementById('mobileMenu');
+menuBtn.addEventListener('click', () => { const open = mobileMenu.hidden; mobileMenu.hidden = !open; menuBtn.setAttribute('aria-expanded', String(open)); });
+mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { mobileMenu.hidden = true; menuBtn.setAttribute('aria-expanded','false'); }));
+document.getElementById('pilotForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const f = e.target, msg = document.getElementById('formMsg');
+  const missing = ['fNome','fAzienda','fTel'].filter(id => !document.getElementById(id).value.trim());
+  msg.hidden = false;
+  if (missing.length){ msg.textContent = 'Compila nome, azienda e telefono, così possiamo richiamarti.'; document.getElementById(missing[0]).focus(); return; }
+  msg.textContent = 'Anteprima: il modulo non invia ancora le richieste. Nella versione pubblicata qui arriverà la conferma.';
+});
+</script>
+
+</body>
+</html>

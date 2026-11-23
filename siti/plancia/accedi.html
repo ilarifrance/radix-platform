@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Plancia · Area riservata</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root{--brand:#0F2A44;--brand-2:#1B3D60;--action:#F26B1D;--bg:#F6F3EE;--surface:#fff;--fg:#1F2630;--muted:#6B7480;--line:#e1ddd5;--signal:#F2B705;
+--f:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a22;--surface:#1F2630;--fg:#F6F3EE;--muted:#a3abb6;--line:#323b47;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141a22;--surface:#1F2630;--fg:#F6F3EE;--muted:#a3abb6;--line:#323b47;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{min-height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f);font-size:16px;line-height:1.55;display:grid;grid-template-columns:1fr 1fr;min-height:100vh}
+.side{background:var(--brand);color:#F6F3EE;padding:48px max(32px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;justify-content:space-between;gap:40px}
+.side h2{font-size:clamp(1.8rem,3vw,2.4rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:0;max-width:18ch;text-wrap:balance}
+.side ul{margin:0;padding:0;list-style:none;display:grid;gap:14px;color:rgba(246,243,238,.82)}
+.side li{display:flex;gap:12px;align-items:baseline}
+.side li b{color:var(--signal);font-weight:700;min-width:1.4em}
+.main{display:grid;place-items:center;padding-block:40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.card{width:min(400px,100%);display:grid;gap:22px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg);font-weight:800;font-size:1.5rem;letter-spacing:-.04em}
+.logo svg{width:34px;height:34px}
+.logo .dot{color:var(--action)}
+h1{font-size:1.7rem;font-weight:800;letter-spacing:-.03em;margin:0}
+p{margin:0;color:var(--muted)}
+form{display:grid;gap:14px}
+label{display:grid;gap:6px;font-weight:600;font-size:.92rem}
+input{font:inherit;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);width:100%}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:.9rem;flex-wrap:wrap}
+.row label{display:flex;align-items:center;gap:8px;font-weight:500}
+.row input{width:auto}
+a{color:var(--brand-2)}
+:root[data-theme="dark"] a{color:#9cc3ea}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) a{color:#9cc3ea}}
+button{font:600 1rem var(--f);padding:13px;border-radius:8px;border:0;background:var(--action);color:#fff;cursor:pointer}
+button:hover{filter:brightness(1.07)}
+.note{font-size:.85rem;padding:12px 14px;border-radius:8px;background:color-mix(in srgb,var(--signal) 22%,transparent);color:var(--fg)}
+.msg{font-size:.9rem;color:#D64545}
+.foot{font-size:.85rem}
+@media (max-width:860px){body{grid-template-columns:1fr}.side{display:none}}
+</style>
+</head>
+<body>
+<aside class="side">
+<a class="logo" href="index.html" style="color:#F6F3EE">
+<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#1B3D60"/><path d="M22 50 V16 H34 a11 11 0 0 1 0 22 H31" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="30" cy="38" r="5" fill="#F26B1D"/></svg>
+<span>plancia<span class="dot">.</span></span>
+</a>
+<h2>Il tuo ufficio, aggiornato da ogni camion.</h2>
+<ul>
+<li><b>→</b>Documenti fotografati dagli autisti, pronti da controllare</li>
+<li><b>→</b>Estratti Telepass abbinati ai viaggi</li>
+<li><b>→</b>Fatture preparate con i listini dei clienti</li>
+<li><b>→</b>Margine per mezzo, autista e cliente</li>
+</ul>
+</aside>
+<main class="main">
+<div class="card">
+<a class="logo" href="index.html">
+<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#0F2A44"/><path d="M22 50 V16 H34 a11 11 0 0 1 0 22 H31" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="30" cy="38" r="5" fill="#F26B1D"/></svg>
+<span>plancia<span class="dot">.</span></span>
+</a>
+<div style="display:grid;gap:6px">
+<h1>Area riservata</h1>
+<p>Accedi al centro operativo della tua azienda.</p>
+</div>
+<p class="note"><b>Anteprima.</b> L'accesso non è ancora collegato. Premi Accedi per entrare con dati di esempio. Non viene salvato né inviato nulla.</p>
+<form id="login" novalidate>
+<label for="email">Email<input id="email" type="email" autocomplete="username" placeholder="nome@azienda.it"></label>
+<label for="pw">Password<input id="pw" type="password" autocomplete="current-password"></label>
+<div class="row">
+<label for="ricorda"><input id="ricorda" type="checkbox"> Ricordami</label>
+<a href="#" id="forgot">Password dimenticata?</a>
+</div>
+<button type="submit">Accedi</button>
+<p class="msg" id="msg" hidden></p>
+</form>
+<p class="foot">Sei un autista? Usa l'app Plancia sul telefono, non serve accedere da qui.</p>
+<p class="foot"><a href="index.html">← Torna al sito</a></p>
+</div>
+</main>
+<script>
+document.getElementById('login').addEventListener('submit', e => {
+e.preventDefault();
+location.href = '/trasporti/';
+});
+document.getElementById('forgot').addEventListener('click', e => {
+e.preventDefault();
+const m = document.getElementById('msg');
+m.hidden = false;
+m.textContent = 'Nella versione definitiva qui arriva il link per reimpostare la password.';
+});
+</script>
+</body>
+</html>

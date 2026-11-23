@@ -1,0 +1,40 @@
+{
+ "buildCommand": "sh build.sh",
+ "outputDirectory": "public",
+ "installCommand": "",
+ "framework": null,
+ "cleanUrls": true,
+ "redirects": [
+  {
+   "source": "/area-riservata",
+   "destination": "/accedi",
+   "permanent": false
+  },
+  {
+   "source": "/area-riservata/",
+   "destination": "/accedi",
+   "permanent": false
+  },
+  {
+   "source": "/ufficio",
+   "destination": "/trasporti/",
+   "permanent": false
+  },
+  {
+   "source": "/trasporti",
+   "destination": "/trasporti/",
+   "permanent": false
+  }
+ ],
+ "headers": [
+  {
+   "source": "/(.*)",
+   "headers": [
+    {
+     "key": "X-Robots-Tag",
+     "value": "noindex, nofollow"
+    }
+   ]
+  }
+ ]
+}
