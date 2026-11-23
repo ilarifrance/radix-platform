@@ -10,7 +10,7 @@ test('particle overview parses and draws with Canvas 2D only',()=>{
  assert.ok(source.includes("getContext('2d')"));
  assert.ok(!/<script|import\(|three|pixi|webgl/i.test(source));
  // the page still loads only its own scripts (after the English language layer)
- assert.deepEqual(Array.from(html.matchAll(/<script src="([^"]+)"/g),m=>m[1]),['/lib/radix-i18n-en.js','/lib/radix-i18n.js','/shell/radix-shell.js','command-center-network-scene.js']);
+ assert.deepEqual(Array.from(html.matchAll(/<script src="([^"]+)"/g),m=>m[1]),['/lib/radix-i18n-en.js','/lib/radix-i18n.js','/shell/radix-shell.js','command-center-network-scene.js','/lib/cc-brief-core.js','/lib/cc-brief.js']);
 });
 test('animation is capped, pauses when hidden and honours reduced motion',()=>{
  assert.ok(source.includes('requestAnimationFrame(loop)')&&source.includes('cancelAnimationFrame(raf)'));

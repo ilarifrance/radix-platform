@@ -389,6 +389,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
         </div>
       </section>
 
+      <section class="cc-brief" id="ccBrief" aria-label="Oggi: cosa ti aspetta" aria-live="polite" hidden></section>
+
       <section class="dashboard-grid">
         <article class="panel network-panel" id="networkPanel">
           <div class="panel-head"><div><div class="panel-title" id="networkPanelTitle"><span>◉</span>NETWORK VIEW</div><div class="panel-meta" id="networkPanelMeta">La tua organizzazione AI · progetti reali</div></div><div class="network-toolbar" id="networkToolbar"><button class="view-tab active" id="networkTab" aria-pressed="true">Network</button><button class="view-tab" id="commandTab" aria-pressed="false">Command</button><button class="view-tab" id="projectsTab" aria-pressed="false" aria-label="Mostra tutti i progetti in elenco">Lista</button><button class="tool-btn" id="zoomOut" aria-label="Riduci zoom">−</button><button class="tool-btn" id="zoomReset" aria-label="Reimposta zoom">◎</button><button class="tool-btn" id="zoomIn" aria-label="Aumenta zoom">＋</button><button class="tool-btn" id="expandNetwork" aria-label="Espandi la mappa" aria-pressed="false">⛶</button></div></div>
@@ -464,6 +466,8 @@ h1{font-family:'Space Grotesk';font-size:26px;line-height:1.15;margin:6px 0 0;le
 </div>
 
 <script src="command-center-network-scene.js"></script>
+<script src="/lib/cc-brief-core.js"></script>
+<script src="/lib/cc-brief.js" defer></script>
 <script>
 (function(){
   'use strict';
