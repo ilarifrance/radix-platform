@@ -206,4 +206,6 @@
   new MutationObserver(later).observe(crmNav, { childList: true });
   window.addEventListener('hashchange', function () { mark(crmNav); });
   later();
+  // Selettori di vista: la scelta resta alla stessa altezza dello schermo (sales/keep-switcher.js).
+  if (!document.querySelector('script[src="/sales/keep-switcher.js"]')) { const k = document.createElement('script'); k.src = '/sales/keep-switcher.js'; document.head.append(k); }
 })();
