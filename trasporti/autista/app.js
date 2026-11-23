@@ -164,6 +164,13 @@ function renderWho(){
  const sd=$('selD'),sv=$('selV');const sync=()=>{const d=data.drivers.find(x=>x.id===sd.value);if(d&&d.vehicle)sv.value=d.vehicle;};sync();sd.onchange=sync;
  $('okWho').onclick=()=>{me={driver:sd.value,vehicle:sv.value};localStorage.setItem(ME_KEY,JSON.stringify(me));render();followTrip();};
 }
+// deadlines of the vehicle the driver is on (revisione, assicurazione, tachigrafo…) within 30 days
+const DUE=[['due_revisione','Revisione'],['due_assicurazione','Assicurazione'],['due_tachigrafo','Tachigrafo'],['due_bollo','Bollo'],['due_atp','ATP']];
+function dueHtml(){
+ const v=vehicle();if(!v)return '';const today=Date.parse(nowIso().slice(0,10)+'T00:00:00Z');
+ const list=DUE.filter(([k])=>v[k]).map(([k,l])=>({l,d:v[k],days:Math.round((Date.parse(v[k]+'T00:00:00Z')-today)/86400000)})).filter(x=>x.days<=30).sort((a,b)=>a.days-b.days);
+ return list.length?'<section class="tr-card"><h2>Scadenze di '+esc(v.plate)+'</h2><ul class="tr-list">'+list.map(x=>'<li><strong>'+esc(x.l)+'</strong> '+(x.days<0?'<span class="tr-flag">scaduta il '+dmy(x.d)+'</span>':'scade il '+dmy(x.d))+'</li>').join('')+'</ul><p class="tr-subtle">Se è già fatta, avvisa l\'ufficio.</p></section>':'';
+}
 function renderIdle(){
  const last=data.trips.filter(t=>t.vehicle_id===me.vehicle).sort((a,b)=>a.started_at<b.started_at?1:-1).slice(0,3);
  const places=[...new Set(data.trips.flatMap(t=>[t.origin,t.destination]).filter(Boolean))].slice(0,40);
@@ -172,6 +179,7 @@ function renderIdle(){
   +'<div class="tr-row"><label>Da<input id="orig" list="places" autocomplete="off" placeholder="Luogo di carico"></label><label>A<input id="dest" list="places" autocomplete="off" placeholder="Luogo di scarico"></label></div>'
   +'<datalist id="places">'+places.map(p=>'<option value="'+esc(p)+'">').join('')+'</datalist>'
   +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Questo telefono fa da localizzatore del mezzo.':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p><p id="gpsState" class="tr-gps" hidden></p></section>'
+  +dueHtml()
   +(last.length?'<section class="tr-card"><h2>Ultimi viaggi</h2><ul class="tr-list">'+last.map(t=>'<li><strong>'+dmy(t.started_at)+'</strong> '+esc((t.origin||'')+' → '+(t.destination||''))+' <span class="tr-subtle">'+esc(t.status)+'</span></li>').join('')+'</ul></section>':'');
  $('start').onclick=()=>{
   data=ST.load();
@@ -181,16 +189,18 @@ function renderIdle(){
  showGps();
 }
 function renderTrip(t){
- const docs=data.documents.filter(d=>d.trip_id===t.id),fuel=data.costs.filter(c=>c.trip_id===t.id&&c.kind==='carburante'),issues=(data.issues||[]).filter(i=>i.trip_id===t.id);
+ const docs=data.documents.filter(d=>d.trip_id===t.id),fuel=data.costs.filter(c=>c.trip_id===t.id&&c.kind==='carburante'),spese=data.costs.filter(c=>c.trip_id===t.id&&c.source==='spesa'),issues=(data.issues||[]).filter(i=>i.trip_id===t.id);
  const cus=data.customers.find(c=>c.id===t.customer_id);
  const label=d=>d.kind==='consegna'?'Consegna firmata':DOC.KINDS[d.kind]?.label||d.kind;
  view.innerHTML='<section class="tr-card live"><p class="tr-eyebrow">Viaggio in corso dalle '+hm(t.started_at)+'</p><h1>'+esc((t.origin||'Partenza')+' → '+(t.destination||'Arrivo'))+'</h1><p class="tr-muted">'+esc(cus?cus.name:'')+'</p><p id="gpsState" class="tr-gps" hidden></p></section>'
   +'<section class="tr-actions">'
   +'<button class="tr-btn big" data-doc="ddt">Foto DDT</button><button class="tr-btn big" data-doc="cmr">Foto CMR</button>'
   +'<button class="tr-btn big blue" data-doc="giornale">Giornale di viaggio</button><button class="tr-btn big blue" data-doc="carburante">Rifornimento</button>'
+  +'<button class="tr-btn big blue" data-doc="spesa">Altra spesa</button>'
   +'<button class="tr-btn big blue" id="pod">Consegna e firma</button><button class="tr-btn big ghost" id="issue">Segnala un problema</button></section>'
   +'<section class="tr-card"><h2>Documenti del viaggio</h2>'+(docs.length?'<ul class="tr-list">'+docs.map(d=>'<li><strong>'+esc(label(d))+'</strong> '+esc(d.fields.numero||d.fields.ricevuto_da||'')+' <span class="tr-subtle">'+hm(d.at)+(d.pending?' · foto in attesa di rete':'')+'</span></li>').join('')+'</ul>':'<p class="tr-muted">Ancora nessuno. Al carico fotografa il documento.</p>')
   +(fuel.length?'<p class="tr-subtle">Rifornimenti: '+fuel.map(f=>esc((f.liters??'?')+' l, '+(f.amount_cents/100).toFixed(2).replace('.',',')+' €')).join(' · ')+'</p>':'')
+  +(spese.length?'<p class="tr-subtle">Spese: '+spese.map(f=>esc((f.fields&&f.fields.tipo||'spesa')+' '+(f.amount_cents/100).toFixed(2).replace('.',',')+' €')).join(' · ')+'</p>':'')
   +(issues.length?'<p class="tr-subtle">Segnalazioni: '+issues.map(i=>esc((ISSUE[i.kind]||i.kind)+' alle '+hm(i.at))+(i.resolved?' (gestita)':'')).join(' · ')+'</p>':'')+'</section>'
   +'<section class="tr-card"><h2>Fine viaggio</h2><label>Km percorsi (dal contachilometri)<input id="km" type="number" inputmode="numeric" min="0" max="20000"></label><button class="tr-btn big warn" id="close">Chiudi viaggio</button></section>';
  view.querySelectorAll('[data-doc]').forEach(b=>b.onclick=()=>startPhoto(b.dataset.doc,t));showGps();
@@ -285,6 +295,7 @@ function demoReading(kind){
  const sample={ddt:{numero:{valore:'4187',sicurezza:'alta'},data:{valore:d,sicurezza:'alta'},mittente:{valore:'Latteria Valpadana Srl',sicurezza:'alta'},destinatario:{valore:'Supermercati Nord Spa',sicurezza:'media'},luogo_carico:{valore:t.origin||'Cremona',sicurezza:'alta'},luogo_scarico:{valore:t.destination||'Verona',sicurezza:'media'},merce:{valore:'Formaggi stagionati',sicurezza:'alta'},colli:{valore:'24',sicurezza:'alta'},peso_kg:{valore:'18.450',sicurezza:'bassa'},targa:{valore:v.plate,sicurezza:'alta'}},
   cmr:{numero:{valore:'IT 0045123',sicurezza:'alta'},mittente:{valore:'Ortofrutta Delta Spa',sicurezza:'alta'},destinatario:{valore:'Frischmarkt GmbH',sicurezza:'media'},luogo_carico:{valore:t.origin||'Cremona',sicurezza:'alta'},luogo_scarico:{valore:t.destination||'München',sicurezza:'alta'},paese_carico:{valore:'IT',sicurezza:'alta'},paese_scarico:{valore:'DE',sicurezza:'alta'},merce:{valore:'Mele in casse',sicurezza:'alta'},colli:{valore:'33 pallet',sicurezza:'media'},peso_kg:{valore:'21800',sicurezza:'alta'},targa:{valore:v.plate,sicurezza:'alta'}},
   giornale:{numero:{valore:'GV-2026-118',sicurezza:'alta'},specie:{valore:'Bovini',sicurezza:'alta'},numero_animali:{valore:'26',sicurezza:'alta'},luogo_partenza:{valore:t.origin||'Allevamento Bassa, Cremona',sicurezza:'alta'},partenza:{valore:d+' 05:40',sicurezza:'media'},luogo_destinazione:{valore:t.destination||'Macello di Modena',sicurezza:'alta'},durata_ore:{valore:'3',sicurezza:'bassa'},targa:{valore:v.plate,sicurezza:'alta'}},
+  spesa:{tipo:{valore:'Parcheggio',sicurezza:'alta'},data:{valore:d,sicurezza:'alta'},esercente:{valore:'Area di sosta camion Brennero',sicurezza:'media'},importo:{valore:'18,00',sicurezza:'alta'},pagamento:{valore:'Contanti',sicurezza:'media'}},
   carburante:{data:{valore:d,sicurezza:'alta'},distributore:{valore:'Stazione di servizio A21',sicurezza:'media'},prodotto:{valore:'Gasolio',sicurezza:'alta'},litri:{valore:'312,40',sicurezza:'alta'},prezzo_litro:{valore:'1,619',sicurezza:'alta'},importo:{valore:'505,78',sicurezza:'alta'},km:{valore:'',sicurezza:'bassa'},targa:{valore:v.plate,sicurezza:'alta'}}}[kind];
  return DOC.parseReading(kind,{tipo:kind,leggibile:true,campi:sample});
 }
@@ -309,6 +320,9 @@ function renderFlow(){
   if(!res.ok){$('docErr').textContent=res.errors.join(' ');$('docErr').hidden=false;return;}
   const corrected=flow.offline?0:Object.keys(res.values).filter(k2=>JSON.stringify(res.values[k2])!==JSON.stringify(r.campi[k2])).length;
   data=ST.load();const trip=data.trips.find(t=>t.id===flow.trip);const id=ST.uid();
+  if(flow.kind==='spesa'){
+   const v=res.values;data.costs.push({id:ST.uid(),kind:DOC.expenseKind(v.tipo),date:v.data,amount_cents:Math.round(v.importo*100),vehicle_id:trip.vehicle_id,driver_id:trip.driver_id,trip_id:trip.id,source:'spesa',description:[v.tipo||'Spesa',v.esercente,v.pagamento&&/contant|autista|propri/i.test(v.pagamento)?'da rimborsare all\'autista':null].filter(Boolean).join(' · '),fields:v,doc_id:id,refund:!!(v.pagamento&&/contant|autista|propri/i.test(v.pagamento))});
+  }
   if(flow.kind==='carburante'){
    const v=res.values;data.costs.push({id:ST.uid(),kind:'carburante',date:v.data,amount_cents:Math.round(v.importo*100),liters:v.litri,km:v.km,vehicle_id:trip.vehicle_id,driver_id:trip.driver_id,trip_id:trip.id,description:'Rifornimento '+(v.distributore||''),fields:v,doc_id:id});
   }

@@ -425,3 +425,10 @@ test('API costi.leggi: kind and page checks, then the reading',async()=>{
  const r=await call(H,{body:{action:'costi.leggi',data:{kind:'fattura_acquisto',first:1,pages:[page]}}});
  assert.equal(r.status,200);assert.equal(r.body.documents[0].campi.imponibile,250);assert.equal(r.body.documents[0].righe[0].amount_cents,25000);assert.match(seen.content[1].text,/fattura di acquisto/);
 });
+
+test('driver expenses: kind of cost from the type, instructions for the AI',()=>{
+ assert.equal(DOC.expenseKind('Parcheggio camion'),'trasferte');assert.equal(DOC.expenseKind('Péage A7'),'pedaggio');assert.equal(DOC.expenseKind('AdBlue'),'adblue');
+ assert.equal(DOC.expenseKind('Lavaggio cisterna'),'manutenzione');assert.equal(DOC.expenseKind(''),'altro');
+ assert.ok(DOC.PHOTO_KINDS.includes('spesa'));assert.match(DOC.instructions('spesa'),/pernottamento/);
+ const c=DOC.checkConfirmed('spesa',{data:'2026-11-20',importo:'18,00'});assert.ok(c.ok);assert.equal(c.values.importo,18);
+});
