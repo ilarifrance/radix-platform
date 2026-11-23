@@ -495,3 +495,9 @@ test('controllo di gestione through filters: by customer, route, cost group, tri
  assert.deepEqual(CT.preset('mese','2026-11-23'),['2026-11-01','2026-11-23']);assert.deepEqual(CT.preset('mese_scorso','2026-01-15'),['2025-12-01','2025-12-31']);assert.deepEqual(CT.preset('settimana','2026-11-23'),['2026-11-23','2026-11-23']);
  assert.deepEqual(CT.preset('trimestre','2026-11-23'),['2026-10-01','2026-11-23']);assert.deepEqual(CT.preset('tutto','2026-11-23','2026-09-01'),['2026-09-01','2026-11-23']);
 });
+
+test('deadlines: vehicles and drivers together, nearest first',()=>{
+ const CT=require('../lib/trasporti/controllo');
+ const d=CT.deadlines([{id:'v1',plate:'AA111AA',due_revisione:'2026-12-20'}],'2026-11-23',[{id:'d1',name:'Luca Ferri',due_cqc:'2026-12-01',due_patente:'2026-11-01'},{id:'d2',name:'Fermo',active:false,due_cqc:'2026-11-25'}]);
+ assert.deepEqual(d.map(x=>[x.plate,x.label,x.days]),[['Luca Ferri','Patente',-22],['Luca Ferri','CQC',8],['AA111AA','Revisione',27]]);
+});
