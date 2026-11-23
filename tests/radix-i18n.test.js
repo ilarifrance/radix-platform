@@ -256,3 +256,24 @@ test('currency: the language menu carries the currency only in English', () => {
   I.mountSwitch({ document: doc, location: { href: 'https://radix.example/x' }, localStorage: store() }, 'it', 'eur');
   assert.deepEqual(made.filter(e => e.attrs.role === 'menuitemradio').map(i => i.dataset.lang), ['it', 'en'], 'Italian: no currency entries');
 });
+
+// Sales Orbis, first visit: the language question is asked only while no choice is remembered.
+{
+  const test = require('node:test'), assert = require('node:assert/strict');
+  const I = require('../lib/radix-i18n.js');
+  const mem = (v) => { const m = new Map(v ? [['rx-lang', v]] : []); return { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, x) => m.set(k, String(x)) }; };
+  test('lingua: la domanda iniziale compare solo senza una scelta ricordata', () => {
+    assert.equal(I.hasChoice({ location: { search: '' }, localStorage: mem() }), false);
+    assert.equal(I.hasChoice({ location: { search: '' }, localStorage: mem('it') }), true);
+    assert.equal(I.hasChoice({ location: { search: '?lang=en' }, localStorage: mem() }), true);
+    assert.equal(I.hasChoice({ location: { search: '' }, localStorage: mem('xx') }), false);
+    const broken = { getItem() { throw new Error('off'); }, setItem() { throw new Error('off'); } };
+    assert.equal(I.hasChoice({ location: { search: '' }, localStorage: broken }), true);
+  });
+  test('lingua: il bottone in evidenza segue la lingua del browser, se è tra le nostre', () => {
+    assert.equal(I.browserLang({ navigator: { languages: ['de-DE', 'en-GB', 'it'] } }), 'en');
+    assert.equal(I.browserLang({ navigator: { language: 'it-IT' } }), 'it');
+    assert.equal(I.browserLang({ navigator: { languages: ['fr-FR'] } }), 'it');
+    assert.equal(I.browserLang({}), 'it');
+  });
+}
