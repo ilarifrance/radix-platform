@@ -64,12 +64,12 @@
   }
   $('lp-empty').hidden=rows.length>0;
   $('lp-empty-text').textContent=state.leads.length?'Nessun lead corrisponde ai filtri.':'Nessun lead ancora. Scegli da dove prenderli al passo 1: LinkedIn, file CSV/Excel, provider o backup.';
-  $('lp-more').textContent=rows.length>SHOW?'Mostrati i primi '+SHOW+' lead su '+rows.length+': usa la ricerca o i filtri per gli altri.':rows.length?rows.length+' lead in elenco':'';
+  $('lp-more').textContent=rows.length>SHOW?'Mostrati i primi '+SHOW+' lead su '+rows.length+'. «Seleziona tutti» sceglie tutti i '+rows.length+' lead filtrati, anche quelli non mostrati.':rows.length?rows.length+' lead in elenco':'';
   selection();
  }
  function selection(){
   const n=state.selected.size,rows=filtered();
-  $('lp-all').checked=rows.length>0&&rows.slice(0,SHOW).every(l=>state.selected.has(l.id));
+  $('lp-all').checked=rows.length>0&&rows.every(l=>state.selected.has(l.id));
   $('lp-selected').textContent=n?n+' selezionati':'';
   $('lp-crm-count').textContent=n?' ('+n+')':'';
  }
@@ -178,7 +178,7 @@
   note(sel.length+' lead nel segmento «'+name+'» (vale per questa sessione; portandoli nel CRM il segmento finisce nelle note del referente).');
  }
  $('lp-search').addEventListener('input',render);for(const id of ['lp-source','lp-status','lp-segment'])$(id).addEventListener('change',render);
- $('lp-all').addEventListener('change',()=>{for(const l of filtered().slice(0,SHOW))$('lp-all').checked?state.selected.add(l.id):state.selected.delete(l.id);render()});
+ $('lp-all').addEventListener('change',()=>{for(const l of filtered())$('lp-all').checked?state.selected.add(l.id):state.selected.delete(l.id);render()});
  $('lp-crm').addEventListener('click',open);
  $('lp-export').addEventListener('click',exportCsv);
  $('lp-segment-add').addEventListener('click',()=>{$('lp-segform').hidden=!$('lp-segform').hidden;if(!$('lp-segform').hidden)$('lp-segname').focus()});
