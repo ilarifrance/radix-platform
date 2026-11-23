@@ -36,6 +36,7 @@ a.sx-link:focus-visible,.sx-fold>.sx-label:focus-visible{outline:2px solid #57f6
   .sx-group{flex-direction:row;gap:4px;flex:none}
   .sx-label{display:none}
   .sx-fold{display:none}
+  .sx-fold.sx-more{display:flex}
   a.sx-link{flex:none;min-height:36px!important;padding:6px 11px!important;font-size:13px!important}
   a.sx-link::before{width:16px!important;height:16px!important}
 }

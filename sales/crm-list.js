@@ -10,6 +10,12 @@ const content=document.getElementById('content');if(!content)return;
 const L=()=>window.RadixCrmList,app=()=>window.RadixSalesApp;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined&&text!==null)n.textContent=String(text);if(cls)n.className=cls;return n};
 const B=(text,fn,cls)=>{const b=E('button',text,cls);b.type='button';b.addEventListener('click',fn);return b};
+/* Row actions behind «…»: the rare ones (Modifica, Elimina) open beside the button, so the row stays one line of data. */
+const rowMenu=buttons=>{const d=E('details',undefined,'lv-more'),s=E('summary','…');s.setAttribute('aria-label','Altre azioni');s.title='Altre azioni';
+ const m=E('div',undefined,'lv-menu');buttons.forEach(b=>{b.addEventListener('click',()=>{d.open=false});m.append(b)});d.append(s,m);
+ d.addEventListener('toggle',()=>{if(d.open)document.querySelectorAll('.lv-more[open]').forEach(o=>{if(o!==d)o.open=false})});
+ d.addEventListener('keydown',e=>{if(e.key==='Escape'&&d.open){d.open=false;s.focus()}});return d};
+document.addEventListener('click',e=>{if(!e.target.closest||!e.target.closest('.lv-more'))document.querySelectorAll('.lv-more[open]').forEach(o=>{o.open=false})});
 const NAME={contacts:{one:'contatto',many:'contatti',title:'Contatti'},companies:{one:'azienda',many:'aziende',title:'Aziende'}};
 const KIND={email:'Email',call:'Chiamata',meeting:'Riunione',note:'Nota',linkedin:'LinkedIn'};
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
@@ -141,7 +147,7 @@ function mount(section,kind){
    const n=E('td',String(i+1),'lv-n');const cb=E('td',undefined,'lv-cb');const x=E('input');x.type='checkbox';x.checked=sel.has(r.id);x.setAttribute('aria-label','Seleziona '+r.name);
    x.addEventListener('change',()=>{x.checked?st[kind].selected.add(r.id):st[kind].selected.delete(r.id);draw()});cb.append(x);tr.append(n,cb);
    for(const c of columns)tr.append(cell(kind,c,r,now));
-   const act=E('td',undefined,'lv-actions');if(canWrite)act.append(B('Modifica',()=>a.edit(kind,r.record),'lv-mini'),B('Elimina',()=>a.remove(kind,r.record),'lv-mini danger'));tr.append(act);
+   const act=E('td',undefined,'lv-actions');if(canWrite)act.append(rowMenu([B('Modifica',()=>a.edit(kind,r.record),'lv-mini'),B('Elimina',()=>a.remove(kind,r.record),'lv-mini danger')]));tr.append(act);
    tbody.append(tr)});
   table.append(tbody);scroll.replaceChildren(table);
   if(!shown.length)scroll.append(E('p',all.length?'Nessun '+NAME[kind].one+' in questa vista'+(st[kind].query?' per «'+st[kind].query+'»':'')+'.':'Nessun '+NAME[kind].one+' caricato. Nessun dato dimostrativo.','lv-none'));

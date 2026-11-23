@@ -158,7 +158,26 @@
       items.forEach(function (it) { box.append(link(it, reuse && reuse(it))); });
       frag.append(box);
     });
+    if (product) more(frag);
     nav.append(frag);
+  }
+  // Sales Orbis: a short menu. The pages opened less often go under «Altro», closed until one of them is the current page
+  // (mark() opens it). On a phone the menu is one scrolling row: the group is open and its label hidden (sales-nav.css).
+  var PRODUCT_MORE = ['/sales-vendite.html#quotes', '/sales-vendite.html#invoices', '/sales-vendite.html#products', '/sales-linkedin.html', '/sales-growth-projects.html'];
+  var PHONE = '(max-width: 900px)';
+  function more(frag) {
+    var moved = [].slice.call(frag.querySelectorAll('a.sx-link')).filter(function (a) { return PRODUCT_MORE.indexOf(a.getAttribute('href')) >= 0; });
+    if (!moved.length) return;
+    var box = document.createElement('details'); box.className = 'sx-group sx-fold sx-more';
+    var head = document.createElement('summary'); head.className = 'sx-label'; head.textContent = 'Altro'; box.append(head);
+    moved.forEach(function (a) { box.append(a); });
+    var mq = window.matchMedia ? window.matchMedia(PHONE) : null;
+    if (mq) { if (mq.matches) box.open = true; if (mq.addEventListener) mq.addEventListener('change', function (e) { if (e.matches) box.open = true; }); }
+    var groups = [].slice.call(frag.querySelectorAll('.sx-group'));
+    groups.forEach(function (g) { if (!g.querySelector('a.sx-link')) g.remove(); });
+    groups = [].slice.call(frag.querySelectorAll('.sx-group'));
+    var last = groups[groups.length - 1];
+    if (last) frag.insertBefore(box, last); else frag.append(box);
   }
 
   // Without a CRM workspace every Sales page is empty: say so once, at the top, in plain words.

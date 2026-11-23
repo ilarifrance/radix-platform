@@ -361,3 +361,13 @@ html:has(#content>#companies.rx-view:not(.lv-ready)) #crm-boot,html:has(#content
 /* Campagne email (sales/crm-campagne.js). */
 #campagne>.cg-lead{margin:0 0 12px}
 #campagne>.cg-mailbox{margin:0 0 12px}
+
+/* Sales Orbis, Attività: one title row, then the list. The four boxes repeated the counts already on the tabs. */
+html[data-product].tv-on #tasks>.row:first-child>h2::after{content:none}
+html[data-product].tv-on #tasks>.row:first-child{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+html[data-product].tv-on #tasks>.row:first-child>h2{flex:1 1 calc(100% - 320px);margin:0;order:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-actions{order:1;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.primary{order:2;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-automations{order:4;flex:1 1 320px;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-tools{order:3;margin:0}
+html[data-product].tv-on #tasks .tv-kpis{display:none}

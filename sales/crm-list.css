@@ -103,3 +103,12 @@ th.lv-cb{padding:0 8px}
 .lv-journey-opportunity{color:var(--crm-accent);border-color:var(--crm-accent-line);background:var(--crm-accent-soft)}
 .lv-journey-won{color:var(--crm-ok);border-color:var(--crm-ok)}
 .lv-journey-new{color:var(--crm-muted)}
+
+/* Row actions behind «…» (crm-list.js rowMenu). */
+.lv-more{position:relative;display:inline-block}
+.lv-more>summary{list-style:none;display:grid;place-items:center;width:32px;height:32px;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:18px;font-weight:700;line-height:1;color:var(--crm-muted)}
+.lv-more>summary::-webkit-details-marker{display:none}
+.lv-more>summary:hover,.lv-more[open]>summary{border-color:var(--crm-line);background:var(--crm-soft,rgba(0,0,0,.04));color:var(--crm-text,inherit)}
+.lv-more>summary:focus-visible{outline:3px solid var(--crm-accent);outline-offset:2px}
+.lv-menu{position:absolute;right:calc(100% + 4px);top:50%;transform:translateY(-50%);display:flex;gap:4px;padding:4px;border:1px solid var(--crm-line);border-radius:10px;background:var(--crm-card);box-shadow:var(--crm-shadow)}
+.lv-menu .lv-mini{margin-left:0}
