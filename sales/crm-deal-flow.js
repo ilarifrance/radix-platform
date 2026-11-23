@@ -105,13 +105,20 @@ function openDetail(ctx){
  const main=E('section',undefined,'df-sec');
  main.append(field('Fase',st?st.title:'—'),field('Valore',money(deal.amount_cents)),field('Probabilità',prob==null?'—':prob+'%'),field('Chiusura prevista',day(deal.expected_close)),field('Esito',deal.outcome==='won'?'Vinta':deal.outcome==='lost'?'Persa'+(deal.lost_reason?' · '+deal.lost_reason:''):'Aperta'));
  aside.append(main);
+ // Stage bar: the pipeline's stages in order; a click on another stage opens the move dialog. Then «Vinta» and «Persa».
+ const bar=C.stageBar(ctx.stages,deal);
+ if(bar.length&&open1){
+  const nav=E('div',undefined,'df-stages');nav.setAttribute('role','group');nav.setAttribute('aria-label','Fasi della pipeline');
+  bar.forEach(x=>{const b=E('button',x.title,'df-stage df-stage-'+x.state);b.type='button';
+   if(x.state==='current'){b.setAttribute('aria-current','step');b.disabled=true}
+   else if(!ctx.canWrite)b.disabled=true;
+   else{b.title='Sposta in «'+x.title+'»';b.onclick=async()=>{const stage=(ctx.stages||[]).find(s=>s.id===x.id);if(!stage)return;nav.querySelectorAll('button').forEach(n=>{n.disabled=true});const done=await moveDeal({...ctx,stage});if(done)closeDetail();else nav.querySelectorAll('button').forEach(n=>{n.disabled=n.getAttribute('aria-current')==='step'})}}
+   nav.append(b)});
+  main.before(nav);
+ }
  if(ctx.canWrite&&open1){
-  const sec=E('section',undefined,'df-sec');sec.append(E('h3','Cambia fase'));
-  const targets=(ctx.stages||[]).filter(s=>s.id!==deal.stage_id&&(!deal.process_id||s.process_id===deal.process_id)).sort((a,b)=>(a.position||0)-(b.position||0));
-  const sel=E('select');sel.setAttribute('aria-label','Nuova fase');const o0=E('option','Scegli la fase');o0.value='';sel.append(o0);targets.forEach(s=>{const o=E('option',s.title);o.value=s.id;sel.append(o)});
-  const go=E('button','Continua…','df-ok');go.type='button';go.disabled=true;sel.onchange=()=>{go.disabled=!sel.value};
-  go.onclick=async()=>{const stage=targets.find(s=>s.id===sel.value);if(!stage)return;go.disabled=true;const done=await moveDeal({...ctx,stage});if(done)closeDetail();else go.disabled=!sel.value};
-  sec.append(sel,' ',go);aside.append(sec);
+  const out=E('div',undefined,'df-bar df-outcome'),won=E('button','Vinta','df-won'),lost=E('button','Persa','df-lost');won.type='button';lost.type='button';
+  won.onclick=()=>closeDeal(ctx,'won');lost.onclick=()=>closeDeal(ctx,'lost');out.append(won,lost);main.before(out);
  }
  const body=E('div');body.append(E('p','Caricamento dei dettagli…','df-note'));aside.append(body);
  related(ctx.workspace,deal).then(r=>{
@@ -140,6 +147,22 @@ function openDetail(ctx){
   more.append(link(crm+'?ws='+encodeURIComponent(ctx.workspace)+'&opportunita='+encodeURIComponent(deal.id)+'#opportunities','Apri la scheda completa: campi, percorso del contatto e altre azioni'));body.append(more);
  }).catch(e=>{if(open===wrap){body.replaceChildren(E('p',e.message||'Dettagli non disponibili.','df-err'))}});
  close.focus();
+}
+// «Vinta» / «Persa» from the panel: one confirmation; a lost deal needs its reason (the server requires it).
+function closeDeal(ctx,outcome){
+ const deal=ctx.deal,won=outcome==='won',dlg=E('dialog',undefined,'df-dialog'),form=E('form');form.method='dialog';
+ form.append(E('h2',(won?'Segnare come vinta «':'Segnare come persa «')+(deal.title||'Opportunità')+'»?'));
+ form.append(E('p',won?'L’opportunità esce dalla pipeline e conta tra le vinte in Analisi.':'L’opportunità esce dalla pipeline. Il motivo serve per l’analisi delle perse.','df-note'));
+ let reason=null;if(!won){reason=E('input');reason.type='text';reason.maxLength=500;reason.placeholder='Motivo della perdita (es. prezzo, tempi, concorrente)';reason.setAttribute('aria-label','Motivo della perdita');form.append(reason)}
+ const err=E('p',undefined,'df-err');err.hidden=true;form.append(err);
+ const bar=E('div',undefined,'df-bar'),ok=E('button',won?'Sì, vinta':'Sì, persa','df-ok');ok.type='submit';const no=E('button','Annulla');no.type='button';no.onclick=()=>dlg.close();bar.append(ok,no);form.append(bar);
+ form.addEventListener('submit',async e=>{e.preventDefault();err.hidden=true;
+  const data={id:deal.id,version:deal.version,outcome};
+  if(!won){const r=reason.value.trim();if(!r){err.textContent='Indica il motivo della perdita.';err.hidden=false;reason.focus();return}data.lost_reason=r}
+  ok.disabled=true;
+  try{await post(ctx.workspace,'opportunities','update',data);dlg.close();closeDetail();if(ctx.onDone)await ctx.onDone('«'+(deal.title||'Opportunità')+'» segnata come '+(won?'vinta.':'persa.'))}
+  catch(x){err.textContent=x.status===409?'L’opportunità è cambiata nel frattempo: chiudi, premi Aggiorna e riprova.':(x.message||'Non salvato.');err.hidden=false;ok.disabled=false}});
+ dlg.addEventListener('close',()=>dlg.remove());dlg.append(form);document.body.append(dlg);dlg.showModal();(reason||ok).focus();
 }
 // One activity done, or one reminder, typed in a small dialog.
 function quickAdd(ctx,what,again){

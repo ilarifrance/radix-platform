@@ -34,7 +34,12 @@ function payloads(opp,choice,opts){
   tasks.push({title,...link,assignee_id:o.owner_id||(opts&&opts.assignee)||null,priority:'normal',status:'todo',due_at:dueAt(t.days,now)})}
  return {interaction,tasks};
 }
-const core={KINDS,RECALL_DAYS,clamp,dueAt,tagOf,kindLabel,suggestions,recontact,payloads};
+// The stage bar at the top of the deal panel: the stages of the deal's pipeline in order, each done, current or next.
+// A deal whose stage is not among them (stage removed) shows every stage as next.
+function stageBar(stages,deal){const d=deal||{},own=(stages||[]).filter(s=>s&&(!d.process_id||s.process_id===d.process_id)).slice().sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0));
+ const at=own.findIndex(s=>s.id===d.stage_id);
+ return own.map((s,i)=>({id:s.id,title:s.title||'Fase',state:at<0?'next':i<at?'done':i===at?'current':'next'}))}
+const core={KINDS,RECALL_DAYS,clamp,dueAt,tagOf,kindLabel,suggestions,recontact,payloads,stageBar};
 if(typeof module==='object'&&module.exports)module.exports=core;
 root.RadixDealFlowCore=core;
 })(typeof globalThis!=='undefined'?globalThis:this);

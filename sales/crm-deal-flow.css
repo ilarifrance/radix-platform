@@ -28,3 +28,15 @@
 .df-days input{width:64px;padding:6px;border:1px solid #cfc5ee;border-radius:8px;font:inherit}
 @media(max-width:560px){.df-l{flex-basis:96px}}
 .deal-open{cursor:pointer}.deal-open:hover{text-decoration:underline;text-decoration-color:#a78bfa}
+
+/* Stage bar and «Vinta» / «Persa» at the top of the panel. */
+.df-stages{display:flex;gap:3px;margin:14px 0 0;overflow-x:auto}
+.df-stage{flex:1 1 0;min-width:0;padding:8px 6px;border:0;background:#ece8f7;color:#4a4168;font:inherit;font-size:12px;line-height:1.2;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.df-stage:first-child{border-radius:8px 0 0 8px}.df-stage:last-child{border-radius:0 8px 8px 0}
+.df-stage-done{background:#c9b8f3;color:#2e1065}
+.df-stage-current{background:#5b21b6;color:#fff;font-weight:600;cursor:default;opacity:1}
+.df-stage:not(:disabled):hover,.df-stage:not(:disabled):focus-visible{background:#a78bfa;color:#fff;outline:0}
+.df-stage:disabled:not(.df-stage-current){cursor:default}
+.df-outcome{margin-top:10px}
+.df-bar .df-won{background:#15803d;border-color:#15803d;color:#fff}
+.df-bar .df-lost{background:#fff;border-color:#f0b4ad;color:#b42318}
