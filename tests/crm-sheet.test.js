@@ -169,7 +169,7 @@ test('group header: Chi over the frozen block, then Contatto, Azienda, Da fare, 
  // Every column the chooser can add: still each label once, «Fase trattativa» stays with Azienda.
  const all=S.headerGroups(nav(S.expand(S.COLUMNS.map(c=>c.id),rows())));
  assert.deepEqual(labels(all),['Chi','Contatto','Azienda','Storico','Da fare','Attività']);
- assert.deepEqual(all.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',4],['company',7],['history',1],['todo',4],['activity',3]]);
+ assert.deepEqual(all.filter(g=>!g.frozen).map(g=>[g.group,g.span]),[['contact',5],['company',7],['history',1],['todo',4],['activity',3]]);
  // Without migration 011 fields and with only some columns chosen.
  assert.deepEqual(labels(S.headerGroups(nav(S.expand(['name','phone','company','email','acts'],rows(),{added:false})))),['Chi','Contatto','Attività']);
  assert.deepEqual(S.headerGroups([]),[]);
@@ -401,4 +401,13 @@ test('«Storico attività»: every activity done in one cell, newest first, each
  assert.match(lines[1],/^20\/10\/2026 10:30 · Chiamata · (.+ · )?Richiamare dopo la fiera/);
  assert.equal(S.colOf('history').label,'Storico attività');
  assert.deepEqual(S.nextSort(null,'history'),{key:'history',dir:'desc'});
+});
+
+test('Origine del contatto: colonna a scelta nel foglio, valore nella riga, trovata dalla ricerca',()=>{
+ const d={...data,contacts:data.contacts.map(c=>c.id==='k1'?{...c,lead_source:'Intev · LinkedIn 23/11'}:c)};
+ const col=S.COLUMNS.find(c=>c.id==='leadSource');
+ assert.ok(col&&col.hidden&&col.added&&col.label==='Origine');
+ const rs=S.buildRows(d,{now:NOW});
+ assert.equal(rs.find(x=>x.id==='k1').leadSource,'Intev · LinkedIn 23/11');
+ assert.deepEqual(rs.filter(x=>S.matches(x,'intev')).map(x=>x.id),['k1']);
 });

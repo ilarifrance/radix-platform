@@ -98,6 +98,7 @@ const COLUMNS=Object.freeze([
  {id:'mobile',group:'contact',label:'Cellulare',edit:['contacts','mobile'],tel:true,added:true},
  {id:'email',group:'contact',label:'Email',edit:['contacts','email']},
  {id:'title',group:'contact',label:'Qualifica',edit:['contacts','title'],added:true,hidden:true},
+ {id:'leadSource',group:'contact',label:'Origine',edit:['contacts','lead_source'],added:true,hidden:true},
  {id:'industry',group:'company',label:'Settore',edit:['companies','industry']},
  // «Paese»: the company's billing_country (011), else the contact's country. Editing writes the company's
  // field; a contact without a loaded company gets its own country instead (see target).
@@ -160,7 +161,7 @@ function buildRows(data,opts){
   const acts=activities(iBy.get(c.id),c.id,now),todo=todos(tBy.get(c.id),iBy.get(c.id),c.id,now),deal=topDeal(opps,stages,c);
   const last=acts[0]||null,next=todo[0]||null;
   return {id:c.id,record:c,companyRecord:co,companyId:c.company_id||null,companyMissing:!!c.company_id&&!co,
-   name:text(c.name)||'(senza nome)',title:text(c.title),role:text(c.role),phone:text(c.phone),mobile:text(c.mobile),email:text(c.email),
+   name:text(c.name)||'(senza nome)',title:text(c.title),leadSource:text(c.lead_source),role:text(c.role),phone:text(c.phone),mobile:text(c.mobile),email:text(c.email),
    company:co?text(co.name):'',industry:co?text(co.industry):'',city:co?text(co.city)||text(co.billing_city):'',
    country:(co&&text(co.billing_country))||text(c.country),countryFrom:co&&text(co.billing_country)?'company':text(c.country)?'contact':'',
    employees:co?num(co.employees):null,revenue:co?num(co.annual_revenue_cents):null,companyPhone:co?text(co.phone):'',
@@ -185,7 +186,7 @@ function passes(row,f,now){
  if(n==='week'&&!(row.nextAt!=null&&row.nextAt<now+7*DAY))return false;
  return true;
 }
-const SEARCH=['name','title','role','phone','mobile','email','company','industry','country','city','companyPhone','stage'];
+const SEARCH=['name','leadSource','title','role','phone','mobile','email','company','industry','country','city','companyPhone','stage'];
 function matches(row,query){const q=fold(query);if(!q)return true;
  const extra=[...list(row.acts).map(a=>a.title+' '+(a.text??a.note)+' '+(a.outcome?OUTCOMES[a.outcome]:'')),...list(row.todos).map(t=>t.title)];
  return q.split(/\s+/).every(w=>SEARCH.some(k=>fold(row[k]).includes(w))||extra.some(x=>fold(x).includes(w)))}
