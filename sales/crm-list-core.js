@@ -19,10 +19,10 @@ const profileUrl=v=>LI&&typeof LI.profileUrl==='function'?LI.profileUrl(v):null;
    Defaults stay narrow enough for a 1280px screen without sideways scroll; the rest is in «Colonne». */
 const COLUMNS=Object.freeze({
  contacts:Object.freeze([
-  {id:'name',label:'Nome',fixed:true},{id:'company',label:'Azienda'},{id:'division',label:'Dipartimento',hidden:true,added:true},{id:'role',label:'Ruolo'},
+  {id:'name',label:'Nome',fixed:true},{id:'company',label:'Azienda'},{id:'division',label:'Dipartimento',hidden:true,added:true},{id:'title',label:'Qualifica',added:true},{id:'role',label:'Ruolo',hidden:true},
   {id:'email',label:'Email'},{id:'phone',label:'Telefono',hidden:true},{id:'consent',label:'Consenso marketing',short:'Consenso'},
   {id:'score',label:'Punteggio',needsScore:true},{id:'lastAt',label:'Ultimo contatto',hidden:true},
-  {id:'title',label:'Qualifica',hidden:true,added:true},{id:'department',label:'Reparto',hidden:true,added:true},
+  {id:'department',label:'Reparto',hidden:true,added:true},
   {id:'mobile',label:'Cellulare',hidden:true,added:true},{id:'city',label:'Città',hidden:true,added:true},
   {id:'owner',label:'Responsabile',hidden:true,added:true},{id:'leadSource',label:'Origine',hidden:true,added:true},
   {id:'linkedin',label:'LinkedIn',hidden:true},{id:'createdAt',label:'Creato il',hidden:true}]),
