@@ -246,3 +246,4 @@ body.tr-cc{font-size:14px;line-height:1.45;display:grid;grid-template-columns:23
 .cc-card b{font-size:13px}.cc-card>span{font-size:12.5px}.cc-card-foot{display:flex;justify-content:space-between;align-items:center;margin-top:4px}.cc-card-foot em{font-style:normal;font-weight:700}
 .tr-cc .tr-rate{max-width:920px}.tr-cc .tr-rate label:has(textarea){grid-column:1/-1}
 @media (max-width:640px){.tr-cc .tr-kpis{grid-template-columns:1fr 1fr}.tr-cc .tr-kpi{padding:10px 12px}.tr-cc .tr-kpi b{font-size:17px}}
+.tr-cc .tr-doc select{max-width:230px}.tr-cc .tr-doc{overflow-x:auto}
