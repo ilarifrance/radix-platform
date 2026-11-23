@@ -144,3 +144,11 @@ test('page wires the bulk flow through the existing /api/sales commands',()=>{
  assert.doesNotMatch(js,/localStorage|sessionStorage/);
  assert.doesNotMatch(html,/<script>(?!<\/script>)/);
 });
+
+test('«Seleziona tutti» sceglie tutti i lead filtrati, non solo i 300 mostrati',()=>{
+ const js=fs.readFileSync('sales/lead-pipeline.js','utf8');
+ const handler=js.slice(js.indexOf("$('lp-all').addEventListener('change'"),js.indexOf("$('lp-crm').addEventListener"));
+ assert.ok(handler.includes('for(const l of filtered())'),'tutti i filtrati');
+ assert.ok(!handler.includes('slice(0,SHOW)'),'nessun taglio a 300');
+ assert.ok(js.includes('rows.length>0&&rows.every(l=>state.selected.has(l.id))'),'casella coerente con la selezione');
+});
