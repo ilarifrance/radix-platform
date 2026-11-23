@@ -48,3 +48,17 @@
 .deal .next-overdue::before{background:#dc2626}
 .deal .next-overdue{color:#b42318}
 .deal .next-none::before{background:transparent;border:1.5px solid #9ca3af}
+
+/* Sales Orbis: the board starts near the top. One title row, the four numbers on one line, no breadcrumb or description. */
+html[data-product] .path,html[data-product] .heading .eyebrow,html[data-product] .heading>div>p{display:none}
+html[data-product] .shell>main>header{justify-content:flex-end;margin-bottom:0}
+html[data-product] .heading{align-items:center;margin:4px 0 10px}
+html[data-product] .heading h1{margin:0;font-size:28px;line-height:1.2}
+html[data-product] #status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+html[data-product] .metrics{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 12px}
+html[data-product] .metrics>div{display:flex;align-items:baseline;gap:8px;padding:0;border:0;background:none;box-shadow:none;min-height:0}
+html[data-product] .metrics small{font-size:12px;letter-spacing:0;text-transform:none}
+html[data-product] .metrics small::first-letter{text-transform:uppercase}
+html[data-product] .metrics strong{margin:0;font-size:15px}
+html[data-product] .metrics span{display:none}
+html[data-product] .filterbar{margin-bottom:10px}
