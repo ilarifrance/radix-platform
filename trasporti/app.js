@@ -28,15 +28,18 @@ function period(){
 }
 const veh=id=>data.vehicles.find(v=>v.id===id)||{},drv=id=>data.drivers.find(d=>d.id===id)||{},cus=id=>data.customers.find(c=>c.id===id)||{};
 const nowIso=()=>ST.localIso(new Date());
+// a planned trip (given by the office, not started yet) is not on the road: no tolls, no positions, no margin
+const done=t=>t.status==='chiuso'||t.status==='fatturato';
+const liveTrips=()=>data.trips.filter(t=>t.status!=='pianificato');
 function tollResult(){
  if(!data.tolls||!data.tolls.transits)return null;
- return TOLL.reconcile({transits:data.tolls.transits,vehicles:data.vehicles,trips:data.trips,positions:data.positions,nowAt:nowIso()});
+ return TOLL.reconcile({transits:data.tolls.transits,vehicles:data.vehicles,trips:liveTrips(),positions:data.positions,nowAt:nowIso()});
 }
 function margin(){
  const p=period(),tr=tollResult();
  // transits of a known vehicle outside every trip are a cost of that vehicle, shared among its trips
  const extra=tr?tr.rows.filter(r=>r.status==='fuori_viaggio').map(r=>({id:r.id,kind:'pedaggio',date:r.date,amount_cents:r.amount_cents,vehicle_id:r.vehicle_id})):[];
- return MRG.compute({trips:data.trips.filter(t=>t.status!=='aperto'),costs:data.costs.concat(extra),tolls:tr,from:p.from,to:p.to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers,shareCompany:true});
+ return MRG.compute({trips:data.trips.filter(t=>done(t)),costs:data.costs.concat(extra),tolls:tr,from:p.from,to:p.to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers,shareCompany:true});
 }
 function download(name,bytes,type){const blob=new Blob([bytes],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 const xlsx=(name,sheets)=>download(name,XL.write(sheets),XL.MIME);
@@ -47,7 +50,7 @@ const save=()=>{if(!ST.save(data))say('Spazio del browser pieno: scarica i dati 
 const PAGE={oggi:['Oggi','Operativo',1],viaggi:['Viaggi e documenti','Operativo',1],localizzatori:['Localizzatori','Operativo',0],fatturazione:['Fatturazione','Amministrazione',1],listini:['Listini','Amministrazione',1],costi:['Costi e buste paga','Amministrazione',1],pedaggi:['Pedaggi','Amministrazione',0],margine:['Controllo di gestione','Analisi',1],anagrafiche:['Anagrafiche','Archivi',0],impostazioni:['Impostazioni','Archivi',0]};
 const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 const emptyTripF=()=>({q:'',customer:'',vehicle:'',driver:'',status:'',docs:''});
-let tripF=emptyTripF(),tripSort=['date',-1],cdgF={},setTab='azienda',termEdit=null,bankEdit=null,drawerOnClose=null;
+let tripF=emptyTripF(),tripSort=['date',-1],tripView='tabella',cdgF={},setTab='azienda',termEdit=null,bankEdit=null,drawerOnClose=null;
 const settings=()=>IMP.merge(data.settings,data.company);
 function openDrawer(title,html,o){
  o=o||{};const d=$('drawer');$('drawerTitle').textContent=title;$('drawerTools').innerHTML=o.tools||'';$('drawerBody').innerHTML=html;d.classList.toggle('wide',!!o.wide);d.hidden=false;drawerOnClose=o.onClose||null;
@@ -89,9 +92,9 @@ const SRC={webfleet:'Webfleet',verizon:'Verizon Connect',targa:'Targa Telematics
 // ---------- today: vehicles, map, alerts, reports from the drivers ----------
 function renderToday(){
  const m=margin(),now=nowIso();
- const alerts=LOC.alerts({vehicles:data.vehicles.filter(v=>v.active!==false),trips:data.trips,positions:data.positions,nowAt:now});
+ const alerts=LOC.alerts({vehicles:data.vehicles.filter(v=>v.active!==false),trips:liveTrips(),positions:data.positions,nowAt:now});
  const issues=(data.issues||[]).filter(i=>!i.resolved).sort((a,b)=>a.at<b.at?1:-1);
- const dues=CT.deadlines(data.vehicles,now.slice(0,10)).filter(d=>d.days<=30);
+ const dues=CT.deadlines(data.vehicles,now.slice(0,10),data.drivers).filter(d=>d.days<=30);
  const openTrips=data.trips.filter(t=>t.status==='aperto');
  const rows=data.vehicles.filter(v=>v.active!==false).map(v=>{
   const open=openTrips.find(t=>t.vehicle_id===v.id);const last=lastPos(v.id);const g=m.vehicles.find(x=>x.id===v.id)||{};
@@ -132,11 +135,12 @@ function drawMap(openTrips){
 // ---------- trips & documents ----------
 function renderTrips(){
  const p=period();
- const all=data.trips.filter(t=>t.started_at.slice(0,10)>=p.from&&t.started_at.slice(0,10)<=p.to);
+ // planned trips are in the future: they stay in view whatever the end of the period
+ const all=data.trips.filter(t=>t.started_at.slice(0,10)>=p.from&&(t.started_at.slice(0,10)<=p.to||t.status==='pianificato'));
  const docsBy=new Map();for(const d of data.documents){if(!d.trip_id)continue;(docsBy.get(d.trip_id)||docsBy.set(d.trip_id,[]).get(d.trip_id)).push(d);}
  const docsOf=id=>docsBy.get(id)||[];
  const read=data.documents.filter(d=>d.kind!=='consegna'),corrected=read.filter(d=>d.corrected).length;
- const noPod=all.filter(t=>t.status!=='aperto'&&!docsOf(t.id).some(d=>d.kind==='consegna')).length;
+ const noPod=all.filter(t=>done(t)&&!docsOf(t.id).some(d=>d.kind==='consegna')).length;
  const used=(key,list,label)=>{const ids=new Set(all.map(t=>t[key]));return list.filter(x=>ids.has(x.id)).map(x=>[x.id,label(x)]).sort((a,b)=>a[1].localeCompare(b[1],'it'));};
  const fsel=(k,label,list)=>'<label class="'+(tripF[k]?'cc-on':'')+'">'+label+'<select data-tf="'+k+'"><option value="">Tutti</option>'+list.map(([v,l])=>'<option value="'+esc(v)+'"'+(tripF[k]===v?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
  const cols=[['date','Data'],['customer','Cliente'],['route','Tratta'],['plate','Mezzo'],['driver','Autista'],['km','Km',1],['rev','Importo',1],['docs','Documenti'],['status','Stato']];
@@ -144,40 +148,66 @@ function renderTrips(){
  const rowsOf=()=>{const words=norm(tripF.q).split(/\s+/).filter(Boolean);
   return all.filter(t=>{const ds=docsOf(t.id);
    if(tripF.customer&&t.customer_id!==tripF.customer||tripF.vehicle&&t.vehicle_id!==tripF.vehicle||tripF.driver&&t.driver_id!==tripF.driver||tripF.status&&t.status!==tripF.status)return false;
-   if(tripF.docs==='manca'&&ds.some(d=>d.kind!=='consegna'))return false;
+   if(tripF.docs==='manca'&&(t.status==='pianificato'||ds.some(d=>d.kind!=='consegna')))return false;
    if(tripF.docs==='nopod'&&(t.status==='aperto'||ds.some(d=>d.kind==='consegna')))return false;
    if(tripF.docs==='corretti'&&!ds.some(d=>d.corrected))return false;
-   if(tripF.docs==='noimp'&&(t.status==='aperto'||t.revenue_cents))return false;
+   if(tripF.docs==='noimp'&&(!done(t)||t.revenue_cents))return false;
    if(words.length){const hay=norm([t.origin,t.destination,cus(t.customer_id).name,veh(t.vehicle_id).plate,veh(t.vehicle_id).label,drv(t.driver_id).name,dmy(t.started_at),t.status,...ds.map(d=>d.fields&&d.fields.numero)].join(' '));if(!words.every(w=>hay.includes(w)))return false;}
    return true;
   }).sort((a,b)=>{const x=val[tripSort[0]](a),y=val[tripSort[0]](b);return (typeof x==='number'?x-y:String(x).localeCompare(String(y),'it'))*tripSort[1];});};
  let shown=[];
- view.innerHTML=kpis([[num(all.length),'Viaggi nel periodo'],[num(all.filter(t=>!docsOf(t.id).some(d=>d.kind!=='consegna')).length),'Senza documento di trasporto'],[num(noPod),'Chiusi senza consegna firmata'],[read.length?Math.round((read.length-corrected)*100/read.length)+'%':'—','Documenti letti senza correzioni']])
+ view.innerHTML=kpis([[num(all.length),'Viaggi nel periodo'],[num(all.filter(t=>t.status!=='pianificato'&&!docsOf(t.id).some(d=>d.kind!=='consegna')).length),'Senza documento di trasporto'],[num(noPod),'Chiusi senza consegna firmata'],[read.length?Math.round((read.length-corrected)*100/read.length)+'%':'—','Documenti letti senza correzioni']])
   +'<div class="cc-filters" style="margin-top:14px"><label class="grow'+(tripF.q?' cc-on':'')+'">Cerca<input type="search" data-tf="q" value="'+esc(tripF.q)+'" placeholder="Tratta, cliente, targa, autista, numero del documento"></label>'
   +fsel('customer','Cliente',used('customer_id',data.customers,c=>c.name))+fsel('vehicle','Mezzo',used('vehicle_id',data.vehicles,v=>v.plate))+fsel('driver','Autista',used('driver_id',data.drivers,d=>d.name))
-  +fsel('status','Stato',[['aperto','Aperto'],['chiuso','Chiuso'],['fatturato','Fatturato']])+fsel('docs','Da sistemare',[['manca','Senza documento di trasporto'],['nopod','Senza consegna firmata'],['corretti','Con campi corretti'],['noimp','Senza importo']])
+  +fsel('status','Stato',[['pianificato','Pianificato'],['aperto','In viaggio'],['chiuso','Chiuso'],['fatturato','Fatturato']])+fsel('docs','Da sistemare',[['manca','Senza documento di trasporto'],['nopod','Senza consegna firmata'],['corretti','Con campi corretti'],['noimp','Senza importo']])
   +'<div class="end"><button type="button" class="tr-link" id="tfClear">Azzera filtri</button></div></div>'
-  +'<section class="tr-panel cc-flush"><div class="cc-bar"><h2>Viaggi</h2><span class="cc-count" id="tripCount"></span><button class="tr-btn small" id="pratica">Carica pratica (PDF)</button><button class="tr-btn ghost small" id="xlsTrips">Scarica in Excel</button></div>'
-  +'<div class="tr-xscroll"><table class="tr-table" id="tripTable"><thead><tr>'+cols.map(c=>'<th data-s data-k="'+c[0]+'" tabindex="0"'+(c[2]?' class="num"':'')+'>'+c[1]+'</th>').join('')+'</tr></thead><tbody id="tripRows"></tbody><tfoot id="tripFoot"></tfoot></table></div></section>';
+  +'<section class="tr-panel cc-flush"><div class="cc-bar"><h2>Viaggi</h2><span class="cc-count" id="tripCount"></span><span class="cc-seg" role="group" aria-label="Vista"><button type="button" data-tview="tabella"'+(tripView==='tabella'?' aria-pressed="true"':'')+'>Tabella</button><button type="button" data-tview="bacheca"'+(tripView==='bacheca'?' aria-pressed="true"':'')+'>Bacheca</button></span><button class="tr-btn small" id="tripNew">Nuovo viaggio</button><button class="tr-btn ghost small" id="pratica">Carica pratica (PDF)</button><button class="tr-btn ghost small" id="xlsTrips">Scarica in Excel</button></div>'
+  +'<div class="cc-board" id="tripBoard"'+(tripView==='bacheca'?'':' hidden')+'></div><div class="tr-xscroll"'+(tripView==='bacheca'?' hidden':'')+'><table class="tr-table" id="tripTable"><thead><tr>'+cols.map(c=>'<th data-s data-k="'+c[0]+'" tabindex="0"'+(c[2]?' class="num"':'')+'>'+c[1]+'</th>').join('')+'</tr></thead><tbody id="tripRows"></tbody><tfoot id="tripFoot"></tfoot></table></div></section>';
  const fill=()=>{
   shown=rowsOf();
   $('tripRows').innerHTML=shown.length?shown.map(t=>{const ds=docsOf(t.id);return '<tr data-trip="'+esc(t.id)+'"'+(sel===t.id?' class="sel"':'')+' style="cursor:pointer" tabindex="0"><td data-v="'+esc(t.started_at)+'">'+dmy(t.started_at)+'<br><span class="tr-subtle">'+hm(t.started_at)+'–'+(hm(t.ended_at)||'in corso')+'</span></td><td class="w">'+(esc(cus(t.customer_id).name||'')||'<span class="tr-subtle">non indicato</span>')+'</td><td class="w">'+esc((t.origin||'?')+' → '+(t.destination||'?'))+'</td><td>'+esc(veh(t.vehicle_id).plate)+'</td><td>'+esc(drv(t.driver_id).name)+'</td>'
    +'<td class="num">'+(t.km!=null?num(t.km):'—')+(t.billed_km!=null&&t.billed_km!==t.km?' <span class="tr-subtle" title="Km da fatturare">('+num(t.billed_km)+')</span>':'')+'</td><td class="num">'+(t.revenue_cents!=null?eur(t.revenue_cents):'<span class="tr-subtle">—</span>')+'</td>'
-   +'<td class="docs">'+(ds.length?ds.map(d=>'<span class="tr-pill'+(d.corrected?' flag':' ok')+'">'+esc(DOC_LABEL(d.kind))+'</span>').join(' '):'<span class="tr-pill bad">manca</span>')+'</td><td><span class="cc-status '+esc(t.status)+'">'+esc(t.status)+'</span></td></tr>';}).join('')
+   +'<td class="docs">'+(ds.length?ds.map(d=>'<span class="tr-pill'+(d.corrected?' flag':' ok')+'">'+esc(DOC_LABEL(d.kind))+'</span>').join(' '):t.status==='pianificato'?'':'<span class="tr-pill bad">manca</span>')+'</td><td><span class="cc-status '+esc(t.status)+'">'+esc(t.status)+'</span></td></tr>';}).join('')
    :'<tr><td colspan="9" class="cc-empty">Nessun viaggio con questi filtri.</td></tr>';
   $('tripFoot').innerHTML=shown.length?'<tr><td colspan="5">Totale di '+num(shown.length)+(shown.length===1?' viaggio':' viaggi')+'</td><td class="num">'+num(shown.reduce((s,t)=>s+(t.km||0),0))+'</td><td class="num">'+eur(shown.reduce((s,t)=>s+(t.revenue_cents||0),0))+'</td><td colspan="2"></td></tr>':'';
   $('tripCount').textContent=shown.length===all.length?num(all.length)+' viaggi':num(shown.length)+' di '+num(all.length);
   view.querySelectorAll('#tripTable th').forEach(th=>{if(th.dataset.k===tripSort[0])th.setAttribute('aria-sort',tripSort[1]>0?'ascending':'descending');else th.removeAttribute('aria-sort');});
+  if(tripView==='bacheca'){
+   const ready=t=>t.revenue_cents&&docsOf(t.id).some(d=>d.kind!=='consegna');
+   const lanes=[['Pianificati',t=>t.status==='pianificato'],['In viaggio',t=>t.status==='aperto'],['Da sistemare',t=>t.status==='chiuso'&&!ready(t)],['Da fatturare',t=>t.status==='chiuso'&&ready(t)],['Fatturati',t=>t.status==='fatturato']];
+   $('tripBoard').innerHTML=lanes.map(([name,test])=>{const list=shown.filter(test);return '<div class="cc-lane"><h3>'+name+' <span>'+num(list.length)+(list.some(t=>t.revenue_cents)?' · '+eur0(list.reduce((s,t)=>s+(t.revenue_cents||0),0)):'')+'</span></h3>'+(list.slice(0,40).map(t=>{const ds=docsOf(t.id);return '<button type="button" class="cc-card'+(sel===t.id?' sel':'')+'" data-trip="'+esc(t.id)+'"><b>'+esc((t.origin||'?')+' → '+(t.destination||'?'))+'</b><span>'+esc(cus(t.customer_id).name||'Cliente non indicato')+'</span><span class="tr-subtle">'+dmy(t.started_at)+' '+hm(t.started_at)+' · '+esc(veh(t.vehicle_id).plate||'mezzo da assegnare')+(drv(t.driver_id).name?' · '+esc(drv(t.driver_id).name):'')+'</span><span class="cc-card-foot">'+(t.revenue_cents!=null?'<em>'+eur(t.revenue_cents)+'</em>':'<em class="tr-subtle">senza importo</em>')+(t.status==='pianificato'?'':ds.some(d=>d.kind!=='consegna')?(ds.some(d=>d.kind==='consegna')?'<span class="tr-pill ok">firmata</span>':'<span class="tr-pill flag">senza firma</span>'):'<span class="tr-pill bad">manca documento</span>')+'</span></button>';}).join('')||'<p class="tr-subtle" style="margin:4px 2px">Nessuno</p>')+(list.length>40?'<p class="tr-subtle" style="margin:4px 2px">e altri '+num(list.length-40)+': usa i filtri</p>':'')+'</div>';}).join('');
+  }
   view.querySelectorAll('[data-trip]').forEach(r=>{r.onclick=()=>openTrip(r.dataset.trip);r.onkeydown=e=>{if(e.key==='Enter')r.onclick();};});
  };
  fill();
  view.querySelectorAll('#tripTable th').forEach(th=>{const go=()=>{tripSort=[th.dataset.k,tripSort[0]===th.dataset.k?-tripSort[1]:1];fill();};th.onclick=go;th.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}};});
  view.querySelectorAll('[data-tf]').forEach(el=>{el.oninput=()=>{tripF[el.dataset.tf]=el.value;el.closest('label').classList.toggle('cc-on',!!el.value);fill();};});
+ view.querySelectorAll('[data-tview]').forEach(b=>b.onclick=()=>{tripView=b.dataset.tview;renderTrips();});
+ $('tripNew').onclick=()=>newTrip();
  $('tfClear').onclick=()=>{tripF=emptyTripF();$('q').value='';renderTrips();};
  $('xlsTrips').onclick=()=>xlsx('viaggi-'+p.from+'-'+p.to+'.xlsx',[{name:'Viaggi',columns:[{title:'Data',type:'date'},{title:'Partenza',type:'datetime'},{title:'Arrivo',type:'datetime'},{title:'Mezzo'},{title:'Autista'},{title:'Cliente'},{title:'Da'},{title:'A'},{title:'Km effettivi',type:'int'},{title:'Km fatturati',type:'int'},{title:'Ricavo',type:'euro'},{title:'Stato'},{title:'Documenti'}],
   rows:shown.map(t=>[t.started_at.slice(0,10),t.started_at,t.ended_at,veh(t.vehicle_id).plate,drv(t.driver_id).name,cus(t.customer_id).name,t.origin,t.destination,t.km,t.billed_km!=null?t.billed_km:t.km,t.revenue_cents!=null?t.revenue_cents/100:null,t.status,docsOf(t.id).map(d=>DOC_LABEL(d.kind)+(d.fields&&d.fields.numero?' '+d.fields.numero:'')).join(', ')])}]);
  $('pratica').onclick=()=>{if(!window.TrPratica){say('Modulo pratiche non caricato.','error');return;}closeDrawer(true);window.scrollTo(0,0);window.TrPratica.open(view,{data,save,tripId:sel,done:msg=>{renderTrips();if(msg)say(msg,'ok');}});};
  if(sel&&data.trips.some(t=>t.id===sel))openTrip(sel);
+}
+// A trip planned by the office: it appears to the driver in the app, who starts it from there.
+function newTrip(){
+ const day=nowIso().slice(0,10);const places=[...new Set(data.trips.flatMap(t=>[t.origin,t.destination]).concat((data.consignees||[]).map(c=>c.comune||c.name)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it')).slice(0,200);
+ const act=l=>l.filter(x=>x.active!==false);
+ openDrawer('Nuovo viaggio','<p class="tr-muted">Il viaggio pianificato compare nell\'app dell\'autista, che lo avvia con un tocco.</p><form id="newTrip" class="cc-form" style="grid-template-columns:1fr 1fr">'
+  +'<label>Data<input type="date" name="day" value="'+day+'" required></label><label>Ora di partenza<input type="time" name="time" value="06:00" required></label>'
+  +'<label class="wide">Cliente<select name="customer" required><option value="">Scegli…</option>'+act(data.customers).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select></label>'
+  +'<label>Da (carico)<input name="origin" list="ntPlaces" autocomplete="off" required></label><label>A (scarico)<input name="destination" list="ntPlaces" autocomplete="off" required></label><datalist id="ntPlaces">'+places.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist>'
+  +'<label>Mezzo<select name="vehicle"><option value="">Da assegnare</option>'+act(data.vehicles).map(v=>'<option value="'+esc(v.id)+'">'+esc(v.plate+(v.label?' · '+v.label:''))+'</option>').join('')+'</select></label><label>Autista<select name="driver"><option value="">Da assegnare</option>'+act(data.drivers).map(d=>'<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>').join('')+'</select></label>'
+  +'<label>Km da fatturare<input name="bkm" inputmode="numeric" placeholder="se concordati"></label><label>Importo concordato €<input name="rev" inputmode="decimal" placeholder="altrimenti dal listino"></label>'
+  +'<label class="wide">Note per l\'autista<textarea name="note" placeholder="Orari di carico, riferimenti, contatti"></textarea></label><p class="tr-error wide" id="ntErr" hidden></p><div class="cc-actions wide"><button class="tr-btn">Pianifica il viaggio</button></div></form>');
+ const f=$('newTrip');
+ f.elements.driver.onchange=()=>{const d=drv(f.elements.driver.value);if(d.vehicle&&!f.elements.vehicle.value)f.elements.vehicle.value=d.vehicle;};
+ f.onsubmit=e=>{e.preventDefault();const el=f.elements,err=$('ntErr');const bkm=el.bkm.value.trim()===''?null:parseInt(el.bkm.value,10),rev=el.rev.value.trim()===''?null:DOC.normNumber(el.rev.value);
+  if(bkm!=null&&!(bkm>=0&&bkm<=20000)||el.rev.value.trim()!==''&&(rev==null||rev<0)){err.textContent='Km o importo non validi.';err.hidden=false;return;}
+  const t={id:ST.uid(),vehicle_id:el.vehicle.value||null,driver_id:el.driver.value||null,customer_id:el.customer.value,status:'pianificato',started_at:el.day.value+'T'+el.time.value,ended_at:null,origin:el.origin.value.trim(),destination:el.destination.value.trim(),km:null,billed_km:bkm,revenue_cents:rev==null?null:Math.round(rev*100),note:el.note.value.trim()||null,planned:true};
+  if(t.billed_km==null&&placeKm(t))t.billed_km=placeKm(t);
+  data.trips.push(t);save();closeDrawer(true);sel=null;say('Viaggio pianificato per il '+dmy(t.started_at)+(t.driver_id?': '+drv(t.driver_id).name+' lo trova nell\'app.':'. Assegna mezzo e autista quando li sai.'),'ok');renderTrips();};
 }
 // The trip in the side sheet: documents read from the photos, km, amount, shipments.
 function openTrip(id){
@@ -199,10 +229,10 @@ function shipmentsOf(id){
 function tripDetail(id){
  const t=data.trips.find(x=>x.id===id);if(!t)return '<h2>Dettaglio</h2><p class="tr-muted">Scegli un viaggio per vedere i documenti letti dalle foto e correggere km e importo.</p>';
  const ds=data.documents.filter(d=>d.trip_id===id),is=(data.issues||[]).filter(i=>i.trip_id===id);
- const km=LOC.tripKm(t,data.positions,nowIso());
+ const km=t.status==='pianificato'?null:LOC.tripKm(t,data.positions,nowIso());
  return '<h2>'+esc((t.origin||'?')+' → '+(t.destination||'?'))+'</h2><p class="tr-muted">'+dmy(t.started_at)+' '+hm(t.started_at)+'–'+(hm(t.ended_at)||'in corso')+' · '+esc(veh(t.vehicle_id).plate)+' · '+esc(drv(t.driver_id).name)+' · '+esc(cus(t.customer_id).name||'')+'</p>'
   +'<form id="tripEdit" class="tr-form-grid"><label>Km effettivi<input name="km" inputmode="numeric" value="'+esc(t.km??'')+'"></label><label>Km da fatturare<input name="bkm" inputmode="numeric" placeholder="come gli effettivi" value="'+esc(t.billed_km??'')+'"></label><label>Importo €<input name="rev" inputmode="decimal" value="'+esc(t.revenue_cents!=null?(t.revenue_cents/100).toFixed(2).replace('.',','):'')+'"></label>'
-  +'<label>Stato<select name="status">'+['aperto','chiuso','fatturato'].map(s=>'<option'+(t.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select></label><button class="tr-btn small">Salva</button></form>'
+  +(t.status==='pianificato'?'<label>Mezzo<select name="vehicle"><option value="">Da assegnare</option>'+data.vehicles.filter(v=>v.active!==false).map(v=>'<option value="'+esc(v.id)+'"'+(t.vehicle_id===v.id?' selected':'')+'>'+esc(v.plate)+'</option>').join('')+'</select></label><label>Autista<select name="driver"><option value="">Da assegnare</option>'+data.drivers.filter(d=>d.active!==false).map(d=>'<option value="'+esc(d.id)+'"'+(t.driver_id===d.id?' selected':'')+'>'+esc(d.name)+'</option>').join('')+'</select></label>':'')+'<label>Stato<select name="status">'+['pianificato','aperto','chiuso','fatturato'].map(s=>'<option'+(t.status===s?' selected':'')+'>'+s+'</option>').join('')+'</select></label><button class="tr-btn small">Salva</button>'+(t.status==='pianificato'?'<button type="button" class="tr-btn warn small" id="tripDel">Elimina</button>':'')+'</form>'+(t.note?'<p class="tr-banner"><strong>Note per l\'autista:</strong> '+esc(t.note)+'</p>':'')
   +(km?'<p class="tr-subtle">Dal localizzatore: '+num(km.km)+' km'+(km.method==='punti_gps'?' in linea d\'aria tra '+km.points+' posizioni (il percorso su strada è più lungo)':' dal contachilometri')+(t.km==null?' · <button type="button" class="tr-link" id="useKm">usa questo valore</button>':'')+'</p>':'')
   +'<p class="tr-subtle">I km effettivi servono per i costi e il margine. Se con il cliente sono concordati km diversi, scrivili in «Km da fatturare»: il listino usa quelli.'+(t.billed_km!=null&&t.km?' Differenza: '+(t.billed_km-t.km>0?'+':'')+num(t.billed_km-t.km)+' km.':'')+(placeKm(t)&&t.billed_km==null?' <button type="button" class="tr-link" id="usePlaceKm">Usa i '+num(placeKm(t))+' km concordati per questa tratta</button>':'')+'</p>'
   +'<p class="tr-error" id="tripErr" hidden></p>'
@@ -226,9 +256,12 @@ function bindTripEdit(){
   const bkm=el.bkm.value.trim()===''?null:parseInt(el.bkm.value,10);
   if(km!=null&&!(km>=0&&km<=20000)||bkm!=null&&!(bkm>=0&&bkm<=20000)){err.textContent='Km non validi.';err.hidden=false;return;}
   if(el.rev.value.trim()!==''&&(rev==null||rev<0)){err.textContent='Importo non valido.';err.hidden=false;return;}
-  t.km=km;t.billed_km=bkm;t.revenue_cents=rev==null?null:Math.round(rev*100);t.status=el.status.value;if(t.status!=='aperto'&&!t.ended_at)t.ended_at=nowIso();
+  if(el.vehicle){t.vehicle_id=el.vehicle.value||null;t.driver_id=el.driver.value||null;}
+  if(el.status.value!=='pianificato'&&(!t.vehicle_id||!t.driver_id)){err.textContent='Assegna mezzo e autista prima di avviare il viaggio.';err.hidden=false;return;}
+  t.km=km;t.billed_km=bkm;t.revenue_cents=rev==null?null:Math.round(rev*100);t.status=el.status.value;if(done(t)&&!t.ended_at)t.ended_at=nowIso();
   save();say('Viaggio aggiornato.','ok');renderTrips();};
  document.querySelectorAll('[data-shiprev]').forEach(inp=>{inp.onchange=()=>{const s=data.shipments.find(x=>x.id===inp.dataset.shiprev);if(!s)return;const v=inp.value.trim()===''?null:DOC.normNumber(inp.value);if(v!=null&&v<0)return;s.revenue_cents=v==null?null:Math.round(v*100);save();say('Importo della spedizione salvato.','ok');};});
+ const del=$('tripDel');if(del)del.onclick=()=>{data.trips=data.trips.filter(x=>x.id!==t.id);save();closeDrawer(true);sel=null;say('Viaggio pianificato eliminato.','ok');renderTrips();};
  const up=$('usePlaceKm');if(up)up.onclick=()=>{f.elements.bkm.value=placeKm(t);};
  const u=$('useKm');if(u)u.onclick=()=>{const km=LOC.tripKm(t,data.positions,nowIso());if(km){f.elements.km.value=km.km;}};
 }
@@ -289,7 +322,7 @@ function alertBanner(msg){say(msg,'error');}
 function marginFor(from,to){
  const tr=tollResult();
  const extra=tr?tr.rows.filter(r=>r.status==='fuori_viaggio').map(r=>({id:r.id,kind:'pedaggio',date:r.date,amount_cents:r.amount_cents,vehicle_id:r.vehicle_id})):[];
- return MRG.compute({trips:data.trips.filter(t=>t.status!=='aperto'),costs:data.costs.concat(extra),tolls:tr,from,to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers,shareCompany:true});
+ return MRG.compute({trips:data.trips.filter(t=>done(t)),costs:data.costs.concat(extra),tolls:tr,from,to,vehicles:data.vehicles,drivers:data.drivers,customers:data.customers,shareCompany:true});
 }
 const LEVEL={critico:['alto','Urgente'],attenzione:['medio','Attenzione'],info:['','Da fare']};
 function alertsHtml(list,empty){
@@ -472,7 +505,7 @@ function renderRates(){
  const zonesTxt=card&&card.zones?card.zones.map(z=>((z.from||[]).length?z.from.join(', ')+' -> ':'')+(z.to||[]).join(', ')+' = '+money(z.amount_cents!=null?z.amount_cents:z.per_unit_cents)+(z.per_unit_cents?' /'+({pallet:'pallet',peso:'kg',capi:'capo',colli:'collo',metri:'m'}[z.basis]||'pallet'):'')).join('\n'):'';
  const bandsTxt=card&&card.bands?card.bands.map(b=>b.upto+' = '+money(b.amount_cents)+(b.per_unit?'/u':'')).join('\n'):'';
  const mine=t=>card&&card.customer_id&&(t.customer_id===card.customer_id||(data.shipments||[]).some(x=>x.trip_id===t.id&&x.customer_id===card.customer_id))?0:1;
- const closed=data.trips.filter(t=>t.status!=='aperto').sort((a,b)=>mine(a)-mine(b)||(a.started_at<b.started_at?1:-1)).slice(0,30);
+ const closed=data.trips.filter(t=>done(t)).sort((a,b)=>mine(a)-mine(b)||(a.started_at<b.started_at?1:-1)).slice(0,30);
  let tryOut='';
  if(card&&rateTry){const t=data.trips.find(x=>x.id===rateTry);if(t){const ships=(data.shipments||[]).filter(s=>s.trip_id===t.id);const r=LIS.price(card,LIS.jobOf(t,ships[0]||null,ships,data.documents));
   tryOut='<table class="tr-table"><tbody>'+r.lines.map(l=>'<tr><td class="wrap">'+esc(l.label)+'</td><td class="num">'+esc(l.qty)+' '+esc(l.unit)+'</td><td class="num">'+eur(l.amount_cents)+'</td></tr>').join('')+'<tr><th>Totale</th><td></td><th class="num">'+(r.amount_cents!=null?eur(r.amount_cents):'—')+'</th></tr></tbody></table>'+(r.missing.length?'<p class="tr-banner error">Manca: '+esc(r.missing.join(', '))+'</p>':'');}}
@@ -791,7 +824,7 @@ function renderCosts(){
  const inP=data.costs.map(c=>{const s=MRG.share(c,p.from,p.to);return s?{...s,orig:c}:null;}).filter(Boolean);
  const groups={Viaggio:0,Autista:0,Mezzo:0,Azienda:0};for(const c of inP)groups[MRG.KIND_GROUP[c.kind]||'Azienda']+=c.amount_cents;
  const tot=Object.values(groups).reduce((a,b)=>a+b,0);
- const km=data.trips.filter(t=>t.status!=='aperto'&&t.started_at.slice(0,10)>=p.from&&t.started_at.slice(0,10)<=p.to).reduce((s,t)=>s+(t.km||0),0);
+ const km=data.trips.filter(t=>done(t)&&t.started_at.slice(0,10)>=p.from&&t.started_at.slice(0,10)<=p.to).reduce((s,t)=>s+(t.km||0),0);
  const list=inP.filter(c=>(!costFilter.group||MRG.KIND_GROUP[c.kind]===costFilter.group)&&(!costFilter.vehicle||c.vehicle_id===costFilter.vehicle)&&(!costFilter.source||(c.source||'manuale')===costFilter.source)).sort((a,b)=>a.date<b.date?1:-1);
  const slips=(data.payslips||[]).slice().sort((a,b)=>a.month<b.month?1:a.month>b.month?-1:String(a.employee).localeCompare(String(b.employee)));
  view.innerHTML=kpis([[eur0(tot),'Costi del periodo'+(km?' · '+eur(Math.round(tot/km))+'/km':'')],...Object.entries(groups).map(([g,c])=>[eur0(c),g+(tot?' · '+Math.round(c*100/tot)+'%':'')])])
@@ -837,8 +870,8 @@ const VKIND=['trattore','motrice','rimorchio','semirimorchio','furgone','bestiam
 const ENT={
  vehicles:{title:'Mezzi',one:'mezzo',fields:[['plate','Targa','plate',true],['label','Modello o nome','text'],['kind','Tipo',VKIND],['devices','Dispositivi pedaggio (Telepass, UnipolMove), separati da virgola','list'],['tracker','Localizzatore',Object.keys(LOC.PROVIDERS).filter(k=>k!=='file')],['tracker_ref','Codice nel localizzatore','text'],['vin','Telaio (VIN, per rFMS)','text'],['due_revisione','Scadenza revisione','date'],['due_assicurazione','Scadenza assicurazione','date'],['due_tachigrafo','Scadenza tachigrafo','date'],['due_bollo','Scadenza bollo','date'],['due_atp','Scadenza ATP (frigo)','date']],
   cols:v=>{const d=CT.deadlines([v],nowIso().slice(0,10))[0];return [v.plate,v.label,v.kind,(v.devices||[]).join(', '),LOC.PROVIDERS[v.tracker]?.label||'—',d?d.label+' '+dmy(d.date)+(d.days<0?' (scaduta)':''):'—'];},head:['Targa','Modello','Tipo','Pedaggi','Localizzatore','Prossima scadenza'],used:id=>data.trips.some(t=>t.vehicle_id===id)},
- drivers:{title:'Autisti',one:'autista',fields:[['name','Nome e cognome','text',true],['cf','Codice fiscale (per abbinare le buste paga)','cf'],['phone','Telefono','text'],['vehicle','Mezzo abituale','vehicle']],
-  cols:d=>[d.name,d.phone,veh(d.vehicle).plate||'—'],head:['Autista','Telefono','Mezzo abituale'],used:id=>data.trips.some(t=>t.driver_id===id)},
+ drivers:{title:'Autisti',one:'autista',fields:[['name','Nome e cognome','text',true],['cf','Codice fiscale (per abbinare le buste paga)','cf'],['phone','Telefono','text'],['vehicle','Mezzo abituale','vehicle'],['due_patente','Scadenza patente','date'],['due_cqc','Scadenza CQC','date'],['due_carta','Scadenza carta tachigrafica','date'],['due_adr','Scadenza patentino ADR','date'],['due_visita','Scadenza visita medica','date']],
+  cols:d=>{const x=CT.deadlines([],nowIso().slice(0,10),[d])[0];return [d.name,d.phone,veh(d.vehicle).plate||'—',x?x.label+' '+dmy(x.date)+(x.days<0?' (scaduta)':''):'—'];},head:['Autista','Telefono','Mezzo abituale','Prossima scadenza'],used:id=>data.trips.some(t=>t.driver_id===id)},
  customers:{title:'Clienti',one:'cliente',fields:[['name','Ragione sociale','text',true],['vat','Partita IVA (con sigla del paese se estera, es. FR…)','vat'],['cf','Codice fiscale (se diverso)','text'],['street','Indirizzo','text'],['cap','CAP','text'],['comune','Comune','text'],['provincia','Provincia (sigla)','text'],['nazione','Paese (sigla, IT se vuoto)','text'],['sdi','Codice destinatario SdI (7 caratteri)','text'],['pec','PEC (se manca il codice SdI)','text'],['rate_kind','Tariffa semplice, se non ha un listino',Object.keys(RATE)],['rate','Importo tariffa semplice €','money'],['term_id','Condizioni di pagamento','term']],
   cols:c=>[c.name,c.vat,[c.comune,c.provincia].filter(Boolean).join(' ')||'—',(data.rate_cards||[]).some(r=>r.customer_id===c.id&&r.active!==false)?'listino':c.rate_cents!=null?eur(c.rate_cents)+' '+(RATE[c.rate_kind]||''):'listino base'],head:['Cliente','Partita IVA','Sede','Prezzo'],used:id=>data.trips.some(t=>t.customer_id===id)},
  consignees:{title:'Luoghi di carico e scarico',one:'luogo',fields:[['name','Nome del luogo o del destinatario','text',true],['kind','Tipo',['carico','scarico','destinatario']],['customer','Cliente a cui appartiene','customer'],['street','Indirizzo','text'],['cap','CAP','text'],['comune','Comune','text'],['provincia','Provincia','text'],['nazione','Paese (sigla)','text'],['from','Km concordati partendo da (località)','text'],['billed_km','Km da fatturare per questa tratta','int'],['hours','Orari di carico o scarico','text'],['note','Note per l\'autista','text']],

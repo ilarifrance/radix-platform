@@ -91,6 +91,11 @@ function defaults(d){
   const due={v1:{due_revisione:day(20),due_assicurazione:day(140)},v2:{due_assicurazione:day(75),due_tachigrafo:day(300)},v3:{due_tachigrafo:day(-3),due_atp:day(200)},v4:{due_revisione:day(45)}};
   for(const v of d.vehicles||[])if(due[v.id])Object.assign(v,due[v.id]);
   if(d.company&&d.company.ref_cost_km_cents==null)d.company.ref_cost_km_cents=145;}
+ // example of planned work and of a driver's deadline, once
+ if(!d._plan_seeded){d._plan_seeded=true;const at=(n,h)=>{const x=new Date(Date.now()+n*86400000);x.setHours(h,0,0,0);return localIso(x);};const has=(l,id)=>(l||[]).some(x=>x.id===id);
+  if(has(d.customers,'c2')&&has(d.vehicles,'v2')&&has(d.drivers,'d2'))d.trips.push({id:'tp1',vehicle_id:'v2',driver_id:'d2',customer_id:'c2',status:'pianificato',started_at:at(1,6),ended_at:null,origin:'Mantova',destination:'Modena',km:null,revenue_cents:null,note:'Carico entro le 7:00, baia 3.',planned:true});
+  if(has(d.customers,'c1'))d.trips.push({id:'tp2',vehicle_id:null,driver_id:null,customer_id:'c1',status:'pianificato',started_at:at(2,5),ended_at:null,origin:'Cremona',destination:'Milano',km:null,revenue_cents:null,planned:true});
+  const dr=(d.drivers||[]).find(x=>x.id==='d2');if(dr&&!dr.due_cqc)dr.due_cqc=at(18,0).slice(0,10);}
  const c=d.company=d.company||{name:'Autotrasporti Esempio Srl'};
  if(!c.vat&&!c._seeded){Object.assign(c,{vat:'01950620201',street:'Via San Giorgio 1',cap:'63835',comune:'Montappone',provincia:'FM',regime:'RF01',iban:'',ref_cost_km_cents:null,_seeded:true});}
  const addr={c1:['Via Emilia 10','46100','Mantova','MN'],c2:['Via del Porto 5','44121','Ferrara','FE'],c3:['Strada Bassa 3','26100','Cremona','CR']};

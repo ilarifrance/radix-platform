@@ -174,13 +174,18 @@ function dueHtml(){
 function renderIdle(){
  const last=data.trips.filter(t=>t.vehicle_id===me.vehicle).sort((a,b)=>a.started_at<b.started_at?1:-1).slice(0,3);
  const places=[...new Set(data.trips.flatMap(t=>[t.origin,t.destination]).filter(Boolean))].slice(0,40);
- view.innerHTML='<section class="tr-card"><h1>Nuovo viaggio</h1>'
+ const planned=data.trips.filter(t=>t.status==='pianificato'&&(t.driver_id===me.driver||!t.driver_id&&t.vehicle_id===me.vehicle)).sort((a,b)=>a.started_at<b.started_at?-1:1).slice(0,6);
+ const cname=id=>(data.customers.find(c=>c.id===id)||{}).name||'';
+ view.innerHTML=(planned.length?'<section class="tr-card live"><h1>Viaggi assegnati</h1><ul class="tr-list">'+planned.map(t=>'<li><strong>'+dmy(t.started_at)+' '+hm(t.started_at)+'</strong> '+esc((t.origin||'')+' → '+(t.destination||''))+'<br><span class="tr-subtle">'+esc(cname(t.customer_id))+'</span>'+(t.note?'<br>'+esc(t.note):'')+'<button class="tr-btn big" style="margin-top:8px" data-go="'+esc(t.id)+'">Inizia questo viaggio</button></li>').join('')+'</ul></section>':'')
+  +'<section class="tr-card"><h1>Nuovo viaggio</h1>'
   +'<label>Cliente<select id="cus">'+data.customers.filter(c=>c.active!==false).map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select></label>'
   +'<div class="tr-row"><label>Da<input id="orig" list="places" autocomplete="off" placeholder="Luogo di carico"></label><label>A<input id="dest" list="places" autocomplete="off" placeholder="Luogo di scarico"></label></div>'
   +'<datalist id="places">'+places.map(p=>'<option value="'+esc(p)+'">').join('')+'</datalist>'
   +'<button class="tr-btn big" id="start">Inizia viaggio</button><p class="tr-subtle">'+(phoneTracking()?'Questo telefono fa da localizzatore del mezzo.':'La posizione arriva dal localizzatore del mezzo: questo telefono non la registra.')+'</p><p id="gpsState" class="tr-gps" hidden></p></section>'
   +dueHtml()
   +(last.length?'<section class="tr-card"><h2>Ultimi viaggi</h2><ul class="tr-list">'+last.map(t=>'<li><strong>'+dmy(t.started_at)+'</strong> '+esc((t.origin||'')+' → '+(t.destination||''))+' <span class="tr-subtle">'+esc(t.status)+'</span></li>').join('')+'</ul></section>':'');
+ view.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{data=ST.load();const t=data.trips.find(x=>x.id===b.dataset.go&&x.status==='pianificato');if(!t){render();return;}
+  t.planned_at=t.started_at;t.status='aperto';t.started_at=nowIso();t.vehicle_id=me.vehicle;t.driver_id=me.driver;save();recordPosition(t);followTrip();say('Viaggio iniziato alle '+hm(t.started_at)+'.','ok');render();});
  $('start').onclick=()=>{
   data=ST.load();
   const t={id:ST.uid(),vehicle_id:me.vehicle,driver_id:me.driver,customer_id:$('cus').value,status:'aperto',started_at:nowIso(),ended_at:null,origin:$('orig').value.trim()||null,destination:$('dest').value.trim()||null,km:null,revenue_cents:null};
