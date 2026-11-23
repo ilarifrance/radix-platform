@@ -150,6 +150,8 @@
       // On the product «Assistenza» is used less than the rest: last in its group (Francesco, 17/11).
       if (product) items = items.map(function (it) { return it.href === CAMPAIGNS ? { href: CRM + '#campagne', text: it.text, ic: it.ic } : it; });
       if (product) items.sort(function (a, b) { return (PRODUCT_LAST.indexOf(a.href) >= 0) - (PRODUCT_LAST.indexOf(b.href) >= 0); });
+      // Sales Orbis: the setup guide is a page of its own (sales/crm-guide.js).
+      if (product && g.label === 'Sistema') items = [{ href: CRM + '#guida', text: 'Guida', ic: 'bulb' }].concat(items);
       if (solo && g.label === 'Sistema') items = items.concat([LOGOUT]);
       var box = document.createElement(g.fold ? 'details' : 'div');
       box.className = g.fold ? 'sx-group sx-fold' : 'sx-group';

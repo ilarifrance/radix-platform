@@ -5,7 +5,7 @@
 (function () {
   var NAMES = { dashboard: 'Panoramica', today: 'Oggi', companies: 'Aziende', contacts: 'Contatti', tasks: 'Attività', tickets: 'Assistenza',
     calendar: 'Calendario', analytics: 'Analisi', report: 'Report', opportunities: 'Opportunità', leads: 'Lead', interactions: 'Interazioni',
-    members: 'Membri', processes: 'Processi', stages: 'Fasi', campagne: 'Campagne email' };
+    members: 'Membri', processes: 'Processi', stages: 'Fasi', campagne: 'Campagne email', guida: 'Guida alla configurazione' };
   var boot = document.getElementById('crm-boot');
   if (!boot) return;
   function title() {
