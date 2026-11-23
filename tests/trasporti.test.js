@@ -432,3 +432,66 @@ test('driver expenses: kind of cost from the type, instructions for the AI',()=>
  assert.ok(DOC.PHOTO_KINDS.includes('spesa'));assert.match(DOC.instructions('spesa'),/pernottamento/);
  const c=DOC.checkConfirmed('spesa',{data:'2026-11-20',importo:'18,00'});assert.ok(c.ok);assert.equal(c.values.importo,18);
 });
+
+test('km to invoice differ from the km driven: the rate card uses the agreed ones',()=>{
+ const LIS=require('../lib/trasporti/listini');
+ assert.equal(LIS.jobOf({id:'t',km:161}).km,161);
+ assert.equal(LIS.jobOf({id:'t',km:161,billed_km:150}).km,150);
+ assert.equal(LIS.jobOf({id:'t',km:100,billed_km:200},{weight_kg:1},[{weight_kg:1},{weight_kg:3}]).km,50);
+});
+
+test('motorway invoice in PDF: the AI answer becomes transits; API pedaggi.leggi checks the pages',async()=>{
+ const answer=JSON.stringify({transiti:[{data:'2026-11-18',ora_entrata:'07:40',casello_entrata:'Mantova Nord',ora_uscita:'08:35',casello_uscita:'Modena Nord',targa:'GA123BC',dispositivo:null,importo:12.4},{data:'2026-11-18',ora_entrata:null,casello_entrata:null,ora_uscita:null,casello_uscita:null,targa:null,dispositivo:null,importo:null}]});
+ const rows=[TOLL.PDF_HEAD,...TOLL.pdfRows('Ecco: '+answer,DOC.extractJson)];
+ const p=TOLL.parseTransits(rows);
+ assert.equal(p.error,null);assert.equal(p.transits.length,1);assert.equal(p.skipped.length,1);
+ assert.equal(p.transits[0].amount_cents,1240);assert.equal(p.transits[0].plate,'GA123BC');assert.equal(p.transits[0].exitAt,'2026-11-18T08:35');
+ assert.deepEqual(TOLL.pdfRows('non json',DOC.extractJson),[]);
+ let seen=null;const H=createHandler({getSessionUser:()=>({uid:6}),ask:async a=>{seen=a;return {text:answer};}});
+ const page={image:IMG,media_type:'image/jpeg'};
+ assert.equal((await call(H,{body:{action:'pedaggi.leggi',data:{pages:[]}}})).status,400);
+ assert.equal((await call(H,{body:{action:'pedaggi.leggi',data:{pages:Array(11).fill(page)}}})).status,400);
+ const r=await call(H,{body:{action:'pedaggi.leggi',data:{first:1,pages:[page]}}});
+ assert.equal(r.status,200);assert.equal(r.body.rows.length,2);assert.match(seen.content[1].text,/transito/);
+});
+
+test('settings: invoice number, due date, IBAN, payment conditions of the customer, invoice lines as chosen',()=>{
+ const IMP=require('../lib/trasporti/impostazioni'),FPA=require('../lib/trasporti/fatturapa');
+ assert.equal(IMP.invoiceNumber('{n}/{anno}',7,'2026-11-23'),'7/2026');assert.equal(IMP.invoiceNumber('FT{nnnn}-{aa}',7,'2026-11-23'),'FT0007-26');assert.equal(IMP.invoiceNumber('senza',3,'2026-01-01'),'3/2026');
+ assert.equal(IMP.nextProgressive([{date:'2026-02-01'},{date:'2025-02-01'}],'2026-11-23',null),2);assert.equal(IMP.nextProgressive([{date:'2026-02-01',progressive:40}],'2026-11-23',12),41);assert.equal(IMP.nextProgressive([],'2026-11-23',120),120);
+ assert.equal(IMP.dueDate('2026-11-23',60,false),'2027-01-22');assert.equal(IMP.dueDate('2026-11-23',60,true),'2027-01-31');assert.equal(IMP.dueDate('2026-11-23',0,false),'2026-11-23');
+ assert.ok(IMP.ibanOk('IT60 X054 2811 1010 0000 0123 456'));assert.ok(!IMP.ibanOk('IT60X0542811101000000123457'));assert.ok(!IMP.ibanOk('IT60X05428111010000001234'));
+ const s=IMP.merge({terms:[{id:'a',label:'Bonifico 60',payment:'MP05',days:60},{id:'b',label:'RiBa 30 fm',payment:'MP12',days:30,eom:true,bank_id:'k2'}],default_term:'a',banks:[{id:'k1',iban:'IT60X0542811101000000123456',main:true},{id:'k2',iban:'IT60X0542811101000000123456',bank:'Banca Due'}]});
+ assert.equal(IMP.termsFor({},s).payment,'MP05');assert.equal(IMP.termsFor({},s).bank.id,'k1');
+ const t=IMP.termsFor({term_id:'b'},s);assert.equal(t.payment,'MP12');assert.equal(t.eom,true);assert.equal(t.bank.id,'k2');
+ assert.equal(IMP.merge(null,{iban:'it60 x054 2811 1010 0000 0123 456',name:'Az'}).banks[0].iban,'IT60X0542811101000000123456');
+ const rows=[{trip_id:'t1',doc:'DDT 41',doc_kind:'ddt',doc_number:'41',doc_date:'2026-11-18',date:'2026-11-18',origin:'Cremona',destination:'Verona',goods:'Formaggi',weight_kg:12000,plate:'GA123BC',amount_cents:30000},
+  {trip_id:'t1',doc:'DDT 42',date:'2026-11-18',origin:'Cremona',destination:'Verona',amount_cents:10000},{trip_id:'t2',doc:'CMR 9',date:'2026-11-19',origin:'Cremona',destination:'Monaco',load_country:'IT',delivery_country:'DE',amount_cents:90000}];
+ const inv=IMP.defaults().invoice;
+ assert.equal(IMP.invoiceLines(rows,inv).length,3);assert.equal(IMP.invoiceLines(rows,inv)[0].description,'Trasporto DDT 41 del 18/11/2026: Cremona - Verona, Formaggi, 12.000 kg, mezzo GA123BC');assert.deepEqual(IMP.invoiceLines(rows,inv)[0].ddt,{numero:'41',data:'2026-11-18'});
+ assert.equal(IMP.lineDescription(rows[0],{line_prefix:'Servizio di trasporto',parts:{route:true}}),'Servizio di trasporto: Cremona - Verona');
+ const perTrip=IMP.invoiceLines(rows,{...inv,grouping:'viaggio'});assert.equal(perTrip.length,2);assert.equal(perTrip[0].amount_cents,40000);assert.match(perTrip[0].description,/2 documenti/);
+ const single=IMP.invoiceLines(rows,{...inv,grouping:'unica'});assert.equal(single.length,2);assert.equal(single[0].amount_cents,40000);assert.equal(single[1].delivery_country,'DE');assert.match(single[1].description,/internazionali dal 19\/11\/2026/);
+ const x=FPA.build({company:{name:'Az',vat:'12345678903',street:'Via 1',cap:'26100',comune:'Cremona'},customer:{name:'Cli',vat:'00000000001',street:'Via 2',cap:'37100',comune:'Verona'},number:'FT0007-26',date:'2026-11-23',rows:single,payment:t.payment,due_date:IMP.dueDate('2026-11-23',t.days,t.eom),causale:'Trasporti di novembre',bank:{iban:'IT60 X054 2811 1010 0000 0123 456',bank:'Banca Due',bic:'abcdit21',holder:'Az'},stamp_duty:false});
+ assert.deepEqual(x.errors,[]);assert.match(x.xml,/<Causale>Trasporti di novembre<\/Causale>/);assert.match(x.xml,/<Beneficiario>Az<\/Beneficiario><ModalitaPagamento>MP12<\/ModalitaPagamento><DataScadenzaPagamento>2026-12-31<\/DataScadenzaPagamento>/);
+ assert.match(x.xml,/<IstitutoFinanziario>Banca Due<\/IstitutoFinanziario><IBAN>IT60X0542811101000000123456<\/IBAN><BIC>ABCDIT21<\/BIC>/);assert.equal(x.totals.stamp,false);assert.equal(x.summary.length,2);assert.equal(x.lines[1].vat,'N3.4');
+});
+
+test('controllo di gestione through filters: by customer, route, cost group, trips at a loss; periods',()=>{
+ const CT=require('../lib/trasporti/controllo');
+ const trips=[{id:'a',vehicle_id:'v1',driver_id:'d1',customer_id:'c1',started_at:'2026-10-05T06:00',origin:'Cremona',destination:'Verona',km:200,revenue_cents:40000,status:'chiuso'},
+  {id:'b',vehicle_id:'v1',driver_id:'d1',customer_id:'c2',started_at:'2026-11-10T06:00',origin:'Cremona',destination:'Milano',km:100,revenue_cents:5000,status:'chiuso'},
+  {id:'c',vehicle_id:'v2',driver_id:'d2',customer_id:'c1',started_at:'2026-11-12T06:00',origin:'Cremona',destination:'Verona',km:200,revenue_cents:42000,status:'chiuso'}];
+ const costs=[{kind:'carburante',date:'2026-11-10',amount_cents:9000,trip_id:'b'},{kind:'leasing',date:'2026-10-01',amount_cents:30000,vehicle_id:'v1'},{kind:'leasing',date:'2026-10-01',amount_cents:7000,vehicle_id:'v9'},{kind:'stipendio',date:'2026-11-01',amount_cents:20000,driver_id:'d2'}];
+ const m=MRG.compute({trips,costs,from:'2026-10-01',to:'2026-11-30',vehicles:[{id:'v1',plate:'AA'},{id:'v2',plate:'BB'},{id:'v9',plate:'ZZ'}],drivers:[{id:'d1',name:'Uno'},{id:'d2',name:'Due'}],customers:[{id:'c1',name:'Alfa'},{id:'c2',name:'Beta'}]});
+ const look={vehicleKind:new Map([['v1','trattore'],['v2','motrice']]),kindGroup:MRG.KIND_GROUP};
+ const all=CT.slice(m,{},look);assert.equal(all.active,false);assert.equal(all.totals.cost_cents,m.totals.cost_cents);assert.equal(all.routes.length,2);assert.deepEqual(all.months.map(x=>x.id),['2026-10','2026-11']);
+ assert.equal(all.vehicles.find(v=>v.id==='v9').unallocated_cents,7000);
+ const c1=CT.slice(m,{customer_id:'c1'},look);assert.equal(c1.totals.trips,2);assert.equal(c1.totals.revenue_cents,82000);assert.equal(c1.totals.cost_cents,20000+20000);assert.equal(c1.left_out_cents,7000);assert.equal(c1.customers.length,1);
+ assert.equal(CT.slice(m,{route:'milàno'},look).totals.trips,1);assert.equal(CT.slice(m,{vehicle_kind:'motrice'},look).trips[0].id,'c');
+ const loss=CT.slice(m,{margin:'neg'},look);assert.deepEqual(loss.trips.map(r=>r.id),['b']);
+ const g=CT.slice(m,{cost_group:'Mezzo'},look);assert.equal(g.totals.cost_cents,37000);assert.deepEqual(Object.keys(g.by_kind),['leasing']);assert.equal(g.trip_filter,false);
+ assert.equal(CT.slice(m,{cost_group:'Autista',vehicle_id:'v2'},look).totals.cost_cents,20000);
+ assert.deepEqual(CT.preset('mese','2026-11-23'),['2026-11-01','2026-11-23']);assert.deepEqual(CT.preset('mese_scorso','2026-01-15'),['2025-12-01','2025-12-31']);assert.deepEqual(CT.preset('settimana','2026-11-23'),['2026-11-23','2026-11-23']);
+ assert.deepEqual(CT.preset('trimestre','2026-11-23'),['2026-10-01','2026-11-23']);assert.deepEqual(CT.preset('tutto','2026-11-23','2026-09-01'),['2026-09-01','2026-11-23']);
+});

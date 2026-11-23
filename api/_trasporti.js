@@ -13,6 +13,8 @@
    POST /api/trasporti {action:'costi.leggi', data:{kind:'busta_paga'|'fattura_acquisto', first, pages:[{image, media_type}]}}
         → {documents:[{kind, pages, campi, da_controllare, righe?}]}: payslips (also a whole LUL) and supplier invoices
         in PDF or photo; the XML e-invoices are read in the browser without AI.
+   POST /api/trasporti {action:'pedaggi.leggi', data:{first, pages:[{image, media_type}]}} → {rows:[[data, ora entrata, casello,
+        ora uscita, casello, targa, dispositivo, importo]]}: the transits of a motorway invoice in PDF.
    POST /api/trasporti {action:'posizioni.aggiorna'} → {provider, positions} from the tracker of the pilot company.
         TRASPORTI_TRACKER = JSON {"provider":"webfleet"|"verizon"|"rfms", ...credentials} on the server only
         (webfleet: account, username, password, apikey · verizon: username, password, app_id, vehicles[], base_url?
@@ -23,6 +25,7 @@ const doc=require('../lib/trasporti/documenti');
 const loc=require('../lib/trasporti/localizzatori');
 const pr=require('../lib/trasporti/pratiche');
 const co=require('../lib/trasporti/costi');
+const toll=require('../lib/trasporti/pedaggi');
 
 const MEDIA=['image/jpeg','image/png','image/webp','application/pdf'];
 const MAX_BASE64=4200000; // Vercel accepts request bodies up to 4.5 MB; the app shrinks photos to ~1600 px first.
@@ -139,6 +142,23 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
     counts.set(key,n);
     if(answer.refused)return res.status(200).json({documents:[],error:'Queste pagine non sono state lette.'});
     return res.status(200).json({documents:co.parseBatch(doc,d.kind,answer.text,first,pages.length)});
+   }
+   if(body.action==='pedaggi.leggi'){
+    const d=body.data&&typeof body.data==='object'?body.data:{};
+    const pages=Array.isArray(d.pages)?d.pages:[];const first=Number.isInteger(d.first)&&d.first>=1&&d.first<=500?d.first:1;
+    if(!pages.length||pages.length>toll.PDF_MAX_PAGES)throw failure(400,'Da 1 a '+toll.PDF_MAX_PAGES+' pagine per volta.');
+    let size=0;
+    for(const p of pages){if(!p||!['image/jpeg','image/png','image/webp'].includes(p.media_type)||typeof p.image!=='string'||!/^[A-Za-z0-9+/]+={0,2}$/.test(p.image))throw failure(400,'Pagina non valida.');size+=p.image.length;}
+    if(size>MAX_BASE64)throw failure(413,'Pagine troppo grandi: riprova, l\'app le riduce.');
+    const key=user.uid+':'+new Date(now()).toISOString().slice(0,10);
+    const n=(counts.get(key)||0)+pages.length;if(n>DAILY)throw failure(429,'Limite di letture di oggi raggiunto: riprova domani.');
+    let answer;
+    try{answer=await ask({system:'Sei un assistente amministrativo di un\'azienda di autotrasporto: leggi il dettaglio dei transiti autostradali. Restituisci solo JSON valido. Non inventare mai dati.',maxTokens:16000,content:[...pages.map(p=>({type:'image',source:{type:'base64',media_type:p.media_type,data:p.image}})),{type:'text',text:toll.pdfInstructions(first,pages.length)}]});}
+    catch(e){console.error('trasporti pedaggi.leggi',e&&e.message);throw failure(502,'La lettura automatica non risponde: riprova.');}
+    if(answer===null)throw failure(503,'Lettura automatica non configurata su questo ambiente.');
+    counts.set(key,n);
+    if(answer.refused)return res.status(200).json({rows:[],error:'Queste pagine non sono state lette.'});
+    return res.status(200).json({rows:toll.pdfRows(answer.text,doc.extractJson)});
    }
    if(body.action!=='documento.leggi')throw failure(400,'Azione non riconosciuta.');
    const d=body.data&&typeof body.data==='object'?body.data:{};

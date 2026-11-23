@@ -9,33 +9,42 @@
 <link rel="stylesheet" href="/trasporti/trasporti.css">
 </head>
 <body class="tr tr-cc">
-<div class="tr-brandbar">
-<header class="tr-head">
- <div>
-  <div class="tr-logo"><img src="/trasporti/marchio/plancia-icona.svg" alt=""><p class="tr-eyebrow" style="margin:0"><span data-brand="console">Plancia · centro operativo</span></p></div>
-  <h1 id="company" style="margin-top:8px">Centro operativo</h1>
-  <p class="tr-muted">Mezzi sulla mappa, viaggi e documenti letti dalle foto degli autisti, pedaggi abbinati per targa e orario, margine per mezzo, autista e cliente.</p>
+<a class="cc-skip" href="#view">Vai al contenuto</a>
+<aside class="cc-side" id="side">
+ <a class="cc-brand" href="#oggi"><img src="/trasporti/marchio/plancia-icona.svg" alt=""><span><b data-brand="name">Plancia</b><small>Centro operativo</small></span></a>
+ <nav id="tabs" aria-label="Sezioni">
+ <p class="cc-group">Operativo</p>
+ <a href="#oggi" data-tab="oggi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg><span>Oggi</span></a>
+ <a href="#viaggi" data-tab="viaggi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7h11v9H2zM13 10h4l4 3v3h-8zM6.5 19a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6zM17.5 19a1.8 1.8 0 100-3.6 1.8 1.8 0 000 3.6z"/></svg><span>Viaggi e documenti</span></a>
+ <a href="#localizzatori" data-tab="localizzatori"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-11.5A7 7 0 005 9.5C5 14.800 12 21 12 21zM12 12a2.5 2.5 0 100-5 2.5 2.5 0 000 5z"/></svg><span>Localizzatori</span></a>
+ <p class="cc-group">Amministrazione</p>
+ <a href="#fatturazione" data-tab="fatturazione"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7"/></svg><span>Fatturazione</span></a>
+ <a href="#listini" data-tab="listini"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7M17 14v7M14.5 16.5c0-1 1-1.700 2.500-1.700s2.500.6 2.500 1.500c0 2-5 1.200-5 3.200 0 1 1 1.700 2.500 1.700s2.500-.7 2.500-1.700"/></svg><span>Listini</span></a>
+ <a href="#costi" data-tab="costi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4zM4 9h16M9 9v11M13 13h4M13 16.5h4"/></svg><span>Costi e buste paga</span></a>
+ <a href="#pedaggi" data-tab="pedaggi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l8-5 8 5v12M4 13h16M9 20v-4h6v4"/></svg><span>Pedaggi</span></a>
+ <p class="cc-group">Analisi</p>
+ <a href="#margine" data-tab="margine"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3M20 16V6"/></svg><span>Controllo di gestione</span></a>
+ <p class="cc-group">Archivi</p>
+ <a href="#anagrafiche" data-tab="anagrafiche"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h13a3 3 0 013 3v13H7a3 3 0 01-3-3zM4 17a3 3 0 013-3h13M9 8h6"/></svg><span>Anagrafiche</span></a>
+ <a href="#impostazioni" data-tab="impostazioni"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.500a3.500 3.500 0 100-7 3.500 3.500 0 000 7zM19.400 13.500l1.600 1.200-2 3.400-1.900-.7a7.500 7.500 0 01-2 1.200L14.800 21h-4l-.4-2.400a7.500 7.500 0 01-2-1.200l-1.900.7-2-3.400 1.600-1.200a7.600 7.600 0 010-2.300L4.500 10l2-3.400 1.900.7a7.500 7.500 0 012-1.200L10.800 3.700h4l.4 2.400a7.500 7.500 0 012 1.200l1.900-.7 2 3.400-1.600 1.200a7.600 7.600 0 010 2.300z"/></svg><span>Impostazioni</span></a>
+ </nav>
+ <div class="cc-side-foot">
+  <a class="cc-app" href="/trasporti/autista/" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2zM11 18.500h2"/></svg><span>Apri l'app autista</span></a>
+  <p class="cc-demo" id="banner">Dimostrazione: i dati restano in questo browser. <button type="button" class="tr-link" id="reset">Ricomincia da capo</button></p>
  </div>
- <div class="tr-toolbar">
-  <label>Dal<input type="date" id="from"></label><label>Al<input type="date" id="to"></label>
-  <a class="tr-btn ghost" href="/trasporti/autista/" target="_blank" rel="noopener">Apri l'app autista</a>
- </div>
+</aside>
+<div class="cc-scrim" id="scrim" hidden></div>
+<div class="cc-main">
+<header class="cc-top">
+ <button type="button" class="cc-menu" id="menu" aria-label="Apri il menu" aria-controls="side" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+ <div class="cc-title"><p class="cc-crumb"><span id="company">Azienda</span> <span aria-hidden="true">/</span> <span id="crumb"></span></p><h1 id="title">Centro operativo</h1></div>
+ <form class="cc-quick" id="quick" role="search"><input type="search" id="q" placeholder="Cerca viaggio, targa, cliente" aria-label="Cerca in tutti i viaggi"></form>
+ <div class="cc-period" id="period"><label>Periodo<select id="preset"></select></label><label>Dal<input type="date" id="from"></label><label>Al<input type="date" id="to"></label></div>
 </header>
+<main id="view" tabindex="-1"><p class="tr-muted">Caricamento…</p></main>
 </div>
-<nav class="tr-tabs" id="tabs" aria-label="Sezioni">
- <a href="#oggi" data-tab="oggi">Oggi</a>
- <a href="#viaggi" data-tab="viaggi">Viaggi e documenti</a>
- <a href="#fatturazione" data-tab="fatturazione">Fatturazione</a>
- <a href="#listini" data-tab="listini">Listini</a>
- <a href="#costi" data-tab="costi">Costi e buste paga</a>
- <a href="#pedaggi" data-tab="pedaggi">Pedaggi</a>
- <a href="#margine" data-tab="margine">Controllo di gestione</a>
- <a href="#anagrafiche" data-tab="anagrafiche">Anagrafiche</a>
- <a href="#localizzatori" data-tab="localizzatori">Localizzatori</a>
-</nav>
-<p class="tr-banner demo" id="banner">Dimostrazione con un'azienda di esempio: i dati restano in questo browser. <button type="button" class="tr-link" id="reset">Ricomincia da capo</button></p>
-<p class="tr-banner" id="notice" role="status" aria-live="polite" hidden></p>
-<main id="view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
+<aside class="cc-drawer" id="drawer" aria-label="Dettaglio" hidden><div class="cc-drawer-head"><h2 id="drawerTitle">Dettaglio</h2><span id="drawerTools"></span><button type="button" class="cc-x" id="drawerClose" aria-label="Chiudi">×</button></div><div class="cc-drawer-body" id="drawerBody"></div></aside>
+<p class="cc-toast" id="notice" role="status" aria-live="polite" hidden></p>
 <input type="file" id="anyFile" hidden>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
 <script src="/trasporti/brand.js" defer></script>
@@ -50,6 +59,7 @@
 <script src="/lib/trasporti/fatturapa.js" defer></script>
 <script src="/lib/trasporti/costi.js" defer></script>
 <script src="/lib/trasporti/controllo.js" defer></script>
+<script src="/lib/trasporti/impostazioni.js" defer></script>
 <script src="/trasporti/store.js" defer></script>
 <script src="/trasporti/pratica.js" defer></script>
 <script src="/trasporti/app.js" defer></script>

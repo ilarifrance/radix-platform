@@ -59,7 +59,7 @@ function exampleBatches(){
   {tipo:'giornale',pagine:[11,12],campi:{numero:c('2125BRXX 105'),certificato_sanitario:c('INTRA.EU.FR.2025.0032289'),specie:c('Bovini'),numero_animali:c('20'),peso_stimato_kg:c('6475'),luogo_partenza:c('Bellenot-sous-Pouilly (FR)'),partenza:c('2025-04-30 18:30'),luogo_destinazione:c('Mogliano Veneto (TV)')}}]},1,12).documents];
 }
 
-const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\b(srl|spa|sas|sarl|snc|ss|s\.?r\.?l\.?|societa|soc|agricola|az|azienda)\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const norm=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\b(srl|spa|sas|sarl|snc|ss|s\.?r\.?l\.?|societa|soc|agricola|az|azienda)\b/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 function guessCustomer(data,s){
  const cands=[s.customer_hint,s.sender].filter(Boolean).map(norm);
  return data.customers.find(c=>{const n=norm(c.name);return n&&cands.some(x=>x&&(x.includes(n)||n.includes(x)));})||null;
