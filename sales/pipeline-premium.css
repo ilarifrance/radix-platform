@@ -39,3 +39,12 @@
 .setup-delete{cursor:pointer}.setup-delete:disabled{opacity:.45;cursor:default}
 .process-field{display:inline-flex;align-items:center;gap:8px}.process-field[hidden]{display:none}
 @media (max-width:520px){.setup-head{padding-right:112px}.setup-col{grid-template-columns:16px minmax(0,1fr) 52px 32px 32px 32px;gap:4px}.setup-pick{flex-direction:column;align-items:stretch}.setup-gap{display:none}}
+/* Deal card: client line and the next-activity signal (pipeline-premium.js activityState). */
+.deal .client{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deal .next{display:flex;align-items:center;gap:6px}
+.deal .next::before{content:"";flex:0 0 9px;width:9px;height:9px;border-radius:50%;background:#9ca3af}
+.deal .next-planned::before,.deal .next-open::before{background:#16a34a}
+.deal .next-today::before{background:#d97706}
+.deal .next-overdue::before{background:#dc2626}
+.deal .next-overdue{color:#b42318}
+.deal .next-none::before{background:transparent;border:1.5px solid #9ca3af}
