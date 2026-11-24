@@ -177,15 +177,17 @@ test('Regia: il link scrive il passaggio nella sessione; la pagina di arrivo mos
  const C=require('../lib/radix-regia-core.js'),CC=require('../lib/regia-cc.js'),guide=require('../lib/radix-guide.js'),R=require('../lib/radix-regia.js');
  const {makeDoc}=require('./regia-fake-dom.js');
  const mem=new Map(),session={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};mem.set(R.CONFIRM_KEY,'1');
- const fetches=[],win=(pathname)=>({location:{pathname,hash:'',search:''},addEventListener(){},sessionStorage:session,fetch:async u=>{fetches.push(u);return {ok:true,status:201,json:async()=>({ok:true})}}});
+ const fetches=[],local=new Map(),win=(pathname)=>({location:{pathname,hash:'',search:''},addEventListener(){},sessionStorage:session,localStorage:{getItem:k=>local.get(k)||null,setItem:(k,v)=>local.set(k,v)},fetch:async u=>{fetches.push(u);return {ok:true,status:201,json:async()=>({ok:true})}}});
  // partenza: Command Center, AI finta che propone un «passa»
  const reg=C.createRegistry();reg.register('cc',CC.adapter);const sent=[];
  const send=async m=>{sent.push(m);return 'Ecco.\n```json\n'+JSON.stringify({area:'cc',summary:'Richiamo da fissare',ops:[{op:'passa',area:'crm',richiesta:'Crea un’attività: richiamare Rossi domani alle 10'}]})+'\n```'};
  const ui=R.create({doc:makeDoc({shellPage:'cc',topbar:true}),win:win('/control-center-v2.html'),registry:reg,guide,send,now:()=>NOW});
  assert.equal(ui.carried,null);ui.open();const r=await ui.ask('Com’è la giornata?');assert.equal(r.kind,'proposal');await r.yes.click();
  const links=ui.areaView.querySelectorAll('.rx-regia-link');assert.equal(links.length,1);assert.equal(links[0].getAttribute('href')||links[0].href,'/radix-sales.html');
+ assert.deepEqual(fetches,[],'un «passa» non è ancora una modifica: niente in Memoria');assert.doesNotMatch(r.status.textContent,/Memoria/);
  assert.equal(mem.has(C.HANDOFF_KEY),false,'niente prima del clic');links[0].dispatchEvent?links[0].dispatchEvent({type:'click'}):links[0].click();
  assert.deepEqual(JSON.parse(mem.get(C.HANDOFF_KEY)),{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10',at:NOW});
+ assert.equal(local.size,0,'e niente nel registro');
  // arrivo: una pagina dell'area «crm» (adattatore finto, senza operazioni)
  const reg2=C.createRegistry();reg2.register('crm',{title:'CRM',pages:['sales-crm'],shortcuts:[],ops:{},context:()=>'',read:()=>({})});const sent2=[];
  const there=()=>R.create({doc:makeDoc({shellPage:'sales-crm',topbar:true}),win:win('/radix-sales.html'),registry:reg2,guide,send:async m=>{sent2.push(m);return 'ok'},now:()=>NOW+5000});
