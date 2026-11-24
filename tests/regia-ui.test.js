@@ -33,7 +33,7 @@ test('the «?» becomes «Regia», docked in the top bar, and opens a side panel
  assert.equal(ui.fab.textContent,'Regia');assert.equal(ui.fab.id,'rxGuide');assert.ok(ui.fab.classList.contains('rx-guide-fab--top'));
  assert.equal(doc.querySelector('header.rx-topbar').children[0],ui.fab,'before the user chip');
  assert.equal(ui.panel.hidden,true);ui.fab.click();assert.equal(ui.panel.hidden,false);assert.equal(ui.fab.getAttribute('aria-expanded'),'true');
- assert.deepEqual(cls(ui.shortcuts,'rx-regia-chip').map(c=>c.textContent),['Cosa è fermo?']);
+ assert.deepEqual(cls(ui.shortcuts,'rx-regia-chip').map(c=>c.textContent),['Cosa è fermo?','Com’è la giornata?']);
  assert.equal(doc.querySelector('.rx-regia-note').textContent,'Ogni messaggio usa 1 chiamata AI');
  assert.ok(cls(ui.log,'free').length>=1,'FAQ chips of the Guide map');
  doc.dispatch('keydown',{key:'Escape'});assert.equal(ui.panel.hidden,true);
@@ -168,7 +168,9 @@ test('Enter sends, Shift+Enter does not; a message starts only from the person',
 });
 
 test('the fake AI stays injectable; the shell loads the Regia and its confirm; light style and phone full screen',async()=>{
- const src=read('lib/radix-regia.js');assert.doesNotMatch(src,/localStorage/);
+ const src=read('lib/radix-regia.js');
+ // localStorage only for the journal of applied proposals; the AI confirmation stays in the session.
+ assert.equal((src.match(/localStorage/g)||[]).length,1);assert.match(src,/function journal\(change\)\{try\{const st=win\.localStorage;/);assert.doesNotMatch(src,/localStorage[^\n]*CONFIRM_KEY|CONFIRM_KEY[^\n]*localStorage/);
  const registry=C.createRegistry();registry.register('cc',CC.adapter);const doc=ccPage();
  const ui=R.create({doc,win:{location:{pathname:'/control-center-v2.html',hash:''},addEventListener(){}},registry,guide,send:R.stubSend,confirm:()=>true});
  const r=await ui.ask('Cosa è fermo?');assert.equal(r.kind,'proposal');assert.match(ui.log.textContent,/Risposta di prova, senza AI/);

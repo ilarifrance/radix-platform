@@ -139,7 +139,7 @@ function ccDoc(){const doc=makeDoc({shellPage:'cc'}),b=doc.body;
 
 test('Command Center adapter: reads the page, says what is stuck, one harmless undoable op',async()=>{
  const r=C.createRegistry(),a=r.register('cc',CC.adapter);
- assert.equal(r.adapterFor('cc-approvals'),a);assert.deepEqual(a.shortcuts.map(s=>s.label),['Cosa è fermo?']);
+ assert.equal(r.adapterFor('cc-approvals'),a);assert.deepEqual(a.shortcuts.map(s=>s.label),['Cosa è fermo?','Com’è la giornata?']);
  const s=a.read(ccDoc());
  assert.deepEqual(s.metrics,{projects:7,workflows:3,approvals:2,agents:null});
  assert.deepEqual(s.attention,[{title:'Piano Forno Aurora',detail:'Manca la scheda fatti'}]);
