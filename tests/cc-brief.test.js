@@ -142,3 +142,57 @@ test('Inglese: il registro «Fatto oggi dalla Regia» è tradotto',()=>{
  const I=require('../lib/radix-i18n.js');require('../lib/radix-i18n-en.js');const T=I.compile(globalThis.RadixI18nEn,I.HAND);
  for(const [it,en] of [['Fatto oggi dalla Regia','Done today by Regia'],['1 modifica','1 change'],['3 modifiche','3 changes'],['annullata','cancelled'],['Apri la pagina','Open the page']])assert.equal(T.tr(it),en);
 });
+// ---- «passa»: una richiesta portata dal Command Center alla Regia di un'altra area ----
+test('Command Center «passa»: validata, senza effetti, diventa un link con la richiesta; annullabile',async()=>{
+ const C=require('../lib/radix-regia-core.js'),CC=require('../lib/regia-cc.js');const r=C.createRegistry(),a=r.register('cc',CC.adapter);
+ const s={metrics:{},attention:[],workflows:[],today:[],pins:[],handoffs:[]};
+ const p={area:'cc',summary:'Due cose da fare nelle aree',ops:[
+  {op:'passa',area:'CRM',richiesta:'  Crea un’attività: richiamare Rossi\n domani alle 10 '},
+  {op:'passa',area:'ped',richiesta:'Sposta il post di giovedì a venerdì',project:'forno-aurora'},
+  {op:'passa',area:'ped',richiesta:'Senza progetto'},{op:'passa',area:'contabilita',richiesta:'x'},{op:'passa',area:'pm',richiesta:''},
+  {op:'passa',area:'pm',richiesta:'x'.repeat(301)},{op:'passa',area:'pm',richiesta:'ok',project:'../x'},{op:'invia_email',to:'a@b.test'}]};
+ const v=C.validateProposal(p,a,s);
+ assert.equal(v.accepted.length,2);assert.deepEqual(v.rejected.map(x=>x.reason),['Per il Piano editoriale serve il progetto.','Area non riconosciuta: posso portare una richiesta solo a CRM, Project manager o Piano editoriale.','Manca la richiesta da portare.','La richiesta è troppo lunga (al massimo 300 caratteri).','Il progetto indicato non è valido.',C.REASON.effect]);
+ assert.equal(C.previewOf(v.accepted[0],a,s),'Porta a CRM: «Crea un’attività: richiamare Rossi domani alle 10» (la applichi lì, con la sua conferma)');
+ assert.equal(C.costOf(v.accepted,a).label,'nessuna chiamata AI · nessun credito');
+ const res=await C.applyProposal(a,s,v.accepted),view=a.view(res.state);
+ assert.equal(view.title,'Da portare nelle aree');assert.deepEqual(view.items,[]);
+ assert.deepEqual(view.links,[{title:'Apri CRM: «Crea un’attività: richiamare Rossi domani alle 10»',href:'/radix-sales.html',handoff:{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10'}},
+  {title:'Apri Piano editoriale: «Sposta il post di giovedì a venerdì»',href:'/project-editorial.html?project=forno-aurora',handoff:{area:'ped',text:'Sposta il post di giovedì a venerdì'}}]);
+ assert.match(C.validateProposal(p,a,res.state).rejected[0].reason,/già pronta/);
+ assert.equal(await res.undo(),s);assert.equal(a.view(s),null);
+ assert.match(a.context(s),/"op":"passa","area":"crm\|pm\|ped"/);assert.ok(C.contextBlock(a,s).length<=2500);
+ const src=fs.readFileSync('lib/regia-cc.js','utf8');assert.ok(!/fetch\(|Storage/.test(src),'l’adattatore non chiama e non salva');
+ for(const k of Object.keys(CC.AREAS))assert.ok(fs.existsSync(CC.AREAS[k].href.slice(1)),'la pagina esiste: '+CC.AREAS[k].href);
+});
+test('Passaggio tra pagine: scade, vale per una sola area, il testo è ripulito',()=>{
+ const C=require('../lib/radix-regia-core.js');const h=C.handoffPack('crm','  richiamare\n Rossi ',NOW);
+ assert.deepEqual(h,{area:'crm',text:'richiamare Rossi',at:NOW});const raw=JSON.stringify(h);
+ assert.deepEqual(C.handoffParse(raw,'crm',NOW+60000),h);assert.equal(C.handoffParse(raw,'pm',NOW+60000),null);
+ assert.equal(C.handoffParse(raw,'crm',NOW+31*60000),null,'dopo 30 minuti non vale più');assert.equal(C.handoffParse(raw,'crm',NOW-1),null,'non dal futuro');
+ for(const bad of ['','null','[]','{"area":"crm"}','non json','{"area":"CRM!","text":"x","at":1}'])assert.equal(C.handoffParse(bad,'crm',NOW),null,bad);
+ assert.equal(C.handoffPack('crm','',NOW),null);assert.equal(C.handoffPack('crm','x'.repeat(999),NOW).text.length,300);
+});
+test('Regia: il link scrive il passaggio nella sessione; la pagina di arrivo mostra il testo pronto e non invia niente',async()=>{
+ const C=require('../lib/radix-regia-core.js'),CC=require('../lib/regia-cc.js'),guide=require('../lib/radix-guide.js'),R=require('../lib/radix-regia.js');
+ const {makeDoc}=require('./regia-fake-dom.js');
+ const mem=new Map(),session={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v)),removeItem:k=>mem.delete(k)};mem.set(R.CONFIRM_KEY,'1');
+ const fetches=[],win=(pathname)=>({location:{pathname,hash:'',search:''},addEventListener(){},sessionStorage:session,fetch:async u=>{fetches.push(u);return {ok:true,status:201,json:async()=>({ok:true})}}});
+ // partenza: Command Center, AI finta che propone un «passa»
+ const reg=C.createRegistry();reg.register('cc',CC.adapter);const sent=[];
+ const send=async m=>{sent.push(m);return 'Ecco.\n```json\n'+JSON.stringify({area:'cc',summary:'Richiamo da fissare',ops:[{op:'passa',area:'crm',richiesta:'Crea un’attività: richiamare Rossi domani alle 10'}]})+'\n```'};
+ const ui=R.create({doc:makeDoc({shellPage:'cc',topbar:true}),win:win('/control-center-v2.html'),registry:reg,guide,send,now:()=>NOW});
+ assert.equal(ui.carried,null);ui.open();const r=await ui.ask('Com’è la giornata?');assert.equal(r.kind,'proposal');await r.yes.click();
+ const links=ui.areaView.querySelectorAll('.rx-regia-link');assert.equal(links.length,1);assert.equal(links[0].getAttribute('href')||links[0].href,'/radix-sales.html');
+ assert.equal(mem.has(C.HANDOFF_KEY),false,'niente prima del clic');links[0].dispatchEvent?links[0].dispatchEvent({type:'click'}):links[0].click();
+ assert.deepEqual(JSON.parse(mem.get(C.HANDOFF_KEY)),{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10',at:NOW});
+ // arrivo: una pagina dell'area «crm» (adattatore finto, senza operazioni)
+ const reg2=C.createRegistry();reg2.register('crm',{title:'CRM',pages:['sales-crm'],shortcuts:[],ops:{},context:()=>'',read:()=>({})});const sent2=[];
+ const there=()=>R.create({doc:makeDoc({shellPage:'sales-crm',topbar:true}),win:win('/radix-sales.html'),registry:reg2,guide,send:async m=>{sent2.push(m);return 'ok'},now:()=>NOW+5000});
+ const ui2=there();assert.equal(ui2.carried.text,'Crea un’attività: richiamare Rossi domani alle 10');assert.equal(ui2.panel.hidden,false);
+ assert.equal(ui2.input.value,'Crea un’attività: richiamare Rossi domani alle 10');assert.match(ui2.log.textContent,/Richiesta portata dal Command Center/);
+ assert.equal(sent2.length,0,'nessuna chiamata AI da sola');assert.equal(mem.has(C.HANDOFF_KEY),false,'usato una volta sola');
+ assert.equal(there().carried,null);
+ // un passaggio per un'altra area resta dov'è
+ mem.set(C.HANDOFF_KEY,JSON.stringify(C.handoffPack('pm','Sposta la fase Collaudo',NOW)));assert.equal(there().carried,null);assert.equal(mem.has(C.HANDOFF_KEY),true);
+});

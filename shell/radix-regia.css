@@ -41,6 +41,9 @@ button.rx-regia-fab:is(#rxGuide)[aria-expanded="true"]{box-shadow:0 0 0 3px var(
 .rx-regia:is(#rxRegia) .rx-regia-view[hidden]{display:none}
 .rx-regia:is(#rxRegia) .rx-regia-view strong{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--rg-mut)}
 .rx-regia:is(#rxRegia) .rx-regia-view ul{margin:6px 0 0;padding-left:18px}
+.rx-regia:is(#rxRegia) .rx-regia-view-links{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:4px}
+.rx-regia:is(#rxRegia) .rx-regia-view-links .rx-regia-link{border-radius:12px;white-space:normal;overflow-wrap:anywhere}
+.rx-regia:is(#rxRegia) .rx-regia-view-note{margin-top:6px;font-size:12px;color:var(--rg-mut)}
 .rx-regia:is(#rxRegia) .rx-regia-log{flex:1;min-height:0;overflow:auto;margin-top:10px;border-top:1px solid var(--rg-line);padding:12px 16px;display:flex;flex-direction:column;gap:10px;background:var(--rg-panel)}
 .rx-regia:is(#rxRegia) .rx-regia-msg{padding:9px 12px;border-radius:14px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
 .rx-regia:is(#rxRegia) .rx-regia-msg.bot{background:var(--rg-panel-2);border:1px solid var(--rg-line);align-self:flex-start}

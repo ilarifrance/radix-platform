@@ -52,7 +52,7 @@ test('a shortcut goes through send() with the page context; the card shows ops, 
  cls(ui.shortcuts,'rx-regia-chip')[0].click();for(let i=0;i<5;i++)await tick();
  assert.equal(calls.length,1);const m=calls[0].messages;assert.deepEqual(m,[{role:'user',content:'Cosa è fermo oggi? Dimmi cosa sbloccare per primo.'}]);
  const ctx=calls[0].ctx.contextBlock;
- assert.match(ctx,/^\[Area: Command Center \(cc\)\]\n\[Operazioni\] pin\n\[Contesto\] Command Center: 4 progetti, 2 workflow in corso, 1 approvazioni in attesa\./);
+ assert.match(ctx,/^\[Area: Command Center \(cc\)\]\n\[Operazioni\] pin, passa\n\[Contesto\] Command Center: 4 progetti, 2 workflow in corso, 1 approvazioni in attesa\./);
  assert.match(ctx,/Fermi: Orchestratore PED · bloccato/);
  assert.deepEqual(calls[0].ctx.memoryScope,{level:'agency',agentId:'radix-director'},'no project on this page: the agency-wide memory');
  const card=ui.log.querySelector('.rx-regia-card');assert.ok(card);

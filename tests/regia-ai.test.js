@@ -128,7 +128,7 @@ test('the real send: one POST to /api/chat with the role, the digest, the contex
  assert.equal(f.url,'/api/chat');assert.equal(f.opts.method,'POST');assert.equal(f.opts.credentials,'same-origin');
  assert.deepEqual(Object.keys(f.body).sort(),['context','image','memoryScope','messages','role']);
  assert.equal(f.body.role,'radix-director');assert.deepEqual(f.body.messages,[{role:'user',content:'Cosa è fermo?'}]);
- assert.match(f.body.context,/^\[Area: Command Center \(cc\)\]\n\[Operazioni\] pin\n\[Contesto\] /);
+ assert.match(f.body.context,/^\[Area: Command Center \(cc\)\]\n\[Operazioni\] pin, passa\n\[Contesto\] /);
  assert.deepEqual(f.body.memoryScope,{projectId:'forno-aurora',clientId:'',agentId:'radix-director'});
  assert.equal(f.body.image,'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==');
  // the second message carries the conversation digest, no image
