@@ -233,6 +233,8 @@ async function currencyCard(manage){
   try{const d=await api('workspace_settings',{body:{workspace:S.workspace,entity:'workspace_settings',action:'update',data:{currency:sel.value}}});current=(d.settings&&d.settings.currency)||sel.value;msg.textContent='Valuta salvata: '+label(current)+'.';if(rememberCurrency(current))setTimeout(()=>location.reload(),600)}
   catch(e){msg.textContent=e.message||String(e)}finally{S.busy=false;save.disabled=false}},'st-btn st-primary');
  const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);
+ // A currency picked but not saved: say so, because the second-currency list below still follows the saved one.
+ sel.addEventListener('change',()=>{msg.textContent=sel.value===current?'':'Premi «Salva la valuta» per confermare: poi qui sotto scegli la seconda valuta.'});
  // Second currency and default exchange rate (migration sales 025, sales/crm-fx.js): for who buys in one currency and
  // sells in another. Each opportunity then shows both amounts; the rate saved on an opportunity is not rewritten.
  if(st.fx_pending){c.append(E('p','La seconda valuta con il cambio si attiva con l’aggiornamento dell’archivio (migrazione sales 025).','st-note'));return c}
@@ -242,7 +244,7 @@ async function currencyCard(manage){
  const none=E('option','—');none.value='';sel2.append(none);
  for(const code of codes){if(code===current)continue;const o=E('option',label(code));o.value=code;if(code===st.second_currency)o.selected=true;sel2.append(o)}
  l2.append(sel2);
- const l3=E('label',undefined,'st-label'),unit=exact(''),rate=E('input');rate.id='st-rate';rate.type='text';rate.inputMode='decimal';rate.autocomplete='off';rate.placeholder='1,15';
+ const l3=E('label',undefined,'st-label'),unit=exact(''),rate=E('input');rate.id='st-rate';rate.type='text';rate.inputMode='decimal';rate.autocomplete='off';rate.placeholder=I&&I.en?'1.15':'1,15';
  rate.value=st.exchange_rate?(I&&I.en?String(st.exchange_rate):String(st.exchange_rate).replace('.',',')):'';
  const drawUnit=()=>{unit.textContent=sel2.value?' (1 '+current+' = … '+sel2.value+')':''};drawUnit();sel2.addEventListener('change',drawUnit);
  l3.append('Cambio predefinito',unit,rate);
