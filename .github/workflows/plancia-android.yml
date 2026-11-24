@@ -3,6 +3,10 @@
 name: Plancia Android (APK di prova)
 on:
   workflow_dispatch:
+    inputs:
+      dominio:
+        description: 'Dominio che l''app deve aprire (vuoto = quello in capacitor.config.json)'
+        required: false
   push:
     branches: ['claude/project-thread-lvyq5r']
     paths: ['mobile/**', '.github/workflows/plancia-android.yml']
@@ -25,6 +29,11 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm install --no-audit --no-fund
+      - name: Dominio dell'app
+        if: ${{ inputs.dominio != '' }}
+        env:
+          DOMINIO: ${{ inputs.dominio }}
+        run: node scripts/set-server.js "$DOMINIO"
       - run: npx cap add android
       - run: node scripts/patch-native.js
       - run: npx cap sync android

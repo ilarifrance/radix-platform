@@ -7,7 +7,8 @@
     "setup": "npx cap add android && npx cap add ios && node scripts/patch-native.js && npx cap sync",
     "sync": "npx cap sync && node scripts/patch-native.js",
     "android": "npx cap open android",
-    "ios": "npx cap open ios"
+    "ios": "npx cap open ios",
+    "dominio": "node scripts/set-server.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",

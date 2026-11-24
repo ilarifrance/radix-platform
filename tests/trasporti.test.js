@@ -635,3 +635,47 @@ test('API: azienda, invito dell\'autista, telefono e ufficio che si scambiano i 
  assert.equal((await go('autista.scollega',{driver_id:D},{uid:7})).body.phones,1);
  assert.equal((await go('sync',{},{token:ent.token})).status,401);
 });
+
+test('Plancia autonoma: attivazione dell\'azienda, accesso, foto dei documenti', async ()=>{
+ process.env.JWT_SECRET=process.env.JWT_SECRET||'test-secret';
+ const accesso=require('../api/_plancia_accesso');const auth=require('../api/_auth');
+ const users=[];let company=null;
+ const db={async userByEmail(e){return users.find(u=>u.email===e)||null;},async userById(i){return users.find(u=>u.id===i)||null;},async companyOf(){return company;},async setPassword(i,h){users.find(u=>u.id===i).password_hash=h;},
+  async activate({email,name,hash,company:c}){if(users.some(u=>u.email===email))return null;users.push({id:users.length+1,email,name,password_hash:hash});company={id:'c',name:c,role:'owner'};return {id:users.length,company_id:'c'};}};
+ const H=accesso.createHandler({db,codes:()=>['PILOTA-1']});
+ const go=(action,data,cookie)=>new Promise(resolve=>{const res={h:{},statusCode:200,setHeader(k,v){this.h[k]=v;},status(c){this.statusCode=c;return this;},json(o){resolve({status:this.statusCode,body:o,cookie:this.h['Set-Cookie']});}};
+  H({method:'POST',body:{action,data},headers:{'content-type':'application/json','x-radix-trasporti':'1',...(cookie?{cookie}:{})}},res);});
+ assert.equal((await go('io')).status,401);
+ const base={company:'Prova Srl',name:'Anna',email:'Anna@Prova.it',password:'segreta123'};
+ assert.equal((await go('attiva',{...base,code:'altro'})).status,403);
+ assert.equal((await go('attiva',{...base,code:'pilota-1',password:'corta'})).status,400);
+ assert.equal((await go('attiva',{...base,code:'pilota-1',email:'non-email'})).status,400);
+ const a=await go('attiva',{...base,code:'pilota-1'});assert.equal(a.status,200);assert.match(a.cookie,/radix_session=.*HttpOnly/);
+ assert.equal(users[0].email,'anna@prova.it');assert.ok(!users[0].password_hash.includes('segreta123'));
+ assert.equal((await go('attiva',{...base,code:'pilota-1'})).status,409);
+ assert.equal((await go('entra',{email:'anna@prova.it',password:'sbagliata1'})).status,401);
+ const e=await go('entra',{email:' ANNA@prova.it ',password:'segreta123'});assert.equal(e.status,200);
+ const cookie=e.cookie.split(';')[0];
+ assert.equal((await go('io',{},cookie)).body.company,'Prova Srl');
+ assert.equal((await go('password',{current:'no',password:'nuovasegreta'},cookie)).status,400);
+ assert.equal((await go('password',{current:'segreta123',password:'nuovasegreta'},cookie)).status,200);
+ assert.ok(auth.verifyPassword('nuovasegreta',users[0].password_hash));
+ assert.match((await go('esci')).cookie,/Max-Age=0/);
+ assert.equal((await accesso.createHandler({db,codes:()=>[]})({method:'POST',body:{action:'attiva',data:{}},headers:{'content-type':'application/json','x-radix-trasporti':'1'}},{setHeader(){},status(c){this.c=c;return this;},json(){return this.c;}})),503);
+ // photos of the documents: the office and the driver who took them
+ const memoryDb=require('./helpers/trasporti-memory-db');const syncApi=require('../api/_trasporti_sync');const mdb=memoryDb();
+ const T=createHandler({getSessionUser:req=>req.uid?{uid:req.uid}:null,db:mdb,sync:syncApi.create({db:mdb,open:()=>true})});
+ const t=async(action,data,o={})=>call(T,{body:{action,data},uid:o.uid,headers:o.token?{'x-plancia-device':o.token}:{}});
+ await t('azienda.crea',{name:'Prova'},{uid:1});
+ await t('sync',{since:0,changes:[{coll:'drivers',id:'d1',data:{name:'Uno'}},{coll:'drivers',id:'d2',data:{name:'Due'}}]},{uid:1});
+ const tok=async id=>(await t('autista.entra',{code:(await t('autista.invita',{driver_id:id},{uid:1})).body.code})).body.token;
+ const t1=await tok('d1'),t2=await tok('d2');
+ assert.equal((await t('file.salva',{id:'f1',media_type:'image/jpeg',image:IMG},{token:t1})).body.saved,true);
+ assert.equal((await t('file.salva',{id:'f2',media_type:'text/html',image:IMG},{token:t1})).status,400);
+ assert.equal((await t('file.salva',{id:'f3',media_type:'image/jpeg',image:'<x>'},{token:t1})).status,400);
+ assert.equal((await t('file.leggi',{id:'f1'},{uid:1})).body.image,IMG);
+ assert.equal((await t('file.leggi',{id:'f1'},{token:t1})).status,200);
+ assert.equal((await t('file.leggi',{id:'f1'},{token:t2})).status,404);
+ assert.equal((await t('file.leggi',{id:'f1'},{uid:2})).status,403);
+ assert.equal((await t('file.leggi',{id:'f1'})).status,401);
+});

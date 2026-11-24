@@ -7,6 +7,8 @@
      autista.entra      {code}            → {token, driver_id, company}: no sign-in, the code is the key. The phone then
                                             sends the token in the header X-Plancia-Device.
      posizioni.elenco   {}                → positions of the last 3 days, for the map of the office
+     file.salva         {id, media_type, image (base64), trip_id?} → the photo of a document, kept with the company
+     file.leggi         {id}              → {media_type, image}: the office, or the driver who took it
    Tables: migrations/trasporti/006_sincronizzazione.sql. Codes and tokens are stored only as SHA-256. */
 'use strict';
 const crypto=require('crypto');
@@ -55,6 +57,12 @@ const defaultDb={
   return r[0].length;
  },
  async devices(company){const {sql}=require('./_db');return sql()`SELECT driver_id,count(*)::int AS phones,max(last_seen_at) AS last_seen_at FROM tr_driver_devices WHERE company_id=${company} AND revoked_at IS NULL GROUP BY driver_id`;},
+ async saveFile(company,f,actor){
+  const {sql}=require('./_db');
+  const r=await sql()`INSERT INTO tr_files(company_id,id,media_type,bytes,trip_id,created_by,created_by_driver) VALUES(${company},${f.id},${f.media_type},decode(${f.image},'base64'),${f.trip_id||null},${actor.uid||null},${actor.driver||null}) ON CONFLICT(company_id,id) DO NOTHING RETURNING 1`;
+  return r.length;
+ },
+ async readFile(company,id){const {sql}=require('./_db');return (await sql()`SELECT media_type,encode(bytes,'base64') AS image,created_by_driver FROM tr_files WHERE company_id=${company} AND id=${id}`)[0]||null;},
  async positions(company){const {sql}=require('./_db');return sql()`SELECT vehicle_id,driver_id,trip_id,at,lat,lon,speed_kmh,accuracy_m,source FROM tr_positions WHERE company_id=${company} AND at>now()-interval '3 days' ORDER BY at DESC LIMIT 20000`;},
  async insertPositions(company,driver,vehicle,points){
   const {sql}=require('./_db');
@@ -66,7 +74,8 @@ const defaultDb={
  }
 };
 
-const ACTIONS=['sync','azienda.crea','autista.invita','autista.scollega','autista.entra','posizioni.elenco'];
+const ACTIONS=['sync','azienda.crea','autista.invita','autista.scollega','autista.entra','posizioni.elenco','file.salva','file.leggi'];
+const FILE_MEDIA=['image/jpeg','image/png','image/webp','application/pdf'],MAX_FILE=4200000;
 
 function create({db=defaultDb,now=()=>Date.now(),random=n=>crypto.randomBytes(n),open=()=>process.env.TRASPORTI_REGISTRAZIONE==='1'}={}){
  const tries=new Map();
@@ -131,6 +140,22 @@ function create({db=defaultDb,now=()=>Date.now(),random=n=>crypto.randomBytes(n)
    if(a.kind==='driver')out.driver_id=a.driver;
    if(a.kind==='office')out.phones=await db.devices(a.company);
    return out;
+  }
+  if(action==='file.salva'){
+   if(a.kind!=='office'&&a.kind!=='driver')throw failure(403,'Non consentito.');
+   if(typeof data.id!=='string'||!S.ID.test(data.id))throw failure(400,'File non valido.');
+   if(!FILE_MEDIA.includes(data.media_type))throw failure(400,'Formato non supportato: usa una foto JPEG, PNG, WebP o un PDF.');
+   if(typeof data.image!=='string'||!data.image||data.image.length>MAX_FILE||!/^[A-Za-z0-9+/]+={0,2}$/.test(data.image))throw failure(data.image&&data.image.length>MAX_FILE?413:400,'File troppo grande o non valido.');
+   const trip=typeof data.trip_id==='string'&&S.ID.test(data.trip_id)?data.trip_id:null;
+   await db.saveFile(a.company,{id:data.id,media_type:data.media_type,image:data.image,trip_id:trip},a.kind==='driver'?{driver:a.driver}:{uid:a.uid});
+   return {saved:true};
+  }
+  if(action==='file.leggi'){
+   if(a.kind==='none')throw failure(403,'Non consentito.');
+   if(typeof data.id!=='string'||!S.ID.test(data.id))throw failure(400,'File non valido.');
+   const f=await db.readFile(a.company,data.id);
+   if(!f||(a.kind==='driver'&&f.created_by_driver!==a.driver))throw failure(404,'File non trovato.');
+   return {media_type:f.media_type,image:f.image.replace(/\s/g,'')};
   }
   if(a.kind!=='office')throw failure(403,'Questa operazione la fa l\'ufficio.');
   if(action==='posizioni.elenco')return {positions:(await db.positions(a.company)).map(p=>({...p,at:new Date(p.at).toISOString()}))};

@@ -7,7 +7,7 @@ senza rete, aspettano sul telefono.
 
 - Codice app: `it.plancia.app`, nome: **Plancia**. Gli account sviluppatore sono quelli di Ilari Group.
 - L'app carica le pagine dal server, indicato in `capacitor.config.json` → `server.url`: ora è l'anteprima della PR.
-  Per il lancio va messo il dominio definitivo. Gli aggiornamenti dell'app web arrivano senza ripubblicare l'app.
+  Per il lancio va messo il dominio definitivo: `npm run dominio -- <dominio>` (oppure il campo «dominio» quando si lancia a mano l'azione Android). Gli aggiornamenti dell'app web arrivano senza ripubblicare l'app.
 
 ## APK Android di prova (senza installare niente)
 Ogni modifica a `mobile/` fa partire su GitHub l'azione **"Plancia Android (APK di prova)"**. Si apre l'ultima

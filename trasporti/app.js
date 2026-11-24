@@ -308,7 +308,7 @@ function tripDetail(id){
   +is.map(i=>'<p class="tr-banner'+(i.resolved?'':' error')+'"><strong>'+esc(ISSUE[i.kind]||i.kind)+'</strong> '+hm(i.at)+': '+esc(i.text||'')+(i.resolved?' (gestita)':'')+'</p>').join('')
   +(ds.length?ds.map(d=>{
    if(d.kind==='consegna'){const f=d.fields||{};return '<h3>Consegna firmata <span class="tr-subtle">'+dmy(d.at)+' '+hm(d.at)+'</span></h3><table class="tr-table"><tbody><tr><th>Ricevuto da</th><td>'+esc(f.ricevuto_da||'')+'</td></tr>'+(f.riserve?'<tr><th>Riserve</th><td class="wrap">'+esc(f.riserve)+'</td></tr>':'')+'<tr><th>Firma</th><td>'+(typeof f.firma==='string'&&f.firma.startsWith('data:image/')?'<img src="'+esc(f.firma)+'" alt="Firma del destinatario" style="max-width:240px;background:#fff;border-radius:6px">':f.firma?'presente':'—')+'</td></tr>'+(d.photo?'<tr><th>Foto</th><td><img src="'+esc(d.photo)+'" alt="Foto alla consegna" style="max-width:240px;border-radius:6px"></td></tr>':'')+'</tbody></table>';}
-   const k=DOC.KINDS[d.kind];return '<h3>'+esc(k?(d.kind==='conferma'?k.label:k.name):d.kind)+(d.file?' <span class="tr-subtle">'+(d.file.data?'<a class="tr-link" href="'+esc(d.file.data)+'" download="'+esc(d.file.name)+'">'+esc(d.file.name)+'</a>':esc(d.file.name)+(d.demo?'':' (file troppo pesante per la dimostrazione: qui resta solo il contenuto)'))+'</span>':'')+(d.corrected?' <span class="tr-pill flag">'+d.corrected+' campi corretti dall\'autista</span>':'')+(d.demo?' <span class="tr-pill">lettura di esempio</span>':'')+(d.pending?' <span class="tr-pill flag">foto in attesa di lettura</span>':'')+(d.later_diff&&d.later_diff.length?' <span class="tr-pill flag">la lettura successiva differisce su '+d.later_diff.length+' campi</span>':'')+'</h3><table class="tr-table"><tbody>'
+   const k=DOC.KINDS[d.kind];return '<h3>'+esc(k?(d.kind==='conferma'?k.label:k.name):d.kind)+(d.file?' <span class="tr-subtle">'+(d.file.data?'<a class="tr-link" href="'+esc(d.file.data)+'" download="'+esc(d.file.name)+'">'+esc(d.file.name)+'</a>':esc(d.file.name)+(d.demo?'':' (file troppo pesante per la dimostrazione: qui resta solo il contenuto)'))+'</span>':'')+(d.file_id?' <button type="button" class="tr-link" data-file="'+esc(d.file_id)+'">Vedi la foto</button>':'')+(d.corrected?' <span class="tr-pill flag">'+d.corrected+' campi corretti dall\'autista</span>':'')+(d.demo?' <span class="tr-pill">lettura di esempio</span>':'')+(d.pending?' <span class="tr-pill flag">foto in attesa di lettura</span>':'')+(d.later_diff&&d.later_diff.length?' <span class="tr-pill flag">la lettura successiva differisce su '+d.later_diff.length+' campi</span>':'')+'</h3><table class="tr-table"><tbody>'
    +(k?k.fields:[]).filter(([key])=>d.fields[key]!=null).map(([key,label,type])=>'<tr><th>'+esc(label)+'</th><td class="wrap">'+esc(type==='date'&&/^\d{4}-\d\d-\d\d$/.test(d.fields[key])?dmy(d.fields[key]):type==='money'&&typeof d.fields[key]==='number'?eur(Math.round(d.fields[key]*100)):d.fields[key])+(d.read&&JSON.stringify(d.read[key])!==JSON.stringify(d.fields[key])?' <span class="tr-subtle">(letto: '+esc(d.read[key]??'vuoto')+')</span>':'')+'</td></tr>').join('')+'</tbody></table>';}).join(''):'<p class="tr-muted">Nessun documento per questo viaggio: senza documento non si fattura.</p>');
 }
 // Costs met during the trip (fuel, AdBlue, washing, bedding, parking…): the driver's photos and the office's entries.
@@ -1025,6 +1025,8 @@ function importPlaces(input){
 }
 // ---------- the driver's phone: the office invites, the driver types the code once ----------
 const LIVE=window.RadixTrLive,isLive=()=>!!(LIVE&&LIVE.live());
+// where the office signs in: Plancia's own page on its site, the RADIX one inside RADIX
+const SIGNIN=window.TR_BRAND&&TR_BRAND.signin||'/accedi';
 function driverPhone(d){
  const box=document.createElement('section');box.className='cc-phone';$('drawerBody').appendChild(box);
  const draw=inv=>{
@@ -1051,8 +1053,12 @@ function driverPhone(d){
 function liveFoot(){
  const el=$('banner');if(!el||!LIVE)return;const st=LIVE.status();
  if(isLive()){
-  const txt=st.error==='accesso'?'Sessione scaduta: <a class="tr-link" href="/control-center-v2.html">accedi di nuovo</a> per sincronizzare.':st.error==='offline'?'Senza rete: lavori in locale, i dati partono appena torna.':st.ok===false?'Il server non risponde: riprovo da solo.':st.at?'Dati sincronizzati alle '+hm(ST.localIso(new Date(st.at)))+'.':'Sincronizzo…';
-  el.innerHTML=txt+(st.pending?' <strong>'+st.pending+' modifiche in attesa.</strong>':'');
+  const txt=st.error==='accesso'?'Sessione scaduta: <a class="tr-link" href="'+SIGNIN+'">accedi di nuovo</a> per sincronizzare.':st.error==='offline'?'Senza rete: lavori in locale, i dati partono appena torna.':st.ok===false?'Il server non risponde: riprovo da solo.':st.at?'Dati sincronizzati alle '+hm(ST.localIso(new Date(st.at)))+'.':'Sincronizzo…';
+  el.innerHTML=txt+(st.pending?' <strong>'+st.pending+' modifiche in attesa.</strong>':'')+' <button type="button" class="tr-link" id="signOut">Esci</button>';
+  $('signOut').onclick=async()=>{if(st.pending&&!confirm('Ci sono '+st.pending+' modifiche non ancora inviate: uscendo da questo computer si perdono. Esco lo stesso?'))return;
+   try{await fetch('/api/accesso',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'esci'})});}catch{}
+   try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'});}catch{}
+   await LIVE.leave();location.href=SIGNIN;};
  }else if(st.error==='no_company'&&st.can_create&&!$('mkCompany')){
   el.innerHTML='Stai vedendo la dimostrazione. <button type="button" class="tr-link" id="mkCompany">Apri la tua azienda</button>';
   $('mkCompany').onclick=async()=>{const name=prompt('Nome della tua azienda (ragione sociale):');if(!name||!name.trim())return;try{await LIVE.createCompany(name.trim());location.reload();}catch(e){say(e.message,'error');}};
@@ -1067,6 +1073,15 @@ async function livePositions(){
   if(data.positions.length!==before){save();if((tab==='oggi'||tab==='localizzatori')&&$('drawer').hidden&&!typing())render();}
  }catch{}
 }
+// the photo of a document, asked to the server when someone wants to see it (opens in a new tab)
+document.addEventListener('click',async e=>{
+ const b=e.target.closest&&e.target.closest('[data-file]');if(!b||!LIVE)return;
+ b.disabled=true;const was=b.textContent;b.textContent='Apro…';
+ try{const f=await LIVE.post('file.leggi',{id:b.dataset.file});const bin=atob(f.image),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  window.open(URL.createObjectURL(new Blob([u],{type:f.media_type})),'_blank','noopener');}
+ catch(err){say(err.status===404?'La foto non è ancora arrivata dal telefono.':err.offline?'Senza rete: riprova quando torna.':err.message,'error');}
+ b.disabled=false;b.textContent=was;
+});
 const typing=()=>{const a=document.activeElement;return !!a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.id!=='q';};
 let proposalsOpen=false;
 function renderProposals(){

@@ -66,35 +66,57 @@ button:hover{filter:brightness(1.07)}
 <span>plancia<span class="dot">.</span></span>
 </a>
 <div style="display:grid;gap:6px">
-<h1>Area riservata</h1>
-<p>Accedi al centro operativo della tua azienda.</p>
+<h1 id="h">Area riservata</h1>
+<p id="sub">Accedi al centro operativo della tua azienda.</p>
 </div>
-<p class="note"><b>Anteprima.</b> L'accesso non è ancora collegato. Premi Accedi per entrare con dati di esempio. Non viene salvato né inviato nulla.</p>
 <form id="login" novalidate>
-<label for="email">Email<input id="email" type="email" autocomplete="username" placeholder="nome@azienda.it"></label>
-<label for="pw">Password<input id="pw" type="password" autocomplete="current-password"></label>
-<div class="row">
-<label for="ricorda"><input id="ricorda" type="checkbox"> Ricordami</label>
-<a href="#" id="forgot">Password dimenticata?</a>
+<div id="newFields" hidden style="display:none;gap:14px">
+<label for="company">Nome dell'azienda<input id="company" autocomplete="organization" placeholder="Autotrasporti Rossi Srl"></label>
+<label for="name">Il tuo nome<input id="name" autocomplete="name"></label>
+<label for="code">Codice di attivazione<input id="code" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Te lo ha dato Plancia"></label>
 </div>
-<button type="submit">Accedi</button>
-<p class="msg" id="msg" hidden></p>
+<label for="email">Email<input id="email" type="email" autocomplete="username" placeholder="nome@azienda.it" required></label>
+<label for="pw">Password<input id="pw" type="password" autocomplete="current-password" required minlength="8"></label>
+<button type="submit" id="go">Accedi</button>
+<p class="msg" id="msg" role="alert" hidden></p>
 </form>
+<p class="foot" id="switchRow"><span id="switchText">Hai un codice di attivazione?</span> <a href="#" id="switch">Attiva la tua azienda</a></p>
+<p class="foot"><a href="#" id="forgot">Password dimenticata?</a> · <a href="/trasporti/">Guarda la dimostrazione</a></p>
 <p class="foot">Sei un autista? Usa l'app Plancia sul telefono, non serve accedere da qui.</p>
 <p class="foot"><a href="index.html">← Torna al sito</a></p>
 </div>
 </main>
 <script>
-document.getElementById('login').addEventListener('submit', e => {
-e.preventDefault();
-location.href = '/trasporti/';
+(function(){
+const $=id=>document.getElementById(id);let mode='entra',busy=false;
+const say=t=>{$('msg').hidden=!t;$('msg').textContent=t||'';};
+function show(){
+ const n=mode==='attiva';$('newFields').hidden=!n;$('newFields').style.display=n?'grid':'none';
+ $('h').textContent=n?'Attiva la tua azienda':'Area riservata';
+ $('sub').textContent=n?'Crea l\'accesso dell\'ufficio. Gli autisti li inviti dopo, dal programma.':'Accedi al centro operativo della tua azienda.';
+ $('go').textContent=n?'Attiva e entra':'Accedi';$('pw').autocomplete=n?'new-password':'current-password';
+ $('switchText').textContent=n?'Hai già un accesso?':'Hai un codice di attivazione?';$('switch').textContent=n?'Accedi':'Attiva la tua azienda';say('');
+}
+$('switch').addEventListener('click',e=>{e.preventDefault();mode=mode==='entra'?'attiva':'entra';show();});
+$('forgot').addEventListener('click',e=>{e.preventDefault();say('Scrivi a Plancia dall\'email con cui accedi: ti mandiamo una password nuova.');});
+$('login').addEventListener('submit',async e=>{
+ e.preventDefault();if(busy)return;
+ const data={email:$('email').value.trim(),password:$('pw').value};
+ if(mode==='attiva')Object.assign(data,{company:$('company').value.trim(),name:$('name').value.trim(),code:$('code').value.trim()});
+ if(!data.email||!data.password){say('Scrivi email e password.');return;}
+ busy=true;$('go').disabled=true;say('');
+ let r=null,j={};
+ try{r=await fetch('/api/accesso',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:mode,data})});j=await r.json().catch(()=>({}));}catch(err){r=null;}
+ busy=false;$('go').disabled=false;
+ if(!r){say('Senza rete: riprova tra poco.');return;}
+ if(r.ok&&j.ok){try{localStorage.setItem('plancia-live',JSON.stringify({role:'office',company:j.company||''}));}catch(e){}location.href='/trasporti/';return;}
+ // the showcase site has no server behind: there the access is not active yet
+ if(r.status===404||r.status===405||r.status===503){say('Su questa anteprima l\'accesso non è attivo: puoi guardare la dimostrazione qui sotto.');return;}
+ say(j.error||'Accesso non riuscito: riprova.');
 });
-document.getElementById('forgot').addEventListener('click', e => {
-e.preventDefault();
-const m = document.getElementById('msg');
-m.hidden = false;
-m.textContent = 'Nella versione definitiva qui arriva il link per reimpostare la password.';
-});
+if(/[?&]attiva\b/.test(location.search)){mode='attiva';const c=new URLSearchParams(location.search).get('codice');if(c)$('code').value=c;}
+show();
+})();
 </script>
 </body>
 </html>

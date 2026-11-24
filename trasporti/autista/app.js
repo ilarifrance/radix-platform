@@ -43,6 +43,13 @@ async function flushQueue(){
  try{
   const items=await Q.all().catch(()=>[]);let done=0;
   for(const it of items||[]){
+   // the photo itself, kept for the office (real company only)
+   if(it.type==='file'){
+    if(!live()){await Q.del(it.id);continue;}
+    try{await LIVE.post('file.salva',{id:it.file_id,media_type:it.img.media_type,image:it.img.image,trip_id:it.trip_id});await Q.del(it.id);}
+    catch(e){if(e.offline)break;if([400,403,413].includes(e.status))await Q.del(it.id);}
+    continue;
+   }
    try{
     const r=await readDocument(it.kind,it.img,{noDemo:true});
     data=ST.load();const d=data.documents.find(x=>x.id===it.doc_id);
@@ -297,7 +304,7 @@ function startPhoto(kind,trip){
  pick(async f=>{flow={type:'photo',kind,trip:trip.id,stage:'reading'};render();
   try{const img=await shrink(f);flow.img=img;flow.preview=img.preview;render();
    if(!online()){flow.reading=offlineReading(kind);flow.offline=true;}
-   else{const r=await readDocument(kind,img);flow.reading=r.reading;flow.demo=r.demo;}
+   else{const r=await readDocument(kind,img,{noDemo:live()});flow.reading=r.reading;flow.demo=r.demo;}
    flow.stage='confirm';}
   catch(e){if(e&&e.offline){flow.reading=offlineReading(kind);flow.offline=true;}else{flow.reading=DOC.parseReading(kind,null);flow.reading.note=e.message;}flow.stage='confirm';}
   render();},'image/*,application/pdf');
@@ -352,7 +359,8 @@ function renderFlow(){
   const campi={};for(const el of e.target.elements)if(el.name)campi[el.name]=el.value;
   const res=DOC.checkConfirmed(flow.kind,campi);
   if(!res.ok){$('docErr').textContent=res.errors.join(' ');$('docErr').hidden=false;return;}
-  const corrected=flow.offline?0:Object.keys(res.values).filter(k2=>JSON.stringify(res.values[k2])!==JSON.stringify(r.campi[k2])).length;
+  const hadReading=Object.values(r.campi||{}).some(v=>v!=null&&v!=='');
+  const corrected=flow.offline||!hadReading?0:Object.keys(res.values).filter(k2=>JSON.stringify(res.values[k2])!==JSON.stringify(r.campi[k2])).length;
   data=ST.load();const trip=data.trips.find(t=>t.id===flow.trip);const id=ST.uid();
   if(flow.kind==='spesa'){
    const v=res.values;data.costs.push({id:ST.uid(),kind:DOC.expenseKind(v.tipo),date:v.data,amount_cents:Math.round(v.importo*100),vehicle_id:trip.vehicle_id,driver_id:trip.driver_id,trip_id:trip.id,source:'spesa',description:[v.tipo||'Spesa',v.esercente,v.pagamento&&/contant|autista|propri/i.test(v.pagamento)?'da rimborsare all\'autista':null].filter(Boolean).join(' · '),fields:v,doc_id:id,refund:!!(v.pagamento&&/contant|autista|propri/i.test(v.pagamento))});
@@ -360,8 +368,10 @@ function renderFlow(){
   if(flow.kind==='carburante'){
    const v=res.values;data.costs.push({id:ST.uid(),kind:'carburante',date:v.data,amount_cents:Math.round(v.importo*100),liters:v.litri,km:v.km,vehicle_id:trip.vehicle_id,driver_id:trip.driver_id,trip_id:trip.id,description:'Rifornimento '+(v.distributore||''),fields:v,doc_id:id});
   }
-  data.documents.push({id,trip_id:flow.trip,kind:flow.kind,at:nowIso(),fields:res.values,read:flow.offline?null:r.campi,corrected,confirmed:true,demo:!!flow.demo,pending:!!flow.offline});
+  const fileId=live()&&flow.img?ST.uid():null;
+  data.documents.push({id,trip_id:flow.trip,kind:flow.kind,at:nowIso(),fields:res.values,read:flow.offline?null:r.campi,corrected,confirmed:true,demo:!!flow.demo,pending:!!flow.offline,...(fileId?{file_id:fileId,file_type:flow.img.media_type}:{})});
   save();
+  if(fileId){try{await Q.put({id:ST.uid(),type:'file',file_id:fileId,trip_id:flow.trip,img:{image:flow.img.image,media_type:flow.img.media_type},at:nowIso()});}catch{}flushQueue();}
   if(flow.offline&&flow.img){try{await Q.put({id:ST.uid(),doc_id:id,kind:flow.kind,img:{image:flow.img.image,media_type:flow.img.media_type},at:nowIso()});}catch{}}
   recordPosition(trip);const was=flow;flow=null;
   say(k.label+' salvato nel viaggio.'+(was.offline?' La foto parte appena torna la rete.':corrected?' Hai corretto '+corrected+' campi.':''),'ok');render();updateOffline();
@@ -369,7 +379,7 @@ function renderFlow(){
 }
 
 $('changeWho').onclick=()=>{if(live()){me={driver:me.driver,vehicle:null};localStorage.setItem(ME_KEY,JSON.stringify(me));}else{me=null;localStorage.removeItem(ME_KEY);}flow=null;render();};
-if(LIVE)LIVE.on((what,st)=>{if(st.error==='accesso'&&live())say('Questo telefono non è più collegato: chiedi un nuovo codice all\'ufficio.','error');if(!flow&&(what==='data'||!driver()||!vehicle()))render();});
+if(LIVE)LIVE.on((what,st)=>{if(st.ok)flushQueue();if(st.error==='accesso'&&live())say('Questo telefono non è più collegato: chiedi un nuovo codice all\'ufficio.','error');if(!flow&&(what==='data'||!driver()||!vehicle()))render();});
 {const inv=new URLSearchParams(location.search).get('invito');if(inv&&LIVE&&!live())enterCode(inv);}
 window.addEventListener('storage',e=>{if(e.key===ST.KEY&&!flow)render();});
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('/trasporti/autista/sw.js',{scope:'/trasporti/autista/'}).catch(()=>{});

@@ -1,7 +1,7 @@
 'use strict';
 // In-memory stand-in for the tables of migrations/trasporti/006 (same behaviour as api/_trasporti_sync.js defaultDb).
 module.exports=function memoryDb(){
- const db={rev:0,records:new Map(),members:new Map(),companies:new Map(),invites:new Map(),devs:new Map(),points:[],n:0};
+ const db={rev:0,records:new Map(),members:new Map(),companies:new Map(),invites:new Map(),devs:new Map(),points:[],files:new Map(),n:0};
  const key=(c,coll,id)=>c+'|'+coll+'|'+id;
  return Object.assign(db,{
   async memberOf(uid){const m=db.members.get(uid);return m?{company_id:m.company_id,role:m.role,name:db.companies.get(m.company_id)}:null;},
@@ -15,6 +15,8 @@ module.exports=function memoryDb(){
   async useInvite(hash,tokenHash){const i=db.invites.get(hash);if(!i||i.used)return null;i.used=true;db.devs.set(tokenHash,{company_id:i.company_id,driver_id:i.driver_id,revoked:false,seen:new Date()});return {company_id:i.company_id,driver_id:i.driver_id,company:db.companies.get(i.company_id)};},
   async revoke(company,driver){let n=0;for(const d of db.devs.values())if(d.company_id===company&&d.driver_id===driver&&!d.revoked){d.revoked=true;n++;}for(const i of db.invites.values())if(i.company_id===company&&i.driver_id===driver)i.used=true;return n;},
   async devices(company){const m={};for(const d of db.devs.values())if(d.company_id===company&&!d.revoked){m[d.driver_id]=m[d.driver_id]||{driver_id:d.driver_id,phones:0,last_seen_at:d.seen};m[d.driver_id].phones++;}return Object.values(m);},
+  async saveFile(company,f,actor){const k=company+'|'+f.id;if(db.files.has(k))return 0;db.files.set(k,{media_type:f.media_type,image:f.image,created_by_driver:actor.driver||null});return 1;},
+  async readFile(company,id){return db.files.get(company+'|'+id)||null;},
   async positions(company){return db.points.filter(p=>p.company===company).map(({company:_,...p})=>p);},
   async vehicleRecordOk(company,vehicle){const r=db.records.get(key(company,'vehicles',vehicle));return !!r&&!r.deleted;},
   async insertPositions(company,driver,vehicle,points){for(const p of points)db.points.push({company,vehicle_id:vehicle,driver_id:driver,trip_id:p.trip_id||null,at:p.at,lat:p.lat,lon:p.lon,speed_kmh:p.speed_kmh??null,accuracy_m:p.accuracy_m??null,source:'telefono'});return points.length;}
