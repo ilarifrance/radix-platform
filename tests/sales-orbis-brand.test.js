@@ -68,13 +68,13 @@ test('product pages load crm-product.js before the language layer; manifest and 
   assert.ok(P.pageAllowed(P.MANIFEST));
 });
 
-test('menu and assistant: no Sales Orbit globe, no RADIX guide, no Regia on the product', () => {
+test('menu and assistant: no Command Center, no RADIX guide, no Regia on the product', () => {
   const nav = read('sales/sales-nav.js');
   assert.match(nav, /if \(product\) items = items\.filter\(function \(it\) \{ return !it\.external && P\.pageAllowed/);
-  assert.equal(P.pageAllowed('/sales-orbit-higgsfield.html'), false);
+  assert.equal(P.pageAllowed('/sales-orbit-higgsfield.html'), true, 'the globe is the home of the product (Francesco, 24/11)');
   assert.equal(P.pageAllowed('/control-center-v2.html'), false);
   assert.match(read('sales/regia-loader.js'), /RadixCrmProduct\.here\(\)\)return;/);
   assert.match(read('shell/radix-shell.js'), /if \(!soloProduct && body\.dataset\.shellGuide/);
   const css = read('sales/sales-nav.css');
-  for (const sel of ['a[href*="sales-orbit"]', 'a[href*="control-center"]', 'a[href^="https://claude.ai/"]']) assert.ok(css.includes('html[data-product] ' + sel), sel);
+  for (const sel of ['a[href*="control-center"]', 'a[href^="https://claude.ai/"]']) assert.ok(css.includes('html[data-product] ' + sel), sel);
 });

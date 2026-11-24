@@ -12,7 +12,7 @@
       "permanent": false
     },
     {
-      "source": "/:path((?!(?:crm|sales-pipeline-premium\\.html|sales-posta\\.html|sales-vendite\\.html|lead-intelligence\\.html|sales-linkedin\\.html|sales-growth-campaigns\\.html|sales-growth-projects\\.html|impostazioni\\.html|manifest\\.webmanifest|sales-orbis\\.webmanifest|favicon\\.ico|robots\\.txt)$|(?:sales/|lib/|shell/|api/)).+)",
+      "source": "/:path((?!(?:crm|sales-orbit-higgsfield\\.html|sales-pipeline-premium\\.html|sales-posta\\.html|sales-vendite\\.html|lead-intelligence\\.html|sales-linkedin\\.html|sales-growth-campaigns\\.html|sales-growth-projects\\.html|impostazioni\\.html|manifest\\.webmanifest|sales-orbis\\.webmanifest|favicon\\.ico|robots\\.txt)$|(?:sales/|lib/|shell/|api/)).+)",
       "has": [
         {
           "type": "host",

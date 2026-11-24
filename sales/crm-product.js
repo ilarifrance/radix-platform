@@ -30,7 +30,7 @@
   var ENV_VALUE = 'sales-orbis';
   // The CRM pages of the product (the Sales menu without the RADIX «Sales Orbit» globe pages) and its settings.
   // The CRM itself is /crm only: /radix-sales.html goes there (no «radix» in the customer's address bar).
-  var PAGES = Object.freeze(['crm', 'sales-pipeline-premium.html', 'sales-posta.html', 'sales-vendite.html',
+  var PAGES = Object.freeze(['crm', 'sales-orbit-higgsfield.html', 'sales-pipeline-premium.html', 'sales-posta.html', 'sales-vendite.html',
     'lead-intelligence.html', 'sales-linkedin.html', 'sales-growth-campaigns.html', 'sales-growth-projects.html',
     'impostazioni.html', 'manifest.webmanifest', 'sales-orbis.webmanifest', 'favicon.ico', 'robots.txt']);
   // Folders of code and icons the pages load. api/ is open here because every endpoint checks itself (API below).

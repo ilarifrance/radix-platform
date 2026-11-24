@@ -90,7 +90,7 @@
     var u; try { u = new URL(href, location.href); } catch (e) { return null; }
     if (u.origin !== location.origin) return null;
     if (u.pathname === '/radix-sales.html') return '/crm' + u.search + u.hash;
-    if (u.pathname === '/control-center-v2.html' || u.pathname === '/sales-orbit-higgsfield.html') return '/crm';
+    if (u.pathname === '/control-center-v2.html') return '/crm';
     return null;
   }
   if (product) {
@@ -148,6 +148,7 @@
       // On the product only its own pages: no Sales Orbit globe and no RADIX guide (pageAllowed in crm-product.js).
       if (product) items = items.filter(function (it) { return !it.external && P.pageAllowed(it.href.split(/[?#]/)[0]) && !(baseOnly && it.href === LEAD) && PRODUCT_HIDDEN.indexOf(it.href) < 0; });
       // On the product «Assistenza» is used less than the rest: last in its group (Francesco, 17/11).
+      if (product) items = items.map(function (it) { return it.href === '/sales-orbit-higgsfield.html' ? { href: it.href, text: 'Home', ic: it.ic } : it; });
       if (product) items = items.map(function (it) { return it.href === CAMPAIGNS ? { href: CRM + '#campagne', text: it.text, ic: it.ic } : it; });
       if (product) items.sort(function (a, b) { return (PRODUCT_LAST.indexOf(a.href) >= 0) - (PRODUCT_LAST.indexOf(b.href) >= 0); });
       // Sales Orbis: the setup guide is a page of its own (sales/crm-guide.js).
@@ -245,7 +246,7 @@
     if (side.parentElement) side.parentElement.classList.add('sx-app');
     side.textContent = '';
     var brand = document.createElement('a');
-    brand.className = 'sx-brand'; brand.href = solo ? ROOT : '/sales-orbit-higgsfield.html';
+    brand.className = 'sx-brand'; brand.href = product ? '/sales-orbit-higgsfield.html' : solo ? ROOT : '/sales-orbit-higgsfield.html';
     brand.innerHTML = product ? 'Sales <b>Orbis</b><small>CRM</small>' : 'RAD<b>I</b>X<small>Sales Intelligence</small>';
     var nav = document.createElement('nav');
     nav.className = 'sx-nav'; nav.setAttribute('aria-label', 'Menu Sales');
@@ -285,7 +286,7 @@
     for (var i = 1; i < links.length; i++) links[i].remove();
     crmNav.classList.add('sx-nav');
     if (!crmNav.querySelector(':scope > .sx-brand')) {
-      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = solo ? ROOT : '/sales-orbit-higgsfield.html';
+      var brand = document.createElement('a'); brand.className = 'sx-brand'; brand.href = product ? '/sales-orbit-higgsfield.html' : solo ? ROOT : '/sales-orbit-higgsfield.html';
       brand.innerHTML = product ? 'Sales <b>Orbis</b><small>CRM</small>' : 'RAD<b>I</b>X<small>Sales Intelligence</small>';
       crmNav.prepend(brand);
     }
