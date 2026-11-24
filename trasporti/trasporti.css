@@ -250,3 +250,6 @@ body.tr-cc{font-size:14px;line-height:1.45;display:grid;grid-template-columns:23
 .tr-cc .tr-fs{grid-template-columns:1fr 1fr}.tr-cc .tr-fs .tr-row{align-items:end}.tr-cc .tr-fs .tr-row:first-of-type{grid-column:1/-1}
 @media(max-width:640px){.tr-cc .tr-fs{grid-template-columns:1fr}}
 .tr-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-weight:500}.tr-check input{width:auto;flex:none}
+
+/* the driver's phone in the register of the drivers */
+.cc-phone{margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}.cc-phone h3{margin:0 0 8px}.cc-code{font-size:1.7rem;font-weight:800;letter-spacing:.12em;font-variant-numeric:tabular-nums;margin:4px 0 8px}

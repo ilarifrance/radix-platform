@@ -18,9 +18,11 @@
 <p class="tr-banner" id="banner" role="status" aria-live="polite" hidden></p>
 <main id="view" class="tr-view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
 <input type="file" id="photo" accept="image/*,application/pdf" capture="environment" hidden>
-<p class="tr-foot">Dimostrazione: i dati restano su questo telefono. La posizione si registra solo con un viaggio aperto e solo se il mezzo non ha un localizzatore.</p>
+<p class="tr-foot" id="foot">Dimostrazione: i dati restano su questo telefono. La posizione si registra solo con un viaggio aperto e solo se il mezzo non ha un localizzatore.</p>
 <script src="/trasporti/brand.js" defer></script>
 <script src="/lib/trasporti/documenti.js" defer></script>
+<script src="/lib/trasporti/sync.js" defer></script>
 <script src="/trasporti/store.js" defer></script>
-<script src="/trasporti/autista/app.js" defer></script>
+<script src="/trasporti/sync.js" defer></script>
+<script src="/trasporti/boot.js" data-app="/trasporti/autista/app.js" defer></script>
 </body></html>

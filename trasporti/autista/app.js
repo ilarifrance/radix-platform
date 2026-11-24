@@ -17,6 +17,7 @@ const ME_KEY='radix-trasporti-autista';
 const ISSUE={ritardo:'Ritardo',attesa:'Attesa al carico/scarico',guasto:'Guasto al mezzo',incidente:'Incidente',merce:'Merce o carico',altro:'Altro'};
 let data=ST.load(),me=null,flow=null,watch=null;
 try{me=JSON.parse(localStorage.getItem(ME_KEY)||'null');}catch{me=null;}
+const LIVE=window.RadixTrLive,live=()=>!!(LIVE&&LIVE.live()&&LIVE.role()==='driver'),liveInfo=()=>ST.live()||{};
 const save=()=>{if(!ST.save(data))say('Memoria del telefono piena: chiedi all\'ufficio di scaricare i dati.','error');};
 const nowIso=()=>ST.localIso(new Date());
 const hm=s=>s?s.slice(11,16):'';
@@ -84,6 +85,7 @@ function keepPoint(c,force){
  data=ST.load();data.positions.push(pt);save();
  const q=queue();q.push({at:new Date().toISOString(),lat:pt.lat,lon:pt.lon,speed_kmh:pt.speed_kmh,accuracy_m:pt.accuracy_m,trip_id:pt.trip_id});setQueue(q);
  showGps();
+ if(force||q.length===1)setTimeout(flushGps,1500); // sign-in, start and end of a trip reach the office at once
 }
 let gpsFlushing=false;
 async function flushGps(){
@@ -91,7 +93,7 @@ async function flushGps(){
  gpsFlushing=true;
  try{
   const batch=q.slice(0,1000);
-  const r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'posizioni.telefono',data:{vehicle_id:me&&me.vehicle,points:batch}})});
+  const r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'posizioni.telefono',data:{vehicle_id:me&&me.vehicle,points:batch}})});
   if(r.ok){setQueue(queue().slice(batch.length));gps.sent=nowIso();gps.server=null;}
   // demo without an account, or archive not configured: positions stay on this phone
   else if([401,403,404,503].includes(r.status))gps.server='off';
@@ -146,8 +148,10 @@ function showGps(){
 // ---------- screens ----------
 function render(){
  data=ST.load();
- $('changeWho').hidden=!me;
- if(!me||!driver()||!vehicle())return renderWho();
+ $('changeWho').hidden=!me||!vehicle();
+ $('foot').textContent=live()?(liveInfo().company||'Plancia')+': quello che fai qui arriva in ufficio. Senza rete continua a funzionare e parte appena torna.':'Dimostrazione: i dati restano su questo telefono.';
+ if(live()&&me&&me.driver!==liveInfo().driver_id){me={driver:liveInfo().driver_id,vehicle:null};localStorage.setItem(ME_KEY,JSON.stringify(me));}
+ if(!me||!driver()||!vehicle())return live()?renderVehicle():renderWho();
  $('who').textContent=driver().name;$('whoSub').textContent=' · '+vehicle().plate;
  if(flow)return ({photo:renderFlow,issue:renderIssue,delivery:renderDelivery})[flow.type]();
  const t=openTrip();
@@ -160,9 +164,34 @@ function renderWho(){
  view.innerHTML='<section class="tr-card"><h1>Chi guida oggi?</h1><p class="tr-muted">Ogni telefono è legato a un autista e a un mezzo.</p>'
   +'<label>Autista<select id="selD">'+drivers.map(d=>'<option value="'+esc(d.id)+'"'+(me?.driver===d.id?' selected':'')+'>'+esc(d.name)+'</option>').join('')+'</select></label>'
   +'<label>Mezzo<select id="selV">'+vehicles.map(v=>'<option value="'+esc(v.id)+'">'+esc(v.plate+(v.label?' · '+v.label:''))+'</option>').join('')+'</select></label>'
-  +'<button class="tr-btn big" id="okWho">Conferma</button></section>';
+  +'<button class="tr-btn big" id="okWho">Conferma</button></section>'
+  +'<section class="tr-card"><h2>Hai il codice dell\'ufficio?</h2><p class="tr-muted">Te lo manda la tua azienda: lo scrivi una volta sola e questo telefono resta collegato.</p>'
+  +'<form id="codeForm"><label>Codice<input id="code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" maxlength="12" placeholder="ABCDE-FGHJK" required></label><p class="tr-banner error" id="codeErr" hidden></p><button class="tr-btn big ghost" id="codeGo">Collega il telefono</button></form></section>';
+ $('codeForm').onsubmit=e=>{e.preventDefault();enterCode($('code').value);};
  const sd=$('selD'),sv=$('selV');const sync=()=>{const d=data.drivers.find(x=>x.id===sd.value);if(d&&d.vehicle)sv.value=d.vehicle;};sync();sd.onchange=sync;
  $('okWho').onclick=()=>{me={driver:sd.value,vehicle:sv.value};localStorage.setItem(ME_KEY,JSON.stringify(me));render();followTrip();};
+}
+// the driver entered with the code of the office: the phone is theirs, they only choose the vehicle of the day
+function renderVehicle(){
+ const d=driver(),vehicles=data.vehicles.filter(v=>v.active!==false);
+ $('who').textContent=d?d.name:(window.TR_BRAND?TR_BRAND.app:'Plancia');$('whoSub').textContent='';
+ if(!d||!vehicles.length){
+  const st=LIVE.status();
+  view.innerHTML='<section class="tr-card"><h1>'+(st.error==='accesso'?'Telefono non più collegato':st.ok===false?'Non riesco a scaricare i dati':'Sto scaricando i tuoi dati…')+'</h1><p class="tr-muted">'+(st.error==='accesso'?'Chiedi un nuovo codice all\'ufficio.':st.error==='offline'?'Sei senza rete: riprova appena torna.':st.ok===false?'Riprova tra poco.':d?'L\'ufficio non ha ancora inserito i mezzi.':'Un attimo.')+'</p><button class="tr-btn big" id="again">Riprova</button>'+(st.error==='accesso'?'<button class="tr-btn big ghost" id="newCode">Inserisci un nuovo codice</button>':'')+'</section>';
+  $('again').onclick=()=>LIVE.run();if($('newCode'))$('newCode').onclick=async()=>{await LIVE.leave();location.reload();};
+  return;
+ }
+ const first=d.name.split(' ')[0];
+ view.innerHTML='<section class="tr-card"><h1>Ciao '+esc(first)+', che mezzo guidi oggi?</h1>'
+  +'<label>Mezzo<select id="selV">'+vehicles.map(v=>'<option value="'+esc(v.id)+'"'+((me.vehicle||d.vehicle)===v.id?' selected':'')+'>'+esc(v.plate+(v.label?' · '+v.label:''))+'</option>').join('')+'</select></label>'
+  +'<button class="tr-btn big" id="okWho">Conferma</button></section>';
+ $('okWho').onclick=()=>{me={driver:d.id,vehicle:$('selV').value};localStorage.setItem(ME_KEY,JSON.stringify(me));render();followTrip();};
+}
+let entering=false;
+async function enterCode(code){
+ if(entering)return;entering=true;const err=$('codeErr'),btn=$('codeGo');if(btn){btn.disabled=true;btn.textContent='Collego…';}
+ try{await LIVE.enter(code);location.replace('/trasporti/autista/');}
+ catch(e){entering=false;const msg=e.offline?'Sei senza rete: serve la connessione solo per questo primo passo.':e.message;if(err){err.textContent=msg;err.hidden=false;}else say(msg,'error');if(btn){btn.disabled=false;btn.textContent='Collega il telefono';}}
 }
 // deadlines of the vehicle the driver is on (revisione, assicurazione, tachigrafo…) within 30 days
 const DUE=[['due_revisione','Revisione'],['due_assicurazione','Assicurazione'],['due_tachigrafo','Tachigrafo'],['due_bollo','Bollo'],['due_atp','ATP']];
@@ -287,7 +316,7 @@ async function shrink(file,max=1600,q=0.82){
 function b64(buf){let s='';const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=32768)s+=String.fromCharCode.apply(null,a.subarray(i,i+32768));return btoa(s);}
 async function readDocument(kind,img,{noDemo=false}={}){
  let r;
- try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'documento.leggi',data:{kind,image:img.image,media_type:img.media_type}})});}
+ try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'documento.leggi',data:{kind,image:img.image,media_type:img.media_type}})});}
  catch(e){if(noDemo||!online()){const err=new Error('Senza rete.');err.offline=true;throw err;}return {reading:demoReading(kind),demo:true};}
  let j={};try{j=await r.json();}catch{}
  if(r.ok&&j.reading)return {reading:j.reading,demo:false};
@@ -339,7 +368,9 @@ function renderFlow(){
  };
 }
 
-$('changeWho').onclick=()=>{me=null;localStorage.removeItem(ME_KEY);flow=null;render();};
+$('changeWho').onclick=()=>{if(live()){me={driver:me.driver,vehicle:null};localStorage.setItem(ME_KEY,JSON.stringify(me));}else{me=null;localStorage.removeItem(ME_KEY);}flow=null;render();};
+if(LIVE)LIVE.on((what,st)=>{if(st.error==='accesso'&&live())say('Questo telefono non è più collegato: chiedi un nuovo codice all\'ufficio.','error');if(!flow&&(what==='data'||!driver()||!vehicle()))render();});
+{const inv=new URLSearchParams(location.search).get('invito');if(inv&&LIVE&&!live())enterCode(inv);}
 window.addEventListener('storage',e=>{if(e.key===ST.KEY&&!flow)render();});
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('/trasporti/autista/sw.js',{scope:'/trasporti/autista/'}).catch(()=>{});
 render();followTrip();updateOffline();flushQueue();

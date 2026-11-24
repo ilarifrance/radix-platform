@@ -126,14 +126,19 @@ function defaults(d){
  if(!d._empty_seeded){d._empty_seeded=true;let i=0;for(const t of d.trips||[])if(t.km>0&&t.empty_km==null&&t.status!=='pianificato'){i++;t.empty_km=t.id==='tf2'?0:t.id==='tf1'?38:Math.round(t.km*[0.08,0.22,0,0.35,0.12,0.5][i%6]);}}
  return d;
 }
+/* With a real company (trasporti/sync.js) the data set lives in memory and in IndexedDB and travels to the server:
+   `backend` is set by that file before the programs start. Without it: the demonstration in localStorage. */
+let backend=null;
+const headers=()=>({'Content-Type':'application/json','X-Radix-Trasporti':'1',...(backend&&backend.token?{'X-Plancia-Device':backend.token}:{})});
 function load(){
+ if(backend)return defaults(backend.get());
  let d=null;try{d=JSON.parse(root.localStorage.getItem(KEY)||'null');}catch{d=null;}
  if(!d||d.version!==2){d=seed();save(d);}
  return defaults(d);
 }
-function save(d){try{root.localStorage.setItem(KEY,JSON.stringify(d));return true;}catch{return false;}}
-function reset(){const d=defaults(seed());save(d);return d;}
+function save(d){if(backend){backend.set(d);return true;}try{root.localStorage.setItem(KEY,JSON.stringify(d));return true;}catch{return false;}}
+function reset(){if(backend)return load();const d=defaults(seed());save(d);return d;}
 
-root.RadixTrStore={load,save,reset,seed,sampleTollCsv,uid,localIso,KEY};
+root.RadixTrStore={load,save,reset,seed,sampleTollCsv,uid,localIso,KEY,headers,setBackend(b){backend=b;},live:()=>backend?backend.info():null};
 if(typeof module==='object'&&module.exports)module.exports=root.RadixTrStore;
 })(typeof globalThis!=='undefined'?globalThis:this);

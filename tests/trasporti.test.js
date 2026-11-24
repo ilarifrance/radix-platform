@@ -74,9 +74,9 @@ test('invoicing rows and CSV for Excel (formula injection neutralised)',()=>{
  const csv=MRG.toCsv(rows);assert.ok(csv.startsWith('﻿Cliente;'));assert.match(csv,/"Rossi; Srl"/);assert.match(csv,/'=HYPERLINK/);assert.match(csv,/500,00/);
 });
 
-function call(h,{method='POST',body,headers}={}){
+function call(h,{method='POST',body,headers,uid}={}){
  return new Promise(resolve=>{const res={headers:{},statusCode:200,setHeader(k,v){this.headers[k]=v;},status(c){this.statusCode=c;return this;},json(o){resolve({status:this.statusCode,body:o});return this;}};
-  h({method,body,headers:{'content-type':'application/json','x-radix-trasporti':'1',...headers}},res);});
+  h({method,body,uid,headers:{'content-type':'application/json','x-radix-trasporti':'1',...headers}},res);});
 }
 const IMG=Buffer.from('fake-jpeg').toString('base64');
 test('API: login, header, kind, format and size checked before the AI is called',async()=>{
@@ -550,4 +550,88 @@ test('empty km: counted in the cost sharing and shown apart; estimated from the 
  assert.equal(LOC.emptyKm({id:'x',vehicle_id:'v9',started_at:'2026-11-10T06:00'},trips,pos),null);
  const p=LIS.price({method:'km',per_km_cents:150,round_trip:true},{km:300});assert.equal(p.amount_cents,90000);assert.equal(p.lines[0].qty,600);
  assert.equal(LIS.price({method:'km',per_km_cents:150},{km:300}).amount_cents,45000);
+});
+
+// ---------- real company: office and drivers' phones share the data ----------
+test('sincronizzazione: differenze, unione, vista e modifiche dell\'autista', ()=>{
+ const S=require('../lib/trasporti/sync');
+ const d=S.blank('Prova Srl');d.vehicles.push({id:'v1',plate:'AA111AA'});d.trips.push({id:'t1',driver_id:'d1',status:'aperto'});
+ const known={};const ch=S.diff(d,known);
+ assert.deepEqual(ch.map(c=>c.coll+'/'+c.id).sort(),['one/company','one/supplier_rules','trips/t1','vehicles/v1']);
+ for(const c of ch)known[c.coll+'/'+c.id]=S.hash(c.data);
+ assert.equal(S.diff(d,known).length,0);
+ d.trips[0].km=120;d.vehicles.length=0;
+ assert.deepEqual(S.diff(d,known).map(c=>[c.coll,c.id,!!c.deleted]),[['trips','t1',false],['vehicles','v1',true]]);
+ // records from the server; a record changed here meanwhile is not overwritten
+ const n=S.apply(d,[{coll:'trips',id:'t1',data:{id:'t1',km:1}},{coll:'trips',id:'t2',data:{driver_id:'d2'}},{coll:'customers',id:'c1',data:{name:'X'}},{coll:'customers',id:'c1',deleted:true},{coll:'one',id:'company',data:{name:'Nuovo'}},{coll:'altro',id:'x',data:{}}],known,new Set(['trips/t1']));
+ assert.equal(d.trips.find(t=>t.id==='t1').km,120);assert.equal(d.trips.length,2);assert.equal(d.customers.length,0);assert.equal(d.company.name,'Nuovo');assert.equal(n,4);
+ assert.throws(()=>S.cleanChanges([{coll:'users',id:'1',data:{}}]));assert.throws(()=>S.cleanChanges([{coll:'trips',id:'../x',data:{}}]));assert.throws(()=>S.cleanChanges([{coll:'one',id:'company',deleted:true}]));
+ // the driver's phone: own trips and free planned ones, no prices, no other drivers
+ const trips={t1:{id:'t1',driver_id:'d1',status:'aperto',revenue_cents:50000},t2:{id:'t2',driver_id:'d2',status:'aperto'},t3:{id:'t3',driver_id:null,status:'pianificato'}};
+ const recs=[...Object.values(trips).map(t=>({coll:'trips',id:t.id,data:t})),{coll:'drivers',id:'d1',data:{name:'Uno'}},{coll:'drivers',id:'d2',data:{name:'Due',cf:'X'}},{coll:'customers',id:'c1',data:{name:'Cli',vat:'1',rate_cents:5}},
+  {coll:'documents',id:'k1',data:{trip_id:'t1'}},{coll:'documents',id:'k2',data:{trip_id:'t2'}},{coll:'invoices',id:'i1',data:{}},{coll:'payslips',id:'p1',data:{}},{coll:'rate_cards',id:'r1',data:{}},{coll:'one',id:'company',data:{name:'Az',iban:'IT1'}},{coll:'one',id:'settings',data:{}}];
+ const v=S.driverView(recs,'d1',trips);const has=(c,id)=>v.find(r=>r.coll===c&&r.id===id);
+ assert.equal(has('trips','t1').data.revenue_cents,null);assert.equal(has('trips','t2').deleted,true);assert.ok(has('trips','t3').data);
+ assert.ok(has('drivers','d1'));assert.ok(!has('drivers','d2'));assert.deepEqual(has('customers','c1').data,{id:'c1',name:'Cli'});
+ assert.ok(has('documents','k1'));assert.ok(!has('documents','k2'));assert.ok(!has('invoices','i1'));assert.ok(!has('payslips','p1'));assert.ok(!has('rate_cards','r1'));assert.ok(!has('one','settings'));assert.equal(has('one','company').data.iban,undefined);
+ // what the phone may change
+ assert.equal(S.driverChange({coll:'trips',id:'t2',data:{status:'chiuso'}},'d1',trips.t2,trips),null);
+ const mineT=S.driverChange({coll:'trips',id:'t1',data:{status:'chiuso',revenue_cents:1,driver_id:'d2'}},'d1',trips.t1,trips);
+ assert.equal(mineT.revenue_cents,50000);assert.equal(mineT.driver_id,'d1');assert.equal(mineT.status,'chiuso');
+ assert.equal(S.driverChange({coll:'trips',id:'t3',data:{status:'aperto'}},'d1',trips.t3,trips).driver_id,'d1');
+ assert.equal(S.driverChange({coll:'trips',id:'t9',data:{status:'aperto',revenue_cents:9}},'d1',null,trips).revenue_cents,null);
+ assert.ok(S.driverChange({coll:'documents',id:'k9',data:{trip_id:'t1'}},'d1',null,trips));
+ assert.equal(S.driverChange({coll:'documents',id:'k9',data:{trip_id:'t2'}},'d1',null,trips),null);
+ assert.equal(S.driverChange({coll:'vehicles',id:'v1',data:{plate:'X'}},'d1',null,trips),null);
+ assert.equal(S.driverChange({coll:'trips',id:'t1',deleted:true,data:{}},'d1',trips.t1,trips),null);
+ assert.equal(S.driverChange({coll:'trips',id:'t1',data:{}},'d1',{...trips.t1,status:'fatturato'},trips),null);
+ assert.equal(S.cleanCode('abcde fghjk'),'ABCDE-FGHJK');assert.equal(S.cleanCode('abc'),null);
+ assert.match(S.codeFrom(Buffer.from([0,1,2,3,4,5,6,7,8,9])),/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
+});
+
+test('API: azienda, invito dell\'autista, telefono e ufficio che si scambiano i dati', async ()=>{
+ const memoryDb=require('./helpers/trasporti-memory-db');const syncApi=require('../api/_trasporti_sync');
+ const db=memoryDb();let open=true;
+ let clock=Date.now();const H=createHandler({getSessionUser:req=>req.uid?{uid:req.uid}:null,db,now:()=>clock,sync:syncApi.create({db,open:()=>open})});
+ const go=async(action,data,o={})=>{const r=await call(H,{body:{action,data},uid:o.uid,headers:o.token?{'x-plancia-device':o.token}:{}});return r;};
+ assert.equal((await go('sync',{})).status,401);
+ assert.deepEqual((await go('sync',{},{uid:7})).body,{no_company:true,can_create:true});
+ open=false;assert.equal((await go('azienda.crea',{name:'Prova Srl'},{uid:7})).status,403);open=true;
+ const co=(await go('azienda.crea',{name:'Prova Srl'},{uid:7})).body;assert.ok(co.company_id);
+ assert.equal((await go('azienda.crea',{name:'Altra'},{uid:7})).status,409);
+ const V='11111111-1111-4111-8111-111111111111',D='22222222-2222-4222-8222-222222222222',D2='33333333-3333-4333-8333-333333333333';
+ let r=(await go('sync',{since:0,changes:[{coll:'vehicles',id:V,data:{plate:'AA111AA'}},{coll:'drivers',id:D,data:{name:'Mario Rossi',cf:'RSSMRA'}},{coll:'drivers',id:D2,data:{name:'Altro'}},{coll:'customers',id:'c1',data:{name:'Cliente',rate_cents:100}},
+  {coll:'trips',id:'t1',data:{driver_id:D,vehicle_id:V,status:'pianificato',revenue_cents:40000,customer_id:'c1'}},{coll:'trips',id:'t2',data:{driver_id:D2,status:'aperto'}},{coll:'invoices',id:'i1',data:{total:1}}]},{uid:7})).body;
+ assert.equal(r.role,'office',JSON.stringify(r).slice(0,300));assert.equal(r.records.length,8);const rev=r.rev;
+ // invitation: one use, wrong codes refused, another company cannot invite
+ assert.equal((await go('autista.invita',{driver_id:D},{uid:8})).status,403);
+ assert.equal((await go('autista.invita',{driver_id:'nessuno'},{uid:7})).status,404);
+ const inv=(await go('autista.invita',{driver_id:D},{uid:7})).body;assert.match(inv.code,/^[A-Z2-9]{5}-[A-Z2-9]{5}$/);
+ assert.equal((await go('autista.entra',{code:'AAAAA-AAAAA'})).status,404);
+ const ent=(await go('autista.entra',{code:inv.code.toLowerCase()})).body;assert.match(ent.token,/^[a-f0-9]{64}$/);assert.equal(ent.driver_id,D);assert.equal(ent.company,'Prova Srl');
+ assert.equal((await go('autista.entra',{code:inv.code})).status,404);
+ assert.ok(![...db.devs.keys()].includes(ent.token),'token kept only as hash');
+ assert.equal((await go('sync',{},{token:'f'.repeat(64)})).status,401);
+ // the phone sees only its work
+ let p=(await go('sync',{since:0},{token:ent.token})).body;const ph=(c,id)=>p.records.find(x=>x.coll===c&&x.id===id);
+ assert.equal(p.role,'driver');assert.equal(ph('trips','t1').data.revenue_cents,null);assert.equal(ph('trips','t2').deleted,true);assert.ok(!ph('drivers',D2));assert.ok(!ph('invoices','i1'));assert.deepEqual(ph('customers','c1').data,{id:'c1',name:'Cliente'});
+ // the driver starts the trip, adds a delivery and an expense, tries what it may not
+ p=(await go('sync',{since:p.rev,changes:[{coll:'trips',id:'t1',data:{driver_id:D,vehicle_id:V,status:'aperto',revenue_cents:null,customer_id:'c1'}},{coll:'documents',id:'k1',data:{trip_id:'t1',kind:'consegna'}},{coll:'costs',id:'s1',data:{trip_id:'t1',kind:'lavaggio',amount_cents:6500,source:'spesa'}},
+  {coll:'trips',id:'t2',data:{status:'chiuso'}},{coll:'invoices',id:'i1',data:{total:0}},{coll:'vehicles',id:V,deleted:true},{coll:'documents',id:'k2',data:{trip_id:'t2'}},{coll:'trips',id:'t5',data:{status:'aperto',vehicle_id:V}},{coll:'documents',id:'k5',data:{trip_id:'t5',kind:'ddt'}}]},{token:ent.token})).body;
+ assert.equal(p.rejected,4);
+ r=(await go('sync',{since:rev},{uid:7})).body;const of=(c,id)=>r.records.find(x=>x.coll===c&&x.id===id);
+ assert.equal(of('trips','t1').data.status,'aperto');assert.equal(of('trips','t1').data.revenue_cents,40000,'the price set by the office stays');
+ assert.equal(of('documents','k1').data.kind,'consegna');assert.equal(of('costs','s1').data.driver_id,D);assert.equal(of('trips','t5').data.driver_id,D);assert.ok(of('documents','k5'));
+ assert.ok(!of('trips','t2')&&!of('invoices','i1')&&!of('vehicles',V),'what the phone may not change is untouched');
+ assert.equal(r.phones[0].driver_id,D);
+ // positions from the phone, read by the office
+ const at=new Date().toISOString();
+ assert.equal((await go('posizioni.telefono',{vehicle_id:V,points:[{at,lat:45.1,lon:9.2}]},{token:ent.token})).body.saved,1);
+ clock+=30000;
+ assert.equal((await go('posizioni.telefono',{vehicle_id:D,points:[{at,lat:45.1,lon:9.2}]},{token:ent.token})).status,400);
+ assert.equal((await go('posizioni.elenco',{},{uid:7})).body.positions.length,1);
+ assert.equal((await go('posizioni.elenco',{},{token:ent.token})).status,403);
+ // the office disconnects the phone
+ assert.equal((await go('autista.scollega',{driver_id:D},{uid:7})).body.phones,1);
+ assert.equal((await go('sync',{},{token:ent.token})).status,401);
 });

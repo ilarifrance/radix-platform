@@ -199,7 +199,7 @@ const ORDER_ACCEPT='.pdf,.docx,.xlsx,.csv,.txt,image/*,application/pdf';
 async function fileBase64(file){const b=new Uint8Array(await file.arrayBuffer());let s='';for(let i=0;i<b.length;i+=0x8000)s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(s);}
 const fileUrl=file=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=()=>ko(new Error('File non leggibile.'));r.readAsDataURL(file);});
 async function aiFile(action,data){
- let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action,data})});}catch{return null;}
+ let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action,data})});}catch{return null;}
  if(!r.ok)return null;try{return await r.json();}catch{return null;}
 }
 // The file is read by the AI when the reserved area has it; otherwise (and always for Word and Excel) from its text.
@@ -394,7 +394,7 @@ async function importTollPdf(file){
  while(i<pages.length){
   let part=pages.slice(i,i+TOLL.PDF_MAX_PAGES);while(part.length>1&&part.reduce((s,p)=>s+p.image.length,0)>3800000)part=part.slice(0,-1);
   say('Leggo i transiti: pagine da '+(i+1)+' a '+(i+part.length)+' di '+pages.length+'…','ok');
-  let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'pedaggi.leggi',data:{first:i+1,pages:part.map(p=>({image:p.image,media_type:p.media_type}))}})});}
+  let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'pedaggi.leggi',data:{first:i+1,pages:part.map(p=>({image:p.image,media_type:p.media_type}))}})});}
   catch{throw new Error('Senza rete: riprova quando la connessione torna.');}
   let j={};try{j=await r.json();}catch{}
   if(!r.ok)throw new Error(r.status===401||r.status===403?'Per leggere il PDF serve l\'accesso all\'area riservata. CSV ed Excel si leggono subito.':r.status===503||r.status===404?'La lettura dei PDF non è attiva in questa dimostrazione: qui puoi caricare CSV o Excel, oppure usare il file di esempio.':(j.error||'Lettura non riuscita ('+r.status+').'));
@@ -852,7 +852,7 @@ async function readCostPages(kind,pages,progress){
  while(i<pages.length){
   let part=pages.slice(i,i+CO.MAX_PAGES);while(part.length>1&&part.reduce((s,p)=>s+p.image.length,0)>3800000)part=part.slice(0,-1);
   progress('Leggo le pagine da '+(i+1)+' a '+(i+part.length)+' di '+pages.length+'…');
-  let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'costi.leggi',data:{kind,first:i+1,pages:part.map(p=>({image:p.image,media_type:p.media_type}))}})});}
+  let r;try{r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'costi.leggi',data:{kind,first:i+1,pages:part.map(p=>({image:p.image,media_type:p.media_type}))}})});}
   catch{throw new Error('Senza rete: riprova quando la connessione torna.');}
   let j={};try{j=await r.json();}catch{}
   if(!r.ok)throw new Error(r.status===401||r.status===403?'Per leggere PDF e foto serve l\'accesso all\'area riservata. Le fatture XML invece si leggono subito.':r.status===503?'Lettura automatica non attiva su questo ambiente: le fatture XML si leggono lo stesso; per PDF e foto prova «Prova con esempi».':(j.error||'Lettura non riuscita ('+r.status+').'));
@@ -1023,6 +1023,51 @@ function importPlaces(input){
   if(old){Object.assign(old,Object.fromEntries(Object.entries(o).filter(([,v])=>v!=null)));updated++;}else{data.consignees.push({id:ST.uid(),...o});added++;}}
  save();say(added+' luoghi aggiunti'+(updated?', '+updated+' aggiornati':'')+(skipped?', '+skipped+' righe senza nome saltate':'')+'.','ok');renderMaster();
 }
+// ---------- the driver's phone: the office invites, the driver types the code once ----------
+const LIVE=window.RadixTrLive,isLive=()=>!!(LIVE&&LIVE.live());
+function driverPhone(d){
+ const box=document.createElement('section');box.className='cc-phone';$('drawerBody').appendChild(box);
+ const draw=inv=>{
+  const ph=((ST.live()||{}).phones||[]).find(x=>x.driver_id===d.id);
+  if(!isLive()){box.innerHTML='<h3>App sul telefono</h3><p class="tr-muted">Con la tua azienda attiva, da qui mandi all\'autista un codice: lo scrive una volta nell\'app e il suo telefono resta collegato. In questa dimostrazione l\'app si prova da «Apri l\'app autista».</p>';return;}
+  if(inv){
+   const link=location.origin+'/trasporti/autista/?invito='+inv.code;
+   const text='Ciao '+d.name.split(' ')[0]+', questa è l\'app per i viaggi: apri '+link+' oppure, nell\'app Plancia, scrivi il codice '+inv.code+'. Vale 7 giorni.';
+   const tel=String(d.phone||'').replace(/[^0-9+]/g,'').replace(/^\+/,'').replace(/^00/,'');const wa='https://wa.me/'+(tel?(tel.length<=10?'39'+tel:tel):'')+'?text='+encodeURIComponent(text);
+   box.innerHTML='<h3>App sul telefono</h3><p>Codice per '+esc(d.name)+':</p><p class="cc-code">'+esc(inv.code)+'</p><p class="tr-muted">Vale 7 giorni e si usa una volta sola. Mandalo all\'autista: aprendo il link entra senza scrivere niente.</p>'
+    +'<div class="cc-actions"><a class="tr-btn" href="'+esc(wa)+'" target="_blank" rel="noopener">Manda su WhatsApp</a><button type="button" class="tr-btn ghost" id="phCopy">Copia il messaggio</button></div>';
+   $('phCopy').onclick=async()=>{try{await navigator.clipboard.writeText(text);say('Messaggio copiato.','ok');}catch{say('Copia il codice a mano: '+inv.code,'error');}};
+   return;
+  }
+  box.innerHTML='<h3>App sul telefono</h3><p>'+(ph?'<span class="tr-pill ok">Collegato</span> '+(ph.phones>1?ph.phones+' telefoni':'1 telefono')+(ph.last_seen_at?', ultimo collegamento '+dmy(ST.localIso(new Date(ph.last_seen_at)))+' '+hm(ST.localIso(new Date(ph.last_seen_at))):''):'<span class="tr-pill flag">Non ancora collegato</span>')+'</p>'
+   +'<div class="cc-actions"><button type="button" class="tr-btn'+(ph?' ghost':'')+'" id="phInvite">'+(ph?'Collega un altro telefono':'Invita nell\'app')+'</button>'+(ph?'<button type="button" class="tr-btn warn ghost" id="phOff">Scollega i telefoni</button>':'')+'</div><p class="tr-error" id="phErr" hidden></p>';
+  const fail=e=>{$('phErr').textContent=e.offline?'Senza rete: riprova quando la connessione torna.':e.message;$('phErr').hidden=false;};
+  $('phInvite').onclick=async()=>{$('phInvite').disabled=true;try{await LIVE.run();draw(await LIVE.post('autista.invita',{driver_id:d.id}));}catch(e){$('phInvite').disabled=false;fail(e);}};
+  if($('phOff'))$('phOff').onclick=async()=>{if(!confirm('Scollego i telefoni di '+d.name+'? Per rientrare servirà un nuovo codice.'))return;try{await LIVE.post('autista.scollega',{driver_id:d.id});await LIVE.run();draw();}catch(e){fail(e);}};
+ };
+ draw();
+}
+// what the side of the page says about the data: demonstration, or the company with the time of the last exchange
+function liveFoot(){
+ const el=$('banner');if(!el||!LIVE)return;const st=LIVE.status();
+ if(isLive()){
+  const txt=st.error==='accesso'?'Sessione scaduta: <a class="tr-link" href="/control-center-v2.html">accedi di nuovo</a> per sincronizzare.':st.error==='offline'?'Senza rete: lavori in locale, i dati partono appena torna.':st.ok===false?'Il server non risponde: riprovo da solo.':st.at?'Dati sincronizzati alle '+hm(ST.localIso(new Date(st.at)))+'.':'Sincronizzo…';
+  el.innerHTML=txt+(st.pending?' <strong>'+st.pending+' modifiche in attesa.</strong>':'');
+ }else if(st.error==='no_company'&&st.can_create&&!$('mkCompany')){
+  el.innerHTML='Stai vedendo la dimostrazione. <button type="button" class="tr-link" id="mkCompany">Apri la tua azienda</button>';
+  $('mkCompany').onclick=async()=>{const name=prompt('Nome della tua azienda (ragione sociale):');if(!name||!name.trim())return;try{await LIVE.createCompany(name.trim());location.reload();}catch(e){say(e.message,'error');}};
+ }
+}
+let livePositionsAt=0;
+async function livePositions(){
+ if(!isLive()||LIVE.role()!=='office'||Date.now()-livePositionsAt<60000)return;livePositionsAt=Date.now();
+ try{const j=await LIVE.post('posizioni.elenco',{});const cutoff=ST.localIso(new Date(Date.now()-90*86400000));
+  const pts=(j.positions||[]).map(p=>({vehicle_id:p.vehicle_id,trip_id:p.trip_id,at:ST.localIso(new Date(p.at)),lat:p.lat,lon:p.lon,speed_kmh:p.speed_kmh,accuracy_m:p.accuracy_m,source:p.source}));
+  const before=data.positions.length;data.positions=LOC.merge(data.positions.concat(pts)).filter(p=>p.at>=cutoff).slice(-20000);
+  if(data.positions.length!==before){save();if((tab==='oggi'||tab==='localizzatori')&&$('drawer').hidden&&!typing())render();}
+ }catch{}
+}
+const typing=()=>{const a=document.activeElement;return !!a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.id!=='q';};
 let proposalsOpen=false;
 function renderProposals(){
  const pr=ANA.proposals({documents:data.documents,shipments:data.shipments,customers:data.customers,consignees:data.consignees,own:data.company&&data.company.name});
@@ -1068,6 +1113,7 @@ function renderMaster(){
  if($('anaModel'))$('anaModel').onclick=()=>xlsx('luoghi-modello.xlsx',[{name:'Luoghi',columns:PLACE_COLS.map(c=>({title:c[1]})),rows:[['Magazzino Ortofrutta Delta','carico','Ortofrutta Delta Spa','Via dei Campi 12','46100','Mantova','MN','IT','','', '6:00-12:00','Baia 3'],['Centro distribuzione Modena','scarico','Ortofrutta Delta Spa','Via Emilia Est 900','41122','Modena','MO','IT','Mantova','95','7:00-15:00','']]}]);
  if($('propOpen'))$('propOpen').onclick=()=>{proposalsOpen=true;renderMaster();};
  bindProposals();
+ if(editing&&item&&ana==='drivers')driverPhone(item);
  const f=$('anaForm');if(!f)return;
  $('anaCancel').onclick=()=>{editing=null;closeDrawer(true);renderMaster();};
  if($('anaDel'))$('anaDel').onclick=()=>{data[ana]=data[ana].filter(x=>x.id!==item.id);editing=null;save();renderMaster();};
@@ -1104,7 +1150,7 @@ function renderTrackers(){
 async function syncTracker(){
  const b=$('sync');b.disabled=true;b.textContent='Aggiorno…';
  try{
-  const r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Radix-Trasporti':'1'},body:JSON.stringify({action:'posizioni.aggiorna'})});
+  const r=await fetch('/api/trasporti',{method:'POST',credentials:'same-origin',headers:ST.headers(),body:JSON.stringify({action:'posizioni.aggiorna'})});
   let j={};try{j=await r.json();}catch{}
   if(!r.ok){lastImport={error:true,text:r.status===401?'Accedi per collegare il localizzatore. Nella dimostrazione usa "Importa export".':r.status===404?'Collegamento non disponibile in questa anteprima: usa "Importa export".':(j.error||'Aggiornamento non riuscito ('+r.status+').')};renderTrackers();return;}
   data.tracker={...(data.tracker||{}),provider:j.provider};addPositions(j.positions||[],LOC.PROVIDERS[j.provider]?.label||j.provider,0);
@@ -1129,6 +1175,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('drawer').hid
 $('menu').onclick=()=>menu(!$('side').classList.contains('open'));$('scrim').onclick=()=>menu(false);
 $('reset').onclick=()=>{if(!confirm('Cancello i dati di questa dimostrazione e ricreo l\'azienda di esempio?'))return;data=ST.reset();$('from').value='';$('to').value='';$('preset').value='tutto';tripF=emptyTripF();cdgF={};render();};
 window.addEventListener('hashchange',()=>{editing=null;say('');render();});
-window.addEventListener('storage',e=>{if(e.key===ST.KEY&&tab!=='anagrafiche')render();});
-render();
+window.addEventListener('storage',e=>{if(e.key===ST.KEY&&tab!=='anagrafiche'&&!isLive())render();});
+// data arrived from the phones: redraw unless someone is typing or a sheet is open (then at the next change of page)
+if(LIVE)LIVE.on(what=>{liveFoot();if(what==='data'&&$('drawer').hidden&&!typing())render();livePositions();});
+render();liveFoot();livePositions();
 })();

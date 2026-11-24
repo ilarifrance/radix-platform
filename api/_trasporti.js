@@ -27,6 +27,7 @@ const pr=require('../lib/trasporti/pratiche');
 const co=require('../lib/trasporti/costi');
 const toll=require('../lib/trasporti/pedaggi');
 const lis=require('../lib/trasporti/listini');
+const syncApi=require('./_trasporti_sync');
 
 const MEDIA=['image/jpeg','image/png','image/webp','application/pdf'];
 const MAX_BASE64=4200000; // Vercel accepts request bodies up to 4.5 MB; the app shrinks photos to ~1600 px first.
@@ -59,6 +60,7 @@ const defaultDb={
   const r=await q`SELECT d.company_id,d.id AS driver_id,d.default_vehicle FROM tr_drivers d JOIN tr_members m ON m.company_id=d.company_id AND m.user_id=d.user_id WHERE d.user_id=${uid} AND d.active ORDER BY m.role='driver' DESC LIMIT 1`;
   return r[0]||null;
  },
+ async vehicleRecordOk(company,vehicle){const {sql}=require('./_db');const r=await sql()`SELECT 1 FROM tr_records WHERE company_id=${company} AND coll='vehicles' AND id=${vehicle} AND NOT deleted`;return r.length>0;},
  async vehicleOk(company,vehicle){const {sql}=require('./_db');const r=await sql()`SELECT 1 FROM tr_vehicles WHERE company_id=${company} AND id=${vehicle} AND active`;return r.length>0;},
  async insertPositions(company,driver,vehicle,points){
   const {sql}=require('./_db');const q=sql();
@@ -70,18 +72,30 @@ const defaultDb={
  }
 };
 
-function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker=trackerConfig,fetchPositions=loc.fetchPositions,db=defaultDb}={}){
+function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker=trackerConfig,fetchPositions=loc.fetchPositions,db=defaultDb,sync}={}){
  const counts=new Map(),lastSync=new Map(),lastPhone=new Map();
+ sync=sync||syncApi.create({now});
  return async function(req,res){
   res.setHeader('Cache-Control','no-store');
   try{
    if(req.method!=='POST')throw failure(405,'Metodo non consentito.');
    if(req.headers['x-radix-trasporti']!=='1'||!/^application\/json(?:;|$)/i.test(req.headers['content-type']||'')||req.headers['sec-fetch-site']==='cross-site')throw failure(403,'Richiesta non consentita.');
-   let user;try{user=getSessionUser(req);}catch{user=null;}
-   if(!user||!user.uid)throw failure(401,'Accedi a RADIX per usare la lettura automatica.');
    let body=req.body;
    if(typeof body==='string'){try{body=JSON.parse(body);}catch{throw failure(400,'JSON non valido.');}}
    if(!body||typeof body!=='object'||Array.isArray(body))throw failure(400,'Richiesta non valida.');
+   let user;try{user=getSessionUser(req);}catch{user=null;}
+   // the phone of a driver who entered with the code of the office (header X-Plancia-Device) needs no sign-in
+   let dev=null;
+   if(req.headers['x-plancia-device']){
+    try{dev=await sync.device(req);}catch(e){console.error('trasporti telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: riprova tra poco.');}
+    if(!dev)throw failure(401,'Questo telefono non è più collegato: chiedi un nuovo codice all\'ufficio.');
+   }
+   if(sync.ACTIONS.includes(body.action)){
+    try{return res.status(200).json(await sync.handle(body.action,body.data,{user,dev,req}));}
+    catch(e){if(e.status)throw e;console.error('trasporti',body.action,e&&e.message);throw failure(502,'Archivio non raggiungibile: i dati restano su questo dispositivo e partono appena torna.');}
+   }
+   if(dev)user={uid:'d:'+dev.driver_id,dev};
+   if(!user||!user.uid)throw failure(401,'Accedi a RADIX per usare la lettura automatica.');
    if(body.action==='posizioni.aggiorna'){
     const c=tracker();if(!c)throw failure(503,'Nessun localizzatore collegato su questo ambiente: carica il file di export.');
     const last=lastSync.get(user.uid);if(last!=null&&now()-last<60000)throw failure(429,'Posizioni appena aggiornate: riprova tra un minuto.');
@@ -98,13 +112,14 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
     const points=loc.phonePoints(d.points,now());
     if(!points.length)return res.status(200).json({saved:0});
     if(!process.env.DATABASE_URL&&db===defaultDb)throw failure(503,'Archivio posizioni non configurato su questo ambiente.');
-    let who;try{who=await db.driverOf(user.uid);}catch(e){console.error('trasporti posizioni.telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: le posizioni restano sul telefono.');}
+    let who;try{who=user.dev?{company_id:user.dev.company_id,driver_id:user.dev.driver_id,default_vehicle:null,phone:true}:await db.driverOf(user.uid);}catch(e){console.error('trasporti posizioni.telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: le posizioni restano sul telefono.');}
     if(!who)throw failure(403,'Questo utente non è collegato a un autista: chiedi all\'ufficio.');
     let vehicle=typeof d.vehicle_id==='string'&&loc.UUID.test(d.vehicle_id)?d.vehicle_id:who.default_vehicle;
     if(!vehicle)throw failure(400,'Scegli il mezzo nell\'app.');
     lastPhone.set(user.uid,now());if(lastPhone.size>5000)lastPhone.clear();
     try{
-     if(vehicle!==who.default_vehicle&&!(await db.vehicleOk(who.company_id,vehicle)))throw failure(400,'Mezzo non trovato.');
+     if(who.phone){if(!loc.UUID.test(who.driver_id)||!(await db.vehicleRecordOk(who.company_id,vehicle)))throw failure(400,'Mezzo non trovato.');}
+     else if(vehicle!==who.default_vehicle&&!(await db.vehicleOk(who.company_id,vehicle)))throw failure(400,'Mezzo non trovato.');
      const saved=await db.insertPositions(who.company_id,who.driver_id,vehicle,points);
      return res.status(200).json({saved,received:points.length});
     }catch(e){if(e.status)throw e;console.error('trasporti posizioni.telefono',e&&e.message);throw failure(502,'Archivio non raggiungibile: le posizioni restano sul telefono.');}
