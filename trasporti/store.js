@@ -121,6 +121,8 @@ function defaults(d){
    d.trips.push({id:'tf2',vehicle_id:'v3',driver_id:'d3',customer_id:'c4',status:'chiuso',started_at:at(-3,8),ended_at:at(-2,6),origin:'Rodez (FR)',destination:'Savigliano (CN)',km:760,revenue_cents:null,extra_drops:1,extra_loads:1});
   }
  }
+ // example empty km (road to the loading place, way back): the margin counts them; once
+ if(!d._empty_seeded){d._empty_seeded=true;let i=0;for(const t of d.trips||[])if(t.km>0&&t.empty_km==null&&t.status!=='pianificato'){i++;t.empty_km=t.id==='tf2'?0:t.id==='tf1'?38:Math.round(t.km*[0.08,0.22,0,0.35,0.12,0.5][i%6]);}}
  return d;
 }
 function load(){

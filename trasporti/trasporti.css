@@ -249,3 +249,4 @@ body.tr-cc{font-size:14px;line-height:1.45;display:grid;grid-template-columns:23
 .tr-cc .tr-doc select{max-width:230px}.tr-cc .tr-doc{overflow-x:auto}
 .tr-cc .tr-fs{grid-template-columns:1fr 1fr}.tr-cc .tr-fs .tr-row{align-items:end}.tr-cc .tr-fs .tr-row:first-of-type{grid-column:1/-1}
 @media(max-width:640px){.tr-cc .tr-fs{grid-template-columns:1fr}}
+.tr-check{display:flex!important;flex-direction:row!important;align-items:center;gap:8px;font-weight:500}.tr-check input{width:auto;flex:none}

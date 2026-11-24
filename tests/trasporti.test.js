@@ -531,3 +531,23 @@ test('France: zone list from the loading area, extra drops and ramasse; list imp
  assert.ok(PR.KINDS.includes('conferma'));assert.match(DOC.instructions('conferma'),/importo/);
  assert.equal(LIS.jobOf({id:'t'},null,[],[{trip_id:'t',kind:'conferma',fields:{pallet:33}}]).pallets,33);
 });
+
+test('empty km: counted in the cost sharing and shown apart; estimated from the positions between trips; loaded leg paid twice',()=>{
+ const LIS=require('../lib/trasporti/listini'),CT=require('../lib/trasporti/controllo');
+ const trips=[{id:'a',vehicle_id:'v1',customer_id:'c1',started_at:'2026-11-10T06:00',ended_at:'2026-11-10T10:00',km:100,empty_km:100,revenue_cents:30000,status:'chiuso'},
+  {id:'b',vehicle_id:'v1',customer_id:'c1',started_at:'2026-11-11T06:00',ended_at:'2026-11-11T10:00',km:200,revenue_cents:30000,status:'chiuso'}];
+ const m=MRG.compute({trips,costs:[{kind:'leasing',date:'2026-11-01',amount_cents:40000,vehicle_id:'v1'}],from:'2026-11-01',to:'2026-11-30',vehicles:[{id:'v1',plate:'AA'}],drivers:[],customers:[{id:'c1',name:'Alfa'}]});
+ const a=m.trips.find(r=>r.id==='a'),b=m.trips.find(r=>r.id==='b');
+ assert.equal(a.km,200);assert.equal(a.empty_km,100);assert.equal(a.cost_cents,20000);assert.equal(b.cost_cents,20000);
+ assert.equal(m.totals.km,400);assert.equal(m.totals.empty_km,100);assert.equal(m.vehicles[0].empty_km,100);assert.equal(m.vehicles[0].cost_per_km_cents,100);
+ const s=CT.slice(m,{},{vehicleKind:new Map(),kindGroup:MRG.KIND_GROUP});assert.equal(s.totals.empty_km,100);assert.equal(s.customers[0].empty_km,100);
+ // positions outside the trips: the gap before a trip is its road to the loading place; after the last one, the way back
+ const P=(at,lat,lon)=>({vehicle_id:'v1',at,lat,lon});
+ const pos=[P('2026-11-10T04:00',45.0,10.0),P('2026-11-10T05:50',45.0,10.5),P('2026-11-10T08:00',45.0,11.0),P('2026-11-10T10:30',45.0,11.0),P('2026-11-10T13:00',45.0,10.0),P('2026-11-11T05:00',45.0,10.0),P('2026-11-11T05:55',45.0,10.2),P('2026-11-11T11:00',45.0,10.2),P('2026-11-11T12:00',45.0,10.0)];
+ const ea=LOC.emptyKm(trips[0],trips,pos),eb=LOC.emptyKm(trips[1],trips,pos);
+ assert.ok(ea.before_km>=38&&ea.before_km<=40);assert.equal(ea.after_km,0);
+ assert.ok(eb.before_km>=93&&eb.before_km<=96);assert.ok(eb.after_km>=15&&eb.after_km<=17);assert.equal(eb.km,eb.before_km+eb.after_km);
+ assert.equal(LOC.emptyKm({id:'x',vehicle_id:'v9',started_at:'2026-11-10T06:00'},trips,pos),null);
+ const p=LIS.price({method:'km',per_km_cents:150,round_trip:true},{km:300});assert.equal(p.amount_cents,90000);assert.equal(p.lines[0].qty,600);
+ assert.equal(LIS.price({method:'km',per_km_cents:150},{km:300}).amount_cents,45000);
+});
