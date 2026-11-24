@@ -89,3 +89,9 @@ test('the PM page loads the brief flow and stays free of direct network calls',(
  assert.match(html,/<script src="lib\/pm-brief\.js"><\/script>/);assert.match(html,/id="pm-crew"/);assert.match(html,/id="brief-open"/);
  for(const bad of ['fetch(','innerHTML','localStorage','sessionStorage','XMLHttpRequest','eval('])assert.ok(!js.includes(bad),bad);
 });
+
+test('meeting in un\'altra lingua: il brief del PM legge la traduzione in italiano quando c\'è',()=>{
+ const en=B.meetingText({summary:'s',transcript:'Hello team',translation:'Ciao squadra'});
+ assert.match(en,/tradotta in italiano\):\nCiao squadra/);assert.doesNotMatch(en,/Hello team/);
+ assert.match(B.meetingText({summary:'s',transcript:'Ciao a tutti'}),/Trascrizione:\nCiao a tutti/);
+});
