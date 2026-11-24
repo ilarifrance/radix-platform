@@ -321,10 +321,17 @@ tr:last-child td{border-bottom:0}
 .price-card .amount{font-family:var(--f-display);font-weight:800;letter-spacing:-.04em;font-size:clamp(3rem,7vw,4.4rem);line-height:1}
 .price-card .amount small{display:block;margin-top:8px;font-size:1rem;font-family:var(--f-body);font-weight:500;letter-spacing:0;opacity:.85}
 .price-card ul{margin:0;padding-left:1.1em;display:grid;gap:6px}
-.toggle{display:inline-flex;border:1px solid color-mix(in srgb,var(--brand-ink) 40%,transparent);border-radius:8px;padding:3px;gap:3px;justify-self:start}
-.toggle button{font:600 .9rem var(--f-body);border:0;background:transparent;color:inherit;padding:6px 14px;border-radius:6px;cursor:pointer}
-.toggle button[aria-pressed="true"]{background:var(--brand-ink);color:var(--brand)}
-.toggle-note{font-family:var(--f-data);font-size:.72rem;opacity:.85}
+.price-card .amount #priceVal.text{font-size:.5em;letter-spacing:-.02em}
+.tiers{list-style:none;padding:0!important;gap:0!important}
+.tiers li{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;border-radius:8px;font-variant-numeric:tabular-nums;opacity:.82}
+.tiers li.on{background:color-mix(in srgb,var(--brand-ink) 16%,transparent);opacity:1;font-weight:700}
+.extras{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:24px}
+@media (max-width:860px){.extras{grid-template-columns:1fr}}
+.extras>div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;display:grid;gap:10px;align-content:start}
+.extras h3{margin:0;font-size:1.05rem;display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.extras h3 span{font-family:var(--f-data);font-size:.8rem;font-weight:600;color:var(--action)}
+.extras p,.extras ul{margin:0;color:var(--muted);font-size:.95rem}
+.extras ul{padding-left:1.1em;display:grid;gap:5px}
 .calc{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:32px;display:grid;gap:18px;align-content:start}
 .calc label{font-weight:600}
 .calc input[type=range]{width:100%;accent-color:var(--action)}
@@ -363,7 +370,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 <body>
 <div class="preview" id="previewBar">
   <div class="wrap">
-    <span><b>Anteprima interna.</b> Nome e marchio Plancia sono una proposta da confermare. Il prezzo mostra le due ipotesi (19 o 29 €). Indirizzo di prova, non indicizzato.</span>
+    <span><b>Anteprima interna.</b> Nome e marchio Plancia sono una proposta da confermare. Indirizzo di prova, non indicizzato.</span>
     <button type="button" id="hidePreview">Nascondi</button>
   </div>
 </div>
@@ -617,34 +624,48 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
 <section id="prezzi">
   <div class="wrap">
     <div class="sec-head">
-      <span class="eyebrow">Prezzi</span>
-      <h2>Un prezzo per mezzo, tutto compreso</h2>
-      <p class="lead">Nessun costo di installazione e nessun hardware da comprare. Autisti e utenti d'ufficio senza limiti.</p>
+      <span class="eyebrow">Prezzi di lancio</span>
+      <h2>Un canone fisso per la tua flotta</h2>
+      <p class="lead">Nessun hardware da comprare. Autisti e utenti d'ufficio senza limiti. Chi entra ora tiene questo prezzo per 12 mesi.</p>
     </div>
     <div class="pricing">
       <div class="price-card">
-        <div class="toggle" role="group" aria-label="Ipotesi di prezzo">
-          <button type="button" data-price="19" aria-pressed="false">Ipotesi 19 €</button>
-          <button type="button" data-price="29" aria-pressed="true">Ipotesi 29 €</button>
-        </div>
-        <span class="toggle-note">ANTEPRIMA: scelta finale ancora da decidere</span>
-        <div class="amount"><span id="priceVal">29</span> € <small>al mese per mezzo, IVA esclusa</small></div>
-        <ul>
-          <li>App autista con lettura di DDT, CMR e giornale di viaggio</li>
-          <li>Fatture automatiche dai documenti, con i listini dei clienti</li>
-          <li>Centro di comando con margini ed export Excel</li>
-          <li>Abbinamento automatico dei pedaggi Telepass</li>
-          <li>Collegamento al tuo localizzatore</li>
-          <li>Assistenza in italiano</li>
+        <div class="amount"><span id="priceVal">219</span><span id="priceEur"> €</span> <small id="priceNote">al mese, IVA esclusa · pacchetto fino a 20 mezzi</small></div>
+        <ul class="tiers" id="tiers">
+          <li data-max="5"><span>Fino a 5 mezzi</span><b>99 €</b></li>
+          <li data-max="10"><span>Fino a 10 mezzi</span><b>149 €</b></li>
+          <li data-max="20"><span>Fino a 20 mezzi</span><b>219 €</b></li>
+          <li data-max="35"><span>Da 21 a 35 mezzi</span><b>349 €</b></li>
+          <li data-max="50"><span>Da 36 a 50 mezzi</span><b>449 €</b></li>
+          <li data-max="999"><span>Oltre 50 mezzi</span><b>su preventivo</b></li>
         </ul>
       </div>
       <div class="calc">
         <label for="fleet">Quanti mezzi hai? <span id="fleetVal">15</span></label>
-        <input type="range" id="fleet" min="5" max="50" step="1" value="15">
-        <div class="row"><span>Mezzi</span><span id="cMezzi">15</span></div>
-        <div class="row"><span>Prezzo per mezzo</span><span id="cUnit">29 €</span></div>
-        <div class="row"><span>Totale al mese</span><span class="tot" id="cTot">435 €</span></div>
-        <p class="small">Per confronto: un'ora al giorno di un impiegato per ricopiare bolle costa circa <span id="cCompare">420 €</span> al mese (22 giorni a 19 € l'ora).</p>
+        <input type="range" id="fleet" min="1" max="60" step="1" value="15">
+        <div class="row"><span>Il tuo pacchetto</span><span id="cPack">Fino a 20 mezzi</span></div>
+        <div class="row"><span>A mezzo</span><span id="cUnit">14,60 €</span></div>
+        <div class="row"><span>Totale al mese</span><span class="tot" id="cTot">219 €</span></div>
+        <p class="small">Per confronto: un'ora al giorno di un impiegato per ricopiare bolle costa circa 420 € al mese (22 giorni a 19 € l'ora).</p>
+      </div>
+    </div>
+    <div class="extras">
+      <div>
+        <h3>Compreso nel canone</h3>
+        <ul>
+          <li>App autista con lettura di DDT, CMR e giornale di viaggio</li>
+          <li>Fatture dai documenti, con i listini dei clienti</li>
+          <li>Centro operativo, margini, pedaggi ed export Excel</li>
+          <li>Assistenza in italiano via email e WhatsApp</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Avviamento <span>400 € la giornata</span></h3>
+        <p>Veniamo da te: carichiamo mezzi, autisti, clienti e listini e spieghiamo l'app agli autisti. <b>Una giornata è inclusa se paghi l'anno intero.</b> Se preferisci, parti da solo.</p>
+      </div>
+      <div>
+        <h3>Assistenza a ore <span>se serve</span></h3>
+        <p>Telefono, interventi e configurazioni su misura si pagano a ore, solo quando li chiedi. Nessun canone di assistenza obbligatorio.</p>
       </div>
     </div>
   </div>
@@ -707,26 +728,26 @@ const BRAND = {
   name: "plancia",                       // come nel logo (minuscolo)
   display: "Plancia",                    // nei testi
   contact: "info@planciaapp.it (indirizzo da attivare)",
-  priceOptions: [19, 29],                // ipotesi di prezzo €/mezzo/mese
-  defaultPrice: 29,
+  // pacchetti mensili per numero di mezzi (prezzi di lancio, confermati il 24/11/2026)
+  tiers: [[5,99,'Fino a 5 mezzi'],[10,149,'Fino a 10 mezzi'],[20,219,'Fino a 20 mezzi'],[35,349,'Da 21 a 35 mezzi'],[50,449,'Da 36 a 50 mezzi']],
   showPreviewBar: true
 };
 /* ======================================================================== */
 document.querySelectorAll('[data-brand]').forEach(el => { const v = BRAND[el.dataset.brand]; if (v) el.textContent = v; });
 
-let price = BRAND.defaultPrice;
 const fleet = document.getElementById('fleet');
-const fmt = n => n.toLocaleString('it-IT') + ' €';
+const fmt = n => n.toLocaleString('it-IT', {maximumFractionDigits: 2, minimumFractionDigits: Number.isInteger(n) ? 0 : 2}) + ' €';
 function render(){
-  const n = +fleet.value;
+  const n = +fleet.value, t = BRAND.tiers.find(x => n <= x[0]);
   document.getElementById('fleetVal').textContent = n;
-  document.getElementById('cMezzi').textContent = n;
-  document.getElementById('cUnit').textContent = fmt(price);
-  document.getElementById('cTot').textContent = fmt(n * price);
-  document.getElementById('priceVal').textContent = price;
-  document.querySelectorAll('[data-price]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.price === price)));
+  document.getElementById('cPack').textContent = t ? t[2] : 'Oltre 50 mezzi';
+  document.getElementById('cUnit').textContent = t ? fmt(Math.round(t[1] * 100 / n) / 100) : 'su misura';
+  document.getElementById('cTot').textContent = t ? fmt(t[1]) : 'Su preventivo';
+  const v = document.getElementById('priceVal'); v.textContent = t ? t[1] : 'Su preventivo'; v.classList.toggle('text', !t);
+  document.getElementById('priceEur').hidden = !t;
+  document.getElementById('priceNote').textContent = t ? 'al mese, IVA esclusa · pacchetto ' + t[2].toLowerCase() : 'oltre 50 mezzi il canone si concorda insieme';
+  document.querySelectorAll('#tiers li').forEach(li => li.classList.toggle('on', t ? +li.dataset.max === t[0] : +li.dataset.max === 999));
 }
-document.querySelectorAll('[data-price]').forEach(b => b.addEventListener('click', () => { price = +b.dataset.price; render(); }));
 fleet.addEventListener('input', render);
 render();
 
