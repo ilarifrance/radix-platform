@@ -55,9 +55,9 @@ function funnel(m){const p=panel('Opportunità per fase','pv-funnel',['Vedi dett
   const svg=S('svg',{viewBox:'0 0 200 220',class:'pv-funnel-svg','aria-hidden':'true'});const n=Math.max(1,m.stages.length);const list=E('ul');
   m.stages.forEach((s,i)=>{const ops=m.opps.filter(o=>o.stage_id===s.id),v=ops.reduce((a,o)=>a+Number(o.amount_cents||0),0);const top=i*220/n,bot=(i+1)*220/n,w1=95-i*70/n,w2=95-(i+1)*70/n;
     svg.append(S('path',{d:`M${100-w1} ${top} L${100+w1} ${top} L${100+w2} ${bot-2} L${100-w2} ${bot-2} Z`,class:'f'+(i%5)}));
-    const li=E('li');li.append(E('b',s.title),E('span','€ '+eur(v)+' · '+ops.length+(ops.length===1?' opportunità':' opportunità')));list.append(li)});
+    const li=E('li'),nm=E('b',s.title);nm.setAttribute('data-i18n-ctx','stage');li.append(nm,E('span','€ '+eur(v)+' · '+ops.length+(ops.length===1?' opportunità':' opportunità')));list.append(li)});
   const last=m.stages.at(-1),share=m.opps.length&&last?Math.round(m.opps.filter(o=>o.stage_id===last.id).length/m.opps.length*100):0;
-  const fig=E('div',undefined,'pv-funnel-fig');fig.append(svg);const tot=E('p',undefined,'pv-conv');tot.append(E('small','In '+(last?.title||'ultima fase').toLowerCase()),E('b',share+'%'));fig.append(tot);
+  const fig=E('div',undefined,'pv-funnel-fig');fig.append(svg);const tot=E('p',undefined,'pv-conv');const stageName=x=>{const I=window.RadixI18n;if(!I||!I.en||!I.t)return x;const a=I.t('stage:'+x);return a!=='stage:'+x?a:I.t(x)};tot.append(E('small','In '+stageName(last?.title||'ultima fase').toLowerCase()),E('b',share+'%'));fig.append(tot);
   body.append(fig,list);p.append(body);return p}
 
 // One scale for both lines: the axis goes up to the cumulative total, so «Cumulato» reads its real value.

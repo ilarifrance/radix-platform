@@ -34,7 +34,7 @@ function gate(mode,notice){
   const [le,email]=field('Email','email','username','email'),[lp,pass]=field('Password','password','current-password','password');first=email;
   form.append(langs,brand,title,lead,le,lp,ok,err,go,swap('Password dimenticata?','forgot'));
   submit=async()=>{const [r,d]=await post('/api/auth/login',{email:email.value,password:pass.value});
-   if(r.ok){location.reload();return}
+   if(r.ok){if(product&&!location.hash&&location.pathname==='/crm'){location.href='/sales-orbit-higgsfield.html';return}location.reload();return}// Sales Orbis: after sign-in the Home with the globe, unless a section was asked for
    say(err,d.error||(r.status===429?'Troppi tentativi di accesso: riprova tra 15 minuti.':'Email o password errati.'));pass.value='';pass.focus()};
  }else if(mode==='forgot'){
   const [le,email]=field('Email','email','username','email');first=email;

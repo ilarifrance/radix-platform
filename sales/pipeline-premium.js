@@ -48,7 +48,7 @@ async function api(entity,offset=0,limit=0){
 async function pages(entity,generation){const all=[];let complete=false;
  for(let n=0;n<10;n++){const page=await api(entity,all.length,500);if(generation!==state.generation)return null;all.push(...page);if(page.length<page.limit){complete=true;break}}
  const seen=new Set();return {rows:all.filter(row=>{if(!row||typeof row.id!=='string'||seen.has(row.id))return false;seen.add(row.id);return true}),complete};}
-function moneyMinor(cents){return Number.isSafeInteger(cents)?new Intl.NumberFormat('it-IT',{maximumFractionDigits:2,minimumFractionDigits:2}).format(cents/100):'Importo non disponibile'}
+function moneyMinor(cents){return Number.isSafeInteger(cents)?new Intl.NumberFormat('it-IT',{maximumFractionDigits:2,minimumFractionDigits:cents%100?2:0}).format(cents/100):'Importo non disponibile'}
 function safeDate(value){if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;const d=new Date(value+'T00:00:00Z');return Number.isNaN(d.valueOf())?null:d}
 const cents=v=>v==null||v===''?NaN:Number(v);
 const canWrite=()=>{const w=state.workspaces.find(x=>x&&x.id===state.workspace);return !!w&&w.role!=='viewer'};
