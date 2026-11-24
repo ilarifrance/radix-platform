@@ -3,6 +3,7 @@
 -- numbered by tr_rev so that a device asks only for what changed. Drivers enter with a one-use code given by the
 -- office (tr_driver_invites) and their phone keeps a token (tr_driver_devices). Codes and tokens only as SHA-256.
 -- tr_positions.vehicle_id / driver_id keep pointing to the ids used in tr_records (uuid).
+-- Applied on Neon radix-preview (branch br-tiny-wildflower-b1z4ib9y) on 24/11/2026; production needs a separate OK.
 BEGIN;
 CREATE SEQUENCE tr_rev;
 CREATE TABLE tr_records (
