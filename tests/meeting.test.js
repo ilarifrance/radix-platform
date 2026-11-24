@@ -261,3 +261,12 @@ test('traduzione: parti sotto il limite senza perdere testo, prompt numerato, st
  assert.match(core.minutes({title:'x',date:'2026-11-24',summary:'s',transcript:'Hi',translation:'Ciao'}),/TRADUZIONE IN ITALIANO\nCiao/);
  assert.ok(require('../api/chat.js'));
 });
+
+test('archivio: la traduzione e la lingua restano nel verbale salvato, e si alleggeriscono con le trascrizioni vecchie',()=>{
+ const r=core.record({id:'m1',title:'Call',date:'2026-11-24',text:'Hello',translation:'Ciao',language:'en',proposal:{summary:'s'}});
+ assert.equal(r.translation,'Ciao');assert.equal(r.language,'en');
+ const it=core.record({id:'m2',title:'Riunione',date:'2026-11-24',text:'Ciao',proposal:{}});assert.ok(!('translation' in it)&&!('language' in it));
+ const big='x'.repeat(200000),doc={items:Array.from({length:8},(_,i)=>core.record({id:'o'+i,title:'Old',date:'2026-11-01',text:big,translation:big,language:'en',proposal:{}}))};
+ const out=core.addToArchive(doc,r);assert.equal(out.items[0].translation,'Ciao');assert.ok(JSON.stringify(out).length*1.1<=1400000);
+ const last=out.items[out.items.length-1];assert.equal(last.transcriptDropped,true);assert.ok(!last.translation);
+});
