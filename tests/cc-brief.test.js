@@ -194,6 +194,7 @@ test('Regia: il link scrive il passaggio nella sessione; la pagina di arrivo mos
  const there=()=>R.create({doc:makeDoc({shellPage:'sales-crm',topbar:true}),win:Object.assign(win('/radix-sales.html'),{setTimeout:(f,ms)=>timers.push([ms,f])}),registry:reg2,guide,send:async m=>{sent2.push(m);return 'ok'},now:()=>NOW+5000});
  const ui2=there();assert.equal(ui2.carried.text,'Crea un’attività: richiamare Rossi domani alle 10');assert.equal(ui2.panel.hidden,false);
  assert.equal(ui2.input.value,'Crea un’attività: richiamare Rossi domani alle 10');assert.match(ui2.log.textContent,/Richiesta portata dal Command Center/);
+ assert.equal(ui2.input.rows,2,'il campo cresce per far leggere la richiesta');
  assert.equal(sent2.length,0,'nessuna chiamata AI da sola');assert.equal(mem.has(C.HANDOFF_KEY),false,'usato una volta sola');
  // la pagina finisce di caricare dopo l'apertura: il riquadro in alto si aggiorna da solo
  assert.match(ui2.areaView.textContent,/Attività: 0/);assert.deepEqual(timers.map(t=>t[0]),[1500,5000]);rows=3;timers[0][1]();assert.match(ui2.areaView.textContent,/Attività: 3/);
