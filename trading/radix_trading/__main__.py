@@ -13,6 +13,11 @@
     python -m radix_trading weekend          # chiusura del venerdi' e riapertura del lunedi'
     python -m radix_trading candles          # figure delle candele e modello a vicini, con le probabilita' di dopo
     python -m radix_trading backtest         # walk-forward delle strategie di partenza + cancello 1
+    python -m radix_trading confronto        # A0/A1 crypto, B0-B3 ETF e combinazione: stessi dati, costi, quote intere, tasse
+    python -m radix_trading metodo60         # corsie simulate «metodo 60%» (indici statistica / + notizie, oro, osservazioni; --from: passato e leva)
+    python -m radix_trading axi --file x.txt # diario del conto Axi: legge un estratto MT4 incollato in un file
+    python -m radix_trading agente-notizie   # classifica i titoli delle testate per famiglia e intensita' (chiave in .env)
+    python -m radix_trading osservatorio-notizie [--rapporto|--accendi|--spegni]  # osservatorio al minuto: un giro / rapporto / interruttore dell'hourly
 """
 
 from __future__ import annotations
@@ -20,13 +25,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import datetime, timezone
 import time
 from dataclasses import replace
 
 import pandas as pd
 
 from . import backtest, candles, data, events, intraday, intraday_events, paper, portfolio, research, snapshot, strategies, universe, validation
-from .collectors import binance, fred, fx, gdelt, kraken, tiingo, yahoo
+from .collectors import binance, fred, fx, gdelt, kraken, rss, tiingo, yahoo
 from .config import Settings
 from .store import Store
 
@@ -47,6 +53,8 @@ def collect(store: Store, tier: str = "all") -> dict:
         items, news_report = gdelt.fetch_all((q,))
         store.upsert_news(items)
         report.update({f"gdelt:{k}": v for k, v in news_report.items()})
+        # Titoli di oggi dai feed RSS delle testate (chiesti il 10/11): stessa tabella, li leggono sentinella e diario Axi.
+        report.update({f"rss:{k}": v for k, v in rss.collect(store).items()})
     if slow:
         yahoo_blocked = False
         for series in fred.DEFAULT_SERIES + fx.FRED_SERIES:
@@ -220,6 +228,11 @@ def run_backtests(store: Store, curves: dict | None = None) -> dict:
     return out
 
 
+def alerts_send():
+    from . import alerts
+    return alerts.send
+
+
 def _safe(fn):
     try:
         return fn()
@@ -230,14 +243,50 @@ def _safe(fn):
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="radix_trading")
     p.add_argument("command", choices=["collect", "backtest", "paper", "hourly", "daily", "report", "export", "push", "research",
-                                          "events", "candles", "weekend", "bigplayers"])
+                                          "events", "candles", "weekend", "bigplayers", "replay", "live", "alert-test", "fineco",
+                                          "osservatorio", "confronto", "mercato", "ribasso", "serve", "metodo60", "axi",
+                                          "agente-notizie", "osservatorio-notizie"])
     p.add_argument("--max-dd", type=float, default=research.TARGET_MAX_DD,
                    help="solo per research: perdita massima accettata, es. -0.20")
     p.add_argument("--collect", action="store_true", help="events/bigplayers: scarica prima i dati")
     p.add_argument("--minuto", action="store_true", help="solo per events: studio al minuto intorno a CPI, lavoro USA e Fed")
+    p.add_argument("--from", dest="since", default=None, help="solo per replay: primo giorno, es. 2026-04-01")
+    p.add_argument("--to", dest="until", default=None, help="solo per replay: ultimo giorno (vuoto = oggi)")
+    p.add_argument("--capital", type=float, default=None, help="solo per replay: capitale iniziale in euro")
+    p.add_argument("--max-loss", type=float, default=None, help="solo per replay: stop, es. 20 = vende tutto a -20 euro")
+    p.add_argument("--fee-share", type=float, default=portfolio.MAX_FEE_SHARE,
+                   help="solo per replay: commissione minima massima sull'ordine, es. 0.005; 0 = solo banda del 3%%")
+    p.add_argument("--lanes", default=None, help="solo per replay: corsie separate da virgola, es. crypto_trend")
+    p.add_argument("--prova", action="store_true", help="live: Kraken convalida gli ordini senza eseguirli; fineco/mercato: stampa senza mandare")
+    p.add_argument("--ora", action="store_true", help="solo per fineco: manda il piano del mese adesso, anche se gia' mandato")
+    p.add_argument("--pausa", action="store_true", help="solo per fineco: ferma il piano mensile (file FINECO_PAUSA nella cartella dati)")
+    p.add_argument("--riprendi", action="store_true",
+                   help="solo per fineco: toglie la pausa e manda subito il piano del mese in corso")
     p.add_argument("--tier", choices=["fast", "slow", "all"], default="all", help="solo per collect")
+    p.add_argument("--crypto-csv", default=None,
+                   help="solo per confronto: cartella con SIMBOLO.csv orari (tempo, close) per lo storico crypto prima del 2022")
+    p.add_argument("--file", default=None, help="solo per axi: file di testo con l'estratto MT4 incollato")
+    p.add_argument("--rapporto", action="store_true",
+                   help="solo per osservatorio-notizie: il rapporto (mosse dopo i titoli contro il controllo), senza fare un giro")
+    p.add_argument("--accendi", action="store_true", help="solo per osservatorio-notizie: da ora il giro hourly fa anche l'osservatorio")
+    p.add_argument("--spegni", action="store_true", help="solo per osservatorio-notizie: l'hourly non fa piu' l'osservatorio")
+    p.add_argument("--limite", type=int, default=None,
+                   help="solo per agente-notizie: quanti titoli classificare al massimo in questo giro (default 4000)")
+    p.add_argument("--nota", nargs=2, metavar=("TICKET", "TESTO"), default=None,
+                   help="solo per axi: appunto su un'operazione chiusa (notizia collegata o giudizio)")
+    p.add_argument("--completa-notizie", dest="completa_notizie", action="store_true",
+                   help="solo per metodo60: verdetto notizie (a posteriori) alle operazioni registrate prima dell'11/11/2026")
+    p.add_argument("--giorno", default=None,
+                   help="solo per axi: giorno dell'estratto (AAAA-MM-GG) quando e' stato incollato senza intestazione")
+    p.add_argument("--quando", default=None,
+                   help="solo per mercato: ora da simulare, es. 2026-10-30T21:17Z (con --prova il testo si stampa e basta)")
     args = p.parse_args(argv)
     settings = Settings()
+    if args.command == "serve":
+        from . import serve
+        # Server sempre acceso: fa girare hourly / live / daily ai loro orari, ciascuno in un processo a parte.
+        serve.loop(settings)
+        return 0
     store = Store(settings.db_path)
     try:
         if args.command == "collect":
@@ -248,6 +297,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "daily":
                 # archivio notizie: qualche centinaio di giorni a sera finche' lo storico e' completo
                 result["raccolta"]["notizie"] = _safe(lambda: events.collect_news(store))
+                # Agente notizie (14/11): un modello classifica i titoli delle testate per famiglia e intensita'.
+                # Solo osservazione; senza chiave in .env non fa nulla e lo dice.
+                from . import news_agent
+                result["raccolta"]["agente_notizie"] = _safe(lambda: news_agent.step(store))
                 # posizioni CFTC: escono il venerdi', si scaricano quando l'ultimo rapporto ha piu' di 7 giorni
                 from . import bigplayers
                 if bigplayers.stale(store):
@@ -261,6 +314,12 @@ def main(argv: list[str] | None = None) -> int:
                 result["backtest"]["intraday_momentum"] = {"strategia": "intraday_momentum", "mercato": "crypto", "errore": day}
             snapshot.save_backtest(settings, result["backtest"], curves)
             if args.command == "daily":
+                from . import osservatorio
+                # Osservatorio «leva 20 su segnali concreti»: operazioni simulate, avvisi Telegram, nessun euro vero.
+                result["osservatorio"] = _safe(lambda: osservatorio.step(store))
+                from . import metodo60
+                # Corsia simulata «metodo 60%» (10/11): chiusura sul minimo in trend rialzista sui tre indici USA, avvisi Telegram.
+                result["metodo60"] = _safe(lambda: metodo60.step(store))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
         elif args.command == "research":
             result = research.run(store, target_dd=-abs(args.max_dd))
@@ -302,6 +361,110 @@ def main(argv: list[str] | None = None) -> int:
             result |= {k: study.get(k) for k in ("prove", "superano_correzione", "reggono_verifica", "mercati", "errore")}
             result["legami"] = (study.get("legami") or [])[:15]
             result["migliori_non_corretti"] = (study.get("migliori_non_corretti") or [])[:6]
+        elif args.command == "replay":
+            from . import replay
+            since = args.since or (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=180)).strftime("%Y-%m-%d")
+            study = replay.run(store, since, args.until, args.capital or portfolio.START_EUR, args.max_loss,
+                               args.lanes.split(",") if args.lanes else None, fee_share=args.fee_share)
+            name = "replay.json" if not args.lanes else f"replay-{args.lanes.replace(',', '-')}.json"
+            (settings.data_dir / name).write_text(json.dumps(snapshot.clean(study), default=str, ensure_ascii=False))
+            result = {k: v for k, v in study.items() if k != "andamento"}
+        elif args.command == "live":
+            from . import alerts, live
+            try:
+                result = live.step(store, settings, prova=args.prova)
+            except Exception as e:  # ogni giro fallito arriva sul telefono, non solo nel log
+                alerts.send(f"{'[PROVA]' if args.prova else '[REALE]'} Giro non riuscito: {e}")
+                raise
+        elif args.command == "osservatorio":
+            from . import osservatorio
+            # senza --from: un giro come nel daily; con --from: le stesse regole sul passato
+            result = osservatorio.replay(store, args.since) if args.since else osservatorio.step(store)
+            if args.since:
+                (settings.data_dir / "osservatorio.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
+        elif args.command == "metodo60":
+            from . import metodo60
+            # senza --from: un giro come nel daily (con --prova gli avvisi si stampano); con --from: la regola sul passato;
+            # --completa-notizie: verdetto notizie alle operazioni nate prima dello sdoppiamento delle corsie
+            if args.completa_notizie:
+                result = {"completate": metodo60.backfill_news(store)}
+            elif args.since:
+                result = metodo60.replay(store, args.since)
+                (settings.data_dir / "metodo60.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False))
+            else:
+                result = metodo60.step(store, send=(lambda text: print(text, file=sys.stderr) or True) if args.prova else alerts_send())
+        elif args.command == "agente-notizie":
+            from . import news_agent
+            # Classifica i titoli ora (il daily lo fa da solo ogni sera); --prova legge 10 titoli e stampa senza salvare.
+            if args.prova:
+                prov = news_agent.provider()
+                if prov is None:
+                    result = {"saltato": "manca OPENAI_API_KEY o ANTHROPIC_API_KEY in ~/RadixTrading/.env"}
+                else:
+                    items = news_agent.pending(store, 10)
+                    rows, usage = news_agent.classify(items, news_agent.make_call(prov))
+                    result = {"modello": prov[2], "titoli": [{"titolo": it["title"], **next(
+                        ({"temi": r["temi"], "intensita": r["intensita"]} for r in rows if r["url"] == it["url"]),
+                        {"temi": None, "intensita": None})} for it in items], **usage}
+            else:
+                result = news_agent.step(store, limit=args.limite or news_agent.MAX_PER_RUN)
+        elif args.command == "osservatorio-notizie":
+            from . import news_watch
+            # Osservatorio al minuto (15/11): titoli nuovi, classificazione subito, prezzi correnti, osservazioni; --rapporto fa i conti.
+            if args.accendi or args.spegni:
+                result = news_watch.switch(store, bool(args.accendi))
+            else:
+                result = news_watch.report(store) if args.rapporto else news_watch.tick(store)
+        elif args.command == "axi":
+            from . import axi
+            # Diario del conto Axi: legge l'estratto MT4 (file di testo), salva in archivio, stampa diario e pagella.
+            text = open(args.file, encoding="utf-8").read() if args.file else None
+            result = axi.run(store, text, tuple(args.nota) if args.nota else None, giorno=args.giorno)
+            (settings.data_dir / "axi_diario.md").write_text(result["testo"])
+            print(result["testo"], file=sys.stderr)
+            result = {k: v for k, v in result.items() if k != "testo"}
+        elif args.command == "confronto":
+            from . import confronto
+            # Ricerca sola: pochi modelli a confronto sugli stessi dati e costi, quote intere, tasse stimate.
+            close_crypto = confronto.chiusure_crypto_csv(args.crypto_csv) if args.crypto_csv else None
+            result = confronto.run(store, capitale_etf=args.capital or confronto.CAPITALE_ETF, close_crypto=close_crypto)
+            (settings.data_dir / "confronto.json").write_text(json.dumps(result, default=str, ensure_ascii=False, indent=1))
+            (settings.data_dir / "confronto.md").write_text(result["testo"])
+        elif args.command == "ribasso":
+            from . import ribasso
+            # Ricerca sola: riserva di cassa e acquisti dopo le giornate brutte contro il piano fisso (compra e tieni).
+            result = ribasso.run(store, capitale=args.capital or ribasso.CAPITALE)
+            (settings.data_dir / "ribasso.json").write_text(json.dumps(snapshot.clean(result), default=str, ensure_ascii=False, indent=1))
+            (settings.data_dir / "ribasso.md").write_text(result["testo"])
+            print(result["testo"], file=sys.stderr)
+        elif args.command == "mercato":
+            from . import mercato
+            # Un giro della sentinella adesso (o all'ora di --quando); con --prova si stampa il testo senza mandarlo.
+            quando = pd.Timestamp(args.quando).tz_convert("UTC").to_pydatetime() if args.quando and pd.Timestamp(args.quando).tzinfo \
+                else (pd.Timestamp(args.quando, tz="UTC").to_pydatetime() if args.quando else None)
+            result = mercato.watch(store, now=quando, studio=mercato.studio(settings), prova=args.prova)
+            if args.prova and result.get("testo"):
+                print(result["testo"], file=sys.stderr)
+        elif args.command == "fineco":
+            from . import fineco
+            # --pausa ferma il piano mensile; --riprendi lo riattiva e manda il piano del mese in corso (da eseguire il prossimo
+            # giorno di borsa); --ora manda subito il piano (del mese prossimo se quello corrente e' passato); --prova lo stampa.
+            if args.pausa:
+                result = {"pausa": str(fineco.pause(store, True)),
+                          "nota": "piano mensile fermo finche' il file esiste; il controllo orario dei prezzi continua"}
+            elif args.riprendi:
+                fineco.pause(store, False)
+                oggi = datetime.now(timezone.utc)
+                result = fineco.maybe_alert(store, cap=args.capital, force=True, mese=f"{oggi:%Y-%m}")
+            else:
+                result = fineco.maybe_alert(store, cap=args.capital, force=args.ora and not args.prova, prova=args.prova) \
+                    or {"mese": "gia' mandato, non ancora il primo giorno di borsa, primo giorno passato da piu' di due giorni"}
+            if args.prova and result.get("testo"):
+                print(result["testo"], file=sys.stderr)
+        elif args.command == "alert-test":
+            from . import alerts
+            result = {"configurato": alerts.configured(),
+                      "inviato": alerts.send("RADIX Trading: prova di avviso, tutto ok.")}
         elif args.command == "weekend":
             from . import weekend
             study = weekend.study(store)
@@ -322,7 +485,24 @@ def main(argv: list[str] | None = None) -> int:
             result["paper"] = engine.step()
             # Portafoglio simulato con piu' strade insieme (soldi finti).
             result["portafoglio"] = _safe(lambda: portfolio.Portfolio(store).step())
+            if isinstance(result["portafoglio"], dict):
+                from . import alerts
+                for t in result["portafoglio"].get("operazioni", []):
+                    alerts.send(alerts.order_text("[finto]", t["simbolo"], t["quantita"], t["prezzo"], t["commissione"]))
             if args.command == "hourly":
+                from . import news_watch
+                # Osservatorio notizie al minuto (15/11): sul Mac gira ogni ora qui dentro (i titoli sono gia' stati raccolti sopra),
+                # solo se acceso con `osservatorio-notizie --accendi` (file OSSERVATORIO_NOTIZIE nella cartella dati).
+                result["osservatorio_notizie"] = _safe(lambda: news_watch.tick(store, raccolta=False)) if news_watch.enabled(store) \
+                    else "spento (osservatorio-notizie --accendi)"
+                from . import fineco
+                # Corsia ETF su Fineco: il piano del mese su Telegram, il primo giorno di borsa (esecuzione a mano).
+                result["etf_fineco"] = _safe(lambda: fineco.maybe_alert(store))
+                # Controllo orario a mercato aperto: avvisi solo sugli eventi, riepilogo alle 18 italiane.
+                result["etf_controllo"] = _safe(lambda: fineco.watch(store))
+                # Sentinella di mercato (chiesta da Francesco il 31/10): indici USA, VIX, tassi, BTC/ETH; avvisi con valutazione.
+                from . import mercato
+                result["mercati"] = _safe(lambda: mercato.watch(store, studio=mercato.studio(settings)))
                 result["radix"] = _safe(lambda: snapshot.push(snapshot.build(store, settings)))
     finally:
         store.close()

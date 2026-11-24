@@ -4,6 +4,9 @@
 #   - ogni giorno alle 23:30: ETF e macro, poi il backtest che decide quali strategie il paper puo' usare
 # Dati e log in ~/RadixTrading. Nessun ordine, nessuna chiave broker.
 # Disinstallare: bash scripts/install_mac.sh --uninstall
+# Conto vero Kraken (solo Francesco, dopo la prova): bash scripts/install_mac.sh --live
+#   ogni ora al minuto 15 un giro di `live` (crypto_trend, max 100 euro, stop a -20 euro).
+#   Spegnere: bash scripts/install_mac.sh --live-off   (oppure: touch ~/RadixTrading/data/KILL_SWITCH)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
@@ -12,6 +15,43 @@ VENV="$HOME_DIR/venv"
 AGENTS="$HOME/Library/LaunchAgents"
 FAST=com.radix.trading.collect-fast
 SLOW=com.radix.trading.collect-slow
+LIVE=com.radix.trading.live
+
+if [[ "${1:-}" == "--live-off" ]]; then
+  launchctl bootout "gui/$(id -u)/$LIVE" 2>/dev/null || true
+  rm -f "$AGENTS/$LIVE.plist"
+  echo "Conto vero spento: nessun nuovo ordine. Le crypto gia' comprate restano sul conto Kraken."
+  exit 0
+fi
+
+if [[ "${1:-}" == "--live" ]]; then
+  [[ -x "$VENV/bin/python" ]] || { echo "Prima installa la raccolta: bash scripts/install_mac.sh" >&2; exit 1; }
+  mkdir -p "$HOME_DIR/logs" "$AGENTS"
+  cat > "$AGENTS/$LIVE.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$LIVE</string>
+  <key>ProgramArguments</key><array>
+    <string>$VENV/bin/python</string><string>-m</string><string>radix_trading</string><string>live</string>
+  </array>
+  <key>WorkingDirectory</key><string>$HERE</string>
+  <key>EnvironmentVariables</key><dict>
+    <key>RADIX_TRADING_DATA</key><string>$HOME_DIR/data</string>
+    <key>RADIX_TRADING_MODE</key><string>live</string>
+    <key>RADIX_TRADING_LIVE_CONFIRMED</key><string>si-confermo-denaro-reale</string>
+  </dict>
+  <key>StartCalendarInterval</key><dict><key>Minute</key><integer>15</integer></dict>
+  <key>StandardOutPath</key><string>$HOME_DIR/logs/live.log</string>
+  <key>StandardErrorPath</key><string>$HOME_DIR/logs/live.err</string>
+</dict></plist>
+PLIST
+  launchctl bootout "gui/$(id -u)/$LIVE" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$AGENTS/$LIVE.plist"
+  echo "Conto vero acceso: un giro ogni ora al minuto 15. Log: $HOME_DIR/logs/live.log"
+  echo "Spegnere: bash scripts/install_mac.sh --live-off"
+  exit 0
+fi
 
 if [[ "${1:-}" == "--uninstall" ]]; then
   for job in $FAST $SLOW; do

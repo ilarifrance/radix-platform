@@ -21,8 +21,9 @@ def features(close: pd.Series, signal: pd.Series | None = None, bars_per_day: in
     f["ret_1"] = r
     f["ret_day"] = r.rolling(d).sum()
     f["ret_week"] = r.rolling(7 * d).sum()
-    f["vol_day"] = r.rolling(d).std()
-    f["vol_ratio"] = r.rolling(d).std() / r.rolling(20 * d).std()
+    v = max(d, 5)  # con barre giornaliere la deviazione su una sola barra non esiste
+    f["vol_day"] = r.rolling(v).std()
+    f["vol_ratio"] = r.rolling(v).std() / r.rolling(20 * v).std()
     f["dist_ma"] = close / close.rolling(20 * d).mean() - 1
     f["regime_up"] = (close.rolling(20 * d).mean() > close.rolling(20 * d).mean().shift(d)).astype(float)
     if signal is not None:

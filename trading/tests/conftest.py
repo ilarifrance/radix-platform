@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 
@@ -6,6 +7,22 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+
+@pytest.fixture(autouse=True)
+def _isolated_environment(tmp_path_factory, monkeypatch):
+    """I test non leggono ~/RadixTrading/.env ne' le variabili RADIX_TRADING_* della macchina.
+
+    Sul Mac di Francesco .env ha RADIX_TRADING_VOL_TARGET=0.75 e RADIX_TRADING_MAX_LOSS_EUR=60 (scelta del 1/11/2026):
+    senza questo isolamento i test dello stop a 20 euro fallivano li' e passavano altrove."""
+    home = tmp_path_factory.mktemp("home")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
+    for name in list(os.environ):
+        if name.startswith("RADIX_TRADING_") or name in ("FINECO_PAUSA", "FINECO_RULE", "FINECO_CAPITAL_EUR",
+                                                          "KRAKEN_API_KEY", "KRAKEN_API_SECRET", "TELEGRAM_BOT_TOKEN",
+                                                          "TELEGRAM_CHAT_ID", "TIINGO_API_KEY"):
+            monkeypatch.delenv(name, raising=False)
 
 
 @pytest.fixture

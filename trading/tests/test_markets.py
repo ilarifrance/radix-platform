@@ -42,8 +42,8 @@ def test_every_market_is_tested_with_its_costs():
     assert "crypto_trend_daily" in keys and "crypto_trend_guarded" in keys
     for m in universe.MARKETS:
         assert f"trend_momentum@{m}" in keys
-    assert cli.costs_for("crypto_trend_daily", universe.FAST).fee_bps == 25
-    assert cli.costs_for("breakout_regime", universe.FAST).fee_bps == 40
+    assert cli.costs_for("crypto_trend_daily", universe.FAST).fee_bps == 40
+    assert cli.costs_for("breakout_regime", universe.FAST).fee_bps == 80
     assert cli.costs_for("trend_momentum", universe.MARKETS["cambi"]).min_fee_eur > 1
     assert cli.costs_for("trend_momentum", universe.MARKETS["italia"]).fee_bps > \
         cli.costs_for("trend_momentum", universe.MARKETS["etf"]).fee_bps
