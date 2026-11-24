@@ -222,17 +222,39 @@ async function currencyCard(manage){
  const c=card('Valuta','La valuta in cui il workspace scrive importi, preventivi e report, in italiano e in inglese. Cambia come gli importi vengono mostrati: i valori salvati restano gli stessi.');
  let names=null;try{names=new Intl.DisplayNames(['it'],{type:'currency'})}catch{names=null}
  const label=code=>code+(names?' ('+names.of(code)+')':'');
- let current='EUR',pending=false;
- try{const d=await api('workspace_settings');current=(d.settings&&d.settings.currency)||'EUR';pending=!!(d.settings&&d.settings.pending)}catch(e){c.append(E('p',e.message,'st-err'));return c}
+ let current='EUR',pending=false,st={};
+ try{const d=await api('workspace_settings');st=d.settings||{};current=(d.settings&&d.settings.currency)||'EUR';pending=!!(d.settings&&d.settings.pending)}catch(e){c.append(E('p',e.message,'st-err'));return c}
  if(rememberCurrency(current)){location.reload();return c}
  if(!manage||pending){c.append(E('p','Valuta: '+label(current),'st-strong'));c.append(E('p',pending?'La scelta della valuta si attiva con l’aggiornamento dell’archivio (migrazione sales 021).':'La valuta la cambiano owner e admin.','st-note'));return c}
- const l=E('label','Valuta del workspace','st-label'),sel=E('select');sel.id='st-currency';
+ const l=E('label','Valuta del workspace','st-label'),sel=E('select');sel.id='st-currency';sel.setAttribute('data-i18n-skip','');
  for(const code of codes){const o=E('option',label(code));o.value=code;if(code===current)o.selected=true;sel.append(o)}
  l.append(sel);const msg=E('p','','st-note');msg.setAttribute('role','status');
  const save=B('Salva la valuta',async()=>{if(S.busy||sel.value===current)return;S.busy=true;save.disabled=true;msg.textContent='Salvataggio…';
   try{const d=await api('workspace_settings',{body:{workspace:S.workspace,entity:'workspace_settings',action:'update',data:{currency:sel.value}}});current=(d.settings&&d.settings.currency)||sel.value;msg.textContent='Valuta salvata: '+label(current)+'.';if(rememberCurrency(current))setTimeout(()=>location.reload(),600)}
   catch(e){msg.textContent=e.message||String(e)}finally{S.busy=false;save.disabled=false}},'st-btn st-primary');
- const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);return c;
+ const a=E('div',undefined,'st-actions');a.append(save);c.append(l,a,msg);
+ // Second currency and default exchange rate (migration sales 025, sales/crm-fx.js): for who buys in one currency and
+ // sells in another. Each opportunity then shows both amounts; the rate saved on an opportunity is not rewritten.
+ if(st.fx_pending){c.append(E('p','La seconda valuta con il cambio si attiva con l’aggiornamento dell’archivio (migrazione sales 025).','st-note'));return c}
+ const exact=t=>{const x=E('span',t);x.setAttribute('data-i18n-skip','');return x};
+ c.append(E('p','Seconda valuta e cambio','st-strong'),E('p','Se compri in una valuta e vendi in un’altra: ogni opportunità ha i due importi, scrivi l’uno e l’altro si calcola. Il cambio lo fissi tu qui e puoi cambiarlo quando vuoi; quello già salvato sulle opportunità resta com’era.','st-note'));
+ const l2=E('label','Seconda valuta','st-label'),sel2=E('select');sel2.id='st-currency2';sel2.setAttribute('data-i18n-skip','');
+ const none=E('option','—');none.value='';sel2.append(none);
+ for(const code of codes){if(code===current)continue;const o=E('option',label(code));o.value=code;if(code===st.second_currency)o.selected=true;sel2.append(o)}
+ l2.append(sel2);
+ const l3=E('label',undefined,'st-label'),unit=exact(''),rate=E('input');rate.id='st-rate';rate.type='text';rate.inputMode='decimal';rate.autocomplete='off';rate.placeholder='1,15';
+ rate.value=st.exchange_rate?(I&&I.en?String(st.exchange_rate):String(st.exchange_rate).replace('.',',')):'';
+ const drawUnit=()=>{unit.textContent=sel2.value?' (1 '+current+' = … '+sel2.value+')':''};drawUnit();sel2.addEventListener('change',drawUnit);
+ l3.append('Cambio predefinito',unit,rate);
+ const msg2=E('p','','st-note');msg2.setAttribute('role','status');
+ const save2=B('Salva seconda valuta e cambio',async()=>{if(S.busy)return;
+  const raw=rate.value.trim().replace(/\s/g,'').replace(',','.'),n=raw?Number(raw):null;
+  if(sel2.value&&(n===null||!/^\d+(\.\d+)?$/.test(raw)||!(n>0))){msg2.textContent='Scrivi il cambio: un numero maggiore di zero, ad esempio 1,15.';rate.focus();return}
+  S.busy=true;save2.disabled=true;msg2.textContent='Salvataggio…';
+  try{const d=await api('workspace_settings',{body:{workspace:S.workspace,entity:'workspace_settings',action:'update',data:{second_currency:sel2.value||null,exchange_rate:sel2.value?n:null}}});st=d.settings||st;
+   msg2.textContent=st.second_currency?'Salvato. Da ora le opportunità hanno anche l’importo nella seconda valuta.':'Salvato: una sola valuta.'}
+  catch(e){msg2.textContent=e.message||String(e)}finally{S.busy=false;save2.disabled=false}},'st-btn st-primary');
+ const a2=E('div',undefined,'st-actions');a2.append(save2);c.append(l2,l3,a2,msg2);return c;
 }
 // Sales Orbis: the plan of the workspace (api/_sales_plan.js), read only; it is changed by whoever sells it.
 const PLAN_TEXT={prova:['Prova','Tutto incluso, Copilota e Lead Intelligence compresi, per il periodo di prova.'],

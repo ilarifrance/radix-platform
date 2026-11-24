@@ -77,7 +77,7 @@ function selectionPanel(row){const target=$('selection');target.replaceChildren(
   go.onclick=()=>{const stage=state.stages.find(s=>s.id===sel.value);if(stage)move(row,stage)};wrap.append(label,' ',sel,' ',go);target.append(wrap)}
  else if(!canWrite())target.append(E('p','Ruolo in sola lettura: lo spostamento di fase non è disponibile.'));
  const P=window.RadixCrmProduct&&window.RadixCrmProduct.here();const a=E('a',P?'Apri la scheda completa':'Apri nel CRM operativo ↗');a.href=(P?'/crm':'/radix-sales.html')+'?opportunita='+encodeURIComponent(row.id)+(state.workspace?'&ws='+encodeURIComponent(state.workspace):'')+'#opportunities';target.append(a)}
-function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));{const who=clientName(row);if(who)b.append(E('small',who,'client'))}if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}{const a=activityState(state.tasks,row.id,localDay()),s=E('small',a.label,'next next-'+a.state);b.append(s)}
+function dealCard(row){const b=E('button',undefined,'deal');b.type='button';b.append(E('strong',row.title||'Opportunità senza titolo'));{const who=clientName(row);if(who)b.append(E('small',who,'client'))}if(Number.isSafeInteger(cents(row.amount_cents)))b.append(E('span','€ '+moneyMinor(cents(row.amount_cents)),'value'));{const x=window.RadixCrmFx&&window.RadixCrmFx.node(row,'value2',true);if(x)b.append(x)}if(row.expected_close){const d=E('small','Chiusura prevista: '+dateLabel(row.expected_close),'date');if(safeDate(row.expected_close)&&row.expected_close<localDay())d.classList.add('past');b.append(d)}{const a=activityState(state.tasks,row.id,localDay()),s=E('small',a.label,'next next-'+a.state);b.append(s)}
  if(canWrite()&&isOpen(row)&&moveTargets(row,state.stages).length){b.draggable=true;b.title='Trascina su un’altra fase per spostarla';b.addEventListener('dragstart',e=>{state.dragId=row.id;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.id);b.classList.add('dragging')});b.addEventListener('dragend',()=>{state.dragId=null;b.classList.remove('dragging');clearTargets()})}
  b.onclick=()=>{document.querySelectorAll('.deal').forEach(n=>n.classList.remove('selected'));b.classList.add('selected');if(window.RadixDealFlow)window.RadixDealFlow.openDetail({...flowCtx(row,null),onDone:async msg=>{await load();if(msg)$('status').textContent=msg}});else selectionPanel(row)};return b}
 // «Azienda · Contatto» of a deal, once the lists are loaded (quickLoad); empty until then.
@@ -105,6 +105,7 @@ function metrics(){
  let o=$('outcomes');if(!o){o=E('span');o.id='outcomes';$('count').parentElement.append(o)}o.textContent='Aperte · Vinte '+oc.won+' · Perse '+oc.lost;
 }
 async function load(){const generation=++state.generation;error('');$('status').textContent='Caricamento pipeline...';try{
+ if(window.RadixCrmFx)window.RadixCrmFx.load(state.workspace);
  const [processes,stages,deals,tasks]=await Promise.all([pages('processes',generation),pages('stages',generation),pages('opportunities',generation),pages('tasks',generation).catch(()=>({rows:[],complete:false}))]);if(generation!==state.generation||!processes||!stages||!deals)return;state.tasks=tasks?tasks.rows:[];
  // Only sales pipelines (kind opportunity): task processes and their stages are not columns here.
  const pipelines=processes.rows.filter(p=>p.kind==null||p.kind==='opportunity');state.processes=pipelines;
@@ -114,6 +115,7 @@ async function load(){const generation=++state.generation;error('');$('status').
  state.processId=pipelines.some(p=>p.id===previous)?previous:previous===''&&state.allChosen?'':pipelines.length>1?pipelines[0].id:'';select.value=state.processId;select.disabled=false;
  $('process-field').hidden=pipelines.length<2;
  const ids=new Set(pipelines.map(p=>p.id));state.stages=stages.rows.filter(s=>ids.has(s.process_id)).sort((a,b)=>(Number(a.position)||0)-(Number(b.position)||0));state.deals=deals.rows;state.complete=processes.complete&&stages.complete&&deals.complete;
+ if(window.RadixCrmFx)await window.RadixCrmFx.load(state.workspace);if(generation!==state.generation)return;
  metrics();
  $('status').textContent=state.complete?'Dati aggiornati dal server.':'Dati CRM autorizzati · almeno una risorsa ha altre pagine non caricate';
  render();
@@ -145,12 +147,15 @@ function openQuick(stageId){if(!canWrite()||state.busy)return;const dlg=$('quick
  f.elements.process_id.replaceChildren(...withStages.map(p=>{const o=E('option',p.title||'Pipeline');o.value=p.id;return o}));
  f.elements.process_id.value=from?.process_id||(withStages.some(p=>p.id===state.processId)?state.processId:withStages[0]?.id||'');
  f.querySelector('[data-pipeline-pick]').hidden=withStages.length<2;quickStages(stageId);
+ // Second currency (sales/crm-fx.js): the two extra inputs right under the amount, when the workspace has one.
+ {const old=f.querySelector('[data-fx-host]');if(old)old.remove();const F=window.RadixCrmFx;if(F&&F.active()){const host=E('div');host.dataset.fxHost='1';f.elements.amount.closest('.quick-row').after(host);F.attach(f.elements.amount,host,null)}}
  quickLists();if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');f.elements.title.focus();
  quickLoad().then(()=>quickLists()).catch(e=>quickError('Elenco aziende e contatti non caricato ('+e.message+'). Puoi comunque creare l’opportunità.'))}
 async function saveQuick(){if(quick.saving)return;const f=$('quick-deal-form'),Q=window.RadixCrmQuick,v=k=>f.elements[k].value;
  if(!quick.rows&&(v('company').trim()||v('contact').trim())){try{await quickLoad()}catch{}if(!quick.rows){quickError('Elenco aziende e contatti non ancora caricato: riprova tra un istante, così non creo doppioni.');return}}
  const rows=quick.rows||{companies:[],contacts:[]},p=Q.plan({title:v('title'),company:v('company'),contact:v('contact'),amount:v('amount'),expected_close:v('expected_close'),stage_id:v('stage_id')},{...rows,stages:state.stages});
  if(p.error){quickError(p.error);return}
+ {const fx=window.RadixCrmFx?window.RadixCrmFx.values(f):{};if(fx.error){quickError(fx.error);return}if(fx.amount2_cents!=null)Object.assign(p.opportunity,fx)}
  quick.saving=true;quickError('');const btn=f.querySelector('[data-quick="save"]');btn.disabled=true;btn.textContent='Salvataggio…';const made=[];
  try{let companyId=p.company?.id||null,contactId=p.contact?.id||null;
   if(p.company?.create){const row=await post('companies',p.company.create);rows.companies.push(row);companyId=row.id;made.push('la nuova azienda «'+row.name+'»')}

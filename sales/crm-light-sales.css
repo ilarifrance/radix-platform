@@ -371,3 +371,8 @@ html[data-product].tv-on #tasks>.row:first-child>.primary{order:2;margin:0}
 html[data-product].tv-on #tasks>.row:first-child>.crm-automations{order:4;flex:1 1 320px;margin:0}
 html[data-product].tv-on #tasks>.row:first-child>.crm-tools{order:3;margin:0}
 html[data-product].tv-on #tasks .tv-kpis{display:none}
+
+/* Attività: the circle that completes a task, also in the lists. */
+.tv-table td .tv-check.sm{width:18px;height:18px;min-height:0;padding:0;border-radius:50%;margin-right:10px;vertical-align:-3px;cursor:pointer}
+.tv-table td .tv-check.sm.late{border-color:var(--crm-err)}
+.tv-pri.norm{color:var(--crm-muted)}

@@ -425,9 +425,14 @@ function openEditor(entity,row=null){
   const close=addInput('expected_close','Chiusura prevista (opzionale)','date',row?.expected_close || '');close.min='0001-01-01';close.max='9999-12-31';
   const prob=addInput('probability','Probabilità di chiusura % (vuoto = quella della fase)','number',row?.probability ?? '');prob.max='100';
   if(row){addSelect('outcome','Esito',[['open','Aperta'],['won','Vinta'],['lost','Persa']],row.outcome||'open',true);addText('lost_reason','Motivo della perdita (obbligatorio se persa)',500);}
+  // Second currency and «Aggiungi campo» (migration 025, sales/crm-fx.js): only where the workspace has them.
+  const F=window.RadixCrmFx;if(F)F.load(state.workspace).then(st=>{if(!st||!editing||editing.entity!=='opportunities'||editing.row!==row||!amount.isConnected)return;
+   F.attach(amount,amount.closest('div'),row);
+   if(window.RadixCrmCustom&&!st.pending&&!fields.querySelector('[data-section="custom"]'))window.RadixCrmCustom.section('opportunities',row,fields);});
  }
  if(entity==='tasks'){
-  addSelect('assignee_id','Assegnatario',references('members',row?.assignee_id),row?.assignee_id);
+  // A new task is mine unless I pick someone else: no more «Non assegnata» by oversight.
+  addSelect('assignee_id','Assegnatario',references('members',row?.assignee_id),row?row.assignee_id:(state.me??''));
   addSelect('priority','Priorità *',priorities,row?.priority || 'normal',true);
   localInput('due_at','Scadenza (opzionale)',row?.due_at,false,true);
   addSelect('opportunity_id','Opportunità collegata',references('opportunities',row?.opportunity_id),row?.opportunity_id);
@@ -474,7 +479,7 @@ $('editor-form').addEventListener('submit',event=>{
  const RF=window.RadixCrmFields,record=!!RF&&['companies','contacts'].includes(entity);
  for(const [key,value] of new FormData(event.currentTarget)){
   // Aziende e Contatti: every field of crm-fields-core.js is parsed (and checked) the same way.
-  if(record&&key.startsWith('custom:'))continue;
+  if(key.startsWith('custom:')||key.startsWith('fx_'))continue;
   if(record&&key==='name'&&entity==='contacts'){data.name=value.trim();continue;}
   if(record&&key!=='name'&&RF.fieldOf(entity,key)){const r=RF.parse(entity,key,value,{selfId:row?.id,current:row?.[key]});if(r.error){error(r.error);return;}data[key]=r.value;continue;}
   if(key==='amount_cents'&&RF){const n=RF.euroToCents(value);if(!Number.isSafeInteger(n) || n<0){error('Importo non valido.');return;}data[key]=n;}
@@ -520,6 +525,12 @@ $('editor-form').addEventListener('submit',event=>{
  if(entity==='opportunities'&&row){if(data.outcome==='lost'&&!data.lost_reason){error('Indica il motivo della perdita.');return;}if(data.outcome!=='lost')delete data.lost_reason;
   // Unchanged fields are not resent: the server rejects lost_reason on an open/won deal.
   for(const k of ['outcome','lost_reason','probability'])if(Object.hasOwn(data,k)&&data[k]===(row[k]??null))delete data[k];}
+ if(entity==='opportunities'){
+  // Second amount and rate: sent only when they differ from what is stored, so an archive before 025 still saves the rest.
+  const fx=window.RadixCrmFx?.values(event.currentTarget)||{};if(fx.error){error(fx.error);return;}
+  for(const k of ['amount2_cents','exchange_rate']){if(!Object.hasOwn(fx,k))continue;const a=row?row[k]??null:null,b=fx[k];if((a==null&&b==null)||(a!=null&&b!=null&&Number(a)===Number(b)))continue;data[k]=b;}
+  const custom=window.RadixCrmCustom?.collect(event.currentTarget,row);if(custom)data.custom=custom;
+ }
  if(entity==='leads'){
   if(data.status==='non_qualificato'&&!data.status_reason){error('Scrivi perché il lead non è qualificato.');return;}
   if(data.status&&data.status!=='non_qualificato'&&data.status_reason&&data.status_reason===(row?.status_reason??null))data.status_reason=null;

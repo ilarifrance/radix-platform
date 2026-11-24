@@ -143,6 +143,12 @@ function composerPanel(ctx){
  const show=tab=>{tabs.set(key,tab);for(const b of bar.children){const on=b.dataset.tab===tab;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1}body.replaceChildren(form(ctx,rec,tab,a.writable('tasks')))};
  core.TABS.forEach(([tab,name])=>{const b=B(name,()=>show(tab));b.setAttribute('role','tab');b.dataset.tab=tab;bar.append(b)});
  bar.addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;const list=[...bar.children],i=list.indexOf(document.activeElement);if(i<0)return;const n=list[(i+(e.key==='ArrowRight'?1:list.length-1))%list.length];n.click();n.focus()});
+ // «Nota di riunione» (sales/crm-deal-flow.js): the long note of a meeting, kept on this record and shown in its history.
+ if(window.RadixDealFlow&&window.RadixDealFlow.meetingNote){
+  const link=ctx.subject==='contacts'?{contact_id:rec.id,company_id:rec.company_id||null}:ctx.subject==='companies'?{company_id:rec.id}:{opportunity_id:rec.id,company_id:rec.company_id||null,contact_id:rec.contact_id||null};
+  const mb=B('📝 Nota di riunione',()=>{if(a.state.busy)return;window.RadixDealFlow.meetingNote({workspace:a.state.workspace,name:ctx.title,link,assignee:a.state.me||null,say:a.error,
+   onDone:async()=>{await a.refresh(false);await a.openCustomer?.(ctx.subject,{id:ctx.id,name:ctx.title});a.notice('Nota di riunione salvata su «'+ctx.title+'».')}})},'crm-rec-call crm-rec-meet');
+  mb.title='Scrivi le note di una riunione: restano nello storico di questa scheda';box.append(mb)}
  box.append(bar,body);show(tabs.get(key)||'email');
  if(callLink&&callLink.href.startsWith('tel:'))callLink.addEventListener('click',()=>show('call'));
  return box;

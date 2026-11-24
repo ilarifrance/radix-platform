@@ -334,7 +334,9 @@ window.RadixCrmTools={
   else if(entity==='companies'){const bar=ioBar('companies');head.append(bar);if(window.RadixCrmDedupe&&app().writable('companies')){const dd=tuck(dedupePanel('companies'));section.append(dd);bar.append(B('Doppioni',reveal(dd,findNow)))}}
   else if(entity==='tickets'&&window.RadixCrmKnowledge){const board=section.querySelector(':scope>.board');section.insertBefore(RadixCrmKnowledge.panel(),board)}
   // The tasks view keeps only the heading row visible, so the rule lives there.
-  else if(entity==='tasks'&&app().writable('tasks')){head.append(followUpBar());const auto=automationsPanel();if(auto)head.append(auto)}
+  else if(entity==='tasks'&&app().writable('tasks')){const bar=followUpBar(),auto=automationsPanel();
+   // Sales Orbis: the follow-up rule sits inside «Automazioni», so the header keeps only the title and the two buttons.
+   if(auto&&window.RadixCrmProduct&&window.RadixCrmProduct.here()){auto.querySelector('summary').after(bar);head.append(auto)}else{head.append(bar);if(auto)head.append(auto)}}
  },
  card(entity,row,c,readonly){
   if(entity==='tickets')window.RadixCrmSla?.mount(c,row);

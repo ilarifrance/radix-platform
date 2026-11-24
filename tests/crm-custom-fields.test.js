@@ -27,7 +27,8 @@ test('merge keeps other values, clears emptied ones, and says when nothing chang
 test('API: field commands and record values are checked before the database',()=>{
  const c=api.command({workspace:W,entity:'custom_fields',action:'create',data:{entity:'companies',label:'  Budget   2026 '}});
  assert.equal(c.data.label,'Budget 2026');assert.match(c.data.id,/^[0-9a-f-]{36}$/);
- assert.throws(()=>api.command({workspace:W,entity:'custom_fields',action:'create',data:{entity:'leads',label:'X'}}),/aziende o contatti/);
+ assert.throws(()=>api.command({workspace:W,entity:'custom_fields',action:'create',data:{entity:'leads',label:'X'}}),/aziende, contatti o opportunità/);
+ assert.equal(api.command({workspace:W,entity:'custom_fields',action:'create',data:{entity:'opportunities',label:'Incoterms'}}).data.entity,'opportunities');
  assert.throws(()=>api.command({workspace:W,entity:'custom_fields',action:'create',data:{entity:'contacts',label:'x'.repeat(61)}}),/60/);
  assert.throws(()=>api.command({workspace:W,entity:'custom_fields',action:'delete',data:{id:F1,label:'x'}}),/non consentito/);
  assert.deepEqual(api.values({[F1]:' 50.000 € ',[F2]:''}),{[F1]:'50.000 €'});

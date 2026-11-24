@@ -40,3 +40,27 @@
 .df-outcome{margin-top:10px}
 .df-bar .df-won{background:#15803d;border-color:#15803d;color:#fff}
 .df-bar .df-lost{background:#fff;border-color:#f0b4ad;color:#b42318}
+
+/* «Modifica», meeting notes, second currency and added fields (migration 025). */
+.df-head .df-edit{flex:none;margin-left:auto;border:1px solid #5b21b6;background:#5b21b6;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.df-lab{display:block;margin:10px 0 0;font-size:13px;color:#4a4168}
+.df-dialog input[type=date],.df-dialog input[type=number]{box-sizing:border-box;padding:9px 10px;border:1px solid #cfc5ee;border-radius:8px;font:inherit;background:#fff;color:inherit;margin:4px 0}
+.df-lab input[type=date],.df-lab input[type=number]{width:100%}
+.df-two{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.df-meeting textarea{min-height:180px;resize:vertical}
+.df-meeting .df-days{margin:6px 0 0;color:#4a4168;font-size:13px}
+.df-meet{border:1px solid #ebe5f8;border-radius:10px;padding:10px 12px;margin:0 0 8px;background:#fbfaff}
+.df-meet-h{margin:0 0 4px}.df-meet-b{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;color:#2b2540}
+.df-more,.df-add-note{border:0;background:none;color:#5b21b6;padding:4px 0;cursor:pointer;font:inherit;font-weight:600}
+.fx-row{display:grid;grid-template-columns:1fr 1fr;gap:0 12px;margin-top:6px}
+.fx-row label{display:block;font-size:13px}.fx-row input{width:100%;box-sizing:border-box}
+.fx-hint{grid-column:1/-1;color:#6b5fa0;font-size:12px}
+.df-dialog .fx-row label,.df-dialog .rf-custom label{margin:10px 0 0;color:#4a4168}
+.df-dialog .rf-custom{margin-top:14px;border-top:1px solid #eee9f8;padding-top:8px}
+.df-dialog .rf-custom summary{font-weight:600;cursor:pointer}
+.df-dialog .rf-custom label{display:block;font-size:13px}
+.df-dialog .rf-custom .rf-copy{border:0;background:none;color:#5b21b6;padding:6px 0;cursor:pointer;font:inherit;font-weight:600}
+.df-dialog .rf-custom .actions{display:flex;gap:8px;margin-top:8px}
+.df-dialog .rf-custom .actions button{border:1px solid #cfc5ee;background:#fff;color:#4c1d95;border-radius:8px;padding:7px 12px;cursor:pointer;font:inherit}
+.df-dialog .rf-custom .muted,.df-dialog .rf-hint{color:#6b5fa0;font-size:12px}
+.deal .value2,.fx-second{display:block;font-size:12px;color:#6b5fa0}

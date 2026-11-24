@@ -106,7 +106,12 @@ function openDetail(ctx){
  const st=stageOf(deal.stage_id),prob=deal.probability!=null&&deal.probability!==''?deal.probability:(st&&st.probability!=null?st.probability:null);
  const main=E('section',undefined,'df-sec');
  main.append(field('Fase',st?st.title:'—'),field('Valore',money(deal.amount_cents)),field('Probabilità',prob==null?'—':prob+'%'),field('Chiusura prevista',day(deal.expected_close)),field('Esito',deal.outcome==='won'?'Vinta':deal.outcome==='lost'?'Persa'+(deal.lost_reason?' · '+deal.lost_reason:''):'Aperta'));
+ {const F=window.RadixCrmFx,x=F&&F.node(deal,'df-v');if(x){const d=E('div',undefined,'df-f');d.append(E('span','Seconda valuta','df-l'),x);main.children[1].after(d)}}
  aside.append(main);
+ // «Campi aggiunti» of the opportunity (migration 025): the values this one has, under the main data.
+ customHost(ctx.workspace);
+ if(window.RadixCrmCustom)window.RadixCrmCustom.load().then(()=>{if(open!==wrap)return;const g=window.RadixCrmCustom.group('opportunities',deal);if(!g)return;for(const it of g.items)main.append(field(it.label,it.text))}).catch(()=>{});
+ if(ctx.canWrite){const eb=E('button','Modifica','df-edit');eb.type='button';eb.onclick=()=>editDeal(ctx);head.insertBefore(eb,close)}
  // Stage bar: the pipeline's stages in order; a click on another stage opens the move dialog. Then «Vinta» and «Persa».
  const bar=C.stageBar(ctx.stages,deal);
  if(bar.length&&open1){
@@ -132,8 +137,15 @@ function openDetail(ctx){
   if(!openTasks.length)ts.append(E('p','Nessuna attività aperta.','df-note'));
   openTasks.slice(0,8).forEach(t=>ts.append(E('p',(t.title||'Attività')+' · '+(t.due_at?day(t.due_at):'senza scadenza'),'df-item')));
   body.append(ts);
+  // Meeting notes first, whole: they are what the team reads again before the next call.
+  const ms=E('section',undefined,'df-sec');ms.append(E('h3','Note di riunione'));
+  const meets=r.interactions.filter(i=>i.kind==='meeting').sort((a,b)=>String(b.occurred_at||'').localeCompare(String(a.occurred_at||'')));
+  if(!meets.length)ms.append(E('p','Nessuna nota di riunione.','df-note'));
+  meets.slice(0,10).forEach(i=>ms.append(noteCard(i)));
+  if(ctx.canWrite){const nb=E('button','+ Nota di riunione','df-add-note');nb.type='button';nb.onclick=()=>meetingNote({workspace:ctx.workspace,name:deal.title,link:{opportunity_id:deal.id,company_id:deal.company_id||null,contact_id:deal.contact_id||null},assignee:deal.owner_id||ctx.assignee||null,onDone:async()=>{if(ctx.onDone)await ctx.onDone('Nota di riunione salvata.');openDetail(ctx)}});ms.append(nb)}
+  body.append(ms);
   const is=E('section',undefined,'df-sec');is.append(E('h3','Interazioni recenti'));
-  const ints=r.interactions.sort((a,b)=>String(b.occurred_at||'').localeCompare(String(a.occurred_at||'')));
+  const ints=r.interactions.filter(i=>i.kind!=='meeting').sort((a,b)=>String(b.occurred_at||'').localeCompare(String(a.occurred_at||'')));
   if(!ints.length)is.append(E('p','Nessuna interazione registrata.','df-note'));
   ints.slice(0,6).forEach(i=>{const p=E('p',undefined,'df-item');p.append(E('b',(i.title||C.kindLabel(i.kind))),' · '+day(i.occurred_at));if(i.body)p.append(E('br'),i.body.length>240?i.body.slice(0,240)+'…':i.body);is.append(p)});
   body.append(is);
@@ -149,6 +161,85 @@ function openDetail(ctx){
   more.append(link(crm+'?ws='+encodeURIComponent(ctx.workspace)+'&opportunita='+encodeURIComponent(deal.id)+'#opportunities','Apri la scheda completa: campi, percorso del contatto e altre azioni'));body.append(more);
  }).catch(e=>{if(open===wrap){body.replaceChildren(E('p',e.message||'Dettagli non disponibili.','df-err'))}});
  close.focus();
+}
+// Host for crm-custom-fields.js on a page without the CRM app (the Pipeline): the same two calls, on /api/sales.
+function customHost(ws){
+ if(window.RadixSalesApp||!window.RadixCrmCustom)return;
+ window.RadixCrmCustomHost={state:{workspace:ws},api:async(entity,o)=>{
+  if(o&&o.body)return post(ws,o.body.entity,o.body.action,o.body.data);
+  const r=await fetch('/api/sales?'+new URLSearchParams({entity,workspace:ws,offset:'0'}),{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw new Error('Errore ('+r.status+')');return r.json()}}}
+// One meeting note, whole: title, date and the text with its line breaks; a long one opens with «Mostra tutto».
+function noteCard(i){
+ const box=E('article',undefined,'df-meet');const h=E('p',undefined,'df-meet-h');h.append(E('b',i.title||'Riunione'),' · '+day(i.occurred_at));box.append(h);
+ const t=String(i.body||'');if(!t)return box;
+ const p=E('p',t.length>600?t.slice(0,600)+'…':t,'df-meet-b');box.append(p);
+ if(t.length>600){const more=E('button','Mostra tutto','df-more');more.type='button';more.onclick=()=>{p.textContent=t;more.remove()};box.append(more)}
+ return box}
+/* «Nota di riunione»: title, day, who was there, the notes and (optional) the next step, in one dialog. Saved as an
+   interaction of kind «meeting» on the opportunity / contact / company of ctx.link, so it shows on each of them; the
+   next step becomes a task. ctx: {workspace, name, link:{opportunity_id?,company_id?,contact_id?}, assignee, onDone}. */
+function meetingNote(ctx){
+ const I=window.RadixI18n,en=!!(I&&I.en),dlg=E('dialog',undefined,'df-dialog df-meeting'),form=E('form');form.method='dialog';
+ form.append(E('h2','Nota di riunione'));
+ const lab=(text,control)=>{const l=E('label',text,'df-lab');l.append(control);form.append(l);return control};
+ const title=lab('Titolo',E('input'));title.type='text';title.maxLength=200;title.value=(en?'Meeting · ':'Riunione · ')+(ctx.name||'');
+ const now=new Date(),pad=n=>String(n).padStart(2,'0'),today=now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+ const date=lab('Data',E('input'));date.type='date';date.value=today;date.max='9999-12-31';date.required=true;
+ const who=lab('Partecipanti',E('input'));who.type='text';who.maxLength=200;who.placeholder='Es. Mario Rossi, Anna Bianchi';
+ const notes=lab('Note',E('textarea'));notes.rows=10;notes.maxLength=3600;notes.placeholder='Di cosa avete parlato, decisioni prese, punti aperti…';
+ const next=lab('Prossimo passo (facoltativo): diventa un’attività',E('input'));next.type='text';next.maxLength=160;next.placeholder='Es. Inviare la proposta';
+ const days=E('input');days.type='number';days.min='0';days.max='365';days.value='3';days.setAttribute('aria-label','Giorni');const w=E('p',undefined,'df-days');w.append('Scadenza tra ',days,' giorni');form.append(w);
+ const err=E('p',undefined,'df-err');err.hidden=true;form.append(err);
+ const bar=E('div',undefined,'df-bar'),ok=E('button','Salva la nota','df-ok');ok.type='submit';const no=E('button','Annulla');no.type='button';no.onclick=()=>dlg.close();bar.append(ok,no);form.append(bar);
+ form.addEventListener('submit',async e=>{e.preventDefault();err.hidden=true;
+  const t=title.value.trim(),n=notes.value.trim(),p=who.value.trim().replace(/\s+/g,' ');
+  if(!t){err.textContent='Scrivi un titolo.';err.hidden=false;title.focus();return}
+  if(!n){err.textContent='Scrivi le note della riunione.';err.hidden=false;notes.focus();return}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date.value)){err.textContent='Indica la data della riunione.';err.hidden=false;date.focus();return}
+  // Today: the time of saving; another day: noon of that day (the note is about the day, not the minute).
+  const when=date.value===today?new Date():new Date(date.value+'T12:00:00');
+  const link={};for(const k of ['opportunity_id','company_id','contact_id'])if(ctx.link&&ctx.link[k])link[k]=ctx.link[k];
+  ok.disabled=true;
+  try{await post(ctx.workspace,'interactions','create',{title:t,kind:'meeting',occurred_at:when.toISOString().slice(0,19)+'Z',body:(p?(en?'Attendees: ':'Partecipanti: ')+p+'\n\n':'')+n,...link});
+   const step=next.value.trim();
+   if(step){try{await post(ctx.workspace,'tasks','create',{title:step.slice(0,200),...link,assignee_id:ctx.assignee||null,priority:'normal',status:'todo',due_at:C.dueAt(days.value,Date.now())})}catch(x){(ctx.say||(()=>{}))('Nota salvata, ma non l’attività: '+(x.message||''))}}
+   dlg.close();if(ctx.onDone)await ctx.onDone()}
+  catch(x){err.textContent=x.message||'Non salvato.';err.hidden=false;ok.disabled=false}});
+ dlg.addEventListener('close',()=>dlg.remove());dlg.append(form);document.body.append(dlg);dlg.showModal();notes.focus();
+}
+/* «Modifica» from the panel: name, amount (both currencies when the workspace has two), close date, probability and the
+   added fields, without leaving the page. Only what changed is sent. */
+function editDeal(ctx){
+ const deal=ctx.deal,F=window.RadixCrmFx,dlg=E('dialog',undefined,'df-dialog df-editdeal'),form=E('form');form.method='dialog';
+ form.append(E('h2','Modifica l’opportunità'));
+ const lab=(text,control,host)=>{const box=E('div');const l=E('label',text,'df-lab');l.append(control);box.append(l);(host||form).append(box);return control};
+ const title=lab('Nome dell’opportunità *',E('input'));title.type='text';title.name='title';title.maxLength=200;title.value=deal.title||'';
+ const amount=lab('Importo €',E('input'));amount.type='text';amount.name='amount';amount.inputMode='decimal';amount.value=F?F.fmt(deal.amount_cents??0):String((Number(deal.amount_cents)||0)/100);
+ const grid=E('div',undefined,'df-two');form.append(grid);
+ const close=lab('Chiusura prevista',E('input'),grid);close.type='date';close.name='expected_close';close.min='1900-01-01';close.max='9999-12-31';close.value=String(deal.expected_close||'').slice(0,10);
+ const prob=lab('Probabilità %',E('input'),grid);prob.type='number';prob.name='probability';prob.min='0';prob.max='100';prob.value=deal.probability==null?'':String(deal.probability);prob.placeholder='Quella della fase';
+ const extra=E('div');form.append(extra);
+ const err=E('p',undefined,'df-err');err.hidden=true;form.append(err);
+ const bar=E('div',undefined,'df-bar'),ok=E('button','Salva','df-ok');ok.type='submit';const no=E('button','Annulla');no.type='button';no.onclick=()=>dlg.close();bar.append(ok,no);form.append(bar);
+ const ready=F?F.load(ctx.workspace):Promise.resolve(null);
+ ready.then(st=>{if(!dlg.isConnected)return;if(F)F.attach(amount,amount.closest('div'),deal);
+  if(window.RadixCrmCustom&&st&&!st.pending){customHost(ctx.workspace);window.RadixCrmCustom.section('opportunities',deal,extra)}});
+ form.addEventListener('submit',async e=>{e.preventDefault();err.hidden=true;const bad=(m,el)=>{err.textContent=m;err.hidden=false;if(el)el.focus()};
+  const data={},t=title.value.trim();if(!t)return bad('Scrivi il nome dell’opportunità.',title);if(t!==(deal.title||''))data.title=t;
+  const c=F?F.parse(amount.value):Math.round(Number(amount.value.replace(',','.'))*100);const cents=c===null?0:c;
+  if(!Number.isSafeInteger(cents)||cents<0||cents>9000000000000)return bad('Importo non valido: scrivi ad esempio 24.000 oppure 24.000,50.',amount);
+  if(cents!==Number(deal.amount_cents||0))data.amount_cents=cents;
+  const d=close.value||null;if(d!==(String(deal.expected_close||'').slice(0,10)||null))data.expected_close=d;
+  const pv=prob.value.trim();let p=null;if(pv){p=Number(pv);if(!/^\d+$/.test(pv)||p>100)return bad('La probabilità è un numero da 0 a 100.',prob)}
+  if(p!==(deal.probability==null?null:Number(deal.probability)))data.probability=p;
+  const fx=F?F.values(form):{};if(fx.error)return bad(fx.error);
+  for(const k of ['amount2_cents','exchange_rate']){if(!Object.hasOwn(fx,k))continue;const a=deal[k]??null,b=fx[k];if((a==null&&b==null)||(a!=null&&b!=null&&Number(a)===Number(b)))continue;data[k]=b}
+  const custom=window.RadixCrmCustom&&window.RadixCrmCustom.collect(form,deal);if(custom)data.custom=custom;
+  if(!Object.keys(data).length){dlg.close();return}
+  ok.disabled=true;
+  try{await post(ctx.workspace,'opportunities','update',{id:deal.id,version:deal.version,...data});dlg.close();closeDetail();if(ctx.onDone)await ctx.onDone('«'+t+'» aggiornata.')}
+  catch(x){bad(x.status===409?'L’opportunità è cambiata nel frattempo: chiudi, premi Aggiorna e riprova.':(x.message||'Non salvato.'));ok.disabled=false}});
+ dlg.addEventListener('close',()=>dlg.remove());dlg.append(form);document.body.append(dlg);dlg.showModal();title.focus();
 }
 // «Vinta» / «Persa» from the panel: one confirmation; a lost deal needs its reason (the server requires it).
 function closeDeal(ctx,outcome){
@@ -183,5 +274,5 @@ function quickAdd(ctx,what,again){
   catch(x){err.textContent=x.message||'Non salvato.';err.hidden=false;ok.disabled=false}});
  dlg.addEventListener('close',()=>dlg.remove());dlg.append(form);document.body.append(dlg);dlg.showModal();(title||body).focus();
 }
-window.RadixDealFlow={moveDeal,openDetail,closeDetail};
+window.RadixDealFlow={moveDeal,openDetail,closeDetail,meetingNote,editDeal};
 })();
