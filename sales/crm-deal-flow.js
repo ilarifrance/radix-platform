@@ -274,5 +274,5 @@ function quickAdd(ctx,what,again){
   catch(x){err.textContent=x.message||'Non salvato.';err.hidden=false;ok.disabled=false}});
  dlg.addEventListener('close',()=>dlg.remove());dlg.append(form);document.body.append(dlg);dlg.showModal();(title||body).focus();
 }
-window.RadixDealFlow={moveDeal,openDetail,closeDetail,meetingNote,editDeal};
+window.RadixDealFlow={moveDeal,openDetail,closeDetail,meetingNote,editDeal,customHost};
 })();

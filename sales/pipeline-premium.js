@@ -149,6 +149,10 @@ function openQuick(stageId){if(!canWrite()||state.busy)return;const dlg=$('quick
  f.querySelector('[data-pipeline-pick]').hidden=withStages.length<2;quickStages(stageId);
  // Second currency (sales/crm-fx.js): the two extra inputs right under the amount, when the workspace has one.
  {const old=f.querySelector('[data-fx-host]');if(old)old.remove();const F=window.RadixCrmFx;if(F&&F.active()){const host=E('div');host.dataset.fxHost='1';f.elements.amount.closest('.quick-row').after(host);F.attach(f.elements.amount,host,null)}}
+ // «Campi aggiunti» of the opportunities (sales/crm-custom-fields.js), as in «Modifica»: closed until the workspace has one.
+ {const old=f.querySelector('[data-custom-host]');if(old)old.remove();const C=window.RadixCrmCustom,F=window.RadixCrmFx,st=F&&F.settings(),D=window.RadixDealFlow;
+  if(C&&D&&D.customHost&&st&&!st.pending){const host=E('div');host.dataset.customHost='1';f.querySelector('.quick-error').before(host);D.customHost(state.workspace);C.section('opportunities',null,host);
+   const box=host.querySelector('details');if(box){box.open=false;C.load().then(()=>{if(box.isConnected&&C.of(C.defs(),'opportunities').length)box.open=true}).catch(()=>{})}}}
  quickLists();if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');f.elements.title.focus();
  quickLoad().then(()=>quickLists()).catch(e=>quickError('Elenco aziende e contatti non caricato ('+e.message+'). Puoi comunque creare l’opportunità.'))}
 async function saveQuick(){if(quick.saving)return;const f=$('quick-deal-form'),Q=window.RadixCrmQuick,v=k=>f.elements[k].value;
@@ -156,6 +160,7 @@ async function saveQuick(){if(quick.saving)return;const f=$('quick-deal-form'),Q
  const rows=quick.rows||{companies:[],contacts:[]},p=Q.plan({title:v('title'),company:v('company'),contact:v('contact'),amount:v('amount'),expected_close:v('expected_close'),stage_id:v('stage_id')},{...rows,stages:state.stages});
  if(p.error){quickError(p.error);return}
  {const fx=window.RadixCrmFx?window.RadixCrmFx.values(f):{};if(fx.error){quickError(fx.error);return}if(fx.amount2_cents!=null)Object.assign(p.opportunity,fx)}
+ {const C=window.RadixCrmCustom,custom=C&&f.querySelector('[data-custom-host]')?C.collect(f,null):null;if(custom)p.opportunity.custom=custom}
  quick.saving=true;quickError('');const btn=f.querySelector('[data-quick="save"]');btn.disabled=true;btn.textContent='Salvataggio…';const made=[];
  try{let companyId=p.company?.id||null,contactId=p.contact?.id||null;
   if(p.company?.create){const row=await post('companies',p.company.create);rows.companies.push(row);companyId=row.id;made.push('la nuova azienda «'+row.name+'»')}
