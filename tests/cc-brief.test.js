@@ -32,6 +32,15 @@ test('Progetti e Sistema: passi da approvare, servizi non collegati (solo i nomi
  assert.equal(s.count,2);assert.equal(s.text,'2 servizi non collegati: Twilio, Apollo.');
  assert.equal(B.systemLine({items:[{id:'a',label:'A',configured:true}]}).tone,'ok');
 });
+test('Progetti: attività in ritardo dai piani del Project manager',()=>{
+ const pm={plans:[{id:'p1',name:'Alfa',tasks:[{status:'In corso',due:'2026-11-20'},{status:'Completato',due:'2026-11-01'},{status:'Da fare',due:'2026-11-24'},{status:'Da fare',due:''}]},
+  {id:'p2',name:'Beta',tasks:[{status:'Da fare',due:'2026-11-10'},{status:'In revisione',due:'2026-11-23'}]}]};
+ assert.deepEqual(B.lateTasks(pm.plans,'2026-11-24'),[{id:'p2',name:'Beta',late:2},{id:'p1',name:'Alfa',late:1}]);
+ const l=B.projectsLine({items:[]},pm,'2026-11-24');
+ assert.equal(l.count,3);assert.equal(l.tone,'late');assert.equal(l.text,'3 attività in ritardo (soprattutto «Beta»).');assert.equal(l.href,'/radix-pm-concept.html?project=p2');
+ assert.equal(B.projectsLine({items:[]},{plans:[]},'2026-11-24').text,'Nessun passo in attesa di te.');
+ assert.match(B.projectsLine({items:[]},{plans:[],partial:true},'2026-11-24').text,/solo nei primi progetti/);
+});
 test('Marketing: post in uscita oggi e pubblicazioni non riuscite, solo la riga più recente',()=>{
  const pubs=[
   {project_id:'p1',content_id:'c1',channel_id:'li',status:'queued',due_at:iso(NOW+3600e3),updated_at:iso(NOW-DAY)},
