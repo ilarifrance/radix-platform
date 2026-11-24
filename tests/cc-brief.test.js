@@ -74,12 +74,12 @@ test('Brief: solo le aree lette, totale e titolo; la pagina lo carica senza AI',
 test('La Regia del Command Center legge «Oggi»: contesto con tutte le aree, nessuna richiesta sua',()=>{
  const CC=require('../lib/regia-cc.js');
  const el=(o)=>Object.assign({textContent:'',className:'',dataset:{},hidden:false,querySelector:()=>null,querySelectorAll:()=>[]},o);
- const row=(area,text,tone)=>el({dataset:{tone},querySelector:s=>s==='.cc-brief-area'?el({textContent:area}):s==='.cc-brief-text'?el({textContent:text}):null});
- const brief=el({querySelectorAll:s=>s==='.cc-brief-row'?[row('Vendite','2 attività in ritardo.','late'),row('Marketing','1 post in uscita oggi.','todo')]:[]});
+ const row=(area,text,tone,href)=>el({dataset:{tone},getAttribute:k=>k==='href'?href||'':null,querySelector:s=>s==='.cc-brief-area'?el({textContent:area}):s==='.cc-brief-text'?el({textContent:text}):null});
+ const brief=el({querySelectorAll:s=>s==='.cc-brief-row'?[row('Vendite','2 attività in ritardo.','late','/radix-sales.html#today'),row('Marketing','1 post in uscita oggi.','todo','/project-editorial.html?project=forno-aurora#ped')]:[]});
  const doc={getElementById:id=>id==='ccBrief'?brief:null};
  const st=CC.read(doc,null);
- assert.deepEqual(st.today,[{area:'Vendite',text:'2 attività in ritardo.',tone:'late'},{area:'Marketing',text:'1 post in uscita oggi.',tone:'todo'}]);
- assert.match(CC.adapter.context(st),/Oggi nelle aree: Vendite: 2 attività in ritardo\. Marketing: 1 post in uscita oggi\./);
+ assert.deepEqual(st.today,[{area:'Vendite',text:'2 attività in ritardo.',tone:'late',project:''},{area:'Marketing',text:'1 post in uscita oggi.',tone:'todo',project:'forno-aurora'}]);
+ assert.match(CC.adapter.context(st),/Oggi nelle aree: Vendite: 2 attività in ritardo\. Marketing: 1 post in uscita oggi\. \[project: forno-aurora\]/);
  const d=CC.adapter.digest(st);assert.equal(d.areeOggi,2);assert.equal(d.areeInRitardo,1);
  brief.hidden=true;assert.deepEqual(CC.read(doc,null).today,[]);
  assert.ok(!/Oggi nelle aree/.test(CC.adapter.context(CC.read({getElementById:()=>null},null))));
