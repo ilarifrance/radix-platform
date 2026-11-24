@@ -34,7 +34,7 @@ test('Progetti e Sistema: passi da approvare, servizi non collegati (solo i nomi
   {name:'Alfa',status:'active',journey:{steps:[{id:'brief',label:'Brief',state:'done'},{id:'ped',label:'Piano editoriale',state:'waiting'}]}},
   {name:'Beta',status:'active',journey:{steps:[{id:'brief',label:'Brief',state:'active'}]}},
   {name:'Vecchio',status:'archived',journey:{steps:[{id:'ped',label:'PED',state:'waiting'}]}}]});
- assert.equal(p.count,1);assert.equal(p.text,'1 passo da approvare (parti da «Alfa · Piano editoriale»), 1 progetto in corso.');
+ assert.equal(p.count,1);assert.equal(p.text,'1 passo da approvare (parti da «Alfa»), 1 progetto in corso.');
  const s=B.systemLine({items:[{id:'hunter',label:'Hunter',configured:true},{id:'twilio',label:'Twilio',configured:false},{id:'x',label:'Apollo',configured:false}]});
  assert.equal(s.count,2);assert.equal(s.text,'2 servizi non collegati: Twilio, Apollo.');
  assert.equal(B.systemLine({items:[{id:'a',label:'A',configured:true}]}).tone,'ok');
@@ -84,4 +84,20 @@ test('La Regia del Command Center legge «Oggi»: contesto con tutte le aree, ne
  brief.hidden=true;assert.deepEqual(CC.read(doc,null).today,[]);
  assert.ok(!/Oggi nelle aree/.test(CC.adapter.context(CC.read({getElementById:()=>null},null))));
  assert.ok(!/fetch\(/.test(fs.readFileSync('lib/regia-cc.js','utf8')));
+});
+test('Inglese: ogni frase di «Oggi» ha la sua traduzione',()=>{
+ const I=require('../lib/radix-i18n.js');require('../lib/radix-i18n-en.js');const C=I.compile(globalThis.RadixI18nEn,I.HAND),T=x=>C.tr(x);
+ const b=B.brief({now:NOW,dayEnd:END,today:'2026-11-24',sales:{...sales,partial:true},
+  marketing:{publications:[{project_id:'p',content_id:'c',channel_id:'x',status:'failed',updated_at:iso(NOW)}],partial:true},
+  projects:{items:[{name:'Alfa',status:'active',journey:{steps:[{label:'Brief',state:'waiting'},{label:'PED',state:'active'}]}}]},
+  pm:{plans:[{id:'p',name:'Alfa',tasks:[{status:'Da fare',due:'2026-11-01'},{status:'Da fare',due:'2026-11-02'}]}],partial:true},
+  integrations:{items:[{label:'Twilio',configured:false}]}});
+ const phrases=b.lines.flatMap(l=>l.parts.concat(l.notes)).concat([B.headline(b),B.headline(B.brief({})),B.headline(B.brief({now:NOW,integrations:{items:[]}}))],
+  B.brief({now:NOW,dayEnd:END,today:'2026-11-24',sales:{tasks:[],opportunities:[],interactions:[]},marketing:{publications:[]},projects:{items:[]},integrations:{items:[]}}).lines.flatMap(l=>l.parts),
+  [B.salesLine({error:'CRM 504'},NOW,END),B.marketingLine({error:'x'},NOW,END),B.projectsLine({error:'x'}),B.systemLine({error:'x'})].flatMap(l=>l.parts));
+ assert.ok(phrases.length>=18);
+ for(const p of phrases){const en=T(p);assert.ok(en&&en!==p,'manca la traduzione di: '+p)}
+ assert.equal(T('2 attività in ritardo (soprattutto «Alfa»)'),'2 tasks late (mostly «Alfa»)');
+ assert.equal(T('1 servizio non collegato: Twilio'),'1 service not connected: Twilio');
+ for(const l of b.lines)assert.equal(l.text,[l.parts.join(', ')].concat(l.notes).map(x=>x+'.').join(' '));
 });
