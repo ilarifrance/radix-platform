@@ -297,7 +297,7 @@ test('listini: zones by province/region/country and origin, bands, per head, min
  assert.equal(L.price(card,{delivery_place:'24100 Bergamo BG'}).zone,'Lombardia');
  let r=L.price(card,{delivery_place:'74150 Marigny Saint Marcel - FR',load_place:'36050 Cartigliano VI',pallets:7,diesel_eur_l:1.72,wait_hours:3});
  assert.equal(r.zone,'FR da VI');assert.equal(r.amount_cents,77000+1732+4000);
- assert.equal(L.placeOf('03100 Frosinone (FR)').country,'IT');assert.equal(L.placeOf('Verona').province,'VR');assert.equal(L.placeOf('Via Roma 3, Parma').province,'PR');assert.equal(L.placeOf('Verona Est').province,null);assert.equal(L.placeOf('Monaco di Baviera (DE)').province,null);assert.equal(L.placeOf('Pouilly-en-Auxois (FR)').country,'FR');
+ assert.equal(L.placeOf('03100 Frosinone (FR)').country,'IT');assert.equal(L.jobOf({id:'t9',km:100},null,[],[{trip_id:'t9',kind:'giornale',fields:{numero_animali:22}}]).animals,22);assert.equal(L.placeOf('Verona').province,'VR');assert.equal(L.placeOf('Via Roma 3, Parma').province,'PR');assert.equal(L.placeOf('Verona Est').province,null);assert.equal(L.placeOf('Monaco di Baviera (DE)').province,null);assert.equal(L.placeOf('Pouilly-en-Auxois (FR)').country,'FR');
  r=L.price(card,{delivery_place:'Roma (RM)'});assert.equal(r.amount_cents,null);assert.match(r.missing[0],/zona/);
  const bands={method:'fasce',basis:'peso',bands:L.parseBands('1000 = 120\n5000 = 300\n24000 = 0,08/u')};
  assert.equal(L.price(bands,{weight_kg:800}).amount_cents,12000);assert.equal(L.price(bands,{weight_kg:20150}).amount_cents,161200);
