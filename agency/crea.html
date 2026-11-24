@@ -1,0 +1,40 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>RADIX · Cosa vuoi fare oggi?</title><link rel="stylesheet" href="/shell/radix-shell.css"><link rel="stylesheet" href="/shell/agency.css"><link rel="stylesheet" href="/shell/photo-studio.css"><link rel="stylesheet" href="/shell/crea.css"><link rel="stylesheet" href="/shell/marketing-a.css"><link rel="stylesheet" href="/agency/crea.css"><link rel="stylesheet" href="/shell/radix-confirm.css"><script src="/shell/radix-shell.js" defer></script><script src="/agency/marketing-nav.js" defer></script><link rel="stylesheet" href="/agency/marketing-nav.css"></head>
+<body class="rx-agency cr-page ma-root" data-shell-state="live" data-shell-area="agency" data-shell-page="agency-crea">
+<main class="cr-main cp-main ma">
+<section class="cp-hero" aria-labelledby="crTitle">
+<div class="cp-copy">
+<p class="ma-eyebrow">Marketing Agency · Servizi guidati</p>
+<h1 class="ma-title" id="crTitle">Cosa vuoi <em>fare oggi?</em></h1>
+<p class="cp-lead" id="crLead">Scegli un servizio: poche domande, tre proposte, scegli tu. Prima di ogni generazione a pagamento ti chiedo conferma.</p>
+<form class="ma-command" id="crAskForm" role="search" aria-label="Cosa vuoi fare oggi?">
+<div class="ma-command-bar"><span class="ma-command-icon" id="crAskIcon" aria-hidden="true"></span>
+<label class="ma-sr" for="crAsk">Cosa vuoi fare oggi?</label>
+<input class="ma-command-input" id="crAsk" name="q" type="text" autocomplete="off" spellcheck="false" maxlength="200" placeholder="Descrivi cosa ti serve. Es. «un volantino per l’open day»" role="combobox" aria-autocomplete="list" aria-expanded="true" aria-controls="crSuggest" aria-describedby="crAskHelp">
+<button class="ma-btn ma-btn--primary" id="crAskGo" type="submit">Trova<span class="ma-btn-icon" id="crAskGoIcon" aria-hidden="true"></span></button></div>
+<p class="ma-command-head" id="crSuggestHead">Suggeriti per iniziare</p>
+<ul class="ma-suggest" id="crSuggest" role="listbox" aria-labelledby="crSuggestHead"></ul>
+<p class="ma-sr" id="crAskHelp">Frecce su e giù per scegliere un suggerimento, Invio per aprirlo. Nessuna richiesta all’AI parte da qui.</p>
+</form>
+<p id="crMessage" class="cr-message cp-message" role="status"></p>
+</div>
+<aside class="ma-glass cp-side" aria-labelledby="crSideTitle">
+<h2 class="ma-sr" id="crSideTitle">Progetto e come funziona</h2>
+<label class="cp-project"><span class="cp-label">Per quale progetto</span><span class="cp-select"><select id="crProject" disabled><option>Caricamento…</option></select></span></label>
+<dl class="cp-facts" id="crFacts"></dl>
+<p class="cp-label cp-how-title">Come funziona</p>
+<ol class="ma-steps cp-how"><li class="ma-step"><span class="ma-step-n" aria-hidden="true">1</span><div class="ma-step-text"><b>Scegli un servizio</b><small>Il costo è scritto sulla scheda, prima di aprirla.</small></div></li><li class="ma-step"><span class="ma-step-n" aria-hidden="true">2</span><div class="ma-step-text"><b>Rispondi a poche domande</b><small>Partiamo dai fatti confermati del progetto.</small></div></li><li class="ma-step"><span class="ma-step-n" aria-hidden="true">3</span><div class="ma-step-text"><b>Confermi, poi 3 proposte</b><small>Nessuna chiamata AI parte senza il tuo sì.</small></div></li></ol>
+</aside>
+</section>
+<section id="crPanel" class="cr-panel" hidden aria-labelledby="crPanelTitle"><div class="cr-panel-head"><span class="cr-panel-icon" id="crPanelIcon" aria-hidden="true"></span><div class="cr-panel-titles"><p class="cr-panel-eyebrow" id="crPanelEyebrow">Servizio guidato</p><h2 id="crPanelTitle"></h2></div><button type="button" class="cr-close" id="crClose">Chiudi</button></div><div id="crPanelBody"></div></section>
+<section class="cp-services" aria-labelledby="crServicesTitle">
+<div class="ma-sec-head"><h2 id="crServicesTitle">Servizi</h2><span class="ma-count" id="crCount" role="status"></span></div>
+<div class="cp-toolbar" id="crToolbar">
+<div class="cp-find" role="search"><span class="cp-find-icon" id="crFindIcon" aria-hidden="true"></span><label class="ma-sr" for="crFind">Filtra i servizi</label><input class="cp-find-input" id="crFind" type="search" autocomplete="off" spellcheck="false" maxlength="200" placeholder="Filtra: logo, volantino, reel…" aria-controls="crCards" aria-describedby="crCount"><button class="cp-find-clear" id="crFindClear" type="button" hidden>Cancella<span class="ma-sr"> il filtro</span></button></div>
+<div id="crFilters" class="cp-tabs" role="group" aria-label="Filtra i servizi per area"></div>
+</div>
+<div id="crCards" class="cp-index"></div>
+</section>
+<p class="cr-note cp-foot">Tutti i servizi ora sono guidati. La pubblicazione online del sito arriverà più avanti, sempre con la tua conferma.</p>
+</main>
+<script src="/lib/radix-workspace-client.js"></script><script src="/lib/radix-agent-runtime.js"></script><script src="/lib/radix-confirm.js"></script><script src="/lib/radix-agent-media.js"></script><script src="/lib/image-studio.js"></script><script src="/lib/video-studio.js"></script><script src="/lib/site-legal.js"></script><script src="/lib/site-seo.js"></script><script src="/lib/site-studio.js"></script><script src="/lib/seo-studio.js"></script><script src="/lib/site-audit.js"></script><script src="/lib/copy-checks.js"></script><script src="/lib/naming-check.js"></script><script src="/lib/copy-studio.js"></script><script src="/lib/zip-lite.js"></script><script src="/lib/identity-studio.js"></script><script src="/lib/ad-studio.js"></script><script src="/lib/reel-studio.js"></script><script src="/lib/gbp-studio.js"></script><script src="/lib/print-studio.js"></script><script src="/lib/large-format-studio.js"></script><script src="/lib/pptx-lite.js"></script><script src="/lib/doc-studio.js"></script><script src="/lib/coordinato-studio.js"></script><script src="/lib/icon-set.js"></script><script src="/lib/icon-core.js"></script><script src="/lib/icon-studio.js"></script><script src="/lib/firma-studio.js"></script><script src="/lib/brand-package.js"></script><script src="/lib/social-studio.js"></script><script src="/lib/logo-motion.js"></script><script src="/lib/retouch-studio.js"></script><script src="/lib/mockup-studio.js"></script><script src="/lib/infographic-studio.js"></script><script src="/lib/funnel-templates.js"></script><script src="/lib/funnel-studio.js"></script><script src="/lib/media-kit-studio.js"></script><script src="/lib/survey-core.js"></script><script src="/lib/survey-studio.js"></script><script src="/lib/newsletter-studio.js"></script><script src="/lib/lead-xlsx-parser.js"></script><script src="/sales/crm-csv-core.js"></script><script src="/lib/catalog-studio.js"></script><script src="/lib/product-studio.js"></script><script src="/lib/shop-studio.js"></script><script src="/lib/qr-lite.js"></script><script src="/lib/menu-studio.js"></script><script src="/lib/packaging-studio.js"></script><script src="/lib/logo-trace.js"></script><script src="/lib/logo-vector-studio.js"></script><script src="/lib/ped-results.js"></script><script src="/lib/seo-results-core.js"></script><script src="/sales/crm-campaign-report-core.js"></script><script src="/sales/crm-campaign-next-core.js"></script><script src="/lib/report-studio.js"></script><script src="/lib/audit-studio.js"></script><script src="/lib/strategy-budget.js"></script><script src="/lib/xlsx-lite.js"></script><script src="/lib/annual-plan.js"></script><script src="/lib/competitor-extract.js"></script><script src="/lib/competitor-studio.js"></script><script src="/lib/search-ads-studio.js"></script><script src="/lib/translation-studio.js"></script><script src="/lib/event-studio.js"></script><script src="/lib/product-photo-segment.js"></script><script src="/lib/product-photo-studio.js"></script><script src="/agency/crea-core.js"></script><script src="/agency/marketing-look.js"></script><script src="/agency/orbit-core.js"></script><script src="/agency/crea.js"></script>
+</body></html>

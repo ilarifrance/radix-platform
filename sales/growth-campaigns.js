@@ -1,6 +1,7 @@
 'use strict';
 (()=>{
- const $=id=>document.getElementById(id),UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+ const $=id=>document.getElementById(id),UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ const memo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
  let project=null,record=null,selected='',busy=false,dirty=false,localOnly=false,localTitle='';
  const say=(id,m)=>{$(id).textContent=m};
  const opt=(id,label)=>{const x=document.createElement('option');x.value=id;x.textContent=label;return x};
@@ -116,7 +117,7 @@
  $('campaign-project').onchange=async()=>{try{if($('campaign-project').value)await open($('campaign-project').value)}catch(e){say('campaign-status',e.message)}};
  $('campaign-workspace').onchange=async()=>{
   try{if(dirty&&!window.confirm('Cambiare workspace? Le modifiche non salvate saranno perse.'))return;
-   project=null;record=null;localOnly=false;localTitle='';dirty=false;selected='';clear();show();applyLinks();await list();
+   memo.set($('campaign-workspace').value);project=null;record=null;localOnly=false;localTitle='';dirty=false;selected='';clear();show();applyLinks();await list();
   }catch(e){say('campaign-status',e.message)}
  };
  const safeImport=p=>{
@@ -167,10 +168,10 @@
    sel.replaceChildren();sel.append(opt('','Seleziona workspace'));
    for(const v of r)sel.append(opt(v.id,v.name+' · '+v.role));
    const params=new URLSearchParams(location.search),workspace=params.get('workspace'),p=params.get('project');
-   if(workspace&&r.some(x=>x.id===workspace))sel.value=workspace;else if(r.length===1)sel.value=r[0].id;
+   const kept=memo.get();if(workspace&&r.some(x=>x.id===workspace))sel.value=workspace;else if(r.some(x=>x.id===kept))sel.value=kept;else if(r.length===1)sel.value=r[0].id;memo.set(sel.value);
    if(sel.value){const projects=await list();if(p&&UUID.test(p)&&projects.some(x=>x.id===p))await open(p)}
    say('campaign-status',record?'Progetto '+record.title+' aperto.':'Seleziona un progetto salvato per pianificare una campagna.');
-  }catch(e){say('campaign-status','Connessione archivio non disponibile: '+e.message+'. Richiede database Preview con migrazione progetti.')}
+  }catch(e){say('campaign-status','Connessione archivio non disponibile: '+e.message+'.')}
  }
  applyLinks();show();connect();
 })();

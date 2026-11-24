@@ -1,0 +1,74 @@
+/* «Detta» (sales/crm-dictation.js): dictation panel, review card, the bar on the record forms. Light CRM tokens. */
+.cd-panel{width:min(720px,calc(100vw - 24px));max-width:none;max-height:calc(100vh - 24px);padding:0;border:1px solid var(--crm-line,#e4e1ec);border-radius:16px;background:var(--crm-card,#fff);color:var(--crm-text,#1d1a27);font:14px/1.5 var(--crm-font,Inter,system-ui,sans-serif);box-shadow:0 20px 50px #1d1a2733;overflow:auto;box-sizing:border-box}
+.cd-panel::backdrop{background:#1d1a2759}
+.cd-panel>*{margin-left:20px;margin-right:20px}
+.cd-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0;padding:16px 20px 4px;position:sticky;top:0;background:var(--crm-card,#fff);z-index:1}
+.cd-head h2{margin:0;font-size:18px;overflow-wrap:anywhere}
+.cd-close{flex:none;min-height:36px;padding:6px 12px;background:var(--crm-card,#fff);color:var(--crm-text,#1d1a27);border:1px solid var(--crm-line-2,#cfcadb);border-radius:8px}
+.cd-note{margin-top:6px;margin-bottom:6px;color:var(--crm-muted,#55516a)}
+.cd-privacy{margin-top:0;font-size:12px;color:var(--crm-subtle,#6b6780)}
+.cd-mic{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;margin-bottom:6px}
+.cd-mic-btn{min-height:44px;padding:8px 18px;border-radius:999px;border:1px solid var(--crm-accent,#6d28d9);background:var(--crm-accent-soft,#f2ecfe);color:var(--crm-accent,#6d28d9);font-weight:650}
+.cd-mic-btn.cd-live{background:var(--crm-err,#b42318);border-color:var(--crm-err,#b42318);color:#fff}
+.cd-live-note{color:var(--crm-err,#b42318);font-size:13px}
+.cd-fallback{margin:0;padding:8px 12px;border-radius:8px;background:var(--crm-info-soft,#eaf0fe);color:var(--crm-info,#1d4ed8);font-size:13px}
+.cd-panel label[for=cd-text]{display:block;font-size:13px;margin-top:8px;margin-bottom:4px;font-weight:600}
+.cd-panel textarea#cd-text{display:block;width:calc(100% - 40px);box-sizing:border-box;resize:vertical;min-height:110px;padding:10px;border:1px solid var(--crm-line-2,#cfcadb);border-radius:10px;font:inherit;background:var(--crm-card,#fff);color:inherit}
+.cd-interim{min-height:1.4em;margin-top:4px;margin-bottom:0;color:var(--crm-subtle,#6b6780);font-style:italic}
+.cd-actions{margin-top:6px}
+.cd-actions button{min-height:44px}
+.cd-msg{margin-top:10px;margin-bottom:0;padding:8px 12px;border-radius:8px;background:var(--crm-soft,#f8f7fb);white-space:pre-wrap}
+.cd-msg-err{background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318)}
+.cd-msg-ok{background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d)}
+.cd-review,.cd-result{margin-top:12px}
+.cd-review:empty,.cd-result:empty{margin-top:0}
+.cd-card{scroll-margin-top:72px;border:1px solid var(--crm-line,#e4e1ec);border-radius:12px;padding:12px 14px;margin-bottom:12px;background:var(--crm-soft,#f8f7fb)}
+.cd-card h3{margin:0 0 6px;font-size:15px;overflow-wrap:anywhere}
+.cd-notice{margin:4px 0 8px;font-size:13px;color:var(--crm-info,#1d4ed8)}
+.cd-err-box{margin:6px 0;padding:8px 10px;border-radius:8px;background:var(--crm-err-soft,#fdecea);color:var(--crm-err,#b42318);font-size:13px}
+.cd-field{padding:8px 0;border-top:1px solid var(--crm-line,#e4e1ec)}
+.cd-field.cd-off .cd-val{opacity:.6}
+.cd-top{display:flex;align-items:center;gap:8px}
+.cd-top input[type=checkbox]{width:20px;height:20px;min-height:0;margin:0;flex:none;accent-color:var(--crm-accent,#6d28d9)}
+.cd-label{margin:0;font-weight:600;font-size:13px}
+.cd-val{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.4fr);align-items:center;gap:8px;margin-top:4px;padding-left:28px}
+.cd-old{color:var(--crm-subtle,#6b6780);overflow-wrap:anywhere;font-size:13px}
+.cd-old-over{text-decoration:line-through}
+.cd-arrow{color:var(--crm-subtle,#6b6780)}
+.cd-value{width:100%;min-width:0;box-sizing:border-box;min-height:38px;padding:6px 8px;border:1px solid var(--crm-line-2,#cfcadb);border-radius:8px;background:var(--crm-card,#fff);color:inherit;font:inherit}
+textarea.cd-value{resize:vertical}
+.cd-info{margin:2px 0 0;padding-left:28px;font-size:12px;display:flex;flex-direction:column;gap:2px}
+.cd-info:empty{display:none}
+.cd-err{color:var(--crm-err,#b42318)}
+.cd-warn{color:var(--crm-warn,#a85b06)}
+.cd-note-i{color:var(--crm-subtle,#6b6780)}
+.cd-ignored{margin:8px 0 0;font-size:12px;color:var(--crm-subtle,#6b6780)}
+.cd-save-bar{position:sticky;bottom:0;background:var(--crm-card,#fff);padding:10px 0 14px;margin-top:4px;border-top:1px solid var(--crm-line,#e4e1ec)}
+.cd-save-bar button{min-height:44px}
+.cd-count{font-size:13px;color:var(--crm-muted,#55516a)}
+.cd-foot{flex-basis:100%;margin:0;font-size:12px;color:var(--crm-subtle,#6b6780)}
+.cd-done{border:1px solid var(--crm-ok,#15803d);border-radius:12px;padding:10px 14px;background:var(--crm-ok-soft,#e9f7ef);margin-bottom:14px}
+.cd-done h3{margin:0 0 4px;font-size:15px;color:var(--crm-ok,#15803d)}
+.cd-done ul{margin:0;padding-left:0;list-style:none}
+.cd-done li{margin:4px 0;overflow-wrap:anywhere}
+.cd-link{min-height:32px;padding:2px 10px;margin-left:4px;border:0;background:none;color:var(--crm-link,#1d4ed8);text-decoration:underline;cursor:pointer;font:inherit}
+.cd-panel>.cd-result{margin-bottom:16px}
+/* Record forms: the bar spans the two columns of the editor grid. */
+.cd-editor-bar,.cd-filled{grid-column:1/-1}
+.cd-editor-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;border:1px dashed var(--crm-accent-line,#d9c9fb);border-radius:10px;background:var(--crm-accent-soft,#f2ecfe)}
+.cd-editor-btn{min-height:40px;border-radius:999px;border:1px solid var(--crm-accent,#6d28d9);background:var(--crm-card,#fff);color:var(--crm-accent,#6d28d9);font-weight:650;padding:6px 14px}
+.cd-editor-hint{color:var(--crm-muted,#55516a)}
+.cd-filled{margin:0;padding:8px 10px;border-radius:8px;background:var(--crm-ok-soft,#e9f7ef);color:var(--crm-ok,#15803d);font-size:13px}
+/* Copilota head: «Detta» next to «Chiudi». */
+.cc-tools{display:flex;gap:8px;align-items:center}
+.cc-dictate{border:1px solid var(--crm-accent,#2fc79f);background:var(--crm-accent-soft,#0d2a2c);color:var(--crm-accent,#bdeee0);border-radius:8px;padding:6px 10px;cursor:pointer;min-height:0;font-weight:600}
+@media (max-width:600px){
+ .cd-panel{width:calc(100vw - 16px);max-height:calc(100vh - 16px);border-radius:12px}
+ .cd-panel>*{margin-left:14px;margin-right:14px}
+ .cd-head{padding:12px 14px 4px}
+ .cd-panel textarea#cd-text{width:calc(100% - 28px)}
+ .cd-val{grid-template-columns:1fr;padding-left:0;gap:2px}
+ .cd-arrow{display:none}
+ .cd-old::before{content:'Ora: '}
+ .cd-info{padding-left:0}
+}

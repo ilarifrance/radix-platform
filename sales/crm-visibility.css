@@ -1,0 +1,9 @@
+/* «Visibilità dei record» (sales/crm-visibility.js): settings panel in Membri and the header note. Same tokens as sales/crm-sla.css. */
+.crm-vis-note{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid var(--kb-line,#e4e1ec);background:var(--kb-bg,#fff);color:var(--kb-accent,#6d28d9);font-size:12px;font-weight:650;line-height:1.6;white-space:nowrap}
+.crm-vis-note[hidden]{display:none}
+.crm-vis-settings{margin:0 0 16px;padding:12px 14px;color:var(--kb-text,#1d1a27);background:var(--kb-bg,#fff);border:1px solid var(--kb-line,#e4e1ec);border-radius:12px;min-width:0}
+.crm-vis-settings>summary{cursor:pointer;font-weight:650;color:var(--kb-accent,#6d28d9)}
+.crm-vis-body{display:grid;gap:10px;margin-top:10px;min-width:0}
+.crm-vis-body p{margin:0;font-size:13px}
+.crm-vis-rule{margin:0;padding-left:18px;font-size:13px;display:grid;gap:2px}
+.crm-vis-switch{display:flex;gap:6px;align-items:flex-start;font-size:13px;font-weight:600}

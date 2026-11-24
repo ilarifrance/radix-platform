@@ -1,0 +1,114 @@
+/* Sales Orbit in the white CRM (tokens in crm-light.css): same menu, top bar and cards as Panoramica and the other
+   Sales pages. The globe, its planets and the drag behaviour stay; they sit on a hero that is green at the top and
+   fades gently into the page white. Loaded after orbit-higgsfield.css, orbit-universe.css, sales-nav.css and
+   crm-light.css; visual only. */
+:root{--so-hero-a:#0b3a30;--so-hero-b:#11503f;--so-hero-c:#1f6d55;--so-fade-0:600px;--so-fade-1:1000px;
+ --so-card:var(--crm-card);--so-line:var(--crm-line);--so-mint:var(--crm-accent);--so-txt:var(--crm-text);--so-mut:var(--crm-muted);
+ --bg:var(--crm-bg);--glass:var(--crm-card);--line:var(--crm-line);--mint:var(--crm-accent);--cyan:var(--crm-link);--text:var(--crm-text);--muted:var(--crm-muted)}
+body{background:var(--crm-bg);color:var(--crm-text);font-family:var(--crm-font)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+
+/* top bar: white, as the CRM header */
+.app #main .topbar{background:var(--crm-card);border-bottom:1px solid var(--crm-line);min-height:60px}
+.app #main .search{background:var(--crm-card);border:1px solid var(--crm-line-2);border-radius:10px;height:38px}
+.app #main .search span{color:var(--crm-subtle)}
+.app #main .search input{color:var(--crm-text)}
+.app #main .search input::placeholder{color:var(--crm-subtle)}
+.app #main .search kbd{color:var(--crm-subtle);border-color:var(--crm-line-2);background:var(--crm-soft)}
+.app #main .search:focus-within{border-color:var(--crm-accent)}
+.app #main .connection{color:var(--crm-muted);font-size:12px}
+.app #main .connection i{background:var(--crm-ok);box-shadow:none}
+.app #main .top-end select{min-height:36px;color:var(--crm-text);background:var(--crm-card);border:1px solid var(--crm-line-2);border-radius:8px;padding:6px 10px}
+.app #main .top-end>a{display:grid;place-items:center;min-width:36px;height:36px;border:1px solid var(--crm-line-2);border-radius:8px;color:var(--crm-accent);background:var(--crm-card)}
+.crm-search-results{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:0 12px 32px #1d1a2726}
+.crm-search-caption{color:var(--crm-accent)}
+.crm-search-result{color:var(--crm-text)}
+.crm-search-result:hover,.crm-search-result:focus-visible{background:var(--crm-hover);border-color:var(--crm-accent-line)}
+.crm-search-result small{color:var(--crm-subtle)}
+.crm-search-hint{color:var(--crm-muted)}
+
+/* hero: green at the top, fading slowly into the page white under the globe */
+.so-layout{background:linear-gradient(180deg,var(--so-hero-a) 0,var(--so-hero-b) 220px,var(--so-hero-c) calc(var(--so-fade-0) - 120px),#3f8a72 var(--so-fade-0),#9fcab8 calc((var(--so-fade-0) + var(--so-fade-1)) / 2),#e2efe9 calc(var(--so-fade-1) - 90px),var(--crm-bg) var(--so-fade-1)) no-repeat;padding-top:14px}
+.app #main .so-head .so-hello{color:#9ff3d4}
+.app #main .so-head h1{color:#fff}
+.so-head h1 em{background:linear-gradient(90deg,#b8fbe3,#5ef0c0 60%,#7fe3ec);-webkit-background-clip:text;background-clip:text;color:transparent}
+.app #main .so-head p:not(.so-hello){color:#d3ece2}
+.so-date{color:#d3ece2}
+.so-toggle{border-color:#ffffff40;background:#ffffff14}
+.so-toggle button{color:#e6f6ef}
+.so-toggle button[aria-pressed=true]{background:#fff;color:#0b3a30;box-shadow:none;font-weight:600}
+.so-toggle button:focus-visible{outline-color:#fff}
+.so-universe{background:none;border:0;box-shadow:none;border-radius:0;overflow:visible}
+.so-sky{border-radius:0}
+.so-planet span{text-shadow:0 1px 6px #062a22,0 0 2px #062a22}
+.so-planet b{color:#fff}
+.so-callout{background:#06261fd0;border-color:#ffffff2e;color:#e3f7ef}
+.so-callout::before{background:#5ef0c0}
+
+/* KPI tiles, charts and list: white CRM cards */
+.app #main .so-left .stats article,.app #main .so-panel,.so-list{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:var(--crm-shadow)}
+.app #main .so-left .stats article>i{border-color:var(--crm-accent-line);background:var(--crm-accent-soft)}
+.app #main .so-left .stats article>i::before{background:var(--crm-accent)}
+.app #main .so-left .stats strong{color:var(--crm-text)}
+.app #main .so-left .stats small{color:var(--crm-muted)}
+.app #main .so-left .stats span{color:var(--crm-subtle)}
+.so-bars rect.on{fill:#0f9f7a;filter:none}.so-bars rect.off{fill:var(--crm-line)}
+.stats article[data-k=due] .so-bars rect.on{fill:var(--crm-err);filter:none}
+.so-chip{color:var(--crm-muted);border-color:var(--crm-line-2);background:var(--crm-soft)}
+.app #main .so-empty{border-color:var(--crm-line-2);color:var(--crm-muted)}
+.app #main .so-link{color:var(--crm-accent)}
+.so-grid{stroke:var(--crm-line)}
+.so-axis{fill:var(--crm-subtle)}
+.so-line{stroke:#0f9f7a;filter:none}
+.so-pt{fill:#fff;stroke:#0f9f7a}
+.so-tag rect{fill:#fff;stroke:#0f9f7a}.so-tag text{fill:var(--crm-text)}
+.so-donut-track{stroke:var(--crm-head)}
+.so-donut-n{fill:var(--crm-text)}
+.so-legend li{color:var(--crm-muted)}
+.so-legend i{box-shadow:none}
+.so-legend b{color:var(--crm-text)}
+.so-list-card{background:var(--crm-soft);border-color:var(--crm-line);color:var(--crm-text)}
+.so-list-card i{background:color-mix(in srgb,var(--c) 18%,#fff);box-shadow:none}
+.so-list-card i::before{background:color-mix(in srgb,var(--c) 70%,#000)}
+.so-list-card small{color:var(--crm-subtle)}
+.so-table{color:var(--crm-text)}
+.so-table th{border-bottom-color:var(--crm-line);background:var(--crm-head)}
+.so-table td{border-bottom-color:var(--crm-line)}
+
+/* Copilota rail */
+.so-rail{background:var(--crm-card);border:1px solid var(--crm-line);box-shadow:0 1px 2px #1d1a270a,0 12px 32px #0b3a3014}
+.so-rail-head{border-bottom-color:var(--crm-line)}
+.so-rail-orb{box-shadow:0 0 0 4px #0f9f7a1a}
+.so-rail-head small{color:var(--crm-accent)}
+.so-rail-head strong{color:var(--crm-text)}
+.so-beta{color:var(--crm-accent);border-color:var(--crm-accent-line);background:var(--crm-accent-soft)}
+.so-rail-sec h2 a{color:var(--crm-accent)}
+.so-count{background:var(--crm-accent-soft);color:var(--crm-accent)}
+.so-rule{color:var(--crm-warn);border-color:#f0d3a8;background:var(--crm-warn-soft)}
+.so-row{background:var(--crm-card);border-color:var(--crm-line);color:var(--crm-text)}
+.so-row:hover,.so-row:focus-visible{border-color:var(--crm-accent-line);background:var(--crm-hover)}
+.so-row i{background:var(--crm-accent-soft)}
+.so-row svg{stroke:var(--crm-accent)}
+.so-row em{color:var(--crm-warn)}
+.so-row em span{color:var(--crm-text)}
+.so-pill.so-alto{background:var(--crm-err-soft);color:var(--crm-err)}
+.so-pill.so-medio,.so-pill.so-tiepido{background:var(--crm-warn-soft);color:var(--crm-warn)}
+.so-pill.so-caldo{background:#fdeee6;color:#b4410f}
+.so-pill.so-freddo{background:var(--crm-info-soft);color:var(--crm-info)}
+.so-ask{border-color:var(--crm-accent-line);background:var(--crm-accent-soft);color:var(--crm-text);box-shadow:none}
+.so-ask:hover,.so-ask:focus-visible{border-color:var(--crm-accent);box-shadow:0 4px 14px #6d28d91f}
+.so-ask:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+.so-ask i{color:var(--crm-accent)}
+.so-ask small{color:var(--crm-muted)}
+.app #main .so-assist{background:var(--crm-soft);border-color:var(--crm-line)}
+.so-assist .assist-input label{color:var(--crm-accent)}
+.so-assist .assist-input input{color:var(--crm-text);border-bottom-color:var(--crm-line-2)}
+.so-assist .assist-input>button{color:var(--crm-accent)}
+.so-assist .assist-prompts button{background:var(--crm-card);color:var(--crm-accent);border-color:var(--crm-accent-line)}
+.so-foot{color:var(--crm-subtle)}
+.app #main .notice{color:var(--crm-muted)}
+.app #main>footer{color:var(--crm-subtle)}
+
+/* tablet and phone: the hero is taller (rail under the page) or narrower, the fade follows the globe */
+@media (max-width:1180px){:root{--so-fade-0:620px;--so-fade-1:1000px}}
+@media (max-width:640px){:root{--so-fade-0:560px;--so-fade-1:900px}.so-layout{padding-top:10px}}

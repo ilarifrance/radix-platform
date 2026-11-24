@@ -4,6 +4,8 @@
 (function(){
 'use strict';
 const ws=window.RadixWorkspace,rt=window.RadixAgents,media=window.RadixAgentMedia,$=id=>document.getElementById(id);
+// The one RADIX confirmation (lib/radix-confirm.js); the browser confirm only if that script is missing.
+const askConfirm=o=>window.RadixConfirm?window.RadixConfirm.ask(o):Promise.resolve(!!window.confirm([o.title,o.cost,o.message].filter(Boolean).join('\n')));
 const MAX_KEPT=60,MAX_ATTACH=5,MAX_BYTES=4*1024*1024,ACCEPTED=['xlsx','xls','csv','txt','md','docx','pdf'];
 const PIPELINE_STEPS={
  'strategist':'Dai la direzione strategica del post: pilastro, obiettivo, pubblico, angolo, formato e canale.',
@@ -38,12 +40,23 @@ function persist(){
    const fresh=(await doc.load())||{conversations:{}};
    for(const [k,v] of Object.entries(fresh.conversations||{}))if(k!==id)data.conversations[k]=v;
    if(!prefsDirty)data.prefs=fresh.prefs||{};
+   data.coordinato=fresh.coordinato;data.seoResults=fresh.seoResults;data.firme=fresh.firme;data.socialKit=fresh.socialKit;data.logoMotion=fresh.logoMotion;data.mockups=fresh.mockups;data.retouch=fresh.retouch;data.menu=fresh.menu;data.reports=fresh.reports;data.searchAds=fresh.searchAds;data.audits=fresh.audits;data.strategyBudget=fresh.strategyBudget;data.annualPlan=fresh.annualPlan;data.infographics=fresh.infographics;data.funnels=fresh.funnels;data.surveys=fresh.surveys;data.mediaKit=fresh.mediaKit;data.packaging=fresh.packaging;data.logoVector=fresh.logoVector;data.icons=fresh.icons;data.competitorSites=fresh.competitorSites;data.adCreatives=fresh.adCreatives;data.gbp=fresh.gbp;data.siteAudit=fresh.siteAudit;data.newsletters=fresh.newsletters;data.productSheets=fresh.productSheets;data.reels=fresh.reels;data.events=fresh.events;data.translations=fresh.translations;data.productPhotos=fresh.productPhotos;
    await doc.save(clean(data));prefsDirty=false;
   }
  }).catch(e=>say('Salvataggio non riuscito: '+e.message));
  return saving;
 }
-function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
+// seoResults (lib/seo-results-core.js: the Search Console imports of the Studio SEO e GEO), adCreatives (lib/ad-studio.js:
+// the saved ad creatives), gbp (lib/gbp-studio.js: the Google listing and the review replies) and siteAudit (lib/site-audit.js:
+// the saved site audits), newsletters (lib/newsletter-studio.js: the saved HTML newsletters) and productSheets
+// (lib/product-studio.js: the saved product sheets) and reels (lib/reel-studio.js: the saved reel storyboards) and events (lib/event-studio.js: the saved event kits) and translations (lib/translation-studio.js: the saved
+// translations) and productPhotos (lib/product-photo-studio.js: the saved product photo batches) and firme (lib/firma-studio.js: the saved email signatures) and socialKit (lib/social-studio.js: the saved social graphics) and logoMotion (lib/logo-motion.js: the saved logo animations) and mockups (lib/mockup-studio.js: the saved mockup scenes) and retouch (lib/retouch-studio.js: the saved photo retouching settings, never the photos) and coordinato (lib/coordinato-studio.js: the saved
+// coordinated stationery sets) and menu (lib/menu-studio.js: the saved menus and price lists) and reports (lib/report-studio.js: the saved
+// monthly client reports with their numbers) and searchAds (lib/search-ads-studio.js: the saved Google Ads Search
+// campaign structures) and audits (lib/audit-studio.js: the saved communication audits with their data) and strategyBudget (lib/strategy-budget.js: the saved budgets
+// per channel and KPI of the approved strategy) and annualPlan (lib/annual-plan.js: the saved 12-month plans) and infographics (lib/infographic-studio.js: the saved infographics, texts and settings only) and funnels (lib/funnel-studio.js: the saved funnels with their texts, and the published landing addresses) and surveys (lib/survey-core.js: the saved questionnaires and their published addresses; the answers stay in the CRM) and mediaKit (lib/media-kit-studio.js: the saved media kits, the press contacts and the press review) and packaging (lib/packaging-studio.js: the saved labels and boxes, texts and settings only) and logoVector (lib/logo-vector-studio.js: the saved traced logos, settings and SVG only) and icons (lib/icon-core.js: the saved icon sets, concepts, icons and style only) and competitorSites (lib/competitor-studio.js: the saved comparisons with the
+// competitors' public websites and the facts read) are kept as they are.
+function clean(d){const out={schemaVersion:1,conversations:{},prefs:Object.assign({},d.prefs)};if(d.seoResults)out.seoResults=d.seoResults;if(d.adCreatives)out.adCreatives=d.adCreatives;if(d.gbp)out.gbp=d.gbp;if(d.siteAudit)out.siteAudit=d.siteAudit;if(d.newsletters)out.newsletters=d.newsletters;if(d.productSheets)out.productSheets=d.productSheets;if(d.reels)out.reels=d.reels;if(d.events)out.events=d.events;if(d.translations)out.translations=d.translations;if(d.productPhotos)out.productPhotos=d.productPhotos;if(d.coordinato)out.coordinato=d.coordinato;if(d.firme)out.firme=d.firme;if(d.socialKit)out.socialKit=d.socialKit;if(d.logoMotion)out.logoMotion=d.logoMotion;if(d.mockups)out.mockups=d.mockups;if(d.retouch)out.retouch=d.retouch;if(d.menu)out.menu=d.menu;if(d.reports)out.reports=d.reports;if(d.searchAds)out.searchAds=d.searchAds;if(d.audits)out.audits=d.audits;if(d.strategyBudget)out.strategyBudget=d.strategyBudget;if(d.annualPlan)out.annualPlan=d.annualPlan;if(d.infographics)out.infographics=d.infographics;if(d.funnels)out.funnels=d.funnels;if(d.surveys)out.surveys=d.surveys;if(d.mediaKit)out.mediaKit=d.mediaKit;if(d.packaging)out.packaging=d.packaging;if(d.logoVector)out.logoVector=d.logoVector;if(d.icons)out.icons=d.icons;if(d.competitorSites)out.competitorSites=d.competitorSites;for(const [k,v] of Object.entries(d.conversations||{}))out.conversations[k]=(v||[]).filter(m=>!m.pending).slice(-MAX_KEPT);return out}
 
 // ---- rendering ----
 function renderRoster(){
@@ -103,13 +116,14 @@ function renderFlow(flow,msg){
   if(n.deps&&n.deps.length)head.append(node('small','usa il risultato di '+n.deps.map(d=>'#'+d).join(', '),'meta'));
   row.append(head,node('small',n.subtask,'meta'));
   if(n.status==='stale')row.append(node('small','Usa un risultato che è cambiato: aggiornalo per allinearlo.','meta'));
+  if(n.status==='error'&&n.output){const e=node('p',String(n.output).replace(/^Errore:\s*/,''),'node-error');e.setAttribute('role','alert');row.append(e)}
   if((n.status==='done'||n.status==='stale')&&n.output){
    const docs=rt.parseDocuments(n.output);docs.forEach(d=>row.append(docCard(d,n.label)));
    const note=media.stripSlides(rt.stripDocuments(n.output));
    if(note){const det=node('details');det.append(node('summary',docs.length?'Nota dello specialista':'Risposta completa'),mdBlock(note));row.append(det)}
    if(!docs.length){const a=node('div',undefined,'actions');a.append(btn('Word',()=>rt.exportWord(n.label,n.output)),btn('Proponi in memoria',()=>remember(n.role,n.label+': '+n.subtask,n.output)));row.append(a)}
    const src=sourcesEl(n.sources);if(src)row.append(src);
-   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>row.append(t));
+   media.toolsFor(n.role,n.output,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs,memoryScope:scope('art-director'),avatar:project.profile&&project.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(project.id)}).forEach(t=>row.append(t));
    if(!busy)row.append(stepTools(msg,i));
   }else if(n.status==='error'&&n.output)row.append(node('small',n.output,'meta'));
   box.append(row);
@@ -188,7 +202,7 @@ function render(){
    if((m.agent||agentId)==='copywriter')acts.append(node('small',m.content.length+' caratteri','char-count'));
    if(rt.markdownTables(m.content).length)acts.append(btn('Excel',()=>rt.exportExcel((a?a.name:'Risposta')+' · '+project.name,m.content)));
    el.append(acts);
-   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs}).forEach(t=>el.append(t));
+   if(!m.flow)media.toolsFor(m.agent||agentId,m.content,{project:rt.profileFor(project),prefix:'radix-'+project.id,prefs:teamPrefs,memoryScope:scope('art-director'),avatar:project.profile&&project.profile.avatar,studioUrl:'/agency/avatar.html?project='+encodeURIComponent(project.id)}).forEach(t=>el.append(t));
   }
   box.append(el);
  }
@@ -299,7 +313,7 @@ function stepTools(msg,i){
  return wrap;
 }
 async function runStep(msg,i,note){
- if(busy)return;const n=msg.flow.nodes[i];if(!note&&!confirm('Rigenerare il lavoro di '+n.label+'? La chiamata consuma crediti e sostituisce la versione attuale.'))return;
+ if(busy)return;const n=msg.flow.nodes[i];if(!note&&(!await askConfirm({title:'Rigenerare il lavoro di '+n.label+'?',cost:'È una chiamata AI: consuma crediti API.',message:'La nuova versione sostituisce quella attuale.',ok:'Rigenera con l’AI'})||busy))return;
  busy=true;render();
  try{const k=await rt.rerunNode(msg.flow,i,{call:(role,text,onP)=>callOne(role,text,onP),note,onUpdate:()=>{render()}});say(n.status==='done'?n.label+' ha consegnato una nuova versione'+(k?'; '+k+(k===1?' passo successivo da aggiornare.':' passi successivi da aggiornare.'):'.'):n.label+' non è riuscito: '+n.output)}
  catch(e){say(e.message)}finally{busy=false;render();await persist()}
@@ -336,7 +350,7 @@ $('composer').onsubmit=async e=>{
 };
 $('input').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))$('composer').requestSubmit()});
 $('regenerate').onclick=async()=>{if(busy)return;const hist=conv();while(hist.length&&hist[hist.length-1].role!=='user')hist.pop();if(!hist.length)return;if(rt.agent(agentId).pipeline){const last=hist[hist.length-1];await runPipeline(last.content);return}await requestReply()};
-$('reset').onclick=async()=>{if(busy||!confirm('Cancellare per tutto il team la conversazione con '+rt.label(agentId)+' su questo progetto? I documenti scaricati restano sul tuo computer.'))return;data.conversations[agentId]=[];render();await persist();say('Conversazione cancellata.')};
+$('reset').onclick=async()=>{if(busy||!await askConfirm({title:'Cancellare la conversazione con '+rt.label(agentId)+'?',message:'Si cancella per tutto il team, su questo progetto.\nI documenti scaricati restano sul tuo computer.',ok:'Cancella conversazione',tone:'danger'})||busy)return;data.conversations[agentId]=[];render();await persist();say('Conversazione cancellata.')};
 $('filter').oninput=renderRoster;
 
 // ---- attachments (/api/parse-file, same limits as v3.7) ----
@@ -396,9 +410,9 @@ $('project').onchange=()=>{if(busy){$('project').value=project.id;return}openPro
 
 // Agent status light (free GET, as in v3.7) and the signed-in person with a logout.
 async function checkApi(){const el=$('api-status');try{const r=await fetch('/api/chat',{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.configured){el.textContent='● Agenti collegati';el.dataset.state='ok'}else{el.textContent=r.status===401?'● Accesso richiesto':'● Agenti non configurati sul server';el.dataset.state='err'}}catch(e){el.textContent='● Agenti non raggiungibili';el.dataset.state='err'}}
-$('logout').onclick=async()=>{if(busy&&!confirm('Un agente sta ancora lavorando. Uscire comunque?'))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
+$('logout').onclick=async()=>{if(busy&&!await askConfirm({title:'Uscire mentre un agente lavora?',message:'Un agente sta ancora lavorando: uscendo, il lavoro in corso può andare perso.',ok:'Esci comunque',cancel:'Resta qui',tone:'danger'}))return;try{await fetch('/api/auth/logout',{method:'POST',credentials:'same-origin'})}finally{location.href='/control-center-v2.html'}};
 // Colleagues' replies appear when you come back to the tab, without reloading the page.
-document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
+document.addEventListener('visibilitychange',async()=>{if(document.visibilityState!=='visible'||!project||!doc||busy)return;try{const fresh=await doc.load();if(fresh&&!prefsDirty&&data)data.prefs=fresh.prefs||{};if(fresh&&data){data.events=fresh.events;data.translations=fresh.translations;data.productPhotos=fresh.productPhotos;data.coordinato=fresh.coordinato;data.firme=fresh.firme;data.socialKit=fresh.socialKit;data.logoMotion=fresh.logoMotion;data.mockups=fresh.mockups;data.retouch=fresh.retouch;data.menu=fresh.menu;data.reports=fresh.reports;data.searchAds=fresh.searchAds;data.audits=fresh.audits;data.strategyBudget=fresh.strategyBudget;data.annualPlan=fresh.annualPlan;data.infographics=fresh.infographics;data.funnels=fresh.funnels;data.surveys=fresh.surveys;data.mediaKit=fresh.mediaKit;data.packaging=fresh.packaging;data.logoVector=fresh.logoVector;data.icons=fresh.icons;data.competitorSites=fresh.competitorSites;data.reels=fresh.reels;data.newsletters=fresh.newsletters;data.productSheets=fresh.productSheets;data.siteAudit=fresh.siteAudit;data.seoResults=fresh.seoResults;data.adCreatives=fresh.adCreatives;data.gbp=fresh.gbp}if(fresh&&!busy&&JSON.stringify(fresh.conversations||{})!==JSON.stringify(clean(data).conversations)){data=fresh;data.conversations=data.conversations||{};render();say('Conversazioni aggiornate con il lavoro del team.')}}catch(e){}});
 async function boot(){
  renderRoster();checkApi();
  try{
@@ -410,6 +424,8 @@ async function boot(){
   $('project').replaceChildren(...projects.map(p=>{const o=node('option',p.name+(p.client_name?' · '+p.client_name:''));o.value=p.id;return o}));$('project').disabled=false;
   if(params.get('agent'))agentId=(rt.agent(params.get('agent'))||rt.agent(agentId)).id;
   await openProject((params.get('project')||'').toLowerCase());
+  // «Ask RADIX» from the Command Center: the question is prefilled, never sent on its own.
+  const q=(params.get('q')||'').slice(0,2000);if(q&&!$('input').value){$('input').value=q;$('input').focus()}
  }catch(e){say(e.message)}
 }
 boot();

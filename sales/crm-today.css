@@ -1,0 +1,82 @@
+/* «Oggi» (sales/crm-today.js): phone first, one column of white cards with large touch targets
+   (44px), wider rows on desktop. Colours follow the --crm-* tokens of the light theme (sales/crm-light.css)
+   and fall back to the same light values when that file is not loaded. */
+:root{
+ --td-card:var(--crm-card,#fff);--td-soft:var(--crm-soft,#f8f7fb);--td-line:var(--crm-line,#e4e1ec);--td-line-2:var(--crm-line-2,#cfcadb);
+ --td-text:var(--crm-text,#1d1a27);--td-muted:var(--crm-muted,#55516a);--td-subtle:var(--crm-subtle,#6b6780);
+ --td-accent:var(--crm-accent,#6d28d9);--td-accent-soft:var(--crm-accent-soft,#f2ecfe);--td-accent-line:var(--crm-accent-line,#d9c9fb);--td-on-accent:var(--crm-on-accent,#fff);
+ --td-err:var(--crm-err,#b42318);--td-err-soft:var(--crm-err-soft,#fdecea);--td-ok:var(--crm-ok,#15803d);--td-ok-soft:var(--crm-ok-soft,#e9f7ef);--td-link:var(--crm-link,#1d4ed8);
+ --td-shadow:var(--crm-shadow,0 1px 2px #1d1a270a,0 4px 16px #1d1a270a);
+ --td-font:var(--crm-font,Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif)}
+
+html[data-rx-view="today"] #content>aside.reminder{display:none}
+.td{display:grid;gap:14px;max-width:860px;font-family:var(--td-font);color:var(--td-text)}
+.td-top{display:grid;gap:2px}
+.td .td-date{margin:0;font-size:15px;font-weight:600;color:var(--td-text)}
+.td .td-sum{margin:0;font-size:13px;color:var(--td-muted)}
+.td .td-flash{margin:0;padding:10px 14px;border-radius:10px;background:var(--td-ok-soft);color:var(--td-ok);font-size:14px;font-weight:600}
+.td-block{background:var(--td-card);border:1px solid var(--td-line);border-radius:14px;box-shadow:var(--td-shadow);padding:14px 14px 6px;min-width:0}
+.td-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.td-head h3{margin:0;font-size:16px;font-weight:700;color:var(--td-text)}
+.td-count{font-size:12px;font-weight:600;min-width:22px;text-align:center;padding:1px 8px;border-radius:999px;background:var(--td-soft);border:1px solid var(--td-line);color:var(--td-muted)}
+.td-block.late .td-count{background:var(--td-err-soft);border-color:var(--td-err-soft);color:var(--td-err)}
+.td .td-empty{margin:4px 0 10px;font-size:14px;color:var(--td-muted)}
+.td-list{list-style:none;margin:0;padding:0}
+.td-item{display:grid;gap:10px;padding:12px 0;border-top:1px solid var(--td-line)}
+.td-list>li:first-child{border-top:0}
+.td-text{display:grid;gap:2px;min-width:0}
+.td-text b{font-size:15px;font-weight:600;color:var(--td-text);overflow-wrap:anywhere}
+.td-text small{font-size:13px;color:var(--td-muted);overflow-wrap:anywhere}
+.td-item.late .td-due{color:var(--td-err);font-weight:600}
+.td-text .td-owner{color:var(--td-subtle)}
+.td-sep{padding:12px 0 4px;border-top:1px solid var(--td-line);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--td-subtle)}
+.td-actions{display:flex;gap:8px}
+.td .td-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 14px;border-radius:10px;border:1px solid var(--td-line-2);background:var(--td-card);color:var(--td-text);font:600 14px/1.2 var(--td-font);text-decoration:none;flex:none;white-space:nowrap}
+.td .td-log{flex:1 1 auto;min-width:0}
+.td .td-btn:hover{border-color:var(--td-accent);color:var(--td-accent)}
+.td .td-call{border-color:var(--td-accent-line);background:var(--td-accent-soft);color:var(--td-accent)}
+.td .td-call::before{content:"";width:16px;height:16px;margin-right:6px;background:currentColor;-webkit-mask:url(/sales/icons/phone.svg) center/contain no-repeat;mask:url(/sales/icons/phone.svg) center/contain no-repeat}
+.td .td-done{border-color:var(--td-accent);background:var(--td-accent);color:var(--td-on-accent)}
+.td .td-done:hover{color:var(--td-on-accent);filter:brightness(1.08)}
+.td .td-btn:disabled{opacity:.55;cursor:not-allowed}
+.td-event{display:flex;gap:12px;align-items:flex-start;padding:10px 0;text-decoration:none;color:var(--td-text);border-top:1px solid var(--td-line)}
+.td-agenda .td-list>li:first-child .td-event{border-top:0}
+.td-event time{flex:none;width:64px;font-size:13px;font-weight:600;color:var(--td-accent)}
+.td-event span{display:grid;gap:1px;min-width:0}
+.td-event em{font-style:normal;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--td-subtle)}
+.td-event b{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.td-event small{font-size:13px;color:var(--td-muted)}
+.td .td-more{display:inline-block;margin:4px 0 10px;color:var(--td-link);font-size:14px;font-weight:600}
+.td>.td-more{margin:0}
+.td .td-note{margin:0;font-size:12.5px;color:var(--td-subtle)}
+/* The call sheet: a bottom sheet on the phone, a small dialog on desktop. */
+dialog.td-sheet{max-width:440px;padding:20px}
+dialog.td-sheet h2{margin:0 0 4px;font-size:20px}
+.td-sheet .td-sheet-who{margin:0 0 12px;display:flex;flex-wrap:wrap;gap:2px 0;align-items:baseline}
+.td-sheet .td-sheet-who small{flex-basis:100%;font-size:13px;color:var(--td-muted)}
+.td-sheet .td-tel-inline{color:var(--td-link)}
+.td-outcomes{border:0;margin:0;padding:0;display:grid;gap:8px}
+.td-outcomes legend{font-size:13px;font-weight:600;margin-bottom:6px;padding:0}
+.td-outcomes label{display:flex;align-items:center;gap:10px;margin:0;min-height:44px;padding:8px 12px;border:1px solid var(--td-line-2);border-radius:10px;font-size:15px;cursor:pointer}
+.td-outcomes label:has(input:checked){border-color:var(--td-accent);background:var(--td-accent-soft);color:var(--td-accent);font-weight:600}
+.td-outcomes input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--td-accent)}
+.td-sheet textarea{width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:8px;border:1px solid var(--td-line-2);resize:vertical}
+.td-sheet .td-ask{font-size:15px;margin:4px 0 8px}
+.td-sheet .muted{font-size:12.5px;margin:10px 0 0}
+@media (max-width:420px){.td .td-btn{padding:8px 10px}}
+@media (max-width:340px){.td-actions{flex-wrap:wrap}}
+@media (max-width:600px){
+ html[data-rx-view="today"] #content>section.rx-view>.row:first-child{margin-bottom:10px}
+ /* room under the last row for the floating «Copilota AI» button */
+ .td{padding-bottom:64px}
+ dialog.td-sheet{margin:auto 0 0;width:100%;max-width:100%;border-radius:16px 16px 0 0;max-height:92vh;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+ .td-sheet .actions button{flex:1 1 auto}
+}
+@media (min-width:700px){
+ .td-item{grid-template-columns:minmax(0,1fr) auto;align-items:center}
+}
+/* «Bozza follow-up» under a past meeting or call of the agenda (crm-follow-up.js, styled in crm-record.css). */
+.td-agenda .crm-follow-up-wrap{padding:0 0 10px 76px}
+.td-agenda .crm-follow-up-wrap>.actions{margin:0}
+.td-agenda .crm-follow-up-wrap>.actions button{min-height:44px;padding:8px 14px;border-radius:10px;font:600 14px/1.2 var(--td-font)}
+@media (max-width:600px){.td-agenda .crm-follow-up-wrap{padding-left:0}.td-agenda .crm-follow-up-wrap>.actions button{width:100%}}

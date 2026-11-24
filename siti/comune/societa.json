@@ -1,0 +1,9 @@
+{
+  "_nota": "Dati della società che vende i prodotti RADIX. Un campo vuoto diventa «[da completare: …]» nelle pagine legali (tools/siti-legali.js). Da compilare quando Francesco conferma la società.",
+  "legalName": "",
+  "vat": "",
+  "address": "",
+  "email": "",
+  "siteName": "RADIX",
+  "analytics": false
+}

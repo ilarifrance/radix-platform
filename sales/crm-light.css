@@ -1,0 +1,58 @@
+/* CRM light theme: one set of colours for every Sales page except Sales Orbit (which keeps its dark sky).
+   Light grey page, white cards with soft borders, dark text, purple accent and blue links, as in the
+   Salesforce trial and in Lead Intelligence (sales/lead-pipeline.css uses the same values as --lp-*).
+   This file holds the tokens and the shared Sales menu; crm-light-sales.css (radix-sales.html) and
+   crm-light-pages.css (Pipeline, Campagne, Progetti, LinkedIn) only use these tokens.
+   Loaded after the page styles; the menu rules carry "html" and !important to win over sales-nav.css. */
+:root{color-scheme:light;
+ --crm-bg:#f4f4f8;--crm-card:#fff;--crm-soft:#f8f7fb;--crm-head:#f3f2f8;--crm-hover:#f4f1fd;
+ --crm-line:#e4e1ec;--crm-line-2:#cfcadb;
+ --crm-text:#1d1a27;--crm-muted:#55516a;--crm-subtle:#6b6780;
+ --crm-accent:#6d28d9;--crm-accent-2:#7c3aed;--crm-accent-soft:#f2ecfe;--crm-accent-line:#d9c9fb;--crm-on-accent:#fff;
+ --crm-link:#1d4ed8;
+ --crm-ok:#15803d;--crm-ok-soft:#e9f7ef;--crm-warn:#a85b06;--crm-warn-soft:#fdf3e3;--crm-err:#b42318;--crm-err-soft:#fdecea;--crm-info:#1d4ed8;--crm-info-soft:#eaf0fe;
+ --crm-shadow-c:#1d1a2712;--crm-shadow:0 1px 2px #1d1a270a,0 4px 16px #1d1a270a;
+ --crm-chart-1:#6d28d9;--crm-chart-2:#2563eb;--crm-chart-3:#0e7490;--crm-chart-4:#15803d;--crm-chart-5:#b45309;
+ --crm-font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+
+/* ---------- Shared Sales menu (sales-nav.js), light ---------- */
+html .sx-side,html.sx-crm body .sx-app>#navigation{background:var(--crm-card)!important;border-right:1px solid var(--crm-line)!important;color:var(--crm-muted)}
+html .sx-side .sx-brand,html #navigation>.sx-brand{color:var(--crm-text)!important}
+html .sx-brand b{color:var(--crm-accent)}
+html .sx-side .sx-brand small,html #navigation>.sx-brand small{color:var(--crm-accent)}
+html .sx-label{color:var(--crm-subtle)}
+html a.sx-link{color:var(--crm-muted)!important}
+html a.sx-link::before{background:var(--crm-subtle)!important}
+html a.sx-link:hover{background:var(--crm-soft)!important;color:var(--crm-text)!important}
+html a.sx-link[aria-current]{background:var(--crm-accent-soft)!important;border-color:var(--crm-accent-line)!important;color:var(--crm-accent)!important;font-weight:600!important;box-shadow:inset 3px 0 0 var(--crm-accent)!important}
+html a.sx-link:hover::before,html a.sx-link[aria-current]::before{background:var(--crm-accent)!important}
+html a.sx-link:focus-visible,html .sx-fold>.sx-label:focus-visible{outline-color:var(--crm-accent)}
+html .sx-nav>a.sx-link:first-child,html .sx-nav>.sx-brand+a.sx-link{color:var(--crm-subtle)!important}
+@media (max-width:900px){html .sx-side,html.sx-crm body .sx-app>#navigation{border-right:0!important;border-bottom:1px solid var(--crm-line)!important}}
+
+/* No CRM workspace notice */
+html .sx-access{border-color:var(--crm-accent-line);background:var(--crm-accent-soft);box-shadow:var(--crm-shadow);color:var(--crm-text)}
+html .sx-access-orb{background:radial-gradient(circle at 35% 30%,#fff,var(--crm-accent-2) 45%,var(--crm-accent) 80%);box-shadow:0 0 0 6px #6d28d914}
+html .sx-access h2{color:var(--crm-text)}
+html .sx-access p{color:var(--crm-muted)}
+html .sx-access-actions button{background:var(--crm-accent);border-color:var(--crm-accent);color:var(--crm-on-accent)}
+html .sx-access-actions a{background:var(--crm-card);border-color:var(--crm-line-2);color:var(--crm-accent)}
+html .sx-access-actions a:hover{border-color:var(--crm-accent)}
+html .sx-access-actions button:focus-visible,html .sx-access-actions a:focus-visible{outline-color:var(--crm-accent)}
+
+/* Copilota (crm-copilot.css is added later by script, so these carry "html") */
+html .cc-fab{border-color:var(--crm-accent);background:var(--crm-accent);color:var(--crm-on-accent);box-shadow:0 6px 20px #6d28d93d}
+html .cc-fab:focus-visible{outline-color:var(--crm-accent)}
+html .cc-panel{border-color:var(--crm-line);background:var(--crm-card);color:var(--crm-text);box-shadow:0 20px 50px #1d1a2733}
+html .cc-panel::backdrop{background:#1d1a2759}
+html .cc-close{border-color:var(--crm-line-2);color:var(--crm-text);background:var(--crm-card)}
+html .cc-note{color:var(--crm-subtle)}
+html .cc-user{background:var(--crm-accent-soft)}
+html .cc-assistant{background:var(--crm-soft);border-color:var(--crm-line)}
+html .cc-error{background:var(--crm-err-soft);color:var(--crm-err)}
+html .cc-chips button{background:var(--crm-card);color:var(--crm-accent);border-color:var(--crm-accent-line)}
+html .cc-form textarea{background:var(--crm-card);color:var(--crm-text);border-color:var(--crm-line-2)}
+html .cc-form button{background:var(--crm-accent);color:var(--crm-on-accent)}
+
+/* Lead Intelligence (lead-pipeline.css) shares these values; its faintest grey is darkened to stay readable on white. */
+:root{--lp-subtle:var(--crm-subtle)}

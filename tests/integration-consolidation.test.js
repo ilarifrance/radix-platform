@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
-const aliases=['buffer','heygen','openai-image','send-email'];
+const aliases=['buffer','heygen','higgsfield','openai-image','send-email'];
 test('legacy integration URLs point to one function and keep their public paths',()=>{
  const config=JSON.parse(fs.readFileSync('vercel.json','utf8'));
  for(const name of aliases){
@@ -23,7 +23,7 @@ test('dispatcher preserves target handler identity and rejects unknown services'
  try{
   delete require.cache[fn];const route=require(fn);
   for(const name of aliases){const reply=res();await route({method:'POST',query:{service:name,action:'test'}},reply);assert.equal(reply.code,207);assert.equal(reply.body.name,name)}
-  assert.equal(called.length,4);
+  assert.equal(called.length,aliases.length);
   for(const invalid of ['other','__proto__',['buffer'],undefined]){const reply=res();await route({query:{service:invalid}},reply);assert.equal(reply.code,404)}
  }finally{Module._load=original;delete require.cache[fn]}
 });

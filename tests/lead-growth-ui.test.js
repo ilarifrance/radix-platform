@@ -6,7 +6,8 @@ test('commercial project wizard is navigable, complete and connected to API',()=
  for(const name of ['growth-workspace','growth-existing','growth-save','growth-export','growth-import','growth-review','growth-approved'])assert.ok(html.includes('id="'+name+'"'),name);
  assert.doesNotThrow(()=>new vm.Script(js));assert.match(js,/lead_growth_projects/);
  assert.match(js,/growth-go-leads/);assert.match(js,/growth-go-campaigns/);
- assert.doesNotMatch(js,/localStorage|sessionStorage/);
+ // Browser storage holds only the last workspace id (shared with the CRM), never project data.
+ assert.doesNotMatch(js.replace(/localStorage\.(?:get|set)Item\('radix\.workspace'/g,''),/localStorage|sessionStorage/);
  assert.doesNotMatch(html,/<(?:input|textarea)[^>]*(?:name|id)="[^"]*(?:cookie|password|session)/i);
 });
 test('campaign page offers editing and no automatic sending',()=>{

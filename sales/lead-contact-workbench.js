@@ -21,7 +21,10 @@
    tbody.append(tr);
   }
   if(!list.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=5;td.textContent='Nessun contatto acquisito.';tr.append(td);tbody.append(tr)}
+  window.dispatchEvent(new CustomEvent('radix:lead-contacts-updated',{detail:{count:list.length}}));
  };
+ // Read-only copy for the Lead pipeline table and the bulk «Porta nel CRM».
+ window.radixLeadContacts={records:()=>(job?.records||[]).map(r=>({...r}))};
  function saveFile(name,value,type){
   const blob=new Blob([value],{type});const link=document.createElement('a');const uri=URL.createObjectURL(blob);
   link.href=uri;link.download=name;document.body.append(link);link.click();link.remove();
@@ -30,13 +33,13 @@
  async function apiStatus(test){
   try{
    const workspace=$('archive-workspace')?.value;
-   if(!workspace)throw Error('Seleziona prima un workspace nell’Archivio Lead Intelligence');
+   if(!workspace)throw Error('Scegli prima il workspace in alto');
    const options=test?{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace,entity:'lead_provider_status',action:'test',data:{}})}:{credentials:'same-origin'};
    const path=test?'/api/sales':'/api/sales?entity=lead_provider_status&workspace='+encodeURIComponent(workspace);
    text('contact-api-result','Verifica in corso...');
    const response=await fetch(path,options),body=await response.json();
    if(!response.ok)throw Error(body.error||'Provider non disponibile');
-   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata in Preview, non ancora collegata a una ricerca.':'Chiave API non configurata. Inserisci CAPTAIN_DATA_API_KEY e CAPTAIN_DATA_USER_UID nelle variabili Preview di Vercel.');
+   text('contact-api-result',test?'Connessione API confermata: test di sola lettura, nessuna ricerca avviata.':body.configured?'Chiave API configurata, non ancora collegata a una ricerca.':'Chiave API non configurata: chiedi all’amministratore di collegare Captain Data.');
   }catch(e){text('contact-api-result','Verifica API: '+e.message)}
  }
  $('contact-api-status').onclick=()=>apiStatus(false);
@@ -87,7 +90,7 @@
  };
  const workspace=()=>{
   const id=$('archive-workspace')?.value||'';
-  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Seleziona prima un workspace nell’Archivio RADIX');
+  if(!/^[a-f0-9-]{36}$/i.test(id))throw Error('Scegli prima il workspace in alto');
   return id;
  };
  const api=async(method,entity,data,ws,id)=>{
@@ -101,10 +104,10 @@
  async function listJobs(selected){
   const ws=workspace(),rows=await api('GET','lead_contact_jobs',null,ws);
   const menu=$('contact-job-select');menu.replaceChildren();
-  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona un lavoro...';menu.append(placeholder);
+  const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Seleziona una lista…';menu.append(placeholder);
   for(const row of rows){const option=document.createElement('option');option.value=row.id;option.textContent=row.title+' · '+row.contact_count+' contatti · v'+row.version;menu.append(option)}
   menu.value=selected||'';
-  text('contact-job-status',rows.length+' lavori disponibili nel workspace. Nessun dato sovrascritto.');
+  text('contact-job-status',rows.length+' liste salvate nel workspace. Nessun dato sovrascritto.');
  }
  const callbackUrl=()=>location.origin+'/api/sales?workspace='+encodeURIComponent(vault.workspace)+'&job='+encodeURIComponent(vault.id);
  function updateCallbackInfo(){
@@ -126,7 +129,7 @@
    if(vault.id&&vault.workspace!==ws)throw Error('Il workspace è cambiato: crea un nuovo lavoro o torna al workspace precedente');
    if(!title||title.length>120)throw Error('Indica un titolo valido');
    const action=vault.id?'update':'create';
-   if(!window.confirm('Salvare '+job.records.length+' contatti individuali nel database Preview isolato del workspace? Verifica provenienza e trattamento dei dati.'))return;
+   if(!window.confirm('Salvare '+job.records.length+' contatti nel workspace? Verifica provenienza e trattamento dei dati.'))return;
    const payload={...job};delete payload.last;
    const runUid=$('contact-provider-run-uid').value.trim();
    if(runUid&&!/^[a-zA-Z0-9_-]{1,40}$/.test(runUid))throw Error('run_uid provider non valido');
@@ -138,25 +141,83 @@
    await listJobs(row.id);
   }catch(e){text('contact-job-status','Salvataggio non riuscito: '+e.message)}
  };
+ async function readJob(ws,id){
+  const [row]=await api('GET','lead_contact_jobs',null,ws,id);
+  if(!row?.payload)throw Error('Lavoro non disponibile');
+  const p=row.payload,B=window.RadixContactBatch;
+  if(p.version!==1||!Array.isArray(p.records)||!Array.isArray(p.batches))throw Error('Contenuto archivio non valido');
+  const base=B.start(p.sourceUrl);
+  return {row,p,base,contacts:p.records.map(r=>B.person(r,base.sourceUrl))};
+ }
+ async function openJob(ws,id){
+  const {row,p,base,contacts}=await readJob(ws,id);
+  job={...base,records:contacts,batches:p.batches,total:p.total,duplicates:p.duplicates,providerRunUid:p.providerRunUid};
+  $('contact-provider-run-uid').value=p.providerRunUid||'';
+  $('contact-source').value=job.sourceUrl;
+  $('contact-job-title').value=row.title;
+  vault={id:row.id,version:row.version,workspace:ws,dirty:false};show();updateCallbackInfo();
+  text('contact-job-status','Caricati '+contacts.length+' contatti dal workspace · versione '+row.version);
+  return {row,count:contacts.length};
+ }
  $('contact-job-load').onclick=async()=>{
   try{
    const ws=workspace(),id=$('contact-job-select').value;
    if(!id)throw Error('Seleziona un lavoro');
    if((vault.dirty||job)&&!window.confirm('Aprire il lavoro selezionato? I dati non salvati saranno persi.'))return;
-   const [row]=await api('GET','lead_contact_jobs',null,ws,id);
-   if(!row?.payload)throw Error('Lavoro non disponibile');
-   const p=row.payload,B=window.RadixContactBatch;
-   if(p.version!==1||!Array.isArray(p.records)||!Array.isArray(p.batches))throw Error('Contenuto archivio non valido');
-   const base=B.start(p.sourceUrl);
-   const contacts=p.records.map(r=>B.person(r,base.sourceUrl));
-   job={...base,records:contacts,batches:p.batches,total:p.total,duplicates:p.duplicates,providerRunUid:p.providerRunUid};
-   $('contact-provider-run-uid').value=p.providerRunUid||'';
-   $('contact-source').value=job.sourceUrl;
-   $('contact-job-title').value=row.title;
-   vault={id:row.id,version:row.version,workspace:ws,dirty:false};show();updateCallbackInfo();
-   text('contact-job-status','Caricati '+contacts.length+' contatti dal workspace · versione '+row.version);
+   await openJob(ws,id);
   }catch(e){text('contact-job-status','Apertura non riuscita: '+e.message)}
  };
+ // «Apri le liste selezionate» (passo 1 › LinkedIn): several saved jobs read like «Apri lavoro», then one person per
+ // LinkedIn profile (RadixLeadListsMerge). The result is a new, unsaved work: the saved lists stay as they are.
+ async function openJobs(ids){
+  const M=window.RadixLeadListsMerge;
+  try{
+   if(!M)throw Error('Funzione non disponibile');
+   const ws=workspace(),list=[...new Set((ids||[]).filter(id=>/^[a-f0-9-]{36}$/i.test(id)))];
+   if(!list.length)throw Error('Seleziona almeno una lista');
+   if((vault.dirty||job)&&!window.confirm('Aprire le liste selezionate? I dati non salvati saranno persi.'))return null;
+   text('contact-job-status','Apro '+list.length+(list.length===1?' lista…':' liste…'));
+   if(list.length===1){
+    // One list opens exactly like «Apri»: same job, same version, still saveable in place.
+    const {row,count}=await openJob(ws,list[0]);
+    const one={records:job.records,total:count,unique:count,duplicates:0,lists:1};
+    const note=M.summary(one);text('contact-job-status',note);return {...one,title:row.title,note};
+   }
+   const read=[];for(const id of list)read.push(await readJob(ws,id));
+   const merged=M.merge(read.map(x=>({id:x.row.id,updatedAt:x.row.updated_at,records:x.contacts})));
+   job={...read[0].base,records:merged.records,batches:[],total:merged.total,duplicates:merged.duplicates};
+   $('contact-provider-run-uid').value='';$('contact-source').value=job.sourceUrl;$('contact-job-select').value='';
+   $('contact-job-title').value='Liste unite · '+read.length+' liste';
+   vault={id:'',version:0,workspace:'',dirty:false};
+   show();updateCallbackInfo();
+   const note=M.summary(merged);text('contact-job-status',note);
+   return {...merged,note};
+  }catch(e){text('contact-job-status','Apertura non riuscita: '+e.message);return null}
+ }
+ window.radixLeadContacts.openJobs=openJobs;
+ // «Apri in RADIX» from the Chrome extension: #lead-job=<id>&ws=<workspace> picks the workspace in the
+ // Archivio, opens that saved job like «Apri lavoro» and shows its contacts in the Lead pipeline.
+ async function openFromLink(){
+  const target=B.readOpenHash?.(location.hash);if(!target)return;
+  const note=$('lp-open-status'),say=v=>{if(note){note.textContent=v;note.hidden=false}};
+  say('Apertura dei contatti importati dall’estensione…');
+  try{
+   const picker=$('archive-workspace');
+   const has=()=>picker&&[...picker.options].some(o=>o.value===target.workspace);
+   for(let i=0;i<60&&!has();i++)await new Promise(r=>setTimeout(r,250));
+   if(!has())throw Error('il workspace del lavoro non è disponibile: accedi a RADIX con un account del workspace e riapri il link');
+   if(picker.value!==target.workspace){picker.value=target.workspace;picker.dispatchEvent(new Event('change'))}
+   if(job&&!window.confirm('Aprire i contatti importati dall’estensione? I dati non salvati saranno persi.')){say('Apertura annullata.');return}
+   const {row,count}=await openJob(target.workspace,target.job);
+   listJobs(row.id).catch(()=>{});
+   say('Aperto «'+row.title+'»: '+count+' contatti nella Lead pipeline.');
+   history.replaceState(null,'',location.pathname+location.search);
+   $('lead-pipeline')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){
+   say('Non riesco ad aprire i contatti importati: '+e.message+'. Puoi aprirli dal passo 1 › LinkedIn, nell’elenco delle importazioni.');
+   text('contact-job-status','Apertura non riuscita: '+e.message);
+  }
+ }
  $('contact-job-new').onclick=()=>{
   if(job&&!window.confirm('Iniziare un nuovo lavoro? Esporta o salva quello corrente prima di continuare.'))return;
   job=null;vault={id:'',version:0,workspace:'',dirty:false};
@@ -168,7 +229,7 @@
    const ws=workspace(),id=$('contact-job-select').value;
    if(!id)throw Error('Seleziona il lavoro da eliminare');
    if(id!==vault.id||ws!==vault.workspace||!vault.version)throw Error('Apri prima il lavoro, così RADIX ne verifica la versione aggiornata');
-   if(!window.confirm('Eliminare definitivamente questo lavoro contatti dal workspace Preview?'))return;
+   if(!window.confirm('Eliminare definitivamente questa lista di contatti dal workspace?'))return;
    await api('POST','lead_contact_jobs',{action:'delete',data:{id,version:vault.version}},ws);
    job=null;vault={id:'',version:0,workspace:'',dirty:false};show();updateCallbackInfo();await listJobs('');
    text('contact-job-status','Lavoro eliminato dall’archivio.');
@@ -182,4 +243,5 @@
   job=null;vault={id:'',version:0,workspace:'',dirty:false};$('contact-provider-run-uid').value='';show();updateCallbackInfo();text('contact-status','Lavoro svuotato. Nessun dato inviato al server.');
  };
  show();
+ openFromLink();
 })();

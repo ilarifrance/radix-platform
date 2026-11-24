@@ -1,0 +1,17 @@
+{
+  "name": "RADIX · Sales",
+  "short_name": "RADIX Oggi",
+  "description": "Le attività di oggi del CRM RADIX: scadenze, chiamate e agenda.",
+  "lang": "it",
+  "id": "/radix-sales.html",
+  "start_url": "/radix-sales.html#today",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f4f8",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/sales/icons/radix-app.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/tools/radix-chrome-extension/icons/icon128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" }
+  ]
+}

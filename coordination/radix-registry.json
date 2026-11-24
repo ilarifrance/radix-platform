@@ -134,17 +134,22 @@
     {
       "id": "accounting",
       "name": "Contabilità",
-      "owner": "ChatGPT Agency (UI verticale) / RADIX Platform (prompt AI)",
-      "branch": "design/radix-marketing-agency-v2",
+      "owner": "Claude (thread Accounting) / RADIX Platform (prompt AI)",
+      "branch": "claude/project-thread-4ttauo",
       "status": "preview_ready",
       "paths": [
         "accounting/index.html",
+        "accounting/app.js",
+        "accounting/studio.html",
+        "lib/accounting",
+        "api/accounting.js",
+        "migrations/accounting/001_foundation.sql",
         "verticals/studio.js",
         "verticals/studio.css",
         "verticals/agent-catalog.json"
       ],
       "route": "/accounting/index.html",
-      "notes": "Sei agenti contabili/amministrativi importati da RADIX Platform v3.7, workflow a fasi e chiamate AI confermate manualmente; bozze non persistite"
+      "notes": "Contabilità in partita doppia e controllo di gestione per aziende clienti (fatture FatturaPA, prima nota, banca, IVA, budget). Studio AI con i sei agenti v3.7 in accounting/studio.html"
     }
   ],
   "agents": {

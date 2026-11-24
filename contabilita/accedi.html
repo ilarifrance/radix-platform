@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Accedi · RADIX Contabilità</title>
+<link rel="stylesheet" href="/siti/comune/fonts/fonts.css">
+<link rel="stylesheet" href="/siti/comune/sito.css">
+<script src="/siti/comune/sito.js" defer></script>
+<script src="/lib/accounting/pricing.js" defer></script>
+<script src="/contabilita/account.js" defer></script>
+</head>
+<body class="sx" data-prodotto="contabilita">
+<header class="sx-top">
+ <a class="sx-brand" href="/contabilita/" aria-label="RADIX Contabilità"><span class="sx-word">RADIX</span><span class="sx-area">Contabilità</span></a>
+ <button class="sx-menu" type="button" aria-expanded="false" aria-controls="nav">Menu</button>
+ <nav id="nav" class="sx-nav" aria-label="Sezioni"><a href="/contabilita/#come-funziona">Come funziona</a><a href="/contabilita/#prezzo">Prezzo</a></nav>
+ <a class="sx-btn ghost small" href="/contabilita/iscrizione.html">Iscriviti</a>
+</header>
+<main id="main" class="sx-form-page">
+ <section class="sx-form-wrap narrow">
+  <p class="sx-eyebrow">Area clienti</p>
+  <h1 class="sx-form-title">Accedi alla tua contabilità</h1>
+  <p class="sx-alert" id="ctMsg" role="status" hidden></p>
+  <form id="ctLogin" class="sx-form" novalidate>
+   <label>Email<input name="email" type="email" required maxlength="254" autocomplete="email"></label>
+   <label>Password<input name="password" type="password" required maxlength="200" autocomplete="current-password"></label>
+   <button class="sx-btn" type="submit">Accedi</button>
+   <p class="sx-note"><a href="/contabilita/recupero.html">Password dimenticata?</a></p>
+   <p class="sx-note">Non hai ancora un account? <a href="/contabilita/iscrizione.html">Iscriviti</a>.</p>
+  </form>
+ </section>
+</main>
+<footer class="sx-foot"><span class="sx-word">RADIX</span><span>© 2026 RADIX Innovation Studio · <a href="/contabilita/condizioni.html">Condizioni</a> · <a href="/contabilita/privacy.html">Privacy</a> · <a href="/siti/legali/cookie.html">Cookie</a> · <a href="/siti/">Tutti i prodotti</a></span></footer>
+</body>
+</html>

@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('xlsx client parser is static, local, bounded, and formula-safe',()=>{
  const s=fs.readFileSync('lib/lead-xlsx-parser.js','utf8');
  assert.doesNotThrow(()=>new vm.Script(s));
- assert.match(s,/DecompressionStream/);assert.match(s,/LIMIT_UNCOMPRESSED/);assert.match(s,/if\(first\(c,'f'\)\)fail/);
+ assert.match(s,/DecompressionStream/);assert.match(s,/LIMIT_UNCOMPRESSED/);assert.match(s,/if\(first\(c,'f'\)&&!formulas\)fail/);assert.match(s,/formulas=false\}/,'formulas refused unless asked (only the catalogue asks)');
  assert.ok(!s.includes('fetch('));assert.ok(!s.includes('localStorage'));
 });
 test('manual xls opt-in reuses already authorized parser without new Vercel function',()=>{

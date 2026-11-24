@@ -1,6 +1,7 @@
 'use strict';
 (()=>{
  const $=id=>document.getElementById(id),UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+ const memo={get(){try{return localStorage.getItem('radix.workspace')||''}catch{return ''}},set(v){try{if(v)localStorage.setItem('radix.workspace',v)}catch{}}};
  const labels=['Azienda','ICP','Offerta','Canali','LinkedIn','Calendari','Revisione'];
  const shape={company:['name','website','industry','description'],icp:['geos','titles','industries','companySize'],offer:['core','differentiators','proof'],sending:['domains','mailboxes','provider'],linkedin:['profileUrl'],calendars:['bookingUrl','demoUrl']};
  const fresh=()=>({version:1,...Object.fromEntries(Object.entries(shape).map(([k,fields])=>[k,Object.fromEntries(fields.map(f=>[f,'']))])),campaigns:[],state:'draft'});
@@ -113,7 +114,7 @@
     if(!model.company.name||!(model.icp.titles||model.icp.industries)||!model.offer.core)throw Error('Per approvare servono azienda, target ICP e offerta principale');
     model.state='ready';
    }else model.state='draft';
-   if(!window.confirm('Salvare il progetto nel workspace Preview RADIX? I dati commerciali saranno accessibili agli utenti autorizzati del workspace.'))return;
+   if(!window.confirm('Salvare il progetto nel workspace RADIX? I dati commerciali saranno accessibili agli utenti autorizzati del workspace.'))return;
    const action=record.id?'update':'create',data={title:name,payload:model,...(record.id?{id:record.id,version:record.version}:{})};
    const row=await post(ws,action,data);if(!row?.id)throw Error('Archivio: risposta incompleta');
    record={id:row.id,version:row.version,workspace:ws,dirty:false};renderMeta();
@@ -133,7 +134,7 @@
    select.replaceChildren();select.append(option('','Seleziona workspace RADIX'));
    for(const w of rows)select.append(option(w.id,w.name+' · '+w.role));
    const params=new URLSearchParams(location.search),ws=params.get('workspace'),id=params.get('project');
-   if(ws&&rows.some(r=>r.id===ws))select.value=ws;else if(rows.length===1)select.value=rows[0].id;
+   const kept=memo.get();if(ws&&rows.some(r=>r.id===ws))select.value=ws;else if(rows.some(r=>r.id===kept))select.value=kept;else if(rows.length===1)select.value=rows[0].id;memo.set(select.value);
    if(select.value){try{await listProjects()}catch(e){say('growth-archive-status',e.message)}}
    if(ws&&id&&UUID.test(id)&&select.value===ws)await load(id,ws);
   }catch(e){say('growth-archive-status','Archivio non connesso: '+e.message+'. Compila la bozza e usa Esporta JSON.')}
@@ -151,7 +152,7 @@
  $('growth-new').onclick=reset;
  $('growth-list').onclick=async()=>{try{await listProjects(record.workspace===selectedWorkspace()?record.id:'')}catch(e){say('growth-archive-status',e.message)}};
  $('growth-load').onclick=async()=>{try{await load($('growth-existing').value,selectedWorkspace())}catch(e){say('growth-archive-status',e.message)}};
- $('growth-workspace').addEventListener('change',async()=>{try{await listProjects()}catch(e){say('growth-archive-status',e.message)}});
+ $('growth-workspace').addEventListener('change',async()=>{memo.set($('growth-workspace').value);try{await listProjects()}catch(e){say('growth-archive-status',e.message)}});
  $('growth-save').onclick=save;
  $('growth-delete').onclick=async()=>{
   try{const ws=selectedWorkspace();if(!record.id||record.workspace!==ws)throw Error('Apri prima il progetto da eliminare');

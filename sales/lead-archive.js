@@ -55,7 +55,7 @@
  async function selectWorkspace(){
   const target=$('archive-workspace').value;
   if(state.listId&&!window.confirm('Passare a un altro workspace? Le modifiche non salvate nella pagina potrebbero andare perse.')){$('archive-workspace').value=state.workspace;return}
-  state.workspace=target;state.role=$('archive-workspace').selectedOptions?.[0]?.textContent?.split(' · ').pop()||'';
+  state.workspace=target;state.role=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))($('archive-workspace').selectedOptions?.[0]).split(' · ').pop()||'';
   // Role is only for interface controls. Server checks session and membership for every request.
   clearCurrent();$('archive-list').replaceChildren(opts('Seleziona una lista salvata',''));
   if(!target){buttons();return}
