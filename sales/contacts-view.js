@@ -77,7 +77,8 @@ async function render(){const section=document.getElementById('contacts');if(!se
   if(!cards.some(x=>x.contact.id===state.selected))state.selected=cards[0].contact.id;
   const sel=cards.find(x=>x.contact.id===state.selected);
   const root=E('div',undefined,'cx');root.append(table(d,cards),sheet(d,sel.contact,sel.card));
-  const after=section.querySelector(':scope>p.muted')||section.querySelector(':scope>form');after?after.after(root):section.append(root);
+  const after=section.querySelector(':scope>.lv')||section.querySelector(':scope>p.muted')||section.querySelector(':scope>form');// below the list header (crm-list.js): Schede/Tabella stays on top
+  after?after.after(root):section.append(root);
   document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false;if(!section.isConnected)later()})}
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};
