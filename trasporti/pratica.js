@@ -149,5 +149,19 @@ function open(host,ctx){
  }
  draw();
 }
-window.TrPratica={open,batches,exampleBatches,renderPages};
+// The text of a PDF that has it (not a scan), line by line; columns far apart are separated by a tab.
+async function textLines(file){
+ const lib=await loadPdfJs();const pdf=await lib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;const out=[];
+ for(let i=1;i<=Math.min(pdf.numPages,40);i++){
+  const page=await pdf.getPage(i);const tc=await page.getTextContent();
+  const items=tc.items.filter(x=>x.str&&x.str.trim()).map(x=>({s:x.str,x:x.transform[4],y:x.transform[5],w:x.width||0,h:x.height||Math.abs(x.transform[3])||10}));
+  items.sort((a,b)=>b.y-a.y||a.x-b.x);
+  let line=[],y=null;
+  const flush=()=>{if(!line.length)return;line.sort((a,b)=>a.x-b.x);let t='',end=null;for(const it of line){if(end!=null)t+=it.x-end>Math.max(12,it.h*1.2)?'\t':it.x-end>1?' ':'';t+=it.s;end=it.x+it.w;}out.push(t.trim());line=[];};
+  for(const it of items){if(y!=null&&Math.abs(it.y-y)>Math.max(3,it.h*0.5))flush();if(!line.length)y=it.y;line.push(it);}
+  flush();
+ }
+ return out;
+}
+window.TrPratica={open,batches,exampleBatches,renderPages,textLines};
 })();

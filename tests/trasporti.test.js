@@ -501,3 +501,33 @@ test('deadlines: vehicles and drivers together, nearest first',()=>{
  const d=CT.deadlines([{id:'v1',plate:'AA111AA',due_revisione:'2026-12-20'}],'2026-11-23',[{id:'d1',name:'Luca Ferri',due_cqc:'2026-12-01',due_patente:'2026-11-01'},{id:'d2',name:'Fermo',active:false,due_cqc:'2026-11-25'}]);
  assert.deepEqual(d.map(x=>[x.plate,x.label,x.days]),[['Luca Ferri','Patente',-22],['Luca Ferri','CQC',8],['AA111AA','Revisione',27]]);
 });
+
+test('France: zone list from the loading area, extra drops and ramasse; list imported from a file; order confirmation',()=>{
+ const LIS=require('../lib/trasporti/listini'),DOC=require('../lib/trasporti/documenti'),PR=require('../lib/trasporti/pratiche');
+ const r=LIS.importTable('Listino ritorni Francia 2026\nCarico zona Rodez\nProvincia di scarico   Importo\nCuneo (CN)   1.450,00 €\nTorino (TO)  1.500,00\nMN, CR, BS   1.800\nLombardia: 1750 €\nMontichiari 1900\n2 scarichi (uno oltre il primo) + 50 €\n3 scarichi +100\nRamasse (doppio carico in Francia)  100\nSosta oltre 2 ore 40 €/ora\nPagamento 60 giorni');
+ assert.deepEqual(r.zones.map(z=>[z.from.join(),z.to.join(),z.amount_cents]),[['Rodez','CN',145000],['Rodez','TO',150000],['Rodez','MN,CR,BS',180000],['Rodez','Lombardia',175000],['Rodez','Montichiari',190000]]);
+ assert.deepEqual(r.supplements,[{kind:'scarico_extra',amount_cents:5000},{kind:'ramassa',amount_cents:10000},{kind:'sosta',per_hour_cents:4000,free_hours:2}]);
+ assert.deepEqual(r.skipped,['Listino ritorni Francia 2026']);
+ assert.equal(LIS.zonesText(r.zones).split('\n')[2],'Rodez -> MN, CR, BS = 1800,00');
+ assert.deepEqual(LIS.parseZones(LIS.zonesText(r.zones)).map(z=>z.amount_cents),r.zones.map(z=>z.amount_cents));
+ // an Excel sheet with origin, destination and price columns; the city name of a capital becomes its province
+ const x=LIS.importTable([['Da','A','Prezzo'],['Rodez','CN',1450],['Rodez','Torino',1500],['Scarico in più','',50],['Minimo fatturabile',300]]);
+ assert.deepEqual(x.zones.map(z=>z.to[0]),['CN','TO']);assert.deepEqual(x.supplements,[{kind:'scarico_extra',amount_cents:5000}]);assert.equal(x.min_cents,30000);
+ assert.deepEqual(LIS.importTable([['Destinazione','Sigla','€'],['Cuneo','CN','1.450,00']]).zones[0].to,['CN']);
+ const card={method:'zone',zones:r.zones,supplements:r.supplements};
+ const p=LIS.price(card,LIS.jobOf({id:'t',origin:'Rodez (FR)',destination:'Fossano (CN)',extra_drops:2,extra_loads:1},null,[],[]));
+ assert.equal(p.amount_cents,145000+10000+10000);assert.deepEqual(p.lines.map(l=>l.unit),['viaggio','scarichi','carico']);
+ assert.equal(LIS.price(card,{load_place:'Lione (FR)',delivery_place:'Fossano (CN)'}).amount_cents,null);
+ // with several shipments the extras of the trip are charged once
+ const ships=[{id:'a',weight_kg:1},{id:'b',weight_kg:1}],t={id:'t',extra_drops:1,extra_loads:1};
+ assert.equal(LIS.jobOf(t,ships[0],ships,[]).extra_drops,1);assert.equal(LIS.jobOf(t,ships[1],ships,[]).extra_loads,0);
+ assert.deepEqual(LIS.fileRows('{"righe":[["Cuneo",1450.0],["x",null],"no"]}',DOC.extractJson),[['Cuneo',1450],['x','']]);
+ // order confirmation of a forwarder read from its text
+ const g=DOC.guessOrder('TRANS ALPI SPEDIZIONI\nConferma d\'ordine n. TA-2611/084\nData: 18/11/2026\nLuogo di carico: Fossano (CN) 20/11/2026\nLuogo di scarico: Rodez (FR)\nData di scarico: 21/11/2026\nMerce: vitelli da ristallo, 62 capi\nPrezzo concordato: 1.350,00 € + IVA\nPagamento: bonifico 60 gg');
+ assert.equal(g.fields.numero,'TA-2611/084');assert.equal(g.fields.data,'2026-11-18');assert.equal(g.fields.luogo_carico,'Fossano (CN)');assert.equal(g.fields.data_carico,'2026-11-20');assert.equal(g.fields.luogo_scarico,'Rodez (FR)');assert.equal(g.fields.data_scarico,'2026-11-21');
+ assert.equal(g.fields.numero_capi,62);assert.equal(g.fields.importo,1350);assert.equal(g.fields.pagamento,'bonifico 60 gg');
+ const fr=DOC.guessOrder('Ordre de transport N° 55123\nLieu de chargement : Rodez\nLieu de livraison : Cuneo\n33 palettes\nPrix : 1 450,00 EUR');
+ assert.equal(fr.fields.luogo_carico,'Rodez');assert.equal(fr.fields.pallet,33);assert.equal(fr.fields.importo,1450);assert.equal(DOC.guessOrder('niente').found,0);
+ assert.ok(PR.KINDS.includes('conferma'));assert.match(DOC.instructions('conferma'),/importo/);
+ assert.equal(LIS.jobOf({id:'t'},null,[],[{trip_id:'t',kind:'conferma',fields:{pallet:33}}]).pallets,33);
+});

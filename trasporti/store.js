@@ -109,6 +109,18 @@ function defaults(d){
    {id:'r2',name:'Ortofrutta: fasce di pallet (esempio)',customer_id:'c2',method:'fasce',basis:'pallet',bands:[{upto:10,amount_cents:25000},{upto:20,amount_cents:40000},{upto:33,amount_cents:52000}],supplements:[gas,{kind:'sponda',amount_cents:3000}]},
    {id:'r3',name:'Allevamenti: a capo (esempio)',customer_id:'c3',method:'capo',per_unit_cents:1800,min_cents:30000,supplements:[gas,{kind:'scarico_extra',amount_cents:5000}]});
  }
+ // example for those who work with France (live animals): the way out at the price of the forwarder's order confirmation,
+ // the way back with a zone list from the loading area plus extra drops and ramasse; once
+ if(!d._fr_seeded){d._fr_seeded=true;const at=(n,h)=>{const x=new Date(Date.now()+n*86400000);x.setHours(h,0,0,0);return localIso(x);};const has=(l,id)=>(l||[]).some(x=>x.id===id);
+  if(has(d.vehicles,'v3')&&has(d.drivers,'d3')&&!has(d.customers,'c4')){
+   d.customers.push({id:'c4',name:'Trans Alpi Spedizioni Srl (esempio)',vat:'IT00000000004',street:'Corso Francia 12',cap:'12100',comune:'Cuneo',provincia:'CN',nazione:'IT',sdi:'0000000',_seeded:true});
+   d.rate_cards.push({id:'r4',name:'Ritorni dalla Francia: carico zona Rodez (esempio)',customer_id:'c4',method:'zone',zones:[{name:'CN da Rodez',from:['Rodez','Aveyron'],to:['CN'],amount_cents:145000},{name:'TO da Rodez',from:['Rodez','Aveyron'],to:['TO','AT'],amount_cents:150000},{name:'Lombardia da Rodez',from:['Rodez','Aveyron'],to:['Lombardia'],amount_cents:175000},{name:'Veneto da Rodez',from:['Rodez','Aveyron'],to:['Veneto'],amount_cents:190000}],supplements:[{kind:'scarico_extra',amount_cents:5000},{kind:'ramassa',amount_cents:10000}]});
+   d.trips.push({id:'tf1',vehicle_id:'v3',driver_id:'d3',customer_id:'c4',status:'chiuso',started_at:at(-4,5),ended_at:at(-3,3),origin:'Fossano (CN)',destination:'Rodez (FR)',km:742,revenue_cents:135000,price_detail:{card:'conferma d\'ordine TA-2611/084',lines:[{label:'Prezzo concordato',qty:1,unit:'viaggio',amount_cents:135000}],missing:[]}});
+   d.documents.push({id:'df1',trip_id:'tf1',kind:'conferma',at:at(-6,10),demo:true,office:true,file:{name:'conferma-TA-2611-084.pdf',type:'application/pdf',size:0,data:null},
+    fields:{numero:'TA-2611/084',data:at(-6,10).slice(0,10),committente:'Trans Alpi Spedizioni Srl',luogo_carico:'Fossano (CN)',data_carico:at(-4,5).slice(0,10),luogo_scarico:'Rodez (FR)',data_scarico:at(-3,3).slice(0,10),merce:'Vitelli da ristallo',pallet:null,numero_capi:62,peso_kg:null,importo:1350,pagamento:'Bonifico 60 gg data fattura',targa:null,note:null}});
+   d.trips.push({id:'tf2',vehicle_id:'v3',driver_id:'d3',customer_id:'c4',status:'chiuso',started_at:at(-3,8),ended_at:at(-2,6),origin:'Rodez (FR)',destination:'Savigliano (CN)',km:760,revenue_cents:null,extra_drops:1,extra_loads:1});
+  }
+ }
  return d;
 }
 function load(){

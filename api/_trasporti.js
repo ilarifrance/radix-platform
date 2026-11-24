@@ -26,6 +26,7 @@ const loc=require('../lib/trasporti/localizzatori');
 const pr=require('../lib/trasporti/pratiche');
 const co=require('../lib/trasporti/costi');
 const toll=require('../lib/trasporti/pedaggi');
+const lis=require('../lib/trasporti/listini');
 
 const MEDIA=['image/jpeg','image/png','image/webp','application/pdf'];
 const MAX_BASE64=4200000; // Vercel accepts request bodies up to 4.5 MB; the app shrinks photos to ~1600 px first.
@@ -160,9 +161,11 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
     if(answer.refused)return res.status(200).json({rows:[],error:'Queste pagine non sono state lette.'});
     return res.status(200).json({rows:toll.pdfRows(answer.text,doc.extractJson)});
    }
-   if(body.action!=='documento.leggi')throw failure(400,'Azione non riconosciuta.');
+   // listino.leggi: a price list received as PDF or photo → rows of cells, the same an Excel sheet gives
+   const isList=body.action==='listino.leggi';
+   if(body.action!=='documento.leggi'&&!isList)throw failure(400,'Azione non riconosciuta.');
    const d=body.data&&typeof body.data==='object'?body.data:{};
-   if(!doc.KIND_KEYS.includes(d.kind))throw failure(400,'Tipo di documento non riconosciuto.');
+   if(!isList&&!doc.KIND_KEYS.includes(d.kind))throw failure(400,'Tipo di documento non riconosciuto.');
    if(!MEDIA.includes(d.media_type))throw failure(400,'Formato non supportato: usa una foto JPEG, PNG, WebP o un PDF.');
    if(typeof d.image!=='string'||!d.image||d.image.length>MAX_BASE64||!/^[A-Za-z0-9+/]+={0,2}$/.test(d.image))throw failure(d.image&&d.image.length>MAX_BASE64?413:400,d.image&&d.image.length>MAX_BASE64?'Foto troppo grande: riprova, l\'app la riduce.':'Foto non valida.');
    const key=user.uid+':'+new Date(now()).toISOString().slice(0,10);
@@ -170,10 +173,11 @@ function createHandler({getSessionUser,ask=defaultAsk,now=()=>Date.now(),tracker
    if(counts.size>5000)counts.clear();
    const block=d.media_type==='application/pdf'?{type:'document',source:{type:'base64',media_type:'application/pdf',data:d.image}}:{type:'image',source:{type:'base64',media_type:d.media_type,data:d.image}};
    let answer;
-   try{answer=await ask({system:doc.SYSTEM,content:[block,{type:'text',text:doc.instructions(d.kind)}]});}
+   try{answer=await ask({system:doc.SYSTEM,...(isList?{maxTokens:12000}:{}),content:[block,{type:'text',text:isList?lis.fileInstructions():doc.instructions(d.kind)}]});}
    catch(e){console.error('trasporti documento.leggi',e&&e.message);throw failure(502,'La lettura automatica non risponde: riprova o compila a mano.');}
    if(answer===null)throw failure(503,'Lettura automatica non configurata su questo ambiente.');
    counts.set(key,n);
+   if(isList)return res.status(200).json(answer.refused?{rows:[],error:'Il file non è stato letto.'}:{rows:lis.fileRows(answer.text,doc.extractJson)});
    if(answer.refused)return res.status(200).json({reading:{...doc.parseReading(d.kind,null),note:'Il documento non è stato letto: compila a mano.'}});
    return res.status(200).json({reading:doc.parseReading(d.kind,answer.text)});
   }catch(e){
