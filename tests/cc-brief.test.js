@@ -22,6 +22,13 @@ test('Vendite: attività in ritardo e di oggi, trattative ferme con la regola de
  assert.match(B.salesLine({error:'CRM 504'},NOW,END).text,/non leggibili adesso \(CRM 504\)/);
  assert.match(B.salesLine({...sales,partial:true},NOW,END).text,/Elenco parziale/);
 });
+test('Vendite: email ricevute oggi, dalle interazioni salvate dalla Posta',()=>{
+ const START=END-DAY,inter=[{title:'Email ricevuta: Offerta',occurred_at:iso(START+3600e3)},{title:'Email ricevuta: ieri',occurred_at:iso(START-3600e3)},
+  {title:'Email inviata: Offerta',occurred_at:iso(START+7200e3)},{title:'Chiamata',occurred_at:iso(START+7200e3)}];
+ assert.equal(B.repliesToday(inter,END),1);
+ const l=B.salesLine({tasks:[],opportunities:[],interactions:inter},NOW,END);
+ assert.equal(l.text,'1 email ricevuta oggi.');assert.equal(l.count,1);assert.equal(l.tone,'todo');assert.equal(l.href,'/sales-posta.html');
+});
 test('Progetti e Sistema: passi da approvare, servizi non collegati (solo i nomi)',()=>{
  const p=B.projectsLine({items:[
   {name:'Alfa',status:'active',journey:{steps:[{id:'brief',label:'Brief',state:'done'},{id:'ped',label:'Piano editoriale',state:'waiting'}]}},
