@@ -243,3 +243,9 @@ test('lingua: italiano di default, inglese e automatica; il prompt chiede comunq
  const en=core.prompt({text:'x',today:'2026-11-24',language:'en'});assert.match(en,/svolta in inglese/);assert.match(en,/in italiano/);
  const au=core.prompt({text:'x',today:'2026-11-24',language:'auto'});assert.match(au,/più lingue/);
 });
+
+test('trascrizione: senza lingua («automatica») la richiesta non manda il campo language',()=>{
+ const t=require('../api/_transcribe.js');const audio=Buffer.alloc(400,1).toString('base64');
+ const auto=t.transcribeRequest({confirm:true,audio,mime:'audio/webm',language:core.apiLanguage('auto'),n:0},{});assert.equal(auto.language,'');
+ const en=t.transcribeRequest({confirm:true,audio,mime:'audio/webm',language:core.apiLanguage('en'),n:0},{});assert.equal(en.language,'en');
+});
