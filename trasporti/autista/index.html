@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0F2A44"><meta name="color-scheme" content="light dark">
+<title>Plancia Autista</title>
+<link rel="manifest" href="/trasporti/autista/manifest.webmanifest">
+<link rel="icon" href="/trasporti/marchio/plancia-icona.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/trasporti/marchio/icona-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+<link rel="stylesheet" href="/trasporti/trasporti.css">
+</head>
+<body class="tr tr-app">
+<header class="tr-top tr-brandbar">
+ <div class="tr-logo"><img src="/trasporti/marchio/plancia-icona.svg" alt="" width="32" height="32"><div><strong id="who">App autista</strong><span id="whoSub" class="tr-subtle"></span></div></div>
+ <button type="button" class="tr-link" id="changeWho" hidden>Cambia</button>
+</header>
+<p class="tr-offline" id="offline" role="status" hidden></p>
+<p class="tr-banner" id="banner" role="status" aria-live="polite" hidden></p>
+<main id="view" class="tr-view" aria-live="polite"><p class="tr-muted">Caricamento…</p></main>
+<input type="file" id="photo" accept="image/*,application/pdf" capture="environment" hidden>
+<p class="tr-foot" id="foot">Dimostrazione: i dati restano su questo telefono. La posizione si registra solo con un viaggio aperto e solo se il mezzo non ha un localizzatore.</p>
+<script src="/trasporti/brand.js" defer></script>
+<script src="/lib/trasporti/documenti.js" defer></script>
+<script src="/lib/trasporti/sync.js" defer></script>
+<script src="/trasporti/store.js" defer></script>
+<script src="/trasporti/sync.js" defer></script>
+<script src="/trasporti/boot.js" data-app="/trasporti/autista/app.js" defer></script>
+</body></html>

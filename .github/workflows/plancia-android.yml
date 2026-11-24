@@ -1,0 +1,46 @@
+# Plancia: builds the Android test app (debug APK) from mobile/ whenever mobile/ or the driver app changes.
+# The APK is attached to the run as "plancia-android-debug" (Actions → this workflow → Artifacts).
+name: Plancia Android (APK di prova)
+on:
+  workflow_dispatch:
+    inputs:
+      dominio:
+        description: 'Dominio che l''app deve aprire (vuoto = quello in capacitor.config.json)'
+        required: false
+  push:
+    branches: ['claude/project-thread-lvyq5r']
+    paths: ['mobile/**', '.github/workflows/plancia-android.yml']
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm install --no-audit --no-fund
+      - name: Dominio dell'app
+        if: ${{ inputs.dominio != '' }}
+        env:
+          DOMINIO: ${{ inputs.dominio }}
+        run: node scripts/set-server.js "$DOMINIO"
+      - run: npx cap add android
+      - run: node scripts/patch-native.js
+      - run: npx cap sync android
+      - run: ./gradlew assembleDebug --no-daemon
+        working-directory: mobile/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plancia-android-debug
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30

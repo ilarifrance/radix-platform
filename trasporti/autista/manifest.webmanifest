@@ -1,0 +1,18 @@
+{
+  "name": "Plancia Autista",
+  "short_name": "Plancia",
+  "description": "L'app per gli autisti: viaggi, foto di DDT e CMR lette in automatico, rifornimenti, consegna con firma.",
+  "lang": "it",
+  "start_url": "/trasporti/autista/",
+  "scope": "/trasporti/autista/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F6F3EE",
+  "theme_color": "#0F2A44",
+  "icons": [
+    {"src": "/trasporti/marchio/icona-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "/trasporti/marchio/icona-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "/trasporti/marchio/icona-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "/trasporti/marchio/plancia-icona.svg", "sizes": "any", "type": "image/svg+xml"}
+  ]
+}
