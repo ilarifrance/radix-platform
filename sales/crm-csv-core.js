@@ -111,6 +111,14 @@ function fromRows(rows){
  return {headers,rows:all.filter(r=>r.some(x=>x.trim())).map(r=>Object.fromEntries(headers.map((h,i)=>[h,(r[i]??'').trim()])))};
 }
 const isXlsx=f=>/\.xlsx$/i.test(String(f&&f.name||''));
+/* The text of a CSV file whatever Excel saved it as: UTF-8 (with or without BOM), UTF-16 (BOM), otherwise Windows-1252,
+   which is what «CSV (delimitato dal separatore di elenco)» writes on Italian and English Windows: «Società», «£». */
+function decode(buffer){
+ const b=buffer instanceof Uint8Array?buffer:new Uint8Array(buffer);
+ if(b.length>=2&&b[0]===0xFF&&b[1]===0xFE)return new TextDecoder('utf-16le').decode(b.subarray(2));
+ if(b.length>=2&&b[0]===0xFE&&b[1]===0xFF)return new TextDecoder('utf-16be').decode(b.subarray(2));
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(b)}catch{return new TextDecoder('windows-1252').decode(b)}
+}
 /* A file chosen for import: CSV (up to 2 MB) or Excel .xlsx (first sheet, up to 3 MB, via lib/lead-xlsx-parser.js). */
 async function readFile(file){
  if(isXlsx(file)){
@@ -120,10 +128,10 @@ async function readFile(file){
  }
  if(/\.xls$/i.test(String(file&&file.name||'')))throw Error('Il vecchio formato .xls non è letto: da Excel salva come .xlsx o CSV.');
  if(file.size>2e6)throw Error('File troppo grande: massimo 2 MB.');
- return parse(await file.text());
+ return parse(decode(await file.arrayBuffer()));
 }
 const ACCEPT='.csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED,fromRows,readFile,ACCEPT};
+const api={parse,toCsv,mapRows,safe,isoDate,MAX_ROWS,EXTENDED,fromRows,readFile,decode,ACCEPT};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.RadixCrmCsv=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
