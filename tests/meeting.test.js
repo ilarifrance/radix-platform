@@ -235,3 +235,11 @@ test('after saving, «Scomponi nel Project Manager» opens the PM brief on this 
  const js=fs.readFileSync('lib/meeting-page.js','utf8');
  assert.match(js,/'\/radix-pm-concept\.html\?brief=meeting&from='\+encodeURIComponent\(m\.saved\.projectId\)\+'&meeting='\+encodeURIComponent\(m\.id\)/);
 });
+
+test('lingua: italiano di default, inglese e automatica; il prompt chiede comunque l\'italiano',()=>{
+ assert.equal(core.lang(undefined),'it');assert.equal(core.lang('en'),'en');assert.equal(core.lang('xx'),'it');
+ assert.equal(core.apiLanguage('en'),'en');assert.equal(core.apiLanguage('auto'),'');assert.equal(core.apiLanguage(),'it');
+ const it=core.prompt({text:'x',today:'2026-11-24'});assert.doesNotMatch(it,/in inglese/);
+ const en=core.prompt({text:'x',today:'2026-11-24',language:'en'});assert.match(en,/svolta in inglese/);assert.match(en,/in italiano/);
+ const au=core.prompt({text:'x',today:'2026-11-24',language:'auto'});assert.match(au,/più lingue/);
+});
