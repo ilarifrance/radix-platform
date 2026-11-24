@@ -428,7 +428,7 @@ test('API costi.leggi: kind and page checks, then the reading',async()=>{
 
 test('driver expenses: kind of cost from the type, instructions for the AI',()=>{
  assert.equal(DOC.expenseKind('Parcheggio camion'),'trasferte');assert.equal(DOC.expenseKind('Péage A7'),'pedaggio');assert.equal(DOC.expenseKind('AdBlue'),'adblue');
- assert.equal(DOC.expenseKind('Lavaggio cisterna'),'manutenzione');assert.equal(DOC.expenseKind(''),'altro');
+ assert.equal(DOC.expenseKind('Lavaggio cisterna'),'lavaggio');assert.equal(DOC.expenseKind('10 sacchi di segatura'),'lettiera');assert.equal(DOC.expenseKind('Disinfezione rimorchio'),'lavaggio');assert.equal(DOC.expenseKind('Riparazione luci'),'manutenzione');assert.equal(MRG.KIND_GROUP.lettiera,'Viaggio');assert.equal(DOC.expenseKind(''),'altro');
  assert.ok(DOC.PHOTO_KINDS.includes('spesa'));assert.match(DOC.instructions('spesa'),/pernottamento/);
  const c=DOC.checkConfirmed('spesa',{data:'2026-11-20',importo:'18,00'});assert.ok(c.ok);assert.equal(c.values.importo,18);
 });

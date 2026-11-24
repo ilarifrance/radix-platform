@@ -303,12 +303,21 @@ function tripDetail(id){
   +'<p class="tr-error" id="tripErr" hidden></p>'
   +(t.price_detail&&t.revenue_cents!=null?'<p class="tr-subtle">Importo da '+esc(t.price_detail.card||'listino')+': '+(t.price_detail.lines||[]).map(l=>esc(l.label)+' '+eur(l.amount_cents)).join(' + ')+'.</p>':'')
   +'<p class="tr-subtle"><button type="button" class="tr-btn ghost small" id="orderUp">'+(ds.some(d=>d.kind==='conferma')?'Carica un\'altra conferma d\'ordine':'Carica la conferma d\'ordine')+'</button> PDF, foto, Word o Excel dello spedizioniere: resta salvata sul viaggio e il prezzo concordato diventa l\'importo.</p>'
+  +tripCosts(t)
   +shipmentsOf(id)
   +is.map(i=>'<p class="tr-banner'+(i.resolved?'':' error')+'"><strong>'+esc(ISSUE[i.kind]||i.kind)+'</strong> '+hm(i.at)+': '+esc(i.text||'')+(i.resolved?' (gestita)':'')+'</p>').join('')
   +(ds.length?ds.map(d=>{
    if(d.kind==='consegna'){const f=d.fields||{};return '<h3>Consegna firmata <span class="tr-subtle">'+dmy(d.at)+' '+hm(d.at)+'</span></h3><table class="tr-table"><tbody><tr><th>Ricevuto da</th><td>'+esc(f.ricevuto_da||'')+'</td></tr>'+(f.riserve?'<tr><th>Riserve</th><td class="wrap">'+esc(f.riserve)+'</td></tr>':'')+'<tr><th>Firma</th><td>'+(typeof f.firma==='string'&&f.firma.startsWith('data:image/')?'<img src="'+esc(f.firma)+'" alt="Firma del destinatario" style="max-width:240px;background:#fff;border-radius:6px">':f.firma?'presente':'—')+'</td></tr>'+(d.photo?'<tr><th>Foto</th><td><img src="'+esc(d.photo)+'" alt="Foto alla consegna" style="max-width:240px;border-radius:6px"></td></tr>':'')+'</tbody></table>';}
    const k=DOC.KINDS[d.kind];return '<h3>'+esc(k?(d.kind==='conferma'?k.label:k.name):d.kind)+(d.file?' <span class="tr-subtle">'+(d.file.data?'<a class="tr-link" href="'+esc(d.file.data)+'" download="'+esc(d.file.name)+'">'+esc(d.file.name)+'</a>':esc(d.file.name)+(d.demo?'':' (file troppo pesante per la dimostrazione: qui resta solo il contenuto)'))+'</span>':'')+(d.corrected?' <span class="tr-pill flag">'+d.corrected+' campi corretti dall\'autista</span>':'')+(d.demo?' <span class="tr-pill">lettura di esempio</span>':'')+(d.pending?' <span class="tr-pill flag">foto in attesa di lettura</span>':'')+(d.later_diff&&d.later_diff.length?' <span class="tr-pill flag">la lettura successiva differisce su '+d.later_diff.length+' campi</span>':'')+'</h3><table class="tr-table"><tbody>'
    +(k?k.fields:[]).filter(([key])=>d.fields[key]!=null).map(([key,label,type])=>'<tr><th>'+esc(label)+'</th><td class="wrap">'+esc(type==='date'&&/^\d{4}-\d\d-\d\d$/.test(d.fields[key])?dmy(d.fields[key]):type==='money'&&typeof d.fields[key]==='number'?eur(Math.round(d.fields[key]*100)):d.fields[key])+(d.read&&JSON.stringify(d.read[key])!==JSON.stringify(d.fields[key])?' <span class="tr-subtle">(letto: '+esc(d.read[key]??'vuoto')+')</span>':'')+'</td></tr>').join('')+'</tbody></table>';}).join(''):'<p class="tr-muted">Nessun documento per questo viaggio: senza documento non si fattura.</p>');
+}
+// Costs met during the trip (fuel, AdBlue, washing, bedding, parking…): the driver's photos and the office's entries.
+const TRIP_KINDS=['carburante','adblue','lavaggio','lettiera','pedaggio','trasferte','manutenzione','altro'];
+function tripCosts(t){
+ const cs=data.costs.filter(c=>c.trip_id===t.id),tot=cs.reduce((s,c)=>s+c.amount_cents,0);
+ return '<h3>Costi del viaggio'+(cs.length?' <span class="tr-subtle">'+eur(tot)+'</span>':'')+'</h3>'
+  +(cs.length?'<table class="tr-table"><tbody>'+cs.map(c=>'<tr><td>'+esc(MRG.KIND_LABEL[c.kind]||c.kind)+'</td><td class="wrap tr-subtle">'+esc(c.description||'')+(c.refund?' <span class="tr-flag">da rimborsare</span>':'')+'</td><td class="num">'+eur(c.amount_cents)+'</td><td style="text-align:right">'+(c.source==='ufficio_viaggio'?'<button type="button" class="tr-link" data-tcdel="'+esc(c.id)+'">Togli</button>':'')+'</td></tr>').join('')+'</tbody></table>':'<p class="tr-muted">Nessun costo su questo viaggio. Quelli fotografati dall\'autista arrivano qui da soli.</p>')
+  +'<form id="tripCost" class="tr-form-grid"><label>Voce<select name="kind">'+TRIP_KINDS.map(k=>'<option value="'+k+'">'+esc(MRG.KIND_LABEL[k])+'</option>').join('')+'</select></label><label>Importo €<input name="amount" inputmode="decimal" required></label><label>Nota<input name="note" placeholder="es. 10 sacchi di segatura"></label><button class="tr-btn ghost small">Aggiungi costo</button></form>';
 }
 // Agreed km for a route: from the customer's place (load or unload) that matches the trip, when it carries them.
 function placeKm(t){
@@ -334,6 +343,9 @@ function bindTripEdit(){
   t.km=km;t.billed_km=bkm;t.revenue_cents=newRev;t.status=el.status.value;if(done(t)&&!t.ended_at)t.ended_at=nowIso();
   save();say('Viaggio aggiornato.','ok');renderTrips();};
  document.querySelectorAll('[data-shiprev]').forEach(inp=>{inp.onchange=()=>{const s=data.shipments.find(x=>x.id===inp.dataset.shiprev);if(!s)return;const v=inp.value.trim()===''?null:DOC.normNumber(inp.value);if(v!=null&&v<0)return;s.revenue_cents=v==null?null:Math.round(v*100);save();say('Importo della spedizione salvato.','ok');};});
+ const tc=$('tripCost');if(tc)tc.onsubmit=e=>{e.preventDefault();const el=tc.elements,n=DOC.normNumber(el.amount.value);if(n==null||n<=0){say('Importo non valido.','error');return;}
+  data.costs.push({id:ST.uid(),kind:el.kind.value,date:(t.started_at||nowIso()).slice(0,10),amount_cents:Math.round(n*100),vehicle_id:t.vehicle_id,driver_id:t.driver_id,trip_id:t.id,source:'ufficio_viaggio',description:el.note.value.trim()||null});save();openTrip(t.id);say('Costo aggiunto al viaggio.','ok');};
+ document.querySelectorAll('[data-tcdel]').forEach(b=>b.onclick=()=>{data.costs=data.costs.filter(c=>c.id!==b.dataset.tcdel);save();openTrip(t.id);});
  const ou=$('orderUp');if(ou)ou.onclick=()=>pickFile(ORDER_ACCEPT,async file=>{say('Leggo la conferma d\'ordine…','ok');const o=await readOrder(file);orderDrawer(t,o);});
  const del=$('tripDel');if(del)del.onclick=()=>{data.trips=data.trips.filter(x=>x.id!==t.id);save();closeDrawer(true);sel=null;say('Viaggio pianificato eliminato.','ok');renderTrips();};
  const ue=$('useEkm');if(ue)ue.onclick=()=>{const e=LOC.emptyKm(t,data.trips,data.positions);if(e)f.elements.ekm.value=e.km;};
@@ -798,7 +810,7 @@ function renderSettings(){
 // ---------- costs ----------
 // ---------- costs: supplier invoices and payslips loaded automatically, checked, confirmed ----------
 let costPending=null,costBusy=null,costFilter={group:'',vehicle:'',source:''};
-const COST_SOURCE={fattura:'Fattura',busta_paga:'Busta paga',spesa:'Spesa autista',manuale:'A mano'};
+const COST_SOURCE={fattura:'Fattura',busta_paga:'Busta paga',spesa:'Spesa autista',ufficio_viaggio:'Ufficio, sul viaggio',manuale:'A mano'};
 const kindSelect=(name,val,attrs)=>'<select name="'+name+'" '+(attrs||'')+'>'+['Viaggio','Autista','Mezzo','Azienda'].map(g=>'<optgroup label="'+g+'">'+Object.entries(MRG.KIND_LABEL).filter(([k])=>MRG.KIND_GROUP[k]===g).map(([k,l])=>'<option value="'+k+'"'+(k===val?' selected':'')+'>'+esc(l)+'</option>').join('')+'</optgroup>').join('')+'</select>';
 const optList=(arr,lab,val,empty)=>'<option value="">'+esc(empty||'—')+'</option>'+arr.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===val?' selected':'')+'>'+esc(lab(x))+'</option>').join('');
 const knownDocKeys=()=>new Set((data.cost_documents||[]).filter(d=>d.status!=='scartato').map(d=>d.doc_key).filter(Boolean));
