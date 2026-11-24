@@ -189,11 +189,13 @@ test('Regia: il link scrive il passaggio nella sessione; la pagina di arrivo mos
  assert.deepEqual(JSON.parse(mem.get(C.HANDOFF_KEY)),{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10',at:NOW});
  assert.equal(local.size,0,'e niente nel registro');
  // arrivo: una pagina dell'area «crm» (adattatore finto, senza operazioni)
- const reg2=C.createRegistry();reg2.register('crm',{title:'CRM',pages:['sales-crm'],shortcuts:[],ops:{},context:()=>'',read:()=>({})});const sent2=[];
- const there=()=>R.create({doc:makeDoc({shellPage:'sales-crm',topbar:true}),win:win('/radix-sales.html'),registry:reg2,guide,send:async m=>{sent2.push(m);return 'ok'},now:()=>NOW+5000});
+ let rows=0;const timers=[];const reg2=C.createRegistry();reg2.register('crm',{title:'CRM',pages:['sales-crm'],shortcuts:[],ops:{},context:()=>'',read:()=>({rows}),view:s=>({title:'Oggi nel CRM',items:['Attività: '+s.rows]})});const sent2=[];
+ const there=()=>R.create({doc:makeDoc({shellPage:'sales-crm',topbar:true}),win:Object.assign(win('/radix-sales.html'),{setTimeout:(f,ms)=>timers.push([ms,f])}),registry:reg2,guide,send:async m=>{sent2.push(m);return 'ok'},now:()=>NOW+5000});
  const ui2=there();assert.equal(ui2.carried.text,'Crea un’attività: richiamare Rossi domani alle 10');assert.equal(ui2.panel.hidden,false);
  assert.equal(ui2.input.value,'Crea un’attività: richiamare Rossi domani alle 10');assert.match(ui2.log.textContent,/Richiesta portata dal Command Center/);
  assert.equal(sent2.length,0,'nessuna chiamata AI da sola');assert.equal(mem.has(C.HANDOFF_KEY),false,'usato una volta sola');
+ // la pagina finisce di caricare dopo l'apertura: il riquadro in alto si aggiorna da solo
+ assert.match(ui2.areaView.textContent,/Attività: 0/);assert.deepEqual(timers.map(t=>t[0]),[1500,5000]);rows=3;timers[0][1]();assert.match(ui2.areaView.textContent,/Attività: 3/);
  assert.equal(there().carried,null);
  // un passaggio per un'altra area resta dov'è
  mem.set(C.HANDOFF_KEY,JSON.stringify(C.handoffPack('pm','Sposta la fase Collaudo',NOW)));assert.equal(there().carried,null);assert.equal(mem.has(C.HANDOFF_KEY),true);
