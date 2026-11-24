@@ -249,3 +249,15 @@ test('trascrizione: senza lingua («automatica») la richiesta non manda il camp
  const auto=t.transcribeRequest({confirm:true,audio,mime:'audio/webm',language:core.apiLanguage('auto'),n:0},{});assert.equal(auto.language,'');
  const en=t.transcribeRequest({confirm:true,audio,mime:'audio/webm',language:core.apiLanguage('en'),n:0},{});assert.equal(en.language,'en');
 });
+
+test('traduzione: parti sotto il limite senza perdere testo, prompt numerato, stima e verbale',()=>{
+ const para='Hello team. '.repeat(400).trim();const text=[para,para,'Short one.'].join('\n\n');
+ const parts=core.translateParts(text,3000);assert.ok(parts.length>3);assert.ok(parts.every(p=>p.length<=3000));
+ assert.equal(parts.join(' ').replace(/\s+/g,' '),text.replace(/\s+/g,' '));
+ assert.deepEqual(core.translateParts(''),[]);assert.equal(core.translateParts('a\n\nb').length,1);
+ assert.ok(core.translateParts('x'.repeat(7000),3000).every(p=>p.length<=3000));
+ assert.match(core.translatePrompt('Hi',{n:2,total:3}),/\(2 di 3\)[\s\S]*--- TESTO ---\nHi$/);
+ assert.ok(core.translateEstimate(54000).eur>0.2&&core.translateEstimate(54000).eur<0.4);
+ assert.match(core.minutes({title:'x',date:'2026-11-24',summary:'s',transcript:'Hi',translation:'Ciao'}),/TRADUZIONE IN ITALIANO\nCiao/);
+ assert.ok(require('../api/chat.js'));
+});
