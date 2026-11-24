@@ -62,3 +62,5 @@ html[data-product] .metrics small::first-letter{text-transform:uppercase}
 html[data-product] .metrics strong{margin:0;font-size:15px}
 html[data-product] .metrics span{display:none}
 html[data-product] .filterbar{margin-bottom:10px}
+
+.empty-start{display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:420px}.empty-start strong{font-size:16px;color:var(--ink)}.empty-start p{margin:0}.empty-start button{margin-top:6px}

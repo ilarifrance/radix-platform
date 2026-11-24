@@ -90,7 +90,10 @@ function render(){
  const visibleStages=state.stages.filter(stage=>!state.processId||stage.process_id===state.processId);
  for(const stage of visibleStages){const group=stageGroup(stage);const matching=filtered.filter(d=>d.stage_id===stage.id);const head=E('h2',stage.title||'Fase');head.setAttribute('data-i18n-ctx','stage');head.append(E('small',stageSummary(matching)));group.append(head);if(canWrite()){const add=E('button','+ Aggiungi','stage-add');add.type='button';add.title='Nuova opportunità in «'+(stage.title||'Fase')+'»';add.onclick=()=>openQuick(stage.id);group.append(add)}const list=E('div',undefined,'deals');matching.forEach(d=>list.append(dealCard(d)));if(!matching.length)list.append(E('small','Nessuna opportunità in questa fase.'));group.append(list);board.append(group)}
  const unassigned=filtered.filter(d=>!visibleStages.some(s=>s.id===d.stage_id));if(unassigned.length){const group=E('div',undefined,'stage');group.append(E('h2','Fase non disponibile'));const list=E('div',undefined,'deals');unassigned.forEach(d=>list.append(dealCard(d)));group.append(list);board.append(group)}
- if(!board.children.length)board.append(E('div','Nessuna fase configurata o nessun risultato.','empty'));
+ if(!board.children.length){
+  // No pipeline yet: say so and offer the setup right here («Personalizza pipeline» opens the same dialog, already filled).
+  if(!state.stages.length&&canSetup()){const box=E('div',undefined,'empty empty-start');box.append(E('strong','Non c’è ancora una pipeline'),E('p','Crea le colonne del tuo percorso di vendita: le trovi già proposte e le cambi quando vuoi.'));const go=E('button','Crea la pipeline','primary');go.type='button';go.onclick=()=>openSetup();box.append(go);board.append(box)}
+  else board.append(E('div','Nessuna fase configurata o nessun risultato.','empty'))}
  const nd=$('new-deal');if(nd)nd.hidden=!canWrite()||!visibleStages.length;const sp=$('setup-pipeline');if(sp)sp.hidden=!canSetup();
  const ro=$('read-only');if(ro)ro.textContent=canWrite()?'Trascina una card su un’altra fase (o usa «Sposta in…» nei dettagli) · conferma richiesta':'Modalità lettura · modifiche dal CRM';
 }
@@ -181,7 +184,7 @@ function setupRows(){const ol=$('setup-cols');ol.replaceChildren();
   ol.append(li)})}
 function setupPick(id){const f=$('setup-form');setup.processId=id;setupError('');
  const p=state.processes.find(x=>x.id===id);f.elements.name.value=p?p.title||'':'';
- setup.cols=p?state.stages.filter(s=>s.process_id===id).map(s=>({id:s.id,title:s.title||'',probability:s.probability==null?'':String(s.probability)})):window.RadixPipelineSetup.TEMPLATE.map(t=>({title:t,probability:''}));
+ setup.cols=p?state.stages.filter(s=>s.process_id===id).map(s=>({id:s.id,title:s.title||'',probability:s.probability==null?'':String(s.probability)})):window.RadixPipelineSetup.TEMPLATE.map(t=>({title:window.RadixI18n&&window.RadixI18n.en&&window.RadixI18n.t?window.RadixI18n.t(t)||t:t,probability:''}));
  const sel=f.elements.pipeline;sel.replaceChildren(...state.processes.map(x=>{const o=E('option',x.title||'Pipeline');o.value=x.id;return o}),...(p?[]:[Object.assign(E('option','Nuova pipeline'),{value:''})]));sel.value=id;
  const del=f.querySelector('[data-setup="delete"]'),n=state.deals.filter(d=>d.process_id===id).length;
  del.hidden=!p||state.processes.length<2;del.disabled=n>0;del.title=n?'Contiene '+n+' opportunità: spostale o chiudile prima':'';
