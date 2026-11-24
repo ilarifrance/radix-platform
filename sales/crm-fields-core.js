@@ -42,6 +42,7 @@ const ROLE_LIST=Object.freeze([
  ['Commerciale e vendite',/\bsales|vendit|commercial|account manager|business develop|key account|\bexport|\bagente|\bbdr\b|\bsdr\b|area manager|revenue|\bcro\b/],
  ['Acquisti',/acquist|purchas|procurement|\bbuyer|sourcing|approvvigion/],
  ['Risorse umane',/\bhr\b|risorse umane|human resources|\bpeople\b|recruit|talent|\bpersonale\b/],
+ ['Direzione tecnica',/\btecnic|\btechnical|\bengineering|\bingegner|\bengineer/],
  ['IT e digitale',/\bcto\b|\bcio\b|\bit\b|\bict\b|informatic|software|developer|sviluppator|\bdigital|\bdata\b|sistemi informativi|devops|\btech/],
  ['Logistica',/logistic|supply chain|magazzin|warehouse|spedizion|shipping/],
  ['Produzione e operations',/produzion|production|operation|\bplant\b|stabiliment|manufactur/],

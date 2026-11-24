@@ -198,3 +198,12 @@ test('page wiring: the shared field description loads before sales.js, with its 
  assert.match(js,/recordSections\(entity,row,fields,references,selectControl\)/);assert.match(js,/RF\.prune\(entity,data,row\)/);
  assert.match(fs.readFileSync(__dirname+'/../sales/crm-record.js','utf8'),/E\('h3','Dettagli'\)/);
 });
+
+test('Ruolo «Direzione tecnica»: responsabili e direttori tecnici, engineering manager; R&D e IT restano a parte',()=>{
+ const F=require('../sales/crm-fields-core.js'),r=t=>F.classify('contacts','role',t);
+ for(const t of ['Responsabile tecnico','Direttore Tecnico','Technical Manager','Engineering Manager','Project Engineering Manager','Tecnico responsabile'])assert.equal(r(t),'Direzione tecnica',t);
+ assert.equal(r('R&D Manager'),'Ricerca e sviluppo');assert.equal(r('Responsabile ricerca e sviluppo'),'Ricerca e sviluppo');
+ assert.equal(r('Titolare e Responsabile Tecnico'),'Titolare / CEO');assert.equal(r('Direttore Tecnico Commerciale'),'Commerciale e vendite');
+ assert.equal(r('CTO'),'IT e digitale');assert.equal(r('Software developer'),'IT e digitale');
+ assert.ok(F.ROLES.some(x=>x[0]==='Direzione tecnica'));
+});

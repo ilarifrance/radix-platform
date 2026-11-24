@@ -133,7 +133,7 @@ test('inline edit: update body with version, checks of the edit form, unchanged 
 
 test('columns: few defaults, frozen first, one column per activity and per to-do',()=>{
  const d=S.defaults();
- assert.deepEqual(d.columns,['name','phone','company','role','mobile','email','industry','country','stage','history','todos','acts']);
+ assert.deepEqual(d.columns,['name','phone','company','title','mobile','email','industry','country','stage','history','todos','acts']);
  assert.deepEqual(S.COLUMNS.filter(c=>c.freeze).map(c=>c.id),['name','phone','company']);
  const x=S.expand(d.columns,rows());
  assert.deepEqual(x.filter(c=>c.base.id==='todos').map(c=>c.label),['Da fare 1','Da fare 2','Da fare 3','Da fare 4']);

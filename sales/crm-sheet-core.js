@@ -94,10 +94,10 @@ const COLUMNS=Object.freeze([
  {id:'name',group:'who',label:'Nome',fixed:true,freeze:true,edit:['contacts','name']},
  {id:'phone',group:'who',label:'Telefono',fixed:true,freeze:true,edit:['contacts','phone'],tel:true},
  {id:'company',group:'who',label:'Azienda',fixed:true,freeze:true},
- {id:'role',group:'contact',label:'Ruolo',edit:['contacts','role']},
+ {id:'title',group:'contact',label:'Qualifica',edit:['contacts','title'],added:true},
+ {id:'role',group:'contact',label:'Ruolo',edit:['contacts','role'],hidden:true},
  {id:'mobile',group:'contact',label:'Cellulare',edit:['contacts','mobile'],tel:true,added:true},
  {id:'email',group:'contact',label:'Email',edit:['contacts','email']},
- {id:'title',group:'contact',label:'Qualifica',edit:['contacts','title'],added:true,hidden:true},
  {id:'leadSource',group:'contact',label:'Origine',edit:['contacts','lead_source'],added:true,hidden:true},
  {id:'industry',group:'company',label:'Settore',edit:['companies','industry']},
  // «Paese»: the company's billing_country (011), else the contact's country. Editing writes the company's
