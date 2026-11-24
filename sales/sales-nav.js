@@ -277,7 +277,13 @@
     // Anything sales.js adds that the menu does not list yet stays reachable under Dati CRM.
     var fold = crmNav.querySelector('details.sx-fold');
     // (On the product there is no Dati CRM group: those links are dropped below, the pages open from Impostazioni.)
-    extra.forEach(function (a) { if (keep.indexOf(a) === -1 && fold) { link({ ic: 'steps', text: a.textContent }, a); fold.append(a); } });
+    // Sales Orbis (Francesco, 24/11): Opportunità, Interazioni, Membri, Processi e Fasi sono doppioni di Pipeline, della
+    // storia del contatto e delle Impostazioni: fuori dal menu. Le pagine restano raggiungibili dal loro indirizzo.
+    var PRODUCT_DROP = ['#opportunities', '#interactions', '#members', '#processes', '#stages'];
+    extra.forEach(function (a) {
+      if (product && keep.indexOf(a) === -1 && PRODUCT_DROP.indexOf(a.getAttribute('href')) >= 0) { a.remove(); return; }
+      if (keep.indexOf(a) === -1 && fold) { link({ ic: 'steps', text: a.textContent }, a); fold.append(a); }
+    });
     // Drop what was there before the groups (old Sales Orbit link, stray text), keeping the grouped nodes.
     [].slice.call(crmNav.childNodes).forEach(function (n) {
       if (n.nodeType !== 1 || !(n.classList.contains('sx-group') || n.classList.contains('sx-link'))) n.remove();
