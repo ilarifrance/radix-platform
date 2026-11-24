@@ -101,3 +101,44 @@ test('Inglese: ogni frase di «Oggi» ha la sua traduzione',()=>{
  assert.equal(T('1 servizio non collegato: Twilio'),'1 service not connected: Twilio');
  for(const l of b.lines)assert.equal(l.text,[l.parts.join(', ')].concat(l.notes).map(x=>x+'.').join(' '));
 });
+// ---- Registro «Fatto oggi dalla Regia» (solo nel browser) ----
+test('Registro della Regia: voce pulita, limiti, annullamento segnato, solo le voci di oggi',()=>{
+ const C=require('../lib/radix-regia-core.js'),CC=require('../lib/regia-cc.js');
+ const result={summary:'  1 lavoro fermo:\n parti da «Orchestratore PED». ',accepted:[{op:'pin',item:'Orchestratore PED',note:'bloccato'}]};
+ const e=C.logEntry(result,CC.adapter,{pins:[]},{id:'a1',at:NOW,href:'/control-center-v2.html?project=forno-aurora'});
+ assert.equal(e.summary,'1 lavoro fermo: parti da «Orchestratore PED».');assert.equal(e.n,1);assert.equal(e.state,'applied');assert.equal(e.title,'Command Center');
+ assert.equal(e.lines.length,1);assert.equal(e.href,'/control-center-v2.html?project=forno-aurora');
+ for(const bad of ['https://altro.example/x','//altro.example','javascript:alert(1)','/a b'])assert.equal(C.logEntry(result,CC.adapter,{},{id:'x',at:NOW,href:bad}).href,'',bad);
+ assert.equal(C.logEntry(result,CC.adapter,{},{id:'',at:NOW}),null);assert.equal(C.logEntry(result,CC.adapter,{},{id:'x',at:'ieri'}),null);
+ let list=C.logAdd([],e);list=C.logAdd(list,Object.assign({},e,{id:'a2',at:NOW-3*86400000}));list=C.logAdd(list,Object.assign({},e,{id:'a3',at:NOW-9*86400000}));
+ const back=C.logParse(JSON.stringify(list),NOW);assert.deepEqual(back.map(x=>x.id).sort(),['a1','a2'],'oltre 7 giorni si perde');
+ assert.deepEqual(C.logParse('non json',NOW),[]);assert.deepEqual(C.logParse('{"a":1}',NOW),[]);
+ assert.deepEqual(C.logParse(JSON.stringify([{id:'z',at:NOW,summary:'<b>x</b>',lines:'no',n:1e9,state:'boh',extra:{a:1}}]),NOW),[{id:'z',at:NOW,area:'',title:'',href:'',summary:'<b>x</b>',lines:[],n:99,state:'applied'}]);
+ let many=[];for(let i=0;i<60;i++)many=C.logAdd(many,Object.assign({},e,{id:'m'+i}));assert.equal(many.length,C.LOG_MAX);assert.equal(many[0].id,'m59');
+ const marked=C.logMark(back,'a1','undone');assert.equal(marked.find(x=>x.id==='a1').state,'undone');assert.equal(back.find(x=>x.id==='a1').state,'applied','la lista di prima non cambia');
+ const start=END-86400000;assert.deepEqual(C.logToday(marked,start,END).map(x=>x.id),['a1']);
+});
+test('Regia: «Sì, applica» scrive il registro nel browser, «Annulla» lo segna; senza archivio non si rompe niente',async()=>{
+ const C=require('../lib/radix-regia-core.js'),CC=require('../lib/regia-cc.js'),guide=require('../lib/radix-guide.js'),R=require('../lib/radix-regia.js');
+ const {makeDoc,html}=require('./regia-fake-dom.js');
+ const page=()=>{const doc=makeDoc({shellPage:'cc',topbar:true}),b=doc.body;for(const [id,v] of [['metricProjects','4'],['metricWorkflows','2'],['metricApprovals','1']])b.append(html(doc,'div','metric-value',v,id));
+  const wl=html(doc,'div',null,null,'workflowList'),w=html(doc,'div','workflow-card');w.append(html(doc,'div','workflow-name','Orchestratore PED'),html(doc,'div','workflow-state','blocked'),html(doc,'div','workflow-task','Aspetta l’identità visiva'));wl.append(w);b.append(html(doc,'div',null,null,'attentionList'),wl);return doc};
+ const mem=new Map(),events=[];
+ const run=async(localStorage)=>{const registry=C.createRegistry();registry.register('cc',CC.adapter);
+  const win={location:{pathname:'/control-center-v2.html',hash:'',search:'?project=forno-aurora'},addEventListener(){},localStorage,Event:function(t){this.type=t},dispatchEvent:e=>events.push(e.type),
+   fetch:async()=>({ok:true,status:201,json:async()=>({ok:true})})};
+  const ui=R.create({doc:page(),win,registry,guide,send:R.stubSend,confirm:async()=>true,now:()=>NOW});ui.open();const r=await ui.ask('Cosa è fermo?');assert.equal(r.kind,'proposal');return {ui,r}};
+ const store={getItem:k=>mem.has(k)?mem.get(k):null,setItem:(k,v)=>mem.set(k,String(v))};
+ const a=await run(store);assert.equal(mem.size,0,'niente prima del «Sì»');
+ await a.r.yes.click();
+ let list=C.logParse(mem.get(C.LOG_KEY),NOW);assert.equal(list.length,1);assert.equal(list[0].state,'applied');assert.equal(list[0].title,'Command Center');
+ assert.equal(list[0].href,'/control-center-v2.html?project=forno-aurora');assert.match(list[0].lines[0],/Orchestratore PED/);assert.deepEqual(events,['rx-regia-log']);
+ assert.equal(await a.ui.undo(),true);list=C.logParse(mem.get(C.LOG_KEY),NOW);assert.equal(list[0].state,'undone');assert.equal(list.length,1);
+ const b=await run({getItem(){throw new Error('bloccato')},setItem(){throw new Error('bloccato')}});await b.r.yes.click();assert.equal(b.ui.state.pins.length,1,'la modifica si applica lo stesso');
+ const c=await run(undefined);await c.r.yes.click();assert.equal(c.ui.state.pins.length,1);
+ const src=fs.readFileSync('lib/cc-brief.js','utf8');assert.ok(/logToday/.test(src)&&!/innerHTML|method:\s*'POST'/.test(src));
+});
+test('Inglese: il registro «Fatto oggi dalla Regia» è tradotto',()=>{
+ const I=require('../lib/radix-i18n.js');require('../lib/radix-i18n-en.js');const T=I.compile(globalThis.RadixI18nEn,I.HAND);
+ for(const [it,en] of [['Fatto oggi dalla Regia','Done today by Regia'],['1 modifica','1 change'],['3 modifiche','3 changes'],['annullata','cancelled'],['Apri la pagina','Open the page']])assert.equal(T.tr(it),en);
+});

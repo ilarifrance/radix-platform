@@ -168,7 +168,9 @@ test('Enter sends, Shift+Enter does not; a message starts only from the person',
 });
 
 test('the fake AI stays injectable; the shell loads the Regia and its confirm; light style and phone full screen',async()=>{
- const src=read('lib/radix-regia.js');assert.doesNotMatch(src,/localStorage/);
+ const src=read('lib/radix-regia.js');
+ // localStorage only for the journal of applied proposals; the AI confirmation stays in the session.
+ assert.equal((src.match(/localStorage/g)||[]).length,1);assert.match(src,/function journal\(change\)\{try\{const st=win\.localStorage;/);assert.doesNotMatch(src,/localStorage[^\n]*CONFIRM_KEY|CONFIRM_KEY[^\n]*localStorage/);
  const registry=C.createRegistry();registry.register('cc',CC.adapter);const doc=ccPage();
  const ui=R.create({doc,win:{location:{pathname:'/control-center-v2.html',hash:''},addEventListener(){}},registry,guide,send:R.stubSend,confirm:()=>true});
  const r=await ui.ask('Cosa è fermo?');assert.equal(r.kind,'proposal');assert.match(ui.log.textContent,/Risposta di prova, senza AI/);
