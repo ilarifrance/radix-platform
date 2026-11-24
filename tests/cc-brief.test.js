@@ -157,8 +157,8 @@ test('Command Center «passa»: validata, senza effetti, diventa un link con la 
  assert.equal(C.costOf(v.accepted,a).label,'nessuna chiamata AI · nessun credito');
  const res=await C.applyProposal(a,s,v.accepted),view=a.view(res.state);
  assert.equal(view.title,'Da portare nelle aree');assert.deepEqual(view.items,[]);
- assert.deepEqual(view.links,[{title:'Apri CRM: «Crea un’attività: richiamare Rossi domani alle 10»',href:'/radix-sales.html',handoff:{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10'}},
-  {title:'Apri Piano editoriale: «Sposta il post di giovedì a venerdì»',href:'/project-editorial.html?project=forno-aurora',handoff:{area:'ped',text:'Sposta il post di giovedì a venerdì'}}]);
+ assert.deepEqual(view.links,[{title:'Apri CRM',quote:'Crea un’attività: richiamare Rossi domani alle 10',href:'/radix-sales.html',handoff:{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10'}},
+  {title:'Apri Piano editoriale',quote:'Sposta il post di giovedì a venerdì',href:'/project-editorial.html?project=forno-aurora',handoff:{area:'ped',text:'Sposta il post di giovedì a venerdì'}}]);
  assert.match(C.validateProposal(p,a,res.state).rejected[0].reason,/già pronta/);
  assert.equal(await res.undo(),s);assert.equal(a.view(s),null);
  assert.match(a.context(s),/"op":"passa","area":"crm\|pm\|ped"/);assert.ok(C.contextBlock(a,s).length<=2500);
@@ -185,6 +185,7 @@ test('Regia: il link scrive il passaggio nella sessione; la pagina di arrivo mos
  assert.equal(ui.carried,null);ui.open();const r=await ui.ask('Com’è la giornata?');assert.equal(r.kind,'proposal');await r.yes.click();
  const links=ui.areaView.querySelectorAll('.rx-regia-link');assert.equal(links.length,1);assert.equal(links[0].getAttribute('href')||links[0].href,'/radix-sales.html');
  assert.deepEqual(fetches,[],'un «passa» non è ancora una modifica: niente in Memoria');assert.doesNotMatch(r.status.textContent,/Memoria/);
+ assert.equal(links[0].textContent,'→ Apri CRM: «Crea un’attività: richiamare Rossi domani alle 10»');const quote=links[0].querySelectorAll('.rx-regia-quote')[0];assert.equal(quote.getAttribute('translate'),'no','le parole della persona non vengono tradotte');
  assert.equal(mem.has(C.HANDOFF_KEY),false,'niente prima del clic');links[0].dispatchEvent?links[0].dispatchEvent({type:'click'}):links[0].click();
  assert.deepEqual(JSON.parse(mem.get(C.HANDOFF_KEY)),{area:'crm',text:'Crea un’attività: richiamare Rossi domani alle 10',at:NOW});
  assert.equal(local.size,0,'e niente nel registro');
