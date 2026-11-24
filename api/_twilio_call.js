@@ -146,7 +146,8 @@ async function transcribeCall(cfg, env, b, fetchImpl) {
   const t = twilio(cfg, fetchImpl);
   const recs = (await recordingsOf(t, sid)).filter((r) => r.status === "completed");
   if (!recs.length) return [409, { error: "La registrazione non è ancora pronta: riprova tra qualche secondo." }];
-  const language = ["it", "en", "fr", "de", "es"].includes(b.language) ? b.language : "it";
+  // "auto" = no language sent: the transcriber recognises it (mixed or foreign-language calls).
+  const language = b.language === "auto" ? "" : ["it", "en", "fr", "de", "es"].includes(b.language) ? b.language : "it";
   const model = String(env.OPENAI_TRANSCRIBE_MODEL || transcriber.DEFAULT_MODEL);
   const texts = [];
   let seconds = 0, used = model;
