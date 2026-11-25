@@ -270,3 +270,15 @@ test('archivio: la traduzione e la lingua restano nel verbale salvato, e si alle
  const out=core.addToArchive(doc,r);assert.equal(out.items[0].translation,'Ciao');assert.ok(JSON.stringify(out).length*1.1<=1400000);
  const last=out.items[out.items.length-1];assert.equal(last.transcriptDropped,true);assert.ok(!last.translation);
 });
+
+test('traduzione: un nuovo tentativo riparte dalle parti già tradotte',()=>{
+ const parts=['Hello there','How are you','Bye'];
+ const draft=core.translateDraft(parts,['Ciao','Come stai']);
+ assert.deepEqual(core.translateResume(draft,parts),['Ciao','Come stai']);
+ assert.deepEqual(core.translateResume(JSON.parse(JSON.stringify(draft)),parts),['Ciao','Come stai']);
+ assert.deepEqual(core.translateResume(draft,['Hello there','How are you?','Bye']),[]);
+ assert.deepEqual(core.translateResume(draft,parts.slice(0,2)),[]);
+ assert.deepEqual(core.translateResume(null,parts),[]);
+ assert.deepEqual(core.translateResume({key:core.translateKey(parts),out:['Ciao','  ']},parts),[]);
+ assert.deepEqual(core.translateResume(core.translateDraft(parts,['a','b','c','d']),parts),['a','b','c']);
+});
