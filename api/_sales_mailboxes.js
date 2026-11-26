@@ -17,6 +17,7 @@ const core=require('./_sales_queue_core');
 const campaigns=require('../sales/crm-campaigns.js');
 const unsubscribe=require('./_sales_unsubscribe');
 const msoauth=require('./_ms_oauth');
+const brandOf=env=>require('../sales/crm-product.js').isProductEnv(env||process.env)?'Sales Orbis':'RADIX';
 const clicks=require('./_sales_clicks');
 // «Prospezione B2B» (sales/crm-prospecting-core.js) and the opt-out / reply signals (api/_sales_optout.js).
 const prospecting=require('../sales/crm-prospecting-core.js');
@@ -334,7 +335,7 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
     let rt;try{rt=msoauth.openToken(full,env)}catch(e){fail(409,e.message)}
     const t=await msoauth.refresh(env,rt,fetchImpl);
     if(t.refresh_token&&t.refresh_token!==rt){const e=msoauth.sealToken(t.refresh_token,w,d.id,env);await sql('UPDATE sales_mailboxes SET oauth_ciphertext=$3,oauth_iv=$4,oauth_tag=$5 WHERE workspace_id=$1 AND id=$2',[w,d.id,e.oauth_ciphertext,e.oauth_iv,e.oauth_tag])}
-    await msoauth.sendMail(t.access_token,{to:me.email,subject:'Prova invio da RADIX · '+full.label,text:'Questa è una email di prova inviata da RADIX con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'},fetchImpl);
+    await msoauth.sendMail(t.access_token,{to:me.email,subject:'Prova invio da '+brandOf(env)+' · '+full.label,text:'Questa è una email di prova inviata da '+brandOf(env)+' con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'},fetchImpl);
    }catch(e){
     if(e instanceof QueueError)throw e;
     const error=core.cleanError(e);
@@ -346,7 +347,7 @@ async function mailboxCommand(sql,c,user,{env,now,createTransport=defaultTranspo
   }
   let pass;try{pass=mcrypto.decrypt(full,env)}catch(e){fail(409,e.message)}
   try{
-   await createTransport(transportOptions(full,pass)).sendMail({from:fromOf(full),to:me.email,subject:'Prova invio da RADIX · '+full.label,text:'Questa è una email di prova inviata da RADIX con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'});
+   await createTransport(transportOptions(full,pass)).sendMail({from:fromOf(full),to:me.email,subject:'Prova invio da '+brandOf(env)+' · '+full.label,text:'Questa è una email di prova inviata da '+brandOf(env)+' con la casella «'+full.label+'» ('+full.from_email+').\nSe la leggi, la casella è collegata correttamente e può inviare le campagne in coda.'});
   }catch(e){
    const error=core.cleanError(e,pass);
    await sql("UPDATE sales_mailboxes SET last_error=$3,updated_at=now() WHERE workspace_id=$1 AND id=$2",[w,d.id,'Prova non riuscita: '+error]);
