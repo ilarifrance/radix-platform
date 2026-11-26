@@ -204,7 +204,7 @@ body.mt-root{margin:0;font:15px/1.55 var(--rx-font,Inter,system-ui,sans-serif);b
 .mt-past:hover{background:var(--mt-soft)}
 .mt-past.is-open{background:#EEF3FF;box-shadow:inset 0 0 0 1px #D6E0FB}
 .mt-past+.mt-past{margin-top:2px}
-.mt-past-info{min-width:0}
+.mt-past-info{min-width:0;cursor:pointer}.mt-past-ico{cursor:pointer}.mt-past-info:hover b{text-decoration:underline}
 .mt-past b{display:block;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#0E1428}
 .mt-past small{display:block;color:var(--rx-muted);font-size:12px}
 .mt-past .mt-btn{min-height:34px;padding:6px 12px;font-size:13px}
