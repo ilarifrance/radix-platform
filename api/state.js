@@ -7,7 +7,7 @@
 const { sql } = require('./_db');
 const { getSessionUser } = require('./_auth');
 
-module.exports = async (req, res) => {
+module.exports = require('./_product').radixOnly(async (req, res) => {
   const isDashboard = req.method === 'GET' && req.query && req.query.view === 'dashboard';
   if (isDashboard) res.setHeader('Cache-Control', 'no-store');
   const user = getSessionUser(req);
@@ -114,4 +114,4 @@ module.exports = async (req, res) => {
   }
 
   res.status(405).json({ error: 'Usa GET o POST' });
-};
+});

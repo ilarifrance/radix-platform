@@ -11,7 +11,7 @@ const wsMemo={get(){try{return localStorage.getItem('radix.workspace')||''}catch
 const status=(m,err)=>{const p=$('pm-status');p.textContent=m||'';p.classList.toggle('err',!!err)};
 class ApiError extends Error{constructor(m,s,code){super(m);this.status=s;this.code=code}}
 async function get(params){const q=new URLSearchParams(params);const r=await fetch('/api/sales?'+q,{credentials:'same-origin',cache:'no-store'});const d=await r.json().catch(()=>({}));
- if(!r.ok)throw new ApiError(r.status===401?'Sessione non autenticata: accedi a RADIX sullo stesso dominio.':typeof d.error==='string'?d.error:'Richiesta non riuscita ('+r.status+').',r.status,d.code);return d}
+ if(!r.ok)throw new ApiError(r.status===401?'Sessione scaduta: accedi di nuovo.':typeof d.error==='string'?d.error:'Richiesta non riuscita ('+r.status+').',r.status,d.code);return d}
 async function post(entity,data){const r=await fetch('/api/sales',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-radix-sales':'1'},body:JSON.stringify({workspace:S.workspace,entity,action:'create',data})});
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new ApiError(typeof d.error==='string'?d.error:'Salvataggio non riuscito ('+r.status+').',r.status);const row=d.rows?.[0];if(!row?.id)throw new ApiError('Il server non ha restituito il record: premi Aggiorna e verifica.');return row}
 async function pages(entity,gen){const all=[];for(let n=0;n<10;n++){const d=await get({entity,workspace:S.workspace,offset:String(all.length),limit:'500'});if(gen!==S.gen)return null;all.push(...d.rows);if(d.rows.length<(Number(d.limit)||100))break}return all}
@@ -34,7 +34,9 @@ async function workspace(){const gen=++S.gen;S.mailbox='';S.items=[];S.open=null
  let boxes=[];try{boxes=(await get({entity:'mailboxes',workspace:S.workspace})).rows||[]}catch(e){if(gen===S.gen)status(e.message,true);return}
  if(gen!==S.gen)return;S.mailboxes=boxes.filter(m=>m.provider==='microsoft');const sel=$('pm-mailbox');sel.replaceChildren();
  if(!S.mailboxes.length){sel.disabled=true;sel.append(E('option','Nessuna casella Microsoft'));
-  status('Nessuna casella Microsoft 365 collegata in questo workspace. Collegala da Impostazioni › Caselle email con «Collega con Microsoft 365».',true);return}
+  // Not an error: the first step of the setup, with the link to where it is done.
+  status('Nessuna casella Microsoft 365 collegata in questo workspace. Collegala con «Collega con Microsoft 365» in ');
+  const go=E('a','Impostazioni › Caselle email');go.href='/impostazioni.html#caselle';$('pm-status').append(go,'.');return}
  for(const m of S.mailboxes){const o=E('option',(m.label||m.from_email)+' · '+m.from_email);o.value=m.id;sel.append(o)}sel.disabled=S.mailboxes.length<2;S.mailbox=sel.value;
  crm(gen);await folder()}
 // The CRM side, loaded once per workspace: contacts (to match addresses), companies, opportunities, email interactions.

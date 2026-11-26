@@ -14,7 +14,8 @@ const DAY=864e5,t0=()=>window.RadixCrmDates.dayStart(Date.now());
 const dd=v=>{if(v==null||v==='')return null;const d=new Date(v);return Number.isFinite(d.getTime())?d:null};
 const hm=d=>window.RadixCrmDates.hm(+d);
 const rel=d=>{const D=window.RadixCrmDates,n=Math.round((Date.parse(D.dayOf(+d)+'T00:00:00Z')-Date.parse(D.dayOf(Date.now())+'T00:00:00Z'))/DAY);return n===0?'Oggi':n===-1?'Ieri':n<0?(-n)+' giorni fa':n===1?'Domani':d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'})};
-const PRI={high:['Alta','alta'],medium:['Media','media'],low:['Bassa','bassa']};
+// The priorities the server keeps (low, normal, high, urgent); «medium» is the old name of normal.
+const PRI={urgent:['Urgente','alta'],high:['Alta','alta'],normal:['Normale','norm'],medium:['Media','media'],low:['Bassa','bassa']};
 const STATUS={todo:'Da svolgere',doing:'In corso',done:'Completata'};
 const initials=t=>String(t||'').trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
 const TABS=[['today','Oggi'],['week','Questa settimana'],['due','In scadenza'],['nodate','Senza data'],['done','Completate']];
@@ -29,9 +30,15 @@ window.RadixCrmTasksView={groups,rel,dd,recall,rail};
 const company=(d,id)=>d.companies.find(c=>c.id===id)?.name||'';
 const member=(d,id)=>d.members.find(m=>String(m.id)===String(id))?.name||'Non assegnata';
 
-function complete(task){const card=[...document.querySelectorAll('#tasks .board article.card')].find(c=>(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(c.querySelector('h3')).trim()===task.title);
-  const sel=card?.querySelector('select');const btn=sel&&[...card.querySelectorAll('button')].find(b=>/Conferma stato/.test((n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b)));
-  if(!sel||!btn||btn.disabled)return false;sel.value='done';sel.dispatchEvent(new Event('change',{bubbles:true}));btn.click();window.RadixCrmData?.reset();return true}
+// One click on the circle: the task is done (the normal update command, with its version), then the lists reload.
+async function complete(task){const A=window.RadixSalesApp,rec=A?.rows('tasks').find(x=>x.id===task.id);
+  if(!A||!rec||!A.writable('tasks')||A.state.busy)return false;
+  try{await A.api('tasks',{body:{workspace:A.state.workspace,entity:'tasks',action:'update',data:{id:rec.id,version:rec.version,status:'done'}}});window.RadixCrmData?.reset();await A.refresh(false);A.notice('Attività completata: «'+rec.title+'».');return true}
+  catch(e){A.error(e.message||'Attività non aggiornata: premi Aggiorna e riprova.');return false}}
+const checkButton=(t,cls)=>{const chk=E('button',undefined,'tv-check'+(cls?' '+cls:''));chk.type='button';chk.title='Segna come completata';chk.setAttribute('aria-label','Segna come completata: '+t.title);
+  chk.addEventListener('click',async e=>{e.stopPropagation();chk.disabled=true;if(!await complete(t)){chk.disabled=false;chk.title='Non disponibile: verifica i permessi o premi Aggiorna'}});chk.addEventListener('keydown',e=>e.stopPropagation());return chk};
+// «Azienda · Opportunità», or the contact when the task has neither.
+const relatedTo=(d,t)=>{const o=d.opportunities.find(x=>x.id===t.opportunity_id),c=company(d,t.company_id||(o&&o.company_id));return [c,o&&o.title].filter(Boolean).join(' · ')||d.contacts.find(x=>x.id===t.contact_id)?.name||''};
 
 function kpis(d,g){const row=E('div',undefined,'tv-kpis');const all=d.tasks.length,done=g.done.length,pct=all?Math.round(done/all*100):0;
   const card=(ico,label,value,sub,bar,tone)=>{const c=E('article',undefined,'tv-kpi'+(tone?' '+tone:''));c.append(E('span',undefined,'tv-ico '+ico));const b=E('div');b.append(E('small',label),E('strong',value));if(sub)b.append(E('span',sub,'tv-sub'));c.append(b);
@@ -49,11 +56,11 @@ function day(d,g){const p=E('section',undefined,'tv-panel tv-day');const h=E('di
   list=[...list].sort((a,b)=>String(a.due_at).localeCompare(String(b.due_at)));
   const ol=E('ol',undefined,'tv-timeline');const now=Date.now();let marked=false;
   for(const t of list){const x=dd(t.due_at);const li=E('li');const cur=!marked&&x&&+x>=now;if(cur){li.className='now';marked=true}
-    li.append(E('time',x?hm(x):'—'));const box=E('div',undefined,'tv-slot');const chk=E('button',undefined,'tv-check');chk.type='button';chk.title='Segna come completata';chk.setAttribute('aria-label','Segna come completata: '+t.title);chk.addEventListener('click',()=>{if(!complete(t))chk.title='Non disponibile: verifica i permessi o premi Aggiorna'});
+    li.append(E('time',x?hm(x):'—'));const box=E('div',undefined,'tv-slot');const chk=checkButton(t);
     const tx=E('div');tx.append(E('b',t.title),E('small',[x&&+x<t0()?'Scaduta '+rel(x).toLowerCase():x?rel(x):'',PRI[t.priority]?PRI[t.priority][0]+' priorità':''].filter(Boolean).join(' · ')));box.append(chk,tx);
-    const c=company(d,t.company_id);if(c)box.append(E('span',c,'tv-tag'));li.append(box);ol.append(li)}
+    const c=relatedTo(d,t);if(c)box.append(E('span',c,'tv-tag'));li.append(box);ol.append(li)}
   if(!list.length)ol.append(E('li','Nessuna attività aperta con una data.','tv-empty'));p.append(ol);
-  const a=E('a','Visualizza calendario completo','tv-foot');a.href='/radix-sales.html#calendar';p.append(a);return p}
+  const a=E('a','Visualizza calendario completo','tv-foot');a.href='#calendar';p.append(a);return p}
 
 function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E('div',undefined,'tv-head');h.append(E('h3','Da richiamare'));p.append(h);
   p.append(E('p','Contatti con un’opportunità aperta e senza attività aperte, dal contatto meno recente.','tv-note'));
@@ -62,21 +69,21 @@ function recall(d){const p=E('section',undefined,'tv-panel tv-recall');const h=E
   if(!rows.length)p.append(E('p','Nessun contatto da richiamare: ogni trattativa ha un’attività aperta.','tv-empty'));
   for(const c of rows){const o=d.opportunities.find(x=>x.contact_id===c.id&&isOpen(x));const r=E('div',undefined,'tv-recall-row');const av=E('span',initials(c.name),'tv-av');av.setAttribute('aria-hidden','true');
     const tx=E('div');const l=last(c);tx.append(E('b',c.name),E('small',l?'Ultimo contatto '+rel(dd(l)).toLowerCase():'Nessuna interazione registrata'),E('small','Deal: '+o.title+' · '+new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(o.amount_cents||0)/100),'tv-deal'));
-    const a=E('a','Apri contatto','tv-btn');a.href='#contacts';r.append(av,tx,a);p.append(r)}
+    const a=E('a','Apri contatto','tv-btn');a.href='#contacts';a.addEventListener('click',e=>{const A=window.RadixSalesApp;if(!A?.openCustomer)return;e.preventDefault();A.openCustomer('contacts',c)});r.append(av,tx,a);p.append(r)}
   return p}
 
 function table(d,title,rows,opts){const p=E('section',undefined,'tv-panel tv-table'+(opts.warn?' warn':''));const h=E('div',undefined,'tv-head');const ht=E('h3',title);if(opts.warn)ht.prepend(E('span','⚠','tv-warn-ico'));h.append(ht);h.append(E('span',rows.length,'tv-count'));p.append(h);
   if(!rows.length){p.append(E('p',opts.empty,'tv-empty'));return p}
   const t=E('table');const th=E('thead'),hr=E('tr');['Attività','Relativa a','Scadenza','Priorità','Assegnata a','Stato'].forEach(x=>hr.append(E('th',x)));th.append(hr);t.append(th);const tb=E('tbody');
   for(const r of rows.slice(0,opts.limit||50)){const tr=E('tr');const x=dd(r.due_at);const late=x&&+x<t0()&&r.status!=='done';
-    const a=E('td');a.append(E('span',late?'⚠':'○','tv-dot'+(late?' late':'')),document.createTextNode(r.title));
+    const a=E('td');const canDo=r.status!=='done'&&window.RadixSalesApp?.writable('tasks');a.append(canDo?checkButton(r,'sm'+(late?' late':'')):E('span',late?'⚠':r.status==='done'?'✓':'○','tv-dot'+(late?' late':'')),document.createTextNode(r.title));
     const pr=E('td');if(PRI[r.priority])pr.append(E('span',PRI[r.priority][0],'tv-pri '+PRI[r.priority][1]));else pr.textContent='—';
     const who=E('td');const av=E('span',initials(member(d,r.assignee_id)),'tv-av sm');av.setAttribute('aria-hidden','true');who.append(av,document.createTextNode(member(d,r.assignee_id)));
     const st=E('td');st.append(E('span',STATUS[r.status]||r.status,'tv-status '+(r.status||'')));
     // A row opens the task editor (the same one as «Modifica» in the kanban), when the role can write.
     const app=window.RadixSalesApp,rec=app?.rows('tasks').find(x=>x.id===r.id);
     if(rec&&app.writable('tasks')){tr.classList.add('tv-open');tr.tabIndex=0;tr.title='Apri l’attività';tr.addEventListener('click',()=>app.edit('tasks',rec));tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();app.edit('tasks',rec)}})}
-    tr.append(a,E('td',company(d,r.company_id)||'—'),E('td',x?rel(x)+(hm(x)!=='00:00'?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
+    tr.append(a,E('td',relatedTo(d,r)||'—'),E('td',x?rel(x)+(hm(x)!=='00:00'?' · '+hm(x):''):'Senza data',late?'late':''),pr,who,st);tb.append(tr)}
   t.append(tb);p.append(t);return p}
 
 function rail(d,g){const r=E('aside',undefined,'tv-rail');const h=E('div',undefined,'tv-rail-head');h.append(E('span','✦','tv-spark'),E('h3','Briefing del giorno'));r.append(h);
@@ -98,7 +105,9 @@ async function render(){const sec=document.getElementById('tasks');if(!sec||!sec
   const kb=E('button','Vista kanban','tv-kanban');kb.type='button';kb.setAttribute('aria-pressed',String(state.kanban));kb.addEventListener('click',()=>{state.kanban=!state.kanban;render()});tabs.append(kb);
   main.append(tabs);
   if(!state.kanban){main.append(kpis(d,g));const two=E('div',undefined,'tv-two');two.append(day(d,g),recall(d));main.append(two);
-    if(state.tab!=='due')main.append(table(d,'In scadenza',g.due,{warn:true,empty:'Nessuna attività scaduta o in scadenza oggi.'}));
+    // Overdue tasks stay on top of «Oggi» and «Questa settimana»; a task is never listed twice on the same screen.
+    const late=g.due.filter(t=>+dd(t.due_at)<t0());
+    if(['today','week'].includes(state.tab)&&late.length)main.append(table(d,'Scadute',late,{warn:true,empty:''}));
     const label=TABS.find(x=>x[0]===state.tab)[1];main.append(table(d,state.tab==='done'?'Attività completate':'Attività · '+label.toLowerCase(),g[state.tab],{warn:state.tab==='due',empty:'Nessuna attività in questa vista.'}))}
   root.append(main,rail(d,g));
   const anchor=sec.querySelector(':scope>.row');anchor?anchor.after(root):sec.prepend(root);

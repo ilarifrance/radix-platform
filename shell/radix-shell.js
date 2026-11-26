@@ -479,7 +479,9 @@
         // Regia RADIX (lib/radix-regia.js): the «Regia» button and panel built on the Guide map, for signed-in people.
         // The scripts load in order (confirm dialog, core, area adapters, Guide, panel); if the panel cannot load, the Guide «?»
         // starts alone. Without the confirm dialog the Regia asks with the browser's confirm().
-        if (body.dataset.shellGuide !== 'off' && !document.getElementById('rxGuide')) {
+        // Sales Orbis (sales/crm-product.js) has no Regia RADIX: its assistant is the CRM Copilot.
+        var soloProduct = window.RadixCrmProduct && typeof window.RadixCrmProduct.here === 'function' && window.RadixCrmProduct.here();
+        if (!soloProduct && body.dataset.shellGuide !== 'off' && !document.getElementById('rxGuide')) {
           var gCss = document.createElement('link'); gCss.rel = 'stylesheet'; gCss.href = '/shell/radix-guide.css'; document.head.appendChild(gCss);
           var rCss = document.createElement('link'); rCss.rel = 'stylesheet'; rCss.href = '/shell/radix-regia.css'; document.head.appendChild(rCss);
           document.documentElement.setAttribute('data-rx-regia', 'on');

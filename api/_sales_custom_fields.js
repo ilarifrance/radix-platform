@@ -17,7 +17,7 @@ function command(body){
  const d=body.data,a=body.action;
  const allowed=a==='create'?['entity','label']:a==='update'?['id','label']:['id'];
  if(Object.keys(d).some(k=>!allowed.includes(k)))fail(400,'Campo non consentito.');
- if(a==='create'){if(!['companies','contacts'].includes(d.entity))fail(400,'I campi si aggiungono ad aziende o contatti.');return {workspace:body.workspace,action:a,data:{id:randomUUID(),entity:d.entity,label:label(d.label)}}}
+ if(a==='create'){if(!['companies','contacts','opportunities'].includes(d.entity))fail(400,'I campi si aggiungono ad aziende, contatti o opportunità.');return {workspace:body.workspace,action:a,data:{id:randomUUID(),entity:d.entity,label:label(d.label)}}}
  if(!uuid(d.id))fail(400,'Identificativo non valido.');
  return {workspace:body.workspace,action:a,data:a==='update'?{id:d.id,label:label(d.label)}:{id:d.id}};
 }
@@ -34,7 +34,7 @@ function values(v){
  }
  return out;
 }
-const MESSAGES=Object.freeze({'too many custom fields':[409,'Hai raggiunto il massimo di '+MAX_FIELDS+' campi aggiunti.'],'forbidden':[403,'Solo owner e admin eliminano un campo.'],'not found':[404,'Campo non trovato: ricarica la pagina.']});
+const MESSAGES=Object.freeze({'invalid command':[503,'I campi sulle opportunità non sono ancora attivi in questo archivio: serve la migrazione sales 025 (da approvare).'],'too many custom fields':[409,'Hai raggiunto il massimo di '+MAX_FIELDS+' campi aggiunti.'],'forbidden':[403,'Solo owner e admin eliminano un campo.'],'not found':[404,'Campo non trovato: ricarica la pagina.']});
 function createCustomFieldsStore(sql){
  const missing=e=>{if(['42P01','42883'].includes(e.code)){const err=new Error('«Aggiungi campo» non è ancora attivo in questo archivio: serve la migrazione sales 015 (da approvare).');err.status=503;throw err}throw e};
  return {

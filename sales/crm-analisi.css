@@ -81,3 +81,8 @@
 @media(max-width:1100px){.an-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.an-sec-fc{grid-template-columns:1fr}}
 @media(max-width:900px){.an-two,.an-three{grid-template-columns:1fr}.an-kpis{grid-template-columns:1fr 1fr}.an-range{margin-left:0}}
 @media(max-width:480px){.an-kpi strong{font-size:22px}.an-seg{display:grid;grid-template-columns:1fr 1fr;width:100%}.an-seg button:nth-child(2){border-right:0}.an-seg button:nth-child(-n+2){border-bottom:1px solid var(--crm-line-2)}.an-hb-row{grid-template-columns:minmax(56px,28%) minmax(0,1fr);gap:8px}}
+/* Cruscotto | Report tabs of Analisi (sales/crm-analisi-tabs.js). */
+.an-tabs{display:flex;gap:4px;margin:0 0 16px;border-bottom:1px solid var(--crm-line)}
+.an-tabs a{padding:8px 14px;margin-bottom:-1px;border-bottom:2px solid transparent;color:var(--crm-muted);font-weight:600;font-size:14px;text-decoration:none}
+.an-tabs a:hover{color:var(--crm-text)}
+.an-tabs a[aria-current="page"]{color:var(--crm-accent);border-bottom-color:var(--crm-accent)}

@@ -31,7 +31,8 @@ async function dataFor(def){const [main,...look]=await Promise.all([entityRows(d
 async function loadSaved(){if(st.saved)return;try{const out=[];for(let offset=0;offset<1000;offset+=PAGE){const d=await app().api('segments',{offset});const rows=d.rows||[];out.push(...rows);if(rows.length<PAGE)break}st.saved=out.filter(R.isReport);st.savedError=''}catch(e){st.saved=[];st.savedError='Report salvati non disponibili: '+e.message}}
 const post=(entity,action,data)=>app().api(entity,{body:{workspace:ws(),entity,action,data}});
 
-function ensure(){if(!nav.querySelector('a[href="#report"]')){const a=E('a','Report');a.href='#report';const c=nav.querySelector('a[href="#analytics"]')||nav.querySelector('a[href="#calendar"]');c?c.after(a):nav.append(a)}
+// Sales Orbis: no «Report» menu entry, the page is the Report tab of Analisi (crm-analisi-tabs.js).
+function ensure(){if(!window.RadixCrmProduct?.here()&&!nav.querySelector('a[href="#report"]')){const a=E('a','Report');a.href='#report';const c=nav.querySelector('a[href="#analytics"]')||nav.querySelector('a[href="#calendar"]');c?c.after(a):nav.append(a)}
  if((location.hash||'')!=='#report'){document.getElementById('report')?.remove();return null}
  let s=document.getElementById('report');if(!s||s.parentNode!==content){s=E('section',undefined,'panel rp-section');s.id='report';const r=E('div',undefined,'row');r.append(E('h2','Report'));s.append(r);content.append(s)}
  content.querySelectorAll(':scope>section.rx-view').forEach(x=>{if(x!==s)x.classList.remove('rx-view')});s.classList.add('rx-view');document.documentElement.classList.add('rx-has-view');return s}

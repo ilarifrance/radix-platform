@@ -20,7 +20,7 @@ const profileUrl=v=>LI&&typeof LI.profileUrl==='function'?LI.profileUrl(v):null;
 const COLUMNS=Object.freeze({
  contacts:Object.freeze([
   {id:'name',label:'Nome',fixed:true},{id:'company',label:'Azienda'},{id:'division',label:'Dipartimento',hidden:true,added:true},{id:'role',label:'Ruolo'},
-  {id:'email',label:'Email'},{id:'phone',label:'Telefono',hidden:true},{id:'consent',label:'Consenso marketing',short:'Consenso'},
+  {id:'email',label:'Email'},{id:'phone',label:'Telefono',hidden:true},{id:'journey',label:'Percorso'},{id:'consent',label:'Consenso marketing',short:'Consenso',hidden:true},
   {id:'score',label:'Punteggio',needsScore:true},{id:'lastAt',label:'Ultimo contatto',hidden:true},
   {id:'title',label:'Qualifica',hidden:true,added:true},{id:'department',label:'Reparto',hidden:true,added:true},
   {id:'mobile',label:'Cellulare',hidden:true,added:true},{id:'city',label:'Città',hidden:true,added:true},
@@ -72,7 +72,9 @@ function buildRows(kind,data,opts){
   const scoreData={interactions:inter,opportunities:opps,stages:list(d.stages)};
   return contacts.map(c=>{const co=c.company_id?byCompany.get(c.company_id):null;const l=last.get(c.id);
    let score=null,band=null,explain='';if(typeof o.score==='function'){try{const s=o.score(c,scoreData,now);score=s.total;band=s.band;explain=typeof o.explain==='function'?o.explain(s):''}catch{score=null}}
-   return {id:c.id,record:c,name:text(c.name)||'(senza nome)',company:co?text(co.name):'',companyId:c.company_id||null,companyRecord:co||null,
+   // «Percorso»: where the contact stands before / with its opportunities (crm-journey-core.js, passed as opts.journey).
+   let j=null;if(typeof o.journey==='function'){try{j=o.journey(c.id,inter,list(d.tasks),opps,now)}catch{j=null}}
+   return {id:c.id,record:c,name:text(c.name)||'(senza nome)',journey:j?j.label:'',journeyFull:j?(j.full||j.label):'',journeyKey:j?j.key:'',journeyRank:j?JOURNEY_RANK[j.key]??null:null,journeyDone:j?j.done:0,journeyPlanned:j?j.planned:0,journeyOverdue:j?j.overdue:0,company:co?text(co.name):'',companyId:c.company_id||null,companyRecord:co||null,
     division:text(c.division),role:text(c.role),email:text(c.email),phone:text(c.phone),linkedin:text(c.linkedin_url),linkedinUrl:profileUrl(c.linkedin_url),title:text(c.title),department:text(c.department),mobile:text(c.mobile),city:text(c.city),owner:owner(c.owner_id),leadSource:text(c.lead_source),consent:!!c.marketing_consent,consentAt:c.consent_at||null,
     ...customOf(c),score,band,explain,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
  }
@@ -82,7 +84,9 @@ function buildRows(kind,data,opts){
   const last=new Map();
   for(const i of inter){const at=ts(i.occurred_at);if(at==null||at>now+DAY)continue;const ids=new Set([i.company_id,contactCompany.get(i.contact_id),oppCompany.get(i.opportunity_id)].filter(Boolean));for(const k of ids)latest(last,k,{at,kind:i.kind||''})}
   return companies.map(c=>{const v=open.get(c.id)||{count:0,value:0};const l=last.get(c.id);
-   return {id:c.id,record:c,name:text(c.name)||'(senza nome)',industry:text(c.industry),city:text(c.city)||text(c.billing_city),
+   // «Percorso»: where the contact stands before / with its opportunities (crm-journey-core.js, passed as opts.journey).
+   let j=null;if(typeof o.journey==='function'){try{j=o.journey(c.id,inter,list(d.tasks),opps,now)}catch{j=null}}
+   return {id:c.id,record:c,name:text(c.name)||'(senza nome)',journey:j?j.label:'',journeyFull:j?(j.full||j.label):'',journeyKey:j?j.key:'',journeyRank:j?JOURNEY_RANK[j.key]??null:null,journeyDone:j?j.done:0,journeyPlanned:j?j.planned:0,journeyOverdue:j?j.overdue:0,industry:text(c.industry),city:text(c.city)||text(c.billing_city),
     division:text(c.division),accountType:TYPES[c.account_type]||text(c.account_type),legalName:text(c.legal_name),vat:text(c.vat_number),owner:owner(c.owner_id),rating:RATINGS[c.rating]||text(c.rating),
     employees:num(c.employees),revenue:num(c.annual_revenue_cents),province:text(c.billing_province),phone:text(c.phone),website:text(c.website),email:text(c.email),
     ...customOf(c),contacts:people.get(c.id)||0,openCount:v.count,openValue:v.value,lastAt:l?l.at:null,lastKind:l?l.kind:'',createdAt:ts(c.created_at)}});
@@ -111,7 +115,9 @@ function matches(kind,row,query){const q=fold(query);if(!q)return true;const key
 /* Sort: empty values always last; text in Italian order; ties by name. */
 const collator=typeof Intl!=='undefined'?new Intl.Collator('it',{sensitivity:'base',numeric:true}):null;
 const cmpText=(a,b)=>collator?collator.compare(a,b):a<b?-1:a>b?1:0;
+const JOURNEY_RANK={new:0,working:1,ready:2,opportunity:3,won:4,closed:5};
 function sortKey(kind,key,row){
+ if(key==='journey')return row.journeyRank;
  if(key==='consent')return row.consent?1:0;
  if(key==='openValue')return row.openCount?row.openValue:null;
  const v=row[key];return v===''||v==null?null:v;

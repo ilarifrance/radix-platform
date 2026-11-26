@@ -41,3 +41,25 @@ test('Pipeline page: «Personalizza pipeline» for owner/admin, pipeline choice 
  assert.match(html,/id="setup-pipeline"/);assert.match(html,/<dialog id="setup"/);assert.match(html,/name="process_id"/);
  assert.match(js,/\['owner','admin'\]\.includes\(w\.role\)/);assert.match(js,/p\.kind==null\|\|p\.kind==='opportunity'/);
 });
+
+// Pipeline board: column summary and the next-activity signal on each card (sales/pipeline-premium.js).
+{
+ const test=require('node:test'),assert=require('node:assert/strict');
+ const P=require('../sales/pipeline-premium.js');
+ test('pipeline: il totale di colonna somma gli importi e ignora quelli mancanti',()=>{
+  assert.equal(P.stageTotal([{amount_cents:4800000},{amount_cents:'780000'},{amount_cents:null}]),'€ 55.800');
+  assert.equal(P.stageTotal([{amount_cents:null},{}]),null);
+  assert.equal(P.stageSummary([{amount_cents:4800000},{amount_cents:780000}]),'€ 55.800 · 2 opportunità');
+  assert.equal(P.stageSummary([]),'0 opportunità');
+ });
+ test('pipeline: il segnale attività guarda solo le attività aperte dell’opportunità',()=>{
+  const t=(o,status,due_at)=>({opportunity_id:o,status,due_at}),today='2026-11-23';
+  assert.equal(P.activityState([],'a',today).state,'none');
+  assert.equal(P.activityState([t('a','done','2026-11-01T09:00:00Z'),t('b','todo','2026-11-01T09:00:00Z')],'a',today).state,'none');
+  assert.equal(P.activityState([t('a','todo',null)],'a',today).state,'open');
+  assert.equal(P.activityState([t('a','todo','2026-11-25T12:00:00Z'),t('a','doing','2026-11-20T12:00:00Z')],'a',today).state,'overdue');
+  assert.equal(P.activityState([t('a','todo','2026-11-23T12:00:00Z')],'a',today).state,'today');
+  const next=P.activityState([t('a','todo','2026-11-30T12:00:00Z')],'a',today);
+  assert.equal(next.state,'planned');assert.equal(next.label,'Prossima attività il 30/11/2026');
+ });
+}

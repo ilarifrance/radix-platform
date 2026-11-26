@@ -28,3 +28,16 @@ html[data-lang="en"] .cd-old::before{content:'Now: '}
 html[data-lang="en"] .rx-regia:is(#rxRegia) .rx-regia-msg.bot.free::after{content:"Instant answer · no AI"}
 .rx-lang-head{padding:8px 10px 4px;margin-top:4px;border-top:1px solid #ece9f5;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#7b7593}
 .rx-lang-sign{display:inline-flex;align-items:center;justify-content:center;width:22px;height:15px;border-radius:2px;background:#f3f0ff;color:#4b2fd6;font-weight:700;font-size:12px;flex:0 0 auto}
+
+/* First visit on Sales Orbis: the language question (lib/radix-i18n.js mountFirstChoice). */
+.rx-lang-first{width:min(440px,calc(100vw - 32px));border:0;border-radius:18px;padding:30px 28px 24px;background:#fff;color:#1b1530;box-shadow:0 24px 64px rgba(40,20,90,.35);font:400 15px/1.45 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center}
+.rx-lang-first::backdrop{background:rgba(20,16,40,.5)}
+.rx-lang-first h2{margin:0;font-size:24px;line-height:1.2;letter-spacing:-.01em;color:#1b1530}
+.rx-lang-first-sub{margin:4px 0 20px;font-size:17px;color:#6b5fa0}
+.rx-lang-first-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rx-lang-first-btn{display:flex;flex-direction:column;align-items:center;gap:10px;margin:0;padding:20px 12px;border:1.5px solid #d9d6e8;border-radius:14px;background:#fff;color:#1b1530;font:600 16px/1.2 inherit;font-family:inherit;cursor:pointer;width:auto;box-shadow:none;text-transform:none;letter-spacing:0}
+.rx-lang-first-btn .rx-lang-flag{width:44px;height:30px;border-radius:4px}
+.rx-lang-first-btn:hover{border-color:#6d28d9;background:#faf7ff}
+.rx-lang-first-btn:focus-visible{outline:3px solid #6d4aff;outline-offset:2px;border-color:#6d28d9}
+.rx-lang-first-note{margin:18px 0 0;font-size:12.5px;color:#6b5fa0}
+@media (max-width:380px){.rx-lang-first-row{grid-template-columns:1fr}}

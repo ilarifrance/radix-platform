@@ -335,3 +335,44 @@ html.crm-booting main>#membership,html.crm-booting main>#status{position:absolut
 .quick-add-create{background:var(--crm-accent);color:var(--crm-on-accent);border:1px solid var(--crm-accent);border-radius:8px;padding:6px 12px;cursor:pointer}
 .quick-add-cancel{background:var(--crm-card);color:var(--crm-text);border:1px solid var(--crm-line-2);border-radius:8px;padding:6px 12px;cursor:pointer}
 .quick-add-msg{color:var(--crm-muted);font-size:12px}.quick-add-msg:empty{display:none}
+/* No half-drawn screens while a section opens («scritte strane», 17/11): sales.js draws a plain version of a section
+   first (cards, a raw task board, the unstyled menu) and the view scripts replace it a moment later. Until that happens
+   the plain version stays hidden and the loading skeleton stays on screen. If a view script never runs, the plain
+   version shows after 5 s (crm-reveal), as before. (No nested :has(): crm-list.js marks its sections .lv-ready.) */
+#navigation:not(.sx-nav)>*{visibility:hidden;animation:crm-reveal 0s 5s forwards}
+#navigation:not(.sx-nav){background:var(--crm-card)!important;border-right:1px solid var(--crm-line)!important}
+html:not(.pv-on) #content>#dashboard.rx-view,html:not(.tv-on) #content>#tasks.rx-view,
+#content>#companies.rx-view:not(.lv-ready),#content>#contacts.rx-view:not(.lv-ready){visibility:hidden;animation:crm-reveal 0s 5s forwards}
+html:has(#content>#dashboard.rx-view):not(.pv-on) #crm-boot,html:has(#content>#tasks.rx-view):not(.tv-on) #crm-boot,
+html:has(#content>#companies.rx-view:not(.lv-ready)) #crm-boot,html:has(#content>#contacts.rx-view:not(.lv-ready)) #crm-boot{display:flex!important;animation:crm-hide 0s 5s forwards}
+@keyframes crm-reveal{to{visibility:visible}}
+@keyframes crm-hide{to{visibility:hidden;height:0;overflow:hidden}}
+/* «Azioni ▾» of the CRM lists (sales/crm-actions-menu.js). */
+.row>details.crm-actions{position:relative;margin:0}
+.row>details.crm-actions>summary{list-style:none;display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 14px;border:1px solid var(--crm-line);border-radius:8px;background:var(--crm-card);color:var(--crm-text);font-size:13.5px;font-weight:600;cursor:pointer;user-select:none}
+.row>details.crm-actions>summary::-webkit-details-marker{display:none}
+.row>details.crm-actions>summary::after{content:"";width:6px;height:6px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-2px) rotate(45deg)}
+.row>details.crm-actions[open]>summary::after{transform:translateY(1px) rotate(-135deg)}
+.row>details.crm-actions>summary:focus-visible{outline:2px solid var(--crm-accent);outline-offset:2px}
+.crm-actions-list{position:absolute;right:0;top:calc(100% + 6px);z-index:30;min-width:220px;display:flex;flex-direction:column;padding:6px;border:1px solid var(--crm-line);border-radius:10px;background:var(--crm-card);box-shadow:var(--crm-shadow)}
+.crm-actions-list>button,.crm-actions-list>a{display:block;width:100%;min-height:38px;margin:0;padding:8px 12px;border:0;border-radius:6px;background:none;color:var(--crm-text);font:inherit;font-size:14px;text-align:left;text-decoration:none;cursor:pointer;box-shadow:none}
+.crm-actions-list>button:hover,.crm-actions-list>a:hover,.crm-actions-list>button:focus-visible{background:var(--crm-hover,rgba(109,74,255,.08))}
+.crm-actions-list>button:disabled{opacity:.5;cursor:default}
+/* Campagne email (sales/crm-campagne.js). */
+#campagne>.cg-lead{margin:0 0 12px}
+#campagne>.cg-mailbox{margin:0 0 12px}
+
+/* Sales Orbis, Attività: one title row, then the list. The four boxes repeated the counts already on the tabs. */
+html[data-product].tv-on #tasks>.row:first-child>h2::after{content:none}
+html[data-product].tv-on #tasks>.row:first-child{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
+html[data-product].tv-on #tasks>.row:first-child>h2{flex:1 1 calc(100% - 320px);margin:0;order:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-actions{order:1;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.primary{order:2;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-automations{order:4;flex:1 1 320px;margin:0}
+html[data-product].tv-on #tasks>.row:first-child>.crm-tools{order:3;margin:0}
+html[data-product].tv-on #tasks .tv-kpis{display:none}
+
+/* Attività: the circle that completes a task, also in the lists. */
+.tv-table td .tv-check.sm{width:18px;height:18px;min-height:0;padding:0;border-radius:50%;margin-right:10px;vertical-align:-3px;cursor:pointer}
+.tv-table td .tv-check.sm.late{border-color:var(--crm-err)}
+.tv-pri.norm{color:var(--crm-muted)}

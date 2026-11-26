@@ -47,7 +47,7 @@ function donutPanel(d){
   svg.append(S('circle',{cx:80,cy:80,r:R,class:'so-donut-track'}));
   let off=0;rows.filter(r=>r.n).forEach(r=>{const len=C*r.n/opps.length;const c=S('circle',{cx:80,cy:80,r:R,stroke:r.c,class:'so-donut-seg','stroke-dasharray':`${Math.max(0,len-2)} ${C}`,'stroke-dashoffset':-off,transform:'rotate(-90 80 80)'});const t=S('title',{});t.textContent=r.label+': '+r.n;c.append(t);svg.append(c);off+=len});
   const n=S('text',{x:80,y:80,class:'so-donut-n','text-anchor':'middle'});n.textContent=opps.length;const s=S('text',{x:80,y:99,class:'so-donut-s','text-anchor':'middle'});s.textContent='totali';svg.append(n,s);
-  const leg=H('ul','so-legend');rows.forEach(r=>{const li=H('li');li.style.setProperty('--c',r.c);li.title='€ '+eur(r.v);li.append(H('i'),H('span','',r.label),H('b','',String(r.n)),H('small','',Math.round(r.n/opps.length*100)+'%'));leg.append(li)});
+  const leg=H('ul','so-legend');rows.forEach(r=>{const li=H('li');li.style.setProperty('--c',r.c);li.title='€ '+eur(r.v);const nm=H('span','',r.label);nm.setAttribute('data-i18n-ctx','stage');li.append(H('i'),nm,H('b','',String(r.n)),H('small','',Math.round(r.n/opps.length*100)+'%'));leg.append(li)});
   wrap.append(svg,leg);p.append(wrap);return p}
 
 let box=null;

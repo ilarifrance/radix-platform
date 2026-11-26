@@ -197,7 +197,10 @@ function modeSwitch(prep){
  const unv=E('input');unv.type='checkbox';const lu=E('label',undefined,'crm-b2b-check');lu.append(unv,E('span',' Includi anche email «da verificare» o catch-all (sconsigliato: più rimbalzi)'));
  const rules=E('ul',undefined,'crm-b2b-rules');
  for(const t of ['Solo l’email aziendale della persona: niente webmail, PEC o indirizzi generici (info@, commerciale@ …).','Mai chi si è disiscritto (anche da altre campagne) e mai due primi contatti alla stessa persona in 90 giorni.','Al massimo 2 follow-up, almeno 3 giorni dopo il passo precedente; si fermano se registri una risposta sul contatto.','Testo semplice 1:1, senza link tracciati né pixel; stessi limiti giornalieri delle caselle.'])rules.append(E('li',t));
- const foot=E('pre',PC.footer({issuer:{name:'{ragione sociale}',street:'{indirizzo}',city:'{città}'},sender:{from_name:'{mittente della casella}'},contact:{company:'{azienda}',linkedin_url:'x'},url:'{link personale di disiscrizione}'}).replace(/^\n+/,''),'crm-b2b-footer');
+ const en=!!(window.RadixI18n&&window.RadixI18n.en);
+ const foot=E('pre',(en?PC.footer({issuer:{name:'{company name}',street:'{address}',city:'{city}'},sender:{from_name:'{mailbox sender}'},contact:{company:'{company}',linkedin_url:'x'},url:'{personal unsubscribe link}',lang:'en'})
+  :PC.footer({issuer:{name:'{ragione sociale}',street:'{indirizzo}',city:'{città}'},sender:{from_name:'{mittente della casella}'},contact:{company:'{azienda}',linkedin_url:'x'},url:'{link personale di disiscrizione}'})).replace(/^\n+/,''),'crm-b2b-footer');
+ foot.setAttribute('data-i18n-skip','');
  opts.append(ls,lb,lu,rules,E('p','Piè di pagina fisso, aggiunto dal server in fondo a ogni email (dati da Impostazioni › Documenti):','muted'),foot);
  el.append(l1,l2,opts);
  const sync=()=>{const on=pro.checked;opts.hidden=!on;lb.hidden=step.value==='0';prep.disabled=on;prep.title=on?'La prospezione B2B parte solo con «Metti in coda».':''};

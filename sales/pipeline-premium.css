@@ -39,3 +39,38 @@
 .setup-delete{cursor:pointer}.setup-delete:disabled{opacity:.45;cursor:default}
 .process-field{display:inline-flex;align-items:center;gap:8px}.process-field[hidden]{display:none}
 @media (max-width:520px){.setup-head{padding-right:112px}.setup-col{grid-template-columns:16px minmax(0,1fr) 52px 32px 32px 32px;gap:4px}.setup-pick{flex-direction:column;align-items:stretch}.setup-gap{display:none}}
+/* Deal card: client line and the next-activity signal (pipeline-premium.js activityState). */
+.deal .client{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deal .next{display:flex;align-items:center;gap:6px}
+.deal .next::before{content:"";flex:0 0 9px;width:9px;height:9px;border-radius:50%;background:#9ca3af}
+.deal .next-planned::before,.deal .next-open::before{background:#16a34a}
+.deal .next-today::before{background:#d97706}
+.deal .next-overdue::before{background:#dc2626}
+.deal .next-overdue{color:#b42318}
+.deal .next-none::before{background:transparent;border:1.5px solid #9ca3af}
+
+/* Sales Orbis: the board starts near the top. One title row, the four numbers on one line, no breadcrumb or description. */
+html[data-product] .path,html[data-product] .heading .eyebrow,html[data-product] .heading>div>p{display:none}
+html[data-product] .shell>main>header{justify-content:flex-end;margin-bottom:0}
+html[data-product] .heading{align-items:center;margin:4px 0 10px}
+html[data-product] .heading h1{margin:0;font-size:28px;line-height:1.2}
+html[data-product] #status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+html[data-product] .metrics{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0 0 12px}
+html[data-product] .metrics>div{display:flex;align-items:baseline;gap:8px;padding:0;border:0;background:none;box-shadow:none;min-height:0}
+html[data-product] .metrics small{font-size:12px;letter-spacing:0;text-transform:none}
+html[data-product] .metrics small::first-letter{text-transform:uppercase}
+html[data-product] .metrics strong{margin:0;font-size:15px}
+html[data-product] .metrics span{display:none}
+html[data-product] .filterbar{margin-bottom:10px}
+
+.empty-start{display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:420px}.empty-start strong{font-size:16px;color:var(--ink)}.empty-start p{margin:0}.empty-start button{margin-top:6px}
+/* Sales Orbis: quieter columns (name and total on the column itself), cards that read title → client → amount. */
+html[data-product] .stage{border-color:transparent;border-radius:14px}
+html[data-product] .stage h2{border-top:0;border-bottom:0;background:transparent;font-size:13px;letter-spacing:.05em;text-transform:uppercase;padding-bottom:4px}
+html[data-product] .stage h2 small{display:block;margin-top:4px;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--crm-text)}
+html[data-product] .stage-add{border-color:transparent;background:transparent}
+html[data-product] .deal{border-radius:12px;transition:transform .12s ease,box-shadow .12s ease}
+html[data-product] .deal:hover{transform:translateY(-1px)}
+html[data-product] .deal strong{color:var(--crm-text);font-size:14.5px}
+html[data-product] .deal .value{font-size:16px;font-weight:700;color:var(--crm-accent)}
+@media (prefers-reduced-motion:reduce){html[data-product] .deal{transition:none}html[data-product] .deal:hover{transform:none}}

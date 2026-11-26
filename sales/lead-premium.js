@@ -1,6 +1,10 @@
 'use strict';
 (()=>{
  const $=id=>document.getElementById(id),MAX_ROWS=250;
+ // English interface (lib/radix-i18n.js): the default template of the textarea (never translated, it is editable text) in English.
+ // The {variables} keep their names: the draft fills them the same way.
+ (()=>{const I=window.RadixI18n,t=$('mail-template');if(!I||!I.en||!t||t.value.trim().indexOf('Buongiorno,')!==0||t.dataset.edited)return;
+  t.value='Hello,\n\nI noticed that {azienda} works in the {settore} sector in {paese}.\n\nI work with companies that want to improve their sales processes and I would like to understand whether this could be relevant to your role as {ruolo}.\n\nWould you be open to a short call?\n\nKind regards'})();
  let candidates=[],review=null,importEpoch=0;
  const norm=x=>typeof x==='string'?x.normalize('NFKC').trim().toLocaleLowerCase('it'):'';
  const fields=['name','domain','country','industry','companySize','contactRole','source'];

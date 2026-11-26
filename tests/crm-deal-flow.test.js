@@ -36,3 +36,15 @@ test('pages load the flow and both stage changes go through it',()=>{
  for(const f of ['sales-pipeline-premium.html','radix-sales.html']){const h=fs.readFileSync(f,'utf8');for(const x of ['crm-deal-flow-core.js','crm-deal-flow.js','crm-deal-flow.css'])assert.ok(h.includes(x),f+' '+x)}
  const ui=fs.readFileSync('sales/crm-deal-flow.js','utf8');assert.ok(!/\.style\.|innerHTML/.test(ui),'no inline styles or innerHTML');
 });
+
+// Stage bar at the top of the deal panel.
+{
+ const test=require('node:test'),assert=require('node:assert/strict');
+ const C=require('../sales/crm-deal-flow-core.js');
+ test('scheda opportunità: la barra mostra le fasi della pipeline in ordine, con fatte, attuale e prossime',()=>{
+  const stages=[{id:'c',process_id:'p',position:2,title:'Proposta'},{id:'a',process_id:'p',position:0,title:'Primo contatto'},{id:'b',process_id:'p',position:1,title:'Qualifica'},{id:'x',process_id:'altro',position:0,title:'Altra'}];
+  assert.deepEqual(C.stageBar(stages,{process_id:'p',stage_id:'b'}).map(s=>s.title+':'+s.state),['Primo contatto:done','Qualifica:current','Proposta:next']);
+  assert.deepEqual(C.stageBar(stages,{process_id:'p',stage_id:'tolta'}).map(s=>s.state),['next','next','next']);
+  assert.deepEqual(C.stageBar([],{}),[]);
+ });
+}

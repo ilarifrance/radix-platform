@@ -10,3 +10,13 @@
 .solo-err{margin:0;padding:10px 12px;border-left:3px solid #c0392b;background:#fdecea;color:#7a1f16;font-size:14px}
 .solo-go{min-height:46px;margin-top:4px;border:0;border-radius:10px;background:var(--crm-accent,#0b7a63);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .solo-go:disabled{opacity:.65;cursor:progress}
+/* Language choice on the sign-in card (IT | EN): the top-bar flag is hidden behind this window. */
+.solo-card{position:relative}
+.solo-langs{position:absolute;top:14px;right:14px;display:flex;gap:2px;padding:2px;border:1px solid var(--crm-line,#d9e0e7);border-radius:999px}
+.solo-lang{min-width:36px;min-height:32px;padding:0 8px;border:0;border-radius:999px;background:transparent;color:var(--crm-muted,#5b6b7a);font:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer}
+.solo-lang[aria-pressed="true"]{background:var(--crm-accent,#0b7a63);color:#fff}
+.solo-lang:focus-visible{outline:3px solid var(--crm-accent,#0b7a63);outline-offset:2px}
+/* «Password dimenticata?» / «Torna all’accesso» and the confirmation of the forgotten-password steps. */
+.solo-alt{justify-self:center;min-height:40px;padding:6px 10px;border:0;background:transparent;color:var(--crm-accent,#0b7a63);font:inherit;font-size:14px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.solo-alt:focus-visible{outline:3px solid var(--crm-accent,#0b7a63);outline-offset:2px;border-radius:6px}
+.solo-ok{margin:0;padding:10px 12px;border-left:3px solid var(--crm-accent,#0b7a63);background:#e8f5f1;color:#0b4d3f;font-size:14px}

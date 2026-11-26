@@ -262,7 +262,9 @@ function simPanel(all){const b=simBaseline(all,Date.now());
   const hl=E('label');const hz=E('select');hz.name='months';for(const m of [3,6,12]){const o=E('option',m+' mesi');o.value=String(m);hz.append(o)}hz.value=String(simEdits.months||6);hl.append(E('span','Orizzonte'),hz,E('small','Pipeline aperta: '+eur(b.openTotal)+' su '+b.openCount+' opp.'));form.append(hl);
   const out=E('div',undefined,'an-sim-out');p.append(form,out);
   const draw=()=>{const val=k=>inputs[k].value===''?null:Number(inputs[k].value);const miss=fields.filter(f=>val(f[0])==null).map(f=>f[1].replace(/ \(.*\)$/,'').toLowerCase());out.replaceChildren();
-    if(miss.length){out.append(E('p','Per simulare inserisci: '+miss.join(', ')+'.','an-note'));return}
+    // In English each missing field is translated first, so the whole sentence matches the dictionary (lib/radix-i18n.js).
+    const tr=x=>window.RadixI18n&&window.RadixI18n.en?window.RadixI18n.t(x):x;
+    if(miss.length){out.append(E('p','Per simulare inserisci: '+miss.map(tr).join(', ')+'.','an-note'));return}
     const r=simulate({openTotal:b.openTotal,winRate:val('winRate'),avgDeal:val('avgDeal')*100,newPerMonth:val('newPerMonth'),cycleMonths:val('cycleMonths'),months:Number(hz.value)});
     const line=(a,c)=>{const x=E('p',undefined,'an-line');x.append(E('span',a),E('b',c));out.append(x)};
     line('Incasso simulato in '+r.months+' mesi',eur(r.total));line('Dalla pipeline aperta',eur(r.fromPipeline));line('Da nuove opportunità',eur(r.fromNew)+(r.deals?' · circa '+r.deals.toLocaleString('it-IT')+' contratti':''));

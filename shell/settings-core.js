@@ -10,16 +10,20 @@ const SECTIONS=Object.freeze([
  {id:'calendari',label:'Calendari',hint:'Outlook e Google: abbonamento e calendari esterni',crm:true},
  {id:'collegamenti',label:'Collegamenti',hint:'Servizi esterni e estensione Chrome'},
  {id:'crm',label:'CRM',hint:'Automazioni, SLA e campi aggiunti',crm:true},
+ {id:'dati',label:'Dati del CRM',hint:'Membri, processi e fasi, ed elenchi completi di opportunità, lead e interazioni'},
  {id:'crediti',label:'Crediti e fatturazione',hint:'In arrivo'}
 ]);
 const IDS=SECTIONS.map(s=>s.id);
 // Old names and anchors that point to the same section.
-const ALIAS={profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',calendars:'calendari',calendario:'calendari',calendar:'calendari',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
+const ALIAS={dati_crm:'dati',processi:'dati',fasi:'dati',profile:'profilo',password:'profilo',lingua:'profilo',members:'membri',workspace:'membri',visibilita:'membri',mailboxes:'caselle',calendars:'calendari',calendario:'calendari',calendar:'calendari',integrazioni:'collegamenti',integrations:'collegamenti',estensione:'collegamenti',automazioni:'crm',sla:'crm',campi:'crm',billing:'crediti',fatturazione:'crediti'};
 // '#caselle', 'caselle', '#members' → a section id; anything else → 'profilo'.
-function sectionFromHash(hash){
+// «Sales Orbis» (sales/crm-product.js): no RADIX services or RADIX billing in the product's settings.
+const PRODUCT_HIDDEN=Object.freeze(['collegamenti','crediti']);
+function sectionsFor(product){return product?SECTIONS.filter(s=>!PRODUCT_HIDDEN.includes(s.id)):SECTIONS}
+function sectionFromHash(hash,product){
  const h=String(hash||'').replace(/^#/,'').split(/[?&/]/)[0].trim().toLowerCase();
- if(IDS.includes(h))return h;
- return ALIAS[h]||'profilo';
+ const id=IDS.includes(h)?h:ALIAS[h]||'profilo';
+ return product&&PRODUCT_HIDDEN.includes(id)?'profilo':id;
 }
 const PASSWORD_MIN=8,PASSWORD_MAX=200;
 // {current,password,confirm} → '' when it can be sent, otherwise the message to show.
@@ -68,6 +72,6 @@ function initials(name,email){
  if(words.length)return (words[0][0]+(words.length>1?words[words.length-1][0]:'')).toUpperCase();
  const e=String(email||'').trim();return e?e[0].toUpperCase():'?';
 }
-const api={SECTIONS,IDS,sectionFromHash,PASSWORD_MIN,PASSWORD_MAX,passwordProblem,LANGUAGES,SERVICES,connections,canManage,ROLE_NAMES,initials};
+const api={SECTIONS,IDS,PRODUCT_HIDDEN,sectionsFor,sectionFromHash,PASSWORD_MIN,PASSWORD_MAX,passwordProblem,LANGUAGES,SERVICES,connections,canManage,ROLE_NAMES,initials};
 if(typeof module==='object'&&module.exports)module.exports=api;else root.RadixSettingsCore=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

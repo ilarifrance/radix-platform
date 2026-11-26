@@ -140,7 +140,7 @@
   const skipped=parts.flatMap(s=>s.skipped);ul.append(el('li','Saltati: '+skipped.length));box.append(ul);
   if(skipped.length){const d=el('details');d.append(el('summary','Vedi i saltati e il motivo'));const l=el('ul');for(const s of skipped.slice(0,200))l.append(el('li',s.name+' — '+s.reason));d.append(l);box.append(d)}
   if(last.failed.length)box.append(el('p','Errore del CRM su «'+last.failed[0].name+'»: '+last.failed[0].reason+'. Correggi o riprova: «Riprendi» ricontrolla il CRM e continua dai lead mancanti.','lp-error'));
-  if(created){const a=el('a','Apri i contatti nel CRM →','lp-link');a.href='/radix-sales.html#contacts';box.append(a)}
+  if(created){const a=el('a','Apri i contatti nel CRM →','lp-link');a.href=(window.RadixCrmProduct&&window.RadixCrmProduct.here()?'/crm':'/radix-sales.html')+'#contacts';box.append(a)}
  }
  async function run(){
   const p=state.plans.at(-1);if(!p||state.running||!state.crm)return;

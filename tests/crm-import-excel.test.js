@@ -13,7 +13,7 @@ test('sheet rows become the same shape as a parsed CSV',()=>{
 });
 
 test('readFile: CSV as text, old .xls refused with a hint, size limits',async()=>{
- const file=(name,text,size)=>({name,size:size??text.length,text:async()=>text,arrayBuffer:async()=>new ArrayBuffer(0)});
+ const file=(name,text,size)=>({name,size:size??text.length,text:async()=>text,arrayBuffer:async()=>new Uint8Array(Buffer.from(text,'utf8')).buffer});
  assert.equal((await csv.readFile(file('a.csv','Nome\nAnna\n'))).rows[0].Nome,'Anna');
  await assert.rejects(csv.readFile(file('a.xls','')),/\.xlsx o CSV/);
  await assert.rejects(csv.readFile(file('a.csv','',3e6)),/2 MB/);

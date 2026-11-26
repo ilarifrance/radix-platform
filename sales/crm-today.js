@@ -19,7 +19,8 @@ const hm=d=>window.RadixCrmDates.hm(+d);// ora italiana, like the due labels
 // Tasks of the two due filters, read once per workspace; dropped after a write, on Aggiorna and on a workspace change.
 let tasks=null,loading=null,flash='';
 
-function ensureNav(){if(nav.querySelector('a[href="#today"]'))return;const a=E('a','Oggi');a.href='#today';const after=nav.querySelector('a[href="#dashboard"]');after?after.after(a):nav.prepend(a)}
+// Sales Orbis has no «Oggi» in its menu (sales-nav.js PRODUCT_HIDDEN): the page still opens from #today.
+function ensureNav(){if(window.RadixCrmProduct?.here()||nav.querySelector('a[href="#today"]'))return;const a=E('a','Oggi');a.href='#today';const after=nav.querySelector('a[href="#dashboard"]');after?after.after(a):nav.prepend(a)}
 function ensureSection(){let s=document.getElementById('today');if(s&&s.parentNode===content)return s;s=E('section',undefined,'panel td-section');s.id='today';const row=E('div',undefined,'row');row.append(E('h2','Oggi'));s.append(row);content.append(s);return s}
 
 async function readTasks(){

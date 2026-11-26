@@ -1,0 +1,37 @@
+/* «Guida alla configurazione» (#guida, sales/crm-guide.js). */
+.gd-section{display:grid;gap:14px;max-width:880px}
+.gd-top{display:grid;gap:8px}
+.gd-count{margin:0;font-size:14px;color:var(--crm-muted)}
+.gd-bar progress{display:block;width:100%;height:8px;border:0;border-radius:999px;overflow:hidden;background:var(--crm-accent-soft);accent-color:var(--crm-accent)}
+.gd-bar progress::-webkit-progress-bar{background:var(--crm-accent-soft)}
+.gd-bar progress::-webkit-progress-value{background:var(--crm-accent)}
+.gd-bar progress::-moz-progress-bar{background:var(--crm-accent)}
+.gd-group,.gd-more{border:1px solid var(--crm-line);border-radius:12px;background:var(--crm-card);box-shadow:var(--crm-shadow)}
+.gd-group>summary{display:flex;align-items:baseline;gap:12px;min-height:48px;padding:12px 18px;cursor:pointer;list-style:none}
+.gd-group>summary::-webkit-details-marker{display:none}
+.gd-group>summary:focus-visible{outline:3px solid var(--crm-accent);outline-offset:2px;border-radius:12px}
+.gd-title{font-size:16px;font-weight:700;color:var(--crm-text)}
+.gd-group>summary small{font-size:13px;color:var(--crm-muted)}
+.gd-of{margin-left:auto}
+.gd-more h3{margin:0;padding:14px 18px 4px;font-size:16px}
+.gd-steps{list-style:none;margin:0;padding:0 18px 12px;display:grid;gap:8px}
+.gd-step{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--crm-line);border-radius:10px}
+.gd-step>div{flex:1 1 auto;min-width:0}
+.gd-step b{display:block;font-size:14px;color:var(--crm-text)}
+.gd-step small{display:block;margin-top:2px;font-size:13px;color:var(--crm-muted)}
+.gd-step.is-done b{font-weight:500;color:var(--crm-muted)}
+.gd-mark{flex:none;display:grid;place-items:center;width:24px;height:24px;border:2px solid var(--crm-line-2,#cfd3dc);border-radius:50%;font-size:13px;font-weight:800;color:#fff}
+.gd-step.is-done .gd-mark{border-color:var(--crm-accent);background:var(--crm-accent)}
+.gd-state{flex:none;font-size:13px;color:var(--crm-muted)}
+.gd-go{flex:none;display:inline-flex;align-items:center;min-height:36px;padding:6px 14px;border:1px solid var(--crm-line-2,#cfd3dc);border-radius:10px;color:var(--crm-accent);font-size:13.5px;font-weight:600;text-decoration:none}
+.gd-go.primary{border-color:var(--crm-accent);background:var(--crm-accent);color:#fff}
+.gd-go:focus-visible{outline:3px solid var(--crm-accent);outline-offset:2px}
+.ex-box{display:flex;align-items:center;gap:16px;padding:14px 18px;border:1px solid var(--crm-accent-line,#d9c9fb);border-radius:12px;background:var(--crm-accent-soft,#f2ecfe)}
+.ex-box>div{flex:1 1 auto;min-width:0}
+.ex-box b{display:block;font-size:15px;color:var(--crm-text)}
+.ex-box small{display:block;margin-top:2px;font-size:13px;color:var(--crm-muted)}
+.ex-box button{flex:none;min-height:36px;padding:6px 16px;border-radius:10px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.ex-load{border:1px solid var(--crm-accent);background:var(--crm-accent);color:#fff}
+.ex-remove{border:1px solid var(--crm-line-2,#cfd3dc);background:var(--crm-card);color:var(--crm-accent)}
+@media (max-width:700px){.ex-box{flex-direction:column;align-items:stretch}}
+#dashboard>.ex-box{margin:0 0 16px}

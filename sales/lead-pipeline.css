@@ -287,3 +287,6 @@ footer{margin-top:28px;font-size:12px;color:var(--lp-subtle)}
 /* Phone: the six tabs wrap on two rows, so «Newsletter» and «Risultati» are on screen. */
 @media (max-width:700px){.lp-tabs{flex-wrap:wrap;overflow-x:visible;gap:0 2px;margin-top:28px}.lp-tabs button{padding:10px 10px;font-size:14px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+/* Language switch (lib/radix-i18n.js) sits after «Apri la Pipeline», both on the right. */
+.top>a{margin-left:auto}
+.top>.rx-lang .rx-lang-btn{font-size:14px;color:var(--lp-text,#2a2640)}

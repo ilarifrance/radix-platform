@@ -55,9 +55,9 @@ function funnel(m){const p=panel('Opportunità per fase','pv-funnel',['Vedi dett
   const svg=S('svg',{viewBox:'0 0 200 220',class:'pv-funnel-svg','aria-hidden':'true'});const n=Math.max(1,m.stages.length);const list=E('ul');
   m.stages.forEach((s,i)=>{const ops=m.opps.filter(o=>o.stage_id===s.id),v=ops.reduce((a,o)=>a+Number(o.amount_cents||0),0);const top=i*220/n,bot=(i+1)*220/n,w1=95-i*70/n,w2=95-(i+1)*70/n;
     svg.append(S('path',{d:`M${100-w1} ${top} L${100+w1} ${top} L${100+w2} ${bot-2} L${100-w2} ${bot-2} Z`,class:'f'+(i%5)}));
-    const li=E('li');li.append(E('b',s.title),E('span','€ '+eur(v)+' · '+ops.length+(ops.length===1?' opportunità':' opportunità')));list.append(li)});
+    const li=E('li'),nm=E('b',s.title);nm.setAttribute('data-i18n-ctx','stage');li.append(nm,E('span','€ '+eur(v)+' · '+ops.length+(ops.length===1?' opportunità':' opportunità')));list.append(li)});
   const last=m.stages.at(-1),share=m.opps.length&&last?Math.round(m.opps.filter(o=>o.stage_id===last.id).length/m.opps.length*100):0;
-  const fig=E('div',undefined,'pv-funnel-fig');fig.append(svg);const tot=E('p',undefined,'pv-conv');tot.append(E('small','In '+(last?.title||'ultima fase').toLowerCase()),E('b',share+'%'));fig.append(tot);
+  const fig=E('div',undefined,'pv-funnel-fig');fig.append(svg);const tot=E('p',undefined,'pv-conv');const stageName=x=>{const I=window.RadixI18n;if(!I||!I.en||!I.t)return x;const a=I.t('stage:'+x);return a!=='stage:'+x?a:I.t(x)};tot.append(E('small','In '+stageName(last?.title||'ultima fase').toLowerCase()),E('b',share+'%'));fig.append(tot);
   body.append(fig,list);p.append(body);return p}
 
 // One scale for both lines: the axis goes up to the cumulative total, so «Cumulato» reads its real value.
@@ -90,7 +90,9 @@ function onboarding(d){const O=window.RadixCrmOnboarding,app=window.RadixSalesAp
   let hidden=false;if(key){try{hidden=localStorage.getItem(key)==='hidden'}catch{}}
   // Hidden: only a small link to show the card again.
   if(hidden){const w=E('p',undefined,'pv-onboard-show');const b=E('button','Mostra i primi passi');b.type='button';b.onclick=()=>{try{localStorage.removeItem(key)}catch{}const n=onboarding(d);if(n)w.replaceWith(n)};w.append(b);return w}
-  const steps=O.steps(d),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
+  // Sales Orbis plans without Lead Intelligence (sales/sales-nav.js keeps the plan): the lead step stays in the CRM.
+  let plan='';try{plan=window.RadixCrmProduct?.here()?localStorage.getItem('rx-ws-plan')||'':''}catch{}
+  const steps=O.steps(d,{lead:!['completo','avanzato'].includes(plan),product:!!window.RadixCrmProduct?.here?.()}),pr=O.progress(steps);const p=E('section',undefined,'pv-panel pv-onboard');p.setAttribute('aria-labelledby','pv-onboard-title');
   const h=E('div',undefined,'pv-head');const t=E('h3',pr.complete?'Primi passi: tutto pronto':'Primi passi');t.id='pv-onboard-title';h.append(t,E('span',pr.done+' di '+pr.total+' fatti','pv-onboard-count'));
   if(key){const x=E('button','Nascondi','pv-onboard-hide');x.type='button';x.onclick=()=>{try{localStorage.setItem(key,'hidden')}catch{}const n=onboarding(d);if(n)p.replaceWith(n);else p.remove()};h.append(x)}
   p.append(h);const body=E('div',undefined,'pv-onboard-body');

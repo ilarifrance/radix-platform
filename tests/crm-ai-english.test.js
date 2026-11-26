@@ -198,11 +198,12 @@ test('the TO BE COMPLETED placeholders of English drafts are caught like DA COMP
   assert.match(d, /RadixI18n\.en\)req\.lang='it'/, 'dictation stays Italian (its values are read the Italian way)');
 });
 
-test('api/chat languageRule: in English the chosen currency is named; unknown or missing → pounds unnamed', () => {
+test('api/chat languageRule: in English the chosen currency is named (any workspace currency); unknown or missing → unnamed', () => {
   const { languageRule } = require('../api/chat.js');
   assert.match(languageRule('en', 'GBP'), /pounds sterling: write them with the £ sign/);
   assert.match(languageRule('en', 'eur'), /euro: write them with the € sign/);
-  assert.equal(languageRule('en', 'USD'), languageRule('en'), 'unknown currency: just the language rule');
+  assert.match(languageRule('en', 'USD'), /Amounts are in USD: write them in USD/, 'a workspace currency (Impostazioni › CRM › Valuta)');
+  assert.equal(languageRule('en', 'XYZ'), languageRule('en'), 'unknown currency: just the language rule');
   assert.equal(languageRule('it', 'GBP'), '', 'Italian: no rule at all');
   assert.ok(languageRule('en', 'EUR').startsWith(languageRule('en')), 'the currency sentence comes after the language rule');
 });

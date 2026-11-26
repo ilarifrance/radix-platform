@@ -215,7 +215,7 @@ test('wiring: scripts and styles in radix-sales.html, «Detta» in the Copilota 
  assert.ok(!/MediaRecorder|getUserMedia|FormData\(|audio\/|\.wav|blob/i.test(ui),'no audio recorded or uploaded');
  assert.match(ui,/a\.api\(p\.entity,\{body:\{workspace:a\.state\.workspace,entity:p\.entity,action:p\.action,data:p\.data\}\}\)/,'saves with the sales commands of the forms');
  assert.match(read('sales/crm-copilot.js'),/RadixCrmDictation\?\.available\(\)[\s\S]*RadixCrmDictation\.open\(\)/);
- assert.match(read('sales/sales.js'),/window\.RadixCrmDictation\?\.editor\(entity,row,fields\);\n \$\('editor'\)\.showModal\(\)/);
+ assert.match(read('sales/sales.js'),/window\.RadixCrmDictation\?\.editor\(entity,row,fields\);\n if\(!\$\('editor'\)\.open\)\$\('editor'\)\.showModal\(\)/);
  // No new sales command, column or table.
  assert.ok(!/api\/sales/.test(read('sales/crm-dictation-core.js')));
 });

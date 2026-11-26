@@ -1846,6 +1846,8 @@ module.exports = async (req, res) => {
   if (req.method === "GET") {
     // v3.3: insieme allo stato, i profili progetto predefiniti — il frontend li semina nello stato condiviso
     // alla prima apertura (poi sono modificabili lì) e li usa per la migrazione del vecchio campo "brand".
+    // «Sales Orbis»: no RADIX project profiles on the product.
+    if (require("./_product").isProductRequest(req)) { res.status(200).json({ configured: !!process.env.ANTHROPIC_API_KEY }); return; }
     res.status(200).json({ configured: !!process.env.ANTHROPIC_API_KEY, presets: Object.values(PRESET_PROJECTS) });
     return;
   }
@@ -1857,9 +1859,12 @@ module.exports = async (req, res) => {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    res.status(500).json({
-      error:
-        "ANTHROPIC_API_KEY non configurata su Vercel. Vai su Project Settings -> Environment Variables, aggiungila e rifai il deploy.",
+    // «Sales Orbis»: the customer never sees how the server is set up.
+    const productReq = require("./_product").isProductRequest(req);
+    res.status(productReq ? 503 : 500).json({
+      error: productReq
+        ? "Il Copilota non è disponibile in questo momento: riprova più tardi."
+        : "ANTHROPIC_API_KEY non configurata su Vercel. Vai su Project Settings -> Environment Variables, aggiungila e rifai il deploy.",
     });
     return;
   }
@@ -1872,7 +1877,14 @@ module.exports = async (req, res) => {
       body = {};
     }
   }
-  const { role, messages, brand, project, memoryScope, crmScope } = body || {};
+  const { role, messages, brand, project, crmScope } = body || {};
+  // «Sales Orbis» (api/_product.js): on the product only the CRM agents run, without the RADIX team memory.
+  const onProduct = require("./_product").isProductRequest(req);
+  if (onProduct && !require("../sales/crm-product.js").chatRoleAllowed(role)) {
+    res.status(404).json({ error: "Agente non disponibile." });
+    return;
+  }
+  const memoryScope = onProduct ? undefined : body && body.memoryScope;
   // "legacy" asks for the previous engine (comparisons, or a reply that worked better there).
   const forcedTier = body && body.engine === "legacy" ? "legacy" : undefined;
   const own = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
@@ -1952,6 +1964,31 @@ module.exports = async (req, res) => {
     return;
   }
 
+  // «Sales Orbis» plans (api/_sales_plan.js): the Copilota only with «avanzato», «extreme» or «prova», and a monthly limit
+  // of requests per user, taken before the call and given back if the call fails.
+  let aiMeter = null;
+  if (onProduct) {
+    const plans = require("./_sales_plan");
+    const db = require("./_db").sql();
+    const uid = req.user && req.user.uid;
+    const wanted = crmScope && typeof crmScope.workspace === "string" ? crmScope.workspace : null;
+    try {
+      const ws = await plans.aiWorkspace(db, uid, wanted);
+      if (!ws) {
+        res.status(403).json({ error: "Nessun workspace CRM per questo account." });
+        return;
+      }
+      aiMeter = await plans.meter(db, { workspace: ws, user: uid, product: true });
+      await aiMeter.take("ai", 1);
+    } catch (e) {
+      if (e instanceof plans.LimitError) {
+        res.status(e.status).json({ error: e.message, code: "plan_limit" });
+        return;
+      }
+      throw e;
+    }
+  }
+
   try {
     let { text, usage, sources, stopReason, engine } = await callAnthropic(apiKey, agent, sendMessages, system, agentKey, forcedTier);
     let revised = false;
@@ -2005,6 +2042,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json({ reply: text, agent: agent.name, revised, truncated, usage, sources: sources || [], engine });
   } catch (err) {
+    if (aiMeter) await aiMeter.give("ai", 1).catch(() => {});
     const status = err && err.status ? err.status : 502;
     res.status(status).json({ error: friendlyApiError(err) });
   }
@@ -2033,7 +2071,9 @@ function languageRule(lang, currency) {
   const l = typeof lang === "string" ? lang.trim().toLowerCase() : "";
   if (!LANGUAGES.includes(l) || l === "it") return "";
   const c = typeof currency === "string" ? currency.trim().toUpperCase() : "";
-  return "\n\n" + ENGLISH_RULE + (CURRENCY_RULE[c] || "");
+  // Any other workspace currency (Impostazioni › CRM › Valuta): its ISO code, never euro.
+  const other = require("../lib/radix-i18n.js").CODES.includes(c) && !CURRENCY_RULE[c] ? " Amounts are in " + c + ": write them in " + c + " (for example " + c + " 1,200.00), never with € or £." : "";
+  return "\n\n" + ENGLISH_RULE + (CURRENCY_RULE[c] || other);
 }
 module.exports.friendlyApiError = friendlyApiError;
 module.exports.languageRule = languageRule;

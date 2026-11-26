@@ -1,0 +1,16 @@
+{
+  "name": "Sales Orbis",
+  "short_name": "Sales Orbis",
+  "description": "Il CRM Sales Orbis: aziende, contatti, opportunità e attività.",
+  "lang": "it",
+  "id": "/crm",
+  "start_url": "/crm",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f4f8",
+  "theme_color": "#ffffff",
+  "icons": [
+    { "src": "/sales/icons/sales-orbis.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

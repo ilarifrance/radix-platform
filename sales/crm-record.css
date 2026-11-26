@@ -31,6 +31,8 @@
 .crm-rec h3{margin:0;font-size:13px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--crx-heading)}
 .crm-rec-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:6px}
 .crm-rec-head button{min-height:36px;font-size:13px}
+.crm-rec-deal .crm-rec-head{justify-content:flex-start}.crm-rec-deal .crm-rec-head h3{margin-right:auto}
+.crm-rec-head .crm-quote-link{display:inline-flex;align-items:center;min-height:36px;padding:0 12px;border:1px solid var(--crx-border);border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:inherit}
 .crm-rec>section>p.muted{font-size:12px;margin:4px 0 8px;color:var(--crx-muted)}
 .crm-rec .crm-rec-ai{border-color:var(--crx-border-accent)}
 .crm-rec-ai h3{color:var(--crx-accent)}
@@ -90,3 +92,31 @@
 @media (max-width:560px){.crm-follow-up{grid-template-columns:minmax(0,1fr)}}
 .crm-rec-call{display:inline-flex;align-items:center;gap:6px;margin:0 0 10px;padding:6px 12px;border-radius:999px;border:1px solid var(--crx-border);text-decoration:none;color:var(--crx-accent);font-weight:600;font-size:.9em}
 .crm-rec-call:hover,.crm-rec-call:focus-visible{border-color:currentColor}
+
+/* ---------- Percorso commerciale (crm-journey.js) ---------- */
+.crm-rec>.crm-journey{grid-column:1/-1}
+.crm-journey .cj-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.crm-journey .cj-badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid var(--crx-border);color:var(--crx-muted)}
+.crm-journey .cj-badge-ready{color:var(--crm-ok,#0f7a4a);border-color:var(--crm-ok,#7fd1a8);background:var(--crm-ok-soft,transparent)}
+.crm-journey .cj-badge-won{color:var(--crm-ok,#0f7a4a);border-color:var(--crm-ok,#7fd1a8)}
+.crm-journey .cj-badge-opportunity{color:var(--crx-link);border-color:var(--crx-border-accent)}
+.crm-journey .cj-badge-working{color:var(--crm-warn,#8a5a00);border-color:var(--crm-warn,#f0c977);background:var(--crm-warn-soft,transparent)}
+.crm-journey .cj-hint{margin:6px 0 12px;color:var(--crx-muted);font-size:14px}
+.crm-journey .cj-opps{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.crm-journey .cj-opp{font-size:13px}
+.crm-journey .cj-opp-persa{opacity:.7}
+.crm-journey .cj-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.crm-journey .cj-part h4{margin:0 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--crx-muted)}
+.crm-journey .cj-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.crm-journey .cj-step{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1px solid var(--crx-border-soft);border-radius:10px;background:var(--crx-surface-2)}
+.crm-journey .cj-ico{flex:0 0 22px;text-align:center;font-size:15px;line-height:22px;color:var(--crx-link)}
+.crm-journey .cj-body{flex:1;min-width:0}
+.crm-journey .cj-top{margin:0;display:flex;gap:6px;flex-wrap:wrap;font-size:14px}
+.crm-journey .cj-top b{font-weight:600}
+.crm-journey .cj-when{color:var(--crx-faint);font-size:12px}
+.crm-journey .cj-text{margin:4px 0 0;font-size:13px;color:var(--crx-muted);white-space:pre-line;overflow-wrap:anywhere}
+.crm-journey .cj-overdue{border-color:var(--crm-err,#f0a8a8)}
+.crm-journey .cj-overdue .cj-when{color:var(--crm-err,#b42318)}
+.crm-journey .cj-done{flex:0 0 auto;font-size:12px;padding:4px 10px}
+
+.crm-rec-meet{background:none;cursor:pointer;font:inherit;font-weight:600;font-size:.9em;margin-right:8px}

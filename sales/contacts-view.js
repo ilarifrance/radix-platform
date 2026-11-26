@@ -12,7 +12,7 @@ const initials=t=>String(t||'').trim().split(/\s+/).filter(w=>/^[\p{L}\p{N}]/u.t
 const money=c=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:0}).format(Number(c||0)/100);
 const day=v=>{if(!v)return'';const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',timeZone:'Europe/Rome'}):''};
 const ago=v=>{const d=new Date(v);if(!Number.isFinite(d.getTime()))return'';const n=Math.round((Date.now()-d)/864e5);return n<=0?'oggi':n===1?'ieri':n+' g fa'};
-const KIND={email:'Email',call:'Call',meeting:'Meeting',note:'Nota',linkedin:'LinkedIn'};
+const KIND={email:'Email',call:'Chiamata',meeting:'Incontro',note:'Nota',linkedin:'LinkedIn'};
 const state={selected:null};
 
 const scoreOf=(d,c)=>window.RadixCrmScore?window.RadixCrmScore.score(c,{interactions:d.interactions,opportunities:d.opportunities,stages:d.stages}):null;
@@ -56,7 +56,7 @@ function sheet(d,c,card){const f=facts(d,c);const s=E('div',undefined,'cx-detail
   const txt=E('div');if(f.opps.length)txt.append(E('span','Trattativa aperta','cx-chip'));txt.append(E('h2',c.name),E('p',f.company?.name||'Azienda non collegata','cx-sub'));
   const sc=scoreOf(d,c);if(sc){const r=E('p',undefined,'cx-score-line');r.append(badge(sc),E('span',window.RadixCrmScore.explain(sc)));txt.append(r)}
   const tags=E('div',undefined,'cx-tags');tags.append(E('span',f.opps.length+' opportunità'),E('span',f.open.length+' attività aperte'),E('span',f.inter.length+' interazioni'));txt.append(tags);id.append(txt);top.append(id);
-  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b).trim();if(!/^(Customer360|Messaggio LinkedIn|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':label==='Customer360'?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
+  const acts=E('div',undefined,'cx-actions');for(const b of card.querySelectorAll('button')){const label=(n=>globalThis.RadixI18n?RadixI18n.source(n):(n?n.textContent:''))(b).trim();if(!/^(Customer360|Messaggio LinkedIn|Apri scheda|Modifica|Elimina|Esporta dati \(GDPR\)|Anonimizza \(GDPR\))$/.test(label))continue;const x=E('button',label,/^(Elimina|Anonimizza)/.test(label)?'danger':(label==='Customer360'||label==='Apri scheda')?'primary':'');x.type='button';x.disabled=b.disabled;x.addEventListener('click',()=>b.click());acts.append(x)}top.append(acts);s.append(top);
   const grid=E('div',undefined,'cx-grid');
   const act=E('section',undefined,'cx-panel');act.append(E('h3','Attività recenti'));const ul=E('ul',undefined,'cx-timeline');
   if(!f.inter.length)ul.append(E('li','Nessuna interazione registrata.','cx-empty'));for(const i of f.inter.slice(0,4)){const li=E('li');li.append(E('b',(KIND[i.kind]||i.kind||'Interazione')+' · '+i.title),E('small',day(i.occurred_at)));ul.append(li)}act.append(ul);
@@ -77,7 +77,8 @@ async function render(){const section=document.getElementById('contacts');if(!se
   if(!cards.some(x=>x.contact.id===state.selected))state.selected=cards[0].contact.id;
   const sel=cards.find(x=>x.contact.id===state.selected);
   const root=E('div',undefined,'cx');root.append(table(d,cards),sheet(d,sel.contact,sel.card));
-  const after=section.querySelector(':scope>p.muted')||section.querySelector(':scope>form');after?after.after(root):section.append(root);
+  const after=section.querySelector(':scope>.lv')||section.querySelector(':scope>p.muted')||section.querySelector(':scope>form');// below the list header (crm-list.js): Schede/Tabella stays on top
+  after?after.after(root):section.append(root);
   document.documentElement.classList.add('cx-on');requestAnimationFrame(()=>{busy=false;if(!section.isConnected)later()})}
 
 let q=false;const later=()=>{if(busy||q)return;q=true;setTimeout(()=>{q=false;render()},60)};

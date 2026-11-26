@@ -18,6 +18,8 @@ function signedIn(d){const u=d&&(d.user||d);return !!(u&&(u.name||u.displayName|
 
 function boot(win){const doc=win.document,body=doc.body;
  if(!body||win.__radixShell||win.__radixRegiaLoader)return;win.__radixRegiaLoader=true;
+ // Sales Orbis (the CRM sold on its own) has no Regia RADIX: its assistant is the CRM Copilot (sales/crm-product.js).
+ if(win.RadixCrmProduct&&typeof win.RadixCrmProduct.here==='function'&&win.RadixCrmProduct.here())return;
  if(body.dataset.shellGuide==='off'||doc.getElementById('rxGuide')||doc.getElementById('rxRegia')||typeof win.fetch!=='function')return;
  win.fetch('/api/auth/me',{credentials:'same-origin',headers:{accept:'application/json'}})
   .then(r=>r.ok?r.json():null)

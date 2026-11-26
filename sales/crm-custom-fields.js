@@ -28,7 +28,8 @@ const core={key,distance,match,of,merge,columnsFor};
 if(typeof module==='object'&&module.exports){module.exports=core;return}
 
 /* ---------- browser ---------- */
-const app=()=>root.RadixSalesApp;
+// The CRM app, or the small host a page without it provides (the Pipeline panel, sales/crm-deal-flow.js).
+const app=()=>root.RadixSalesApp||root.RadixCrmCustomHost;
 const E=(tag,text,cls)=>{const n=document.createElement(tag);if(text!=null)n.textContent=text;if(cls)n.className=cls;return n};
 let cache=null,cacheWs=null,loading=null;
 async function load(force){
