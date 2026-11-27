@@ -8,6 +8,10 @@
   ],
   "rewrites": [
     {
+      "source": "/ciuffo/p/:slug",
+      "destination": "/ciuffo/prenota.html"
+    },
+    {
       "source": "/api/accounting-stripe",
       "destination": "/api/accounting?stripe=webhook"
     },

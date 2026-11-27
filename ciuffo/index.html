@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ciuffo · Il tuo salone prende appuntamenti da solo</title>
+<meta name="description" content="Ciuffo è l'agenda con pagina «Prenota» per parrucchieri, barbieri ed estetiste: i clienti vedono gli orari liberi e prenotano da soli, tu ritrovi tutto in agenda.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="/ciuffo/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ciuffo/ciuffo.css">
+<style>
+ .hero{padding:24px 0 64px;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+ .hero h1{font-size:clamp(2.3rem,5.4vw,3.8rem)}
+ .hero h1 em{font-style:normal;color:var(--coral-ink)}
+ .lead{font-size:1.15rem;color:var(--muted);max-width:34em}
+ .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+ .phone{justify-self:center;width:300px;border-radius:38px;background:var(--ink);padding:12px;box-shadow:0 30px 60px rgba(38,24,27,.25);transform:rotate(2deg)}
+ .screen{background:var(--cream);border-radius:28px;overflow:hidden}
+ .screen .top{background:var(--plum);color:#fff;padding:22px 18px 18px}
+ .screen .top b{font:600 1.35rem var(--display);display:block}
+ .screen .top span{font-size:.8rem;opacity:.85}
+ .screen .body{padding:14px}
+ .mini{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;font-size:.88rem}
+ .mini.sel{box-shadow:inset 0 0 0 2px var(--ink)}
+ .mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+ .mchips span{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:.8rem;font-weight:600}
+ .mchips span.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+ .mbtn{margin-top:12px;background:var(--coral);color:#fff;text-align:center;border-radius:999px;padding:10px;font-weight:700;font-size:.9rem}
+ section.band{padding:56px 0}
+ .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+ .steps .card{padding:20px}
+ .steps .n{font:600 2rem var(--display);color:var(--coral)}
+ .plum{background:var(--plum);color:#fff;border-radius:28px;padding:40px}
+ .plum .muted{color:rgba(255,255,255,.8)}
+ .channels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+ .channels div{background:rgba(255,255,255,.08);border-radius:16px;padding:18px}
+ .badge{display:inline-block;font-size:.72rem;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--sage-soft);color:#24533A;margin-bottom:8px}
+ .badge.soon{background:rgba(255,255,255,.18);color:#fff}
+ .faq details{border-bottom:1px solid var(--line);padding:14px 0}.faq summary{font-weight:700;cursor:pointer}
+ @media(max-width:820px){.hero{grid-template-columns:1fr}.phone{transform:none;width:270px}.steps,.channels{grid-template-columns:1fr}.plum{padding:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <div class="brandbar"><img src="/ciuffo/logo.svg" alt="Ciuffo"><a class="btn ghost small" href="/ciuffo/accedi.html">Accedi</a></div>
+ <section class="hero">
+  <div>
+   <h1>Il tuo salone prende appuntamenti <em>anche quando hai le mani nei capelli</em>.</h1>
+   <p class="lead">Ciuffo dà al tuo salone una pagina «Prenota»: i clienti vedono solo gli orari davvero liberi, scelgono servizio e persona, e l'appuntamento compare nella tua agenda. Niente telefonate perse, niente doppie prenotazioni.</p>
+   <div class="cta"><a class="btn" href="/ciuffo/iscrizione.html">Provalo gratis</a><a class="btn ghost" href="#come">Come funziona</a></div>
+   <p class="small muted" style="margin-top:14px">Per parrucchieri, barbieri, centri estetici e unghie. In prova gratuita con i primi saloni.</p>
+  </div>
+  <div class="phone" aria-hidden="true"><div class="screen">
+   <div class="top"><b>Salone Bea</b><span>Via Roma 12, Padova</span></div>
+   <div class="body">
+    <div class="mini sel"><span><b>Taglio e piega</b><br><span class="muted">1 h</span></span><b>35 €</b></div>
+    <div class="mini"><span><b>Colore</b><br><span class="muted">1 h 30 min</span></span><b>45 €</b></div>
+    <p class="small" style="margin:10px 0 0;font-weight:700">Martedì 24 novembre</p>
+    <div class="mchips"><span>09:00</span><span class="on">10:30</span><span>11:00</span><span>15:00</span><span>16:30</span></div>
+    <div class="mbtn">Conferma prenotazione</div>
+   </div>
+  </div></div>
+ </section>
+
+ <section class="band" id="come">
+  <h2>Pronto in tre passi</h2>
+  <div class="steps">
+   <div class="card"><div class="n">1</div><h3>Metti orari e servizi</h3><p class="muted">Apertura, pausa pranzo, durata di ogni servizio e chi lo fa. Ti diamo già una base da cambiare.</p></div>
+   <div class="card"><div class="n">2</div><h3>Condividi il link</h3><p class="muted">Nella bio di Instagram, su Google Maps, nei messaggi WhatsApp. Ogni salone ha il suo indirizzo.</p></div>
+   <div class="card"><div class="n">3</div><h3>Ritrovi tutto in agenda</h3><p class="muted">Una colonna per persona, gli spazi liberi in verde, le prenotazioni online segnate. Sposti o disdici con un tocco.</p></div>
+  </div>
+ </section>
+
+ <section class="band">
+  <div class="plum">
+   <h2>Un solo assistente, ovunque ti cerchino</h2>
+   <p class="muted">Lo stesso calendario risponde da tutti i canali, così un orario non viene mai dato due volte.</p>
+   <div class="channels">
+    <div><span class="badge">Disponibile</span><h3>Pagina «Prenota»</h3><p class="muted">Dal telefono del cliente, 24 ore su 24, con conferma e link per disdire.</p></div>
+    <div><span class="badge soon">In arrivo</span><h3>WhatsApp</h3><p class="muted">Il cliente scrive al numero del salone e l'assistente propone gli orari liberi e prenota.</p></div>
+    <div><span class="badge soon">In arrivo</span><h3>Telefono</h3><p class="muted">Se non rispondi entro qualche squillo, risponde una voce in italiano e fissa l'appuntamento.</p></div>
+   </div>
+  </div>
+ </section>
+
+ <section class="band faq">
+  <h2>Domande</h2>
+  <details><summary>E se un cliente prenota mentre io do lo stesso orario a voce?</summary><p class="muted">Non succede: l'agenda accetta un solo appuntamento per persona nello stesso momento, chiunque lo inserisca. Il secondo trova l'orario già preso.</p></details>
+  <details><summary>Posso decidere quanto preavviso serve?</summary><p class="muted">Sì: preavviso minimo, quanti giorni avanti si può prenotare e fino a quando si può disdire online.</p></details>
+  <details><summary>E le ferie?</summary><p class="muted">Segni i giorni di chiusura del salone o di una sola persona, e in quei giorni online non compaiono orari.</p></details>
+  <details><summary>Di chi sono i dati dei clienti?</summary><p class="muted">Del salone. Ciuffo li custodisce per tuo conto su server europei e non li usa per altro.</p></details>
+ </section>
+ <footer class="foot">Ciuffo · prenotazioni per saloni · versione di prova</footer>
+</div>
+</body>
+</html>

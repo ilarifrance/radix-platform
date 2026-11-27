@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Il tuo appuntamento · Ciuffo</title>
+<meta name="robots" content="noindex"><meta name="referrer" content="no-referrer">
+<link rel="icon" href="/ciuffo/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ciuffo/ciuffo.css">
+</head>
+<body>
+<main class="narrow" style="padding-top:28px;padding-bottom:40px">
+ <div class="brandbar"><a href="/ciuffo/"><img src="/ciuffo/logo.svg" alt="Ciuffo"></a></div>
+ <section class="card" style="padding:22px" id="box"><p class="muted">Carico il tuo appuntamento…</p></section>
+</main>
+<script src="/ciuffo/ciuffo.js"></script>
+<script>
+(function(){
+ 'use strict';
+ const C=window.Ciuffo,box=document.getElementById('box');
+ const token=(location.hash.match(/t=([A-Za-z0-9_-]+)/)||[])[1]||'';
+ const STATUS={confirmed:'Confermato',done:'Fatto',no_show:'Non presentato',cancelled:'Disdetto'};
+ function draw(b,msg){
+  const where=[b.shop.address,b.shop.city].filter(Boolean).join(', ');
+  box.innerHTML='<p class="small muted" style="margin-bottom:4px">'+C.esc(STATUS[b.status]||b.status)+'</p><h1 style="font-size:1.8rem">'+C.esc(b.service)+'</h1>'+
+   '<p>'+C.esc(C.day(b.starts_at))+', ore '+C.time(b.starts_at)+(b.staff?' con '+C.esc(b.staff):'')+'</p>'+
+   '<p><b>'+C.esc(b.shop.name)+'</b>'+(where?'<br>'+C.esc(where):'')+(b.shop.phone?'<br><a href="tel:'+C.esc(b.shop.phone)+'">'+C.esc(C.tel(b.shop.phone))+'</a>':'')+'</p>'+
+   (msg?'<p class="notice '+(msg.err?'err':'ok')+'">'+C.esc(msg.text)+'</p>':'')+
+   (b.status==='confirmed'?(b.can_cancel?'<button class="btn ghost" id="cancel" type="button">Disdici l\'appuntamento</button>':'<p class="notice">Manca poco all\'appuntamento: per disdire chiama il salone.</p>'):'')+
+   (b.status==='cancelled'?'<p style="margin-top:12px"><a class="btn" href="/ciuffo/p/'+C.esc(b.shop.slug)+'">Prenota di nuovo</a></p>':'');
+  const c=document.getElementById('cancel');
+  if(c)c.onclick=async()=>{if(!confirm('Vuoi davvero disdire?'))return;c.disabled=true;
+   try{await C.api('POST',null,{action:'booking.cancel',data:{token}});b.status='cancelled';draw(b,{text:'Fatto: l\'appuntamento è disdetto e l\'orario torna libero.'});}
+   catch(e){c.disabled=false;draw(b,{err:true,text:e.message});}};
+ }
+ (async function(){
+  if(!token){box.innerHTML='<p class="notice err">Link incompleto: usa quello che hai ricevuto alla prenotazione.</p>';return;}
+  try{draw(await C.api('GET',{resource:'booking',token}));}
+  catch(e){box.innerHTML='<p class="notice err">'+C.esc(e.message)+'</p>';}
+ })();
+})();
+</script>
+</body>
+</html>
